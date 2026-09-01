@@ -614,6 +614,7 @@ enum AppStrings {
         static var filterToday: String { text("events.filter.today", "Today") }
         static var filterThisWeek: String { text("events.filter.this_week", "This week") }
         static var filterRegistered: String { text("events.filter.registered", "Зареєстровані") }
+        static var resetFilters: String { text("events.filter.reset", "Скинути фільтри") }
         static var allCategories: String { text("events.filter.all_categories", "Усі категорії") }
         static var categoryEducation: String { text("events.category.education", "Освіта") }
         static var categoryCulture: String { text("events.category.culture", "Культура") }

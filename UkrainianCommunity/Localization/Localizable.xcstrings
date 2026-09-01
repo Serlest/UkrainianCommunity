@@ -7412,6 +7412,23 @@
         }
       }
     },
+    "events.filter.reset" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Filter zurücksetzen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скинути фільтри"
+          }
+        }
+      }
+    },
     "events.filter.this_week" : {
       "extractionState" : "manual",
       "localizations" : {
