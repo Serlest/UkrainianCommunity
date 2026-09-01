@@ -7,6 +7,10 @@ import {requireVerifiedActiveUser} from "../auth/context";
 import {adminStorage, db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
 import {writeUserNotification} from "../notifications/notificationPayloads";
+import {
+  contentPlanningReceiptRetentionPolicy,
+  contentPlanningRetentionExpiresAt,
+} from "./contentPlanningRetentionPolicy";
 
 type DraftKind = "news" | "event";
 type DraftState = "readyForReview" | "needsAttention";
@@ -166,6 +170,10 @@ export async function saveOwnerContentDraftForUser(
       publishedOrganizationId: null,
       publishedOrganizationName: null,
       publicationOutcome: null,
+      retentionPolicy: null,
+      retentionExpiresAt: null,
+      draftMediaCleanupStatus: null,
+      draftMediaCleanupRequestedAt: null,
     });
   });
 
@@ -595,6 +603,10 @@ export async function finalizeOwnerContentDraftPublicationForUser(
       publishedOrganizationId: organizationId,
       publishedOrganizationName: optionalString(contentSnapshot.get("organizationName"), 200) ?? null,
       publicationOutcome: outcome,
+      retentionPolicy: isScheduled ? null : contentPlanningReceiptRetentionPolicy,
+      retentionExpiresAt: isScheduled ? null : contentPlanningRetentionExpiresAt(now),
+      draftMediaCleanupStatus: isScheduled ? null : "pending",
+      draftMediaCleanupRequestedAt: isScheduled ? null : now,
       failureMessage: null,
       publicationAttemptId: FieldValue.delete(),
       publicationLeaseId: FieldValue.delete(),
@@ -706,6 +718,10 @@ export async function archiveOwnerContentDraftForUser(
       state: "archived",
       archivedAt: now,
       publicationOutcome: "archived",
+      retentionPolicy: contentPlanningReceiptRetentionPolicy,
+      retentionExpiresAt: contentPlanningRetentionExpiresAt(now),
+      draftMediaCleanupStatus: "pending",
+      draftMediaCleanupRequestedAt: now,
       publishedContentId: null,
       publishedContentKind: null,
       publishedOrganizationId: null,

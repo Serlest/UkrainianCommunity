@@ -95,6 +95,12 @@ test("finalize writes one durable receipt and is idempotent", {skip: !live}, asy
   assert.equal(receipt.get("publishedContentKind"), "news");
   assert.equal(receipt.get("publishedOrganizationId"), "organization-1");
   assert.equal(receipt.get("publicationOutcome"), "approved");
+  assert.equal(receipt.get("draftMediaCleanupStatus"), "pending");
+  assert.equal(receipt.get("retentionPolicy"), "contentPlanningReceipt6Months");
+  assert.equal(
+    (receipt.get("retentionExpiresAt") as Timestamp).toDate().toISOString(),
+    "1970-07-01T00:00:20.000Z"
+  );
   assert.equal(receipt.get("publicationLeaseId"), undefined);
 });
 

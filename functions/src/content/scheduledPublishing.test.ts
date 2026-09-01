@@ -3,11 +3,32 @@ import {test} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {
+  completedPlanningUpdate,
   isActivePlanningPublication,
   isCurrentScheduledPlanningLink,
   isScheduledCandidateClaimable,
   processScheduledCandidateIds,
 } from "./scheduledPublishing";
+
+test("completed planning receipts receive media cleanup and six-month retention", () => {
+  const now = Timestamp.fromDate(new Date("2026-08-31T10:00:00.000Z"));
+  const update = completedPlanningUpdate({
+    now,
+    outcome: "approved",
+    contentId: "news-1",
+    kind: "news",
+    organizationId: "organization-1",
+    organizationName: "Organization",
+  });
+
+  assert.equal(update.draftMediaCleanupStatus, "pending");
+  assert.equal(update.draftMediaCleanupRequestedAt, now);
+  assert.equal(update.retentionPolicy, "contentPlanningReceipt6Months");
+  assert.equal(
+    (update.retentionExpiresAt as Timestamp).toDate().toISOString(),
+    "2027-02-28T10:00:00.000Z"
+  );
+});
 
 test("claims only due drafts without an active lease", () => {
   const now = Timestamp.fromMillis(10_000);

@@ -13,6 +13,10 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 
 import {db} from "../firebase/admin";
 import {isActiveUser, userPermissionSnapshotFromData} from "../permissions/userPermissions";
+import {
+  contentPlanningReceiptRetentionPolicy,
+  contentPlanningRetentionExpiresAt,
+} from "../contentPlanning/contentPlanningRetentionPolicy";
 
 export type ScheduledCollection = "news" | "events";
 export type ScheduledPublicationOutcome = "approved" | "pendingReview" | "skipped";
@@ -615,7 +619,7 @@ interface CompletedPlanningInput {
   organizationName: string | undefined;
 }
 
-function completedPlanningUpdate(input: CompletedPlanningInput): DocumentData {
+export function completedPlanningUpdate(input: CompletedPlanningInput): DocumentData {
   return {
     state: "completed",
     scheduledAt: null,
@@ -625,6 +629,10 @@ function completedPlanningUpdate(input: CompletedPlanningInput): DocumentData {
     publishedContentKind: input.kind,
     publishedOrganizationId: input.organizationId ?? null,
     publishedOrganizationName: input.organizationName ?? null,
+    retentionPolicy: contentPlanningReceiptRetentionPolicy,
+    retentionExpiresAt: contentPlanningRetentionExpiresAt(input.now),
+    draftMediaCleanupStatus: "pending",
+    draftMediaCleanupRequestedAt: input.now,
     failureMessage: null,
     publicationAttemptId: FieldValue.delete(),
     publicationLeaseId: FieldValue.delete(),

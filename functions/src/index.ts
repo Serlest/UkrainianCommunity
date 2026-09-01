@@ -15,6 +15,7 @@ export * from "./content/contentCoverUpload";
 export * from "./content/legacyContentMediaMigration";
 export * from "./content/scheduledPublishing";
 export * from "./content/storageOrphanCleanup";
+export * from "./contentPlanning/contentPlanningMediaLifecycle";
 export * from "./contentPlanning/ownerContentDrafts";
 export * from "./events/eventRegistration";
 export * from "./featured/featuredBannerCleanup";

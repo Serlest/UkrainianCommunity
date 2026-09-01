@@ -1029,6 +1029,12 @@
       ]
     },
     {
+      "collectionGroup": "contentPlanningDrafts",
+      "fieldPath": "retentionExpiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "comments",
       "fieldPath": "authorId",
       "indexes": [
