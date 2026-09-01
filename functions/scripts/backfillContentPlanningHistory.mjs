@@ -3,6 +3,7 @@ import {FieldValue, Timestamp, getFirestore} from "firebase-admin/firestore";
 
 import {
   classifyPlanningHistoryDraft,
+  isCompletedPlanningHistoryDraft,
   parseContentPlanningHistoryBackfillOptions,
   publicationOutcomeForContent,
   summarizeHistoryClassifications,
@@ -17,7 +18,7 @@ const app = initializeApp(
 try {
   const database = getFirestore(app);
   const [draftSnapshot, newsSnapshot, eventSnapshot] = await Promise.all([
-    database.collectionGroup("contentPlanningDrafts").where("state", "==", "completed").get(),
+    database.collectionGroup("contentPlanningDrafts").get(),
     database.collection("news").get(),
     database.collection("events").get(),
   ]);
@@ -33,14 +34,16 @@ try {
       data: document.data(),
     })),
   ];
-  const classifications = draftSnapshot.docs.map((document) => ({
-    reference: document.ref,
-    draft: {id: document.id, path: document.ref.path, data: document.data()},
-    result: classifyPlanningHistoryDraft(
-      {id: document.id, path: document.ref.path, data: document.data()},
-      liveContent
-    ),
-  }));
+  const classifications = draftSnapshot.docs
+    .filter((document) => isCompletedPlanningHistoryDraft(document.data()))
+    .map((document) => ({
+      reference: document.ref,
+      draft: {id: document.id, path: document.ref.path, data: document.data()},
+      result: classifyPlanningHistoryDraft(
+        {id: document.id, path: document.ref.path, data: document.data()},
+        liveContent
+      ),
+    }));
   const summary = summarizeHistoryClassifications(classifications);
   assertExpectedSummary(summary, options);
 

@@ -3,6 +3,7 @@ import {test} from "node:test";
 
 import {
   classifyPlanningHistoryDraft,
+  isCompletedPlanningHistoryDraft,
   normalizeSourceURL,
   parseContentPlanningHistoryBackfillOptions,
   publicationOutcomeForContent,
@@ -35,6 +36,13 @@ test("normalizes only non-semantic URL differences", () => {
     "https://example.org/story"
   );
   assert.equal(normalizeSourceURL("not a url"), undefined);
+});
+
+test("includes only completed drafts in history reconciliation", () => {
+  assert.equal(isCompletedPlanningHistoryDraft({state: "completed"}), true);
+  assert.equal(isCompletedPlanningHistoryDraft({state: "needsAttention"}), false);
+  assert.equal(isCompletedPlanningHistoryDraft({}), false);
+  assert.equal(isCompletedPlanningHistoryDraft(undefined), false);
 });
 
 test("matches exactly one live item by an official URL", () => {

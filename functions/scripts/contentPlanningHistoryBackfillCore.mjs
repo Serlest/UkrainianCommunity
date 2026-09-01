@@ -26,6 +26,10 @@ export function draftSourceURLs(data) {
   return new Set(sources.map((source) => normalizeSourceURL(source?.url)).filter(Boolean));
 }
 
+export function isCompletedPlanningHistoryDraft(data) {
+  return data?.state === "completed";
+}
+
 export function classifyPlanningHistoryDraft(draft, liveContent) {
   const kind = draft.data.kind;
   if (kind !== "news" && kind !== "event") {
