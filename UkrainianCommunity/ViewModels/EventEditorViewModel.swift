@@ -12,6 +12,9 @@ final class EventEditorViewModel: ObservableObject {
     static let externalActionURLLimit = 2_048
     static let priceNoteLimit = 500
     static let locationNoteCharacterLimit = 160
+    static let imageCaptionLimit = 500
+    static let imageAlternativeTextLimit = 1_000
+    static let imageCreditLimit = 300
 
     struct CreateContext {
         let organizationId: String?
@@ -69,6 +72,9 @@ final class EventEditorViewModel: ObservableObject {
     @Published var germanTitle = "" { didSet { scheduleCreateDraftAutosave() } }
     @Published var germanSummary = "" { didSet { scheduleCreateDraftAutosave() } }
     @Published var germanDetails = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var imageCaption = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var imageAlternativeText = "" { didSet { scheduleCreateDraftAutosave() } }
+    @Published var imageCredit = "" { didSet { scheduleCreateDraftAutosave() } }
     @Published var city = "" {
         didSet { scheduleCreateDraftAutosave() }
     }
@@ -229,6 +235,9 @@ final class EventEditorViewModel: ObservableObject {
             contactPhone = existingEvent.contactPhone ?? ""
             contactEmail = existingEvent.contactEmail ?? ""
             contactURL = existingEvent.contactURL ?? ""
+            imageCaption = existingEvent.mediaMetadata?.caption ?? ""
+            imageAlternativeText = existingEvent.mediaMetadata?.alternativeText ?? ""
+            imageCredit = existingEvent.mediaMetadata?.credit ?? ""
             selectedFederalState = existingEvent.federalState ?? .tirol
             let primaryOccurrence = existingEvent.occurrences.first
             startDate = primaryOccurrence?.startDate ?? existingEvent.startDate
@@ -259,6 +268,12 @@ final class EventEditorViewModel: ObservableObject {
 
         if case .create = mode, let draft = sourceDraft?.eventDraft {
             applyRecoveredDraft(draft)
+            if imageAlternativeText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                imageAlternativeText = sourceDraft?.generatedImage?.alternativeText ?? ""
+            }
+            if imageCredit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                imageCredit = sourceDraft?.generatedImage?.credit ?? ""
+            }
             hasMeaningfulCreateDraftMetadata = true
             hasCheckedCreateDraftRecovery = true
             hasCompletedCreateDraftRecoveryCheck = true
@@ -274,13 +289,17 @@ final class EventEditorViewModel: ObservableObject {
             && isValidSchedule
             && isValidPublishingMetadata
             && isValidGermanContent
+            && isValidMediaMetadata
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
     }
 
     var validationMessage: String? {
-        validationIssue?.message ?? (isValidPublishingMetadata && isValidGermanContent ? nil : ContentPublishingStrings.publishingFieldsTooLong)
+        validationIssue?.message
+            ?? (isValidPublishingMetadata && isValidGermanContent && isValidMediaMetadata
+                ? nil
+                : ContentPublishingStrings.publishingFieldsTooLong)
     }
 
     var canAdvanceBasics: Bool {
@@ -350,6 +369,7 @@ final class EventEditorViewModel: ObservableObject {
             address: resolvedAddress,
             locationNote: resolvedLocationNote,
             imageURL: existingImageURL,
+            mediaMetadata: resolvedMediaMetadata,
             startDate: normalizedStart,
             endDate: normalizedEnd,
             occurrences: allOccurrences,
@@ -386,6 +406,12 @@ final class EventEditorViewModel: ObservableObject {
         germanTitle.count <= Self.localizedTitleLimit
             && germanSummary.count <= Self.localizedSummaryLimit
             && germanDetails.count <= Self.localizedDetailsLimit
+    }
+
+    private var isValidMediaMetadata: Bool {
+        imageCaption.count <= Self.imageCaptionLimit
+            && imageAlternativeText.count <= Self.imageAlternativeTextLimit
+            && imageCredit.count <= Self.imageCreditLimit
     }
 
     private var isValidPublishingMetadata: Bool {
@@ -835,6 +861,7 @@ final class EventEditorViewModel: ObservableObject {
             contactEmail: resolvedContactEmail,
             contactURL: resolvedContactURL,
             imageURL: nil,
+            mediaMetadata: resolvedMediaMetadata,
             startDate: normalizedStartDate,
             endDate: normalizedEndDate,
             occurrences: allOccurrences,
@@ -1133,6 +1160,17 @@ final class EventEditorViewModel: ObservableObject {
         return result
     }
 
+    private var resolvedMediaMetadata: EventMediaMetadata? {
+        let metadata = EventMediaMetadata(
+            caption: imageCaption,
+            alternativeText: imageAlternativeText,
+            credit: imageCredit
+        )
+        return metadata.caption == nil && metadata.alternativeText == nil && metadata.credit == nil
+            ? nil
+            : metadata
+    }
+
     private var resolvedPricing: EventPricing {
         EventPricing(
             kind: priceKind,
@@ -1313,6 +1351,9 @@ final class EventEditorViewModel: ObservableObject {
             germanTitle: germanTitle,
             germanSummary: germanSummary,
             germanDetails: germanDetails,
+            imageCaption: imageCaption,
+            imageAlternativeText: imageAlternativeText,
+            imageCredit: imageCredit,
             additionalOccurrences: additionalOccurrences,
             participationMode: participationMode,
             externalActionTitle: externalActionTitle,
@@ -1370,6 +1411,9 @@ final class EventEditorViewModel: ObservableObject {
         germanTitle = draft.germanTitle ?? ""
         germanSummary = draft.germanSummary ?? ""
         germanDetails = draft.germanDetails ?? ""
+        imageCaption = draft.imageCaption ?? ""
+        imageAlternativeText = draft.imageAlternativeText ?? ""
+        imageCredit = draft.imageCredit ?? ""
         additionalOccurrences = draft.additionalOccurrences ?? []
         participationMode = draft.participationMode ?? (draft.requiresRegistration ? .inAppRegistration : .none)
         externalActionTitle = draft.externalActionTitle ?? ""
@@ -1575,6 +1619,7 @@ private extension Event {
             contactEmail: contactEmail,
             contactURL: contactURL,
             imageURL: imageURL,
+            mediaMetadata: mediaMetadata,
             startDate: startDate,
             endDate: endDate,
             occurrences: occurrences,

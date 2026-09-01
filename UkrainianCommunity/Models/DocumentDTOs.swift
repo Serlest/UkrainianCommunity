@@ -168,6 +168,7 @@ struct EventDTO: Codable, Identifiable {
     let contactEmail: String?
     let contactURL: String?
     let imageURL: String?
+    let mediaMetadata: EventMediaMetadata?
     let startDate: Date
     let endDate: Date
     let occurrences: [EventOccurrence]?
@@ -548,6 +549,7 @@ extension Event {
             contactEmail: dto.contactEmail,
             contactURL: dto.contactURL,
             imageURL: dto.imageURL,
+            mediaMetadata: dto.mediaMetadata,
             startDate: dto.startDate,
             endDate: dto.endDate,
             occurrences: dto.occurrences ?? [],
@@ -610,6 +612,7 @@ extension Event {
             contactEmail: contactEmail,
             contactURL: contactURL,
             imageURL: imageURL,
+            mediaMetadata: mediaMetadata,
             startDate: startDate,
             endDate: endDate,
             occurrences: occurrences,

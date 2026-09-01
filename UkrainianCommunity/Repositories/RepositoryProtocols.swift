@@ -556,6 +556,7 @@ extension Event {
             contactEmail: contactEmail,
             contactURL: contactURL,
             imageURL: imageURL,
+            mediaMetadata: mediaMetadata,
             startDate: startDate,
             endDate: endDate,
             createdAt: createdAt,

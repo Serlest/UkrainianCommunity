@@ -58,7 +58,7 @@ struct ExternalContentAction: Codable, Equatable {
     }
 }
 
-struct NewsMediaMetadata: Codable, Equatable {
+struct ContentMediaMetadata: Codable, Equatable {
     let caption: String?
     let alternativeText: String?
     let credit: String?
@@ -74,6 +74,9 @@ struct NewsMediaMetadata: Codable, Equatable {
         return result?.isEmpty == true ? nil : result
     }
 }
+
+typealias NewsMediaMetadata = ContentMediaMetadata
+typealias EventMediaMetadata = ContentMediaMetadata
 
 enum EventOccurrenceStatus: String, Codable {
     case scheduled

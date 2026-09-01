@@ -37,7 +37,7 @@ struct NewsCreateDraft: Codable, Equatable {
 }
 
 struct EventCreateDraft: Codable, Equatable {
-    static let currentVersion = 6
+    static let currentVersion = 7
 
     let version: Int
     let hasMeaningfulMetadata: Bool?
@@ -78,6 +78,9 @@ struct EventCreateDraft: Codable, Equatable {
     let germanTitle: String?
     let germanSummary: String?
     let germanDetails: String?
+    let imageCaption: String?
+    let imageAlternativeText: String?
+    let imageCredit: String?
     let additionalOccurrences: [EventOccurrence]?
     let participationMode: EventParticipationMode?
     let externalActionTitle: String?
@@ -109,6 +112,9 @@ struct EventCreateDraft: Codable, Equatable {
             germanTitle ?? "",
             germanSummary ?? "",
             germanDetails ?? "",
+            imageCaption ?? "",
+            imageAlternativeText ?? "",
+            imageCredit ?? "",
             externalActionTitle ?? "",
             externalActionURL ?? "",
             maximumPriceText ?? "",

@@ -188,6 +188,8 @@ test("accepts generated original image metadata and maps its URL into the editor
   });
 
   assert.equal(parsed.payload.generatedImageURL, "https://firebasestorage.googleapis.com/example.jpg");
+  assert.equal(parsed.payload.imageAlternativeText, "Альпійський захід сонця");
+  assert.equal(parsed.payload.imageCredit, "Зображення створене ШІ");
   assert.equal(parsed.generatedImage?.storagePath, "users/owner/contentPlanningDraftImages/draft/cover.jpg");
 });
 

@@ -411,7 +411,7 @@ service cloud.firestore {
         'commentCount', 'category', 'additionalCategories', 'audience', 'minimumAge', 'maximumAge',
         'tags', 'visibility', 'isAllDay', 'cancellationState', 'cancelledAt',
         'cancellationReason', 'schemaVersion', 'localizations', 'occurrences',
-        'participationMode', 'externalAction', 'pricing', 'scheduledAt'
+        'participationMode', 'externalAction', 'pricing', 'mediaMetadata', 'scheduledAt'
       ];
     }
 
@@ -419,6 +419,18 @@ service cloud.firestore {
       return !(field in data)
         || data[field] == null
         || (data[field] is string && data[field].size() <= maximumLength);
+    }
+
+    function validContentMediaMetadata(data) {
+      return !('mediaMetadata' in data)
+        || data.mediaMetadata == null
+        || (
+          data.mediaMetadata is map
+          && data.mediaMetadata.keys().hasOnly(['caption', 'alternativeText', 'credit'])
+          && validOptionalString(data.mediaMetadata, 'caption', 500)
+          && validOptionalString(data.mediaMetadata, 'alternativeText', 1000)
+          && validOptionalString(data.mediaMetadata, 'credit', 300)
+        );
     }
 
     function validContentRegion(data) {
@@ -470,6 +482,7 @@ service cloud.firestore {
             && (!('category' in data) || !(data.category in data.additionalCategories))))
         && validOptionalString(data, 'imageURL', 2048)
         && validOptionalString(data, 'sourceURL', 2048)
+        && validContentMediaMetadata(data)
         && validContentRegion(data);
     }
 
@@ -527,6 +540,7 @@ service cloud.firestore {
             ])
             && (!('category' in data) || !(data.category in data.additionalCategories))))
         && validOptionalString(data, 'imageURL', 2048)
+        && validContentMediaMetadata(data)
         && validContentRegion(data);
     }
 

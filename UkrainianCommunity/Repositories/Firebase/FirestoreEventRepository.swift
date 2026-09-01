@@ -387,6 +387,7 @@ struct FirestoreEventRepository: EventRepository {
             contactEmail: event.contactEmail,
             contactURL: event.contactURL,
             imageURL: event.imageURL,
+            mediaMetadata: event.mediaMetadata,
             startDate: event.startDate,
             endDate: event.endDate,
             occurrences: event.occurrences,
@@ -453,6 +454,9 @@ struct FirestoreEventRepository: EventRepository {
             "visibility": "public",
             "isAllDay": dto.isAllDay as Any
         ]
+        if let mediaMetadata = FirestoreContentPublishingCoding.eventMediaData(dto.mediaMetadata) {
+            data["mediaMetadata"] = mediaMetadata
+        }
         if let scheduledAt = dto.scheduledAt {
             data["scheduledAt"] = Timestamp(date: scheduledAt)
         }
@@ -591,6 +595,7 @@ struct FirestoreEventRepository: EventRepository {
         } else {
             data["imageURL"] = event.imageURL as Any
         }
+        data["mediaMetadata"] = FirestoreContentPublishingCoding.eventMediaData(event.mediaMetadata) ?? FieldValue.delete()
         data["scheduledAt"] = event.scheduledAt.map(Timestamp.init(date:)) ?? FieldValue.delete()
 
         if let capacity = event.capacity {
@@ -1127,6 +1132,7 @@ struct FirestoreEventRepository: EventRepository {
             contactEmail: (data["contactEmail"] as? String)?.nilIfEmpty,
             contactURL: (data["contactURL"] as? String)?.nilIfEmpty,
             imageURL: (data["imageURL"] as? String)?.nilIfEmpty,
+            mediaMetadata: FirestoreContentPublishingCoding.eventMedia(from: data["mediaMetadata"]),
             startDate: startDate,
             endDate: endDate,
             occurrences: FirestoreContentPublishingCoding.occurrences(from: data["occurrences"]),

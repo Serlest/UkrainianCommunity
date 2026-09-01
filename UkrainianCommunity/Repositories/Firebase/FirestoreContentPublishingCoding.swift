@@ -83,7 +83,7 @@ enum FirestoreContentPublishingCoding {
         return action.webURL == nil ? nil : action
     }
 
-    static func newsMediaData(_ metadata: NewsMediaMetadata?) -> [String: Any]? {
+    static func mediaData(_ metadata: ContentMediaMetadata?) -> [String: Any]? {
         guard let metadata else { return nil }
         var data: [String: Any] = [:]
         if let caption = metadata.caption { data["caption"] = caption }
@@ -92,14 +92,30 @@ enum FirestoreContentPublishingCoding {
         return data.isEmpty ? nil : data
     }
 
-    static func newsMedia(from value: Any?) -> NewsMediaMetadata? {
+    static func media(from value: Any?) -> ContentMediaMetadata? {
         guard let data = value as? [String: Any] else { return nil }
-        let metadata = NewsMediaMetadata(
+        let metadata = ContentMediaMetadata(
             caption: data["caption"] as? String,
             alternativeText: data["alternativeText"] as? String,
             credit: data["credit"] as? String
         )
         return metadata.caption == nil && metadata.alternativeText == nil && metadata.credit == nil ? nil : metadata
+    }
+
+    static func newsMediaData(_ metadata: NewsMediaMetadata?) -> [String: Any]? {
+        mediaData(metadata)
+    }
+
+    static func newsMedia(from value: Any?) -> NewsMediaMetadata? {
+        media(from: value)
+    }
+
+    static func eventMediaData(_ metadata: EventMediaMetadata?) -> [String: Any]? {
+        mediaData(metadata)
+    }
+
+    static func eventMedia(from value: Any?) -> EventMediaMetadata? {
+        media(from: value)
     }
 
     static func occurrencesData(_ occurrences: [EventOccurrence]) -> [[String: Any]] {

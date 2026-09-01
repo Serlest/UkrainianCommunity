@@ -432,6 +432,33 @@ struct ContentEditorValidationTests {
         event.priceNote = String(repeating: "a", count: EventEditorViewModel.priceNoteLimit + 1)
         #expect(event.validationMessage == ContentPublishingStrings.publishingFieldsTooLong)
         #expect(!event.canPublish)
+        event.priceNote = ""
+        event.imageAlternativeText = String(
+            repeating: "a",
+            count: EventEditorViewModel.imageAlternativeTextLimit + 1
+        )
+        #expect(event.validationMessage == ContentPublishingStrings.publishingFieldsTooLong)
+        #expect(!event.canPublish)
+    }
+
+    @Test func eventMediaMetadataSurvivesDtoAndEditorRoundTrips() {
+        let metadata = EventMediaMetadata(
+            caption: "Зустріч громади",
+            alternativeText: "Люди спілкуються у залі",
+            credit: "UAC"
+        )
+        let original = testEvent(mediaMetadata: metadata)
+        let restored = Event(dto: original.dto)
+        #expect(restored.mediaMetadata == metadata)
+
+        let editor = EventEditorViewModel(
+            repository: MockEventRepository(),
+            mode: .edit(existing: restored)
+        )
+        #expect(editor.imageCaption == "Зустріч громади")
+        #expect(editor.imageAlternativeText == "Люди спілкуються у залі")
+        #expect(editor.imageCredit == "UAC")
+        #expect(editor.previewEvent.mediaMetadata == metadata)
     }
 
     @Test func legacyEventDerivesCompatibleParticipationAndPricing() {
@@ -511,7 +538,8 @@ struct ContentEditorValidationTests {
     private func testEvent(
         occurrences: [EventOccurrence] = [],
         requiresRegistration: Bool = false,
-        price: Double = 0
+        price: Double = 0,
+        mediaMetadata: EventMediaMetadata? = nil
     ) -> Event {
         Event(
             id: "event",
@@ -520,6 +548,7 @@ struct ContentEditorValidationTests {
             details: "Деталі",
             city: "Innsbruck",
             venue: "Community Center",
+            mediaMetadata: mediaMetadata,
             startDate: referenceDate.addingTimeInterval(3_600),
             endDate: referenceDate.addingTimeInterval(7_200),
             occurrences: occurrences,

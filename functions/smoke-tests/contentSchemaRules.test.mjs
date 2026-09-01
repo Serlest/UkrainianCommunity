@@ -212,6 +212,11 @@ function multiOccurrenceEvent(id, authorId) {
     participationMode: "externalTickets",
     externalAction: {title: "Квитки", url: "https://example.org/tickets"},
     pricing: {kind: "startingFrom", amount: 12, currencyCode: "EUR", note: "Ціна організатора"},
+    mediaMetadata: {
+      caption: "Зустріч громади",
+      alternativeText: "Люди розмовляють за столом під час зустрічі громади",
+      credit: "UAC",
+    },
   };
 }
 
@@ -332,6 +337,17 @@ describe("strict client content schemas", () => {
     await assertFails(setDoc(doc(db("org-owner"), "events", "bad-action"), {
       ...multiOccurrenceEvent("bad-action", "org-owner"),
       privileged: true,
+    }));
+  });
+
+  test("content media metadata rejects unknown and oversized values", async () => {
+    await assertFails(setDoc(doc(db("org-owner"), "news", "bad-news-media"), {
+      ...localizedNews("bad-news-media", "org-owner"),
+      mediaMetadata: {alternativeText: "Опис", privileged: true},
+    }));
+    await assertFails(setDoc(doc(db("org-owner"), "events", "bad-event-media"), {
+      ...multiOccurrenceEvent("bad-event-media", "org-owner"),
+      mediaMetadata: {alternativeText: "a".repeat(1001)},
     }));
   });
 

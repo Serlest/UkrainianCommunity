@@ -89,7 +89,21 @@ extension EventDetailView {
         @ViewBuilder
         func heroImageSection(for event: Event) -> some View {
             if let imageURL = eventImageURL(for: event) {
-                eventHeroImage(imageURL: imageURL, size: nil)
+                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                    eventHeroImage(
+                        imageURL: imageURL,
+                        size: nil,
+                        accessibilityLabel: event.mediaMetadata?.alternativeText ?? event.localizedTitle
+                    )
+                    if event.mediaMetadata?.caption != nil || event.mediaMetadata?.credit != nil {
+                        Text([event.mediaMetadata?.caption, event.mediaMetadata?.credit]
+                            .compactMap { $0 }
+                            .joined(separator: " · "))
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
         }
 
@@ -152,7 +166,7 @@ extension EventDetailView {
             }
         }
 
-        func eventHeroImage(imageURL: String, size: CGFloat?) -> some View {
+        func eventHeroImage(imageURL: String, size: CGFloat?, accessibilityLabel: String) -> some View {
             RemoteImageView(
                 imageURL: imageURL,
                 height: size ?? detailImageHeight,
@@ -169,6 +183,7 @@ extension EventDetailView {
                     .strokeBorder(AppTheme.glassBorder(for: colorScheme).opacity(0.78))
             )
             .shadow(color: AppTheme.glassShadow(for: colorScheme).opacity(0.55), radius: 8, y: 4)
+            .accessibilityLabel(accessibilityLabel)
         }
 
         func eventImageURL(for event: Event) -> String? {

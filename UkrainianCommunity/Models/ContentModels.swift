@@ -600,6 +600,7 @@ struct Event: Identifiable, Codable {
     let contactEmail: String?
     let contactURL: String?
     let imageURL: String?
+    let mediaMetadata: EventMediaMetadata?
     let startDate: Date
     let endDate: Date
     let occurrences: [EventOccurrence]
@@ -656,6 +657,7 @@ struct Event: Identifiable, Codable {
         contactEmail: String? = nil,
         contactURL: String? = nil,
         imageURL: String? = nil,
+        mediaMetadata: EventMediaMetadata? = nil,
         startDate: Date,
         endDate: Date,
         occurrences: [EventOccurrence] = [],
@@ -712,6 +714,7 @@ struct Event: Identifiable, Codable {
         self.contactEmail = Self.trimmedOptional(contactEmail)
         self.contactURL = Self.trimmedOptional(contactURL)
         self.imageURL = imageURL
+        self.mediaMetadata = mediaMetadata
         let validOccurrences = occurrences.filter(\.isValid).sorted { $0.startDate < $1.startDate }
         self.occurrences = validOccurrences.isEmpty
             ? [EventOccurrence(startDate: startDate, endDate: endDate, isAllDay: isAllDay)]

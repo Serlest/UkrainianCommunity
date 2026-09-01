@@ -66,6 +66,7 @@ const eventFields = new Set([
   "contactEmail", "contactURL", "federalState", "startDate", "endDate", "hasExplicitEndDate", "isAllDay",
   "category", "additionalCategories", "audience", "minimumAge", "maximumAge", "tags", "capacity",
   "germanTitle", "germanSummary", "germanDetails", "additionalOccurrences",
+  "imageCaption", "imageAlternativeText", "imageCredit",
   "participationMode", "externalActionTitle", "externalActionURL", "priceKind",
   "price", "maximumPrice", "priceNote",
   "publicationMode", "scheduledAt",
@@ -101,10 +102,8 @@ export function parseOwnerContentDraftInput(value: unknown): ParsedDraftInput {
   const generatedImage = optionalGeneratedImage(input.generatedImage);
   if (generatedImage) {
     payload.generatedImageURL = generatedImage.url;
-    if (kind === "news") {
-      payload.imageAlternativeText ??= generatedImage.alternativeText ?? null;
-      payload.imageCredit ??= generatedImage.credit ?? null;
-    }
+    payload.imageAlternativeText ??= generatedImage.alternativeText ?? null;
+    payload.imageCredit ??= generatedImage.credit ?? null;
   }
 
   return {

@@ -19,6 +19,41 @@ extension EventEditorView {
                             imageProcessingOverlay
                         }
                     }
+
+                    editorField(
+                        title: ContentPublishingStrings.imageAltText,
+                        counterText: "\(viewModel.imageAlternativeText.count)/\(EventEditorViewModel.imageAlternativeTextLimit)"
+                    ) {
+                        TextField(ContentPublishingStrings.imageAltText, text: $viewModel.imageAlternativeText)
+                            .textInputAutocapitalization(.sentences)
+                            .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                    }
+
+                    DisclosureGroup {
+                        VStack(alignment: .leading, spacing: editorCardSpacing) {
+                            editorField(
+                                title: ContentPublishingStrings.imageCaption,
+                                counterText: "\(viewModel.imageCaption.count)/\(EventEditorViewModel.imageCaptionLimit)"
+                            ) {
+                                TextField(ContentPublishingStrings.imageCaption, text: $viewModel.imageCaption)
+                                    .textInputAutocapitalization(.sentences)
+                                    .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                            }
+                            editorField(
+                                title: ContentPublishingStrings.imageCredit,
+                                counterText: "\(viewModel.imageCredit.count)/\(EventEditorViewModel.imageCreditLimit)"
+                            ) {
+                                TextField(ContentPublishingStrings.imageCredit, text: $viewModel.imageCredit)
+                                    .textInputAutocapitalization(.words)
+                                    .eventEditorCompactInputStyle(minHeight: compactInputHeight)
+                            }
+                        }
+                        .padding(.top, editorCardSpacing)
+                    } label: {
+                        Label(ContentPublishingStrings.imageDetails, systemImage: "info.circle")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                    }
                 }
             }
         }
