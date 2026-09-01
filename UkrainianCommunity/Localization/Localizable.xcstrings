@@ -4,7 +4,7 @@
     "notifications.inbox.organization_cleanup_warning.body" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ wird gelöscht, wenn du die Anfrage nicht bearbeitest oder erneut einreichst." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@ wird gelöscht, wenn Sie die Anfrage nicht bearbeiten oder erneut einreichen." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "%@ буде видалено, якщо ви не внесете зміни або не надішлете заявку повторно." } }
       }
     },
@@ -53,7 +53,7 @@
     "organizations.request.delete.failed" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Anfrage konnte nicht gelöscht werden. Prüfe deine Verbindung und versuche es erneut." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Anfrage konnte nicht gelöscht werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося видалити заявку. Перевірте з’єднання та спробуйте ще раз." } }
       }
     },
@@ -74,7 +74,7 @@
     "organizations.request.limit_reached" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Du hast bereits drei aktive Anfragen. Schließe eine davon ab oder lösche sie, bevor du eine neue erstellst." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Sie haben bereits drei aktive Anfragen. Schließen Sie eine davon ab oder löschen Sie sie, bevor Sie eine neue erstellen." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "У вас уже є три активні заявки. Завершіть або видаліть одну з них перед створенням нової." } }
       }
     },
@@ -3031,7 +3031,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Kommentaraktion ist fehlgeschlagen. Bitte versuche es erneut."
+            "value" : "Die Kommentaraktion ist fehlgeschlagen. Bitte versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -3048,7 +3048,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prüfe den Kommentar: höchstens 1000 Zeichen und keine Drohungen, Beleidigungen, gefährlichen Inhalte oder Spam. Der Text wird nicht gekürzt."
+            "value" : "Prüfen Sie den Kommentar: höchstens 1000 Zeichen und keine Drohungen, Beleidigungen, gefährlichen Inhalte oder Spam. Der Text wird nicht gekürzt."
           }
         },
         "uk" : {
@@ -3099,7 +3099,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Verbindung. Prüfe deine Internetverbindung und versuche es erneut."
+            "value" : "Keine Verbindung. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -3422,7 +3422,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Melde dich an, um zu kommentieren"
+            "value" : "Melden Sie sich an, um zu kommentieren"
           }
         },
         "uk" : {
@@ -6093,7 +6093,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Optional. Füge externe Veranstalter- oder Kontaktdaten hinzu, wenn sie von der veröffentlichenden Organisation abweichen."
+            "value" : "Optional. Fügen Sie externe Veranstalter- oder Kontaktdaten hinzu, wenn sie von der veröffentlichenden Organisation abweichen."
           }
         },
         "uk" : {
@@ -6246,7 +6246,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beschreibe dein Ereignis. Was erwartet die Teilnehmenden?"
+            "value" : "Beschreiben Sie Ihre Veranstaltung. Was erwartet die Teilnehmenden?"
           }
         },
         "uk" : {
@@ -6280,7 +6280,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beschreibe das Ereignis kurz. Dieser Text erscheint in der Ereignisliste."
+            "value" : "Beschreiben Sie die Veranstaltung kurz. Dieser Text erscheint in der Veranstaltungsliste."
           }
         },
         "uk" : {
@@ -6773,7 +6773,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Optional. Füge kurze Tags hinzu, damit Menschen das Thema der Veranstaltung schneller verstehen."
+            "value" : "Optional. Fügen Sie kurze Tags hinzu, damit Menschen das Thema der Veranstaltung schneller verstehen."
           }
         },
         "uk" : {
@@ -7002,7 +7002,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle eine Organisation für die Veranstaltung aus."
+            "value" : "Wählen Sie eine Organisation für die Veranstaltung aus."
           }
         },
         "uk" : {
@@ -7095,7 +7095,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast noch keine registrierten Veranstaltungen.\nRegistriere dich für Veranstaltungen, damit sie hier erscheinen."
+            "value" : "Sie haben noch keine registrierten Veranstaltungen.\nRegistrieren Sie sich für Veranstaltungen, damit sie hier erscheinen."
           }
         },
         "uk" : {
@@ -7112,7 +7112,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast noch keine gespeicherten Veranstaltungen."
+            "value" : "Sie haben noch keine gespeicherten Veranstaltungen."
           }
         },
         "uk" : {
@@ -7452,7 +7452,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Treffen, Kurse und Unterstützung in deiner Nähe."
+            "value" : "Treffen, Kurse und Unterstützung in Ihrer Nähe."
           }
         },
         "uk" : {
@@ -7571,7 +7571,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du bist danach nicht mehr für „%@“ angemeldet."
+            "value" : "Sie sind danach nicht mehr für „%@“ angemeldet."
           }
         },
         "uk" : {
@@ -7622,7 +7622,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du wirst für „%@“ angemeldet."
+            "value" : "Sie werden für „%@“ angemeldet."
           }
         },
         "uk" : {
@@ -7690,7 +7690,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Server ist nicht erreichbar. Prüfe deine Verbindung und versuche es erneut."
+            "value" : "Der Server ist nicht erreichbar. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -7758,7 +7758,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Konto darf diese Anmeldung nicht ändern. Bestätige deine E-Mail-Adresse und versuche es erneut."
+            "value" : "Ihr Konto darf diese Anmeldung nicht ändern. Bestätigen Sie Ihre E-Mail-Adresse und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -7792,7 +7792,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Anmeldung kann derzeit nicht aktualisiert werden. Versuche es bitte erneut."
+            "value" : "Die Anmeldung kann derzeit nicht aktualisiert werden. Versuchen Sie es bitte erneut."
           }
         },
         "uk" : {
@@ -7928,7 +7928,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Highlights konnten nicht geladen werden. Prüfe die Verbindung und versuche es erneut."
+            "value" : "Highlights konnten nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -8302,7 +8302,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine nicht gespeicherten Banneränderungen gehen verloren."
+            "value" : "Ihre nicht gespeicherten Banneränderungen gehen verloren."
           }
         },
         "uk" : {
@@ -8795,7 +8795,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veraltete Guide-Werte wurden aus diesem Entwurf entfernt. Prüfe die neuen Bereiche und die Aktion und speichere anschließend, um die Migration abzuschließen."
+            "value" : "Veraltete Guide-Werte wurden aus diesem Entwurf entfernt. Prüfen Sie die neuen Bereiche und die Aktion und speichern Sie anschließend, um die Migration abzuschließen."
           }
         },
         "uk" : {
@@ -8863,7 +8863,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nicht unterstützte oder unvollständige Werte wurden in diesem Entwurf normalisiert. Prüfe vor dem Speichern alle Bereiche."
+            "value" : "Nicht unterstützte oder unvollständige Werte wurden in diesem Entwurf normalisiert. Prüfen Sie vor dem Speichern alle Bereiche."
           }
         },
         "uk" : {
@@ -9152,7 +9152,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Bild muss im Format 16:9 sein. Wähle ein horizontales Bild oder schneide es vor dem Hochladen zu."
+            "value" : "Das Bild muss im Format 16:9 sein. Wählen Sie ein horizontales Bild oder schneiden Sie es vor dem Hochladen zu."
           }
         },
         "uk" : {
@@ -9186,7 +9186,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die vorhandene URL des Bannerbilds ist ungültig. Wähle ein neues Bild."
+            "value" : "Die vorhandene URL des Bannerbilds ist ungültig. Wählen Sie ein neues Bild."
           }
         },
         "uk" : {
@@ -9628,7 +9628,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Banner enthält einen eingestellten Guide-Wert. Öffne es einmal, um es auf unterstützte Bereiche und Aktionen zu migrieren, oder lösche es dauerhaft."
+            "value" : "Dieses Banner enthält einen eingestellten Guide-Wert. Öffnen Sie es einmal, um es auf unterstützte Bereiche und Aktionen zu migrieren, oder löschen Sie es dauerhaft."
           }
         },
         "uk" : {
@@ -9764,7 +9764,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dieses Firestore-Dokument enthält unvollständige oder unbekannte Daten. Öffne es, um die unterstützten Felder zu reparieren, oder lösche es dauerhaft."
+            "value" : "Dieses Firestore-Dokument enthält unvollständige oder unbekannte Daten. Öffnen Sie es, um die unterstützten Felder zu reparieren, oder löschen Sie es dauerhaft."
           }
         },
         "uk" : {
@@ -10410,7 +10410,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Aktion konnte nicht gespeichert werden. Prüfe die Verbindung und versuche es erneut."
+            "value" : "Die Aktion konnte nicht gespeichert werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -10427,7 +10427,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du darfst diese Anfrage nicht ändern."
+            "value" : "Sie dürfen diese Anfrage nicht ändern."
           }
         },
         "uk" : {
@@ -10801,7 +10801,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Alle deine Anfragen und die zugehörigen Nachrichten werden unwiderruflich gelöscht."
+            "value" : "Alle Ihre Anfragen und die zugehörigen Nachrichten werden unwiderruflich gelöscht."
           }
         },
         "uk" : {
@@ -11505,7 +11505,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast noch keine gespeicherten Inhalte."
+            "value" : "Sie haben noch keine gespeicherten Inhalte."
           }
         },
         "uk" : {
@@ -11522,7 +11522,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du folgst noch keinen Organisationen."
+            "value" : "Sie folgen noch keinen Organisationen."
           }
         },
         "uk" : {
@@ -16104,7 +16104,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prüfe ausstehende Inhalte, bevor sie für alle sichtbar werden."
+            "value" : "Prüfen Sie ausstehende Inhalte, bevor sie für alle sichtbar werden."
           }
         },
         "uk" : {
@@ -16767,7 +16767,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle nur Themen, die das Auffinden der Nachricht wirklich verbessern. Region und Dringlichkeit werden separat festgelegt."
+            "value" : "Wählen Sie nur Themen, die das Auffinden der Nachricht wirklich verbessern. Region und Dringlichkeit werden separat festgelegt."
           }
         },
         "uk" : {
@@ -17056,7 +17056,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast keine Organisationen, über die du Nachrichten veröffentlichen kannst."
+            "value" : "Sie haben keine Organisationen, über die Sie Nachrichten veröffentlichen können."
           }
         },
         "uk" : {
@@ -17073,7 +17073,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Öffnet die Organisationen, für die du veröffentlichen darfst."
+            "value" : "Öffnet die Organisationen, für die Sie veröffentlichen dürfen."
           }
         },
         "uk" : {
@@ -17124,7 +17124,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beschreibe die Nachricht kurz. Dieser Text erscheint in der Nachrichtenliste."
+            "value" : "Beschreiben Sie die Nachricht kurz. Dieser Text erscheint in der Nachrichtenliste."
           }
         },
         "uk" : {
@@ -17226,7 +17226,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prüfe Titel, Titelbild und Quelle vor der Veröffentlichung. Die Nachricht erscheint im Namen der gewählten Organisation."
+            "value" : "Prüfen Sie Titel, Titelbild und Quelle vor der Veröffentlichung. Die Nachricht erscheint im Namen der gewählten Organisation."
           }
         },
         "uk" : {
@@ -17345,7 +17345,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Optional. Füge den Namen der Veröffentlichung oder einen Link hinzu."
+            "value" : "Optional. Fügen Sie den Namen der Veröffentlichung oder einen Link hinzu."
           }
         },
         "uk" : {
@@ -17634,7 +17634,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du darfst für diese Organisation nicht mehr veröffentlichen. Wähle eine andere Organisation."
+            "value" : "Sie dürfen für diese Organisation nicht mehr veröffentlichen. Wählen Sie eine andere Organisation."
           }
         },
         "uk" : {
@@ -17668,7 +17668,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle eine Organisation für die Nachricht aus."
+            "value" : "Wählen Sie eine Organisation für die Nachricht aus."
           }
         },
         "uk" : {
@@ -17770,7 +17770,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Füge höchstens 8 Schlagwörter hinzu."
+            "value" : "Fügen Sie höchstens 8 Schlagwörter hinzu."
           }
         },
         "uk" : {
@@ -18411,7 +18411,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast eine neue Antwort auf deine Nachricht."
+            "value" : "Sie haben eine neue Antwort auf Ihre Nachricht."
           }
         },
         "en" : {
@@ -19207,7 +19207,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast eine neue Antwort auf deine Nachricht."
+            "value" : "Sie haben eine neue Antwort auf Ihre Nachricht."
           }
         },
         "en" : {
@@ -23313,7 +23313,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast noch keine Organisationen als Lesezeichen gespeichert."
+            "value" : "Sie haben noch keine Organisationen als Lesezeichen gespeichert."
           }
         },
         "uk" : {
@@ -23653,7 +23653,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du kannst bis zu 30 Fotos hinzufügen."
+            "value" : "Sie können bis zu 30 Fotos hinzufügen."
           }
         },
         "uk" : {
@@ -23840,7 +23840,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du erhältst Updates von „%@“."
+            "value" : "Sie erhalten Updates von „%@“."
           }
         },
         "uk" : {
@@ -23891,7 +23891,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du erhältst keine Updates mehr von „%@“."
+            "value" : "Sie erhalten keine Updates mehr von „%@“."
           }
         },
         "uk" : {
@@ -25746,7 +25746,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Versuche einen anderen Titel, eine andere Organisation, einen Inhaltstyp oder eine Region."
+            "value" : "Versuchen Sie einen anderen Titel, eine andere Organisation, einen Inhaltstyp oder eine Region."
           }
         },
         "en" : {
@@ -26779,7 +26779,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hier erscheinen deine Registrierungen, gefolgten Organisationen und gespeicherten Inhalte."
+            "value" : "Hier erscheinen Ihre Registrierungen, gefolgten Organisationen und gespeicherten Inhalte."
           }
         },
         "uk" : {
@@ -26830,7 +26830,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine letzten Aktivitäten in der App."
+            "value" : "Ihre letzten Aktivitäten in der App."
           }
         },
         "uk" : {
@@ -26864,7 +26864,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Verlauf gespeicherter Inhalte, Abonnements und Anmeldungen wird aus deinem Konto gelöscht."
+            "value" : "Der Verlauf gespeicherter Inhalte, Abonnements und Anmeldungen wird aus Ihrem Konto gelöscht."
           }
         },
         "uk" : {
@@ -26932,7 +26932,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veranstaltungen, zu denen du zurückkehren möchtest."
+            "value" : "Veranstaltungen, zu denen Sie zurückkehren möchten."
           }
         },
         "uk" : {
@@ -26966,7 +26966,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inhalte, die du als wichtig markiert hast."
+            "value" : "Inhalte, die Sie als wichtig markiert haben."
           }
         },
         "uk" : {
@@ -27017,7 +27017,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Liste der kürzlich angesehenen Inhalte wird aus deinem Konto gelöscht."
+            "value" : "Die Liste der kürzlich angesehenen Inhalte wird aus Ihrem Konto gelöscht."
           }
         },
         "uk" : {
@@ -27102,7 +27102,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die letzten Inhalte, die du geöffnet hast."
+            "value" : "Die letzten Inhalte, die Sie geöffnet haben."
           }
         },
         "uk" : {
@@ -27544,7 +27544,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ergänze Informationen über dich."
+            "value" : "Ergänzen Sie Informationen über sich."
           }
         },
         "uk" : {
@@ -27799,7 +27799,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwalte app-eigene Neuigkeiten und Veranstaltungen."
+            "value" : "Verwalten Sie app-eigene Neuigkeiten und Veranstaltungen."
           }
         },
         "uk" : {
@@ -27867,7 +27867,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "News und Veranstaltungen im Namen deiner Organisationen erstellen und bearbeiten."
+            "value" : "News und Veranstaltungen im Namen Ihrer Organisationen erstellen und bearbeiten."
           }
         },
         "uk" : {
@@ -28525,7 +28525,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die wichtigsten Inhalte kannst du sofort ansehen."
+            "value" : "Die wichtigsten Inhalte können Sie sofort ansehen."
           }
         },
         "uk" : {
@@ -28627,7 +28627,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lokale Veranstaltungen und Organisationen nach deinem Bundesland."
+            "value" : "Lokale Veranstaltungen und Organisationen nach Ihrem Bundesland."
           }
         },
         "uk" : {
@@ -29035,7 +29035,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Von dir verwaltete Organisationen"
+            "value" : "Von Ihnen verwaltete Organisationen"
           }
         },
         "uk" : {
@@ -29137,7 +29137,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du bist noch für keine Veranstaltungen registriert."
+            "value" : "Sie sind noch für keine Veranstaltungen registriert."
           }
         },
         "uk" : {
@@ -29188,7 +29188,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Registriere dich für Veranstaltungen, um sie hier zu sehen."
+            "value" : "Registrieren Sie sich für Veranstaltungen, um sie hier zu sehen."
           }
         },
         "uk" : {
@@ -29205,7 +29205,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine kommenden Registrierungen erscheinen hier."
+            "value" : "Ihre kommenden Registrierungen erscheinen hier."
           }
         },
         "uk" : {
@@ -29222,7 +29222,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast noch keine bevorstehenden Veranstaltungen."
+            "value" : "Sie haben noch keine bevorstehenden Veranstaltungen."
           }
         },
         "uk" : {
@@ -29273,7 +29273,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine registrierten Veranstaltungen an einem Ort."
+            "value" : "Ihre registrierten Veranstaltungen an einem Ort."
           }
         },
         "uk" : {
@@ -29375,7 +29375,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dir sind noch keine Organisationen zugewiesen."
+            "value" : "Ihnen sind noch keine Organisationen zugewiesen."
           }
         },
         "uk" : {
@@ -29649,7 +29649,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Updates von Organisationen, denen du folgst."
+            "value" : "Updates von Organisationen, denen Sie folgen."
           }
         },
         "uk" : {
@@ -29976,7 +29976,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Server hat die Mitteilung nur für einen Teil der Geräte angenommen. Prüfe die APNs-Einstellungen in Firebase."
+            "value" : "Der Server hat die Mitteilung nur für einen Teil der Geräte angenommen. Prüfen Sie die APNs-Einstellungen in Firebase."
           }
         },
         "uk" : {
@@ -29993,7 +29993,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Server hat die Testmitteilung angenommen. Prüfe, ob sie auf dem iPhone angezeigt wird."
+            "value" : "Der Server hat die Testmitteilung angenommen. Prüfen Sie, ob sie auf dem iPhone angezeigt wird."
           }
         },
         "uk" : {
@@ -30027,7 +30027,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Organisationen, die du leitest oder mitverwaltet."
+            "value" : "Organisationen, die Sie leiten oder mitverwalten."
           }
         },
         "uk" : {
@@ -30044,7 +30044,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwalte Organisationen, die du mitbetreust, und veröffentliche Beiträge in ihrem Namen."
+            "value" : "Verwalten Sie Organisationen, die Sie mitbetreuen, und veröffentlichen Sie Beiträge in ihrem Namen."
           }
         },
         "uk" : {
@@ -30146,7 +30146,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Organisationen, in denen du eine Rolle im Verwaltungsteam hast."
+            "value" : "Organisationen, in denen Sie eine Rolle im Verwaltungsteam haben."
           }
         },
         "uk" : {
@@ -30401,7 +30401,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du folgst noch keinen Organisationen. Folge Organisationen, um ihre News und Veranstaltungen schnell zu finden."
+            "value" : "Sie folgen noch keinen Organisationen. Folgen Sie Organisationen, um ihre News und Veranstaltungen schnell zu finden."
           }
         },
         "uk" : {
@@ -30418,7 +30418,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Organisationen, denen du folgst."
+            "value" : "Organisationen, denen Sie folgen."
           }
         },
         "uk" : {
@@ -30435,7 +30435,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Updates von Organisationen, denen du folgst."
+            "value" : "Updates von Organisationen, denen Sie folgen."
           }
         },
         "uk" : {
@@ -31150,7 +31150,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du hast keine Berechtigung, das Team zu verwalten."
+            "value" : "Sie haben keine Berechtigung, das Team zu verwalten."
           }
         },
         "uk" : {
@@ -31286,7 +31286,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eine Organisation muss immer einen Inhaber haben. Wähle einen neuen Inhaber aus, um ihn zu ändern."
+            "value" : "Eine Organisation muss immer einen Inhaber haben. Wählen Sie einen neuen Inhaber aus, um ihn zu ändern."
           }
         },
         "uk" : {
@@ -33128,7 +33128,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veranstaltungen, Organisationen und Inhalte, zu denen du zurückkehrst."
+            "value" : "Veranstaltungen, Organisationen und Inhalte, zu denen Sie zurückkehren."
           }
         },
         "uk" : {
@@ -33196,7 +33196,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nutzer, Inhalte, Moderation und Systemmodule entsprechend deinem Zugriff."
+            "value" : "Nutzer, Inhalte, Moderation und Systemmodule entsprechend Ihrem Zugriff."
           }
         },
         "uk" : {
@@ -33655,7 +33655,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Treffen, Beratungen und Veranstaltungen in deiner Nähe."
+            "value" : "Treffen, Beratungen und Veranstaltungen in Ihrer Nähe."
           }
         },
         "uk" : {
@@ -33723,7 +33723,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine Aktivitäten in der App."
+            "value" : "Ihre Aktivitäten in der App."
           }
         },
         "uk" : {
@@ -33808,7 +33808,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Organisationen, denen du folgst."
+            "value" : "Organisationen, denen Sie folgen."
           }
         },
         "uk" : {
@@ -34046,7 +34046,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "News, Veranstaltungen und Organisationen, die du gespeichert hast."
+            "value" : "News, Veranstaltungen und Organisationen, die Sie gespeichert haben."
           }
         },
         "uk" : {
@@ -34366,7 +34366,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Melde dich mit einem bestätigten Konto an, um über die Teilnahme an der optionalen aggregierten Analyse zu entscheiden. Einträge, die für Kontofunktionen erforderlich sind, sind von dieser Auswahl unabhängig."
+            "value" : "Melden Sie sich mit einem bestätigten Konto an, um über die Teilnahme an der optionalen aggregierten Analyse zu entscheiden. Einträge, die für Kontofunktionen erforderlich sind, sind von dieser Auswahl unabhängig."
           }
         },
         "en" : {
@@ -34474,7 +34474,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Account-Daten konnten nicht bereinigt werden. Der Account wurde nicht gelöscht. Bitte versuche es erneut."
+            "value" : "Account-Daten konnten nicht bereinigt werden. Der Account wurde nicht gelöscht. Bitte versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -34525,7 +34525,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Account konnte nicht gelöscht werden. Bitte versuche es erneut."
+            "value" : "Account konnte nicht gelöscht werden. Bitte versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -34593,7 +34593,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du kannst den Account nicht löschen, solange du Inhaber einer Organisation bist. Übertrage die Organisation zuerst an eine andere Person."
+            "value" : "Sie können den Account nicht löschen, solange Sie Inhaber einer Organisation sind. Übertragen Sie die Organisation zuerst an eine andere Person."
           }
         },
         "uk" : {
@@ -34610,7 +34610,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine Berechtigung, um das Löschen abzuschließen. Der Account wurde nicht gelöscht. Bitte melde dich ab und erneut an."
+            "value" : "Keine Berechtigung, um das Löschen abzuschließen. Der Account wurde nicht gelöscht. Bitte melden Sie sich ab und erneut an."
           }
         },
         "uk" : {
@@ -34644,7 +34644,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Zum Löschen des Accounts musst du dich erneut anmelden."
+            "value" : "Zum Löschen des Accounts müssen Sie sich erneut anmelden."
           }
         },
         "uk" : {
@@ -34967,7 +34967,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stelle eine Frage, melde ein Problem oder schlage eine Idee vor."
+            "value" : "Stellen Sie eine Frage, melden Sie ein Problem oder schlagen Sie eine Idee vor."
           }
         },
         "uk" : {
@@ -35562,7 +35562,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inhalte und Kommentare dieser Person werden ausgeblendet. Du kannst die Blockierung später im Profil aufheben. Kontext: %@"
+            "value" : "Inhalte und Kommentare dieser Person werden ausgeblendet. Sie können die Blockierung später im Profil aufheben. Kontext: %@"
           }
         },
         "uk" : {
@@ -35596,7 +35596,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Melde dich an, um blockierte Benutzer zu verwalten."
+            "value" : "Melden Sie sich an, um blockierte Benutzer zu verwalten."
           }
         },
         "uk" : {
@@ -35613,7 +35613,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Änderung konnte nicht gespeichert werden. Prüfe deine Verbindung und versuche es erneut."
+            "value" : "Die Änderung konnte nicht gespeichert werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -35630,7 +35630,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du kannst dein eigenes Konto nicht blockieren."
+            "value" : "Sie können Ihr eigenes Konto nicht blockieren."
           }
         },
         "uk" : {
@@ -35647,7 +35647,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Konto kann blockierte Benutzer derzeit nicht verwalten."
+            "value" : "Ihr Konto kann blockierte Benutzer derzeit nicht verwalten."
           }
         },
         "uk" : {
@@ -35698,7 +35698,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Änderung kann derzeit nicht gespeichert werden. Versuche es später erneut."
+            "value" : "Die Änderung kann derzeit nicht gespeichert werden. Versuchen Sie es später erneut."
           }
         },
         "uk" : {
@@ -35732,7 +35732,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Personen, die du blockierst, erscheinen hier."
+            "value" : "Personen, die Sie blockieren, erscheinen hier."
           }
         },
         "uk" : {
@@ -35817,7 +35817,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwalte Personen, deren Inhalte du ausgeblendet hast."
+            "value" : "Verwalten Sie Personen, deren Inhalte Sie ausgeblendet haben."
           }
         },
         "uk" : {
@@ -35851,7 +35851,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ wird wieder in deinen Feeds und Kommentaren angezeigt."
+            "value" : "%@ wird wieder in Ihren Feeds und Kommentaren angezeigt."
           }
         },
         "uk" : {
@@ -36344,7 +36344,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Melde dich an, um diese geschützte Entscheidung zu sehen."
+            "value" : "Melden Sie sich an, um diese geschützte Entscheidung zu sehen."
           }
         },
         "uk" : {
@@ -36361,7 +36361,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Entscheidung zu einem deinem Konto zugeordneten Inhalt."
+            "value" : "Entscheidung zu einem Ihrem Konto zugeordneten Inhalt."
           }
         },
         "uk" : {
@@ -36548,7 +36548,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Füge für „Sonstiges“ eine kurze Erklärung hinzu."
+            "value" : "Fügen Sie für „Sonstiges“ eine kurze Erklärung hinzu."
           }
         },
         "uk" : {
@@ -36565,7 +36565,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Beschreibe, was passiert ist. Gib keine Passwörter oder sensiblen persönlichen Daten an."
+            "value" : "Beschreiben Sie, was passiert ist. Geben Sie keine Passwörter oder sensiblen persönlichen Daten an."
           }
         },
         "uk" : {
@@ -36616,7 +36616,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Melde dich an, um eine Meldung zu senden."
+            "value" : "Melden Sie sich an, um eine Meldung zu senden."
           }
         },
         "uk" : {
@@ -36633,7 +36633,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Meldung konnte nicht gesendet werden. Prüfe deine Verbindung und versuche es erneut."
+            "value" : "Die Meldung konnte nicht gesendet werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -36650,7 +36650,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Du kannst deine eigenen Inhalte nicht melden."
+            "value" : "Sie können Ihre eigenen Inhalte nicht melden."
           }
         },
         "uk" : {
@@ -36667,7 +36667,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Konto kann derzeit keine Meldungen senden."
+            "value" : "Ihr Konto kann derzeit keine Meldungen senden."
           }
         },
         "uk" : {
@@ -36701,7 +36701,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Meldung kann derzeit nicht gesendet werden. Versuche es später erneut."
+            "value" : "Die Meldung kann derzeit nicht gesendet werden. Versuchen Sie es später erneut."
           }
         },
         "uk" : {
@@ -36718,7 +36718,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Füge Belege oder weitere Fundstellen hinzu."
+            "value" : "Fügen Sie Belege oder weitere Fundstellen hinzu."
           }
         },
         "uk" : {
@@ -36752,7 +36752,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Füge eine konkrete Erklärung mit mindestens 20 Zeichen hinzu."
+            "value" : "Fügen Sie eine konkrete Erklärung mit mindestens 20 Zeichen hinzu."
           }
         },
         "uk" : {
@@ -36990,7 +36990,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Warum meldest du diesen Inhalt?"
+            "value" : "Warum melden Sie diesen Inhalt?"
           }
         },
         "uk" : {
@@ -37092,7 +37092,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Eingang bestätigt. Deine Vorgangsnummer ist %@. Du kannst den Fall unter „Meine Anfragen“ verfolgen."
+            "value" : "Eingang bestätigt. Ihre Vorgangsnummer ist %@. Sie können den Fall unter „Meine Anfragen“ verfolgen."
           }
         },
         "uk" : {
@@ -37109,7 +37109,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deine frühere Meldung befindet sich noch in der Moderationswarteschlange. Wir haben sie mit den neuesten Angaben aktualisiert."
+            "value" : "Ihre frühere Meldung befindet sich noch in der Moderationswarteschlange. Wir haben sie mit den neuesten Angaben aktualisiert."
           }
         },
         "uk" : {
@@ -39292,7 +39292,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Moderationsprotokoll konnte nicht geladen werden. Prüfe die Administratorrechte."
+            "value" : "Das Moderationsprotokoll konnte nicht geladen werden. Prüfen Sie die Administratorrechte."
           }
         },
         "uk" : {
@@ -39309,7 +39309,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Systemprotokoll konnte nicht geladen werden. Aktualisiere die Ansicht und versuche es erneut."
+            "value" : "Das Systemprotokoll konnte nicht geladen werden. Aktualisieren Sie die Ansicht und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -39326,7 +39326,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Für diese Protokollabfrage ist ein Firestore-Index erforderlich. Prüfe die Indexeinstellungen."
+            "value" : "Für diese Protokollabfrage ist ein Firestore-Index erforderlich. Prüfen Sie die Indexeinstellungen."
           }
         },
         "uk" : {
@@ -39343,7 +39343,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Protokoll ist vorübergehend nicht verfügbar. Prüfe die Verbindung und versuche es erneut."
+            "value" : "Das Protokoll ist vorübergehend nicht verfügbar. Prüfen Sie die Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -39360,7 +39360,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Das Systemprotokoll konnte nicht geladen werden. Prüfe die Eigentümerrechte."
+            "value" : "Das Systemprotokoll konnte nicht geladen werden. Prüfen Sie die Eigentümerrechte."
           }
         },
         "uk" : {
@@ -39377,7 +39377,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Eintrag konnte nicht als geprüft markiert werden. Prüfe die Administratorrechte."
+            "value" : "Der Eintrag konnte nicht als geprüft markiert werden. Prüfen Sie die Administratorrechte."
           }
         },
         "uk" : {
@@ -39394,7 +39394,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Eintrag konnte nicht als geprüft markiert werden. Versuche es erneut."
+            "value" : "Der Eintrag konnte nicht als geprüft markiert werden. Versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -39428,7 +39428,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Prüfstatus konnte nicht gespeichert werden. Prüfe die Verbindung und versuche es erneut."
+            "value" : "Der Prüfstatus konnte nicht gespeichert werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -39445,7 +39445,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Eintrag konnte nicht als geprüft markiert werden. Prüfe die Eigentümerrechte."
+            "value" : "Der Eintrag konnte nicht als geprüft markiert werden. Prüfen Sie die Eigentümerrechte."
           }
         },
         "uk" : {
@@ -43923,7 +43923,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle einen neuen Inhaber der Organisation aus."
+            "value" : "Wählen Sie einen neuen Inhaber der Organisation aus."
           }
         },
         "uk" : {
@@ -44416,7 +44416,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Daten konnten nicht aktualisiert werden. Prüfe deine Verbindung und versuche es erneut."
+            "value" : "Die Daten konnten nicht aktualisiert werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
           }
         },
         "uk" : {
@@ -45045,7 +45045,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prüfe Benutzerrollen, deren Migration noch unvollständig ist."
+            "value" : "Prüfen Sie Benutzerrollen, deren Migration noch unvollständig ist."
           }
         },
         "uk" : {
@@ -45620,14 +45620,14 @@
     "content_publishing.schedule.hint" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wähle einen Zeitpunkt mindestens 5 Minuten in der Zukunft. Bis dahin bleibt der Beitrag verborgen." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wählen Sie einen Zeitpunkt mindestens 5 Minuten in der Zukunft. Bis dahin bleibt der Beitrag verborgen." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Оберіть час щонайменше через 5 хвилин. До публікації матеріал буде прихований." } }
       }
     },
     "content_publishing.schedule.invalid" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wähle einen Zeitpunkt mindestens 5 Minuten in der Zukunft." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wählen Sie einen Zeitpunkt mindestens 5 Minuten in der Zukunft." } },
         "uk" : { "stringUnit" : { "state" : "translated", "value" : "Оберіть майбутній час щонайменше через 5 хвилин." } }
       }
     },
