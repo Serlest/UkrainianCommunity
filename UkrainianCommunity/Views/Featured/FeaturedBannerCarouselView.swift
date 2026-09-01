@@ -63,6 +63,7 @@ struct FeaturedBannerCarouselView: View {
     let onBannerTap: (FeaturedBanner) -> Void
     private let actionResolver = FeaturedBannerActionResolver()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     @State private var selectedBannerID: FeaturedBanner.ID?
@@ -89,7 +90,9 @@ struct FeaturedBannerCarouselView: View {
 
                 FeaturedBannerPageIndicator(
                     count: banners.count,
-                    selectedIndex: selectedIndex
+                    selectedIndex: selectedIndex,
+                    onIncrement: { moveSelection(by: 1) },
+                    onDecrement: { moveSelection(by: -1) }
                 )
             }
             .opacity(isRestartingCarousel ? 0 : 1)
@@ -183,7 +186,7 @@ struct FeaturedBannerCarouselView: View {
         let bannerConfiguration = banners
             .map { "\($0.id)-\($0.displayDurationSeconds)" }
             .joined(separator: "|")
-        return "\(bannerConfiguration)-reduceMotion:\(reduceMotion)"
+        return "\(bannerConfiguration)-reduceMotion:\(reduceMotion)-voiceOver:\(voiceOverEnabled)"
     }
 
     private var interactionGesture: some Gesture {
@@ -210,7 +213,7 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func runRotationLoop() async {
-        guard !reduceMotion else { return }
+        guard !reduceMotion, !voiceOverEnabled else { return }
 
         while !Task.isCancelled {
             guard banners.count > 1 else { return }
@@ -285,6 +288,15 @@ struct FeaturedBannerCarouselView: View {
 
         let nextIndex = banners.index(after: currentIndex)
         return nextIndex < banners.endIndex ? banners[nextIndex].id : banners.first?.id
+    }
+
+    private func moveSelection(by offset: Int) {
+        guard banners.count > 1 else { return }
+        let nextIndex = min(max(selectedIndex + offset, 0), banners.count - 1)
+        guard nextIndex != selectedIndex else { return }
+        withAnimation(reduceMotion ? nil : Self.autoAdvanceAnimation) {
+            selectedBannerID = banners[nextIndex].id
+        }
     }
 
     private func isLastBanner(_ bannerID: FeaturedBanner.ID) -> Bool {

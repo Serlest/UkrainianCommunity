@@ -83,6 +83,22 @@ final class ImageCropViewModel: ObservableObject {
         clampOffset(in: frameSize)
     }
 
+    func zoom(by delta: CGFloat, in frameSize: CGSize) {
+        scale = min(max(scale + delta, 1), 5)
+        scaleStartValue = nil
+        clampOffset(in: frameSize)
+    }
+
+    func moveImage(horizontal: CGFloat = 0, vertical: CGFloat = 0, in frameSize: CGSize) {
+        let step = max(8, min(frameSize.width, frameSize.height) * 0.05)
+        offset = CGSize(
+            width: offset.width + horizontal * step,
+            height: offset.height + vertical * step
+        )
+        dragStartOffset = nil
+        clampOffset(in: frameSize)
+    }
+
     func applyCrop() async throws -> ProcessedImageSelection {
         isProcessing = true
         errorMessage = nil

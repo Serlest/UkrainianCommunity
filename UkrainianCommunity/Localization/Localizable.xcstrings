@@ -11907,6 +11907,74 @@
         }
       }
     },
+    "image.crop.move_down" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild nach unten verschieben"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемістити зображення вниз"
+          }
+        }
+      }
+    },
+    "image.crop.move_left" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild nach links verschieben"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемістити зображення ліворуч"
+          }
+        }
+      }
+    },
+    "image.crop.move_right" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild nach rechts verschieben"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемістити зображення праворуч"
+          }
+        }
+      }
+    },
+    "image.crop.move_up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bild nach oben verschieben"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перемістити зображення вгору"
+          }
+        }
+      }
+    },
     "image.crop.hint" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11954,6 +12022,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Обрізати зображення"
+          }
+        }
+      }
+    },
+    "image.crop.zoom_in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergrößern"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збільшити"
+          }
+        }
+      }
+    },
+    "image.crop.zoom_out" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verkleinern"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зменшити"
           }
         }
       }

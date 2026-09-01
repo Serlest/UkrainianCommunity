@@ -105,6 +105,31 @@ struct ImageCropView: View {
                 .contentShape(RoundedRectangle(cornerRadius: viewModel.profile.cropCornerRadius, style: .continuous))
                 .gesture(dragGesture(in: cropSize))
                 .simultaneousGesture(magnificationGesture(in: cropSize))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(title)
+                .accessibilityValue("\(Int((viewModel.scale * 100).rounded()))%")
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment:
+                        viewModel.zoom(by: 0.1, in: cropSize)
+                    case .decrement:
+                        viewModel.zoom(by: -0.1, in: cropSize)
+                    @unknown default:
+                        break
+                    }
+                }
+                .accessibilityAction(named: AppStrings.Images.Crop.moveLeft) {
+                    viewModel.moveImage(horizontal: -1, in: cropSize)
+                }
+                .accessibilityAction(named: AppStrings.Images.Crop.moveRight) {
+                    viewModel.moveImage(horizontal: 1, in: cropSize)
+                }
+                .accessibilityAction(named: AppStrings.Images.Crop.moveUp) {
+                    viewModel.moveImage(vertical: -1, in: cropSize)
+                }
+                .accessibilityAction(named: AppStrings.Images.Crop.moveDown) {
+                    viewModel.moveImage(vertical: 1, in: cropSize)
+                }
                 .overlay {
                     if viewModel.isProcessing {
                         ProgressView()
@@ -119,6 +144,8 @@ struct ImageCropView: View {
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
                     .multilineTextAlignment(.center)
+
+                cropControls(frameSize: cropSize)
             }
             .frame(maxWidth: .infinity)
             .padding(.horizontal, AppTheme.pageHorizontal)
@@ -130,6 +157,50 @@ struct ImageCropView: View {
                 viewModel.setCropFrameSize(newSize)
             }
         }
+    }
+
+    private func cropControls(frameSize: CGSize) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                cropControlButton(AppStrings.Images.Crop.moveLeft, systemImage: "arrow.left") {
+                    viewModel.moveImage(horizontal: -1, in: frameSize)
+                }
+                cropControlButton(AppStrings.Images.Crop.moveRight, systemImage: "arrow.right") {
+                    viewModel.moveImage(horizontal: 1, in: frameSize)
+                }
+                cropControlButton(AppStrings.Images.Crop.moveUp, systemImage: "arrow.up") {
+                    viewModel.moveImage(vertical: -1, in: frameSize)
+                }
+                cropControlButton(AppStrings.Images.Crop.moveDown, systemImage: "arrow.down") {
+                    viewModel.moveImage(vertical: 1, in: frameSize)
+                }
+                cropControlButton(AppStrings.Images.Crop.zoomOut, systemImage: "minus.magnifyingglass") {
+                    viewModel.zoom(by: -0.1, in: frameSize)
+                }
+                .disabled(viewModel.scale <= 1)
+                cropControlButton(AppStrings.Images.Crop.zoomIn, systemImage: "plus.magnifyingglass") {
+                    viewModel.zoom(by: 0.1, in: frameSize)
+                }
+                .disabled(viewModel.scale >= 5)
+            }
+            .padding(.horizontal, AppTheme.pageHorizontal)
+        }
+        .scrollIndicators(.hidden)
+        .disabled(viewModel.isProcessing)
+    }
+
+    private func cropControlButton(
+        _ accessibilityLabel: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+        }
+        .buttonStyle(.bordered)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private func dragGesture(in frameSize: CGSize) -> some Gesture {

@@ -158,7 +158,7 @@ extension EventEditorView {
 
                 Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-                Toggle("", isOn: $viewModel.hasExplicitEndDate)
+                Toggle(AppStrings.Events.hasEndDate, isOn: $viewModel.hasExplicitEndDate)
                     .labelsHidden()
             }
             .frame(minHeight: 48)
@@ -177,7 +177,7 @@ extension EventEditorView {
 
                 Spacer(minLength: AppTheme.eventsMetadataSpacing)
 
-                Toggle("", isOn: Binding(
+                Toggle(AppStrings.Events.allDay, isOn: Binding(
                     get: { viewModel.isAllDay },
                     set: { viewModel.setAllDay($0) }
                 ))

@@ -1,6 +1,7 @@
 import CoreGraphics
 import Foundation
 import Testing
+import UIKit
 @testable import UkrainianCommunity
 
 @MainActor
@@ -63,6 +64,34 @@ private final class RecordingBannerRepository: FeaturedBannerRepository {
 
 @MainActor
 struct FeaturedBannerEditingTests {
+    @Test func imageCropControlsClampZoomAndResetPosition() throws {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = try #require(CGContext(
+            data: nil,
+            width: 600,
+            height: 1200,
+            bitsPerComponent: 8,
+            bytesPerRow: 0,
+            space: colorSpace,
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        let image = UIImage(cgImage: try #require(context.makeImage()))
+        let viewModel = ImageCropViewModel(sourceImage: image, profile: .adaptiveBanner)
+        let frameSize = CGSize(width: 320, height: 180)
+        viewModel.setCropFrameSize(frameSize)
+
+        viewModel.zoom(by: -1, in: frameSize)
+        #expect(viewModel.scale == 1)
+        viewModel.zoom(by: 10, in: frameSize)
+        #expect(viewModel.scale == 5)
+        viewModel.moveImage(vertical: 1, in: frameSize)
+        #expect(viewModel.offset.height > 0)
+
+        viewModel.reset()
+        #expect(viewModel.scale == 1)
+        #expect(viewModel.offset == .zero)
+    }
+
     @Test func adaptiveBannerProcessingPreservesPortraitAspectRatio() async throws {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let context = try #require(CGContext(

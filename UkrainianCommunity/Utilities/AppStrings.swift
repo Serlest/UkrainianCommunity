@@ -242,6 +242,12 @@ enum AppStrings {
             static var reset: String { text("image.crop.reset", "Reset") }
             static var cancel: String { text("image.crop.cancel", "Cancel") }
             static var apply: String { text("image.crop.apply", "Apply") }
+            static var moveLeft: String { text("image.crop.move_left", "Move image left") }
+            static var moveRight: String { text("image.crop.move_right", "Move image right") }
+            static var moveUp: String { text("image.crop.move_up", "Move image up") }
+            static var moveDown: String { text("image.crop.move_down", "Move image down") }
+            static var zoomIn: String { text("image.crop.zoom_in", "Zoom in") }
+            static var zoomOut: String { text("image.crop.zoom_out", "Zoom out") }
         }
 
         enum Validation {
