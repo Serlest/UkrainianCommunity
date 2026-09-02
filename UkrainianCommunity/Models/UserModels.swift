@@ -311,6 +311,9 @@ struct AppUser: Identifiable, Codable {
     let telegramUsername: String?
     let role: UserRole
     let globalRole: GlobalRole
+    // Optional keeps synthesized Codable backward-compatible with persisted
+    // profiles created before privileged MFA existed. Missing means disabled.
+    let requiresMultiFactorAuth: Bool?
     let moderatorSections: [AppSection]
     let blockState: UserBlockState
     let accountStatus: AccountStatus
@@ -377,6 +380,7 @@ struct AppUser: Identifiable, Codable {
         telegramUsername: String? = nil,
         role: UserRole,
         globalRole: GlobalRole? = nil,
+        requiresMultiFactorAuth: Bool? = false,
         moderatorSections: [AppSection] = [],
         blockState: UserBlockState,
         accountStatus: AccountStatus? = nil,
@@ -408,6 +412,7 @@ struct AppUser: Identifiable, Codable {
         self.telegramUsername = telegramUsername
         self.role = role
         self.globalRole = globalRole ?? .user
+        self.requiresMultiFactorAuth = requiresMultiFactorAuth
         self.moderatorSections = moderatorSections
         self.blockState = blockState
         self.accountStatus = accountStatus ?? (blockState.isRestricted ? .suspendedUntil : .active)

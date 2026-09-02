@@ -142,6 +142,7 @@ final class UserProfileService {
                 role: data["role"] as? String,
                 blockState: data["blockState"] as? String ?? (isBlocked ? UserBlockState.suspendedUntil.rawValue : UserBlockState.active.rawValue),
                 globalRole: data["globalRole"] as? String,
+                requiresMultiFactorAuth: data["requiresMultiFactorAuth"] as? Bool,
                 moderatorSections: data["moderatorSections"] as? [String],
                 accountStatus: data["accountStatus"] as? String,
                 banExpiresAt: (data["banExpiresAt"] as? Timestamp)?.dateValue(),

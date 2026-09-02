@@ -148,6 +148,9 @@ struct ContentView: View {
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.user)
         }
+        .task(id: privilegedMFARequirementKey) {
+            await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
+        }
     }
 
     private var observationContent: some View {
@@ -408,6 +411,17 @@ struct ContentView: View {
             user.id,
             user.acceptedTermsVersion ?? "",
             user.acceptedPrivacyVersion ?? ""
+        ].joined(separator: ":")
+    }
+
+    private var privilegedMFARequirementKey: String {
+        guard authState.isAuthenticated, let user = authState.user else {
+            return "guest"
+        }
+        return [
+            user.id,
+            user.globalRole.authorizationRole.rawValue,
+            user.requiresMultiFactorAuth == true ? "required" : "optional"
         ].joined(separator: ":")
     }
 

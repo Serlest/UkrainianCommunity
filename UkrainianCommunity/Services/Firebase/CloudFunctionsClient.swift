@@ -46,6 +46,7 @@ enum CloudFunctionName: String, CaseIterable {
     case uploadOrganizationContentCover
     case deleteNotificationPushRegistration
     case sendTestPushNotification
+    case activatePrivilegedMFAProtection
 }
 
 nonisolated struct DsaDecisionFunctionRequest: Codable, Equatable {
@@ -463,6 +464,13 @@ struct TestPushNotificationFunctionResponse: Codable, Equatable {
     let failureCount: Int
 }
 
+struct PrivilegedMFAActivationFunctionRequest: Codable, Equatable {}
+
+struct PrivilegedMFAActivationFunctionResponse: Codable, Equatable {
+    let required: Bool
+    let activatedAt: String
+}
+
 final class CloudFunctionsClient {
     static let shared = CloudFunctionsClient()
 
@@ -755,6 +763,15 @@ final class CloudFunctionsClient {
         try await call(.sendTestPushNotification, request: TestPushNotificationFunctionRequest())
     }
 
+    func activatePrivilegedMFAProtection() async throws -> PrivilegedMFAActivationFunctionResponse {
+        let response: PrivilegedMFAActivationFunctionResponse = try await call(
+            .activatePrivilegedMFAProtection,
+            request: PrivilegedMFAActivationFunctionRequest()
+        )
+        guard response.required else { throw AppError.unknown }
+        return response
+    }
+
     func decideDsaCase(_ request: DsaDecisionFunctionRequest) async throws -> DsaDecisionFunctionResponse {
         try await call(.decideDsaCase, request: request)
     }
@@ -883,7 +900,8 @@ final class CloudFunctionsClient {
              .deleteFeedback,
              .clearFeedbackInbox,
              .deleteNotificationPushRegistration,
-             .sendTestPushNotification:
+             .sendTestPushNotification,
+             .activatePrivilegedMFAProtection:
             return .userProfile
         case .acceptLegalDocument,
              .acceptOrganizationRules,
@@ -931,7 +949,8 @@ final class CloudFunctionsClient {
              .deleteFeaturedBanner,
              .createOrganizationPhotoMetadata,
              .deleteOrganizationPhotoMetadata,
-             .uploadOrganizationContentCover:
+             .uploadOrganizationContentCover,
+             .activatePrivilegedMFAProtection:
             return true
         case .approveOrganization,
              .rejectOrganization,
@@ -1021,7 +1040,8 @@ final class CloudFunctionsClient {
              .deleteOrganizationPhotoMetadata,
              .uploadOrganizationContentCover,
              .deleteNotificationPushRegistration,
-             .sendTestPushNotification:
+             .sendTestPushNotification,
+             .activatePrivilegedMFAProtection:
             return nil
         }
     }

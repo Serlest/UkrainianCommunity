@@ -3,7 +3,33 @@ import {test} from "node:test";
 
 import {HttpsError, type CallableRequest} from "firebase-functions/v2/https";
 
-import {assertActiveUser, requireAuth, requireVerifiedAuth} from "./context";
+import {
+  type AuthContext,
+  assertActiveUser,
+  assertPrivilegedMFA,
+  isTOTPAuthenticated,
+  requireAuth,
+  requireVerifiedAuth,
+  requiresPrivilegedMFA,
+} from "./context";
+
+function authToken(secondFactor?: string): AuthContext["token"] {
+  return {
+    aud: "demo-project",
+    auth_time: 1_700_000_000,
+    exp: 1_700_003_600,
+    firebase: {
+      identities: {email: ["owner@example.com"]},
+      sign_in_provider: "password",
+      ...(secondFactor ? {sign_in_second_factor: secondFactor} : {}),
+    },
+    iat: 1_700_000_000,
+    iss: "https://securetoken.google.com/demo-project",
+    sub: "owner",
+    uid: "owner",
+    email_verified: true,
+  };
+}
 
 function callableRequest(auth: CallableRequest["auth"]): CallableRequest {
   return {auth} as CallableRequest;
@@ -54,4 +80,36 @@ test("assertActiveUser rejects suspended and deactivated accounts", () => {
 test("assertActiveUser accepts active and warned accounts", () => {
   assert.doesNotThrow(() => assertActiveUser({uid: "user-1", accountStatus: "active"}));
   assert.doesNotThrow(() => assertActiveUser({uid: "user-1", blockState: "warned"}));
+});
+
+test("privileged MFA stays opt-in per account during rollout", () => {
+  assert.equal(requiresPrivilegedMFA({
+    uid: "owner",
+    globalRole: "owner",
+  }), false);
+  assert.equal(requiresPrivilegedMFA({
+    uid: "owner",
+    globalRole: "owner",
+    requiresMultiFactorAuth: true,
+  }), true);
+  assert.equal(requiresPrivilegedMFA({
+    uid: "user",
+    globalRole: "user",
+    requiresMultiFactorAuth: true,
+  }), false);
+});
+
+test("privileged MFA requires a TOTP-authenticated token", () => {
+  const permissions = {
+    uid: "owner",
+    globalRole: "owner" as const,
+    requiresMultiFactorAuth: true,
+  };
+
+  assert.throws(
+    () => assertPrivilegedMFA(authToken(), permissions),
+    (error) => assertHttpsErrorCode(error, "failed-precondition")
+  );
+  assert.doesNotThrow(() => assertPrivilegedMFA(authToken("totp"), permissions));
+  assert.equal(isTOTPAuthenticated(authToken("phone")), false);
 });

@@ -1039,6 +1039,81 @@ struct AuthSessionConsistencyTests {
         #expect(service.multiFactorSignIn.phase == .idle)
     }
 
+    @Test
+    func protectedOwnerWithoutTOTPSessionMustCompleteTheSecurityFlow() async throws {
+        let appUser = makeUser(
+            id: "owner-a",
+            globalRole: .owner,
+            requiresMultiFactorAuth: true
+        )
+        let sessionUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend(signInUser: sessionUser)
+        backend.currentSessionTOTPAuthenticated = false
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        _ = try await service.signIn(email: appUser.email, password: "password")
+
+        #expect(state.sessionState == .authenticated)
+        #expect(state.presentedAuthFlow == .privilegedMultiFactorRequirement)
+    }
+
+    @Test
+    func protectedOwnerWithTOTPSessionCompletesSignInNormally() async throws {
+        let appUser = makeUser(
+            id: "owner-a",
+            globalRole: .owner,
+            requiresMultiFactorAuth: true
+        )
+        let sessionUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend(signInUser: sessionUser)
+        backend.currentSessionTOTPAuthenticated = true
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        _ = try await service.signIn(email: appUser.email, password: "password")
+
+        #expect(state.sessionState == .authenticated)
+        #expect(state.presentedAuthFlow == nil)
+    }
+
+    @Test
+    func ordinaryUserIsUnaffectedByAStaleProtectionField() async throws {
+        let appUser = makeUser(
+            id: "user-a",
+            globalRole: .user,
+            requiresMultiFactorAuth: true
+        )
+        let sessionUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true
+        )
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend(signInUser: sessionUser)
+        backend.currentSessionTOTPAuthenticated = false
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        _ = try await service.signIn(email: appUser.email, password: "password")
+
+        #expect(state.sessionState == .authenticated)
+        #expect(state.presentedAuthFlow == nil)
+    }
+
     private func makeService(
         state: AuthState,
         backend: FakeAuthBackend,
@@ -1062,7 +1137,11 @@ struct AuthSessionConsistencyTests {
         )
     }
 
-    private func makeUser(id: String) -> AppUser {
+    private func makeUser(
+        id: String,
+        globalRole: GlobalRole = .user,
+        requiresMultiFactorAuth: Bool = false
+    ) -> AppUser {
         AppUser(
             id: id,
             fullName: "Test User",
@@ -1071,6 +1150,8 @@ struct AuthSessionConsistencyTests {
             email: "\(id)@example.com",
             bio: "",
             role: .user,
+            globalRole: globalRole,
+            requiresMultiFactorAuth: requiresMultiFactorAuth,
             blockState: .active,
             createdAt: .now,
             updatedAt: .now
@@ -1171,6 +1252,7 @@ private final class FakeAuthBackend: AuthBackendProviding {
     var passwordResetError: Error?
     var signOutError: Error?
     var multiFactorChallenge: (any AuthMultiFactorSignInChallengeProviding)?
+    var currentSessionTOTPAuthenticated = false
     private(set) var signOutCallCount = 0
 
     init(
@@ -1222,6 +1304,10 @@ private final class FakeAuthBackend: AuthBackendProviding {
         from error: Error
     ) -> (any AuthMultiFactorSignInChallengeProviding)? {
         multiFactorChallenge
+    }
+
+    func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
+        currentSessionTOTPAuthenticated
     }
 }
 

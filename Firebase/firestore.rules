@@ -44,8 +44,24 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email_verified == true;
     }
 
+    function isTOTPAuthenticated() {
+      return isSignedIn()
+        && ('firebase' in request.auth.token)
+        && ('sign_in_second_factor' in request.auth.token.firebase)
+        && request.auth.token.firebase.sign_in_second_factor == 'totp';
+    }
+
+    function satisfiesPrivilegedMFARequirement(data) {
+      return !(
+        data.get('requiresMultiFactorAuth', false) == true
+        && data.get('globalRole', 'user') in ['owner', 'admin']
+      ) || isTOTPAuthenticated();
+    }
+
     function isVerifiedActiveUser() {
-      return isVerifiedEmailUser() && isActiveUser();
+      return isVerifiedEmailUser()
+        && isActiveUser()
+        && satisfiesPrivilegedMFARequirement(currentUserData());
     }
 
     function isAppOwner() {
@@ -662,22 +678,6 @@ service cloud.firestore {
           || request.resource.data.supersedesVersion is string);
     }
 
-    function userSelfDeletionFields() {
-      return [
-        'accountStatus',
-        'blockState',
-        'isBlocked',
-        'displayName',
-        'fullName',
-        'bio',
-        'city',
-        'email',
-        'telegramUsername',
-        'avatarURL',
-        'updatedAt'
-      ];
-    }
-
     function recentViewFields() {
       return ['itemId', 'itemType', 'title', 'subtitle', 'imageURL', 'viewedAt'];
     }
@@ -1262,10 +1262,11 @@ service cloud.firestore {
     }
 
     function safeSelfUserUpdate(uid) {
-      return isSelf(uid)
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(userSelfEditableFields())
+        && isSelf(uid)
         && isVerifiedActiveUser()
         && request.resource.data.id == resource.data.id
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfEditableFields())
         && request.resource.data.fullName is string
         && request.resource.data.fullName.size() > 0
         && request.resource.data.fullName.size() <= 160
@@ -1284,54 +1285,14 @@ service cloud.firestore {
     }
 
     function safeSelfStatusAcknowledgement(uid) {
-      return isSelf(uid)
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['statusAcknowledgedAt'])
+        && isSelf(uid)
         && isVerifiedActiveUser()
         && request.resource.data.id == resource.data.id
         && ('statusUpdatedAt' in resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAcknowledgedAt'])
         && request.resource.data.statusAcknowledgedAt is timestamp
         && request.resource.data.statusAcknowledgedAt >= resource.data.statusUpdatedAt;
-    }
-
-    function safeSelfAccountDeletionUpdate(uid) {
-      return isSelf(uid)
-        && isActiveUser()
-        && request.resource.data.id == resource.data.id
-        && ('globalRole' in resource.data)
-        && resource.data.globalRole != 'owner'
-        && request.resource.data.globalRole == resource.data.globalRole
-        && (!('role' in resource.data) || request.resource.data.role == resource.data.role)
-        && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-        && (!('communityMemberships' in resource.data) || request.resource.data.communityMemberships == resource.data.communityMemberships)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userSelfDeletionFields())
-        && request.resource.data.accountStatus == 'deactivated'
-        && request.resource.data.blockState == 'deactivated'
-        && request.resource.data.isBlocked == true
-        && request.resource.data.displayName == 'Видалений користувач'
-        && request.resource.data.fullName == ''
-        && request.resource.data.bio == ''
-        && request.resource.data.city == ''
-        && request.resource.data.email == ''
-        && (!('telegramUsername' in request.resource.data) || request.resource.data.telegramUsername == null)
-        && (!('avatarURL' in request.resource.data) || request.resource.data.avatarURL == null)
-        && request.resource.data.updatedAt is timestamp;
-    }
-
-    function ownerUserEditableFields() {
-      return ['accountStatus', 'blockState', 'warningCount', 'updatedAt', 'isBlocked', 'banExpiresAt'];
-    }
-
-    function safeOwnerUserUpdate(uid) {
-      return isOwner()
-        && uid != request.auth.uid
-        && request.resource.data.id == resource.data.id
-        && ('globalRole' in resource.data)
-        && resource.data.globalRole != 'owner'
-        && request.resource.data.globalRole == resource.data.globalRole
-        && (!('role' in resource.data) || request.resource.data.role == resource.data.role)
-        && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt)
-        && (!('communityMemberships' in resource.data) || request.resource.data.communityMemberships == resource.data.communityMemberships)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(ownerUserEditableFields());
     }
 
     function canModerateAppContent(section) {
@@ -1955,6 +1916,7 @@ service cloud.firestore {
       let organization = get(/databases/$(database)/documents/organizations/$(organizationId)).data;
       return isSignedIn()
         && request.auth.token.email_verified == true
+        && satisfiesPrivilegedMFARequirement(actor)
         && organizationId is string
         && organizationId.size() > 0
         && (
@@ -2231,10 +2193,24 @@ service cloud.firestore {
 
       allow create: if safeUserCreate(uid);
 
-      allow update: if safeOwnerUserUpdate(uid)
-        || safeSelfUserUpdate(uid)
-        || safeSelfStatusAcknowledgement(uid)
-        || safeSelfAccountDeletionUpdate(uid);
+      // Client writes are limited to self-service profile fields and status
+      // acknowledgement. Account deletion and owner moderation use callables.
+      allow update: if (
+          (
+            !('requiresMultiFactorAuth' in resource.data)
+            && !('requiresMultiFactorAuth' in request.resource.data)
+          )
+          || (
+            ('requiresMultiFactorAuth' in resource.data)
+            && ('requiresMultiFactorAuth' in request.resource.data)
+            && request.resource.data.requiresMultiFactorAuth
+              == resource.data.requiresMultiFactorAuth
+          )
+        )
+        && (
+          safeSelfUserUpdate(uid)
+          || safeSelfStatusAcknowledgement(uid)
+        );
 
       allow delete: if false;
 

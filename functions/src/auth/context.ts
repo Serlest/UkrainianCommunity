@@ -42,12 +42,39 @@ export function assertActiveUser(permissions: UserPermissionSnapshot): void {
   }
 }
 
+export function isTOTPAuthenticated(token: AuthContext["token"]): boolean {
+  const firebaseClaims = token.firebase as
+    | {sign_in_second_factor?: unknown}
+    | undefined;
+  return firebaseClaims?.sign_in_second_factor === "totp";
+}
+
+export function requiresPrivilegedMFA(
+  permissions: UserPermissionSnapshot
+): boolean {
+  return permissions.requiresMultiFactorAuth === true
+    && (permissions.globalRole === "owner" || permissions.globalRole === "admin");
+}
+
+export function assertPrivilegedMFA(
+  token: AuthContext["token"],
+  permissions: UserPermissionSnapshot
+): void {
+  if (requiresPrivilegedMFA(permissions) && !isTOTPAuthenticated(token)) {
+    throw new HttpsError(
+      "failed-precondition",
+      "A TOTP-authenticated session is required for this privileged account."
+    );
+  }
+}
+
 export async function requireVerifiedActiveUser(
   request: CallableRequest
 ): Promise<VerifiedActiveUserContext> {
   const auth = requireVerifiedAuth(request);
   const permissions = await getUserPermissions(auth.uid);
   assertActiveUser(permissions);
+  assertPrivilegedMFA(auth.token, permissions);
 
   return {...auth, permissions};
 }

@@ -153,6 +153,7 @@ final class AccountStatusMonitorService: ObservableObject {
             ?? legacyBlockState
             ?? currentUser.blockState
         let update = AccountStatusSnapshotUpdate(
+            requiresMultiFactorAuth: data["requiresMultiFactorAuth"] as? Bool ?? false,
             blockState: blockState,
             accountStatus: (data["accountStatus"] as? String).flatMap(AccountStatus.init(rawValue:))
                 ?? (blockState.isRestricted ? .suspendedUntil : .active),
@@ -183,6 +184,7 @@ final class AccountStatusMonitorService: ObservableObject {
 }
 
 struct AccountStatusSnapshotUpdate {
+    let requiresMultiFactorAuth: Bool
     let blockState: UserBlockState
     let accountStatus: AccountStatus
     let banExpiresAt: Date?
@@ -205,6 +207,7 @@ struct AccountStatusSnapshotUpdate {
             telegramUsername: user.telegramUsername,
             role: user.role,
             globalRole: user.globalRole,
+            requiresMultiFactorAuth: requiresMultiFactorAuth,
             moderatorSections: user.moderatorSections,
             blockState: blockState,
             accountStatus: accountStatus,

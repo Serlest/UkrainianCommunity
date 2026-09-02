@@ -22,6 +22,7 @@ export interface UserPermissionSnapshot {
   accountStatus?: AccountStatus;
   blockState?: BlockState;
   globalRole?: GlobalRole;
+  requiresMultiFactorAuth?: boolean;
 }
 
 export const feedbackManagerGlobalRoles = ["owner", "admin"] as const;
@@ -35,6 +36,7 @@ export function userPermissionSnapshotFromData(
     accountStatus: data?.accountStatus,
     blockState: data?.blockState,
     globalRole: data?.globalRole,
+    requiresMultiFactorAuth: data?.requiresMultiFactorAuth === true,
   };
 }
 

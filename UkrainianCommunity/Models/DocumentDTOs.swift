@@ -12,6 +12,7 @@ struct UserDTO: Codable, Identifiable {
     let role: String?
     let blockState: String
     let globalRole: String?
+    let requiresMultiFactorAuth: Bool?
     let moderatorSections: [String]?
     let accountStatus: String?
     let banExpiresAt: Date?
@@ -285,6 +286,7 @@ extension AppUser {
             telegramUsername: dto.telegramUsername,
             role: legacyRole,
             globalRole: resolvedGlobalRole,
+            requiresMultiFactorAuth: dto.requiresMultiFactorAuth ?? false,
             moderatorSections: resolvedModeratorSections,
             blockState: resolvedBlockState,
             accountStatus: resolvedAccountStatus,
@@ -326,6 +328,7 @@ extension AppUser {
             role: nil,
             blockState: blockState.rawValue,
             globalRole: globalRole.rawValue,
+            requiresMultiFactorAuth: requiresMultiFactorAuth,
             moderatorSections: moderatorSections.map(\.rawValue),
             accountStatus: accountStatus.rawValue,
             banExpiresAt: banExpiresAt,

@@ -61,6 +61,7 @@ protocol AuthBackendProviding: AnyObject {
     func multiFactorSignInChallenge(
         from error: Error
     ) -> (any AuthMultiFactorSignInChallengeProviding)?
+    func isCurrentSessionTOTPAuthenticated() async throws -> Bool
     func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding
     func signInAnonymously() async throws -> any AuthSessionUserProviding
@@ -111,6 +112,12 @@ final class FirebaseAuthBackend: AuthBackendProviding {
 
     func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding {
         (try await Auth.auth().signIn(withEmail: email, password: password)).user
+    }
+
+    func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
+        guard let user = Auth.auth().currentUser, user.isEmailVerified else { return false }
+        let token = try await user.getIDTokenResult()
+        return AuthMultiFactorService.claimsContainTOTPSignIn(token.claims)
     }
 
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding {
@@ -243,8 +250,7 @@ final class AuthService {
                 sessionUser: sessionUser,
                 transition: transition
             )
-            authState.setAuthenticatedSession(user: user)
-            authState.dismissAuthFlow()
+            await publishAuthenticatedSession(user: user)
         } catch {
             guard isCurrentTransition(transition) else { return }
 
@@ -511,6 +517,57 @@ final class AuthService {
     }
 
     @MainActor
+    func refreshPrivilegedMultiFactorRequirement() async {
+        guard authState.isAuthenticated, let user = authState.user else { return }
+        await updatePrivilegedMultiFactorPresentation(
+            for: user,
+            dismissResolvedAuthFlow: false
+        )
+    }
+
+    @MainActor
+    private func publishAuthenticatedSession(
+        user: AppUser,
+        passwordAuthenticated: Bool = false
+    ) async {
+        authState.setAuthenticatedSession(
+            user: user,
+            passwordAuthenticated: passwordAuthenticated
+        )
+        await updatePrivilegedMultiFactorPresentation(
+            for: user,
+            dismissResolvedAuthFlow: true
+        )
+    }
+
+    @MainActor
+    private func updatePrivilegedMultiFactorPresentation(
+        for user: AppUser,
+        dismissResolvedAuthFlow: Bool
+    ) async {
+        guard AuthSecurityPolicy.requiresProtectedSession(user) else {
+            if dismissResolvedAuthFlow
+                || authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
+                authState.dismissAuthFlow()
+            }
+            return
+        }
+
+        let isTOTPAuthenticated = (try? await backend.isCurrentSessionTOTPAuthenticated()) == true
+        if AuthSecurityPolicy.protectedSessionIsReady(
+            user: user,
+            isTOTPAuthenticated: isTOTPAuthenticated
+        ) {
+            if dismissResolvedAuthFlow
+                || authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
+                authState.dismissAuthFlow()
+            }
+        } else {
+            authState.presentAuthFlow(.privilegedMultiFactorRequirement)
+        }
+    }
+
+    @MainActor
     private func finishInteractiveSignIn(
         _ sessionUser: any AuthSessionUserProviding,
         transition: UInt
@@ -534,8 +591,7 @@ final class AuthService {
                 sessionUser: sessionUser,
                 transition: transition
             )
-            authState.setAuthenticatedSession(user: user, passwordAuthenticated: true)
-            authState.dismissAuthFlow()
+            await publishAuthenticatedSession(user: user, passwordAuthenticated: true)
             return user
         } catch AuthVerificationError.emailNotVerified {
             throw AuthVerificationError.emailNotVerified
@@ -718,8 +774,7 @@ final class AuthService {
                 sessionUser: sessionUser,
                 transition: transition
             )
-            authState.setAuthenticatedSession(user: user)
-            authState.dismissAuthFlow()
+            await publishAuthenticatedSession(user: user)
             return user
         } catch {
             guard isCurrentTransition(transition) else { throw error }

@@ -45,10 +45,11 @@ after(async () => {
   }
 });
 
-function storage(uid, emailVerified = true) {
+function storage(uid, emailVerified = true, usesTOTP = false) {
   return testEnv.authenticatedContext(uid, {
     email: `${uid}@example.com`,
     email_verified: emailVerified,
+    ...(usesTOTP ? {firebase: {sign_in_second_factor: "totp"}} : {}),
   }).storage();
 }
 
@@ -72,6 +73,10 @@ async function seedFirestore() {
 
     await Promise.all([
       setDoc(doc(db, "users", "owner"), user("owner", {globalRole: "owner"})),
+      setDoc(doc(db, "users", "protected-owner"), user("protected-owner", {
+        globalRole: "owner",
+        requiresMultiFactorAuth: true,
+      })),
       setDoc(doc(db, "users", "app-admin"), user("app-admin", {globalRole: "admin"})),
       setDoc(doc(db, "users", "blocked-owner"), user("blocked-owner", {
         globalRole: "owner",
@@ -199,6 +204,21 @@ describe("account state enforcement", () => {
     await assertFails(imageUpload(
       storage("blocked-owner"),
       "featuredBanners/banner-blocked/hero.jpg",
+    ));
+  });
+
+  test("requires a TOTP session only for opted-in privileged accounts", async () => {
+    await assertFails(imageUpload(
+      storage("protected-owner"),
+      "featuredBanners/protected-owner/hero.jpg",
+    ));
+    await assertSucceeds(imageUpload(
+      storage("protected-owner", true, true),
+      "featuredBanners/protected-owner/hero.jpg",
+    ));
+    await assertSucceeds(imageUpload(
+      storage("owner"),
+      "featuredBanners/unprotected-owner/hero.jpg",
     ));
   });
 });

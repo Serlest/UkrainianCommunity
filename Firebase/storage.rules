@@ -44,8 +44,24 @@ service firebase.storage {
       return isSignedIn() && request.auth.token.email_verified == true;
     }
 
+    function isTOTPAuthenticated() {
+      return isSignedIn()
+        && ('firebase' in request.auth.token)
+        && ('sign_in_second_factor' in request.auth.token.firebase)
+        && request.auth.token.firebase.sign_in_second_factor == 'totp';
+    }
+
+    function satisfiesPrivilegedMFARequirement(data) {
+      return !(
+        data.get('requiresMultiFactorAuth', false) == true
+        && data.get('globalRole', 'user') in ['owner', 'admin']
+      ) || isTOTPAuthenticated();
+    }
+
     function isVerifiedActiveUser() {
-      return isVerifiedEmailUser() && isActiveUser();
+      return isVerifiedEmailUser()
+        && isActiveUser()
+        && satisfiesPrivilegedMFARequirement(currentUserData());
     }
 
     function isOwner() {
@@ -101,17 +117,22 @@ service firebase.storage {
     }
 
     function isOrganizationRequestCreator(organizationId) {
-      return existsOrganization(organizationId)
-        && ('submittedByUserId' in organizationData(organizationId))
-        && organizationData(organizationId).submittedByUserId == request.auth.uid
-        && organizationData(organizationId).moderationStatus in ['pendingReview', 'needsRevision', 'rejected'];
+      return isVerifiedActiveUser()
+        && organizationExists(organizationId)
+        && organizationData(organizationId).get('submittedByUserId', '') == request.auth.uid
+        && organizationData(organizationId).get('moderationStatus', '')
+          in ['pendingReview', 'needsRevision', 'rejected'];
     }
 
     function canEditOrganizationContent(organizationId) {
-      return isOwner()
-        || isOrganizationOwner(organizationId)
-        || isOrganizationAdmin(organizationId)
-        || isOrganizationModerator(organizationId);
+      return isVerifiedActiveUser()
+        && organizationExists(organizationId)
+        && (
+          currentUserData().get('globalRole', 'user') == 'owner'
+          || organizationData(organizationId).get('ownerId', '') == request.auth.uid
+          || organizationData(organizationId).get('adminIds', []).hasAny([request.auth.uid])
+          || organizationData(organizationId).get('moderatorIds', []).hasAny([request.auth.uid])
+        );
     }
 
     function canManageOrganizationPhotos(organizationId) {

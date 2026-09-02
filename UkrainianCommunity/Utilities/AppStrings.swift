@@ -2759,6 +2759,18 @@ enum AppStrings {
         static var operationFailed: String { text("account_security.mfa.operation_failed", "The security change could not be completed. Try again.") }
         static var requiresRecentLogin: String { text("account_security.mfa.recent_login", "For security, sign out and sign in again before changing two-factor protection.") }
         static var alreadyEnrolled: String { text("account_security.mfa.already_enrolled", "An authenticator is already connected to this account.") }
+        static var privilegedRequiredTitle: String { text("account_security.mfa.privileged_required.title", "Additional protection required") }
+        static var privilegedRequiredSubtitle: String { text("account_security.mfa.privileged_required.subtitle", "Owner and administrator access must be protected with a verified authenticator sign-in.") }
+        static var privilegedEnrollmentRequired: String { text("account_security.mfa.privileged_required.enroll", "Connect an authenticator app before continuing to privileged tools.") }
+        static var privilegedSignInAgain: String { text("account_security.mfa.privileged_required.sign_in_again", "The authenticator is connected. Sign in again and enter its code to verify the protected session.") }
+        static var privilegedRestartSignIn: String { text("account_security.mfa.privileged_required.restart", "Sign out and verify sign-in") }
+        static var privilegedRestartingSignIn: String { text("account_security.mfa.privileged_required.restarting", "Signing out…") }
+        static var privilegedActivateMessage: String { text("account_security.mfa.privileged_required.activate_message", "The protected sign-in was verified. Complete server activation for this privileged account.") }
+        static var privilegedActivate: String { text("account_security.mfa.privileged_required.activate", "Activate required protection") }
+        static var privilegedActivating: String { text("account_security.mfa.privileged_required.activating", "Activating…") }
+        static var privilegedActivationSucceeded: String { text("account_security.mfa.privileged_required.activation_success", "Required two-factor protection is active for this account.") }
+        static var privilegedActivationFailed: String { text("account_security.mfa.privileged_required.activation_failed", "Server protection could not be activated. The account remains in the protected setup flow.") }
+        static var requiredFactorCannotBeRemoved: String { text("account_security.mfa.required_factor", "The last authenticator cannot be removed while two-factor protection is required for this account.") }
         static var recoveryNotice: String { text("account_security.mfa.recovery_notice", "UAC does not generate recovery codes. If you lose access to the authenticator, contact support for identity verification and account recovery.") }
     }
 

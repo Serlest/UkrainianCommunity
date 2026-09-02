@@ -113,6 +113,8 @@ final class AccountSecurityViewModel: ObservableObject {
     @Published private(set) var isConfirmingEnrollment = false
     @Published private(set) var removingFactorID: String?
     @Published private(set) var enrollmentSession: AuthTOTPEnrollmentSession?
+    @Published private(set) var isSessionTOTPAuthenticated = false
+    @Published private(set) var isActivatingRequirement = false
     @Published private(set) var message: String?
     @Published private(set) var errorMessage: String?
 
@@ -135,6 +137,15 @@ final class AccountSecurityViewModel: ObservableObject {
             factors = try await multiFactorService.enrolledTOTPFactors()
         } catch {
             errorMessage = AppStrings.AccountSecurity.loadFailed
+        }
+    }
+
+    func refreshSessionAuthentication() async {
+        do {
+            isSessionTOTPAuthenticated = try await multiFactorService
+                .isCurrentSessionTOTPAuthenticated()
+        } catch {
+            isSessionTOTPAuthenticated = false
         }
     }
 
@@ -177,6 +188,7 @@ final class AccountSecurityViewModel: ObservableObject {
             self.enrollmentSession = nil
             message = AppStrings.AccountSecurity.enrollmentSucceeded
             factors = try await multiFactorService.enrolledTOTPFactors()
+            isSessionTOTPAuthenticated = false
         } catch {
             errorMessage = readableMessage(for: error)
         }
@@ -186,18 +198,42 @@ final class AccountSecurityViewModel: ObservableObject {
         enrollmentSession = nil
     }
 
-    func removeFactor(_ factor: AuthMultiFactorFactor) async {
+    func removeFactor(_ factor: AuthMultiFactorFactor, for user: AppUser?) async {
         removingFactorID = factor.id
         message = nil
         errorMessage = nil
         defer { removingFactorID = nil }
 
         do {
-            try await multiFactorService.removeTOTPFactor(id: factor.id)
+            try await multiFactorService.removeTOTPFactor(
+                id: factor.id,
+                canRemoveLastFactor: AuthSecurityPolicy.canRemoveLastTOTPFactor(for: user)
+            )
             factors.removeAll { $0.id == factor.id }
             message = AppStrings.AccountSecurity.removalSucceeded
         } catch {
             errorMessage = readableMessage(for: error)
+        }
+    }
+
+    func activatePrivilegedRequirement() async -> Bool {
+        isActivatingRequirement = true
+        message = nil
+        errorMessage = nil
+        defer { isActivatingRequirement = false }
+
+        do {
+            let response = try await CloudFunctionsClient.shared
+                .activatePrivilegedMFAProtection()
+            guard response.required else {
+                errorMessage = AppStrings.AccountSecurity.operationFailed
+                return false
+            }
+            message = AppStrings.AccountSecurity.privilegedActivationSucceeded
+            return true
+        } catch {
+            errorMessage = AppStrings.AccountSecurity.privilegedActivationFailed
+            return false
         }
     }
 
@@ -216,6 +252,8 @@ final class AccountSecurityViewModel: ObservableObject {
                 AppStrings.AccountSecurity.operationFailed
             case .enrollmentNotReleased:
                 AppStrings.AccountSecurity.multiFactorRolloutPending
+            case .requiredFactorCannotBeRemoved:
+                AppStrings.AccountSecurity.requiredFactorCannotBeRemoved
             }
         }
 
@@ -267,7 +305,7 @@ struct AccountSecurityView: View {
                 title: Text(AppStrings.AccountSecurity.removeTitle),
                 message: Text(AppStrings.AccountSecurity.removeMessage),
                 primaryButton: .destructive(Text(AppStrings.AccountSecurity.removeMultiFactor)) {
-                    Task { await viewModel.removeFactor(factor) }
+                    Task { await viewModel.removeFactor(factor, for: authState.user) }
                 },
                 secondaryButton: .cancel(Text(AppStrings.Common.cancel))
             )
@@ -345,17 +383,27 @@ struct AccountSecurityView: View {
                                 .font(.footnote)
                                 .foregroundStyle(AppTheme.textSecondary)
 
-                            Button(role: .destructive) {
-                                factorPendingRemoval = factor
-                            } label: {
+                            if AuthSecurityPolicy.canRemoveLastTOTPFactor(for: authState.user)
+                                || viewModel.factors.count > 1 {
+                                Button(role: .destructive) {
+                                    factorPendingRemoval = factor
+                                } label: {
+                                    Label(
+                                        viewModel.removingFactorID == factor.id
+                                            ? AppStrings.AccountSecurity.removingMultiFactor
+                                            : AppStrings.AccountSecurity.removeMultiFactor,
+                                        systemImage: "trash"
+                                    )
+                                }
+                                .disabled(viewModel.removingFactorID != nil)
+                            } else {
                                 Label(
-                                    viewModel.removingFactorID == factor.id
-                                        ? AppStrings.AccountSecurity.removingMultiFactor
-                                        : AppStrings.AccountSecurity.removeMultiFactor,
-                                    systemImage: "trash"
+                                    AppStrings.AccountSecurity.requiredFactorCannotBeRemoved,
+                                    systemImage: "lock.shield"
                                 )
+                                .font(.footnote)
+                                .foregroundStyle(AppTheme.textSecondary)
                             }
-                            .disabled(viewModel.removingFactorID != nil)
                         }
                         .padding(AppTheme.cardPadding)
                         .background(
@@ -371,6 +419,151 @@ struct AccountSecurityView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+    }
+}
+
+struct PrivilegedMultiFactorRequirementView: View {
+    @EnvironmentObject private var authState: AuthState
+    @StateObject private var viewModel = AccountSecurityViewModel()
+    @State private var isRestartingSignIn = false
+
+    private var currentUser: AppUser? { authState.user }
+
+    var body: some View {
+        AuthScreenScaffold {
+            AuthHeaderView(
+                title: AppStrings.AccountSecurity.privilegedRequiredTitle,
+                subtitle: AppStrings.AccountSecurity.privilegedRequiredSubtitle
+            )
+
+            AppEditorSectionCard {
+                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                    if viewModel.isLoading {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .accessibilityLabel(AppStrings.Common.loading)
+                    } else {
+                        requirementContent
+                    }
+
+                    if let message = viewModel.message {
+                        InlineMessageCard(style: .success, message: message)
+                    }
+                    if let errorMessage = viewModel.errorMessage {
+                        InlineMessageCard(style: .error, message: errorMessage)
+                    }
+
+                    Text(AppStrings.AccountSecurity.recoveryNotice)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .navigationTitle(AppStrings.AccountSecurity.privilegedRequiredTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .interactiveDismissDisabled()
+        .task(id: currentUser?.id) {
+            await viewModel.load()
+            await viewModel.refreshSessionAuthentication()
+            await dismissIfRequirementIsSatisfied()
+        }
+        .sheet(item: Binding(
+            get: { viewModel.enrollmentSession },
+            set: { if $0 == nil { viewModel.cancelEnrollment() } }
+        )) { session in
+            TOTPEnrollmentView(viewModel: viewModel, session: session)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .accessibilityIdentifier("auth.mfa.privilegedRequirement")
+    }
+
+    @ViewBuilder
+    private var requirementContent: some View {
+        if viewModel.factors.isEmpty {
+            InlineMessageCard(
+                style: .info,
+                message: AuthSecurityRollout.allowsTOTPEnrollment
+                    ? AppStrings.AccountSecurity.privilegedEnrollmentRequired
+                    : AppStrings.AccountSecurity.multiFactorRolloutPending
+            )
+
+            PrimaryActionButton(
+                title: AppStrings.AccountSecurity.enableMultiFactor,
+                loadingTitle: AppStrings.AccountSecurity.enablingMultiFactor,
+                isEnabled: AuthSecurityRollout.allowsTOTPEnrollment,
+                isLoading: viewModel.isStartingEnrollment,
+                systemImage: "qrcode"
+            ) {
+                Task { await viewModel.beginEnrollment() }
+            }
+            .accessibilityIdentifier("auth.mfa.privilegedRequirement.enroll")
+        } else if !viewModel.isSessionTOTPAuthenticated {
+            InlineMessageCard(
+                style: .info,
+                message: AppStrings.AccountSecurity.privilegedSignInAgain
+            )
+
+            PrimaryActionButton(
+                title: AppStrings.AccountSecurity.privilegedRestartSignIn,
+                loadingTitle: AppStrings.AccountSecurity.privilegedRestartingSignIn,
+                isEnabled: !isRestartingSignIn,
+                isLoading: isRestartingSignIn,
+                systemImage: "rectangle.portrait.and.arrow.right"
+            ) {
+                restartSignIn()
+            }
+            .accessibilityIdentifier("auth.mfa.privilegedRequirement.restart")
+        } else if currentUser?.requiresMultiFactorAuth != true {
+            InlineMessageCard(
+                style: .info,
+                message: AppStrings.AccountSecurity.privilegedActivateMessage
+            )
+
+            PrimaryActionButton(
+                title: AppStrings.AccountSecurity.privilegedActivate,
+                loadingTitle: AppStrings.AccountSecurity.privilegedActivating,
+                isEnabled: !viewModel.isActivatingRequirement,
+                isLoading: viewModel.isActivatingRequirement,
+                systemImage: "checkmark.shield"
+            ) {
+                activateRequirement()
+            }
+            .accessibilityIdentifier("auth.mfa.privilegedRequirement.activate")
+        } else {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel(AppStrings.Common.loading)
+        }
+    }
+
+    private func restartSignIn() {
+        isRestartingSignIn = true
+        Task {
+            let didSignOut = await AuthService.shared.signOut()
+            isRestartingSignIn = false
+            guard didSignOut else { return }
+            await Task.yield()
+            authState.presentAuthFlow(.login)
+        }
+    }
+
+    private func activateRequirement() {
+        Task {
+            guard await viewModel.activatePrivilegedRequirement(),
+                  let userID = currentUser?.id else { return }
+            await authState.loadUser(uid: userID)
+            await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
+        }
+    }
+
+    private func dismissIfRequirementIsSatisfied() async {
+        guard AuthSecurityPolicy.protectedSessionIsReady(
+            user: currentUser,
+            isTOTPAuthenticated: viewModel.isSessionTOTPAuthenticated
+        ) else { return }
+        await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
     }
 }
 

@@ -578,6 +578,210 @@
         }
       }
     },
+    "account_security.mfa.privileged_required.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zusätzlicher Schutz erforderlich"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібен додатковий захист"
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Zugriff für Inhaber- und Administratorkonten muss durch eine bestätigte Anmeldung mit Authenticator geschützt werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Доступ власника й адміністратора має бути захищений підтвердженим входом через автентифікатор."
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.enroll" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbinden Sie eine Authenticator-App, bevor Sie mit den geschützten Werkzeugen fortfahren."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підключіть застосунок-автентифікатор, перш ніж переходити до захищених інструментів."
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.sign_in_again" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Authenticator ist verbunden. Melden Sie sich erneut an und geben Sie seinen Code ein, um die geschützte Sitzung zu bestätigen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автентифікатор підключено. Увійдіть знову та введіть його код, щоб підтвердити захищену сесію."
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.restart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abmelden und Anmeldung bestätigen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вийти та підтвердити вхід"
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.restarting" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird abgemeldet…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вихід…"
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.activate_message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die geschützte Anmeldung wurde bestätigt. Schließen Sie die serverseitige Aktivierung für dieses privilegierte Konto ab."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Захищений вхід підтверджено. Завершіть серверну активацію для цього привілейованого акаунта."
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.activate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verbindlichen Schutz aktivieren"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активувати обов’язковий захист"
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.activating" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird aktiviert…"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активація…"
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.activation_success" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der verbindliche Zwei-Faktor-Schutz ist für dieses Konto aktiv."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обов’язковий двофакторний захист для цього акаунта активовано."
+          }
+        }
+      }
+    },
+    "account_security.mfa.privileged_required.activation_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der serverseitige Schutz konnte nicht aktiviert werden. Das Konto bleibt im geschützten Einrichtungsablauf."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося активувати серверний захист. Акаунт залишається в захищеному процесі налаштування."
+          }
+        }
+      }
+    },
+    "account_security.mfa.required_factor" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der letzte Authenticator kann nicht entfernt werden, solange für dieses Konto Zwei-Faktor-Schutz vorgeschrieben ist."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Останній автентифікатор не можна видалити, доки для цього акаунта обов’язковий двофакторний захист."
+          }
+        }
+      }
+    },
     "auth.mfa.title" : {
       "extractionState" : "manual",
       "localizations" : {

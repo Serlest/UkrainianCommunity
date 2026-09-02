@@ -21,6 +21,7 @@ enum AuthFlowDestination: String, Identifiable {
     case emailVerification
     case sessionRecovery
     case multiFactorChallenge
+    case privilegedMultiFactorRequirement
 
     var id: String { rawValue }
 }

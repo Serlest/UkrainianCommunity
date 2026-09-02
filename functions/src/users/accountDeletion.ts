@@ -1,8 +1,9 @@
 import {FieldValue, type DocumentData, type Query} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireAuth} from "../auth/context";
+import {assertPrivilegedMFA, requireAuth} from "../auth/context";
 import {adminAuth, adminStorage, db} from "../firebase/admin";
+import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {
   accountDeletionReferencePolicies,
   deletedUserDisplayName,
@@ -299,6 +300,11 @@ export const deleteOwnAccount = onCall(
         .limit(1)
         .get(),
     ]);
+
+    assertPrivilegedMFA(
+      auth.token,
+      userPermissionSnapshotFromData(auth.uid, userSnapshot.data())
+    );
 
     if (stringField(userSnapshot.data(), "globalRole") === "owner") {
       throw new HttpsError(

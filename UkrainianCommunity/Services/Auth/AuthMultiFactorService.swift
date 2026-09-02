@@ -12,11 +12,39 @@ enum AuthMultiFactorFlowError: Error, Equatable {
     case alreadyEnrolled
     case sessionChanged
     case enrollmentNotReleased
+    case requiredFactorCannotBeRemoved
 }
 
 enum AuthSecurityRollout {
-    // Flip only after Identity Platform and TOTP are enabled in production.
+    // Flip only after Identity Platform, TOTP and activatePrivilegedMFAProtection
+    // are active in production. Existing users remain unaffected until a
+    // compatible client completes their per-account rollout.
     static let allowsTOTPEnrollment = false
+}
+
+enum AuthSecurityPolicy {
+    static func isPrivilegedAccount(_ user: AppUser?) -> Bool {
+        guard let role = user?.globalRole.authorizationRole else { return false }
+        return role == .owner || role == .admin
+    }
+
+    static func requiresProtectedSession(_ user: AppUser?) -> Bool {
+        guard isPrivilegedAccount(user) else { return false }
+        return user?.requiresMultiFactorAuth == true
+            || AuthSecurityRollout.allowsTOTPEnrollment
+    }
+
+    static func protectedSessionIsReady(
+        user: AppUser?,
+        isTOTPAuthenticated: Bool
+    ) -> Bool {
+        guard requiresProtectedSession(user) else { return true }
+        return user?.requiresMultiFactorAuth == true && isTOTPAuthenticated
+    }
+
+    static func canRemoveLastTOTPFactor(for user: AppUser?) -> Bool {
+        !isPrivilegedAccount(user) || user?.requiresMultiFactorAuth != true
+    }
 }
 
 struct AuthMultiFactorFactor: Identifiable, Equatable, Sendable {
@@ -39,6 +67,10 @@ extension AuthBackendProviding {
         from error: Error
     ) -> (any AuthMultiFactorSignInChallengeProviding)? {
         nil
+    }
+
+    func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
+        false
     }
 }
 
@@ -225,19 +257,46 @@ final class AuthMultiFactorService {
     }
 
     func removeTOTPFactor(id: String) async throws {
+        try await removeTOTPFactor(id: id, canRemoveLastFactor: true)
+    }
+
+    func removeTOTPFactor(
+        id: String,
+        canRemoveLastFactor: Bool
+    ) async throws {
         guard AuthSecurityRollout.allowsTOTPEnrollment else {
             throw AuthMultiFactorFlowError.enrollmentNotReleased
         }
 
         let user = try currentVerifiedUser()
-        guard user.multiFactor.enrolledFactors.contains(where: {
+        let totpFactors = user.multiFactor.enrolledFactors.filter {
+            $0.factorID == PhoneMultiFactorInfo.TOTPMultiFactorID
+        }
+        guard totpFactors.contains(where: {
             $0.uid == id && $0.factorID == PhoneMultiFactorInfo.TOTPMultiFactorID
         }) else {
             throw AuthMultiFactorFlowError.unsupportedFactor
         }
+        guard canRemoveLastFactor || totpFactors.count > 1 else {
+            throw AuthMultiFactorFlowError.requiredFactorCannotBeRemoved
+        }
 
         try await user.multiFactor.unenroll(withFactorUID: id)
         _ = try await user.getIDTokenResult(forcingRefresh: true)
+    }
+
+    func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
+        let user = try currentVerifiedUser()
+        let token = try await user.getIDTokenResult()
+        return Self.claimsContainTOTPSignIn(token.claims)
+    }
+
+    static func claimsContainTOTPSignIn(_ claims: [String: Any]) -> Bool {
+        guard let firebaseClaims = claims["firebase"] as? [String: Any],
+              let secondFactor = firebaseClaims["sign_in_second_factor"] as? String else {
+            return false
+        }
+        return secondFactor == PhoneMultiFactorInfo.TOTPMultiFactorID
     }
 
     static func normalizedCode(_ code: String) -> String {

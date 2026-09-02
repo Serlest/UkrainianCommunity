@@ -358,6 +358,7 @@ struct AuthUIIntegrationTests {
         )
         let statusUpdatedAt = Date(timeIntervalSince1970: 1_700_200_000)
         let update = AccountStatusSnapshotUpdate(
+            requiresMultiFactorAuth: false,
             blockState: .suspendedUntil,
             accountStatus: .suspendedUntil,
             banExpiresAt: Date(timeIntervalSince1970: 1_700_300_000),

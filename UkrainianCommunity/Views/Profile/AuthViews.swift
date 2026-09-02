@@ -7,7 +7,8 @@ struct AuthFlowContainerView: View {
 
     private var requiresResolvedSession: Bool {
         switch initialDestination {
-        case .emailVerification, .sessionRecovery, .multiFactorChallenge:
+        case .emailVerification, .sessionRecovery, .multiFactorChallenge,
+             .privilegedMultiFactorRequirement:
             return true
         case .landing, .login, .register, .passwordReset:
             return false
@@ -49,6 +50,8 @@ struct AuthFlowContainerView: View {
             MultiFactorSignInView(
                 coordinator: AuthService.shared.multiFactorSignIn
             )
+        case .privilegedMultiFactorRequirement:
+            PrivilegedMultiFactorRequirementView()
         }
     }
 }
