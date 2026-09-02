@@ -25,19 +25,15 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function hasActiveUserState(data) {
+      return data.get('accountStatus', 'active') in ['active', 'warned']
+        && data.get('blockState', 'active') in ['active', 'warned'];
+    }
+
     function isActiveUser() {
       return isSignedIn()
         && existsUser(request.auth.uid)
-        && (
-          !('accountStatus' in currentUserData())
-          || currentUserData().accountStatus == 'active'
-          || currentUserData().accountStatus == 'warned'
-        )
-        && (
-          !('blockState' in currentUserData())
-          || currentUserData().blockState == 'active'
-          || currentUserData().blockState == 'warned'
-        );
+        && hasActiveUserState(currentUserData());
     }
 
     function isVerifiedEmailUser() {
@@ -58,10 +54,15 @@ service cloud.firestore {
       ) || isTOTPAuthenticated();
     }
 
+    function hasVerifiedActiveUserState(data) {
+      return hasActiveUserState(data)
+        && satisfiesPrivilegedMFARequirement(data);
+    }
+
     function isVerifiedActiveUser() {
       return isVerifiedEmailUser()
-        && isActiveUser()
-        && satisfiesPrivilegedMFARequirement(currentUserData());
+        && existsUser(request.auth.uid)
+        && hasVerifiedActiveUserState(currentUserData());
     }
 
     function isAppOwner() {
