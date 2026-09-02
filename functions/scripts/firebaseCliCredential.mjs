@@ -11,18 +11,28 @@ export async function firebaseCliCredential(dependencies = {}) {
   const loadFirebaseAuth = dependencies.loadFirebaseAuth ?? defaultFirebaseAuth;
   const now = dependencies.now ?? Date.now;
   const login = parseFirebaseLogin(runFirebaseLogin());
-  const refreshToken = login?.result?.[0]?.tokens?.refresh_token;
-  if (typeof refreshToken !== "string" || refreshToken.length < 20) {
-    throw new Error("Firebase CLI is not authenticated.");
-  }
   const firebaseAuth = loadFirebaseAuth();
   if (!firebaseAuth || typeof firebaseAuth.getAccessToken !== "function") {
     throw new Error("Firebase CLI authentication helper is unavailable.");
+  }
+  const accounts = Array.isArray(login?.result) ? login.result : [];
+  const activeAccount = typeof firebaseAuth.getGlobalDefaultAccount === "function"
+    ? firebaseAuth.getGlobalDefaultAccount()
+    : undefined;
+  const activeEmail = activeAccount?.user?.email;
+  const account = typeof activeEmail === "string"
+    ? accounts.find((candidate) => candidate?.user?.email === activeEmail)
+    : accounts.length === 1 ? accounts[0] : undefined;
+  const refreshToken = account?.tokens?.refresh_token;
+  if (typeof refreshToken !== "string" || refreshToken.length < 20 ||
+      typeof account?.user?.email !== "string") {
+    throw new Error("Firebase CLI is not authenticated or has no unambiguous active account.");
   }
 
   let cachedToken;
   let cachedUntil = 0;
   return {
+    accountEmail: account.user.email,
     async getAccessToken() {
       if (cachedToken && cachedUntil - refreshSafetyWindowMilliseconds > now()) {
         return cachedToken;

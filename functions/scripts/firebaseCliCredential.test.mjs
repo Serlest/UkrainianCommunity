@@ -4,7 +4,10 @@ import {test} from "node:test";
 import {firebaseCliCredential} from "./firebaseCliCredential.mjs";
 
 const validLogin = JSON.stringify({
-  result: [{tokens: {refresh_token: "refresh-token-long-enough-for-test"}}],
+  result: [{
+    user: {email: "owner@example.com"},
+    tokens: {refresh_token: "refresh-token-long-enough-for-test"},
+  }],
 });
 
 test("returns a short-lived credential without exposing the refresh token", async () => {
@@ -35,12 +38,15 @@ test("returns a short-lived credential without exposing the refresh token", asyn
   assert.equal(refreshCalls, 1);
   assert.equal(receivedRefreshToken, "refresh-token-long-enough-for-test");
   assert.deepEqual(receivedScopes, []);
+  assert.equal(credential.accountEmail, "owner@example.com");
 });
 
 test("fails closed when Firebase CLI has no usable refresh token", async () => {
   await assert.rejects(
     firebaseCliCredential({
-      runFirebaseLogin: () => JSON.stringify({result: [{tokens: {}}]}),
+      runFirebaseLogin: () => JSON.stringify({
+        result: [{user: {email: "owner@example.com"}, tokens: {}}],
+      }),
       loadFirebaseAuth: () => ({getAccessToken: async () => ({})}),
     }),
     /not authenticated/

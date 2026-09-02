@@ -19,11 +19,18 @@ locking existing accounts or older app builds out of production.
 
 ## Prerequisites
 
-1. Upgrade the Firebase project to Identity Platform and enable TOTP MFA.
+1. Confirm the project billing account, then upgrade Firebase Authentication to
+   Identity Platform and enable TOTP MFA. Treat the product upgrade as a
+   permanent production decision: Google publishes an initialization API but
+   no matching downgrade operation. On Blaze, email/social authentication has a
+   no-cost tier of 50,000 monthly active users before usage charges.
 2. Keep the project-level MFA mode optional; never switch directly to a global
    mandatory mode.
-3. Confirm at least two recoverable owner accounts exist and are controlled by
-   different trusted people/devices.
+3. Confirm at least two recoverable privileged accounts exist and are controlled
+   through different trusted identities/devices. The recovery identity must not
+   receive Project Owner or Editor. Grant only the checked-in custom role
+   `uacMfaRecoveryOperator`, containing Firestore entity read/update, Firebase
+   Auth user read/update, and service usage.
 4. Deploy `activatePrivilegedMFAProtection` and read back its active revision.
 5. Deploy the matching Firestore and Storage Rules and confirm their release
    hashes. With no opted-in users these rules are backward-compatible.
@@ -54,10 +61,25 @@ completed the full read-back and recovery test.
 
 ## Recovery and rollback
 
-- If an account loses its authenticator, another verified owner uses the Admin
-  SDK or console-controlled recovery procedure to remove its enrolled factor
-  and set `requiresMultiFactorAuth` to false. Client Rules intentionally cannot
-  perform this rollback.
+- If an account loses its authenticator, sign Firebase CLI in with the separate
+  recovery Google Account and run a dry-run first:
+
+  ```sh
+  npm run auth:recover-privileged-mfa -- \
+    --project=ukrainiancommunity-dbd5f \
+    --target-email=owner@example.com \
+    --reason="Lost authenticator; identity verified through the recovery procedure"
+  ```
+
+  Apply only with the exact project, email, UID, factor count and requirement
+  state printed by that fresh dry-run. The command clears the server-owned
+  Firestore requirement first, removes all enrolled Auth factors, revokes
+  existing sessions, then performs a full read-back. It records actor, reason
+  and server timestamp on the affected user. Output redacts email addresses and
+  never prints access tokens or factor secrets.
+- The recovery operator must verify its Firebase CLI login and run the dry-run
+  before any owner is activated. Client Rules intentionally cannot perform this
+  rollback.
 - Keep TOTP enabled at project level while any user has an enrolled TOTP factor.
 - A client rollout can be paused by returning
   `AuthSecurityRollout.allowsTOTPEnrollment` to false, but already protected
