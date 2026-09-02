@@ -303,7 +303,8 @@ struct OwnerContentPlanningViewModelTests {
                 existingModerationStatus: lease.existingModerationStatus,
                 existingScheduledAt: lease.existingScheduledAt,
                 publicationLeaseID: lease.leaseID
-            ), Comment(rawValue: editor.errorMessage ?? "News publication failed"))
+            ))
+            #expect(editor.errorMessage == nil)
             let result = try #require(editor.lastPublicationResult)
             let saved = try await contentRepository.fetchNews(id: lease.contentID)
             #expect(saved.title == editor.title)
@@ -333,7 +334,8 @@ struct OwnerContentPlanningViewModelTests {
                 reservedModerationStatus: lease.existingModerationStatus,
                 existingScheduledAt: lease.existingScheduledAt,
                 publicationLeaseID: lease.leaseID
-            ), Comment(rawValue: editor.errorMessage ?? "Event publication failed"))
+            ))
+            #expect(editor.errorMessage == nil)
             let result = try #require(editor.lastPublicationResult)
             let saved = try await contentRepository.fetchEvent(id: lease.contentID)
             #expect(saved.title == editor.title)

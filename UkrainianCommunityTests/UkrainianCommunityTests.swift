@@ -992,7 +992,7 @@ struct UkrainianCommunityTests {
         #expect(AuthService.currentTermsVersion.isEmpty == false)
         #expect(AuthService.currentPrivacyVersion.isEmpty == false)
         #expect(AuthService.currentTermsVersion == "2026.10")
-        #expect(AuthService.currentPrivacyVersion == "2026.11")
+        #expect(AuthService.currentPrivacyVersion == "2026.12")
         #expect(AuthService.currentMinimumAgeVersion == "14+")
     }
 

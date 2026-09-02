@@ -1,9 +1,10 @@
 # Organization notifications and personal blocking — 2026-09-02
 
-Status: prepared for build 65. The user authorized commit/push, deployment of only
-the two new block callables, upload and installed-build verification. Deployment
-and App Store processing are separate gates, recorded after read-back. No Rules
-change, MFA change or App Review/public release is authorized by this package.
+Status: committed/pushed in `c42a134`, both new block callables deployed/read back,
+and build 65 uploaded/selected. Live test-account block/list/repeat/unblock passed
+with original state restored and organization/account/role records unchanged.
+See `Docs/Build65ReleaseReadiness-2026-09-02.md` for evidence and remaining installed
+candidate checks. No Rules change, MFA change or App Review/public release occurred.
 
 ## Confirmed causes
 
@@ -84,12 +85,7 @@ change, MFA change or App Review/public release is authorized by this package.
 
 ## Remaining release steps
 
-1. Commit this scoped package alongside the publication response fix and the
-   separately authorized published Privacy Policy 2026.12; preserve content assets.
-2. Production preflight, deploy only the two new block
-   callables, and read back their readiness. No Rules change is required.
-3. Verify block/list/unblock using an authorized test account and two organizations
-   belonging to the same owner. Verify organization and role documents unchanged.
-4. Build/upload the next candidate only after backend availability. On a valid
-   owner/admin session, verify inbox/push opens the exact submitted request and
-   that review, creation and editing still work. No public release is claimed here.
+On installed build 65 with a valid owner/admin session, verify inbox/push opens
+the exact submitted request and that review, creation and editing still work.
+Verify hiding/undo in the installed UI as well as the already-passed production
+API and Simulator checks. No public release is claimed here.
