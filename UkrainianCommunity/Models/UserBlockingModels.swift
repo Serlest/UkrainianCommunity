@@ -32,13 +32,6 @@ struct UserBlockTarget: Identifiable, Equatable {
         make(userId: event.authorId, contextTitle: event.title)
     }
 
-    static func organization(_ organization: Organization) -> UserBlockTarget? {
-        make(
-            userId: organization.ownerId ?? organization.submittedByUserId,
-            contextTitle: organization.name
-        )
-    }
-
     static func comment(_ comment: Comment) -> UserBlockTarget? {
         make(userId: comment.authorId, contextTitle: comment.authorName)
     }
@@ -54,9 +47,11 @@ struct UserBlockTarget: Identifiable, Equatable {
 
 struct ContentVisibilityPolicy: Equatable {
     let blockedUserIDs: Set<String>
+    let blockedOrganizationIDs: Set<String>
 
-    init(blockedUserIDs: Set<String> = []) {
+    init(blockedUserIDs: Set<String> = [], blockedOrganizationIDs: Set<String> = []) {
         self.blockedUserIDs = blockedUserIDs
+        self.blockedOrganizationIDs = blockedOrganizationIDs
     }
 
     func allows(authorID: String?) -> Bool {
@@ -70,7 +65,7 @@ struct ContentVisibilityPolicy: Equatable {
 
     func visibleNews(_ posts: [NewsPost]) -> [NewsPost] {
         posts.compactMap { post in
-            guard allows(authorID: post.authorId) else { return nil }
+            guard allows(authorID: post.authorId), allows(organizationID: post.source.organizationId) else { return nil }
             var visiblePost = post
             visiblePost.comments = visibleComments(post.comments)
             return visiblePost
@@ -79,7 +74,7 @@ struct ContentVisibilityPolicy: Equatable {
 
     func visibleEvents(_ events: [Event]) -> [Event] {
         events.compactMap { event in
-            guard allows(authorID: event.authorId) else { return nil }
+            guard allows(authorID: event.authorId), allows(organizationID: event.source.organizationId) else { return nil }
             var visibleEvent = event
             visibleEvent.comments = visibleComments(event.comments)
             return visibleEvent
@@ -88,8 +83,12 @@ struct ContentVisibilityPolicy: Equatable {
 
     func visibleOrganizations(_ organizations: [Organization]) -> [Organization] {
         organizations.filter {
-            allows(authorID: $0.ownerId ?? $0.submittedByUserId)
+            allows(authorID: $0.ownerId ?? $0.submittedByUserId) && allows(organizationID: $0.id)
         }
+    }
+
+    func allows(organizationID: String?) -> Bool {
+        organizationID.map { !blockedOrganizationIDs.contains($0) } ?? true
     }
 }
 

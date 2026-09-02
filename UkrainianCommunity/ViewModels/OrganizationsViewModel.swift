@@ -32,7 +32,7 @@ final class OrganizationsViewModel: ObservableObject {
     private var nextPageCursor: OrganizationPageCursor?
     private var activeFederalState: AustrianFederalState?
     private var trackedOrganizationViewIDs = Set<String>()
-    private var visibilityPolicy = ContentVisibilityPolicy()
+    private(set) var visibilityPolicy = ContentVisibilityPolicy()
     private var authGeneration: UInt = 0
     private var feedRevision: UInt = 0
     private var interactionTasks: [String: Task<Void, Never>] = [:]

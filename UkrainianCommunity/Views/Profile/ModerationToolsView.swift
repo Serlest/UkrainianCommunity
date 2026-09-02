@@ -10,7 +10,7 @@ enum ModerationToolsScope: Hashable {
     case organizationRequests
 }
 
-private enum ModeratedContentType: String {
+enum ModeratedContentType: String {
     case news
     case event
     case organization
@@ -27,7 +27,7 @@ private enum ModeratedContentType: String {
     }
 }
 
-private struct ModerationQueueItem: Identifiable {
+struct ModerationQueueItem: Identifiable {
     let contentID: String
     let type: ModeratedContentType
     let title: String
@@ -39,10 +39,15 @@ private struct ModerationQueueItem: Identifiable {
     var id: String {
         "\(type.rawValue)-\(contentID)"
     }
+
+    var canReview: Bool {
+        guard let organization else { return true }
+        return [.pendingReview, .needsRevision, .rejected].contains(organization.moderationStatus)
+    }
 }
 
 @MainActor
-private final class ModerationQueueViewModel: ObservableObject {
+final class ModerationQueueViewModel: ObservableObject {
     @Published private(set) var items: [ModerationQueueItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
@@ -54,6 +59,7 @@ private final class ModerationQueueViewModel: ObservableObject {
     private let organizationRepository: OrganizationRepository
     private let listenerBag = RealtimeListenerBag()
     private let organizationID: String?
+    private let requestedOrganizationID: String?
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var allowedSections: Set<AppSection> = []
@@ -62,12 +68,14 @@ private final class ModerationQueueViewModel: ObservableObject {
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
         organizationRepository: OrganizationRepository,
-        organizationID: String? = nil
+        organizationID: String? = nil,
+        requestedOrganizationID: String? = nil
     ) {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
         self.organizationRepository = organizationRepository
         self.organizationID = organizationID
+        self.requestedOrganizationID = requestedOrganizationID
     }
 
     func loadIfNeeded() async {
@@ -89,6 +97,9 @@ private final class ModerationQueueViewModel: ObservableObject {
         let normalizedSections = sections.intersection([.news, .events, .organizations])
         if allowedSections != normalizedSections {
             allowedSections = normalizedSections
+            loadTask?.cancel()
+            items = []
+            error = nil
             if !normalizedSections.contains(.organizations) {
                 listenerBag.remove("pendingOrganizationRequests")
             }
@@ -204,17 +215,25 @@ private final class ModerationQueueViewModel: ObservableObject {
             error = nil
             hasLoaded = true
         } catch is CancellationError {
-        } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
-            error = appError
         } catch {
             guard !Task.isCancelled else { return }
-            self.error = .unknown
+            let appError = FirebaseReadErrorMapper.map(error)
+            if requestedOrganizationID != nil, appError == .notFound || appError == .permissionDenied {
+                items = []
+            }
+            self.error = appError
         }
     }
 
     private func loadAllowedItems() async throws -> [ModerationQueueItem] {
         var loadedItems: [ModerationQueueItem] = []
+
+        if let requestedOrganizationID {
+            guard allowedSections.contains(.organizations) else { throw AppError.permissionDenied }
+            let organization = try await organizationRepository.fetchOrganization(id: requestedOrganizationID)
+            guard organization.id == requestedOrganizationID else { throw AppError.validationFailed }
+            return makeItems(from: [organization])
+        }
 
         if let organizationID {
             loadedItems.append(contentsOf: makeItems(from: try await newsRepository.fetchOrganizationModerationNews(organizationID: organizationID)))
@@ -241,7 +260,7 @@ private final class ModerationQueueViewModel: ObservableObject {
 
     private func startListeningPendingOrganizationRequestsIfNeeded() {
         let key = "pendingOrganizationRequests"
-        guard organizationID == nil,
+        guard organizationID == nil, requestedOrganizationID == nil,
               allowedSections.contains(.organizations),
               !listenerBag.contains(key),
               let realtimeRepository = organizationRepository as? OrganizationRealtimeRepository else { return }
@@ -316,25 +335,30 @@ struct ModerationToolsView: View {
     @State private var searchText = ""
     @State private var selectedContentType: ModeratedContentType?
     @State private var sortOption: AppListSortOption = .newest
+    @State private var hasOpenedRequestedOrganization = false
     private let organizationID: String?
+    private let requestedOrganizationID: String?
     private let scope: ModerationToolsScope
     private let organizationRepository: OrganizationRepository
 
     init(
         organizationID: String? = nil,
         scope: ModerationToolsScope = .all,
+        requestedOrganizationID: String? = nil,
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
         self.organizationID = organizationID
         self.scope = scope
+        self.requestedOrganizationID = requestedOrganizationID
         self.organizationRepository = organizationRepository
         _viewModel = StateObject(wrappedValue: ModerationQueueViewModel(
             newsRepository: newsRepository,
             eventRepository: eventRepository,
             organizationRepository: organizationRepository,
-            organizationID: organizationID
+            organizationID: organizationID,
+            requestedOrganizationID: requestedOrganizationID
         ))
     }
 
@@ -412,8 +436,16 @@ struct ModerationToolsView: View {
             await loadPermissionOrganizationIfNeeded()
             viewModel.setAllowedSections(allowedSections)
             await viewModel.loadIfNeeded()
+            openRequestedOrganizationIfLoaded()
+        }
+        .onChange(of: viewModel.items.map(\.id)) { _, _ in
+            openRequestedOrganizationIfLoaded()
+        }
+        .onChange(of: viewModel.error) { _, error in
+            if error == .notFound || error == .permissionDenied { selectedOrganizationRequest = nil }
         }
         .onChange(of: allowedSections) { _, newSections in
+            if !newSections.contains(.organizations) { selectedOrganizationRequest = nil }
             viewModel.setAllowedSections(newSections)
             viewModel.reload()
         }
@@ -458,6 +490,16 @@ struct ModerationToolsView: View {
     private func loadPermissionOrganizationIfNeeded() async {
         guard permissionOrganization == nil, let organizationID else { return }
         permissionOrganization = try? await organizationRepository.fetchOrganization(id: organizationID)
+    }
+
+    private func openRequestedOrganizationIfLoaded() {
+        guard canAccessModeration, !hasOpenedRequestedOrganization,
+              let requestedOrganizationID,
+              let item = viewModel.items.first(where: { $0.type == .organization && $0.contentID == requestedOrganizationID }) else {
+            return
+        }
+        hasOpenedRequestedOrganization = true
+        selectedOrganizationRequest = item
     }
 
     @ViewBuilder
@@ -631,6 +673,8 @@ struct ModerationToolsView: View {
             AppStrings.Moderation.loadNetworkError
         case .permissionDenied:
             AppStrings.Moderation.loadPermissionError
+        case .notFound where requestedOrganizationID != nil:
+            AppStrings.Moderation.organizationRequestUnavailable
         case .validationFailed, .notFound:
             AppStrings.Moderation.loadValidationError
         case .unknown:
@@ -716,6 +760,13 @@ private struct ModerationItemRow: View {
             .disabled(isProcessing)
         }
 
+        if item.canReview {
+            reviewButtons
+        }
+    }
+
+    @ViewBuilder
+    private var reviewButtons: some View {
         PrimaryActionButton(
             title: AppStrings.Moderation.approve,
             isEnabled: !isProcessing,
@@ -784,7 +835,12 @@ private struct ModerationOrganizationRequestSheet: View {
             .navigationTitle(AppStrings.Moderation.organizationPreviewTitle)
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
-                reviewActionsBar
+                if !item.canReview {
+                    InlineMessageCard(style: .info, message: AppStrings.Moderation.organizationRequestAlreadyReviewed)
+                        .padding(AppTheme.pageHorizontal)
+                } else {
+                    reviewActionsBar
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -833,6 +889,7 @@ private struct ModerationOrganizationRequestSheet: View {
                 ) {
                     isShowingApproveConfirmation = true
                 }
+                .accessibilityIdentifier("organization.request.approve")
 
                 TextField(AppStrings.Moderation.revisionMessage, text: $reviewMessage, axis: .vertical)
                     .lineLimit(2...4)

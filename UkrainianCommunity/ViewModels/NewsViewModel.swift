@@ -25,7 +25,7 @@ final class NewsViewModel: ObservableObject {
     private var nextPageCursor: NewsPageCursor?
     private var activeFederalState: AustrianFederalState?
     private var trackedNewsViewIDs = Set<String>()
-    private var visibilityPolicy = ContentVisibilityPolicy()
+    private(set) var visibilityPolicy = ContentVisibilityPolicy()
     private var authGeneration: UInt = 0
     private var feedRevision: UInt = 0
     private var interactionTasks: [String: Task<Void, Never>] = [:]

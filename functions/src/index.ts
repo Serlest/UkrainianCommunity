@@ -39,6 +39,7 @@ export * from "./safety/contentReports";
 export * from "./safety/commentModeration";
 export * from "./safety/dsaCases";
 export * from "./safety/userBlocks";
+export * from "./safety/organizationBlocks";
 export * from "./systemLogs/clientDiagnostics";
 export * from "./systemLogs/systemLogManagement";
 export * from "./users/accountStatusManagement";

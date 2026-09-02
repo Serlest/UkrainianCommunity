@@ -185,11 +185,19 @@ struct SavedContentView: View {
         }
     }
 
+    // Keep bookmarks intact, but apply the same personal visibility policy as
+    // the public feeds. Restoring visibility must not require re-bookmarking.
+    private var visibleSavedNews: [NewsPost] { newsViewModel.visibilityPolicy.visibleNews(savedNews) }
+    private var visibleSavedEvents: [Event] { eventsViewModel.visibilityPolicy.visibleEvents(savedEvents) }
+    private var visibleSavedOrganizations: [Organization] {
+        organizationsViewModel.visibilityPolicy.visibleOrganizations(savedOrganizations)
+    }
+
     private var savedItems: [SavedContentItem] {
         sortSavedItems(
-            savedNews.map(SavedContentItem.news)
-            + savedEvents.map(SavedContentItem.event)
-            + savedOrganizations.map(SavedContentItem.organization)
+            visibleSavedNews.map(SavedContentItem.news)
+            + visibleSavedEvents.map(SavedContentItem.event)
+            + visibleSavedOrganizations.map(SavedContentItem.organization)
         )
     }
 
@@ -198,11 +206,11 @@ struct SavedContentView: View {
         case .all:
             savedItems
         case .news:
-            sortSavedItems(savedNews.map(SavedContentItem.news))
+            sortSavedItems(visibleSavedNews.map(SavedContentItem.news))
         case .events:
-            sortSavedItems(savedEvents.map(SavedContentItem.event))
+            sortSavedItems(visibleSavedEvents.map(SavedContentItem.event))
         case .organizations:
-            sortSavedItems(savedOrganizations.map(SavedContentItem.organization))
+            sortSavedItems(visibleSavedOrganizations.map(SavedContentItem.organization))
         }
     }
 
@@ -275,9 +283,9 @@ struct SavedContentView: View {
     private func savedCount(for segment: SavedContentSegment) -> Int {
         switch segment {
         case .all: savedItems.count
-        case .news: savedNews.count
-        case .events: savedEvents.count
-        case .organizations: savedOrganizations.count
+        case .news: visibleSavedNews.count
+        case .events: visibleSavedEvents.count
+        case .organizations: visibleSavedOrganizations.count
         }
     }
 
@@ -288,7 +296,7 @@ struct SavedContentView: View {
     private func mergeSavedNewsIntoSharedViewModel() {
         let savedIDs = Set(savedNews.map(\.id))
         newsViewModel.posts.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
-        for post in savedNews {
+        for post in visibleSavedNews {
             if let index = newsViewModel.posts.firstIndex(where: { $0.id == post.id }) {
                 newsViewModel.posts[index] = post
             } else {
@@ -300,7 +308,7 @@ struct SavedContentView: View {
     private func mergeSavedEventsIntoSharedViewModel() {
         let savedIDs = Set(savedEvents.map(\.id))
         eventsViewModel.events.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
-        for event in savedEvents {
+        for event in visibleSavedEvents {
             if let index = eventsViewModel.events.firstIndex(where: { $0.id == event.id }) {
                 eventsViewModel.events[index] = event
             } else {
@@ -312,7 +320,7 @@ struct SavedContentView: View {
     private func mergeSavedOrganizationsIntoSharedViewModel() {
         let savedIDs = Set(savedOrganizations.map(\.id))
         organizationsViewModel.organizations.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
-        for organization in savedOrganizations {
+        for organization in visibleSavedOrganizations {
             if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == organization.id }) {
                 organizationsViewModel.organizations[index] = organization
             } else {
@@ -422,7 +430,11 @@ struct FollowedOrganizationsView: View {
     }
 
     private var isLoading: Bool {
-        isLoadingSubscriptions && followedOrganizations.isEmpty
+        isLoadingSubscriptions && visibleFollowedOrganizations.isEmpty
+    }
+
+    private var visibleFollowedOrganizations: [Organization] {
+        organizationsViewModel.visibilityPolicy.visibleOrganizations(followedOrganizations)
     }
 
     var body: some View {
@@ -430,7 +442,7 @@ struct FollowedOrganizationsView: View {
             title: AppStrings.Profile.organizationSubscriptions,
             introSubtitle: AppStrings.Profile.subscriptionsIntro
         ) {
-            if !followedOrganizations.isEmpty {
+            if !visibleFollowedOrganizations.isEmpty {
                 AppHorizontalFilterRow {
                     AppSortMenu(
                         selection: $sortOption,
@@ -455,7 +467,7 @@ struct FollowedOrganizationsView: View {
     private var followedOrganizationsContent: some View {
         if isLoading {
             LoadingStateCard(title: AppStrings.Profile.organizationSubscriptions)
-        } else if let error = subscriptionsError, followedOrganizations.isEmpty {
+        } else if let error = subscriptionsError, visibleFollowedOrganizations.isEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.organizationSubscriptions,
                 message: followedOrganizationsErrorMessage(error),
@@ -463,7 +475,7 @@ struct FollowedOrganizationsView: View {
             ) {
                 Task { await refreshSubscriptions() }
             }
-        } else if followedOrganizations.isEmpty {
+        } else if visibleFollowedOrganizations.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "person.2",
                 title: AppStrings.Profile.organizationSubscriptions,
@@ -490,7 +502,7 @@ struct FollowedOrganizationsView: View {
     }
 
     private var sortedFollowedOrganizations: [Organization] {
-        followedOrganizations.sorted { lhs, rhs in
+        visibleFollowedOrganizations.sorted { lhs, rhs in
             switch sortOption {
             case .newest:
                 lhs.createdAt == rhs.createdAt ? lhs.id < rhs.id : lhs.createdAt > rhs.createdAt
@@ -519,7 +531,7 @@ struct FollowedOrganizationsView: View {
 
         do {
             followedOrganizations = try await RefreshRequest.run { [self] in try await organizationRepository.fetchSubscribedOrganizations() }
-            for organization in followedOrganizations {
+            for organization in visibleFollowedOrganizations {
                 if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == organization.id }) {
                     organizationsViewModel.organizations[index] = organization
                 } else {

@@ -61,11 +61,12 @@ def inline(value: str) -> str:
     escaped = html.escape(value, quote=True)
     escaped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", escaped)
     escaped = re.sub(r"`([^`]+)`", r"<code>\1</code>", escaped)
-    escaped = re.sub(
-        r"(https://[^\s<]+)",
-        r'<a href="\1" rel="noopener">\1</a>',
-        escaped,
-    )
+    def link_url(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        url = raw.rstrip(".,;:!?)")
+        return f'<a href="{url}" rel="noopener">{url}</a>{raw[len(url):]}'
+
+    escaped = re.sub(r"https://[^\s<]+", link_url, escaped)
     escaped = escaped.replace(
         "ukrainian.community@outlook.com",
         '<a href="mailto:ukrainian.community@outlook.com">'

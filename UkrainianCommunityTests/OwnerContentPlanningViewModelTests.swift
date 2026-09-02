@@ -13,10 +13,13 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
     var pages: [OwnerContentPlanningSection: [OwnerContentDraftPage]] = [:]
     var exactDraft: OwnerContentDraft?
     var lease: OwnerContentPublicationLease?
+    var beginResponseData: Data?
+    var beginError: Error?
     var finalizeError: Error?
     private(set) var pageRequests: [PageRequest] = []
     private(set) var exactRequests: [(userID: String, draftID: String)] = []
     private(set) var finalizedPublications: [ContentPlanningPublicationResult] = []
+    private(set) var beginRequests: [(draftID: String, attemptID: String)] = []
 
     func fetchDraftPage(
         userID: String,
@@ -44,6 +47,12 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
         draftID: String,
         attemptID: String
     ) async throws -> OwnerContentPublicationLease {
+        beginRequests.append((draftID, attemptID))
+        if let beginError { throw beginError }
+        if let beginResponseData {
+            let response = try JSONDecoder().decode(OwnerContentPublicationResponse.self, from: beginResponseData)
+            return try response.lease(forDraftID: draftID)
+        }
         guard let lease, lease.draftID == draftID else { throw AppError.notFound }
         return lease
     }
@@ -199,6 +208,139 @@ struct OwnerContentPlanningViewModelTests {
 
         #expect(succeeded == false)
         #expect(retry.contentAlreadyExists)
+        #expect(viewModel.actionErrorMessage == nil)
+        #expect(repository.beginRequests.count == 1)
+    }
+
+    @Test(arguments: OwnerContentDraftKind.allCases)
+    func serverJSONReachesFinalizationUsingTheSameReservedContent(kind: OwnerContentDraftKind) async throws {
+        let repository = OwnerContentDraftRepositoryStub()
+        let contentID = "planning-editor-test-\(UUID().uuidString)"
+        repository.beginResponseData = try OwnerContentPublicationResponseFixture.data(
+            kind: kind, overrides: ["contentId": contentID]
+        )
+        let draft = makeDraft(id: "draft-1", kind: kind)
+        let viewModel = OwnerContentPlanningViewModel(repository: repository)
+        viewModel.start(userID: "owner")
+
+        let lease = try #require(await viewModel.beginPublishing(draft))
+        let retry = try #require(await viewModel.beginPublishing(draft))
+        #expect(lease == retry)
+        #expect(repository.beginRequests.count == 1)
+        #expect(!retry.contentAlreadyExists)
+
+        let publication = try await publishThroughEditor(draft: draft, lease: lease)
+        let succeeded = await viewModel.finishPublishing(draft, publication: publication)
+        #expect(succeeded)
+        #expect(repository.finalizedPublications.count == 1)
+        #expect(repository.finalizedPublications.first?.contentID == contentID)
+        #expect(repository.finalizedPublications.first?.publicationLeaseID == "lease-1")
+    }
+
+    @Test(arguments: OwnerContentDraftKind.allCases)
+    func retryAfterLostResponseKeepsTheOriginalAttemptID(kind: OwnerContentDraftKind) async throws {
+        let repository = OwnerContentDraftRepositoryStub()
+        repository.beginResponseData = try OwnerContentPublicationResponseFixture.data(kind: kind)
+        repository.beginError = AppError.network
+        let draft = makeDraft(id: "draft-1", kind: kind)
+        let viewModel = OwnerContentPlanningViewModel(repository: repository)
+        viewModel.start(userID: "owner")
+
+        #expect(await viewModel.beginPublishing(draft) == nil)
+        #expect(viewModel.actionErrorMessage != nil)
+        #expect(!viewModel.isPerformingAction(on: draft.id))
+        repository.beginError = nil
+        let lease = try #require(await viewModel.beginPublishing(draft))
+
+        #expect(repository.beginRequests.count == 2)
+        #expect(repository.beginRequests.first?.attemptID == repository.beginRequests.last?.attemptID)
+        #expect(lease.contentID == "planning-draft-1")
+        #expect(!lease.contentAlreadyExists)
+        #expect(viewModel.actionErrorMessage == nil)
+    }
+
+    @Test func malformedResponseCannotBeFinalizedAndRetryKeepsTheAttemptID() async throws {
+        let repository = OwnerContentDraftRepositoryStub()
+        repository.beginResponseData = try OwnerContentPublicationResponseFixture.data(overrides: ["expiresAt": "invalid"])
+        let draft = makeDraft(id: "draft-1")
+        let viewModel = OwnerContentPlanningViewModel(repository: repository)
+        viewModel.start(userID: "owner")
+
+        #expect(await viewModel.beginPublishing(draft) == nil)
+        #expect(await viewModel.finishPublishing(draft, publication: ContentPlanningPublicationResult(
+            kind: .news, contentID: "planning-draft-1", scheduledAt: nil, publicationLeaseID: "lease-1"
+        )) == false)
+        #expect(repository.finalizedPublications.isEmpty)
+
+        repository.beginResponseData = try OwnerContentPublicationResponseFixture.data()
+        #expect(await viewModel.beginPublishing(draft) != nil)
+        #expect(repository.beginRequests.count == 2)
+        #expect(repository.beginRequests.first?.attemptID == repository.beginRequests.last?.attemptID)
+    }
+
+    private func publishThroughEditor(
+        draft: OwnerContentDraft,
+        lease: OwnerContentPublicationLease
+    ) async throws -> ContentPlanningPublicationResult {
+        switch draft.kind {
+        case .news:
+            let contentRepository = MockNewsRepository()
+            let editor = NewsEditorViewModel(
+                repository: contentRepository,
+                mode: .create(context: .init(
+                    organizationId: "organization-1", organizationName: "Community",
+                    organizationImageURL: nil, organizationFederalState: .tirol
+                )),
+                sourceDraft: draft
+            )
+            editor.title = "Новина"
+            editor.summary = "Короткий опис"
+            editor.body = "Повний текст"
+            editor.selectedRegionScope = .federalState
+            #expect(await editor.publish(
+                contentID: lease.contentID,
+                contentAlreadyExists: lease.contentAlreadyExists,
+                existingModerationStatus: lease.existingModerationStatus,
+                existingScheduledAt: lease.existingScheduledAt,
+                publicationLeaseID: lease.leaseID
+            ), Comment(rawValue: editor.errorMessage ?? "News publication failed"))
+            let result = try #require(editor.lastPublicationResult)
+            let saved = try await contentRepository.fetchNews(id: lease.contentID)
+            #expect(saved.title == editor.title)
+            #expect(saved.source.organizationId == "organization-1")
+            try await contentRepository.deleteNews(id: lease.contentID)
+            return result
+        case .event:
+            let contentRepository = MockEventRepository()
+            let editor = EventEditorViewModel(
+                repository: contentRepository,
+                mode: .create(context: .init(
+                    organizationId: "organization-1", organizationName: "Community",
+                    organizationImageURL: nil, organizationFederalState: .tirol
+                )),
+                sourceDraft: draft
+            )
+            editor.title = "Подія"
+            editor.summary = "Короткий опис"
+            editor.details = "Повний опис"
+            editor.city = "Innsbruck"
+            editor.venue = "Community Center"
+            editor.startDate = Date().addingTimeInterval(86_400)
+            editor.endDate = editor.startDate.addingTimeInterval(3_600)
+            #expect(await editor.publish(
+                contentID: lease.contentID,
+                contentAlreadyExists: lease.contentAlreadyExists,
+                reservedModerationStatus: lease.existingModerationStatus,
+                existingScheduledAt: lease.existingScheduledAt,
+                publicationLeaseID: lease.leaseID
+            ), Comment(rawValue: editor.errorMessage ?? "Event publication failed"))
+            let result = try #require(editor.lastPublicationResult)
+            let saved = try await contentRepository.fetchEvent(id: lease.contentID)
+            #expect(saved.title == editor.title)
+            #expect(saved.source.organizationId == "organization-1")
+            try await contentRepository.deleteEvent(id: lease.contentID)
+            return result
+        }
     }
 
     private func makeLease(
@@ -219,13 +361,14 @@ struct OwnerContentPlanningViewModelTests {
 
     private func makeDraft(
         id: String,
-        state: OwnerContentDraftState = .readyForReview
+        state: OwnerContentDraftState = .readyForReview,
+        kind: OwnerContentDraftKind = .news
     ) -> OwnerContentDraft {
         OwnerContentDraft(
             id: id,
             schemaVersion: 3,
             ownerUserID: "owner",
-            kind: .news,
+            kind: kind,
             state: state,
             title: "Test",
             sourceReferences: [],

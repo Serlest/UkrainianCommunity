@@ -41,6 +41,7 @@ struct OrganizationManagementHubView: View {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
+    @StateObject private var authoringOrganizations: AuthoringOrganizationsViewModel
     @State private var isShowingCreateOrganization = false
     @State private var editingOrganizationRequest: Organization?
     @State private var previewingOrganizationRequest: Organization?
@@ -62,6 +63,7 @@ struct OrganizationManagementHubView: View {
     ) {
         self.focusedOrganizationID = focusedOrganizationID
         self.organizationsViewModel = organizationsViewModel
+        _authoringOrganizations = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: repository))
         self.repository = repository
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
@@ -70,7 +72,7 @@ struct OrganizationManagementHubView: View {
     private var manageableOrganizations: [Organization] {
         guard let authorityUser else { return [] }
         let organizations = PermissionService.manageableOrganizations(
-            from: organizationsViewModel.organizations,
+            from: authoringOrganizations.organizations,
             user: authorityUser
         )
         guard let focusedOrganizationID else { return organizations }
@@ -117,19 +119,22 @@ struct OrganizationManagementHubView: View {
 
             managedOrganizationsContent
         }
-        .task {
+        .task(id: authorityUser?.id) {
+            await authoringOrganizations.load(for: authorityUser, force: false)
             await organizationsViewModel.loadIfNeeded()
             await organizationsViewModel.refreshIfStale()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
             await loadManageableOrganizationContentStats()
         }
         .appRefreshable {
+            await authoringOrganizations.load(for: authorityUser)
             await organizationsViewModel.refresh()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
             await loadManageableOrganizationContentStats(force: true)
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
+                await authoringOrganizations.load(for: authorityUser)
                 await organizationsViewModel.refresh()
                 await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                 await loadManageableOrganizationContentStats(force: true)
@@ -222,15 +227,16 @@ struct OrganizationManagementHubView: View {
 
     @ViewBuilder
     private var managedOrganizationsContent: some View {
-        if organizationsViewModel.isLoading && allOrganizationSectionsAreEmpty {
+        if (organizationsViewModel.isLoading || authoringOrganizations.isLoading) && allOrganizationSectionsAreEmpty {
             LoadingStateCard(title: nil)
-        } else if let error = organizationsViewModel.error, allOrganizationSectionsAreEmpty {
+        } else if let error = authoringOrganizations.error ?? organizationsViewModel.error, allOrganizationSectionsAreEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.myOrganizations,
                 message: organizationErrorMessage(error),
                 retryTitle: AppStrings.Action.retry
             ) {
                 Task {
+                    await authoringOrganizations.load(for: authorityUser)
                     await organizationsViewModel.refresh()
                     await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                 }

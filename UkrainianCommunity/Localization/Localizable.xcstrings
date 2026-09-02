@@ -4715,13 +4715,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Die Veröffentlichung konnte nicht sicher gestartet werden. Der Entwurf wurde nicht geändert. Versuchen Sie es erneut."
+            "value" : "Der Beginn der Veröffentlichung konnte nicht bestätigt werden. Versuchen Sie es erneut – die App prüft den aktuellen Status des Inhalts."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Не вдалося безпечно розпочати публікацію. Чернетку не змінено — спробуйте ще раз."
+            "value" : "Не вдалося підтвердити початок публікації. Спробуйте ще раз — застосунок перевірить поточний стан матеріалу."
           }
         }
       }
@@ -16939,6 +16939,20 @@
             "value" : "Так організація виглядатиме після публікації"
           }
         }
+      }
+    },
+    "moderation.organization.request_unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieser Antrag wurde gelöscht oder ist nicht mehr verfügbar." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Цю заявку видалено або вона більше недоступна." } }
+      }
+    },
+    "moderation.organization.request_reviewed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Dieser Antrag wurde bereits bearbeitet. Sie sehen die aktuellen Angaben; eine erneute Entscheidung ist nicht erforderlich." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Цю заявку вже розглянуто. Доступні її поточні дані; повторне рішення не потрібне." } }
       }
     },
     "moderation.organization.preview.title" : {
@@ -36153,6 +36167,41 @@
             "value" : "Інші дії"
           }
         }
+      }
+    },
+    "safety.organization_block.action" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Organisation blockieren" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заблокувати організацію" } }
+      }
+    },
+    "safety.organization_block.list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Blockierte Organisationen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Заблоковані організації" } }
+      }
+    },
+    "safety.organization_block.empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Keine blockierten Organisationen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Немає заблокованих організацій" } }
+      }
+    },
+    "safety.organization_block.error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Organisationsliste konnte nicht aktualisiert werden. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося оновити список організацій. Перевірте з’єднання та спробуйте ще раз." } }
+      }
+    },
+    "safety.organization_block.explanation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Diese Organisation sowie ihre Nachrichten und Veranstaltungen werden nur für Sie ausgeblendet. Das Profil des Inhabers, seine anderen Organisationen und die Zugriffsrechte bleiben unverändert. Sie können die Blockierung in den Profileinstellungen aufheben." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Ця організація та її новини й події будуть приховані лише для вас. Профіль власника, його інші організації та права доступу не зміняться. Скасувати блокування можна в налаштуваннях профілю." } }
       }
     },
     "safety.block.action" : {

@@ -28,6 +28,7 @@ struct ContentView: View {
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @StateObject private var contentReportCoordinator: ContentReportCoordinator
     @StateObject private var userBlockingCoordinator: UserBlockingCoordinator
+    @StateObject private var organizationBlockingCoordinator: OrganizationBlockingCoordinator
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
     @State private var selectedPublicFederalState: AustrianFederalState?
@@ -96,11 +97,15 @@ struct ContentView: View {
         _userBlockingCoordinator = StateObject(wrappedValue: UserBlockingCoordinator(
             repository: container.userBlockingRepository
         ))
+        _organizationBlockingCoordinator = StateObject(wrappedValue: OrganizationBlockingCoordinator(
+            repository: container.organizationBlockingRepository
+        ))
         RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
     }
 
     var body: some View {
         presentedContent
+            .environmentObject(organizationBlockingCoordinator)
     }
 
     private var baseContent: some View {
@@ -122,6 +127,18 @@ struct ContentView: View {
 
     private var lifecycleContent: some View {
         baseContent
+        .task(id: notificationInboxUserID) {
+            await organizationBlockingCoordinator.configure(userID: notificationInboxUserID)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task { await organizationBlockingCoordinator.reload() }
+        }
+        .onChange(of: organizationBlockingCoordinator.blockedOrganizationIDs) { oldIDs, newIDs in
+            applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
+            if !oldIDs.subtracting(newIDs).isEmpty {
+                Task { await refreshPublicContentAfterUnblock() }
+            }
+        }
         .task(id: authoringIdentityKey) {
             await authoringOrganizations.prepareForQuickCreation(for: authState.isAuthenticated ? authState.user : nil)
         }
@@ -239,6 +256,9 @@ struct ContentView: View {
 
     private var blockingPresentationContent: some View {
         editorPresentationContent
+        .sheet(item: $organizationBlockingCoordinator.pendingTarget) { target in
+            OrganizationBlockConfirmationSheet(coordinator: organizationBlockingCoordinator, target: target)
+        }
         .confirmationDialog(
             AppStrings.Safety.blockConfirmationTitle,
             isPresented: Binding(
@@ -589,7 +609,10 @@ struct ContentView: View {
     }
 
     private func applyContentVisibility(blockedUserIDs: Set<String>) {
-        let policy = ContentVisibilityPolicy(blockedUserIDs: blockedUserIDs)
+        let policy = ContentVisibilityPolicy(
+            blockedUserIDs: blockedUserIDs,
+            blockedOrganizationIDs: organizationBlockingCoordinator.blockedOrganizationIDs
+        )
         newsViewModel.applyContentVisibility(policy)
         eventsViewModel.applyContentVisibility(policy)
         organizationsViewModel.applyContentVisibility(policy)
@@ -871,18 +894,27 @@ struct ContentView: View {
     }
 
     private func routeToOrganizationRequest(_ notification: AppNotification) {
-        switch notification.type {
-        case .organizationRequestApproved:
-            refreshAuthoringOrganizations()
-            if let organizationID = notificationTargetID(notification) {
-                routeToOrganization(organizationID: organizationID)
-            } else {
-                routeToOrganizationManagement()
-            }
-        case .organizationRequestNeedsRevision, .organizationRequestRejected:
+        routeToOrganizationRequest(type: notification.type, organizationID: notificationTargetID(notification))
+    }
+
+    private func routeToOrganizationRequest(type: AppNotificationType, organizationID: String?) {
+        let destination = OrganizationRequestNotificationDestination.resolve(
+            type: type,
+            organizationID: organizationID,
+            canReviewRequests: PermissionService.canManageOrganizationRequests(user: authState.user)
+        )
+        if type == .organizationRequestApproved { refreshAuthoringOrganizations() }
+        switch destination {
+        case .review(let organizationID):
+            selectTabIfNeeded(.profile)
+            profileNavigationPath = organizationID.map { [.organizationRequestReview(organizationID: $0)] }
+                ?? [.organizationRequests]
+        case .organization(let organizationID):
+            routeToOrganization(organizationID: organizationID)
+        case .management:
             routeToOrganizationManagement()
-        default:
-            routeToOrganizationManagement()
+        case .unavailable:
+            showNotificationRouteUnavailable()
         }
     }
 
@@ -959,12 +991,7 @@ struct ContentView: View {
         case .openOrganization(let organizationId):
             routeToOrganization(organizationID: organizationId)
         case .openOrganizationRequest(let organizationId):
-            if route.type == .organizationRequestApproved, let organizationId {
-                refreshAuthoringOrganizations()
-                routeToOrganization(organizationID: organizationId)
-            } else {
-                routeToOrganizationManagement()
-            }
+            routeToOrganizationRequest(type: route.type, organizationID: organizationId)
         case .openFeedback(let feedbackId):
             routeToFeedback(feedbackID: feedbackId)
         case .openDsaStatement(let statementId):

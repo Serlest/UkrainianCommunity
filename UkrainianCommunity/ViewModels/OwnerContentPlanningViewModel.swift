@@ -164,6 +164,7 @@ final class OwnerContentPlanningViewModel: ObservableObject {
 
     func beginPublishing(_ draft: OwnerContentDraft) async -> OwnerContentPublicationLease? {
         guard let activeUserID else { return nil }
+        actionErrorMessage = nil
         if let existingLease = publicationLeases[draft.id], existingLease.expiresAt > Date() {
             return OwnerContentPublicationLease(
                 draftID: existingLease.draftID,
@@ -179,7 +180,6 @@ final class OwnerContentPlanningViewModel: ObservableObject {
         let attemptID = publicationAttemptIDs[draft.id] ?? UUID().uuidString
         publicationAttemptIDs[draft.id] = attemptID
         actionDraftIDs.insert(draft.id)
-        actionErrorMessage = nil
         do {
             let lease = try await repository.beginPublication(
                 userID: activeUserID,

@@ -102,6 +102,15 @@ struct ProfilePreferencesView: View {
                         .accessibilityIdentifier("profile.settings.accountSecurity")
 
                         if PermissionService.canAccessBlockedUsersSettings(user: currentUser) {
+                            NavigationLink(value: ProfileNavigationRoute.blockedOrganizations) {
+                                ProfileModuleRow(
+                                    title: AppStrings.Safety.blockedOrganizationsTitle,
+                                    subtitle: AppStrings.Safety.blockedOrganizationsExplanation,
+                                    systemImage: "building.2", status: .available
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("profile.settings.blockedOrganizations")
                             NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
                                 ProfileModuleRow(
                                     title: AppStrings.Safety.blockedUsersTitle,

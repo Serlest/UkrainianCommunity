@@ -38,7 +38,7 @@ final class EventsViewModel: ObservableObject {
     private var nextPageCursor: EventPageCursor?
     private var activeFederalState: AustrianFederalState?
     private var trackedEventViewIDs = Set<String>()
-    private var visibilityPolicy = ContentVisibilityPolicy()
+    private(set) var visibilityPolicy = ContentVisibilityPolicy()
     private var registrationTasks: [String: Task<Void, Never>] = [:]
     private var registrationOperationIDs: [String: UUID] = [:]
     private var interactionTasks: [String: Task<Void, Never>] = [:]

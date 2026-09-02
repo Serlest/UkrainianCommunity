@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.11 · Veröffentlicht am 26. August 2026 · Gültig ab 26. August 2026
+Version 2026.12 · Gültig ab 2. September 2026 · ersetzt Version 2026.11.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -53,7 +53,7 @@ Soweit wir uns auf berechtigte Interessen stützen, bestehen diese in Plattform-
 
 ## 5. Pflichtangaben und Folgen der Nichtbereitstellung
 
-E-Mail-Adresse, Anzeigename und technische Konto-ID sind für ein registriertes Konto erforderlich. Für eine Organisation oder Veranstaltung sind die als erforderlich gekennzeichneten Angaben notwendig, um Prüfung, Veröffentlichung und Kontakt zu ermöglichen. Ohne Pflichtangaben kann die jeweilige Funktion nicht bereitgestellt werden. Optionale Profilfelder, optionale Analyse und nicht notwendige Push-Benachrichtigungen können abgelehnt oder später deaktiviert werden, ohne das Basiskonto zu verlieren.
+E-Mail-Adresse, Passwort, Anzeigename, die ausdrücklich ausgewählte österreichische Region (Bundesland), die Bestätigung des Mindestalters und die technische Konto-ID sind für ein registriertes Konto erforderlich. Das Passwort wird für Firebase Authentication verwendet und nicht als Profilfeld oder im Administrationsbereich gespeichert. Für eine Organisation oder Veranstaltung sind die als erforderlich gekennzeichneten Angaben notwendig, um Prüfung, Veröffentlichung und Kontakt zu ermöglichen. Ohne Pflichtangaben kann die jeweilige Funktion nicht bereitgestellt werden. Optionale Profilfelder, optionale Analyse und nicht notwendige Push-Benachrichtigungen können abgelehnt oder später deaktiviert werden, ohne das Basiskonto zu verlieren.
 
 ## 6. Öffentliche Inhalte und Daten anderer Personen
 
@@ -87,12 +87,16 @@ Notwendige Funktionsdatensätze – etwa der Zustand eines Likes, Lesezeichens, 
 
 App Check/App Attest hilft zu prüfen, ob Anfragen von einer echten App-Instanz stammen. Sicherheits- und Auditprotokolle dokumentieren unter anderem Anmelde-, Rollen-, Moderations-, Lösch- und Administrationsvorgänge. Zugriff erhalten nur berechtigte Rollen. Wir verwenden technische und organisatorische Maßnahmen wie Zugriffskontrollen, serverseitige Prüfungen, Transportverschlüsselung, minimale Berechtigungen und protokollierte Verwaltungsaktionen. Absolute Sicherheit kann nicht garantiert werden.
 
-Es findet keine ausschließlich automatisierte Entscheidung mit rechtlicher oder ähnlich erheblicher Wirkung statt. Automatisierte Sicherheitsprüfungen oder Priorisierungen können eine menschliche Prüfung auslösen, treffen aber nicht allein die endgültige Moderationsentscheidung.
+Neue Kommentare werden vor der Veröffentlichung serverseitig anhand begrenzter Regeln auf eindeutige Drohungen, Hassbegriffe, sexuelle Ausbeutung von Kindern und massenhaftes Link-Spam geprüft. Bei einem Treffer wird der Kommentar nicht gespeichert; die Person kann den Text korrigieren und erneut absenden oder den Support kontaktieren. Der abgelehnte Text und die Trefferkategorie werden dafür nicht als Moderationsakte gespeichert. Die Prüfung ersetzt weder Meldungen noch die menschliche Beurteilung veröffentlichter Inhalte.
+
+Es findet keine ausschließlich automatisierte Entscheidung mit rechtlicher oder ähnlich erheblicher Wirkung statt. Automatisierte Sicherheitsprüfungen oder Priorisierungen können eine Veröffentlichung technisch ablehnen oder eine menschliche Prüfung auslösen, entscheiden aber nicht allein über Kontosperren oder rechtliche Moderationsfälle.
 
 ## 12. Speicherdauer
 
-- Kontodaten werden grundsätzlich bis zur Kontolöschung oder dauerhaften Sperrung gespeichert; begrenzte Nachweise können danach für gesetzliche Pflichten und Rechtsansprüche verbleiben.
-- Veröffentlichte Inhalte und Funktionsdatensätze folgen grundsätzlich dem Lebenszyklus des Inhalts, Kontos oder der Organisation. Abgeschlossene Inhalte können nach der implementierten Aufbewahrungsregel bis zu sechs Kalendermonate fortgeführt werden, soweit keine frühere Löschung oder längere gesetzliche Sicherung greift.
+- Kontodaten werden grundsätzlich bis zur Kontolöschung gespeichert. Eine dauerhafte Sperrung bewirkt nicht automatisch eine Löschung; begrenzte Nachweise können danach für gesetzliche Pflichten und Rechtsansprüche verbleiben.
+- Veröffentlichte Inhalte und Funktionsdatensätze folgen grundsätzlich dem Lebenszyklus des Inhalts, Kontos oder der Organisation. Die planmäßige Bereinigung berücksichtigt veröffentlichte Nachrichten sechs Kalendermonate nach ihrem Veröffentlichungsdatum und Veranstaltungen sechs Kalendermonate nach ihrem Enddatum. Begrenzte Verarbeitungsläufe können die tatsächliche Bereinigung verzögern; Fehlschläge müssen überwacht und behoben werden. Frühere Löschungen und gesetzlich erforderliche Sicherungen bleiben möglich.
+- Abgeschlossene oder archivierte Planungseinträge werden sechs Kalendermonate nach Abschluss beziehungsweise Archivierung zur Löschung fällig. Nicht mehr benötigte Bildkopien werden erst nach Prüfung bestehender Verknüpfungen bereinigt. Aus dem Posteingang gelöschte Mitteilungen werden nach 30 Tagen zur endgültigen Löschung berücksichtigt. Diese Bereinigungen laufen asynchron.
+- Für die Wiederherstellung der Firestore-Datenbank bestehen ein siebentägiges Wiederherstellungsfenster, tägliche Sicherungen mit 14 Tagen und wöchentliche Sicherungen mit 98 Tagen Aufbewahrung. Gelöschte Storage-Dateien können während der siebentägigen Soft-Delete-Frist wiederherstellbar bleiben. Sicherungen dienen der Notfallwiederherstellung, nicht der gewöhnlichen Nutzung; Löschanforderungen sind auch bei einer Wiederherstellung zu berücksichtigen.
 - Firebase-Authentifizierungsdaten werden nach Kontolöschung gemäß dem technischen Lösch- und Backup-Zyklus des Dienstleisters entfernt; Sicherungskopien können nach Anbieterangaben bis zu 180 Tage benötigen. Authentifizierungs-IP-Adressen können nach Anbieterangaben für einige Wochen gespeichert werden.
 - Ungültige Push-Token werden bei Abmeldung, Kontolöschung oder erkannten Zustellfehlern bereinigt; ein noch vorhandener Migrationseintrag wird nur bis zur abgeschlossenen Migration gespeichert.
 - Optionale Analysebelege zur Deduplizierung werden 72 Stunden gespeichert; zugehörige Aktivitäts-, Registrierungs-, Lösch- und Migrationsmarker 60 Tage. Zeitbezogene Detailaggregate werden 60 Tage gehalten; feste zusammengefasste Berichte bleiben bis zur planmäßigen Ersetzung oder Löschung erhalten.
@@ -138,3 +142,21 @@ Gespeichert werden ein letzter bestätigter Zeitpunkt und höchstens 32 technisc
 Diese Verarbeitung ist keine optionale Reichweitenanalyse und erfolgt unabhängig von deren Einwilligung. Sie dient weder Werbung noch appübergreifendem Tracking. Ein Widerspruch aus Gründen Ihrer besonderen Situation kann an ukrainian.community@outlook.com gerichtet werden; wir prüfen ihn nach Art. 21 DSGVO. Einwilligungen zur optionalen Analyse gelten nicht als Einwilligung zum Online-Status.
 
 Änderung gegenüber Version 2026.10: Diese neue administrative Funktion, ihr Empfängerkreis, Zweck und Speicherumfang werden ausdrücklich beschrieben. Die übrigen Verarbeitungszwecke und die Bedingungen für optionale Analyse bleiben unverändert.
+
+## 19. Freiwilliger lokaler Schutz mit Face ID / Touch ID
+
+Bei der Registrierung oder später im Profil kann freiwillig eine lokale App-Sperre aktiviert werden; die Auswahl ist zunächst ausgeschaltet. Sie schützt den Zugriff auf eine bereits mit E-Mail und Passwort angemeldete Sitzung. Sie ist weder eine Registrierung über Apple noch ein Ersatz für die Anmeldung bei Firebase. Ein- und Ausschalten bleiben im Profil möglich.
+
+Die Prüfung erfolgt durch Apples LocalAuthentication auf diesem Gerät. Je nach Gerätekonfiguration kann der Gerätecode als Alternative angeboten werden. Wir erhalten ausschließlich das Ergebnis der Prüfung, keine Gesichtsvorlage, Fingerabdrücke oder den Gerätecode. Biometrische Daten werden nicht an uns oder Firebase übertragen. Lokal wird lediglich eine kontobezogene Einstellung unter einer gehashten Konto-ID gespeichert; das ist keine anonyme Kennung. Diese Einstellung wird nicht mit anderen Geräten synchronisiert. Die freiwillig angeforderte lokale Schutzfunktion dient der Kontosicherheit und Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO).
+
+## 20. Technische SDK-Diagnose und regionale Kontostatistik
+
+Die in Abschnitt 10 beschriebene Einwilligung steuert ausschließlich die optionalen täglichen Inhalts- und Aktionssignale unserer eigenen Auswertung. Sie schaltet nicht sämtliche technischen Verarbeitungen der eingebundenen Firebase-Dienste ab. Die verwendeten SDKs können technische Angaben wie Betriebssystem-, Geräte- und App-Version sowie SDK-/Transportdiagnosen für Betrieb, Fehleranalyse und Produktqualität übermitteln. Dies ist kein Google-Analytics-SDK und kein Werbetracking. Anbieterdiagnosen und kontobezogene eigene Fehlerprotokolle werden in der App-Store-Datenschutzerklärung entsprechend ihrer jeweiligen Zwecke offengelegt. Für die erforderliche technische Bereitstellung und Sicherheit gelten die in Abschnitt 4 beschriebenen Zwecke und Rechtsgrundlagen; Empfänger und Übermittlungsgarantien sind in den Abschnitten 8 und 9 erläutert. Weitere Angaben zu den Diensten: https://firebase.google.com/support/privacy.
+
+Die Gesamtzahl der Konten sowie Registrierungs-, Status- und Bundeslandstatistiken werden getrennt von der optionalen Inhaltsanalyse aus notwendigen Kontodatensätzen zusammengefasst. Das manuell ausgewählte Bundesland ist kontobezogene regionale Information; es ist keine GPS-Messung. Diese zusammengefassten Berichte sind nur für den Plattforminhaber zugänglich und unterstützen die Verwaltung des Kontobestands und des regionalen Plattformangebots. Grundlage ist Art. 6 Abs. 1 lit. f DSGVO, unser berechtigtes Interesse an dieser beschränkten Betriebsverwaltung. Die Berichte enthalten keine Teilnehmerlisten, dienen weder Werbung noch individuellen nachteiligen Entscheidungen und sind keine GPS-Auswertung. Das Widerspruchsrecht nach Abschnitt 13 bleibt bestehen. Eine frühere Erklärung wird nicht als neue Einwilligung behandelt.
+
+## 21. Zusätzlicher Anmeldeschutz mit einer Authenticator-App
+
+Für geschützte Inhaber- und Administratorzugriffe wird ein zeitbasiertes Einmalpasswort (TOTP) über Firebase Authentication verwendet. Bei der Einrichtung werden ein technischer Einrichtungsschlüssel beziehungsweise ein QR-Code an die von Ihnen gewählte Authenticator-App übergeben. Firebase verarbeitet die Faktorzuordnung zum Konto und die zur Prüfung eingegebenen Einmalcodes. UAC speichert Einrichtungsschlüssel und Einmalcodes nicht in öffentlichen Profilen, Firestore-Inhalten oder Anwendungsprotokollen. Die Authenticator-App verarbeitet den Schlüssel nach ihren eigenen Bedingungen. Sicherheitsrelevante Verwaltungs- und Wiederherstellungsvorgänge können ohne Schlüssel oder Einmalcode im Auditprotokoll dokumentiert werden; dafür gelten die Fristen in Abschnitt 12. Dies dient dem Kontoschutz nach Abschnitt 4 und ist von der lokalen Face-ID-/Touch-ID-Sperre getrennt.
+
+Änderungen gegenüber 2026.11: freiwillige lokale Gerätesperre, Pflichtregion, technische Firebase-Diagnose, getrennte regionale Kontoberichte, TOTP-Anmeldeschutz sowie präzisere Lösch- und Sicherungsfristen. Die Bedingungen für optionale Inhaltsanalyse bleiben unverändert.

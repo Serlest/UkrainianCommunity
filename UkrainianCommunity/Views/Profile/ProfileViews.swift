@@ -15,7 +15,9 @@ enum ProfileNavigationRoute: Hashable {
     case feedbackComposer
     case supportProject
     case blockedUsers
+    case blockedOrganizations
     case organizationRequests
+    case organizationRequestReview(organizationID: String)
     case moderationTools
     case userManagement
     case featuredBannerManagement
@@ -539,11 +541,20 @@ struct ProfileView: View {
             )
         case .blockedUsers:
             BlockedUsersView(coordinator: userBlockingCoordinator)
+        case .blockedOrganizations:
+            BlockedOrganizationsView()
         case .organizationRequests:
             ModerationToolsView(
                 scope: .organizationRequests,
                 organizationRepository: organizationRepository
             )
+        case .organizationRequestReview(let organizationID):
+            ModerationToolsView(
+                scope: .organizationRequests,
+                requestedOrganizationID: organizationID,
+                organizationRepository: organizationRepository
+            )
+            .id(organizationID)
         case .moderationTools:
             ModerationToolsView(
                 organizationRepository: organizationRepository

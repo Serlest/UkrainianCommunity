@@ -41,10 +41,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.11",
-      "effectiveDate": "2026-08-26",
-      "supersedesVersion": "2026.10",
-      "changeSummary": "Administrator-only online/last-seen disclosure; other processing and optional analytics unchanged."
+      "version": "2026.12",
+      "effectiveDate": "2026-09-02",
+      "supersedesVersion": "2026.11",
+      "changeSummary": "Local biometric lock, required account region, SDK diagnostics, restricted account-region reports, TOTP security and verified retention/backup periods; optional content analytics unchanged."
     },
     "organizationRules": {
       "requiresAcceptance": true,
@@ -55,8 +55,7 @@
     }
   },
   "unresolvedReleaseBlocks": [
-    "2026-08-26 audit: approve and publish privacy clarification draft 2026.12 (local biometrics, SDK diagnostics, account-region reporting and retention wording), then synchronize website, Firestore and app bundle.",
-    "2026-08-26 audit: App Store Connect age rating, review access, categories, screenshots, free price and build are prepared. Finalize country availability, content-rights declaration and publish the App Privacy questionnaire only after factual/legal confirmation; no public submission authorized.",
+    "2026-09-02 release: App Store 1.0.1 draft uses build 64 and updated DE/UK screenshots. Privacy 2026.12 is synchronized and published App Privacy answers were checked against the archive. Before public submission, obtain the operator's final release/content-rights confirmation; preparation does not authorize submission.",
     "2026-08-26 audit: server-side comment filtering and server-owned creation are deployed and production-probed; complete an installed final-build test of accepted and rejected comments before public submission."
   ],
   "releaseRecommendations": [

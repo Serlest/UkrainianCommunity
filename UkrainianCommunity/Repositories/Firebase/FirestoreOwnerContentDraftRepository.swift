@@ -76,47 +76,12 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             let draftId: String
             let attemptId: String
         }
-        struct Response: Decodable {
-            let draftId: String
-            let kind: String
-            let contentId: String
-            let leaseId: String
-            let expiresAt: String
-            let contentAlreadyExists: Bool
-            let existingModerationStatus: String?
-            let existingScheduledAt: String?
-        }
-
         do {
-            let callable: Callable<Request, Response> = functions.httpsCallable("beginOwnerContentDraftPublication")
-            let response = try await callable.call(Request(draftId: draftID, attemptId: attemptID))
-            guard let kind = OwnerContentDraftKind(rawValue: response.kind),
-                  let expiresAt = ISO8601DateFormatter().date(from: response.expiresAt),
-                  response.existingModerationStatus == nil ||
-                    ModerationStatus(rawValue: response.existingModerationStatus ?? "") != nil else {
-                throw AppError.validationFailed
-            }
-            let existingScheduledAt = response.existingScheduledAt.flatMap {
-                ISO8601DateFormatter().date(from: $0)
-            }
-            if response.existingScheduledAt != nil, existingScheduledAt == nil {
-                throw AppError.validationFailed
-            }
-            let moderationStatus = response.existingModerationStatus.flatMap(ModerationStatus.init(rawValue:))
-            guard response.contentAlreadyExists == (moderationStatus != nil),
-                  moderationStatus == .draft || existingScheduledAt == nil else {
-                throw AppError.validationFailed
-            }
-            return OwnerContentPublicationLease(
-                draftID: response.draftId,
-                kind: kind,
-                contentID: response.contentId,
-                leaseID: response.leaseId,
-                expiresAt: expiresAt,
-                contentAlreadyExists: response.contentAlreadyExists,
-                existingModerationStatus: moderationStatus,
-                existingScheduledAt: existingScheduledAt
+            let callable: Callable<Request, OwnerContentPublicationResponse> = functions.httpsCallable(
+                "beginOwnerContentDraftPublication"
             )
+            let response = try await callable.call(Request(draftId: draftID, attemptId: attemptID))
+            return try response.lease(forDraftID: draftID)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
@@ -419,7 +384,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
     private func date(_ value: Any?) -> Date? {
         if let timestamp = value as? Timestamp { return timestamp.dateValue() }
         if let date = value as? Date { return date }
-        if let text = value as? String { return ISO8601DateFormatter().date(from: text) }
+        if let text = value as? String { return OwnerContentDraftDateParser.parse(text) }
         return nil
     }
 

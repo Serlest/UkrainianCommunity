@@ -1166,7 +1166,7 @@ enum AppStrings {
         static var loadFailed: String { text("content_planning.error.load", "Не вдалося завантажити планування. Перевірте з’єднання та спробуйте ще раз.") }
         static var updateFailed: String { text("content_planning.error.update", "Не вдалося оновити чернетку. Спробуйте ще раз.") }
         static var deleteFailed: String { text("content_planning.error.delete", "Не вдалося видалити чернетку. Перевірте з’єднання та спробуйте ще раз.") }
-        static var publicationBeginFailed: String { text("content_planning.error.publication_begin", "Не вдалося безпечно розпочати публікацію. Чернетку не змінено — спробуйте ще раз.") }
+        static var publicationBeginFailed: String { text("content_planning.error.publication_begin", "Не вдалося підтвердити початок публікації. Спробуйте ще раз — застосунок перевірить поточний стан матеріалу.") }
         static var publicationModeChanged: String { text("content_planning.error.publication_mode_changed", "Режим уже створеного матеріалу змінився. Виберіть режим, що відповідає його поточному статусу, і повторіть спробу.") }
         static var loading: String { text("content_planning.loading", "Завантаження планування") }
         static var loadingMore: String { text("content_planning.loading_more", "Завантаження наступної сторінки") }
@@ -1970,6 +1970,11 @@ enum AppStrings {
     }
 
     enum Safety {
+        static var blockOrganizationAction: String { text("safety.organization_block.action", "Заблокувати організацію") }
+        static var blockedOrganizationsTitle: String { text("safety.organization_block.list", "Заблоковані організації") }
+        static var blockedOrganizationsEmpty: String { text("safety.organization_block.empty", "Немає заблокованих організацій") }
+        static var organizationBlockFailed: String { text("safety.organization_block.error", "Не вдалося оновити список організацій. Перевірте з’єднання та спробуйте ще раз.") }
+        static var blockedOrganizationsExplanation: String { text("safety.organization_block.explanation", "Ця організація та її новини й події будуть приховані лише для вас. Профіль власника, його інші організації та права доступу не зміняться. Скасувати блокування можна в налаштуваннях профілю.") }
         static var blockAction: String { text("safety.block.action", "Block user") }
         static var unblockAction: String { text("safety.block.unblock", "Unblock") }
         static var blockConfirmationTitle: String { text("safety.block.confirm.title", "Block this user?") }
@@ -2134,6 +2139,8 @@ enum AppStrings {
         static var organizationRequestsEmpty: String { text("moderation.organization.requests.empty", "Немає заявок на організації, які очікують перевірки") }
         static var organizationRequest: String { text("moderation.organization.request", "Заявка організації") }
         static var organizationPreviewTitle: String { text("moderation.organization.preview.title", "Попередній перегляд організації") }
+        static var organizationRequestUnavailable: String { text("moderation.organization.request_unavailable", "Цю заявку видалено або вона більше недоступна.") }
+        static var organizationRequestAlreadyReviewed: String { text("moderation.organization.request_reviewed", "Цю заявку вже розглянуто. Доступні її поточні дані; повторне рішення не потрібне.") }
         static var organizationPreviewSubtitle: String { text("moderation.organization.preview.subtitle", "Так організація виглядатиме після публікації") }
         static var requestData: String { text("moderation.organization.request_data", "Дані заявки") }
         static var openRequest: String { text("moderation.organization.open_request", "Відкрити заявку") }

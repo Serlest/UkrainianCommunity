@@ -294,6 +294,7 @@ final class OrganizationActivityViewModel: ObservableObject {
 }
 
 struct OrganizationDetailView: View {
+    @EnvironmentObject var organizationBlockingCoordinator: OrganizationBlockingCoordinator
     @Environment(\.dismiss) var dismiss
     @Environment(\.scenePhase) private var analyticsScenePhase
     @Environment(\.organizationPresentationMode) var presentationMode

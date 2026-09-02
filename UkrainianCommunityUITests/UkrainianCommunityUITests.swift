@@ -1179,6 +1179,41 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOrganizationBlockCanBeUndoneWithoutBlockingItsOwner() throws {
+        let app = launchAuthenticatedApp()
+        openRootTab(rootTabs[2], in: app, timeout: 15)
+        let card = element("organization.card.org-1", in: app)
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        card.tap()
+        let more = app.buttons["detail.header.more-actions"].firstMatch
+        XCTAssertTrue(more.waitForExistence(timeout: 10))
+        more.tap()
+        let block = app.buttons["Organisation blockieren"].firstMatch
+        XCTAssertTrue(block.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Benutzer blockieren"].exists)
+        block.tap()
+        let confirm = app.buttons["organization.block.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        attachScreenshot(named: "organization-block-confirmation", from: app)
+        confirm.tap()
+        XCTAssertTrue(confirm.waitForNonExistence(timeout: 10))
+
+        openRootTab(rootTabs[3], in: app, timeout: 15)
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        scrollToElement(settings, in: app, maxSwipes: 24)
+        settings.tap()
+        let blockedOrganizations = app.buttons["profile.settings.blockedOrganizations"].firstMatch
+        scrollToElement(blockedOrganizations, in: app, maxSwipes: 16)
+        XCTAssertTrue(blockedOrganizations.isHittable)
+        blockedOrganizations.tap()
+        let undo = app.buttons["organization.unblock.org-1"].firstMatch
+        XCTAssertTrue(undo.waitForExistence(timeout: 10))
+        attachScreenshot(named: "blocked-organizations-settings", from: app)
+        undo.tap()
+        XCTAssertTrue(undo.waitForNonExistence(timeout: 10))
+    }
+
+    @MainActor
     func testOwnerManagementActionsUseTheSharedDetailMenu() throws {
         for kind in ["news", "events", "organizations"] {
             let app = launchOwnerApp()

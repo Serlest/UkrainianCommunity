@@ -587,6 +587,8 @@ struct DetailHeaderActionsMenu: View {
     let onEdit: (() -> Void)?
     let onReport: (() -> Void)?
     let onBlock: (() -> Void)?
+    let blockTitle: String?
+    let blockSystemImage: String
     let destructiveTitle: String?
     let onDestructive: (() -> Void)?
     let isDestructiveDisabled: Bool
@@ -595,6 +597,8 @@ struct DetailHeaderActionsMenu: View {
         onEdit: (() -> Void)? = nil,
         onReport: (() -> Void)? = nil,
         onBlock: (() -> Void)? = nil,
+        blockTitle: String? = nil,
+        blockSystemImage: String = "person.slash",
         destructiveTitle: String? = nil,
         onDestructive: (() -> Void)? = nil,
         isDestructiveDisabled: Bool = false
@@ -602,6 +606,8 @@ struct DetailHeaderActionsMenu: View {
         self.onEdit = onEdit
         self.onReport = onReport
         self.onBlock = onBlock
+        self.blockTitle = blockTitle
+        self.blockSystemImage = blockSystemImage
         self.destructiveTitle = destructiveTitle
         self.onDestructive = onDestructive
         self.isDestructiveDisabled = isDestructiveDisabled
@@ -644,7 +650,7 @@ struct DetailHeaderActionsMenu: View {
 
                 if let onBlock {
                     Button(role: .destructive, action: onBlock) {
-                        Label(AppStrings.Safety.blockAction, systemImage: "person.slash")
+                        Label(blockTitle ?? AppStrings.Safety.blockAction, systemImage: blockSystemImage)
                     }
                 }
 

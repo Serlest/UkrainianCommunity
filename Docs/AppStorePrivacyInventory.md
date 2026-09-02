@@ -1,6 +1,6 @@
 # App Store privacy inventory
 
-Last code audit: 2026-08-26
+Last archive and App Store Connect verification: 2026-09-02, version 1.0.1 (64). See `Docs/PrivacyPublication-2026-09-02.md`.
 
 This inventory is a release aid, not a substitute for the answers entered in App Store Connect. Recheck it whenever data flows or third-party SDKs change. Apple requires the App Store privacy answers to include the practices of third-party partners.
 
@@ -68,7 +68,11 @@ The client does not request Core Location permission or read the device's locati
 
 ## SDK diagnostics and optional analytics are different
 
-The optional switch controls the first-party daily content analytics, not every SDK diagnostic. Build 36 contains 30 privacy manifests, including the app's. The app does not override Firebase's default diagnostic collection setting. SDK declarations must therefore be included in the combined App Store answers; disabling the first-party switch is not a promise to disable all provider telemetry. The policy clarification is prepared separately in `Legal/drafts/privacy-2026.12.*.md` and must be approved and published before public release.
+The optional switch controls the first-party daily content analytics, not every SDK diagnostic. The signed build 64 archive contains 30 privacy manifests, including the app's, with 14 distinct collected-data categories and no tracking declaration. The app does not override Firebase's default diagnostic collection setting. SDK declarations are included in the combined App Store answers; disabling the first-party switch is not a promise to disable all provider telemetry. Policy 2026.12 was operator-approved and published on 2026-09-02; website, Firestore and the build 64 offline bundle were compared by locale content hashes. This does not replace independent legal review.
+
+## TOTP account protection
+
+Privileged platform accounts use Firebase Authentication's TOTP factor. Setup material is passed to the user's chosen authenticator; factor membership and verification codes are processed for account security. Setup secrets and one-time codes are not stored in public profiles, Firestore content or application logs. Security/recovery audit events follow the existing protected-log retention rules. This is distinct from local biometrics and optional content analytics. Policy 2026.12 section 21 explains the flow. The release-64 change updates only policy text/version, not MFA behavior.
 
 References checked on 2026-08-26: [Apple data definitions](https://developer.apple.com/app-store/app-privacy-details/) and [Firebase SDK disclosures](https://firebase.google.com/docs/ios/app-store-data-collection). The category mapping above is the technical audit's interpretation of those definitions, not a legal opinion.
 

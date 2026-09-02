@@ -54,6 +54,14 @@ function blockedUser(targetUserId) {
 }
 
 describe("private server-owned user blocks", () => {
+  test("organization blocks remain inaccessible to direct clients without changing existing Rules", async () => {
+    for (const uid of ["user-1", "user-2"]) {
+      const reference = doc(database(uid), "users", "user-1", "blockedOrganizations", "org-a");
+      await assertFails(getDoc(reference));
+      await assertFails(setDoc(reference, {organizationId: "org-a", name: "Org", blockedAt: new Date()}));
+      await assertFails(deleteDoc(reference));
+    }
+  });
   test("owner can read their blocked users collection", async () => {
     const db = database("user-1");
     await assertSucceeds(getDoc(doc(db, "users", "user-1", "blockedUsers", "user-2")));

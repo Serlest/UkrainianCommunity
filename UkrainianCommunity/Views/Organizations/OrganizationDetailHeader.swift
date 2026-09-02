@@ -36,11 +36,10 @@ extension OrganizationDetailView {
 
     func organizationBlockAction(for organization: Organization) -> (() -> Void)? {
         guard authState.isAuthenticated,
-              let target = UserBlockTarget.organization(organization),
-              target.userId != authState.user?.id else {
+              (organization.ownerId ?? organization.submittedByUserId) != authState.user?.id else {
             return nil
         }
-        return { userBlockingPresentation.present(target) }
+        return { organizationBlockingCoordinator.present(organization) }
     }
 
     func presentContentReport(_ target: ContentReportTarget) {
@@ -269,6 +268,8 @@ private struct OrganizationDetailHeaderActions: View {
                 onEdit: onEdit,
                 onReport: onReport,
                 onBlock: onBlock,
+                blockTitle: AppStrings.Safety.blockOrganizationAction,
+                blockSystemImage: "building.2",
                 destructiveTitle: onDelete == nil ? nil : AppStrings.Organizations.delete,
                 onDestructive: onDelete,
                 isDestructiveDisabled: isDeleteDisabled

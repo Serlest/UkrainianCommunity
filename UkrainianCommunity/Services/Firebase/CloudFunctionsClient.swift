@@ -41,6 +41,8 @@ enum CloudFunctionName: String, CaseIterable {
     case decideDsaAppeal
     case getMyDsaStatement
     case setUserBlocked
+    case getBlockedOrganizations
+    case setOrganizationBlocked
     case createOrganizationPhotoMetadata
     case deleteOrganizationPhotoMetadata
     case uploadOrganizationContentCover
@@ -919,7 +921,7 @@ final class CloudFunctionsClient {
              .decideDsaAppeal,
              .getMyDsaStatement:
             return .report
-        case .setUserBlocked:
+        case .setUserBlocked, .getBlockedOrganizations, .setOrganizationBlocked:
             return .userProfile
         }
     }
@@ -964,6 +966,8 @@ final class CloudFunctionsClient {
              .unregisterFromEvent,
              .submitContentReport,
              .setUserBlocked,
+             .getBlockedOrganizations,
+             .setOrganizationBlocked,
              .searchManagedUsers,
              .getManagedUserSecurityMetadata,
              .deleteNotificationPushRegistration,
@@ -1034,6 +1038,8 @@ final class CloudFunctionsClient {
              .decideDsaAppeal,
              .getMyDsaStatement,
              .setUserBlocked,
+             .getBlockedOrganizations,
+             .setOrganizationBlocked,
              .searchManagedUsers,
              .getManagedUserSecurityMetadata,
              .createOrganizationPhotoMetadata,
