@@ -499,22 +499,15 @@ struct PrivilegedMultiFactorRequirementView: View {
                 Task { await viewModel.beginEnrollment() }
             }
             .accessibilityIdentifier("auth.mfa.privilegedRequirement.enroll")
+
+            restartSignInButton
         } else if !viewModel.isSessionTOTPAuthenticated {
             InlineMessageCard(
                 style: .info,
                 message: AppStrings.AccountSecurity.privilegedSignInAgain
             )
 
-            PrimaryActionButton(
-                title: AppStrings.AccountSecurity.privilegedRestartSignIn,
-                loadingTitle: AppStrings.AccountSecurity.privilegedRestartingSignIn,
-                isEnabled: !isRestartingSignIn,
-                isLoading: isRestartingSignIn,
-                systemImage: "rectangle.portrait.and.arrow.right"
-            ) {
-                restartSignIn()
-            }
-            .accessibilityIdentifier("auth.mfa.privilegedRequirement.restart")
+            restartSignInButton
         } else if currentUser?.requiresMultiFactorAuth != true {
             InlineMessageCard(
                 style: .info,
@@ -536,6 +529,19 @@ struct PrivilegedMultiFactorRequirementView: View {
                 .frame(maxWidth: .infinity)
                 .accessibilityLabel(AppStrings.Common.loading)
         }
+    }
+
+    private var restartSignInButton: some View {
+        PrimaryActionButton(
+            title: AppStrings.AccountSecurity.privilegedRestartSignIn,
+            loadingTitle: AppStrings.AccountSecurity.privilegedRestartingSignIn,
+            isEnabled: !isRestartingSignIn,
+            isLoading: isRestartingSignIn,
+            systemImage: "rectangle.portrait.and.arrow.right"
+        ) {
+            restartSignIn()
+        }
+        .accessibilityIdentifier("auth.mfa.privilegedRequirement.restart")
     }
 
     private func restartSignIn() {
@@ -683,11 +689,6 @@ private struct TOTPEnrollmentView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
                 copiedSecret = false
-            }
-        }
-        .onDisappear {
-            if viewModel.enrollmentSession?.id == session.id {
-                viewModel.cancelEnrollment()
             }
         }
     }

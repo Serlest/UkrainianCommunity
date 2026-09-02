@@ -93,3 +93,22 @@ completed the full read-back and recovery test.
 Retain the project MFA configuration read-back, callable revision, Rules release
 hashes, disposable-account results, per-account activation read-backs and a
 24-hour error/denial observation window with the release evidence for the build.
+
+### Staged rollout checkpoint — 2026-09-02
+
+- A local build 63 was installed on an iPhone 16 Pro Max running iOS 26.6.1.
+- The focused physical-device auth security suite passed 8 of 8 tests.
+- The separate recovery app administrator completed enrollment, sign-out,
+  password plus TOTP sign-in and explicit per-account activation.
+- Production read-back confirmed an active `admin` with one `totp` factor,
+  `requiresMultiFactorAuth == true`, `multiFactorAuthRequiredMethod == "totp"`
+  and server timestamps for the activation and user update.
+- The activation function logged `Privileged TOTP protection activated` for the
+  expected account after callable verification passed; no activation error was
+  present in the read-back window.
+- The client now keeps a repeat-sign-in route available before enrollment and
+  preserves the enrollment session while switching to an authenticator app.
+
+The platform owner is intentionally not activated at this checkpoint. Before
+that activation, verify the separate recovery operator Firebase CLI login and
+run the documented recovery command in dry-run mode under that identity.

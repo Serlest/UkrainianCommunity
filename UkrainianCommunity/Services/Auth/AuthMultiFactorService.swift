@@ -16,10 +16,11 @@ enum AuthMultiFactorFlowError: Error, Equatable {
 }
 
 enum AuthSecurityRollout {
-    // Flip only after Identity Platform, TOTP and activatePrivilegedMFAProtection
-    // are active in production. Existing users remain unaffected until a
-    // compatible client completes their per-account rollout.
-    static let allowsTOTPEnrollment = false
+    // Identity Platform, TOTP, recovery access, privileged Rules and the
+    // activation callable are active in production. A compatible client now
+    // guides each owner/admin through enrollment, a fresh TOTP sign-in and
+    // explicit per-account activation before protected access is required.
+    static let allowsTOTPEnrollment = true
 }
 
 enum AuthSecurityPolicy {

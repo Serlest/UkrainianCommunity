@@ -37,19 +37,25 @@ struct AuthSecurityTests {
     }
 
     @Test
-    func totpEnrollmentStaysClosedUntilServerRollout() {
-        #expect(!AuthSecurityRollout.allowsTOTPEnrollment)
+    func totpEnrollmentIsOpenForStagedPrivilegedRollout() {
+        #expect(AuthSecurityRollout.allowsTOTPEnrollment)
     }
 
     @Test
-    func privilegedProtectionRequiresAnExplicitPerAccountRollout() {
+    func stagedRolloutGuidesEveryPrivilegedAccountThroughPerAccountActivation() {
         let unprotectedOwner = makeUser(globalRole: .owner)
         let protectedOwner = makeUser(globalRole: .owner, requiresMultiFactorAuth: true)
         let protectedAdmin = makeUser(globalRole: .admin, requiresMultiFactorAuth: true)
 
-        #expect(!AuthSecurityPolicy.requiresProtectedSession(unprotectedOwner))
+        #expect(AuthSecurityPolicy.requiresProtectedSession(unprotectedOwner))
         #expect(AuthSecurityPolicy.requiresProtectedSession(protectedOwner))
         #expect(AuthSecurityPolicy.requiresProtectedSession(protectedAdmin))
+        #expect(
+            !AuthSecurityPolicy.protectedSessionIsReady(
+                user: unprotectedOwner,
+                isTOTPAuthenticated: true
+            )
+        )
     }
 
     @Test
