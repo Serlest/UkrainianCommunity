@@ -8188,7 +8188,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktiviere die Registrierung, um Preis und Teilnehmerkapazität zu verwalten."
+            "value" : "Aktivieren Sie die Registrierung, um Preis und Teilnehmerkapazität zu verwalten."
           }
         },
         "uk" : {
@@ -8375,7 +8375,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lade die Community zu einem wichtigen Ereignis ein."
+            "value" : "Laden Sie die Community zu einem wichtigen Ereignis ein."
           }
         },
         "uk" : {
@@ -9926,7 +9926,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verschiebe und skaliere das Bild im 16:9-Rahmen."
+            "value" : "Verschieben und skalieren Sie das Bild im 16:9-Rahmen."
           }
         },
         "uk" : {
@@ -11320,7 +11320,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ändere den Suchtext oder den Statusfilter."
+            "value" : "Ändern Sie den Suchtext oder den Statusfilter."
           }
         },
         "uk" : {
@@ -16692,7 +16692,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ändere die Suche oder den Inhaltstypfilter."
+            "value" : "Ändern Sie die Suche oder den Inhaltstypfilter."
           }
         },
         "uk" : {
@@ -18817,7 +18817,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Teile wichtige Informationen mit der Community."
+            "value" : "Teilen Sie wichtige Informationen mit der Community."
           }
         },
         "uk" : {
@@ -18987,7 +18987,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib einen gültigen Link mit http oder https oder einen Quellennamen ein."
+            "value" : "Geben Sie einen gültigen Link mit http oder https oder einen Quellennamen ein."
           }
         },
         "uk" : {
@@ -23103,7 +23103,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kurz über euch"
+            "value" : "Kurz über Ihre Organisation"
           }
         },
         "uk" : {
@@ -23501,6 +23501,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Зачинено"
+          }
+        }
+      }
+    },
+    "organizations.editor.hours.closing_time_accessibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließzeit am %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Час закриття, %@"
+          }
+        }
+      }
+    },
+    "organizations.editor.hours.opening_time_accessibility" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnungszeit am %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Час відкриття, %@"
           }
         }
       }
@@ -27812,7 +27846,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Öffne News, Veranstaltungen und Organisationen, um schnell zu ihnen zurückzukehren."
+            "value" : "Öffnen Sie News, Veranstaltungen und Organisationen, um schnell zu ihnen zurückzukehren."
           }
         },
         "uk" : {
@@ -29461,7 +29495,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erstelle einen Account, um Veranstaltungen zu speichern, Organisationen zu folgen und Benachrichtigungen zu erhalten."
+            "value" : "Erstellen Sie einen Account, um Veranstaltungen zu speichern, Organisationen zu folgen und Benachrichtigungen zu erhalten."
           }
         },
         "uk" : {
@@ -30141,7 +30175,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Kennzeichen sind in den iPhone-Einstellungen deaktiviert. Aktiviere sie, um die Anzahl ungelesener Mitteilungen am App-Symbol zu sehen."
+            "value" : "Kennzeichen sind in den iPhone-Einstellungen deaktiviert. Aktivieren Sie sie, um die Anzahl ungelesener Mitteilungen am App-Symbol zu sehen."
           }
         },
         "uk" : {
@@ -30549,7 +30583,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mitteilungen sind in den iPhone-Einstellungen deaktiviert. Aktiviere sie, um auch außerhalb der App benachrichtigt zu werden."
+            "value" : "Mitteilungen sind in den iPhone-Einstellungen deaktiviert. Aktivieren Sie sie, um auch außerhalb der App benachrichtigt zu werden."
           }
         },
         "uk" : {
@@ -35260,7 +35294,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gib LÖSCHEN ein, um zu bestätigen."
+            "value" : "Geben Sie LÖSCHEN ein, um zu bestätigen."
           }
         },
         "uk" : {
@@ -43148,7 +43182,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Passe Suche oder Filter an, um Nutzer zu sehen."
+            "value" : "Passen Sie die Suche oder die Filter an, um Nutzer zu sehen."
           }
         },
         "uk" : {

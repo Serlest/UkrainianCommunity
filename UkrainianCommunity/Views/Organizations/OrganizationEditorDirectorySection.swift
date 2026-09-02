@@ -74,7 +74,7 @@ extension OrganizationEditorView {
                     if hasOpeningHours(for: day) {
                         HStack(spacing: 8) {
                             DatePicker(
-                                "",
+                                AppStrings.Organizations.openingTimeAccessibilityLabel(for: day.title),
                                 selection: timeBinding(for: day, opening: true),
                                 displayedComponents: .hourAndMinute
                             )
@@ -85,7 +85,7 @@ extension OrganizationEditorView {
                                 .foregroundStyle(AppTheme.textSecondary)
 
                             DatePicker(
-                                "",
+                                AppStrings.Organizations.closingTimeAccessibilityLabel(for: day.title),
                                 selection: timeBinding(for: day, opening: false),
                                 displayedComponents: .hourAndMinute
                             )

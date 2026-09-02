@@ -956,6 +956,20 @@ enum AppStrings {
         static var serviceModeOnSite: String { text("organizations.editor.service_mode.on_site", "Виїзд") }
         static var hoursSectionTitle: String { text("organizations.editor.hours.title", "Години роботи") }
         static var hoursClosed: String { text("organizations.editor.hours.closed", "Зачинено") }
+        static func openingTimeAccessibilityLabel(for day: String) -> String {
+            LocalizationStore.localizedFormat(
+                "organizations.editor.hours.opening_time_accessibility",
+                defaultValue: "Час відкриття, %@",
+                arguments: [day]
+            )
+        }
+        static func closingTimeAccessibilityLabel(for day: String) -> String {
+            LocalizationStore.localizedFormat(
+                "organizations.editor.hours.closing_time_accessibility",
+                defaultValue: "Час закриття, %@",
+                arguments: [day]
+            )
+        }
         static var hoursPlaceholder: String { text("organizations.editor.hours.placeholder", "09:00-18:00 або за домовленістю") }
         static var specialHoursPlaceholder: String { text("organizations.editor.hours.special", "Святкові або особливі години") }
         static var actionsSectionTitle: String { text("organizations.editor.actions.title", "Дії для відвідувача") }

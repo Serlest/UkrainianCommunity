@@ -29,6 +29,14 @@ METADATA_TITLE_LITERAL_PATTERN = re.compile(
 )
 INVARIANT_UI_LITERALS = {"Telegram", "UID"}
 PLACEHOLDER_PATTERN = re.compile(r"%(?:\d+\$)?(lld|ld|d|@|f)")
+GERMAN_INFORMAL_PRONOUN_PATTERN = re.compile(
+    r"\b(?:du|dich|dir|euch|dein(?:e|em|en|er|es)?|euer(?:e|em|en|er|es)?)\b",
+    re.IGNORECASE,
+)
+GERMAN_INFORMAL_IMPERATIVE_PATTERN = re.compile(
+    r"(?:^|[.!?]\s+)"
+    r"(?:Aktiviere|Ändere|Erstelle|Gib|Lade|Öffne|Passe|Teile|Verschiebe)\b"
+)
 
 
 class DuplicateJSONKeyError(ValueError):
@@ -99,6 +107,14 @@ def placeholder_signature(value: str) -> list[str]:
     return sorted(PLACEHOLDER_PATTERN.findall(value))
 
 
+def german_tone_failure(key: str, value: str) -> str | None:
+    if GERMAN_INFORMAL_PRONOUN_PATTERN.search(value):
+        return f"{key!r}: German translation uses an informal pronoun"
+    if GERMAN_INFORMAL_IMPERATIVE_PATTERN.search(value):
+        return f"{key!r}: German translation uses an informal imperative"
+    return None
+
+
 def main() -> int:
     try:
         catalog = json.loads(
@@ -150,6 +166,9 @@ def main() -> int:
                 translated_values[language] = value
 
         if len(translated_values) == len(REQUIRED_LANGUAGES):
+            if tone_failure := german_tone_failure(key, translated_values["de"]):
+                failures.append(tone_failure)
+
             signatures = {
                 language: placeholder_signature(value)
                 for language, value in translated_values.items()
