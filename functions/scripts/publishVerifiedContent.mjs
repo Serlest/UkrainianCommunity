@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
 import {randomUUID} from "node:crypto";
-import {execFile, execFileSync} from "node:child_process";
-import {createRequire} from "node:module";
+import {execFile} from "node:child_process";
 import {access, mkdtemp, readFile, rm, stat, unlink} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {dirname, extname, join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 import {promisify} from "node:util";
 
+import {contentAutomationAccessToken} from "./contentAutomationCredential.mjs";
 import {
   buildContentDocument,
   classifyLegacyDuplicate,
@@ -66,7 +66,7 @@ async function main() {
   const duplicateIds = duplicateContentIds(items, options.organizationId);
   if (duplicateIds.length > 0) throw new Error(`Manifest contains duplicate deterministic ids: ${duplicateIds.join(", ")}.`);
 
-  const accessToken = await firebaseAccessToken();
+  const accessToken = await contentAutomationAccessToken();
   const client = firebaseRESTClient({accessToken, projectId, storageBucket});
   const organization = validateOrganization(
     await client.getOrganization(options.organizationId),
@@ -449,32 +449,6 @@ function verifyImageSignature(bytes, extension, path) {
     || (extension === ".png" && !isPNG)
     || (extension === ".webp" && !isWebP)) {
     throw new Error(`Cover bytes do not match the extension: ${path}.`);
-  }
-}
-
-async function firebaseAccessToken() {
-  let output;
-  try {
-    output = execFileSync("firebase", ["login:list", "--json"], {encoding: "utf8", stdio: ["ignore", "pipe", "pipe"]});
-  } catch {
-    throw new Error("Firebase CLI is unavailable or not authenticated.");
-  }
-  const parsed = JSON.parse(output);
-  const refreshToken = parsed?.result?.[0]?.tokens?.refresh_token;
-  if (typeof refreshToken !== "string" || refreshToken.length < 20) {
-    throw new Error("Firebase CLI is not authenticated.");
-  }
-  try {
-    const require = createRequire(import.meta.url);
-    const globalNodeModules = execFileSync("npm", ["root", "--global"], {encoding: "utf8"}).trim();
-    const auth = require(join(globalNodeModules, "firebase-tools/lib/auth.js"));
-    const refreshed = await auth.getAccessToken(refreshToken, []);
-    if (typeof refreshed?.access_token !== "string" || refreshed.access_token.length < 20) {
-      throw new Error("missing access token");
-    }
-    return refreshed.access_token;
-  } catch {
-    throw new Error("Firebase CLI authentication could not be refreshed.");
   }
 }
 

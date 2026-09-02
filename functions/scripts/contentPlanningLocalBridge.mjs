@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 import {createHash, randomUUID} from "node:crypto";
-import {execFileSync} from "node:child_process";
-import {createRequire} from "node:module";
 import {readFile} from "node:fs/promises";
-import {join, resolve} from "node:path";
+import {resolve} from "node:path";
 
+import {
+  contentAutomationAccessToken,
+  decodeSuccessfulJSON,
+} from "./contentAutomationCredential.mjs";
 import {writeContentPlanningBridgeOutput} from "./contentPlanningBridgeOutput.mjs";
 import {buildContentPlanningSummary} from "./contentPlanningBridgeSummary.mjs";
 import {prepareCanonicalContentCover} from "./contentCoverImageProcessing.mjs";
@@ -32,7 +34,7 @@ if (!command || !["list", "save"].includes(command)) {
   fail("Usage: node scripts/contentPlanningLocalBridge.mjs list|save [manifest.json]");
 }
 
-const accessToken = await firebaseAccessToken();
+const accessToken = await contentAutomationAccessToken();
 const owner = await resolveOwner();
 
 if (command === "list") {
@@ -56,20 +58,6 @@ if (command === "list") {
   await writeContentPlanningBridgeOutput({owner: {id: owner.id, email: owner.email}, results});
 }
 
-async function firebaseAccessToken() {
-  const output = execFileSync("firebase", ["login:list", "--json"], {encoding: "utf8"});
-  const parsed = JSON.parse(output);
-  const refreshToken = parsed?.result?.[0]?.tokens?.refresh_token;
-  if (typeof refreshToken !== "string" || refreshToken.length < 20) fail("Firebase CLI is not authenticated.");
-  const require = createRequire(import.meta.url);
-  const globalNodeModules = execFileSync("npm", ["root", "--global"], {encoding: "utf8"}).trim();
-  const auth = require(join(globalNodeModules, "firebase-tools/lib/auth.js"));
-  const refreshed = await auth.getAccessToken(refreshToken, []);
-  const token = refreshed?.access_token;
-  if (typeof token !== "string" || token.length < 20) fail("Firebase CLI is not authenticated.");
-  return token;
-}
-
 async function resolveOwner() {
   const response = await authorizedFetch(`${firestoreBase}/documents:runQuery`, {
     method: "POST",
@@ -83,7 +71,8 @@ async function resolveOwner() {
       limit: 2,
     }}),
   });
-  const rows = await response.json();
+  const rows = await decodeSuccessfulJSON(response, "App owner lookup");
+  if (!Array.isArray(rows)) fail("App owner lookup returned an invalid response.");
   let documents = rows.flatMap((row) => row.document ? [row.document] : []);
   if (documents.length === 0) {
     const users = await listDocuments("users", 500);
@@ -107,7 +96,10 @@ async function listDocuments(collectionPath, maxDocuments = Number.POSITIVE_INFI
     url.searchParams.set("pageSize", String(Math.min(maxDocuments - documents.length, 500)));
     if (pageToken) url.searchParams.set("pageToken", pageToken);
     const response = await authorizedFetch(url);
-    const payload = await response.json();
+    const payload = await decodeSuccessfulJSON(
+      response,
+      `Firestore list for ${collectionPath}`
+    );
     documents.push(...(payload.documents ?? []));
     pageToken = payload.nextPageToken;
   } while (pageToken && documents.length < maxDocuments);

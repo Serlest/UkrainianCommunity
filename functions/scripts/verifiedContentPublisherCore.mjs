@@ -925,6 +925,9 @@ function semanticProjection(document) {
 
 function semanticValue(value) {
   if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string" && isTimestampString(value)) {
+    return new Date(value).toISOString();
+  }
   if (Array.isArray(value)) return value.map(semanticValue);
   if (value && typeof value === "object") {
     return Object.fromEntries(
@@ -934,6 +937,13 @@ function semanticValue(value) {
     );
   }
   return value;
+}
+
+function isTimestampString(value) {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) {
+    return false;
+  }
+  return !Number.isNaN(new Date(value).getTime());
 }
 
 function stableStringify(value) {

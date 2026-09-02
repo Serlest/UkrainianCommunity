@@ -346,6 +346,29 @@ describe("verified content publisher core", () => {
     assert.equal(documentsSemanticallyMatch({...existing, title: "Changed title"}, expected), false);
   });
 
+  test("idempotency comparison treats equivalent Firestore timestamp precision as equal", () => {
+    const item = normalizeAndValidateManifestItem(eventManifest(), "wien");
+    const expected = buildContentDocument(
+      item,
+      organization,
+      organizationId,
+      "https://example.at/event.png",
+      new Date("2026-08-30T10:00:00Z")
+    );
+    const existing = {
+      ...expected,
+      startDate: expected.startDate.toISOString().replace(".000Z", "Z"),
+      endDate: expected.endDate.toISOString().replace(".000Z", "Z"),
+      occurrences: expected.occurrences.map((occurrence) => ({
+        ...occurrence,
+        startDate: occurrence.startDate.toISOString().replace(".000Z", "Z"),
+        endDate: occurrence.endDate.toISOString().replace(".000Z", "Z"),
+      })),
+    };
+
+    assert.equal(documentsSemanticallyMatch(existing, expected), true);
+  });
+
   test("skips exact legacy event ids using UTC-sorted occurrences and rejects semantic conflicts", () => {
     const item = normalizeAndValidateManifestItem(eventManifest(), "wien");
     const expected = buildContentDocument(
