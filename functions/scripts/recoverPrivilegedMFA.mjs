@@ -9,7 +9,7 @@ import {
 } from "./privilegedMFARecoveryCore.mjs";
 
 const options = parsePrivilegedMFARecoveryOptions(process.argv.slice(2));
-const credential = await firebaseCliCredential();
+const credential = await firebaseCliCredential({accountEmail: options.actorEmail});
 const actorEmail = credential.accountEmail;
 
 const before = await readRecoveryState();

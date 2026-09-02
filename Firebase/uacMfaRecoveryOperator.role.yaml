@@ -1,0 +1,9 @@
+title: UAC MFA Recovery Operator
+description: Recover one verified privileged UAC account after an identity-verified incident.
+stage: GA
+includedPermissions:
+  - datastore.entities.get
+  - datastore.entities.update
+  - firebaseauth.users.get
+  - firebaseauth.users.update
+  - serviceusage.services.use

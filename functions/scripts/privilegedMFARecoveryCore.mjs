@@ -15,6 +15,7 @@ export function parsePrivilegedMFARecoveryOptions(argumentsList) {
   }
 
   const projectId = requiredValue(values.get("project"), "--project");
+  const actorEmail = normalizedEmail(values.get("actor-email"), "--actor-email");
   const targetEmail = normalizedEmail(values.get("target-email"), "--target-email");
   const reason = requiredValue(values.get("reason"), "--reason");
   if (reason.length < 10 || reason.length > 300) {
@@ -41,6 +42,7 @@ export function parsePrivilegedMFARecoveryOptions(argumentsList) {
 
   const supportedKeys = new Set([
     "project",
+    "actor-email",
     "target-email",
     "reason",
     "confirm-project",
@@ -53,7 +55,7 @@ export function parsePrivilegedMFARecoveryOptions(argumentsList) {
     if (!supportedKeys.has(key)) throw new Error(`Unsupported option: --${key}`);
   }
 
-  return {projectId, targetEmail, reason, apply, expectations};
+  return {projectId, actorEmail, targetEmail, reason, apply, expectations};
 }
 
 export function inspectPrivilegedMFARecovery(authUser, firestoreUser) {

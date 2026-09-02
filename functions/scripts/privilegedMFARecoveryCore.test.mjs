@@ -31,6 +31,7 @@ const firestoreUser = (overrides = {}) => ({
 test("dry-run identifies a recoverable privileged TOTP account", () => {
   const options = parsePrivilegedMFARecoveryOptions([
     "--project=example",
+    "--actor-email=recovery@example.com",
     "--target-email=OWNER@example.com",
     "--reason=Lost authenticator during recovery drill",
   ]);
@@ -38,11 +39,13 @@ test("dry-run identifies a recoverable privileged TOTP account", () => {
   assert.doesNotThrow(() => assertPrivilegedMFARecoverySafe(snapshot, options));
   assert.equal(snapshot.factorCount, 1);
   assert.deepEqual(snapshot.factorTypes, ["totp"]);
+  assert.equal(options.actorEmail, "recovery@example.com");
 });
 
 test("apply requires exact project, identity, and fresh state confirmations", () => {
   assert.throws(() => parsePrivilegedMFARecoveryOptions([
     "--project=example",
+    "--actor-email=recovery@example.com",
     "--target-email=owner@example.com",
     "--reason=Lost authenticator during recovery drill",
     "--apply",
@@ -50,6 +53,7 @@ test("apply requires exact project, identity, and fresh state confirmations", ()
 
   const options = parsePrivilegedMFARecoveryOptions([
     "--project=example",
+    "--actor-email=recovery@example.com",
     "--target-email=owner@example.com",
     "--reason=Lost authenticator during recovery drill",
     "--apply",
@@ -72,6 +76,7 @@ test("apply requires exact project, identity, and fresh state confirmations", ()
 test("rejects non-privileged, blocked, mismatched, and no-op targets", () => {
   const options = parsePrivilegedMFARecoveryOptions([
     "--project=example",
+    "--actor-email=recovery@example.com",
     "--target-email=owner@example.com",
     "--reason=Lost authenticator during recovery drill",
   ]);
@@ -94,6 +99,14 @@ test("rejects non-privileged, blocked, mismatched, and no-op targets", () => {
     ),
     options
   ), /no privileged MFA/);
+});
+
+test("requires an explicit recovery actor account", () => {
+  assert.throws(() => parsePrivilegedMFARecoveryOptions([
+    "--project=example",
+    "--target-email=owner@example.com",
+    "--reason=Lost authenticator during recovery drill",
+  ]), /actor-email/);
 });
 
 test("builds a guarded recovery write and verifies complete read-back", () => {

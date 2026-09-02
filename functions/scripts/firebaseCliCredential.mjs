@@ -10,6 +10,7 @@ export async function firebaseCliCredential(dependencies = {}) {
   const runFirebaseLogin = dependencies.runFirebaseLogin ?? defaultFirebaseLogin;
   const loadFirebaseAuth = dependencies.loadFirebaseAuth ?? defaultFirebaseAuth;
   const now = dependencies.now ?? Date.now;
+  const requestedAccountEmail = normalizedOptionalEmail(dependencies.accountEmail);
   const login = parseFirebaseLogin(runFirebaseLogin());
   const firebaseAuth = loadFirebaseAuth();
   if (!firebaseAuth || typeof firebaseAuth.getAccessToken !== "function") {
@@ -20,13 +21,17 @@ export async function firebaseCliCredential(dependencies = {}) {
     ? firebaseAuth.getGlobalDefaultAccount()
     : undefined;
   const activeEmail = activeAccount?.user?.email;
-  const account = typeof activeEmail === "string"
-    ? accounts.find((candidate) => candidate?.user?.email === activeEmail)
-    : accounts.length === 1 ? accounts[0] : undefined;
+  const account = requestedAccountEmail
+    ? accounts.find((candidate) => normalizedOptionalEmail(candidate?.user?.email) === requestedAccountEmail)
+    : typeof activeEmail === "string"
+      ? accounts.find((candidate) => candidate?.user?.email === activeEmail)
+      : accounts.length === 1 ? accounts[0] : undefined;
   const refreshToken = account?.tokens?.refresh_token;
   if (typeof refreshToken !== "string" || refreshToken.length < 20 ||
       typeof account?.user?.email !== "string") {
-    throw new Error("Firebase CLI is not authenticated or has no unambiguous active account.");
+    throw new Error(requestedAccountEmail
+      ? "Firebase CLI is not authenticated as the requested account."
+      : "Firebase CLI is not authenticated or has no unambiguous active account.");
   }
 
   let cachedToken;
@@ -87,4 +92,8 @@ function parseFirebaseLogin(output) {
 function positiveNumber(value) {
   const number = Number(value);
   return Number.isFinite(number) && number > 0 ? number : undefined;
+}
+
+function normalizedOptionalEmail(value) {
+  return typeof value === "string" ? value.trim().toLowerCase() : "";
 }

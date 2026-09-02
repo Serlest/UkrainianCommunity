@@ -53,6 +53,47 @@ test("fails closed when Firebase CLI has no usable refresh token", async () => {
   );
 });
 
+test("selects an explicitly requested account instead of the global default", async () => {
+  let receivedRefreshToken;
+  const credential = await firebaseCliCredential({
+    accountEmail: "RECOVERY@example.com",
+    runFirebaseLogin: () => JSON.stringify({
+      result: [
+        {
+          user: {email: "owner@example.com"},
+          tokens: {refresh_token: "owner-refresh-token-long-enough"},
+        },
+        {
+          user: {email: "recovery@example.com"},
+          tokens: {refresh_token: "recovery-refresh-token-long-enough"},
+        },
+      ],
+    }),
+    loadFirebaseAuth: () => ({
+      getGlobalDefaultAccount: () => ({user: {email: "owner@example.com"}}),
+      getAccessToken: async (refreshToken) => {
+        receivedRefreshToken = refreshToken;
+        return {access_token: "access-token-long-enough-for-test", expires_in: 1800};
+      },
+    }),
+  });
+
+  assert.equal(credential.accountEmail, "recovery@example.com");
+  await credential.getAccessToken();
+  assert.equal(receivedRefreshToken, "recovery-refresh-token-long-enough");
+});
+
+test("fails closed when the explicitly requested account is not authenticated", async () => {
+  await assert.rejects(
+    firebaseCliCredential({
+      accountEmail: "recovery@example.com",
+      runFirebaseLogin: () => validLogin,
+      loadFirebaseAuth: () => ({getAccessToken: async () => ({})}),
+    }),
+    /not authenticated as the requested account/
+  );
+});
+
 test("fails closed when token refresh returns unusable data", async () => {
   const credential = await firebaseCliCredential({
     runFirebaseLogin: () => validLogin,

@@ -30,7 +30,8 @@ locking existing accounts or older app builds out of production.
    through different trusted identities/devices. The recovery identity must not
    receive Project Owner or Editor. Grant only the checked-in custom role
    `uacMfaRecoveryOperator`, containing Firestore entity read/update, Firebase
-   Auth user read/update, and service usage.
+   Auth user read/update, and service usage. Its reproducible definition is
+   [Firebase/uacMfaRecoveryOperator.role.yaml](../Firebase/uacMfaRecoveryOperator.role.yaml).
 4. Deploy `activatePrivilegedMFAProtection` and read back its active revision.
 5. Deploy the matching Firestore and Storage Rules and confirm their release
    hashes. With no opted-in users these rules are backward-compatible.
@@ -67,6 +68,7 @@ completed the full read-back and recovery test.
   ```sh
   npm run auth:recover-privileged-mfa -- \
     --project=ukrainiancommunity-dbd5f \
+    --actor-email=recovery-operator@example.com \
     --target-email=owner@example.com \
     --reason="Lost authenticator; identity verified through the recovery procedure"
   ```
@@ -78,7 +80,9 @@ completed the full read-back and recovery test.
   and server timestamp on the affected user. Output redacts email addresses and
   never prints access tokens or factor secrets.
 - The recovery operator must verify its Firebase CLI login and run the dry-run
-  before any owner is activated. Client Rules intentionally cannot perform this
+  before any owner is activated. The command requires `--actor-email` and
+  selects that exact authenticated Firebase CLI account even when several
+  accounts are available. Client Rules intentionally cannot perform this
   rollback.
 - Keep TOTP enabled at project level while any user has an enrolled TOTP factor.
 - A client rollout can be paused by returning
@@ -108,7 +112,20 @@ hashes, disposable-account results, per-account activation read-backs and a
   present in the read-back window.
 - The client now keeps a repeat-sign-in route available before enrollment and
   preserves the enrollment session while switching to an authenticator app.
+- The separate recovery operator authenticated to Firebase CLI and a production
+  IAM permission probe confirmed all five required permissions while project,
+  IAM, Functions, Storage deletion and project deletion permissions were denied.
+- A controlled recovery drill at `2026-09-02T13:15:02.814Z` cleared one TOTP
+  factor and the server requirement, revoked sessions and recorded the recovery
+  actor, reason and server timestamp. Independent read-back confirmed zero
+  factors and no stale requirement fields.
+- The recovery administrator then enrolled a new TOTP factor, completed a fresh
+  password-plus-TOTP sign-in and reactivated protection. At
+  `2026-09-02T13:24:13.916Z`, the callable logged valid Auth and App Check
+  verification followed by `Privileged TOTP protection activated`.
+- Production read-back now confirms both the platform owner and recovery admin
+  are active, verified, enabled and protected by exactly one TOTP factor with
+  `requiresMultiFactorAuth == true`.
 
-The platform owner is intentionally not activated at this checkpoint. Before
-that activation, verify the separate recovery operator Firebase CLI login and
-run the documented recovery command in dry-run mode under that identity.
+The functional recovery gate is complete. Keep the rollout under observation
+for 24 hours before treating the MFA release gate as fully closed.
