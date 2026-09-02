@@ -55,6 +55,12 @@ Version: 1.0.1 (65). No App Review submission or public release is authorized.
 - Candidate selection verified at 18:45:40 UTC: 1.0.1 attaches build 65 and is
   PREPARE_FOR_SUBMISSION. Apple changed the earlier DEVELOPER_REJECTED state when
   the replacement build was selected; no review or release submission occurred.
+- Authenticated App Privacy UI reread around 18:55 UTC: 14 declared collected-data
+  types, including account-linked Product Interaction/User ID for App Functionality.
+  The personal organization-hiding preference is covered by those existing
+  operational disclosures; no questionnaire write was made. All 30 archive
+  privacy manifests match build 64 exactly. This is technical verification, not an
+  independent legal conclusion. Evidence: `build65-privacy-readback.md`.
 - Metadata read-back at 18:46:41 UTC: 24 COMPLETE screenshots, six for each of
   DE/UK x iPhone/iPad; updated build reference in review notes; MANUAL release.
 - Two additional Simulator navigation tests passed, zero failures/skips (125s
@@ -71,27 +77,47 @@ Version: 1.0.1 (65). No App Review submission or public release is authorized.
    Xcode 26.6 had compiled them. The test-only correction retains publication
    assertions and explicitly checks `editor.errorMessage == nil`, avoiding the
    ambiguous macro argument. The app binary/backend are unchanged; build 65 does
-   not need replacement for a test-only compilation fix. Correction verification
-   and the follow-up CI outcome are still required. A 55-second full local unit
+   not need replacement for a test-only compilation fix. A 55-second full local unit
    run then passed 367/368 tests and exposed one old assertion still expecting
    privacy 2026.11. That assertion now expects the already-published 2026.12;
    bundled-document parity checks remain enabled. No product code changed.
    Final local verification passed 368/368 unit tests, zero failures/skips, in
    54 seconds: `test_sim_2026-09-02T18-52-42-326Z_pid1645_96e4c575.xcresult`.
-   Follow-up CI remains separate; the test/docs-only diff selects iOS unit checks
-   without Firebase, Rules, Release or UI lanes.
+   Follow-up CI `33670117429` completed on commit `78aab364`: 366/368 tests passed,
+   two failed, zero skipped. Compilation succeeded. The failing scenarios were
+   `EventRegistrationRaceTests/commentLoadUpdateAndDeleteResolveCurrentEventAndCommentIDs()`
+   (empty comments after the controlled read) and
+   `PullToRefreshTests/presenceCoalescesPollAndPullAndPublishesBeforeBothFinish()`
+   (nil presence snapshot). Both exercise the production 20-second read deadline
+   with deliberately suspended mock responses; reported durations were 51/52s.
+   Runner contention/deadline expiry is a hypothesis, not a proven root cause.
+   The downloaded result bundle is preserved as `build65-ci-followup-xcresult`.
+   No retries, skipped assertions, production timeout changes or workflow changes
+   were used to turn this result green. The failed CI gate remains open.
+   The two exact scenarios then passed unchanged on the Mac, zero skips, taking
+   5ms and 3ms respectively (29s runner session), in
+   `test_sim_2026-09-02T19-11-26-258Z_pid1645_8a7bc307.xcresult`.
+   An earlier focused selector omitted the Swift Testing `()` suffix and
+   discovered zero tests; it is not counted as successful test evidence.
+   This test/docs-only diff did not select Firebase, Rules, Release or UI lanes;
+   their earlier passing code-commit checks are separate evidence.
 2. Installed candidate: draft news/event publication; exact request navigation;
    hide/unhide one organization without changing a sibling or author permissions;
    accepted/rejected comment behavior. Preserve the current MFA session.
 3. Reproduce and assess the logged navigation warning during the real scenarios.
    Do not change navigation based on the warning string alone.
-4. Final operator release decision and legal/privacy gate; no submission on behalf
-   of the user yet. Last authenticated App Privacy UI review was for build 64.
+4. Final operator release/content-rights decision; no submission on behalf of the
+   user yet. App Privacy UI was reread for build 65; independent legal review is
+   not claimed.
 
-Physical-device boundary: at 18:44:34 UTC the connected iPhone still reported build
-64. Mac screen-control access was unavailable. The operator agreed to install 65
-through TestFlight and perform the remaining actions; this is not a completed
+Physical-device boundary: the connected iPhone reported installed build 65 at
+19:02:31 UTC. Mac screen-control access was unavailable. The operator agreed to
+perform the remaining actions, but installation alone is not a completed
 installed-build test. No forced sign-out or MFA re-enrollment was performed.
+Scoped production logs from 19:00 to 19:11:49 UTC show two successful
+`getBlockedOrganizations` requests, no 5xx/ERROR entries and no requests to the
+publication begin/finalize/fail functions in that window. This is evidence of
+successful preference reads, not proof that the manual scenarios were completed.
 
 Production read-back, upload logs and installation proof are kept in the ignored
 `outputs/release-1.0.1-2026-09-02/` release evidence directory, not committed.
