@@ -534,7 +534,11 @@ private struct OrganizationCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.compactCardInnerSpacing) {
+        SoftContentCard(
+            padding: AppTheme.compactCardInnerSpacing,
+            shadowRadius: 0,
+            shadowY: 0
+        ) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                     organizationThumbnail
@@ -608,7 +612,10 @@ private struct OrganizationCard: View {
                 systemImage: item.systemImage,
                 tint: AppTheme.textSecondary,
                 fill: AppTheme.surfaceControl.opacity(0.62),
-                size: .small
+                size: .small,
+                fallbackUsesMaterial: false,
+                shadowRadius: 0,
+                shadowY: 0
             )
             .fixedSize(horizontal: true, vertical: false)
         }

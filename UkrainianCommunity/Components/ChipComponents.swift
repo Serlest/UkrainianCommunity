@@ -152,7 +152,10 @@ struct AppFilterChip: View {
             size: .regular,
             glassTint: isSelected ? AppTheme.accentPrimary : nil,
             isInteractive: false,
-            usesNativeGlass: false
+            usesNativeGlass: false,
+            fallbackUsesMaterial: false,
+            shadowRadius: 0,
+            shadowY: 0
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }

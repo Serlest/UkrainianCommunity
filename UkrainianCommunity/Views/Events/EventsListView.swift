@@ -731,7 +731,6 @@ struct EventsListView: View {
     private func eventRow(for event: Event) -> some View {
         EventDiscoveryRow(
             event: event,
-            viewModel: viewModel,
             onLikeTap: handleLike(for:),
             onEventDeleted: { @MainActor @Sendable in
                 onEventDeleted()
@@ -931,7 +930,6 @@ private struct EventMonthHeader: View {
 
 private struct EventDiscoveryRow: View {
     let event: Event
-    @ObservedObject var viewModel: EventsViewModel
     let onLikeTap: (String) -> Void
     let onEventDeleted: @MainActor @Sendable () -> Void
     let presentationMode: EventPresentationMode
@@ -995,7 +993,11 @@ struct EventCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.homeFeedCardPadding) {
+        SoftContentCard(
+            padding: AppTheme.homeFeedCardPadding,
+            shadowRadius: 0,
+            shadowY: 0
+        ) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                     HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
@@ -1087,7 +1089,10 @@ struct EventCard: View {
             systemImage: "calendar",
             tint: AppTheme.accentPrimaryForeground,
             fill: AppTheme.badgeBlueFill,
-            size: .small
+            size: .small,
+            fallbackUsesMaterial: false,
+            shadowRadius: 0,
+            shadowY: 0
         )
     }
 

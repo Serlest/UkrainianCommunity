@@ -37,3 +37,21 @@ The largest stacks were Swift runtime conformance lookup, SwiftUI/AttributeGraph
 - One before/after pair is enough to verify removal of repeated bundle creation, but broader launch metrics require multiple on-device runs before release.
 
 Apple recommends measuring a focused flow, changing one confirmed cause, and re-recording the same flow. See [Improving your app's performance](https://developer.apple.com/documentation/xcode/improving-your-app-s-performance/), [Improving your app's rendering efficiency](https://developer.apple.com/documentation/xcode/improving-your-app-s-rendering-efficiency), and [Optimize SwiftUI performance with Instruments](https://developer.apple.com/videos/play/wwdc2025/306/).
+
+## Stage 16: feed scrolling audit
+
+- Date: 2026-09-02
+- App build: 62
+- Flow: repeated vertical scrolling on Home, Events, and Organizations after content and images were loaded
+- Validation device available during the audit: iPhone 17 Pro simulator, iOS 26.4
+
+The current tree already included adaptive image downsampling, cached relative-date formatting, lazy grids, solid grouped feed surfaces, and full ProMotion frame-rate access. The follow-up code review found two remaining sources of repeated rendering work:
+
+- every event row observed the complete `EventsViewModel` even though the row rendered only its immutable `Event` value;
+- Events and Organizations still applied material and shadow effects to every repeated card and metadata chip, while the Home feed had already removed those effects.
+
+The follow-up removes the redundant row observation and uses the same lightweight repeated-card treatment across all three public feeds. The simulator Debug build succeeded and the three `ScrollPerformancePolicyTests` passed.
+
+### Measurement limitation
+
+The iPhone was offline during this audit. Xcode reported that both the Animation Hitches and SwiftUI instruments are unsupported on the selected simulator runtime. Therefore this stage does not claim a measured device hitch rate or frame rate. The release gate still requires one focused Animation Hitches capture on a connected iPhone using the Release build and the same scrolling flow.
