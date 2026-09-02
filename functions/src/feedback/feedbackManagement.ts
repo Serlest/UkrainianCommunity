@@ -10,6 +10,7 @@ const callableOptions = {
   maxInstances: 4,
   timeoutSeconds: 300,
   invoker: "public" as const,
+  enforceAppCheck: false,
 };
 
 const feedbackBatchSize = 200;

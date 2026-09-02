@@ -50,6 +50,7 @@ interface ContentReportResponse {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 20,
+  enforceAppCheck: false,
 };
 const contentTypes = new Set<ContentReportTargetType>([
   "news",

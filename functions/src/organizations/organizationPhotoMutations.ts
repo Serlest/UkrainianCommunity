@@ -12,6 +12,7 @@ const maximumCaptionLength = 500;
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 20,
+  enforceAppCheck: false,
 };
 
 interface CreateOrganizationPhotoRequest {

@@ -20,6 +20,7 @@ interface UserBlockResponse {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 20,
+  enforceAppCheck: false,
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

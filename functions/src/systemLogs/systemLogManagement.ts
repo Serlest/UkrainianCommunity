@@ -10,6 +10,7 @@ const callableOptions = {
   maxInstances: 1,
   timeoutSeconds: 300,
   invoker: "public" as const,
+  enforceAppCheck: false,
 };
 
 const deleteBatchSize = 400;

@@ -61,6 +61,7 @@ interface GetLegalEvidenceForUserResponse {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  enforceAppCheck: false,
 };
 const defaultLimit = 100;
 const maximumLimit = 200;

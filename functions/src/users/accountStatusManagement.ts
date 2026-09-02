@@ -61,6 +61,7 @@ interface AccountStatusMutation {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  enforceAppCheck: false,
 };
 
 const schedulerOptions = {

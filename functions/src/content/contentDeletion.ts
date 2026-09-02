@@ -36,6 +36,7 @@ const callableOptions = {
   timeoutSeconds: 300,
   memory: "512MiB" as const,
   maxInstances: 10,
+  enforceAppCheck: false,
 };
 
 const relatedBatchSize = 400;

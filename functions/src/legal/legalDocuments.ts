@@ -23,6 +23,7 @@ interface AcceptLegalDocumentResponse {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  enforceAppCheck: false,
 };
 
 function parseAcceptLegalDocumentRequest(data: unknown): AcceptLegalDocumentRequest {

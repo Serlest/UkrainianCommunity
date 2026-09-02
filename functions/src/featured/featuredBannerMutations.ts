@@ -57,6 +57,7 @@ interface FeaturedBannerMutationResponse {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  enforceAppCheck: false,
 };
 
 const actionTypes = new Set<FeaturedBannerActionType>([

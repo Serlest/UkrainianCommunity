@@ -94,7 +94,12 @@ export async function writeUserPresence(uid: string, update: PresenceUpdate): Pr
   });
 }
 
-const options = {region: "europe-west3", maxInstances: 10, timeoutSeconds: 30};
+const options = {
+  region: "europe-west3",
+  maxInstances: 10,
+  timeoutSeconds: 30,
+  enforceAppCheck: false,
+};
 
 export const updateUserPresence = onCall(options, async (request) => {
   const auth = requireVerifiedAuth(request);

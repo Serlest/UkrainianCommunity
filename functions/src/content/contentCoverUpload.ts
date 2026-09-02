@@ -31,6 +31,7 @@ const callableOptions = {
   maxInstances: 20,
   memory: "512MiB" as const,
   timeoutSeconds: 120,
+  enforceAppCheck: false,
 };
 
 export const uploadOrganizationContentCover = onCall(

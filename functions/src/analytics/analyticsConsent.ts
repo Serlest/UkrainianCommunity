@@ -34,6 +34,7 @@ const disclosureByLocale: Record<AnalyticsConsentMutationInput["locale"], string
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 20,
+  enforceAppCheck: false,
 };
 
 export const updateAnalyticsConsent = onCall(

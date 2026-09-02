@@ -58,6 +58,7 @@ interface OrganizationReviewCommitResult {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
+  enforceAppCheck: false,
 };
 
 export function parseReviewRequest(data: unknown): OrganizationReviewRequest {

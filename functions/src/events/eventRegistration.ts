@@ -45,6 +45,7 @@ export interface EventRegistrationMutationInput {
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 20,
+  enforceAppCheck: false,
 };
 
 const registrationCounterOperationsCollection = "eventRegistrationCounterOperations";

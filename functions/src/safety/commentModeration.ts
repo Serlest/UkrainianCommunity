@@ -5,7 +5,11 @@ import {requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
 
 const MAXIMUM_COMMENT_LENGTH = 1_000;
-const callableOptions = {region: "europe-west3", maxInstances: 20};
+const callableOptions = {
+  region: "europe-west3",
+  maxInstances: 20,
+  enforceAppCheck: false,
+};
 
 const parentCollections = {
   news: "news",

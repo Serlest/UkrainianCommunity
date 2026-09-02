@@ -61,6 +61,7 @@ const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
   invoker: "public" as const,
+  enforceAppCheck: false,
 };
 const categories = new Set<DsaNoticeCategory>([
   "hate", "terrorism", "childSafety", "privacy", "defamation", "fraud",
