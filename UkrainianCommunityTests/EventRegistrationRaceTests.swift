@@ -315,8 +315,10 @@ struct EventRegistrationRaceTests {
     }
 
     @Test func commentLoadUpdateAndDeleteResolveCurrentEventAndCommentIDs() async {
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
         let repository = ControlledEventRepository()
-        let viewModel = EventsViewModel(repository: repository)
+        let viewModel = EventsViewModel(repository: repository, commentReadDeadline: deadline.sleep)
         let eventID = "event-comments-target"
         let otherID = "event-comments-other"
         let original = makeComment(id: "comment-1", body: "Original")

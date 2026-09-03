@@ -8,6 +8,7 @@ final class ManagedUserPresenceViewModel: ObservableObject {
     @Published private(set) var isRefreshing = false
 
     private let load: (String) async throws -> ManagedUserPresenceSnapshot
+    private let readDeadline: RefreshRequest.Deadline
     private let onRequestCoalesced: () -> Void
     private var key: String?
     private var revision = 0
@@ -15,9 +16,11 @@ final class ManagedUserPresenceViewModel: ObservableObject {
 
     init(
         load: @escaping (String) async throws -> ManagedUserPresenceSnapshot = UserPresenceAPI.load,
+        readDeadline: @escaping RefreshRequest.Deadline = RefreshRequest.continuousDeadline,
         onRequestCoalesced: @escaping () -> Void = {}
     ) {
         self.load = load
+        self.readDeadline = readDeadline
         self.onRequestCoalesced = onRequestCoalesced
     }
 
@@ -44,7 +47,7 @@ final class ManagedUserPresenceViewModel: ObservableObject {
                 if current == revision { request = nil; isRefreshing = false }
             }
             do {
-                let value = try await RefreshRequest.run { try await load(userID) }
+                let value = try await RefreshRequest.run(deadline: readDeadline) { try await load(userID) }
                 guard current == revision, key == nextKey else { return }
                 snapshot = value
                 failed = false

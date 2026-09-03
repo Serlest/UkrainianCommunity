@@ -137,9 +137,14 @@ final class UkrainianCommunityUITests: XCTestCase {
             XCTAssertTrue(bell.isHittable)
             attachScreenshot(named: "shared-bell-\(tab.tabIdentifier)", from: app)
             bell.tap()
-            let back = app.buttons["navigation.back"].firstMatch
+            XCTAssertTrue(element("screen.notificationInbox", in: app).waitForExistence(timeout: 10))
+            // This full-screen shell propagates its screen identifier to the
+            // back button. The fixture fixes German, so use its visible label.
+            let back = app.buttons["Zurück"].firstMatch
             XCTAssertTrue(back.waitForExistence(timeout: 10))
+            XCTAssertTrue(back.isHittable)
             back.tap()
+            XCTAssertTrue(element("screen.notificationInbox", in: app).waitForNonExistence(timeout: 10))
             XCTAssertTrue(element(tab.screenIdentifier, in: app).waitForExistence(timeout: 10))
         }
         app.terminate()
@@ -149,6 +154,19 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertFalse(guest.buttons["notificationInbox.bell"].exists)
         tapRootTab(rootTabs[1], in: guest, timeout: 10)
         XCTAssertFalse(guest.buttons["quickCreate.event"].exists)
+    }
+
+    @MainActor
+    func testOwnerWithoutSecondFactorStillRequiresProtection() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launchEnvironment["UITestOwnerSecondFactor"] = "missing"
+        app.launch()
+        defer { app.terminate() }
+        XCTAssertTrue(app.otherElements["auth.mfa.privilegedRequirement"].firstMatch.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["quickCreate.news"].firstMatch.isHittable)
     }
 
     @MainActor

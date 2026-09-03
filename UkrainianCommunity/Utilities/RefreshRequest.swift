@@ -5,8 +5,15 @@ import Foundation
 /// Never use this for writes, whose outcome cannot be inferred from a timeout.
 @MainActor
 enum RefreshRequest {
+    typealias Deadline = @MainActor (Duration) async throws -> Void
+
+    static func continuousDeadline(_ duration: Duration) async throws {
+        try await Task.sleep(for: duration)
+    }
+
     static func run<Value>(
         timeout: Duration = .seconds(20),
+        deadline: @escaping Deadline = continuousDeadline,
         operation: @escaping @MainActor () async throws -> Value
     ) async throws -> Value {
         let race = ReadRace<Value>()
@@ -19,7 +26,7 @@ enum RefreshRequest {
                     catch { race.finish(.failure(error)) }
                 }
                 race.deadline = Task {
-                    do { try await Task.sleep(for: timeout) }
+                    do { try await deadline(timeout) }
                     catch { return }
                     race.finish(.failure(AppError.network))
                 }

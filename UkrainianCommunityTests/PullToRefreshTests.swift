@@ -5,11 +5,13 @@ import Testing
 @MainActor
 struct PullToRefreshTests {
     @Test func viewReevaluationDoesNotAbortRefreshButLeavingScreenDoes() async {
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
         let coordinator = AppRefreshCoordinator()
         let gate = ReadGate<Int>()
         var result: Int?
         let pull = Task { await coordinator.perform {
-            result = try? await RefreshRequest.run { await gate.wait() }
+            result = try? await RefreshRequest.run(deadline: deadline.sleep) { await gate.wait() }
         } }
         await gate.waitUntilStarted()
         pull.cancel() // SwiftUI replaces the transient handler after a state publication.
@@ -20,7 +22,7 @@ struct PullToRefreshTests {
         let leavingGate = ReadGate<Int>()
         result = nil
         let nextPull = Task { await coordinator.perform {
-            result = try? await RefreshRequest.run { await leavingGate.wait() }
+            result = try? await RefreshRequest.run(deadline: deadline.sleep) { await leavingGate.wait() }
         } }
         await leavingGate.waitUntilStarted()
         coordinator.cancel()
@@ -44,9 +46,14 @@ struct PullToRefreshTests {
     }
 
     @Test func deadlineFinishesEvenWhenSDKIgnoresCancellation() async throws {
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
         let gate = ReadGate<Int>()
-        let read = Task { try await RefreshRequest.run(timeout: .milliseconds(25)) { await gate.wait() } }
+        let read = Task { try await RefreshRequest.run(timeout: .milliseconds(25), deadline: deadline.sleep) { await gate.wait() } }
         await gate.waitUntilStarted()
+        await deadline.waitUntilScheduled()
+        #expect(deadline.durations == [.milliseconds(25)])
+        deadline.expire()
         do { _ = try await read.value; Issue.record("Expected timeout") }
         catch { #expect(error as? AppError == .network) }
         // A late SDK callback must not resume the refresh twice or publish its data.
@@ -55,8 +62,10 @@ struct PullToRefreshTests {
     }
 
     @Test func cancelledReadFinishesWithoutWaitingForSDK() async {
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
         let gate = ReadGate<Int>()
-        let read = Task { try await RefreshRequest.run { await gate.wait() } }
+        let read = Task { try await RefreshRequest.run(deadline: deadline.sleep) { await gate.wait() } }
         await gate.waitUntilStarted()
         read.cancel()
         do { _ = try await read.value; Issue.record("Expected cancellation") }
@@ -68,6 +77,17 @@ struct PullToRefreshTests {
         #expect(try await RefreshRequest.run { 42 } == 42)
         do { _ = try await RefreshRequest.run { () -> Int in throw AppError.permissionDenied } }
         catch { #expect(error as? AppError == .permissionDenied) }
+    }
+
+    @Test func productionClockStillExpiresAnUnresponsiveRead() async {
+        let gate = ReadGate<Int>()
+        defer { gate.complete(42) }
+        do {
+            _ = try await RefreshRequest.run(timeout: .zero) { await gate.wait() }
+            Issue.record("The continuous deadline must reject an unresponsive read")
+        } catch {
+            #expect(error as? AppError == .network)
+        }
     }
 
     @Test func detailRefreshRetainsListAndPaginationAndAwaitsNewUser() async {
@@ -127,11 +147,14 @@ struct PullToRefreshTests {
     }
 
     @Test func presenceCoalescesPollAndPullAndPublishesBeforeBothFinish() async {
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
         let gate = ReadGate<ManagedUserPresenceSnapshot>()
         let coalesced = ReadGate<Void>()
         var count = 0
         let model = ManagedUserPresenceViewModel(
             load: { _ in count += 1; return await gate.wait() },
+            readDeadline: deadline.sleep,
             onRequestCoalesced: { coalesced.complete(()) }
         )
         let actor = MockContentBuilder.ownerUser()

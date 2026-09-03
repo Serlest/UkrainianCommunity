@@ -76,7 +76,7 @@ enum MockContentBuilder {
         )
     }
 
-    nonisolated static func ownerUser() -> AppUser {
+    nonisolated static func ownerUser(requiresMultiFactorAuth: Bool = false) -> AppUser {
         AppUser(
             id: "owner-1",
             fullName: localized("mock.owner.name", "Platform Owner"),
@@ -86,6 +86,7 @@ enum MockContentBuilder {
             bio: localized("mock.owner.bio", "Responsible for platform quality, safety, and community operations."),
             role: .owner,
             globalRole: .owner,
+            requiresMultiFactorAuth: requiresMultiFactorAuth,
             blockState: .active,
             // Keep the owner UI-test session aligned with the seeded catalog
             // so management paths are visible without hidden fixture coupling.

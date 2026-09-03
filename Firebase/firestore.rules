@@ -1604,7 +1604,10 @@ service cloud.firestore {
     }
 
     function organizationDocumentStructurallyValid(data, organizationId) {
-      return data.keys().hasOnly(organizationRequestCreateFields())
+      // Gallery callables maintain this counter after creation. It is valid
+      // stored data, but remains absent from every client mutation allowlist.
+      return data.keys().hasOnly(organizationRequestCreateFields().concat(['photoCount']))
+        && (!('photoCount' in data) || (data.photoCount is int && data.photoCount >= 0))
         && data.id == organizationId
         && data.name is string && data.name.size() > 0 && data.name.size() <= 180
         && data.description is string && data.description.size() <= 1000
@@ -1649,6 +1652,7 @@ service cloud.firestore {
       // the owner path and then the requester path exceeds the Rules expression
       // budget for a fully populated directory profile with acceptance proof.
       return isVerifiedActiveUser()
+        && !('photoCount' in data)
         && hasValidOrganizationCreationProof(organizationId, data.name)
         && organizationDocumentStructurallyValid(data, organizationId)
         && (

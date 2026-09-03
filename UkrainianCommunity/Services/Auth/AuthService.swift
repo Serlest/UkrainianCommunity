@@ -138,11 +138,14 @@ final class FirebaseAuthBackend: AuthBackendProviding {
 }
 
 final class AuthService {
-    static let shared = AuthService(
-        authState: AuthState(),
-        backend: FirebaseAuthBackend(),
-        profileProvider: UserProfileService.shared
-    )
+    static let shared: AuthService = {
+#if DEBUG && targetEnvironment(simulator)
+        if let backend = UITestOwnerAuthBackend.makeIfRequested() {
+            return AuthService(authState: AuthState(), backend: backend, profileProvider: UserProfileService.shared)
+        }
+#endif
+        return AuthService(authState: AuthState(), backend: FirebaseAuthBackend(), profileProvider: UserProfileService.shared)
+    }()
     nonisolated static let currentTermsVersion = "2026.10"
     nonisolated static let currentPrivacyVersion = "2026.12"
     nonisolated static let currentOrganizationRulesVersion = "2026.10"

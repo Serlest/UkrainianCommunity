@@ -248,6 +248,66 @@ describe("organization creation rules evidence", () => {
     await assertFails(setDoc(doc(creatorDb(), "organizations", "blocked"), populatedRequest("blocked")));
   });
 
+  for (const photoCount of [0, 1, 30]) {
+    test(`gallery counter ${photoCount} permits profile edits but stays server-owned`, async () => {
+      const id = `gallery-profile-${photoCount}`;
+      await testEnv.withSecurityRulesDisabled(async c => {
+        const db = c.firestore();
+        await setDoc(doc(db, "organizations", id), {
+          ...populatedRequest(id), moderationStatus: "approved", ownerId: "creator",
+          adminIds: ["organization-admin"], photoCount,
+        });
+        for (const uid of ["organization-admin", "outsider"]) {
+          await setDoc(doc(db, "users", uid), {
+            id: uid, globalRole: "user", accountStatus: "active", blockState: "active",
+          });
+        }
+      });
+      for (const uid of ["creator", "organization-admin"]) {
+        const db = testEnv.authenticatedContext(uid, {email_verified: true}).firestore();
+        const ref = doc(db, "organizations", id);
+        await assertSucceeds(updateDoc(ref, {website: "https://example.com/edited", updatedAt: new Date()}));
+        if ((await getDoc(ref)).data().photoCount !== photoCount) throw new Error("Gallery count changed");
+        for (const patch of [
+          {photoCount: photoCount + 1}, {photoCount: deleteField()}, {photoCount: null},
+          {ownerId: "outsider"}, {adminIds: ["outsider"]}, {moderationStatus: "rejected"},
+          {submittedAt: new Date("2000-01-01")}, {reviewMessage: "Forged decision"},
+        ]) await assertFails(updateDoc(ref, patch));
+      }
+      for (const db of [
+        testEnv.unauthenticatedContext().firestore(),
+        testEnv.authenticatedContext("outsider", {email_verified: true}).firestore(),
+        testEnv.authenticatedContext("creator", {email_verified: false}).firestore(),
+      ]) await assertFails(updateDoc(doc(db, "organizations", id), {website: "https://example.com/forbidden"}));
+    });
+  }
+
+  test("clients cannot create a gallery counter, including zero or direct owner publication", async () => {
+    for (const role of ["user", "owner"]) {
+      await testEnv.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), "users", "creator"), {globalRole: role}));
+      for (const [index, photoCount] of [0, 1, -1, 1.5, "1", null].entries()) {
+        const id = `forged-counter-${role}-${index}`;
+        await seedProof(id);
+        await assertFails(setDoc(doc(creatorDb(), "organizations", id), {
+          ...populatedRequest(id), photoCount, moderationStatus: role === "owner" ? "approved" : "pendingReview",
+        }));
+      }
+    }
+  });
+
+  test("malformed server counters and unknown fields still fail closed", async () => {
+    for (const [index, extra] of [
+      {photoCount: -1}, {photoCount: 1.5}, {photoCount: "1"}, {photoCount: null},
+      {photoCount: 1, unexpectedField: true},
+    ].entries()) {
+      const id = `invalid-gallery-${index}`;
+      await testEnv.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), "organizations", id), {
+        ...populatedRequest(id), moderationStatus: "approved", ownerId: "creator", ...extra,
+      }));
+      await assertFails(updateDoc(doc(creatorDb(), "organizations", id), {website: "https://example.com/edited"}));
+    }
+  });
+
   test("does not expose creation proofs to clients", async () => {
     await seedProof("private-proof");
     await assertFails(getDoc(doc(creatorDb(), "organizationCreationProofs", "private-proof")));

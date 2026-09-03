@@ -131,7 +131,12 @@ struct UkrainianCommunityApp: App {
 
         Task { @MainActor in
             if shouldForceOwnerSession {
-                sharedAuthState.setAuthenticatedSession(user: MockContentBuilder.ownerUser())
+#if DEBUG && targetEnvironment(simulator)
+                let owner = MockContentBuilder.ownerUser(requiresMultiFactorAuth: isUITesting)
+#else
+                let owner = MockContentBuilder.ownerUser()
+#endif
+                sharedAuthState.setAuthenticatedSession(user: owner)
             } else if shouldForceAuthenticatedSession {
                 sharedAuthState.setAuthenticatedSession(user: MockContentBuilder.currentUser())
             } else if shouldForceGuestSession {

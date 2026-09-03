@@ -26,6 +26,7 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var pendingEventCommentIDs = Set<String>()
     @Published private(set) var registrationError: EventRegistrationPresentationError?
     private let repository: EventRepository
+    private let commentReadDeadline: RefreshRequest.Deadline
     private let registrationMutator: EventRegistrationMutating
     private let analyticsService: AnalyticsTracking
     private let notificationPreferencesRepository: NotificationPreferencesRepository?
@@ -49,12 +50,14 @@ final class EventsViewModel: ObservableObject {
 
     init(
         repository: EventRepository,
+        commentReadDeadline: @escaping RefreshRequest.Deadline = RefreshRequest.continuousDeadline,
         notificationPreferencesRepository: NotificationPreferencesRepository? = nil,
         localEventReminderService: LocalEventReminderServiceProtocol? = nil,
         analyticsService: AnalyticsTracking = NoopAnalyticsService(),
         registrationMutator: EventRegistrationMutating? = nil
     ) {
         self.repository = repository
+        self.commentReadDeadline = commentReadDeadline
         self.analyticsService = analyticsService
         self.notificationPreferencesRepository = notificationPreferencesRepository
         self.localEventReminderService = localEventReminderService
@@ -555,7 +558,7 @@ final class EventsViewModel: ObservableObject {
         guard events.contains(where: { $0.id == eventID }) else { return }
 
         do {
-            let comments = try await RefreshRequest.run { [repository] in try await repository.fetchEventComments(eventID: eventID) }
+            let comments = try await RefreshRequest.run(deadline: commentReadDeadline) { [repository] in try await repository.fetchEventComments(eventID: eventID) }
             guard isCurrentSession(generation),
                   let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
