@@ -26,7 +26,6 @@ struct HomeView: View {
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var selectedContentType: HomeContentTypeFilter = .all
     @State private var selectedFeedFilter: HomeFeedFilter = .all
-    @State private var isRegionPickerPresented = false
     @State private var isSearchPresented = false
     @State private var searchText = ""
     @State private var pendingContentRefreshReasons: Set<HomeContentRefreshReason> = []
@@ -93,7 +92,7 @@ struct HomeView: View {
                         selectedContentType: selectedContentType,
                         selectedFilter: selectedFeedFilter,
                         selectedFederalState: selectedFederalState,
-                        onSelectRegion: { isRegionPickerPresented = true },
+                        onSelectRegion: selectRegion,
                         onSelectContentType: { selectedContentType = $0 },
                         onToggleSaved: { toggleFeedFilter(.saved) },
                         onToggleSubscribed: { toggleFeedFilter(.subscribed) }
@@ -118,19 +117,6 @@ struct HomeView: View {
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: HomeFeedDestinationReference.self) { destination in
             destinationView(for: destination)
-        }
-        .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
-            Button(AppStrings.Home.regionAllAustria) {
-                selectRegion(nil)
-            }
-
-            ForEach(AustrianFederalState.allCases) { federalState in
-                Button(federalState.displayName) {
-                    selectRegion(federalState)
-                }
-            }
-
-            Button(AppStrings.Events.cancel, role: .cancel) {}
         }
         .appRefreshable {
             await refreshContentWhenAuthIsReady(force: true)
@@ -772,7 +758,7 @@ private struct HomeFilterRow: View {
     let selectedContentType: HomeContentTypeFilter
     let selectedFilter: HomeFeedFilter
     let selectedFederalState: AustrianFederalState?
-    let onSelectRegion: () -> Void
+    let onSelectRegion: (AustrianFederalState?) -> Void
     let onSelectContentType: (HomeContentTypeFilter) -> Void
     let onToggleSaved: () -> Void
     let onToggleSubscribed: () -> Void
@@ -824,15 +810,7 @@ private struct HomeFilterRow: View {
             }
             .buttonStyle(.plain)
         case .region:
-            Button(action: onSelectRegion) {
-                AppFilterChip(
-                    title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
-                    systemImage: "mappin.and.ellipse",
-                    isSelected: selectedFederalState != nil,
-                    trailingSystemImage: "chevron.down"
-                )
-            }
-            .buttonStyle(.plain)
+            AppRegionFilterMenu(selection: Binding(get: { selectedFederalState }, set: onSelectRegion))
         case .subscribed:
             Button(action: onToggleSubscribed) {
                 AppFilterChip(title: AppStrings.Home.filterSubscribed, systemImage: "person.2.fill", isSelected: selectedFilter == .subscribed)

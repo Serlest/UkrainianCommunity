@@ -58,7 +58,6 @@ struct OrganizationsListView: View {
     @State private var isShowingDeleteError = false
     @State private var selectedCategory: OrganizationCategoryFilter = .all
     @State private var savedFilterMode: OrganizationSavedFilterMode = .none
-    @State private var isRegionPickerPresented = false
     @State private var isSearchPresented = false
     @State private var searchText = ""
     @State private var isShowingCreateOrganization = false
@@ -144,7 +143,7 @@ struct OrganizationsListView: View {
                         selectedFederalState: selectedFederalState,
                         savedFilterMode: savedFilterMode,
                         onSelectCategory: { selectedCategory = $0 },
-                        onSelectRegion: { isRegionPickerPresented = true },
+                        onSelectRegion: selectRegion,
                         onToggleSubscribed: { toggleSavedFilterMode(.subscribed) },
                         onToggleBookmarked: { toggleSavedFilterMode(.bookmarked) }
                     )
@@ -214,19 +213,6 @@ struct OrganizationsListView: View {
             },
             set: { if $0 == nil { viewModel.dismissInteractionError() } }
         ))
-        .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
-            Button(AppStrings.Home.regionAllAustria) {
-                selectRegion(nil)
-            }
-
-            ForEach(AustrianFederalState.organizationFilterOrder, id: \.self) { federalState in
-                Button(federalState.displayName) {
-                    selectRegion(federalState)
-                }
-            }
-
-            Button(AppStrings.Events.cancel, role: .cancel) {}
-        }
         .appDestructiveActionDialog(Binding(
             get: {
                 guard let organizationID = pendingDeleteOrganizationID else { return nil }
@@ -668,7 +654,7 @@ private struct OrganizationFiltersSection: View {
     let selectedFederalState: AustrianFederalState?
     let savedFilterMode: OrganizationSavedFilterMode
     let onSelectCategory: (OrganizationCategoryFilter) -> Void
-    let onSelectRegion: () -> Void
+    let onSelectRegion: (AustrianFederalState?) -> Void
     let onToggleSubscribed: () -> Void
     let onToggleBookmarked: () -> Void
 
@@ -719,15 +705,7 @@ private struct OrganizationFiltersSection: View {
             }
             .buttonStyle(.plain)
         case .region:
-            Button(action: onSelectRegion) {
-                AppFilterChip(
-                    title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
-                    systemImage: "mappin.and.ellipse",
-                    isSelected: selectedFederalState != nil,
-                    trailingSystemImage: "chevron.down"
-                )
-            }
-            .buttonStyle(.plain)
+            AppRegionFilterMenu(selection: Binding(get: { selectedFederalState }, set: onSelectRegion))
         case .subscribed:
             Button(action: onToggleSubscribed) {
                 AppFilterChip(
@@ -748,23 +726,6 @@ private struct OrganizationFiltersSection: View {
             .buttonStyle(.plain)
         }
     }
-}
-
-private extension AustrianFederalState {
-    static var organizationFilterOrder: [AustrianFederalState] {
-        [
-            .tirol,
-            .wien,
-            .niederoesterreich,
-            .oberoesterreich,
-            .salzburg,
-            .steiermark,
-            .kaernten,
-            .vorarlberg,
-            .burgenland
-        ]
-    }
-
 }
 
 private struct OrganizationDeleteSwipeActions: ViewModifier {

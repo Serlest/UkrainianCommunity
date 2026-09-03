@@ -15,7 +15,7 @@ struct AppStartupGate: View {
 
     var body: some View {
         ZStack {
-            ContentView(container: container)
+            ContentView(container: container, isStartupReady: !isShowingSplash)
                 .environmentObject(authState)
                 .opacity(isShowingSplash ? 0 : 1)
                 .accessibilityHidden(isShowingSplash)

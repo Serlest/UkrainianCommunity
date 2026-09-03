@@ -26,12 +26,13 @@ final class UkrainianCommunityUITests: XCTestCase {
         return app
     }
 
-    private func launchGuestApp(language: String) -> XCUIApplication {
+    private func launchGuestApp(language: String, appearance: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = language
         app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launchEnvironment["UITestAppAppearance"] = appearance
         app.launch()
         return app
     }
@@ -59,6 +60,51 @@ final class UkrainianCommunityUITests: XCTestCase {
         }
         app.launch()
         return app
+    }
+
+    @MainActor
+    func testRegionMenusUseTheSameControlAcrossCatalogsInLightAndDark() throws {
+        let scenarios = [
+            (language: "de", appearance: "light", vienna: "Wien", allAustria: "Ganz Österreich"),
+            (language: "uk", appearance: "dark", vienna: "Відень", allAustria: "Вся Австрія"),
+        ]
+        for scenario in scenarios {
+            // Public catalog filters do not require a privileged MFA session.
+            let app = launchGuestApp(language: scenario.language, appearance: scenario.appearance)
+            defer { app.terminate() }
+            for (index, prefix) in ["home", "events", "organizations"].enumerated() {
+                tapRootTab(rootTabs[index], in: app, timeout: 20)
+                let region = app.buttons["\(prefix).filter.region"].firstMatch
+                scrollToElement(region, in: app)
+                XCTAssertTrue(region.waitForExistence(timeout: 10) && region.isHittable)
+                if index > 0 {
+                    XCTAssertEqual(region.value as? String, scenario.vienna, "Region must stay synchronized across tabs")
+                }
+                attachScreenshot(named: "filters-\(prefix)-\(scenario.appearance)", from: app)
+                region.tap()
+                let vienna = app.buttons[scenario.vienna].firstMatch
+                XCTAssertTrue(vienna.waitForExistence(timeout: 5))
+                XCTAssertTrue(app.buttons[scenario.allAustria].firstMatch.exists)
+                XCTAssertFalse(app.sheets.firstMatch.exists, "Region must use a menu, not a separate sheet")
+                attachScreenshot(named: "region-menu-\(prefix)-\(scenario.appearance)", from: app)
+                vienna.tap()
+                let selected = XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "value == %@", scenario.vienna), object: region
+                )
+                XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 5), .completed)
+            }
+
+            // Reset to nationwide coverage from Organizations and verify that
+            // Home sees it too; nil must remain a selectable region value.
+            app.buttons["organizations.filter.region"].firstMatch.tap()
+            let allAustria = app.buttons[scenario.allAustria].firstMatch
+            XCTAssertTrue(allAustria.waitForExistence(timeout: 5))
+            allAustria.tap()
+            tapRootTab(rootTabs[0], in: app)
+            let homeRegion = app.buttons["home.filter.region"].firstMatch
+            scrollToElement(homeRegion, in: app)
+            XCTAssertEqual(homeRegion.value as? String, scenario.allAustria)
+        }
     }
 
     @MainActor

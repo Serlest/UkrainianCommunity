@@ -1,6 +1,16 @@
 import Foundation
 
 enum AppStrings {
+    enum AppUpdate {
+        static var title: String { text("app_update.title", "Доступне оновлення UAC") }
+        static var updateNow: String { text("app_update.now", "Оновити зараз") }
+        static var later: String { text("app_update.later", "Пізніше") }
+        static func message(_ version: String) -> String {
+            LocalizationStore.localizedFormat("app_update.message", defaultValue:
+                "У App Store доступна версія %@. Оновити застосунок зараз?", arguments: [version])
+        }
+    }
+
     enum Startup {
         static var loading: String { text("startup.loading", "Завантаження UAC…") }
     }

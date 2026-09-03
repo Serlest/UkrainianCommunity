@@ -14,6 +14,10 @@ struct ContentView: View {
     @AppStorage("selectedAppLanguage") private var selectedLanguageCode = AppLanguage.stored.rawValue
     @AppStorage("selectedAppAppearance") private var selectedAppearanceCode = AppAppearance.stored.rawValue
     private let container: AppContainer
+    private let isStartupReady: Bool
+    @State private var updateLegalCheckKey: String?
+    @State private var updateMFACheckKey: String?
+    @State private var updateAppLockIsLocked = true
     @StateObject private var homeViewModel: HomeViewModel
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
@@ -49,8 +53,9 @@ struct ContentView: View {
     @State private var notificationRouteErrorMessage: String?
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
-    init(container: AppContainer) {
+    init(container: AppContainer, isStartupReady: Bool = true) {
         self.container = container
+        self.isStartupReady = isStartupReady
         _homeViewModel = StateObject(wrappedValue: HomeViewModel(
             newsRepository: container.newsRepository,
             eventRepository: container.eventRepository,
@@ -106,6 +111,19 @@ struct ContentView: View {
     var body: some View {
         presentedContent
             .environmentObject(organizationBlockingCoordinator)
+            .modifier(AppUpdatePrompt(isReady: isReadyForUpdatePrompt))
+    }
+
+    private var isReadyForUpdatePrompt: Bool {
+        isStartupReady && !authState.isRestoring && !authState.isAuthenticating
+            && !updateAppLockIsLocked && authState.presentedAuthFlow == nil
+            && updateLegalCheckKey == legalComplianceKey
+            && updateMFACheckKey == privilegedMFARequirementKey
+            && legalComplianceMonitor.activeRequirement == nil && accountStatusMonitor.activeNotice == nil
+            && notificationPopupCoordinator.activeNotification == nil && quickCreation == nil
+            && !isShowingNotificationInbox && contentReportCoordinator.target == nil
+            && userBlockingCoordinator.pendingTarget == nil && organizationBlockingCoordinator.pendingTarget == nil
+            && userBlockingCoordinator.errorMessage == nil && notificationRouteErrorMessage == nil
     }
 
     private var baseContent: some View {
@@ -127,6 +145,7 @@ struct ContentView: View {
 
     private var lifecycleContent: some View {
         baseContent
+        .onAppear { updateAppLockIsLocked = authState.appLock.isLocked }
         .task(id: notificationInboxUserID) {
             await organizationBlockingCoordinator.configure(userID: notificationInboxUserID)
         }
@@ -143,6 +162,7 @@ struct ContentView: View {
             await authoringOrganizations.prepareForQuickCreation(for: authState.isAuthenticated ? authState.user : nil)
         }
         .onReceive(authState.appLock.protectionChanges) { _ in
+            updateAppLockIsLocked = authState.appLock.isLocked
             if let userID = authState.appLock.userID, userID == authState.user?.id {
                 handlePendingRemoteNotificationRouteIfReady()
             }
@@ -163,10 +183,14 @@ struct ContentView: View {
             handlePendingRemoteNotificationRouteIfReady()
         }
         .task(id: legalComplianceKey) {
+            let key = legalComplianceKey
             await legalComplianceMonitor.configure(user: authState.user)
+            if !Task.isCancelled, key == legalComplianceKey { updateLegalCheckKey = key }
         }
         .task(id: privilegedMFARequirementKey) {
+            let key = privilegedMFARequirementKey
             await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
+            if !Task.isCancelled, key == privilegedMFARequirementKey { updateMFACheckKey = key }
         }
     }
 

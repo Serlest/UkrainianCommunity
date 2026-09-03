@@ -164,7 +164,6 @@ struct EventsListView: View {
     @State private var selectedAudience: EventAudienceFilter = .all
     @State private var selectedAge: EventAgeFilter = .any
     @State private var selectedFeedScope: EventFeedScope = .all
-    @State private var isRegionPickerPresented = false
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isSearchPresented = false
     @State private var searchText = ""
@@ -358,7 +357,7 @@ struct EventsListView: View {
                         onSelectCategory: { selectedCategory = $0 },
                         onSelectAudience: { selectedAudience = $0 },
                         onSelectAge: { selectedAge = $0 },
-                        onSelectRegion: { isRegionPickerPresented = true },
+                        onSelectRegion: selectRegion,
                         onSelectSaved: { selectedFeedScope = selectedFeedScope == .saved ? .all : .saved },
                         onSelectRegistered: { selectedFeedScope = selectedFeedScope == .registered ? .all : .registered }
                     )
@@ -429,19 +428,6 @@ struct EventsListView: View {
             set: { if $0 == nil { viewModel.dismissInteractionError() } }
         ))
         .observesKeyboardDismissTaps()
-        .confirmationDialog(AppStrings.Home.regionAllAustria, isPresented: $isRegionPickerPresented, titleVisibility: .visible) {
-            Button(AppStrings.Home.regionAllAustria) {
-                selectRegion(nil)
-            }
-
-            ForEach(AustrianFederalState.allCases) { federalState in
-                Button(federalState.displayName) {
-                    selectRegion(federalState)
-                }
-            }
-
-            Button(AppStrings.Events.cancel, role: .cancel) {}
-        }
         .appDestructiveActionDialog(Binding(
             get: {
                 guard let eventID = pendingDeleteEventID else { return nil }
@@ -781,7 +767,7 @@ private struct EventFilterRow: View {
     let onSelectCategory: (EventCategoryFilter) -> Void
     let onSelectAudience: (EventAudienceFilter) -> Void
     let onSelectAge: (EventAgeFilter) -> Void
-    let onSelectRegion: () -> Void
+    let onSelectRegion: (AustrianFederalState?) -> Void
     let onSelectSaved: () -> Void
     let onSelectRegistered: () -> Void
 
@@ -885,15 +871,7 @@ private struct EventFilterRow: View {
             }
             .buttonStyle(.plain)
         case .region:
-            Button(action: onSelectRegion) {
-                AppFilterChip(
-                    title: selectedFederalState?.displayName ?? AppStrings.Home.regionAllAustria,
-                    systemImage: "mappin.and.ellipse",
-                    isSelected: selectedFederalState != nil,
-                    trailingSystemImage: "chevron.down"
-                )
-            }
-            .buttonStyle(.plain)
+            AppRegionFilterMenu(selection: Binding(get: { selectedFederalState }, set: onSelectRegion))
         case .registered:
             Button(action: onSelectRegistered) {
                 AppFilterChip(

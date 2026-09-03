@@ -239,7 +239,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     func createOrganization(_ organization: Organization) async throws {
         let uid = try ensureAuthenticatedUserID()
         let normalizedOrganization = normalizedOrganizationForWrite(organization, preserveCreatedAt: false)
-        let data = makeOrganizationData(from: normalizedOrganization)
+        let data = Self.makeOrganizationData(from: normalizedOrganization)
         debugLogOrganizationCreatePayload(uid: uid, organization: normalizedOrganization, data: data)
         do {
             try await collection.document(normalizedOrganization.id).setData(data)
@@ -280,7 +280,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 
         do {
             try await collection.document(normalizedOrganization.id).updateData(
-                makeSafeOrganizationInfoUpdateData(from: normalizedOrganization)
+                Self.makeSafeOrganizationInfoUpdateData(from: normalizedOrganization)
             )
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
@@ -313,7 +313,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         )
     }
 
-    private func makeSafeOrganizationInfoUpdateData(from organization: Organization) -> [String: Any] {
+    static func makeSafeOrganizationInfoUpdateData(from organization: Organization) -> [String: Any] {
         var data: [String: Any] = [
             "localizations": FirestoreContentPublishingCoding.organizationLocalizationsData(organization.localizations),
             "name": organization.name,
@@ -352,9 +352,18 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         setUpdateValue(organization.linkedinURL, forKey: "linkedinURL", in: &data)
         setUpdateValue(organization.missionStatement, forKey: "missionStatement", in: &data)
         setUpdateValue(organization.contactPerson, forKey: "contactPerson", in: &data)
-        setUpdateValue(organization.submittedAt.map(Timestamp.init(date:)), forKey: "submittedAt", in: &data)
-        setUpdateValue(organization.reviewMessage, forKey: "reviewMessage", in: &data)
-        setUpdateValue(organization.rejectionReason, forKey: "rejectionReason", in: &data)
+        switch organization.moderationStatus {
+        case .pendingReview, .needsRevision, .rejected:
+            // Request edits/resubmissions have a separate Rules contract.
+            setUpdateValue(organization.submittedAt.map(Timestamp.init(date:)), forKey: "submittedAt", in: &data)
+            setUpdateValue(organization.reviewMessage, forKey: "reviewMessage", in: &data)
+            setUpdateValue(organization.rejectionReason, forKey: "rejectionReason", in: &data)
+        case .draft, .approved, .archived:
+            // Profile edits must not rewrite submission/review metadata. Even an
+            // unchanged submittedAt can lose precision in Timestamp -> Date ->
+            // Timestamp and make Firestore reject the entire update.
+            break
+        }
 
         return data
     }
@@ -1051,7 +1060,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         )
     }
 
-    private func makeOrganizationData(from organization: Organization) -> [String: Any] {
+    static func makeOrganizationData(from organization: Organization) -> [String: Any] {
         var data: [String: Any] = [
             "id": organization.id,
             "localizations": FirestoreContentPublishingCoding.organizationLocalizationsData(organization.localizations),
@@ -1128,12 +1137,12 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         #endif
     }
 
-    private func setCreateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {
+    private static func setCreateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {
         guard let value else { return }
         data[key] = value
     }
 
-    private func setUpdateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {
+    private static func setUpdateValue(_ value: Any?, forKey key: String, in data: inout [String: Any]) {
         data[key] = value ?? FieldValue.delete()
     }
 
@@ -1164,7 +1173,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         )
     }
 
-    private func makeDirectoryProfileData(_ profile: OrganizationDirectoryProfile?) -> [String: Any]? {
+    private static func makeDirectoryProfileData(_ profile: OrganizationDirectoryProfile?) -> [String: Any]? {
         guard let profile else { return nil }
         var data: [String: Any] = [
             "profileKind": profile.profileKind.rawValue,
