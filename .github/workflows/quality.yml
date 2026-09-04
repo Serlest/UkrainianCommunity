@@ -9,8 +9,6 @@ on:
       - main
       - "integration/**"
       - "release/**"
-  schedule:
-    - cron: "17 2 * * *"
   workflow_dispatch:
 
 permissions:
