@@ -22,7 +22,7 @@ struct ContentView: View {
     @StateObject private var notificationInboxViewModel: NotificationInboxViewModel
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
     @StateObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
-    @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
+    @StateObject private var accountStatusMonitor: AccountStatusMonitorService
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
@@ -77,11 +77,16 @@ struct ContentView: View {
         _notificationPopupCoordinator = StateObject(wrappedValue: NotificationPopupCoordinatorService(
             repository: container.notificationInboxRepository
         ))
+        _accountStatusMonitor = StateObject(wrappedValue: AccountStatusMonitorService(
+            isMonitoringEnabled: container.allowsAccountStatusMonitoring
+        ))
         _legalComplianceMonitor = StateObject(wrappedValue: LegalComplianceMonitorService(
             legalDocumentRepository: container.legalDocumentRepository,
             userRepository: container.userRepository
         ))
-        RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
+        if container.allowsRemoteNotificationRegistration {
+            RemoteNotificationRegistrationService.shared.configure(repository: container.notificationPushTokenRepository)
+        }
     }
 
     var body: some View {
@@ -101,7 +106,9 @@ struct ContentView: View {
         .task(id: authSessionKey) {
             notificationPopupCoordinator.configure(userID: notificationInboxUserID)
             await notificationInboxViewModel.configure(userID: notificationInboxUserID)
-            accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
+            if container.allowsAccountStatusMonitoring {
+                accountStatusMonitor.configure(userID: notificationInboxUserID, authState: authState)
+            }
             await configureRemoteNotifications(for: notificationInboxUserID)
             handlePendingRemoteNotificationRouteIfReady()
         }
@@ -374,6 +381,9 @@ struct ContentView: View {
                 featuredBannerCache: container.featuredBannerCache,
                 legalDocumentRepository: container.legalDocumentRepository,
                 ownerAnalyticsRepository: container.ownerAnalyticsRepository,
+                donationConfigRepository: container.donationConfigRepository,
+                recentViewsRepository: container.recentViewsRepository,
+                activityLogRepository: container.activityLogRepository,
                 notificationInboxRepository: container.notificationInboxRepository,
                 notificationInboxViewModel: notificationInboxViewModel,
                 localEventReminderService: container.localEventReminderService,
@@ -511,6 +521,7 @@ struct ContentView: View {
     }
 
     private func configureRemoteNotifications(for userID: String?) async {
+        guard container.allowsRemoteNotificationRegistration else { return }
         RemoteNotificationRegistrationService.shared.configureUser(userID)
         guard let userID else { return }
 

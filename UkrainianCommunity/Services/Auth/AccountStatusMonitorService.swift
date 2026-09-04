@@ -8,10 +8,14 @@ final class AccountStatusMonitorService: ObservableObject {
     @Published var isAcknowledging = false
     @Published var acknowledgementError: String?
 
-    private let db = Firestore.firestore()
+    private let db: Firestore?
     private var listener: ListenerRegistration?
     private var observedUserID: String?
     private var presentedNoticeID: String?
+
+    init(isMonitoringEnabled: Bool = true) {
+        db = isMonitoringEnabled ? Firestore.firestore() : nil
+    }
 
     func configure(userID: String?, authState: AuthState) {
         guard observedUserID != userID else { return }
@@ -23,7 +27,7 @@ final class AccountStatusMonitorService: ObservableObject {
         acknowledgementError = nil
         presentedNoticeID = nil
 
-        guard let userID else { return }
+        guard let userID, let db else { return }
 
         listener = db.collection("users").document(userID).addSnapshotListener { [weak self, weak authState] snapshot, error in
             if let error {
@@ -38,7 +42,7 @@ final class AccountStatusMonitorService: ObservableObject {
     }
 
     func acknowledgeActiveNotice() async {
-        guard let notice = activeNotice else { return }
+        guard let notice = activeNotice, let db else { return }
         isAcknowledging = true
         acknowledgementError = nil
         defer { isAcknowledging = false }

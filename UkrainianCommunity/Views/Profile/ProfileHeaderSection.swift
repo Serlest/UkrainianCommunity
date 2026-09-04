@@ -264,6 +264,7 @@ struct ProfileHeroCard: View {
                 }
             }
         }
+        .accessibilityIdentifier("profile.account.hero")
     }
 }
 struct ProfileAvatarView: View {

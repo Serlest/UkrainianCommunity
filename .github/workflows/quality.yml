@@ -129,7 +129,7 @@ jobs:
           [[ "$AFFECTED_RESULT" == "success" || "$AFFECTED_RESULT" == "skipped" ]]
 
   ios_affected:
-    name: iOS affected checks
+    name: iOS build and unit tests
     needs: changes
     if: needs.changes.outputs.ios == 'true'
     runs-on: macos-15
@@ -173,16 +173,25 @@ jobs:
           test
           -only-testing:UkrainianCommunityTests
 
+  ios_ui_affected:
+    name: iOS UI smoke tests
+    needs: changes
+    if: needs.changes.outputs.ios_ui == 'true'
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+
       - name: Run UI smoke tests
-        if: needs.changes.outputs.ios_ui == 'true'
         run: >
           xcodebuild
           -project UkrainianCommunity.xcodeproj
           -scheme UkrainianCommunity
           -configuration Debug
           -destination "platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5"
-          -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
+          -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityUIDerivedData"
           -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityUI.xcresult"
+          -parallel-testing-enabled NO
           CODE_SIGNING_ALLOWED=NO
           test
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testStartupSplashTransitionsToMainInterface
@@ -191,7 +200,7 @@ jobs:
           -only-testing:UkrainianCommunityUITests/UkrainianCommunityUITests/testGuestProfileShowsAuthEntryPoints
 
       - name: Upload UI smoke test results
-        if: always() && needs.changes.outputs.ios_ui == 'true'
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: UkrainianCommunityUI-${{ github.run_attempt }}
@@ -204,6 +213,7 @@ jobs:
     needs:
       - changes
       - ios_affected
+      - ios_ui_affected
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 2
@@ -212,6 +222,8 @@ jobs:
         env:
           CLASSIFICATION_RESULT: ${{ needs.changes.result }}
           AFFECTED_RESULT: ${{ needs.ios_affected.result }}
+          UI_AFFECTED_RESULT: ${{ needs.ios_ui_affected.result }}
         run: |
           [[ "$CLASSIFICATION_RESULT" == "success" ]]
           [[ "$AFFECTED_RESULT" == "success" || "$AFFECTED_RESULT" == "skipped" ]]
+          [[ "$UI_AFFECTED_RESULT" == "success" || "$UI_AFFECTED_RESULT" == "skipped" ]]

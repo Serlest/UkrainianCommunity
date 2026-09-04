@@ -23,8 +23,16 @@ final class AuthState: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var pendingVerificationEmail: String?
-    @Published private(set) var sessionState: AuthSessionState = .restoring
+    @Published private(set) var sessionState: AuthSessionState
     @Published var presentedAuthFlow: AuthFlowDestination?
+
+    init(
+        user: AppUser? = nil,
+        sessionState: AuthSessionState = .restoring
+    ) {
+        self.user = user
+        self.sessionState = sessionState
+    }
 
     var isGuest: Bool {
         sessionState == .guest

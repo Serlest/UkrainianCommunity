@@ -249,7 +249,6 @@ final class ActivityLogViewModel: ObservableObject {
                 .sorted { $0.createdAt > $1.createdAt }
             error = nil
             hasLoaded = true
-            loadedUserID = Auth.auth().currentUser?.uid
         } catch let appError as AppError {
             error = appError
             hasLoaded = true
