@@ -179,8 +179,8 @@
     "physical device, iOS 17, App Attest/APNs/Face ID/TOTP recovery",
     "held event and content/image rights",
     "final installed live accepted/rejected comments",
-    "management deployment/read-back in progress at coordinator snapshot; not marked passed",
-    "verification task owns final audit and ratings"
+    "verification task owns final audit and ratings",
+    "Hackathon feed/detail date discrepancy assessment by UI owner; candidate validation not finalized"
   ],
   "sourceArtifactSHA256": {
     "ios-unit-fixed-summary.json": "e62766298364ec33209829ebe812c3aa86adf06a4f2cffc9305d9131cb065a2d",
@@ -197,6 +197,59 @@
     "restore-drill/cleanup-readback.json": "b015cf6364c508f91e21cd4ceed87a992d25bdfd9af79cf6e0e14e8950347bef",
     "external-phase-gate.json": "588eed6ce231b667d02049974e48c3526a6aa5c4768d425a8d3d7f7f0a53a733",
     "privacy-release-simulator-inventory.json": "b9d50ecf83b86c2707252c33f7be7b2529e017e4145fe2b279aae0c4eb501e64",
-    "validation-source-map.json": "93ebe198d235903c6932d48cc31d3b1da2598b91599f5e15a12b0300101aef3b"
+    "validation-source-map.json": "93ebe198d235903c6932d48cc31d3b1da2598b91599f5e15a12b0300101aef3b",
+    "search-server-deployment.json": "787a2867a1a00c68f22805824953cb403f08cad6b08f8aa6d4cf3bac65ced62c",
+    "cursor-sdk-cleanup-canonical.json": "49f3855d25f75f344ec5cf6ef9251dfd8df2597328051b9995be735c6f3ada11"
+  },
+  "managementDeployment": {
+    "checkedAt": "2026-09-05T17:45:38.840626+00:00",
+    "functions": [
+      {
+        "name": "listLegalEvidenceAccounts",
+        "verified": true,
+        "checks": {
+          "stateActive": true,
+          "entryPoint": true,
+          "nonSourceBuild": true,
+          "serviceSettings": true,
+          "sourceEntriesExact": true,
+          "function-iam": true,
+          "run-iam": true,
+          "runTemplateExceptRevisionImage": true
+        }
+      },
+      {
+        "name": "searchManagedUsers",
+        "verified": true,
+        "checks": {
+          "stateActive": true,
+          "entryPoint": true,
+          "nonSourceBuild": true,
+          "serviceSettings": true,
+          "sourceEntriesExact": true,
+          "function-iam": true,
+          "run-iam": true,
+          "runTemplateExceptRevisionImageAndExactNewProviderIdentityLabels": true
+        }
+      }
+    ],
+    "otherFunctionsOutsideFiveUpdatesUnchanged": 116,
+    "comparisonNormalization": "Sort eventTrigger.eventFilters as unordered filter set; exact all remaining metadata incl updateTime/source",
+    "functionsWithOnlyFilterOrderDifference": 16,
+    "functionCountUnchanged": 121,
+    "globalAppCheckUnchanged": true,
+    "authenticatedProductionCanary": false,
+    "scope": "Two existing source-only updates; runtime settings and IAM preserved; no Rules, scheduler, index/backfill or Android changes",
+    "remainingLimitation": "Full scan O(N) reads; bounded memory does not make search indexed"
+  },
+  "cursorCleanup": {
+    "status": "complete",
+    "documents": 61,
+    "scope": "Dedicated local demo emulator fixture cleanup; sanitized canonical JSON replaces warning-prefixed original output."
+  },
+  "candidateReview": {
+    "status": "pending",
+    "observation": "Coordinator visual review reports Hackathon feed 11–12 Sep vs detail 11 Sep. UI owner is tracing the cause read-only; no cause, regression classification or resolution inferred.",
+    "testResults": "Previously recorded passing tests remain valid within their scope; candidate gate is reopened pending assessment."
   }
 }

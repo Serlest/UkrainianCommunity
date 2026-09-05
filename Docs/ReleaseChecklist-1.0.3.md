@@ -33,7 +33,18 @@ artifact names 53bb1ad; this equivalence was refreshed without rerunning tests.
 Later changes to app/server code require their own verification; matching code
 is not a claim that every later deployment has completed.
 
+Management deployment read-back now confirms both search Functions. All 116
+Functions outside the five privacy/search updates are unchanged after normalizing
+unordered event-filter order (16 ordering-only differences); total 121 and global
+App Check unchanged. No authenticated production canary is claimed; search still
+performs O(N) reads. Canonical cursor fixture cleanup records 61 documents complete.
+
 ## Open gates
+
+- **Candidate visual assessment:** Hackathon feed shows 11–12 September while detail
+  shows 11 September in coordinator review. UI owner is tracing the cause read-only.
+  Candidate validation is reopened pending that assessment; prior passing tests
+  remain recorded. Cause/regression/resolution are not assumed.
 
 - **App Privacy:** available browser reached Apple login (`authResult=FAILED`).
   Current questionnaire answers must be compared with signed candidate SDK report,
@@ -50,9 +61,6 @@ is not a claim that every later deployment has completed.
   content/image-rights confirmation. Three verified translations do not prove all rights.
 - **Final live comments:** accepted/rejected comments in installed final candidate
   against intended live backend. Local UI/SDK and older server probes do not close it.
-- **Management deployment:** coordinator deployment is in progress at this snapshot.
-  Existing legal read-back passed; require completion/source/settings and applicable
-  endpoint read-back for the management rollout before marking its gate passed.
 
 ## Authorization and publication boundary
 
@@ -72,13 +80,14 @@ questionnaire or final archive proof is inferred from those dated states.
 
 `Legal/legal-manifest.json` keeps held-content/rights and final-live-comment blockers.
 Privacy-owned document/version/history keys are unchanged by this release update.
-The published 2026.13 proof closes `privacy-publication`; local code results close
-`candidate-validation`; scoped authorization and isolated restore are recorded passed.
-App Privacy, archive/device, held-content/rights, comments and unfinished management
+The published 2026.13 proof closes `privacy-publication`; local code results remain recorded but
+`candidate-validation` awaits the visual date assessment. Scoped authorization,
+management deployment and isolated restore are recorded passed.
+App Privacy, archive/device, held-content/rights, comments and candidate visual assessment
 remain open. Do not clear them for a green strict command.
 
 Evidence references must be reviewed, not merely exist. Strict `--release` remains
 a publication-readiness check and is expected to fail for genuine remaining gates.
 It is not a reason to repeat the entire passing suite or block authorized independent
 work. This doc-only update does not rerun validators. Coordinator/verification will
-refresh strict output and complete the final audit after remaining rollout read-back.
+refresh strict output and complete the final audit after the remaining UI assessment.

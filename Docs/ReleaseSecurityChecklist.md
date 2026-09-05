@@ -14,8 +14,8 @@ not a current list of unperformed deployments.
 414 unit tests, 50 unique UI tests and two separate actual SDK scenarios passed;
 local server/Rules checks passed. Three privacy Functions, Firestore 2026.13 and
 Hosting live hashes were verified; three German translations and isolated restore
-cleanup have proof. Management deployment is still in progress at the coordinator
-snapshot. Exact app/server code equivalence was read at integration 21126fe.
+cleanup have proof. Management deployment now has verified read-back. Candidate validation is reopened
+pending UI-owner assessment of the Hackathon feed/detail date discrepancy. Exact app/server code equivalence was read at integration 21126fe.
 
 App Privacy login, signed archive/TestFlight, physical device/iOS 17, one held event
 and final rights confirmation, and final live comments remain open. The user has

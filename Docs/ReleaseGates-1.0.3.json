@@ -28,8 +28,8 @@
     },
     {
       "id": "candidate-validation",
-      "status": "passed",
-      "requirement": "Central candidate code verification recorded: 414 iOS unit passed, two excluded SDK cases separately passed; 50 unique UI / 53 executions; server unit 392, integrations 74, common Rules 172 and iOS Rules 169. App/server runtime unchanged at 21126fe from tested 0172860/0681aa0. This closes local code verification only, not device/production/end-to-end release gates.",
+      "status": "open",
+      "requirement": "Recorded unit/UI/actual SDK and server/Rules runs passed, but candidate validation awaits UI-owner assessment of Hackathon feed 11–12 Sep versus detail 11 Sep. Preserve prior test evidence; do not infer cause or final readiness before the assessment.",
       "evidence": [
         "Docs/ReleaseEvidence-1.0.3.json"
       ]
@@ -78,9 +78,11 @@
     },
     {
       "id": "management-deployment",
-      "status": "open",
-      "requirement": "Coordinator management deployment is in progress at this evidence snapshot. Require final exact-source/settings and legal endpoint read-back before closing; existing legal read-back does not prove unfinished deployment.",
-      "evidence": []
+      "status": "passed",
+      "requirement": "Both listLegalEvidenceAccounts and searchManagedUsers source/settings/IAM read-back verified. Outside the five privacy+search updates, 116 Functions unchanged after normalizing unordered eventFilter order only; total 121 and global App Check unchanged. No authenticated production canary; search remains O(N).",
+      "evidence": [
+        "Docs/ReleaseEvidence-1.0.3.json"
+      ]
     }
   ]
 }
