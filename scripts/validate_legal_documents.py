@@ -71,6 +71,63 @@ def load_text(relative: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def release_gate_issues(manifest: dict) -> list[str]:
+    """Read local evidence declarations; never infer live publication from files."""
+    relative = manifest.get("releaseGateManifest")
+    if not isinstance(relative, str) or not relative.strip():
+        return ["missing releaseGateManifest reference"]
+    path = (ROOT / relative).resolve()
+    if not path.is_relative_to(ROOT) or not path.is_file():
+        return ["releaseGateManifest must reference a repository file"]
+    try:
+        release = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        return [f"cannot read release gates: {error}"]
+    if not isinstance(release, dict) or release.get("schemaVersion") != 1:
+        return ["release gates require schemaVersion 1"]
+    candidate = release.get("candidate")
+    if not isinstance(candidate, dict) or any(
+        not isinstance(candidate.get(key), str) or not candidate[key].strip()
+        for key in ("version", "build")
+    ):
+        return ["release gates require candidate version/build"]
+    project = load_text("UkrainianCommunity.xcodeproj/project.pbxproj")
+    versions = set(re.findall(r"MARKETING_VERSION = ([^;]+);", project))
+    builds = set(re.findall(r"CURRENT_PROJECT_VERSION = ([^;]+);", project))
+    issues = []
+    if versions != {candidate.get("version")} or builds != {candidate.get("build")}:
+        issues.append("release gate candidate must match all project version/build fields")
+    gates = release.get("gates")
+    if not isinstance(gates, list) or not gates:
+        return issues + ["release gates must contain nonempty gates"]
+    required = {"app-privacy", "privacy-publication", "candidate-validation",
+                "archive-testflight", "physical-device", "content-rights",
+                "final-comments", "release-authorization"}
+    seen = set()
+    for gate in gates:
+        if not isinstance(gate, dict) or not isinstance(gate.get("id"), str):
+            issues.append("release gate must have a string id")
+            continue
+        identifier = gate["id"]
+        if identifier in seen:
+            issues.append(f"duplicate release gate: {identifier}")
+        seen.add(identifier)
+        status = gate.get("status")
+        if status not in ("open", "blocked", "passed"):
+            issues.append(f"invalid release gate status: {identifier}")
+        elif status != "passed":
+            issues.append(f"release gate {identifier}: {status}")
+        evidence = gate.get("evidence")
+        if status == "passed" and (
+            not isinstance(evidence, list) or not evidence
+            or any(not isinstance(item, str) or not item.strip() for item in evidence)
+        ):
+            issues.append(f"passed release gate requires evidence references: {identifier}")
+    for identifier in sorted(required - seen):
+        issues.append(f"missing required release gate: {identifier}")
+    return issues
+
+
 def main() -> int:
     args = parse_args()
     failures: list[str] = []
@@ -84,6 +141,8 @@ def main() -> int:
 
     expected_version = manifest.get("version")
     publication_status = manifest.get("status", "draft")
+    if args.release and publication_status != "published":
+        failures.append("release requires published legal documents and publication evidence")
     if publication_status not in {"draft", "published"}:
         failures.append("legal-manifest.json status must be draft or published")
     locales = manifest.get("supportedLocales")
@@ -142,6 +201,7 @@ def main() -> int:
     all_legal_text = "\n".join(loaded.values()) + "\n" + json.dumps(manifest)
     placeholders = sorted(set(PLACEHOLDER.findall(all_legal_text)))
     unresolved = manifest.get("unresolvedReleaseBlocks", [])
+    (failures if args.release else warnings).extend(release_gate_issues(manifest))
     if placeholders:
         message = "unresolved legal placeholders: " + ", ".join(placeholders)
         (failures if args.release else warnings).append(message)

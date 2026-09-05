@@ -2,22 +2,29 @@
 
 Use this checklist for the first release after the security and privacy hardening work. A merged pull request means the repository is prepared; it does not mean Firebase configuration, backend code, rules, indexes, legal documents or App Store metadata have been deployed.
 
-## Current preparation status — 2026-08-26
+## Current candidate — 2026-09-05
 
-Preparation only: public App Review submission and release are NOT authorized.
-The live version was switched from automatic to MANUAL release and read back.
-App Privacy was initially empty; the privacy URL and data-category draft are
-being reconciled with code and the build-36 SDK manifests. See
-`Docs/ReleaseReadiness-2026-08-26.md` for the final state of this audit.
+1.0.3 (69) is prepared locally from checkpoint `120a60212c12a3451332c18fdfdcbe3a0b6f8df9`.
+Implementation phase: no validators, tests, builds, archive, uploads or deployments.
+Use [the candidate checklist](ReleaseChecklist-1.0.3.md) and
+[structured release gates](ReleaseGates-1.0.3.json) for current readiness.
 
-The active published legal texts remain Terms/organization rules 2026.10 and
-privacy 2026.11. Draft 2026.12 is not published. The new complete offline bundle
-must match the approved canonical sources; run
-`python3 scripts/generate_bundled_legal.py --check` on every release commit.
+The baseline audit records 1.0.2 (68) VALID / WAITING_FOR_REVIEW, with MANUAL
+publication; published 1.0.1 (65) is a separate package. See
+[build 68 evidence](Build68Release-2026-09-04.md). Do not cancel or publish that
+application while preparing 69. Earlier August checklists are historical.
 
-A green structure check is not a legal approval. The `--release` legal gate now
-intentionally fails for the confirmed retention failure and unresolved approvals.
-Do not clear these blocks merely to obtain a passing command.
+Privacy 2026.12 was published on September 2; the September 5 audit found that
+its presence intervals disagree with runtime (90-second heartbeat, 180-second
+lease). The privacy task owns the corrected policy/version and generated copies.
+Publication/read-back and current authenticated App Privacy reconciliation remain
+open. The September 5 browser attempt reached Apple login (`authResult=FAILED`).
+
+The strict legal gate intentionally remains closed for real outstanding gates.
+Historical build 64 preparation wording has been retired, not treated as evidence
+that final comments, rights confirmation or candidate validation passed.
+Legal counsel review remains a recommendation unless separately required by an
+operator decision; technical validation does not provide legal approval.
 
 ## Repository gate
 
@@ -60,7 +67,7 @@ Run `python3 scripts/validate_release_configuration.py` and `python3 scripts/val
 ## Privacy and legal gate
 
 - [ ] Identify the legal controller/operator, postal address and working privacy contact for Austria/EU disclosure.
-- [ ] Have qualified Austrian/EU counsel review the privacy policy, terms, retention rules and lawful bases. Repository text is not legal advice.
+- [ ] Record whether the operator follows the recommendation for qualified Austrian/EU counsel review of policy, terms, retention and lawful bases. Repository text is not legal advice.
 - [ ] Complete the operator imprint and Media Act disclosure, and verify the user and authority contact points required by the Digital Services Act.
 - [ ] Verify the public notice-and-action mechanism, statement of reasons and internal appeal workflow against `Legal/notice-and-action.*.md`.
 - [ ] Reconcile every affected surface in `Docs/LegalChangeMatrix.md`; retain the resulting version, hash, deployment and approval evidence.

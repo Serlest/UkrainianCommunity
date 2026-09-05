@@ -55,10 +55,11 @@
     }
   },
   "unresolvedReleaseBlocks": [
-    "2026-09-02 release: App Store 1.0.1 draft uses build 64 and updated DE/UK screenshots. Privacy 2026.12 is synchronized and published App Privacy answers were checked against the archive. Before public submission, obtain the operator's final release/content-rights confirmation; preparation does not authorize submission.",
-    "2026-08-26 audit: server-side comment filtering and server-owned creation are deployed and production-probed; complete an installed final-build test of accepted and rejected comments before public submission."
+    "1.0.3 (69): final operator release/content-rights confirmation remains required for this candidate; build 68 submission authorization does not authorize build 69 or public publication.",
+    "1.0.3 (69): installed final-build accepted/rejected comment smoke remains open; historical server probes do not prove this candidate."
   ],
   "releaseRecommendations": [
     "qualified Austrian legal review before launch and after material legal changes"
-  ]
+  ],
+  "releaseGateManifest": "Docs/ReleaseGates-1.0.3.json"
 }

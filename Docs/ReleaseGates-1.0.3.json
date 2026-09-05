@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "candidate": {
+    "version": "1.0.3",
+    "build": "69"
+  },
+  "baseline": {
+    "version": "1.0.2",
+    "build": "68",
+    "checkpoint": "120a60212c12a3451332c18fdfdcbe3a0b6f8df9",
+    "evidence": "Docs/Build68Release-2026-09-04.md",
+    "note": "Historical: VALID / WAITING_FOR_REVIEW / MANUAL in 2026-09-05 baseline audit; live 1.0.1 (65). Not candidate evidence."
+  },
+  "gates": [
+    {
+      "id": "app-privacy",
+      "status": "blocked",
+      "requirement": "Authenticated App Privacy answers must be compared with candidate archive SDK report, presence, optional analytics and published policy. Browser attempt 2026-09-05 redirected to login with authResult=FAILED; no answers read or changed.",
+      "evidence": []
+    },
+    {
+      "id": "privacy-publication",
+      "status": "open",
+      "requirement": "Privacy owner must reconcile presence 90-second heartbeat / 180-second lease in both languages, versioning, bundle, website and server publication with hashes/read-back. Local generated pages do not prove publication.",
+      "evidence": []
+    },
+    {
+      "id": "candidate-validation",
+      "status": "open",
+      "requirement": "Central verification must complete exact integrated candidate builds, full iOS unit/UI, cursor integration and server/Rules checks; implementation phase ran none.",
+      "evidence": []
+    },
+    {
+      "id": "archive-testflight",
+      "status": "open",
+      "requirement": "Exact candidate signed archive, privacy report, signing/export checks and authorized TestFlight smoke remain outstanding. Historical build 68 VALID and SDK dSYM warnings do not establish build 69 evidence.",
+      "evidence": []
+    },
+    {
+      "id": "physical-device",
+      "status": "open",
+      "requirement": "Physical iPhone APNs, Face ID/passcode, App Attest and privileged TOTP/recovery remain unverified; record device/OS/build/account role and result. iOS 17 and manual VoiceOver need coverage.",
+      "evidence": []
+    },
+    {
+      "id": "content-rights",
+      "status": "open",
+      "requirement": "Four German event translations require approved publication/read-back; retain operator content/image-rights confirmation before public release.",
+      "evidence": []
+    },
+    {
+      "id": "final-comments",
+      "status": "open",
+      "requirement": "Verify accepted and rejected comments in installed final candidate; do not infer completion from earlier production probes.",
+      "evidence": []
+    },
+    {
+      "id": "release-authorization",
+      "status": "open",
+      "requirement": "Separate authorization for external changes, upload/submission and manual public publication; leave current 1.0.2 (68) application unchanged.",
+      "evidence": []
+    }
+  ]
+}

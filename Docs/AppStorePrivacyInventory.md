@@ -1,6 +1,8 @@
 # App Store privacy inventory
 
-Last archive and authenticated App Privacy UI verification: 2026-09-02, version 1.0.1 (65). The 30 archive privacy manifests are unchanged from build 64. See `Docs/PrivacyPublication-2026-09-02.md`, `Docs/Build65ReleaseReadiness-2026-09-02.md` and the ignored release evidence `build65-privacy-readback.md`.
+Historical archive and authenticated App Privacy UI verification: 2026-09-02, version 1.0.1 (65). The 30 archive privacy manifests are unchanged from build 64. See `Docs/PrivacyPublication-2026-09-02.md`, `Docs/Build65ReleaseReadiness-2026-09-02.md` and the ignored release evidence `build65-privacy-readback.md`.
+
+Current candidate: 1.0.3 (69), implementation only. Build 68 release evidence is in `Docs/Build68Release-2026-09-04.md`. On 2026-09-05 the available browser redirected to Apple login (`authResult=FAILED`); current questionnaire answers remain unverified. No answers or metadata were changed. See `Docs/ReleaseChecklist-1.0.3.md`.
 
 This inventory is a release aid, not a substitute for the answers entered in App Store Connect. Recheck it whenever data flows or third-party SDKs change. Apple requires the App Store privacy answers to include the practices of third-party partners.
 
