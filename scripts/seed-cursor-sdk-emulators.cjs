@@ -16,10 +16,15 @@ if (!['seed', 'cleanup'].includes(mode) || !/^cursor-[0-9a-f]{8}-[0-9a-f]{4}-[0-
 }
 const {initializeApp} = localRequire('firebase-admin/app');
 const {getAuth} = localRequire('firebase-admin/auth');
-const {getFirestore, Timestamp} = localRequire('firebase-admin/firestore');
-// Explicit emulator credential: no ADC, service account, or metadata lookup.
+const {Firestore, Timestamp} = localRequire('firebase-admin/firestore');
+// Auth supports this explicit emulator credential; no ADC or service account.
 initializeApp({projectId: project, credential: {getAccessToken: async () => ({access_token: 'owner', expires_in: 3600})}});
-const db = getFirestore(), auth = getAuth();
+// Admin getFirestore() rejects custom credentials before checking emulator mode.
+// Its exported Firestore client supports an explicit insecure loopback transport:
+// ssl:false selects insecure gRPC and supplies the emulator's Bearer owner header.
+// Pin the project as well so the client never discovers it via ADC/metadata.
+const db = new Firestore({projectId: project, host: fixed.FIRESTORE_EMULATOR_HOST, ssl: false, preferRest: false});
+const auth = getAuth();
 const seconds = 2000000000; // 2033; test refuses to run after this time is no longer future.
 const rows = [111111000, 123456000].flatMap((nanos, group) => [
   [`${group}-before`, nanos - 1000], [`${group}-a`, nanos], [`${group}-b`, nanos],
