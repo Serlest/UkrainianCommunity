@@ -910,9 +910,28 @@ final class OrganizationsViewModel: ObservableObject {
             }
 
             if !isEditing {
-                try await repository.createOrganization(organization)
-                guard isCurrentAuthGeneration(generation) else { return }
                 var organizationToInsert = organization
+                do {
+                    try await repository.createOrganization(organization)
+                } catch {
+                    let originalError = error
+                    guard isCurrentAuthGeneration(generation) else { throw originalError }
+                    // The first create may have committed before its response was
+                    // lost, or before a subsequent logo upload failed.
+                    guard let saved = try? await repository.fetchOrganization(id: organization.id),
+                          saved.submittedByUserId != nil,
+                          saved.submittedByUserId == organization.submittedByUserId,
+                          saved.ownerId == organization.ownerId,
+                          saved.moderationStatus == .pendingReview || saved.moderationStatus == .needsRevision else { throw originalError }
+                    guard isCurrentAuthGeneration(generation) else { throw originalError }
+                    organizationToInsert.accessRevision = saved.accessRevision
+                    try await repository.updateOrganization(organizationToInsert)
+                }
+                guard isCurrentAuthGeneration(generation) else { return }
+                if let confirmed = try? await repository.fetchOrganization(id: organization.id) {
+                    organizationToInsert = confirmed
+                }
+                guard isCurrentAuthGeneration(generation) else { return }
 
                 if let imageData {
                     do {
@@ -920,16 +939,18 @@ final class OrganizationsViewModel: ObservableObject {
                         let uploadedURL = try await repository.uploadOrganizationImage(data: imageData, organizationID: organization.id)
                         guard isCurrentAuthGeneration(generation) else { return }
                         isUploadingOrganizationImage = false
-                        organizationToInsert = organization.settingOrganizationImageURL(uploadedURL.absoluteString)
+                        organizationToInsert = organizationToInsert.settingOrganizationImageURL(uploadedURL.absoluteString)
                         try await repository.updateOrganization(organizationToInsert)
                         guard isCurrentAuthGeneration(generation) else { return }
                     } catch {
                         guard isCurrentAuthGeneration(generation) else { throw error }
                         isUploadingOrganizationImage = false
-                        do {
-                            try await repository.deleteOrganization(id: organization.id)
-                        } catch {}
-                        guard isCurrentAuthGeneration(generation) else { throw error }
+                        // Keep the created request: an update timeout cannot prove
+                        // that its metadata did not commit. The same editor ID can
+                        // recover it on retry instead of deleting user content.
+                        organizationRequests.upsertOrganizationByID(organizationToInsert)
+                        contentVersion &+= 1
+                        AppContentChangeBus.postOrganizationsChanged(organizationID: organization.id)
                         throw error
                     }
                 }
@@ -952,7 +973,7 @@ final class OrganizationsViewModel: ObservableObject {
                 resolvedImageURL = organization.imageURL
             }
 
-            let organizationToSave = Organization(
+            var organizationToSave = Organization(
                 id: organization.id,
                 localizations: organization.localizations,
                 name: organization.name,
@@ -1014,11 +1035,14 @@ final class OrganizationsViewModel: ObservableObject {
                 isBookmarked: organization.isBookmarked
             )
 
+            organizationToSave.accessRevision = organization.accessRevision
             if isEditing {
                 try await repository.updateOrganization(organizationToSave)
                 guard isCurrentAuthGeneration(generation) else { return }
-                replaceOrganization(organizationToSave)
-                replaceOrganizationRequest(organizationToSave)
+                let saved = (try? await repository.fetchOrganization(id: organizationToSave.id)) ?? organizationToSave
+                guard isCurrentAuthGeneration(generation) else { return }
+                replaceOrganization(saved)
+                replaceOrganizationRequest(saved)
             } else {
                 try await repository.createOrganization(organizationToSave)
                 guard isCurrentAuthGeneration(generation) else { return }
@@ -1155,7 +1179,7 @@ final class OrganizationsViewModel: ObservableObject {
 
 private extension Organization {
     func settingOrganizationImageURL(_ imageURL: String?) -> Organization {
-        Organization(
+        var result = Organization(
             id: id,
             localizations: localizations,
             name: name,
@@ -1216,5 +1240,7 @@ private extension Organization {
             isSubscribed: isSubscribed,
             isBookmarked: isBookmarked
         )
+        result.accessRevision = accessRevision
+        return result
     }
 }

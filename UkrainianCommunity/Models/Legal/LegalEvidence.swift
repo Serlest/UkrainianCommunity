@@ -21,6 +21,8 @@ struct LegalEvidenceAccount: Identifiable, Equatable {
 struct LegalEvidenceAccountCursor: Equatable {
     let userID: String
     let createdAt: Date
+    var seconds: Int64? = nil
+    var nanoseconds: Int32? = nil
 }
 
 struct LegalEvidenceAccountPage: Equatable {
@@ -62,7 +64,7 @@ enum LegalEvidenceEventType: String, CaseIterable, Codable, Identifiable {
     }
 }
 
-struct LegalEvidenceEvent: Identifiable, Equatable {
+struct LegalEvidenceEvent: Identifiable, Equatable, Codable {
     let id: String
     let userID: String
     let displayName: String?

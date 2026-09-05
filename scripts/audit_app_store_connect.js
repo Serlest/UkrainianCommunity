@@ -6,6 +6,7 @@ const fs = require("fs");
 const path = require("path");
 
 const bundleId = process.argv[2] || "at.serlest.UkrainianCommunity";
+const requestedVersion = process.argv[3];
 const envPath = process.env.ASC_ENV_FILE || path.join(process.env.HOME || "", ".private_keys/appstoreconnect.env");
 
 function readEnv(file) {
@@ -90,8 +91,10 @@ async function main() {
 
   const versionsResponse = await request(token, `/v1/apps/${app.id}/appStoreVersions?filter%5Bplatform%5D=IOS&limit=20`);
   const versions = versionsResponse.data || [];
-  const version = versions.find((item) => item.attributes?.versionString === "1.0") || versions[0];
-  if (!version) throw new Error("No iOS App Store version found.");
+  const version = requestedVersion
+    ? versions.find((item) => item.attributes?.versionString === requestedVersion)
+    : [...versions].sort((a, b) => b.attributes.versionString.localeCompare(a.attributes.versionString, "en", {numeric: true}))[0];
+  if (!version) throw new Error(requestedVersion ? `iOS App Store version ${requestedVersion} not found.` : "No iOS App Store version found.");
 
   const [build, recentBuilds, review, localizations, appInfos, availability, priceSchedule] = await Promise.all([
     request(token, `/v1/appStoreVersions/${version.id}/build`),

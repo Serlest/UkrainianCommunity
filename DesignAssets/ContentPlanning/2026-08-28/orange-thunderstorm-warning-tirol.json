@@ -1,0 +1,59 @@
+{
+  "idempotencyKey": "news-land-tirol-orange-unwetterwarnung-2026-08-28",
+  "kind": "news",
+  "state": "readyForReview",
+  "payload": {
+    "title": "Оранжева грозова тривога для Інсбрука та Унтерланда",
+    "summary": "Сьогодні, 28 серпня, від 16:00 до ночі в районі Інсбрука та Тірольському Унтерланді діє оранжеве попередження: можливі пориви до 90 км/год, сильний дощ і локальний град.",
+    "body": "Land Tirol повідомляє про підвищену грозову небезпеку сьогодні, 28 серпня, від 16:00 до ночі з п’ятниці на суботу. Для району Інсбрука та Тірольського Унтерланда оголошено оранжевий рівень 3 з 4. Грози можливі й в інших районах Тіролю.\n\nОчікуються пориви вітру до 90 км/год, сильний дощ і локальний град. Точний розвиток ситуації може змінюватися в короткі строки.\n\nЩо варто зробити:\n• стежити за актуальними офіційними попередженнями;\n• перенести або завчасно завершити активності надворі та в горах;\n• закріпити легкі предмети, закрити вікна й двері, прибрати маркізи;\n• триматися подалі від водойм, потоків, підземних переходів, підвалів і затоплюваних ділянок;\n• не виїжджати на затоплені дороги та враховувати можливі перебої транспорту й електроенергії.\n\nЗа поточним прогнозом у суботу ситуація має заспокоїтися. Перевіряйте оновлення, оскільки межі та інтенсивність гроз можуть змінитися.",
+    "sourceInput": "https://www.tirol.gv.at/presse/meldungen/meldung/orange-unwetterwarnung-fuer-innsbruck-und-unterland/",
+    "category": "safetyAndEmergencies",
+    "additionalCategories": [],
+    "tags": [
+      "Тіроль",
+      "Інсбрук",
+      "гроза",
+      "попередження"
+    ],
+    "federalState": "tirol",
+    "germanTitle": "Orange Gewitterwarnung für Innsbruck und das Unterland",
+    "germanSummary": "Heute, am 28. August, gilt ab 16 Uhr bis in die Nacht für Innsbruck und das Tiroler Unterland eine orange Warnung: Möglich sind Böen bis 90 km/h, Starkregen und örtlicher Hagel.",
+    "germanBody": "Das Land Tirol warnt heute, am 28. August, ab 16 Uhr bis in die Nacht von Freitag auf Samstag vor erhöhter Gewittergefahr. Für den Großraum Innsbruck und das Tiroler Unterland gilt Warnstufe Orange (Stufe 3 von 4). Gewitter sind auch in den übrigen Teilen Tirols möglich.\n\nErwartet werden Windspitzen bis 90 km/h, Starkregen und örtlich Hagel. Die genaue Entwicklung kann sich kurzfristig ändern.\n\nEmpfohlen wird:\n• aktuelle Wetterwarnungen und behördliche Informationen verfolgen;\n• Aktivitäten im Freien und in den Bergen rechtzeitig beenden oder verschieben;\n• lose Gegenstände sichern, Fenster und Türen schließen sowie Markisen einfahren;\n• Abstand zu Bächen, Flüssen, Seen, Unterführungen, Kellern und überflutungsgefährdeten Bereichen halten;\n• überflutete Straßen nicht befahren und mögliche Verkehrs- oder Stromausfälle berücksichtigen.\n\nNach der aktuellen Prognose dürfte sich die Wetterlage am Samstag wieder beruhigen. Bitte weitere Aktualisierungen beachten, da sich Lage und Intensität der Gewitter ändern können.",
+    "imageCaption": "Грозовий фронт над альпійським містом. Ілюстративне зображення.",
+    "imageAlternativeText": "Темні грозові хмари та дощовий фронт наближаються до альпійського міста в долині.",
+    "imageCredit": "Зображення створене ШІ",
+    "externalActionTitle": "Офіційне попередження Land Tirol",
+    "externalActionURL": "https://www.tirol.gv.at/presse/meldungen/meldung/orange-unwetterwarnung-fuer-innsbruck-und-unterland/",
+    "regionScope": "federalState",
+    "publicationMode": "now"
+  },
+  "imagePath": "DesignAssets/ContentPlanning/2026-08-28/orange-thunderstorm-warning-tirol.png",
+  "imageAlternativeText": "Темні грозові хмари та дощовий фронт наближаються до альпійського міста в долині.",
+  "sources": [
+    {
+      "url": "https://www.tirol.gv.at/presse/meldungen/meldung/orange-unwetterwarnung-fuer-innsbruck-und-unterland/",
+      "title": "Orange Unwetterwarnung für Innsbruck und Unterland | Land Tirol",
+      "isPrimary": true,
+      "checkedAt": "2026-08-28T13:05:38Z"
+    },
+    {
+      "url": "https://tirol.orf.at/stories/3368872/",
+      "title": "Erhöhte Gefahr für Innsbruck und Unterland | ORF Tirol",
+      "isPrimary": false,
+      "checkedAt": "2026-08-28T13:05:38Z"
+    },
+    {
+      "url": "https://warnungen.zamg.ac.at/html/de/heute/alle/at/tirol/innsbruck_land/",
+      "title": "Aktuelle Wetterwarnungen für Innsbruck-Land | GeoSphere Austria",
+      "isPrimary": false,
+      "checkedAt": "2026-08-28T13:05:38Z"
+    }
+  ],
+  "verificationNotes": [
+    "Land Tirol підтверджує дату 28.08.2026, період від 16:00 до ночі, помаранчевий рівень 3 з 4 для Інсбрука та Унтерланда, а також пориви до 90 км/год, сильний дощ і локальний град.",
+    "ORF Tirol опублікував незалежне підтвердження 28.08.2026 о 13:19; ключові факти та рекомендації узгоджуються з офіційним повідомленням Land Tirol.",
+    "Перевірено актуальну сторінку попереджень GeoSphere Austria для Innsbruck-Land. Точне місце й інтенсивність окремих гроз можуть змінюватися, тому текст не стверджує конкретних наслідків.",
+    "Основна категорія safetyAndEmergencies обрана, бо це термінове офіційне попередження про погодну небезпеку; додаткові категорії не потрібні. Географію задано окремо: Tirol."
+  ],
+  "missingFields": []
+}

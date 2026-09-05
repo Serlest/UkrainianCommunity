@@ -17,7 +17,7 @@ import {
   documentsSemanticallyMatch,
   normalizeAndValidateManifestItem,
   normalizePublicationTarget,
-  validateOrganization,
+  validatePublicationOrganization,
 } from "./verifiedContentPublisherCore.mjs";
 import {
   buildContentPlanningSummary,
@@ -68,10 +68,12 @@ async function main() {
 
   const accessToken = await contentAutomationAccessToken();
   const client = firebaseRESTClient({accessToken, projectId, storageBucket});
-  const organization = validateOrganization(
+  const organization = validatePublicationOrganization(
     await client.getOrganization(options.organizationId),
     options.organizationId,
-    target
+    target,
+    items,
+    options.publisherFederalState
   );
   const existingRecords = await client.listExistingContentSummaries(organization.ownerId);
   const duplicatePreflight = items.map((item) => classifyLegacyDuplicate({
@@ -261,6 +263,7 @@ export function parseArguments(argumentsList) {
   let organizationId;
   let federalState;
   let regionScope;
+  let publisherFederalState;
   let dryRun = false;
   for (let index = 0; index < argumentsList.length; index += 1) {
     const argument = argumentsList[index];
@@ -274,6 +277,8 @@ export function parseArguments(argumentsList) {
       federalState = requiredArgument(argumentsList, ++index, "--federal-state");
     } else if (argument === "--region-scope") {
       regionScope = requiredArgument(argumentsList, ++index, "--region-scope");
+    } else if (argument === "--publisher-federal-state") {
+      publisherFederalState = requiredArgument(argumentsList, ++index, "--publisher-federal-state");
     } else if (!argument.startsWith("-") && !manifestPath) {
       manifestPath = argument;
     } else {
@@ -282,7 +287,7 @@ export function parseArguments(argumentsList) {
   }
   if (!manifestPath || !organizationId || (!federalState && !regionScope)) usage();
   if (!/^[A-Za-z0-9_-]{1,150}$/.test(organizationId)) throw new Error("organization id is invalid.");
-  return {manifestPath, organizationId, federalState, regionScope, dryRun};
+  return {manifestPath, organizationId, federalState, regionScope, publisherFederalState, dryRun};
 }
 
 export function resolvePublicationTarget(options) {
@@ -311,7 +316,7 @@ function requiredArgument(argumentsList, index, flag) {
 
 function usage(message) {
   const prefix = message ? `${message}\n` : "";
-  throw new Error(`${prefix}Usage: node scripts/publishVerifiedContent.mjs <manifest.json> --organization-id <id> (--federal-state <state|austria> | --region-scope <country|austria|federalState>) [--dry-run]`);
+  throw new Error(`${prefix}Usage: node scripts/publishVerifiedContent.mjs <manifest.json> --organization-id <id> (--federal-state <state|austria> | --region-scope <country|austria|federalState>) [--publisher-federal-state <state>] [--dry-run]`);
 }
 
 function duplicateContentIds(items, organizationId) {

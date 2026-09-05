@@ -68,6 +68,15 @@ struct BiometricLockSettingsSection: View {
                         .font(.footnote)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
+                if lock.isEnabled {
+                    Picker(AppStrings.AppLock.delayTitle, selection: Binding(
+                        get: { lock.gracePeriod }, set: { lock.setGracePeriod($0) }
+                    )) {
+                        Text(AppStrings.AppLock.delayImmediately).tag(0.0)
+                        Text(AppStrings.AppLock.delayMinute).tag(60.0)
+                    }
+                    .accessibilityIdentifier("profile.settings.appLock.delay")
+                }
                 if let message = lock.errorMessage {
                     Text(message).font(.footnote).foregroundStyle(AppTheme.accentDestructiveForeground)
                 }

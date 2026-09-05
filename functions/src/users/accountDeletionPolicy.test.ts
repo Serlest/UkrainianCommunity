@@ -12,6 +12,7 @@ test("account deletion policy covers every cross-document user reference", () =>
   assert.deepEqual(
     accountDeletionReferencePolicies.map((policy) => policy.name),
     [
+      "photo operation actors", "organization mutation receipts", "cancellation actors", "cancellation recipients",
       "event authors",
       "legacy news authors",
       "comments",

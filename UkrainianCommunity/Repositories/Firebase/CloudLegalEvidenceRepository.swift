@@ -9,6 +9,18 @@ protocol LegalEvidenceRepository {
     func fetchEvidence(userID: String) async throws -> [LegalEvidenceEvent]
 }
 
+enum LegalEvidenceRepositories {
+    static func makeDefault() -> LegalEvidenceRepository {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestLegalEvidence"] == "1" {
+            return UITestLegalEvidenceRepository()
+        }
+        #endif
+        return CloudLegalEvidenceRepository()
+    }
+}
+
 struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
     private let functionsClient: CloudFunctionsClient
 
@@ -27,7 +39,8 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
             cursor: cursor.map {
                 LegalEvidenceAccountCursorFunctionValue(
                     userId: $0.userID,
-                    createdAt: ISO8601DateFormatter.legalEvidence.string(from: $0.createdAt)
+                    createdAt: ISO8601DateFormatter.legalEvidence.string(from: $0.createdAt),
+                    seconds: $0.seconds, nanoseconds: $0.nanoseconds
                 )
             }
         )
@@ -35,7 +48,7 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
             accounts: response.accounts.map(Self.decode),
             nextCursor: response.nextCursor.flatMap { cursor in
                 ISO8601DateFormatter.legalEvidence.date(from: cursor.createdAt).map {
-                    LegalEvidenceAccountCursor(userID: cursor.userId, createdAt: $0)
+                    LegalEvidenceAccountCursor(userID: cursor.userId, createdAt: $0, seconds: cursor.seconds, nanoseconds: cursor.nanoseconds)
                 }
             },
             totalMatches: response.totalMatches
@@ -43,8 +56,22 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
     }
 
     func fetchEvidence(userID: String) async throws -> [LegalEvidenceEvent] {
-        let response = try await functionsClient.getLegalEvidenceForUser(userID: userID)
-        return response.events.compactMap(Self.decode)
+        var cursor: String?
+        var seen = Set<String>()
+        var events: [String: LegalEvidenceEvent] = [:]
+        repeat {
+            try Task.checkCancellation()
+            let response = try await functionsClient.getLegalEvidencePage(userID: userID, cursor: cursor)
+            for raw in response.events {
+                guard let event = Self.decode(raw) else { throw AppError.unknown }
+                events[event.id] = event
+            }
+            cursor = response.nextCursor
+            if let cursor, !seen.insert(cursor).inserted { throw AppError.unknown }
+        } while cursor != nil
+        return events.values.sorted {
+            $0.occurredAt == $1.occurredAt ? $0.id < $1.id : $0.occurredAt > $1.occurredAt
+        }
     }
 
     private static func decode(_ account: LegalEvidenceAccountFunctionValue) -> LegalEvidenceAccount {

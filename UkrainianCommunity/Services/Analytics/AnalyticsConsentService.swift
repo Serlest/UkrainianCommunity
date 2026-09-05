@@ -1,21 +1,30 @@
 import CryptoKit
 import Foundation
 
+struct AnalyticsConsentVersions: Codable, Equatable {
+    let privacyVersion: String
+    let disclosureVersion: String
+}
+
 protocol AnalyticsConsentProviding {
     func isAnalyticsEnabled(for principalID: String?) -> Bool
     func analyticsConsentID(for principalID: String?) -> String?
     func analyticsConsentLocale(for principalID: String?) -> String?
+    func analyticsConsentVersions(for principalID: String?) -> AnalyticsConsentVersions?
     func setAnalyticsEnabled(_ isEnabled: Bool, for principalID: String?)
 }
 
 extension AnalyticsConsentProviding {
     func analyticsConsentLocale(for principalID: String?) -> String? { nil }
+    func analyticsConsentVersions(for principalID: String?) -> AnalyticsConsentVersions? { nil }
 }
 
 final class AnalyticsConsentService: AnalyticsConsentProviding {
+    static let disclosureVersion = "2026-08-25.1"
     private let userDefaults: UserDefaults
     private let storageKey: String
     private var localeStorageKey: String { storageKey + ".locale" }
+    private var versionStorageKey: String { storageKey + ".versions" }
 
     init(
         userDefaults: UserDefaults = .standard,
@@ -45,16 +54,20 @@ final class AnalyticsConsentService: AnalyticsConsentProviding {
 
         var storedValues = userDefaults.dictionary(forKey: storageKey) ?? [:]
         var storedLocales = userDefaults.dictionary(forKey: localeStorageKey) ?? [:]
+        var storedVersions = userDefaults.dictionary(forKey: versionStorageKey) ?? [:]
         if isEnabled {
             if storedValues[identifier] as? String == nil {
                 storedValues[identifier] = UUID().uuidString
                 storedLocales[identifier] = LocalizationStore.language.rawValue
+                storedVersions[identifier] = ["privacyVersion": AuthService.currentPrivacyVersion, "disclosureVersion": Self.disclosureVersion]
             }
         } else {
             storedValues.removeValue(forKey: identifier)
             storedLocales.removeValue(forKey: identifier)
+            storedVersions.removeValue(forKey: identifier)
         }
 
+        userDefaults.set(storedVersions, forKey: versionStorageKey)
         if storedValues.isEmpty {
             userDefaults.removeObject(forKey: storageKey)
         } else {
@@ -73,6 +86,14 @@ final class AnalyticsConsentService: AnalyticsConsentProviding {
               let locale = userDefaults.dictionary(forKey: localeStorageKey)?[identifier] as? String,
               locale == "de" || locale == "uk" else { return nil }
         return locale
+    }
+
+    func analyticsConsentVersions(for principalID: String?) -> AnalyticsConsentVersions? {
+        guard analyticsConsentID(for: principalID) != nil,
+              let identifier = storageIdentifier(for: principalID),
+              let version = userDefaults.dictionary(forKey: versionStorageKey)?[identifier] as? [String: String],
+              let privacy = version["privacyVersion"], let disclosure = version["disclosureVersion"] else { return nil }
+        return AnalyticsConsentVersions(privacyVersion: privacy, disclosureVersion: disclosure)
     }
 
     private func storageIdentifier(for principalID: String?) -> String? {

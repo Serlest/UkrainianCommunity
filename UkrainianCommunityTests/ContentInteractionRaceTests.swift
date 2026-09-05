@@ -4,6 +4,38 @@ import Testing
 
 @MainActor
 struct ContentInteractionRaceTests {
+    @Test func createdOrganizationSurvivesFailedLogoAndRetriesWithoutDuplicating() async throws {
+        let repository = ControlledOrganizationRepository()
+        let user = MockContentBuilder.currentUser()
+        var organization = makeOrganization(id: "create-logo-recovery", submittedBy: user.id)
+        organization.moderationStatus = .pendingReview
+        repository.logoFailure = true
+        let model = OrganizationsViewModel(repository: repository)
+        do {
+            try await model.createOrganization(organization, imageData: Data([1]), user: user)
+            Issue.record("Upload failure must remain visible")
+        } catch {}
+        #expect(repository.organizations.count == 1)
+        #expect(repository.deleteRequestCount == 0)
+        repository.logoFailure = false
+        try await model.createOrganization(organization, imageData: Data([1]), user: user)
+        #expect(repository.organizations.count == 1)
+        #expect(repository.organizations.first?.imageURL != nil)
+        #expect(repository.deleteRequestCount == 0)
+    }
+
+    @Test func lostOrganizationCreateResponseRecoversTheCommittedRequest() async throws {
+        let repository = ControlledOrganizationRepository()
+        let user = MockContentBuilder.currentUser()
+        var organization = makeOrganization(id: "create-response-recovery", submittedBy: user.id)
+        organization.moderationStatus = .pendingReview
+        repository.failCreateAfterCommit = true
+        let model = OrganizationsViewModel(repository: repository)
+        try await model.createOrganization(organization, imageData: nil, user: user)
+        #expect(repository.organizations.count == 1)
+        #expect(repository.deleteRequestCount == 0)
+    }
+
     @Test func newsRecommendationCandidatesAreBoundedAndCachedForTheSession() async {
         let repository = ControlledNewsRepository()
         let model = NewsViewModel(repository: repository)
@@ -651,13 +683,15 @@ struct ContentInteractionRaceTests {
     private func makeOrganization(
         id: String,
         likeState: LikeState = .notLiked,
-        likeCount: Int = 0
+        likeCount: Int = 0,
+        submittedBy: String? = nil
     ) -> Organization {
         Organization(
             id: id,
             name: id,
             description: "Description",
             city: "Vienna",
+            submittedByUserId: submittedBy,
             createdAt: .now,
             updatedAt: .now,
             moderationStatus: .approved,
@@ -830,6 +864,9 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
         return PermissionService.manageableOrganizations(from: organizations, user: user)
     }
     var commentFailure: AppError?
+    var logoFailure = false
+    var failCreateAfterCommit = false
+    private(set) var deleteRequestCount = 0
 
     var organizations: [Organization] = []
     private(set) var likeRequestCount = 0
@@ -849,16 +886,19 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
     private(set) var updateRequestCount = 0
     func createOrganization(_ organization: Organization) async throws {
         createRequestCount += 1
+        guard !organizations.contains(where: { $0.id == organization.id }) else { throw AppError.permissionDenied }
         organizations.append(organization)
+        if failCreateAfterCommit { throw AppError.network }
     }
     func updateOrganization(_ organization: Organization) async throws {
         updateRequestCount += 1
         organizations.removeAll { $0.id == organization.id }
         organizations.append(organization)
     }
-    func deleteOrganization(id: String) async throws {}
+    func deleteOrganization(id: String) async throws { deleteRequestCount += 1 }
     func uploadOrganizationImage(data: Data, organizationID: String) async throws -> URL {
-        URL(string: "https://example.com/\(organizationID).jpg")!
+        if logoFailure { throw AppError.network }
+        return URL(string: "https://example.com/\(organizationID).jpg")!
     }
 
     func likeOrganization(id: String) async throws {

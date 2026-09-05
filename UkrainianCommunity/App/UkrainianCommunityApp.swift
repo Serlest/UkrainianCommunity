@@ -13,6 +13,12 @@ private enum FirebaseBootstrap {
         if !isConfigured {
             FirebaseConfiguration.shared.setLoggerLevel(.min)
             configureAppCheck()
+#if DEBUG && targetEnvironment(simulator)
+            if LocalFirebaseEmulatorConfiguration.configureIfRequested() {
+                isConfigured = true
+                return
+            }
+#endif
             FirebaseApp.configure()
             isConfigured = true
         }

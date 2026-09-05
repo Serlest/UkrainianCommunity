@@ -56,6 +56,7 @@ extension OrganizationEditorView {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("organization.editor.category.\(category.rawValue)")
                 }
             }
         }
@@ -206,7 +207,7 @@ extension OrganizationEditorView {
     }
 }
 
-private struct OrganizationEditorChoiceGrid<Content: View>: View {
+struct OrganizationEditorChoiceGrid<Content: View>: View {
     @ViewBuilder let content: Content
 
     init(@ViewBuilder content: () -> Content) {
@@ -214,9 +215,9 @@ private struct OrganizationEditorChoiceGrid<Content: View>: View {
     }
 
     var body: some View {
-        LazyVGrid(
-            columns: [GridItem(.adaptive(minimum: 138, maximum: 260), spacing: 8)],
-            alignment: .leading,
+        AppAdaptiveGrid(
+            minimumWidth: 138,
+            maximumWidth: 260,
             spacing: 8
         ) {
             content
@@ -224,26 +225,30 @@ private struct OrganizationEditorChoiceGrid<Content: View>: View {
     }
 }
 
-private struct OrganizationEditorChoiceTile: View {
+struct OrganizationEditorChoiceTile: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .subheadline) private var iconWidth = 20.0
     let title: String
     let systemImage: String
     let isSelected: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: dynamicTypeSize.isAccessibilitySize ? .top : .center, spacing: 8) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
-                .frame(width: 20)
+                .frame(width: iconWidth)
 
             Text(title)
                 .font(.footnote.weight(.semibold))
-                .lineLimit(2)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.leading)
 
             Spacer(minLength: 0)
         }
         .foregroundStyle(isSelected ? Color.white : AppTheme.textPrimary)
         .padding(.horizontal, 12)
+        .padding(.vertical, dynamicTypeSize.isAccessibilitySize ? 12 : 0)
         .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 13, style: .continuous)
@@ -257,6 +262,7 @@ private struct OrganizationEditorChoiceTile: View {
                 )
         }
         .contentShape(Rectangle())
+        .accessibilityLabel(title)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

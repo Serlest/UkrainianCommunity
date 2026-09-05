@@ -238,7 +238,9 @@ service firebase.storage {
 
     match /organizations/{organizationId}/photos/{fileName} {
       allow read: if canReadOrganizationMedia(organizationId);
-      allow create: if canManageOrganizationPhotos(organizationId)
+      // Storage CREATE includes replacement file contents; UPDATE is metadata-only.
+      allow create: if resource == null
+        && canManageOrganizationPhotos(organizationId)
         && fileName.matches('^.+\\.jpg$')
         && isSafeImageUpload();
       allow delete: if canManageOrganizationPhotos(organizationId)

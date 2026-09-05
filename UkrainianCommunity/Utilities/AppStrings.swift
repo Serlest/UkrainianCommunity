@@ -1,6 +1,27 @@
 import Foundation
 
 enum AppStrings {
+    enum AccessFailure {
+        static func message(_ reason: String) -> String {
+            switch reason {
+            case "sign_in_required": text("access_failure.sign_in_required", "Увійдіть в обліковий запис, щоб продовжити.")
+            case "email_unverified": text("access_failure.email_unverified", "Підтвердьте електронну пошту, щоб зберегти зміни.")
+            case "account_inactive": text("access_failure.account_inactive", "Обліковий запис наразі має обмеження. Перевірте повідомлення у профілі.")
+            case "session_refresh_required": text("access_failure.session_refresh_required", "Оновіть сеанс входу та повторіть спробу. Ваші зміни залишаються у редакторі.")
+            case "account_changed": text("access_failure.account_changed", "Обліковий запис змінився. Відкрийте редактор у потрібному обліковому записі.")
+            case "role_missing": text("access_failure.role_missing", "Ваша поточна роль не дозволяє цю дію. Перевірте доступ у власника організації.")
+            case "object_missing": text("access_failure.object_missing", "Матеріал більше недоступний. Оновіть список.")
+            case "object_changed": text("access_failure.object_changed", "Матеріал уже змінено в іншому сеансі. Оновіть його та перевірте свої зміни перед збереженням.")
+            case "invalid_request": text("access_failure.invalid_request", "Не вдалося прийняти ці дані. Перевірте поля редактора та повторіть спробу.")
+            case "route_disabled": text("access_failure.route_disabled", "Ця дія тимчасово недоступна. Ваші зміни залишаються у редакторі.")
+            case "operation_expired": text("access_failure.operation_expired", "Попередня спроба завантаження застаріла. Виберіть фото ще раз.")
+            case "limit_reached": text("access_failure.limit_reached", "Досягнуто ліміт фотографій організації. Спочатку видаліть непотрібне фото.")
+            case "network_unavailable": text("access_failure.network_unavailable", "Немає з’єднання із сервером. Перевірте інтернет і повторіть спробу; зміни залишаються у редакторі.")
+            default: text("access_failure.outcome_unknown", "Результат збереження ще не підтверджено. Повторіть цю спробу, щоб перевірити результат.")
+            }
+        }
+    }
+
     enum AppUpdate {
         static var title: String { text("app_update.title", "Доступне оновлення UAC") }
         static var updateNow: String { text("app_update.now", "Оновити зараз") }
@@ -30,12 +51,15 @@ enum AppStrings {
     }
 
     enum AppLock {
+        static var delayTitle: String { text("app_lock.delay_title", "Блокувати після згортання") }
+        static var delayImmediately: String { text("app_lock.delay_immediately", "Одразу") }
+        static var delayMinute: String { text("app_lock.delay_minute", "Через хвилину") }
         static var registrationTitle: String { text("app_lock.registration_title", "Увімкнути Face ID / Touch ID") }
         static var registrationHelp: String { text("app_lock.registration_help", "Необов’язково. Підтвердьте захист через Face ID, Touch ID або код пристрою. Він увімкнеться для цього акаунта на цьому пристрої після успішної реєстрації. Згодом його можна ввімкнути або вимкнути в налаштуваннях профілю. Звичайний вхід з email і паролем залишається доступним.") }
         static var registrationFailed: String { text("app_lock.registration_failed", "Захист не ввімкнено. Спробуйте ще раз або продовжуйте реєстрацію без нього.") }
         static var settingsTitle: String { text("app_lock.settings_title", "Захист доступу") }
         static var toggleTitle: String { text("app_lock.toggle_title", "Захист через Face ID / Touch ID") }
-        static var settingsHelp: String { text("app_lock.settings_help", "Після згортання застосунку доступ до цього акаунту на цьому пристрої потребуватиме Face ID, Touch ID або коду пристрою. Після виходу з акаунту потрібно знову ввести email і пароль.") }
+        static var settingsHelp: String { text("app_lock.settings_help", "Після згортання застосунку захист цього акаунту вмикається через вибраний інтервал. Після перезапуску потрібен Face ID, Touch ID або код пристрою. Після виходу з акаунту потрібно знову ввести email і пароль.") }
         static var unavailable: String { text("app_lock.unavailable", "Налаштуйте Face ID або Touch ID в параметрах пристрою та дозвольте доступ для застосунку.") }
         static var lockedTitle: String { text("app_lock.locked_title", "Доступ заблоковано") }
         static var lockedHelp: String { text("app_lock.locked_help", "Натисніть «Розблокувати», щоб підтвердити доступ через Face ID, Touch ID або код пристрою.") }
@@ -846,6 +870,8 @@ enum AppStrings {
     }
 
     enum Organizations {
+        static var editConflict: String { text("organization.edit_conflict", "Організацію вже змінено в іншому сеансі. Відкрийте її ще раз і перевірте свої зміни перед збереженням.") }
+
         static var title: String { text("organizations.title", "Organizations") }
         static var detailTitle: String { text("organizations.detail.title", "Деталі організації") }
         static var detailBadge: String { text("organizations.detail.badge", "Організація") }
@@ -1092,6 +1118,8 @@ enum AppStrings {
         static var photosCaptionPlaceholder: String { text("organizations.photos.caption_placeholder", "Короткий опис фото") }
         static var photosUpload: String { text("organizations.photos.upload", "Завантажити") }
         static var photosUploading: String { text("organizations.photos.uploading", "Завантажуємо фото...") }
+        static var photosReplace: String { text("organizations.photos.replace", "Замінити фото") }
+        static var photosReloadCurrent: String { text("organizations.photos.reload_current", "Оновити дані, зберігши мій чернетковий варіант") }
         static var photosUploadFailed: String { text("organizations.photos.upload_failed", "Не вдалося завантажити фото.") }
         static var photosLoadFailed: String { text("organizations.photos.load_failed", "Не вдалося завантажити фото організації.") }
         static var photosDelete: String { text("organizations.photos.delete", "Видалити фото") }
@@ -2478,6 +2506,7 @@ enum AppStrings {
     }
 
     enum LegalEvidence {
+        static var exportHistory: String { text("legal_evidence.export_history", "Експортувати повну історію") }
         static var title: String { text("legal_evidence.title", "Consents and legal evidence") }
         static var subtitle: String { text("legal_evidence.subtitle", "Owner-only immutable history of Terms, Privacy, age, organization rules, and analytics consent.") }
         static var accountsTitle: String { text("legal_evidence.accounts.title", "Accounts") }

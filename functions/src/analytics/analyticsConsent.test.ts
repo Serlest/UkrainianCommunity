@@ -1,5 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
+import {readFileSync} from "node:fs";
+import {resolve} from "node:path";
 
 import {
   analyticsConsentDisclosureVersion,
@@ -48,4 +50,13 @@ test("consent receipt identifiers are stable and do not expose principal or UUID
   assert.match(receiptID, /^[0-9a-f]{64}$/);
   assert.equal(receiptID.includes("private-user"), false);
   assert.equal(receiptID.includes(consentID), false);
+});
+
+
+test("server receipt versions match the current iOS disclosure contract", () => {
+  const root = resolve(__dirname, "../../../UkrainianCommunity/Services");
+  const auth = readFileSync(resolve(root, "Auth/AuthService.swift"), "utf8");
+  const consent = readFileSync(resolve(root, "Analytics/AnalyticsConsentService.swift"), "utf8");
+  assert.equal(auth.match(/currentPrivacyVersion = "([^"]+)"/)?.[1], analyticsConsentPrivacyVersion);
+  assert.equal(consent.match(/disclosureVersion = "([^"]+)"/)?.[1], analyticsConsentDisclosureVersion);
 });

@@ -1,0 +1,1145 @@
+[
+{
+  "kind": "event",
+  "canonicalURL": "https://www.stadthalle.com/de/events/alle-events/51216/European-Street-Food-Festival",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/01-street-food.png",
+  "imageAlternativeText": "Вуличний гастрономічний фестиваль біля Wiener Stadthalle з різноманітними кухнями світу",
+  "title": "European Street Food Festival біля Wiener Stadthalle",
+  "summary": "Два дні страв із різних країн просто неба біля Halle E — із вільним входом.",
+  "details": "5 вересня фестиваль працює з 11:00 до 22:00, 6 вересня — з 11:00 до 20:00. Подія проходить просто неба біля Halle E. Вхід вільний.",
+  "deTitle": "European Street Food Festival bei der Wiener Stadthalle",
+  "deSummary": "Zwei Tage internationale Street-Food-Küche im Freien bei Halle E bei freiem Eintritt.",
+  "deDetails": "Am 5. September ist das Festival von 11:00 bis 22:00 Uhr geöffnet, am 6. September von 11:00 bis 20:00 Uhr. Die Veranstaltung findet im Freien bei Halle E statt. Der Eintritt ist frei.",
+  "city": "Wien",
+  "venue": "Wiener Stadthalle, Außenbereich Halle E",
+  "address": "Roland-Rainer-Platz 1, 1150 Wien",
+  "organizerName": "Wildstyle & Tattoo Messeveranstaltungs GmbH",
+  "organizerURL": "https://www.streetfood-festival.eu/",
+  "contactURL": "https://www.stadthalle.com/de/events/alle-events/51216/European-Street-Food-Festival",
+  "category": "foodAndMarket",
+  "additionalCategories": [
+    "festivalsAndFairs"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Офіційна інформація",
+  "externalActionURL": "https://www.stadthalle.com/de/events/alle-events/51216/European-Street-Food-Festival",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-05T09:00:00Z",
+      "endDate": "2026-09-05T20:00:00Z"
+    },
+    {
+      "startDate": "2026-09-06T09:00:00Z",
+      "endDate": "2026-09-06T18:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.stadthalle.com/de/events/alle-events/51216/European-Street-Food-Festival",
+      "title": "Wiener Stadthalle — офіційна сторінка",
+      "isPrimary": true
+    },
+    {
+      "url": "https://presse.wien.gv.at/kategoriennavigation/-/asset_publisher/zraFORwNk9Zp/content/2026-08-28-wiener-stadthalle-event-highlights-im-september-2026",
+      "title": "Stadt Wien — вересневі події Stadthalle",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.stadthalle.com/de/events/alle-events/51206/Wildstyle--Tattoo-Messe-2026",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/02-wildstyle.png",
+  "imageAlternativeText": "Міжнародна тату-виставка й сценічна програма у великій залі Відня",
+  "title": "Wildstyle & Tattoo Messe 2026 у Wien",
+  "summary": "Міжнародні тату-майстри, шоу та концерти протягом двох днів у Halle E.",
+  "details": "5 вересня виставка відкрита з 12:00 до 24:00, 6 вересня — з 12:00 до 20:00. Квитки у Wien Ticket коштують від 29 євро; перевіряйте доступність перед поїздкою.",
+  "deTitle": "Wildstyle & Tattoo Messe 2026 in Wien",
+  "deSummary": "Internationale Tattoo-Artists, Shows und Konzerte an zwei Tagen in Halle E.",
+  "deDetails": "Am 5. September ist die Messe von 12:00 bis 24:00 Uhr geöffnet, am 6. September von 12:00 bis 20:00 Uhr. Tickets bei Wien Ticket kosten ab 29 Euro; Verfügbarkeit bitte vor der Anreise prüfen.",
+  "city": "Wien",
+  "venue": "Wiener Stadthalle, Halle E",
+  "address": "Vogelweidplatz 14, 1150 Wien",
+  "organizerName": "Wildstyle & Tattoo Messeveranstaltungs GmbH",
+  "organizerURL": "https://www.wildstyle.at/",
+  "contactURL": "https://www.stadthalle.com/de/events/alle-events/51206/Wildstyle--Tattoo-Messe-2026",
+  "category": "festivalsAndFairs",
+  "additionalCategories": [
+    "culture",
+    "music"
+  ],
+  "audience": "adults",
+  "requiresRegistration": true,
+  "participationMode": "externalTickets",
+  "externalActionTitle": "Квитки",
+  "externalActionURL": "https://www.wien-ticket.at/de/spielstaette/150/Wiener-Stadthalle-Halle-E",
+  "pricing": {
+    "kind": "from",
+    "amount": 29,
+    "note": "Квитки від 29 €."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-05T10:00:00Z",
+      "endDate": "2026-09-05T22:00:00Z"
+    },
+    {
+      "startDate": "2026-09-06T10:00:00Z",
+      "endDate": "2026-09-06T18:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.stadthalle.com/de/events/alle-events/51206/Wildstyle--Tattoo-Messe-2026",
+      "title": "Wiener Stadthalle — офіційна сторінка",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.wien-ticket.at/de/spielstaette/150/Wiener-Stadthalle-Halle-E",
+      "title": "Wien Ticket — офіційні квитки",
+      "isPrimary": false
+    },
+    {
+      "url": "https://www.worldtattooevents.com/event/wildstyle-tattoo-messe-2026",
+      "title": "World Tattoo Events — додатковий анонс",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.wiener-staatsoper.at/en/calendar/detail/opern-air/",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/03-opern-air.png",
+  "imageAlternativeText": "Вечірній оперний концерт просто неба у віденському Burggarten",
+  "title": "Opern Air: безкоштовний оперний вечір у Burggarten",
+  "summary": "Wiener Staatsoper відкриває сезон великим концертом просто неба з провідними солістами.",
+  "details": "Концерт відбудеться 6 вересня з 19:30 до 21:30 у Burggarten. Вхід вільний, квиток не потрібен. Програма залежить від погодних та організаційних умов.",
+  "deTitle": "Opern Air: kostenloser Opernabend im Burggarten",
+  "deSummary": "Die Wiener Staatsoper eröffnet die Saison mit einem großen Open-Air-Konzert und prominenten Solist:innen.",
+  "deDetails": "Das Konzert findet am 6. September von 19:30 bis 21:30 Uhr im Burggarten statt. Der Eintritt ist frei, ein Ticket ist nicht erforderlich. Wetter- und organisationsbedingte Änderungen sind möglich.",
+  "city": "Wien",
+  "venue": "Burggarten",
+  "address": "Burggarten, 1010 Wien",
+  "organizerName": "Wiener Staatsoper",
+  "organizerURL": "https://www.wiener-staatsoper.at/",
+  "contactURL": "https://www.wiener-staatsoper.at/en/calendar/detail/opern-air/",
+  "category": "music",
+  "additionalCategories": [
+    "culture",
+    "celebration"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Програма",
+  "externalActionURL": "https://www.wiener-staatsoper.at/en/calendar/detail/opern-air/",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-06T17:30:00Z",
+      "endDate": "2026-09-06T19:30:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.wiener-staatsoper.at/en/calendar/detail/opern-air/",
+      "title": "Wiener Staatsoper — офіційна програма",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.wien.info/en/art-culture/music-stage-shows/summer-performances-360482",
+      "title": "Wien Tourismus — незалежний анонс",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://viennafashionweek.com/informationen/?lang=de",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/04-fashion-week.png",
+  "imageAlternativeText": "Підготовка моделей і дизайнерів до показу мод у MuseumsQuartier Wien",
+  "title": "Vienna Fashion Week 2026 у MuseumsQuartier",
+  "summary": "Шість днів дизайнерських показів і презентацій у Halle E+G.",
+  "details": "14 вересня — 19:00–23:00; 15 вересня — 15:00–22:00; 16–17 вересня — 17:00–22:00; 18–19 вересня — 15:00–22:00. Попередній продаж від 29 €, каса від 36 €. На відкриття потрібне запрошення або квиток.",
+  "deTitle": "Vienna Fashion Week 2026 im MuseumsQuartier",
+  "deSummary": "Sechs Tage mit Designer-Shows und Präsentationen in Halle E+G.",
+  "deDetails": "14. September: 19:00–23:00 Uhr; 15. September: 15:00–22:00 Uhr; 16.–17. September: 17:00–22:00 Uhr; 18.–19. September: 15:00–22:00 Uhr. Vorverkauf ab 29 Euro, Abendkasse ab 36 Euro. Für die Eröffnung ist Einladung oder Ticket erforderlich.",
+  "city": "Wien",
+  "venue": "Halle E+G, MuseumsQuartier",
+  "address": "Museumsplatz 1, 1070 Wien",
+  "organizerName": "creative headz OG",
+  "organizerURL": "https://viennafashionweek.com/",
+  "contactURL": "https://viennafashionweek.com/informationen/?lang=de",
+  "category": "culture",
+  "additionalCategories": [
+    "festivalsAndFairs",
+    "businessAndNetworking"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": true,
+  "participationMode": "externalTickets",
+  "externalActionTitle": "Інформація та квитки",
+  "externalActionURL": "https://viennafashionweek.com/informationen/?lang=de",
+  "pricing": {
+    "kind": "from",
+    "amount": 29,
+    "note": "Передпродаж від 29 €, каса від 36 €."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-14T17:00:00Z",
+      "endDate": "2026-09-14T21:00:00Z"
+    },
+    {
+      "startDate": "2026-09-15T13:00:00Z",
+      "endDate": "2026-09-15T20:00:00Z"
+    },
+    {
+      "startDate": "2026-09-16T15:00:00Z",
+      "endDate": "2026-09-16T20:00:00Z"
+    },
+    {
+      "startDate": "2026-09-17T15:00:00Z",
+      "endDate": "2026-09-17T20:00:00Z"
+    },
+    {
+      "startDate": "2026-09-18T13:00:00Z",
+      "endDate": "2026-09-18T20:00:00Z"
+    },
+    {
+      "startDate": "2026-09-19T13:00:00Z",
+      "endDate": "2026-09-19T20:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://viennafashionweek.com/informationen/?lang=de",
+      "title": "Vienna Fashion Week — години й квитки",
+      "isPrimary": true
+    },
+    {
+      "url": "https://viennafashionweek.com/about/",
+      "title": "Vienna Fashion Week — організатор і формат",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.wien.gv.at/veranstaltungen/feuerwehrfest",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/05-feuerwehrfest.png",
+  "imageAlternativeText": "День відкритих дверей віденської пожежної служби з історичною й сучасною технікою",
+  "title": "Wiener Feuerwehrfest: 340 років професійній пожежній службі",
+  "summary": "Три дні техніки, показових вправ, музики та дитячої програми у Zentralfeuerwache Am Hof.",
+  "details": "11 і 12 вересня програма триває з 09:00 до 21:30, 13 вересня — з 09:00 до 17:00. Вхід вільний. Собаки допускаються на повідку й у наморднику.",
+  "deTitle": "Wiener Feuerwehrfest: 340 Jahre Berufsfeuerwehr",
+  "deSummary": "Drei Tage Technik, Vorführungen, Musik und Kinderprogramm in der Zentralfeuerwache Am Hof.",
+  "deDetails": "Am 11. und 12. September läuft das Programm von 09:00 bis 21:30 Uhr, am 13. September von 09:00 bis 17:00 Uhr. Der Eintritt ist frei. Hunde sind mit Leine und Maulkorb erlaubt.",
+  "city": "Wien",
+  "venue": "Zentralfeuerwache Am Hof",
+  "address": "Am Hof 7, 1010 Wien",
+  "organizerName": "Berufsfeuerwehr Wien",
+  "organizerURL": "https://www.wien.gv.at/spezial/feuerwehrfest/",
+  "contactURL": "https://www.wien.gv.at/veranstaltungen/feuerwehrfest",
+  "category": "childrenAndFamily",
+  "additionalCategories": [
+    "education",
+    "celebration"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Програма",
+  "externalActionURL": "https://www.wien.gv.at/veranstaltungen/feuerwehrfest",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-11T07:00:00Z",
+      "endDate": "2026-09-11T19:30:00Z"
+    },
+    {
+      "startDate": "2026-09-12T07:00:00Z",
+      "endDate": "2026-09-12T19:30:00Z"
+    },
+    {
+      "startDate": "2026-09-13T07:00:00Z",
+      "endDate": "2026-09-13T15:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/feuerwehrfest",
+      "title": "Stadt Wien — офіційна сторінка",
+      "isPrimary": true
+    },
+    {
+      "url": "https://oe3.oevsv.at/termine/veranstaltungen/LV1-am-Wiener-Feuerwehrfest/",
+      "title": "ÖVSV — додатковий анонс",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.wien.gv.at/veranstaltungen/ernte-dank-festival",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/06-erntedank.png",
+  "imageAlternativeText": "Свято врожаю з регіональними продуктами та музикою на Heldenplatz у Wien",
+  "title": "ernte.dank.festival на Heldenplatz",
+  "summary": "Австрійське сільське господарство, регіональні продукти, музика й інтерактивна сімейна програма.",
+  "details": "12 вересня фестиваль відкритий з 10:00 до 22:00, 13 вересня — з 10:00 до 18:00. Вхід вільний.",
+  "deTitle": "ernte.dank.festival am Heldenplatz",
+  "deSummary": "Österreichische Landwirtschaft, regionale Produkte, Musik und ein interaktives Familienprogramm.",
+  "deDetails": "Am 12. September ist das Festival von 10:00 bis 22:00 Uhr geöffnet, am 13. September von 10:00 bis 18:00 Uhr. Der Eintritt ist frei.",
+  "city": "Wien",
+  "venue": "Heldenplatz",
+  "address": "Heldenplatz, 1010 Wien",
+  "organizerName": "Ökosoziales Forum Österreich & Europa",
+  "organizerURL": "https://oekosozial.at/",
+  "contactURL": "mailto:info@oekosozial.at",
+  "category": "festivalsAndFairs",
+  "additionalCategories": [
+    "foodAndMarket",
+    "childrenAndFamily"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Офіційна програма",
+  "externalActionURL": "https://www.wien.gv.at/veranstaltungen/ernte-dank-festival",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-12T08:00:00Z",
+      "endDate": "2026-09-12T20:00:00Z"
+    },
+    {
+      "startDate": "2026-09-13T08:00:00Z",
+      "endDate": "2026-09-13T16:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/ernte-dank-festival",
+      "title": "Stadt Wien — офіційна сторінка",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.wienerwein.at/erntedankfestival2026",
+      "title": "Wiener Wein — додаткове підтвердження",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.wien.gv.at/veranstaltungen/josefstaedter-strassenfest",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/07-josefstaedter.png",
+  "imageAlternativeText": "Районне вуличне свято з концертною сценою на Josefstädter Straße",
+  "title": "Josefstädter Straßenfest: дві сцени й велика районна програма",
+  "summary": "Музика, дитячі активності, локальні заклади та міське життя просто на Josefstädter Straße.",
+  "details": "18 вересня з 14:00 до 21:00. Вхід вільний; подія відбудеться за будь-якої погоди. Трамвай 2 не курсуватиме через фестивальну ділянку — перевірте маршрут перед поїздкою.",
+  "deTitle": "Josefstädter Straßenfest: zwei Bühnen und großes Bezirksprogramm",
+  "deSummary": "Musik, Kinderangebote, lokale Betriebe und Stadtleben direkt auf der Josefstädter Straße.",
+  "deDetails": "Am 18. September von 14:00 bis 21:00 Uhr. Eintritt frei; die Veranstaltung findet bei jedem Wetter statt. Die Straßenbahnlinie 2 fährt nicht durch den Festabschnitt – bitte die Route vor der Anreise prüfen.",
+  "city": "Wien",
+  "venue": "Josefstädter Straße",
+  "address": "Josefstädter Straße, 1080 Wien",
+  "organizerName": "Brandl Events / Bezirksvorstehung Josefstadt",
+  "organizerURL": "https://www.wien.gv.at/veranstaltungen/josefstaedter-strassenfest",
+  "contactURL": "https://www.wien.gv.at/veranstaltungen/josefstaedter-strassenfest",
+  "category": "festivalsAndFairs",
+  "additionalCategories": [
+    "music",
+    "childrenAndFamily"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Програма",
+  "externalActionURL": "https://www.wien.gv.at/veranstaltungen/josefstaedter-strassenfest",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-18T12:00:00Z",
+      "endDate": "2026-09-18T19:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/josefstaedter-strassenfest",
+      "title": "Stadt Wien — офіційна програма",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/herbst-veranstaltungen",
+      "title": "Stadt Wien — осінній календар",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.wien.gv.at/veranstaltungen/mistfest",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/08-mistfest.png",
+  "imageAlternativeText": "Сімейний екологічний фестиваль із сортуванням відходів і міською технікою",
+  "title": "Mistfest 2026: екологія, техніка й сімейна програма",
+  "summary": "Безкоштовний фестиваль MA 48 про сортування, переробку та міські служби.",
+  "details": "19 і 20 вересня з 09:00 до 18:00 на Mistplatz Hernals. Вхід вільний. Майданчик переважно безбар’єрний; собаки дозволені.",
+  "deTitle": "Mistfest 2026: Umwelt, Technik und Familienprogramm",
+  "deSummary": "Kostenloses MA-48-Fest rund um Mülltrennung, Recycling und städtische Dienste.",
+  "deDetails": "Am 19. und 20. September jeweils von 09:00 bis 18:00 Uhr am Mistplatz Hernals. Eintritt frei. Das Gelände ist weitgehend barrierefrei; Hunde sind erlaubt.",
+  "city": "Wien",
+  "venue": "Mistplatz Hernals",
+  "address": "Richthausenstraße 2, 1170 Wien",
+  "organizerName": "MA 48 – Abfallwirtschaft, Straßenreinigung und Fuhrpark",
+  "organizerURL": "https://www.wien.gv.at/umwelt/muell",
+  "contactURL": "https://www.wien.gv.at/veranstaltungen/mistfest",
+  "category": "education",
+  "additionalCategories": [
+    "childrenAndFamily",
+    "festivalsAndFairs"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Програма",
+  "externalActionURL": "https://www.wien.gv.at/veranstaltungen/mistfest",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-19T07:00:00Z",
+      "endDate": "2026-09-19T16:00:00Z"
+    },
+    {
+      "startDate": "2026-09-20T07:00:00Z",
+      "endDate": "2026-09-20T16:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/mistfest",
+      "title": "Stadt Wien — офіційна сторінка",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.wien.gv.at/umwelt/muell",
+      "title": "MA 48 — офіційна інформація",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.wien.gv.at/veranstaltungen/weinwandertag",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/09-weinwandertag.png",
+  "imageAlternativeText": "Пішохідний маршрут виноградниками з панорамою Wien і Дунаю",
+  "title": "Wiener Weinwandertag: прогулянки виноградниками міста",
+  "summary": "Кілька маршрутів через віденські виноградники, краєвиди, винні господарства та сімейні зони.",
+  "details": "26 і 27 вересня з 10:00 до 18:00. Участь безкоштовна; на окремих маршрутах є ділянки для дитячих візків та майданчики. Оберіть маршрут на офіційній сторінці.",
+  "deTitle": "Wiener Weinwandertag: Spaziergänge durch die Weingärten",
+  "deSummary": "Mehrere Wege durch Wiens Weingärten mit Ausblicken, Heurigen und Familienangeboten.",
+  "deDetails": "Am 26. und 27. September jeweils von 10:00 bis 18:00 Uhr. Die Teilnahme ist kostenlos; einzelne Routen bieten kinderwagentaugliche Abschnitte und Spielplätze. Route bitte auf der offiziellen Seite wählen.",
+  "city": "Wien",
+  "venue": "Віденські виноградники, кілька маршрутів",
+  "address": "Різні стартові точки у Wien",
+  "organizerName": "MA 49 – Klima, Forst- und Landwirtschaftsbetrieb",
+  "organizerURL": "https://www.wien.gv.at/umwelt/wald",
+  "contactURL": "mailto:post@ma49.wien.gv.at",
+  "category": "excursionsAndNature",
+  "additionalCategories": [
+    "sportsAndWellness",
+    "foodAndMarket"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Маршрути",
+  "externalActionURL": "https://www.wien.gv.at/veranstaltungen/weinwandertag",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Участь безкоштовна; споживання оплачується окремо."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-26T08:00:00Z",
+      "endDate": "2026-09-26T16:00:00Z"
+    },
+    {
+      "startDate": "2026-09-27T08:00:00Z",
+      "endDate": "2026-09-27T16:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/weinwandertag",
+      "title": "Stadt Wien — маршрути й години",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/herbst-veranstaltungen",
+      "title": "Stadt Wien — осінній календар",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.openhouse-wien.at/programm",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/10-open-house.png",
+  "imageAlternativeText": "Група відвідувачів входить до сучасної віденської будівлі під час архітектурного вікенду",
+  "title": "Open House Wien: понад 50 будівель відкриють двері",
+  "summary": "Безкоштовні архітектурні відвідини місць, які зазвичай недоступні широкій публіці.",
+  "details": "Фестиваль триває 25–27 вересня. Позначені в програмі будівлі відкриті у відповідний день з 10:00 до 17:00. Реєстрація не потрібна; вхід у порядку живої черги. Перевірте конкретну адресу й день у програмі.",
+  "deTitle": "Open House Wien: Über 50 Gebäude öffnen ihre Türen",
+  "deSummary": "Kostenlose Architektur-Besuche an Orten, die sonst oft nicht öffentlich zugänglich sind.",
+  "deDetails": "Das Festival läuft vom 25. bis 27. September. Die im Programm gekennzeichneten Gebäude sind am jeweiligen Tag von 10:00 bis 17:00 Uhr geöffnet. Keine Anmeldung; Zugang nach Reihenfolge. Konkrete Adresse und Tag bitte im Programm prüfen.",
+  "city": "Wien",
+  "venue": "Понад 50 будівель у Wien",
+  "address": "Різні адреси у Wien",
+  "organizerName": "OPEN HOUSE WIEN",
+  "organizerURL": "https://www.openhouse-wien.at/",
+  "contactURL": "https://www.openhouse-wien.at/programm",
+  "category": "culture",
+  "additionalCategories": [
+    "education",
+    "excursionsAndNature"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Будівлі та дні",
+  "externalActionURL": "https://www.openhouse-wien.at/programm",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний, без реєстрації."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-25T08:00:00Z",
+      "endDate": "2026-09-25T15:00:00Z"
+    },
+    {
+      "startDate": "2026-09-26T08:00:00Z",
+      "endDate": "2026-09-26T15:00:00Z"
+    },
+    {
+      "startDate": "2026-09-27T08:00:00Z",
+      "endDate": "2026-09-27T15:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.openhouse-wien.at/programm",
+      "title": "Open House Wien — офіційна програма",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.openhouseworldwide.org/vienna",
+      "title": "Open House Worldwide — мережеве підтвердження",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.viennadesignweek.at/en/info/festival-2026/festival-headquarters-at-hietzinger-kai-101/",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/11-design-week.png",
+  "imageAlternativeText": "Відвідувачі розглядають сучасні дизайн-об’єкти у фестивальному просторі на Hietzinger Kai",
+  "title": "Vienna Design Week 2026: дизайн у Hietzing і по всьому місту",
+  "summary": "Десятиденний фестиваль дизайну з виставками, інсталяціями, майстернями та відкритими форматами.",
+  "details": "Фестиваль триває з 25 вересня до 4 жовтня. Центральний простір за адресою Hietzinger Kai 101 працює щодня з 11:00 до 19:00, вхід до штаб-квартири вільний. Окремі події мають власні години й умови.",
+  "deTitle": "Vienna Design Week 2026: Design in Hietzing und in der ganzen Stadt",
+  "deSummary": "Zehntägiges Designfestival mit Ausstellungen, Installationen, Workshops und offenen Formaten.",
+  "deDetails": "Das Festival läuft vom 25. September bis 4. Oktober. Die Festivalzentrale am Hietzinger Kai 101 ist täglich von 11:00 bis 19:00 Uhr geöffnet, der Eintritt dort ist frei. Einzelveranstaltungen haben eigene Zeiten und Bedingungen.",
+  "city": "Wien",
+  "venue": "Festivalzentrale",
+  "address": "Hietzinger Kai 101, 1130 Wien",
+  "organizerName": "VIENNA DESIGN WEEK",
+  "organizerURL": "https://www.viennadesignweek.at/",
+  "contactURL": "https://www.viennadesignweek.at/info/festival-2026/",
+  "category": "culture",
+  "additionalCategories": [
+    "festivalsAndFairs",
+    "education"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Програма фестивалю",
+  "externalActionURL": "https://www.viennadesignweek.at/info/festival-2026/",
+  "pricing": {
+    "kind": "mixed",
+    "note": "Штаб-квартира безкоштовна; окремі події можуть мати інші умови."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-25T09:00:00Z",
+      "endDate": "2026-09-25T17:00:00Z"
+    },
+    {
+      "startDate": "2026-09-26T09:00:00Z",
+      "endDate": "2026-09-26T17:00:00Z"
+    },
+    {
+      "startDate": "2026-09-27T09:00:00Z",
+      "endDate": "2026-09-27T17:00:00Z"
+    },
+    {
+      "startDate": "2026-09-28T09:00:00Z",
+      "endDate": "2026-09-28T17:00:00Z"
+    },
+    {
+      "startDate": "2026-09-29T09:00:00Z",
+      "endDate": "2026-09-29T17:00:00Z"
+    },
+    {
+      "startDate": "2026-09-30T09:00:00Z",
+      "endDate": "2026-09-30T17:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.viennadesignweek.at/en/info/festival-2026/festival-headquarters-at-hietzinger-kai-101/",
+      "title": "Vienna Design Week — штаб-квартира й години",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.viennadesignweek.at/info/festival-2026/",
+      "title": "Vienna Design Week — загальна програма",
+      "isPrimary": false
+    },
+    {
+      "url": "https://www.viennadesignweek.at/presse/",
+      "title": "Vienna Design Week — актуальні пресматеріали",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.belvedere.at/veranstaltung/tea-talk-sharing-space-0",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/12-tea-talk.png",
+  "imageAlternativeText": "Мультимовна розмова за чаєм у сучасному музейному просторі Wien",
+  "title": "Tea Talk у Belvedere 21 з перекладом українською",
+  "summary": "Безкоштовна зустріч для спілкування й обміну досвідом німецькою з перекладом українською, англійською та російською.",
+  "details": "Зустрічі відбудуться 2 і 16 вересня з 15:30 до 17:30 у Belvedere 21. Участь безкоштовна, але потрібен безкоштовний квиток на подію.",
+  "deTitle": "Tea Talk im Belvedere 21 mit ukrainischer Übersetzung",
+  "deSummary": "Kostenloses Gesprächsformat auf Deutsch mit Übersetzung ins Ukrainische, Englische und Russische.",
+  "deDetails": "Die Treffen finden am 2. und 16. September jeweils von 15:30 bis 17:30 Uhr im Belvedere 21 statt. Die Teilnahme ist kostenlos, ein kostenloses Veranstaltungsticket ist jedoch erforderlich.",
+  "city": "Wien",
+  "venue": "Belvedere 21",
+  "address": "Arsenalstraße 1, 1030 Wien",
+  "organizerName": "Belvedere",
+  "organizerURL": "https://www.belvedere.at/",
+  "contactURL": "https://www.belvedere.at/veranstaltung/tea-talk-sharing-space-0",
+  "category": "supportAndIntegration",
+  "additionalCategories": [
+    "meetups",
+    "culture"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": true,
+  "participationMode": "externalRegistration",
+  "externalActionTitle": "Безкоштовний квиток",
+  "externalActionURL": "https://www.belvedere.at/veranstaltung/tea-talk-sharing-space-0",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Безкоштовно, потрібен квиток."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-02T13:30:00Z",
+      "endDate": "2026-09-02T15:30:00Z"
+    },
+    {
+      "startDate": "2026-09-16T13:30:00Z",
+      "endDate": "2026-09-16T15:30:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.belvedere.at/veranstaltung/tea-talk-sharing-space-0",
+      "title": "Belvedere — офіційна сторінка події",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.belvedere.at/belvedere-21",
+      "title": "Belvedere 21 — офіційна інформація про майданчик",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://ateliertheater.wien/events/innenland/?occurrence=2026-09-24",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/13-innenland.png",
+  "imageAlternativeText": "Українсько-німецький літературний вечір із кінопоказом і фотовиставкою у віденському театрі",
+  "title": "INNENLAND: українсько-німецький культурний вечір у Wien",
+  "summary": "Білінгвальна літературна сцена, показ фільму «PATSYKY» та фотовиставка.",
+  "details": "24 вересня з 19:00 до 22:00 в Ateliertheater. Подія адресована віденській і українській аудиторії; мови програми — українська й німецька. Умови входу перевірте на офіційній сторінці.",
+  "deTitle": "INNENLAND: ukrainisch-deutscher Kulturabend in Wien",
+  "deSummary": "Bilinguale Literaturbühne, Filmvorführung „PATSYKY“ und Fotoausstellung.",
+  "deDetails": "Am 24. September von 19:00 bis 22:00 Uhr im Ateliertheater. Die Veranstaltung richtet sich an Wiener und ukrainisches Publikum; Programmsprachen sind Ukrainisch und Deutsch. Eintrittsbedingungen bitte auf der offiziellen Seite prüfen.",
+  "city": "Wien",
+  "venue": "Ateliertheater",
+  "address": "Burggasse 71, 1070 Wien",
+  "organizerName": "Ateliertheater",
+  "organizerURL": "https://ateliertheater.wien/",
+  "contactURL": "mailto:info@ateliertheater.wien",
+  "category": "culture",
+  "additionalCategories": [
+      "supportAndIntegration",
+    "music"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Офіційна сторінка",
+  "externalActionURL": "https://ateliertheater.wien/events/innenland/?occurrence=2026-09-24",
+  "pricing": {
+    "kind": "unspecified",
+    "note": "Ціна на перевіреній сторінці не вказана."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-24T17:00:00Z",
+      "endDate": "2026-09-24T20:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://ateliertheater.wien/events/innenland/?occurrence=2026-09-24",
+      "title": "Ateliertheater — офіційна програма",
+      "isPrimary": true
+    },
+    {
+      "url": "https://ateliertheater.wien/programm/",
+      "title": "Ateliertheater — календар майданчика",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://wien.arbeiterkammer.at/summerinthecity",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/14-ak-summer.png",
+  "imageAlternativeText": "Безкоштовна консультація з оренди житла на районній площі Wien",
+  "title": "AK Summer in the City: безкоштовна перевірка оренди й районне свято",
+  "summary": "AK Wien консультує щодо оренди старого житла, а в суботу проводить сімейний вуличний фестиваль.",
+  "details": "31 серпня – 4 вересня з 16:00 до 20:00 на Wallensteinplatz працює безкоштовний Altbau-Mietencheck. 5 вересня з 15:00 до 19:00 відбудеться вуличне свято з правовими консультаціями, ремонтом і сімейною програмою.",
+  "deTitle": "AK Summer in the City: kostenloser Mietencheck und Straßenfest",
+  "deSummary": "Die AK Wien berät zu Altbaumieten und veranstaltet am Samstag ein Familien-Straßenfest.",
+  "deDetails": "Vom 31. August bis 4. September gibt es am Wallensteinplatz täglich von 16:00 bis 20:00 Uhr einen kostenlosen Altbau-Mietencheck. Am 5. September folgt von 15:00 bis 19:00 Uhr ein Straßenfest mit Rechtsberatung, Reparatur- und Familienangeboten.",
+  "city": "Wien",
+  "venue": "Wallensteinplatz",
+  "address": "Wallensteinplatz, 1200 Wien",
+  "organizerName": "Arbeiterkammer Wien",
+  "organizerURL": "https://wien.arbeiterkammer.at/",
+  "contactURL": "https://wien.arbeiterkammer.at/summerinthecity",
+  "category": "supportAndIntegration",
+  "additionalCategories": [
+    "education",
+    "childrenAndFamily"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Програма AK",
+  "externalActionURL": "https://wien.arbeiterkammer.at/summerinthecity",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Консультації й фестиваль безкоштовні."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-08-31T14:00:00Z",
+      "endDate": "2026-08-31T18:00:00Z"
+    },
+    {
+      "startDate": "2026-09-01T14:00:00Z",
+      "endDate": "2026-09-01T18:00:00Z"
+    },
+    {
+      "startDate": "2026-09-02T14:00:00Z",
+      "endDate": "2026-09-02T18:00:00Z"
+    },
+    {
+      "startDate": "2026-09-03T14:00:00Z",
+      "endDate": "2026-09-03T18:00:00Z"
+    },
+    {
+      "startDate": "2026-09-04T14:00:00Z",
+      "endDate": "2026-09-04T18:00:00Z"
+    },
+    {
+      "startDate": "2026-09-05T13:00:00Z",
+      "endDate": "2026-09-05T17:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://wien.arbeiterkammer.at/summerinthecity",
+      "title": "AK Wien — офіційна програма",
+      "isPrimary": true
+    },
+    {
+      "url": "https://wien.arbeiterkammer.at/beratung/Wohnen/mietencheckundberatung/index.html",
+      "title": "AK Wien — офіційний Mietencheck",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.wien.gv.at/veranstaltungen/herbst",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/15-filmfestival.png",
+  "imageAlternativeText": "Вечірній кіномузичний фестиваль перед освітленою Wiener Rathaus",
+  "title": "Фінальний тиждень Film Festival am Wiener Rathausplatz",
+  "summary": "Безкоштовні музичні фільми просто неба та гастрономічна зона перед Rathaus до 6 вересня.",
+  "details": "Фестиваль триває до 6 вересня. Гастрономічна зона щодня відкривається об 11:00, кінопокази відбуваються ввечері за окремим розкладом. 6 вересня запланована трансляція Opern Air. Вхід вільний.",
+  "deTitle": "Finale Woche des Film Festivals am Wiener Rathausplatz",
+  "deSummary": "Kostenlose Musikfilme unter freiem Himmel und Gastronomie vor dem Rathaus bis 6. September.",
+  "deDetails": "Das Festival läuft bis 6. September. Die Gastronomie öffnet täglich um 11:00 Uhr, die Filmvorführungen beginnen abends laut Tagesprogramm. Am 6. September ist die Übertragung von Opern Air geplant. Eintritt frei.",
+  "city": "Wien",
+  "venue": "Rathausplatz",
+  "address": "Rathausplatz, 1010 Wien",
+  "organizerName": "Stadt Wien",
+  "organizerURL": "https://www.wien.gv.at/",
+  "contactURL": "https://www.wien.gv.at/veranstaltungen/herbst",
+  "category": "culture",
+  "additionalCategories": [
+    "music",
+    "foodAndMarket"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "none",
+  "externalActionTitle": "Денна програма",
+  "externalActionURL": "https://www.wien.gv.at/veranstaltungen/herbst",
+  "pricing": {
+    "kind": "free",
+    "amount": 0,
+    "note": "Вхід вільний; гастрономія платна."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-08-30T09:00:00Z"
+    },
+    {
+      "startDate": "2026-08-31T09:00:00Z"
+    },
+    {
+      "startDate": "2026-09-01T09:00:00Z"
+    },
+    {
+      "startDate": "2026-09-02T09:00:00Z"
+    },
+    {
+      "startDate": "2026-09-03T09:00:00Z"
+    },
+    {
+      "startDate": "2026-09-04T09:00:00Z"
+    },
+    {
+      "startDate": "2026-09-05T09:00:00Z"
+    },
+    {
+      "startDate": "2026-09-06T09:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/herbst",
+      "title": "Stadt Wien — офіційний календар",
+      "isPrimary": true
+    },
+    {
+      "url": "https://www.wien.info/en/art-culture/music-stage-shows/summer-performances-360482",
+      "title": "Wien Tourismus — незалежне підтвердження",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://kaiserwiesn.at/zeltealmen/goesser-zelt/",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/16-kaiser-wiesn.png",
+  "imageAlternativeText": "Осіннє народне свято на Kaiserwiese біля Wiener Riesenrad",
+  "title": "Wiener Kaiser Wiesn 2026 на Prater",
+  "summary": "Велике осіннє свято з музикою, гастрономією та денною програмою біля Riesenrad.",
+  "details": "Фестиваль триває з 24 вересня до 11 жовтня. Територія відкривається щодня від 12:00; денний вхід на фестивальну територію вільний. Окремі вечірні програми в наметах потребують квитків або бронювання. 27 вересня Gösser-Zelt відкривається о 10:30.",
+  "deTitle": "Wiener Kaiser Wiesn 2026 im Prater",
+  "deSummary": "Großes Herbstfest mit Musik, Gastronomie und Tagesprogramm bei der Riesenradkulisse.",
+  "deDetails": "Das Fest läuft vom 24. September bis 11. Oktober. Das Festgelände öffnet täglich ab 12:00 Uhr; tagsüber ist der Zugang zum Gelände frei. Einzelne Abendprogramme in den Zelten benötigen Ticket oder Reservierung. Am 27. September öffnet das Gösser-Zelt bereits um 10:30 Uhr.",
+  "city": "Wien",
+  "venue": "Kaiserwiese im Prater",
+  "address": "Kaiserwiese, 1020 Wien",
+  "organizerName": "Wiener Kaiser Wiesn",
+  "organizerURL": "https://kaiserwiesn.at/",
+  "contactURL": "https://kaiserwiesn.at/",
+  "category": "celebration",
+  "additionalCategories": [
+    "music",
+    "foodAndMarket"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": false,
+  "participationMode": "externalTickets",
+  "externalActionTitle": "Програма й бронювання",
+  "externalActionURL": "https://kaiserwiesn.at/zeltealmen/goesser-zelt/",
+  "pricing": {
+    "kind": "mixed",
+    "note": "Денний вхід на територію вільний; вечірні програми можуть бути платними."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-24T10:00:00Z"
+    },
+    {
+      "startDate": "2026-09-25T10:00:00Z"
+    },
+    {
+      "startDate": "2026-09-26T10:00:00Z"
+    },
+    {
+      "startDate": "2026-09-27T08:30:00Z"
+    },
+    {
+      "startDate": "2026-09-28T10:00:00Z"
+    },
+    {
+      "startDate": "2026-09-29T10:00:00Z"
+    },
+    {
+      "startDate": "2026-09-30T10:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://kaiserwiesn.at/zeltealmen/goesser-zelt/",
+      "title": "Wiener Kaiser Wiesn — офіційні години",
+      "isPrimary": true
+    },
+    {
+      "url": "https://kaiserwiesn.at/wp-content/uploads/wkw26_Musikporgramm.pdf",
+      "title": "Wiener Kaiser Wiesn — офіційна музична програма",
+      "isPrimary": false
+    },
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/herbst-veranstaltungen",
+      "title": "Stadt Wien — незалежний міський анонс",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.stadthalle.com/de/events/alle-events/51128/The-Best-Of-Mike-Oldfields-Tubular-Bells-I-II--III",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/17-tubular-bells.png",
+  "imageAlternativeText": "Прогресив-рок концерт із tubular bells та великим світловим шоу у Wien",
+  "title": "The Best of Tubular Bells I, II & III у Wiener Stadthalle",
+  "summary": "Живе виконання найвідоміших частин трилогії Mike Oldfield з великою сценічною постановкою.",
+  "details": "Концерт відбудеться 18 вересня о 20:00 у Halle F. Час завершення не опублікований. Квитки продаються через офіційну сторінку Stadthalle.",
+  "deTitle": "The Best of Tubular Bells I, II & III in der Wiener Stadthalle",
+  "deSummary": "Live-Aufführung der bekanntesten Teile von Mike Oldfields Trilogie in großer Bühnenproduktion.",
+  "deDetails": "Das Konzert beginnt am 18. September um 20:00 Uhr in Halle F. Eine Endzeit wird nicht veröffentlicht. Tickets sind über die offizielle Stadthalle-Seite erhältlich.",
+  "city": "Wien",
+  "venue": "Wiener Stadthalle, Halle F",
+  "address": "Roland-Rainer-Platz 1, 1150 Wien",
+  "organizerName": "Barracuda Music",
+  "organizerURL": "https://www.barracudamusic.at/",
+  "contactURL": "https://www.stadthalle.com/de/events/alle-events/51128/The-Best-Of-Mike-Oldfields-Tubular-Bells-I-II--III",
+  "category": "music",
+  "additionalCategories": [
+    "culture"
+  ],
+  "audience": "everyone",
+  "requiresRegistration": true,
+  "participationMode": "externalTickets",
+  "externalActionTitle": "Квитки",
+  "externalActionURL": "https://www.stadthalle.com/de/events/alle-events/51128/The-Best-Of-Mike-Oldfields-Tubular-Bells-I-II--III",
+  "pricing": {
+    "kind": "unspecified",
+    "note": "Актуальну ціну показує офіційна квиткова сторінка."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-18T18:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.stadthalle.com/de/events/alle-events/51128/The-Best-Of-Mike-Oldfields-Tubular-Bells-I-II--III",
+      "title": "Wiener Stadthalle — офіційна сторінка",
+      "isPrimary": true
+    },
+    {
+      "url": "https://presse.wien.gv.at/kategoriennavigation/-/asset_publisher/zraFORwNk9Zp/content/2026-08-28-wiener-stadthalle-event-highlights-im-september-2026",
+      "title": "Stadt Wien — актуальний вересневий огляд",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "event",
+  "canonicalURL": "https://www.stadthalle.com/en/events/all-events/51119/HAEVN",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/18-haevn.png",
+  "imageAlternativeText": "Атмосферний інді-поп концерт у великій віденській залі",
+  "title": "HAEVN у Wiener Stadthalle",
+  "summary": "Нідерландський інді-поп дует привезе кінематографічне звучання до Halle F.",
+  "details": "19 вересня: вхід із 19:00, початок о 20:00, очікуване завершення о 22:00. Квитки — на офіційній сторінці.",
+  "deTitle": "HAEVN in der Wiener Stadthalle",
+  "deSummary": "Das niederländische Indie-Pop-Duo bringt seinen cineastischen Sound in Halle F.",
+  "deDetails": "Am 19. September: Einlass ab 19:00 Uhr, Beginn um 20:00 Uhr, voraussichtliches Ende um 22:00 Uhr. Tickets über die offizielle Seite.",
+  "city": "Wien",
+  "venue": "Wiener Stadthalle, Halle F",
+  "address": "Roland-Rainer-Platz 1, 1150 Wien",
+  "organizerName": "Goodlive Artists Austria",
+  "organizerURL": "https://www.goodliveartists.com/",
+  "contactURL": "https://www.stadthalle.com/en/events/all-events/51119/HAEVN",
+  "category": "music",
+  "additionalCategories": [],
+  "audience": "everyone",
+  "requiresRegistration": true,
+  "participationMode": "externalTickets",
+  "externalActionTitle": "Квитки",
+  "externalActionURL": "https://www.stadthalle.com/en/events/all-events/51119/HAEVN",
+  "pricing": {
+    "kind": "unspecified",
+    "note": "Ціна залежить від категорії місця."
+  },
+  "occurrences": [
+    {
+      "startDate": "2026-09-19T18:00:00Z",
+      "endDate": "2026-09-19T20:00:00Z"
+    }
+  ],
+  "sources": [
+    {
+      "url": "https://www.stadthalle.com/en/events/all-events/51119/HAEVN",
+      "title": "Wiener Stadthalle — офіційна сторінка",
+      "isPrimary": true
+    },
+    {
+      "url": "https://presse.wien.gv.at/kategoriennavigation/-/asset_publisher/zraFORwNk9Zp/content/2026-08-28-wiener-stadthalle-event-highlights-im-september-2026",
+      "title": "Stadt Wien — актуальний вересневий огляд",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "news",
+  "canonicalURL": "https://www.ots.at/presseaussendung/OTS_20260824_OTS0084/simareinagl-strecke-frei-fuer-die-linie-18-ab-5-september-faehrt-der-18er-bis-u2-stadion",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/19-line18.png",
+  "imageAlternativeText": "Новий віденський трамвай на доступній зупинці біля Prater",
+  "title": "Із 5 вересня трамвай 18 курсуватиме до U2 Stadion",
+  "subtitle": "Маршрут продовжать від Burggasse-Stadthalle через сім нових зупинок; зміняться також автобуси 77A і 78A.",
+  "body": "Від 5 вересня лінію 18 продовжують до станції U2 Stadion. Новий відрізок додає сім зупинок і створює пряме сполучення між U2, U3, U4 та U6. Одночасно змінюється автобусна мережа: коригується 77A та запускається 78A. У районі Prater можливі транспортні обмеження; перед поїздкою перевірте актуальний маршрут у Wiener Linien.",
+  "deTitle": "Ab 5. September fährt die Linie 18 bis U2 Stadion",
+  "deSubtitle": "Die Strecke wird ab Burggasse-Stadthalle um sieben Haltestellen verlängert; auch 77A und 78A ändern sich.",
+  "deBody": "Ab 5. September wird die Linie 18 bis zur U2-Station Stadion verlängert. Der neue Abschnitt bringt sieben Haltestellen und schafft eine direkte Verbindung zwischen U2, U3, U4 und U6. Gleichzeitig wird das Busnetz angepasst: 77A ändert sich, 78A kommt neu hinzu. Im Praterbereich sind Verkehrsbeschränkungen möglich; aktuelle Route bitte bei Wiener Linien prüfen.",
+  "publishedAt": "2026-08-24T10:00:00Z",
+  "city": "Wien",
+  "category": "transport",
+  "additionalCategories": [],
+  "sourceName": "Stadt Wien / Wiener Linien",
+  "externalActionTitle": "Офіційне повідомлення",
+  "externalActionURL": "https://www.ots.at/presseaussendung/OTS_20260824_OTS0084/simareinagl-strecke-frei-fuer-die-linie-18-ab-5-september-faehrt-der-18er-bis-u2-stadion",
+  "sources": [
+    {
+      "url": "https://www.ots.at/presseaussendung/OTS_20260824_OTS0084/simareinagl-strecke-frei-fuer-die-linie-18-ab-5-september-faehrt-der-18er-bis-u2-stadion",
+      "title": "Stadt Wien / Wiener Linien — офіційне повідомлення",
+      "isPrimary": true
+    },
+    {
+      "url": "https://wien.orf.at/stories/3368225",
+      "title": "ORF Wien — незалежне підтвердження",
+      "isPrimary": false
+    }
+  ]
+}
+,
+{
+  "kind": "news",
+  "canonicalURL": "https://www.wien.gv.at/floridsdorf/gesunder-graetzlbetrieb",
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-live/20-healthy-business.png",
+  "imageAlternativeText": "Консультантка з охорони здоров’я спілкується з працівниками малого віденського підприємства",
+  "title": "Програму Gesunder Grätzlbetrieb розширюють на Stammersdorf",
+  "subtitle": "Малі підприємства можуть долучитися до безкоштовних заходів зі здоров’я на робочому місці; у 2026 році збирають потреби району.",
+  "body": "Stadt Wien розширює програму Gesunder Grätzlbetrieb у Floridsdorf на Stammersdorf. Вона орієнтована на невеликі підприємства та їхніх працівників і пропонує безкоштовні формати зі зміцнення здоров’я. У 2026 році проводять опитування й планування, а реалізацію нових заходів заплановано на 2027–2028 роки. Зацікавлені підприємства можуть звернутися через офіційну сторінку району.",
+  "deTitle": "Gesunder Grätzlbetrieb wird auf Stammersdorf ausgeweitet",
+  "deSubtitle": "Kleinbetriebe können kostenlose Gesundheitsangebote nutzen; 2026 werden die Bedürfnisse im Grätzl erhoben.",
+  "deBody": "Die Stadt Wien erweitert das Programm Gesunder Grätzlbetrieb in Floridsdorf auf Stammersdorf. Es richtet sich an kleine Unternehmen und ihre Beschäftigten und bietet kostenlose Maßnahmen zur Gesundheitsförderung. 2026 laufen Bedarfserhebung und Planung, die neuen Angebote sind für 2027 und 2028 vorgesehen. Interessierte Betriebe können sich über die offizielle Bezirksseite melden.",
+  "publishedAt": "2026-08-30T05:10:00Z",
+  "city": "Wien",
+  "category": "health",
+  "additionalCategories": [
+    "work",
+    "communityAndIntegration"
+  ],
+  "sourceName": "Stadt Wien",
+  "externalActionTitle": "Інформація для підприємств",
+  "externalActionURL": "https://www.wien.gv.at/floridsdorf/gesunder-graetzlbetrieb",
+  "sources": [
+    {
+      "url": "https://www.wien.gv.at/floridsdorf/gesunder-graetzlbetrieb",
+      "title": "Stadt Wien — офіційна програма",
+      "isPrimary": true
+    },
+    {
+      "url": "https://wien.orf.at/stories/3369018/",
+      "title": "ORF Wien — незалежне підтвердження",
+      "isPrimary": false
+    }
+  ]
+}
+]

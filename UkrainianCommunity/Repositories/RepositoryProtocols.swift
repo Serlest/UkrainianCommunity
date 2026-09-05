@@ -670,4 +670,13 @@ protocol OrganizationPhotoRepository {
     func fetchPhotos(organizationId: String) async throws -> [OrganizationPhoto]
     func addPhoto(organizationId: String, imageData: Data, caption: String?, uploadedBy: String) async throws -> OrganizationPhoto
     func deletePhoto(_ photo: OrganizationPhoto) async throws
+    func supportsPhotoReplacement(organizationId: String) async throws -> Bool
+    func replacePhoto(_ photo: OrganizationPhoto, imageData: Data, caption: String?) async throws -> OrganizationPhoto
+}
+
+extension OrganizationPhotoRepository {
+    func supportsPhotoReplacement(organizationId: String) async throws -> Bool { false }
+    func replacePhoto(_ photo: OrganizationPhoto, imageData: Data, caption: String?) async throws -> OrganizationPhoto {
+        throw OrganizationAccessFailure(reason: "route_disabled")
+    }
 }

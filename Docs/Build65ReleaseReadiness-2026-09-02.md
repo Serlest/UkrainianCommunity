@@ -1,6 +1,22 @@
 # Build 65: scoped release-candidate verification
 
-Version: 1.0.1 (65). No App Review submission or public release is authorized.
+Version: 1.0.1 (65).
+
+## Submission update — 2026-09-02 19:16 UTC
+
+After the operator explicitly requested App Store submission, version 1.0.1 (65)
+was submitted through the authenticated App Store Connect UI. Independent API
+read-back at 19:16:28 UTC confirmed `WAITING_FOR_REVIEW`, build 65 `VALID`, and
+unchanged `MANUAL` release. Review submission ID:
+`45ab8f82-1008-42a4-bed3-0bfd121e8405`.
+
+This is an App Review submission, not Apple approval or public availability.
+The operator was informed of the two failed CI scenarios before authorizing
+submission; their results below remain failed, not waived into passing evidence.
+The final instruction did not provide individual installed-scenario results or
+test record IDs. Do not infer those results from release authorization.
+No code, Firebase, Rules, MFA, price, territory or release-mode changes were made
+for this submission. The earlier preparation boundaries below are historical.
 
 ## Included changes
 
@@ -69,7 +85,7 @@ Version: 1.0.1 (65). No App Review submission or public release is authorized.
   in these scenarios. Result bundle:
   `test_sim_2026-09-02T18-40-49-947Z_pid1645_a180a459.xcresult`.
 
-## Remaining gates (do not infer completion from authorization)
+## Verification gaps and public-release gates (submission does not prove completion)
 
 1. GitHub workflow `33667890597`: Firebase/static jobs and Debug/Release builds
    passed, but test compilation failed on Xcode 26.3: two dynamic `Comment(...)`
@@ -106,9 +122,9 @@ Version: 1.0.1 (65). No App Review submission or public release is authorized.
    accepted/rejected comment behavior. Preserve the current MFA session.
 3. Reproduce and assess the logged navigation warning during the real scenarios.
    Do not change navigation based on the warning string alone.
-4. Final operator release/content-rights decision; no submission on behalf of the
-   user yet. App Privacy UI was reread for build 65; independent legal review is
-   not claimed.
+4. App Review approval and manual public release remain pending. The operator
+   authorized submission as recorded above; this is not evidence of independent
+   content-rights/legal review. App Privacy UI was reread for build 65.
 
 Physical-device boundary: the connected iPhone reported installed build 65 at
 19:02:31 UTC. Mac screen-control access was unavailable. The operator agreed to

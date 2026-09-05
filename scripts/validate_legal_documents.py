@@ -161,10 +161,11 @@ def main() -> int:
 
     analytics_consent = load_text("functions/src/analytics/analyticsConsent.ts")
     analytics_version = ANALYTICS_PRIVACY_VERSION.search(analytics_consent)
-    if analytics_version is None or analytics_version.group(1) != expected_version:
+    privacy_version = manifest["documents"]["privacy"].get("version", expected_version)
+    if analytics_version is None or analytics_version.group(1) != privacy_version:
         failures.append(
-            "analytics consent privacy version must match legal manifest "
-            f"{expected_version}"
+            "analytics consent privacy version must match the privacy document "
+            f"{privacy_version}"
         )
 
     website_sources = {

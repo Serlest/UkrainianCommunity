@@ -1,5 +1,6 @@
 import { getMessaging } from "firebase-admin/messaging";
 import type { BaseMessage, BatchResponse, SendResponse } from "firebase-admin/messaging";
+import {messageForAndroid} from "./androidPush";
 
 const fcmMulticastLimit = 500;
 const firebaseInstallationIDLength = 22;
@@ -11,6 +12,7 @@ export interface StoredPushRegistration {
   documentId: string;
   identifier: string;
   kind: PushRegistrationKind;
+  platform?: "android";
 }
 
 interface PushRegistrationDocumentReference {
@@ -71,6 +73,9 @@ export function parseStoredPushRegistration(
   if (rawKind !== undefined && rawKind !== "fid" && rawKind !== "token") {
     return undefined;
   }
+  if (data.platform !== undefined && data.platform !== "ios" && data.platform !== "android") {
+    return undefined;
+  }
 
   const kind = rawKind === "fid" ? "fid" : "token";
   if (kind === "fid" && !isStrictFirebaseInstallationID(identifier)) {
@@ -81,6 +86,7 @@ export function parseStoredPushRegistration(
     documentId,
     identifier,
     kind,
+    ...(data.platform === "android" ? {platform: "android" as const} : {}),
   };
 }
 
@@ -146,7 +152,7 @@ export async function sendPushToRegistrationDocuments(
   const results = await Promise.all(batches.map(async (batch) => {
     const orderedTargets = [...batch.tokens, ...batch.fids];
     const response = await sendEachForMulticast({
-      ...message,
+      ...(orderedTargets[0].platform === "android" ? messageForAndroid(message) : message),
       tokens: batch.tokens.map((registration) => registration.identifier),
       fids: batch.fids.map((registration) => registration.identifier),
     });
@@ -260,7 +266,8 @@ export function isStrictFirebaseInstallationID(identifier: string): boolean {
 }
 
 function isMalformedExplicitFID(data: FirebaseFirestore.DocumentData): boolean {
-  if (data.registrationType !== "fid") {
+  if (data.registrationType !== "fid"
+    || (data.platform !== undefined && data.platform !== "ios" && data.platform !== "android")) {
     return false;
   }
   const identifier = typeof data.token === "string" ? data.token.trim() : "";
@@ -268,7 +275,11 @@ function isMalformedExplicitFID(data: FirebaseFirestore.DocumentData): boolean {
 }
 
 function deliveryBatches(targets: DeliveryTarget[]): DeliveryBatch[] {
-  return pushRegistrationBatches(targets).map((batch) => ({
+  // Keep APNs/legacy envelopes byte-for-byte compatible and prevent a common
+  // literal notification from overriding Android's native localization keys.
+  const platformGroups = [targets.filter((target) => target.platform !== "android"),
+    targets.filter((target) => target.platform === "android")];
+  return platformGroups.flatMap((values) => pushRegistrationBatches(values)).map((batch) => ({
     tokens: batch.tokens as DeliveryTarget[],
     fids: batch.fids as DeliveryTarget[],
   }));

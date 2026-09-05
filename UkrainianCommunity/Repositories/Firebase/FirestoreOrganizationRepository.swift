@@ -279,9 +279,10 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let normalizedOrganization = normalizedOrganizationForWrite(organization, preserveCreatedAt: true)
 
         do {
-            try await collection.document(normalizedOrganization.id).updateData(
-                Self.makeSafeOrganizationInfoUpdateData(from: normalizedOrganization)
-            )
+            let fields = Self.makeSafeOrganizationInfoUpdateData(from: normalizedOrganization)
+            if try await !OrganizationAccessStore.shared.saveIfEnabled(organization, fields: fields) {
+                try await collection.document(normalizedOrganization.id).updateData(fields)
+            }
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -906,7 +907,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let likeState = likedOrganizationIDs.contains(documentID) ? LikeState.liked.rawValue : LikeState.notLiked.rawValue
         let isBookmarked = bookmarkedOrganizationIDs.contains(documentID)
 
-        return OrganizationDTO(
+        var dto = OrganizationDTO(
             id: data["id"] as? String ?? documentID,
             localizations: FirestoreContentPublishingCoding.organizationLocalizations(from: data["localizations"]),
             name: name,
@@ -967,6 +968,10 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             isSubscribed: subscribedOrganizationIDs.contains(documentID),
             isBookmarked: isBookmarked
         )
+        if let timestamp = data["updatedAt"] as? Timestamp {
+            dto.accessRevision = "\(timestamp.seconds):\(timestamp.nanoseconds)"
+        }
+        return dto
     }
 
     private func likeDocumentID(organizationID: String, userID: String) -> String {

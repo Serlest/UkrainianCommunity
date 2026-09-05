@@ -1,0 +1,61 @@
+[
+  {
+    "idempotencyKey": "news:https://orf.at/stories/3440577/",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Тимчасове зниження податку на пальне завершується 31 серпня",
+      "summary": "Серпнева пільгова ставка мінерального податку діє лише до кінця місяця; продовження на вересень на момент перевірки не опубліковане.",
+      "body": "В Австрії 31 серпня завершується дія серпневої Treibstoffpreisabfederungsverordnung. У серпні ставка мінерального податку становить 463 євро за 1 000 літрів бензину та 378 євро за 1 000 літрів дизельного пального, що відповідає тимчасовому зниженню приблизно на 1,9 цента за літр. Чинна норма поширюється на податкові зобов’язання, що виникли до 1 вересня. На момент перевірки нове офіційне продовження на вересень не було опубліковане. Це не означає автоматичного зростання ціни на конкретну суму: кінцева вартість на АЗС залежить також від закупівельних цін і ринку.",
+      "sourceInput": "https://orf.at/stories/3440577/",
+      "category": "financeTaxesAndConsumerRights",
+      "additionalCategories": [
+        "transport"
+      ],
+      "tags": [
+        "Австрія",
+        "пальне",
+        "податки",
+        "ціни"
+      ],
+      "germanTitle": "Temporäre Senkung der Mineralölsteuer endet am 31. August",
+      "germanSummary": "Die begünstigten August-Steuersätze gelten nur bis Monatsende; eine Verlängerung für September war zum Prüfzeitpunkt nicht veröffentlicht.",
+      "germanBody": "Mit 31. August endet in Österreich die Treibstoffpreisabfederungsverordnung für August. In diesem Monat beträgt die Mineralölsteuer 463 Euro je 1.000 Liter Benzin und 378 Euro je 1.000 Liter Gasöl. Das entspricht einer vorübergehenden Entlastung von rund 1,9 Cent pro Liter. Die Verordnung gilt für Steuerschulden, die vor dem 1. September entstehen. Zum Zeitpunkt der Prüfung war keine neue offizielle Verlängerung für September veröffentlicht. Daraus folgt nicht automatisch, dass der Preis an jeder Tankstelle um genau diesen Betrag steigt: Der Endpreis hängt auch von Beschaffungs- und Marktpreisen ab.",
+      "imageAlternativeText": "Водійка заправляє автомобіль на австрійській АЗС на тлі Альп",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Читати офіційну норму",
+      "externalActionURL": "https://www.ris.bka.gv.at/eli/bgbl/II/2026/229/20260731",
+      "regionScope": "austria",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.ris.bka.gv.at/eli/bgbl/II/2026/229/20260731",
+        "title": "RIS — BGBl. II Nr. 229/2026",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T15:00:00+02:00"
+      },
+      {
+        "url": "https://www.bmf.gv.at/rechtsnews/steuern-rechtsnews/neue-verordnungen/2026/Treibstoffpreisabfederungsverordnung-August-2026.html",
+        "title": "BMF — Treibstoffpreisabfederungsverordnung August 2026",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T15:00:00+02:00"
+      },
+      {
+        "url": "https://orf.at/stories/3440577/",
+        "title": "ORF — Katzian für Ausweitung der Spritpreisbremse",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T15:00:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата публікації ORF — 29 серпня 2026 року о 12:56; матеріал уперше підтверджено в поточному інкрементальному вікні порівняно з попереднім знімком.",
+      "Строк дії, ставки та межі застосування звірені з BGBl. II Nr. 229/2026 і сторінкою BMF; норма припиняє дію наприкінці 31 серпня.",
+      "На момент перевірки BMF не опублікувало окремої Treibstoffpreisabfederungsverordnung для вересня; текст не стверджує, що ціни обов’язково зростуть на фіксовану суму.",
+      "Основна категорія financeTaxesAndConsumerRights обрана через зміну податкової пільги й витрат споживачів; transport додана через прямий вплив на водіїв."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/news-fuel-relief-expiry.png",
+    "imageAlternativeText": "Водійка заправляє автомобіль на австрійській АЗС на тлі Альп"
+  }
+]

@@ -1,0 +1,139 @@
+[
+  {
+    "idempotencyKey": "event:https://www.visitklagenfurt.at/de/alpen-adria-genussmeile/#2026-09-17",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Alpen-Adria Genussmeile у серці Klagenfurt",
+      "summary": "Триденний гастрономічний ярмарок із продуктами з Каринтії, Італії та Словенії.",
+      "details": "З 17 до 19 вересня історичний центр Klagenfurt перетвориться на велику гастрономічну алею. Щодня з 10:00 до 19:00 близько 46 відібраних виробників із Каринтії, Штирії, Словенії, Істрії, Фріулі та Венето представлять сири, трюфелі, оливкові олії, вина, трави, органічне м’ясо, солодощі й каву. Ярмарок простягнеться між Ossiacher Hof, Alter Platz і Neuer Platz. Вхід вільний.",
+      "city": "Klagenfurt am Wörthersee",
+      "venue": "Historisches Zentrum Klagenfurt",
+      "address": "Alter Platz, Neuer Platz und Wienergasse, 9020 Klagenfurt am Wörthersee",
+      "locationNote": "Ярмарок проходить між Ossiacher Hof, Alter Platz і Neuer Platz.",
+      "eventOrganizerName": "Tourismus Region Klagenfurt am Wörthersee GmbH",
+      "organizerURL": "https://www.visitklagenfurt.at/de/alpen-adria-kulinarik/",
+      "contactURL": "https://www.visitklagenfurt.at/de/alpen-adria-genussmeile/",
+      "federalState": "kaernten",
+      "startDate": "2026-09-17T10:00:00+02:00",
+      "endDate": "2026-09-17T19:00:00+02:00",
+      "additionalOccurrences": [
+        {"startDate":"2026-09-18T10:00:00+02:00","endDate":"2026-09-18T19:00:00+02:00"},
+        {"startDate":"2026-09-19T10:00:00+02:00","endDate":"2026-09-19T19:00:00+02:00"}
+      ],
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": ["festivalsAndFairs", "culture"],
+      "audience": "everyone",
+      "tags": ["Kärnten", "Klagenfurt", "Alpen-Adria", "гастрономія"],
+      "germanTitle": "Alpen-Adria Genussmeile in Klagenfurt",
+      "germanSummary": "Dreitägiger Genussmarkt mit Produkten aus Kärnten, Italien und Slowenien.",
+      "germanDetails": "Vom 17. bis 19. September wird die historische Innenstadt von Klagenfurt täglich von 10 bis 19 Uhr zur großen Genussmeile. Rund 46 ausgewählte Produzent:innen aus Kärnten, der Steiermark, Slowenien, Istrien, Friaul und Venetien präsentieren Käse, Trüffel, Olivenöle, Wein, Kräuter, Biofleisch, Süßspeisen und Kaffee. Die Meile verläuft zwischen Ossiacher Hof, Altem Platz und Neuem Platz. Der Eintritt ist frei.",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна програма",
+      "externalActionURL": "https://www.visitklagenfurt.at/de/alpen-adria-genussmeile/",
+      "priceKind": "free",
+      "priceNote": "Вхід вільний; продукти оплачуються окремо.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url":"https://www.visitklagenfurt.at/de/alpen-adria-genussmeile/","title":"Alpen-Adria Genussmeile — Visit Klagenfurt","isPrimary":true,"checkedAt":"2026-08-29T23:20:00+02:00"},
+      {"url":"https://www.woerthersee.com/mariawoerth/en/dc-new/detail/Event/alpen-adria-genussmeile-1","title":"Alpen-Adria Genussmeile — Wörthersee Tourismus","isPrimary":false,"checkedAt":"2026-08-29T23:20:00+02:00"},
+      {"url":"https://www.kaernten.at/herbsturlaub/kulinarik/klagenfurt/","title":"Tage der Alpen-Adria Küche — Kärnten Werbung","isPrimary":false,"checkedAt":"2026-08-29T23:20:00+02:00"}
+    ],
+    "verificationNotes": ["Усі три дні та щоденний час 10:00–19:00, маршрут, кількість учасників і безкоштовний вхід збігаються в офіційних туристичних джерелах.", "foodAndMarket — основна категорія; festivalsAndFairs і culture описують масштаб та міжнародний культурний контекст."],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/austria-baseline/kaernten/alpen-adria-genussmeile.png",
+    "imageAlternativeText": "Гастрономічний ярмарок із регіональними продуктами на історичній площі Klagenfurt"
+  },
+  {
+    "idempotencyKey": "event:https://www.meckatzer.de/brauerei/aktuelles/bregenzer-street-food-markt/#2026-09-11",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Bregenzer Street Food Markt біля Боденського озера",
+      "summary": "Три дні міжнародної вуличної кухні, живої музики та сімейної програми у порту Bregenz.",
+      "details": "З 11 до 13 вересня порт Bregenz стане місцем зустрічі для шанувальників street food. Фудтраки запропонують міжнародні страви — від бургерів і тако до десертів; програму доповнять жива музика та розваги для дітей. У п’ятницю й суботу ринок працює з 12:00 до 22:00, у неділю — з 11:00 до 19:00. Вхід вільний, їжа й напої оплачуються окремо.",
+      "city": "Bregenz",
+      "venue": "Hafen Bregenz",
+      "address": "Am Hafen, 6900 Bregenz",
+      "eventOrganizerName": "Mahlzeit! Events",
+      "organizerURL": "https://mahlzeit-events.de/",
+      "contactURL": "https://www.meckatzer.de/brauerei/aktuelles/bregenzer-street-food-markt/",
+      "federalState": "vorarlberg",
+      "startDate": "2026-09-11T12:00:00+02:00",
+      "endDate": "2026-09-11T22:00:00+02:00",
+      "additionalOccurrences": [
+        {"startDate":"2026-09-12T12:00:00+02:00","endDate":"2026-09-12T22:00:00+02:00"},
+        {"startDate":"2026-09-13T11:00:00+02:00","endDate":"2026-09-13T19:00:00+02:00"}
+      ],
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": ["festivalsAndFairs", "childrenAndFamily"],
+      "audience": "everyone",
+      "tags": ["Vorarlberg", "Bregenz", "street food", "Боденське озеро"],
+      "germanTitle": "Bregenzer Street Food Markt am Bodensee",
+      "germanSummary": "Drei Tage internationale Straßenküche, Live-Musik und Familienprogramm am Bregenzer Hafen.",
+      "germanDetails": "Vom 11. bis 13. September wird der Bregenzer Hafen zum Treffpunkt für Street-Food-Fans. Foodtrucks servieren internationale Spezialitäten von Burgern und Tacos bis zu Desserts; dazu gibt es Live-Musik und ein Kinderprogramm. Freitag und Samstag ist der Markt von 12 bis 22 Uhr geöffnet, am Sonntag von 11 bis 19 Uhr. Der Eintritt ist frei, Speisen und Getränke werden separat bezahlt.",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.meckatzer.de/brauerei/aktuelles/bregenzer-street-food-markt/",
+      "priceKind": "free",
+      "priceNote": "Вхід вільний; їжа й напої оплачуються окремо.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url":"https://www.meckatzer.de/brauerei/aktuelles/bregenzer-street-food-markt/","title":"Bregenzer Street Food Markt — Meckatzer","isPrimary":true,"checkedAt":"2026-08-29T23:20:00+02:00"},
+      {"url":"https://visitbregenz.com/events/eventkalender/2","title":"Bregenzer Veranstaltungskalender — Bregenz Tourismus","isPrimary":false,"checkedAt":"2026-08-29T23:20:00+02:00"},
+      {"url":"https://food-festivals.com/streetfoodfestivals/bregenzer-street-food-markt/3560/","title":"Bregenzer Street Food Markt — event cross-check","isPrimary":false,"checkedAt":"2026-08-29T23:20:00+02:00"}
+    ],
+    "verificationNotes": ["Три дні, різні години неділі, порт, безкоштовний вхід, музика й дитяча програма звірені за туристичним календарем і сторінками партнерів.", "foodAndMarket — основна категорія; festivalsAndFairs та childrenAndFamily відповідають формату й підтвердженій програмі."],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/austria-baseline/vorarlberg/bregenz-street-food.png",
+    "imageAlternativeText": "Фудтраки, гості та жива музика на набережній Боденського озера у Bregenz"
+  },
+  {
+    "idempotencyKey": "event:https://visitbregenz.com/events/eventkalender/details/3#2026-09-05-vorkloestner-bierfest",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Vorklöstner Bierfest у Bregenz",
+      "summary": "Дводенне районне свято біля церкви Mariahilf із живою музикою та недільним Frühschoppen.",
+      "details": "5 вересня з 16:00 до 22:00 біля Stadtpfarrkirche Mariahilf відбудеться другий Vorklöstner Bierfest із виступом Trio Pur. У неділю, 6 вересня, свято продовжиться з 10:00 до 15:00 традиційним Frühschoppen за участю Stadtkapelle. Це локальна зустріч району з музикою, напоями та невимушеним спілкуванням. Інформацію про ціни організатори в анонсі не вказали.",
+      "city": "Bregenz",
+      "venue": "Katholische Stadtpfarrkirche Mariahilf",
+      "address": "Mariahilfstraße 52, 6900 Bregenz",
+      "eventOrganizerName": "Katholische Stadtpfarrkirche Mariahilf",
+      "organizerURL": "https://www.kath-kirche-vorarlberg.at/bregenz-mariahilf",
+      "contactURL": "https://visitbregenz.com/events/eventkalender/details/3",
+      "federalState": "vorarlberg",
+      "startDate": "2026-09-05T16:00:00+02:00",
+      "endDate": "2026-09-05T22:00:00+02:00",
+      "additionalOccurrences": [
+        {"startDate":"2026-09-06T10:00:00+02:00","endDate":"2026-09-06T15:00:00+02:00"}
+      ],
+      "isAllDay": false,
+      "category": "festivalsAndFairs",
+      "additionalCategories": ["music", "foodAndMarket"],
+      "audience": "everyone",
+      "tags": ["Vorarlberg", "Bregenz", "районне свято", "жива музика"],
+      "germanTitle": "2. Vorklöstner Bierfest in Bregenz",
+      "germanSummary": "Zweitägiges Stadtteilfest bei der Kirche Mariahilf mit Live-Musik und sonntäglichem Frühschoppen.",
+      "germanDetails": "Am 5. September findet bei der Stadtpfarrkirche Mariahilf von 16 bis 22 Uhr das zweite Vorklöstner Bierfest mit Trio Pur statt. Am Sonntag, 6. September, geht das Fest von 10 bis 15 Uhr mit einem Frühschoppen und der Stadtkapelle weiter. Das lokale Fest verbindet Musik, Getränke und ungezwungene Begegnung im Stadtteil. Preise werden in der Ankündigung nicht genannt.",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційний анонс",
+      "externalActionURL": "https://visitbregenz.com/events/eventkalender/details/3",
+      "priceKind": "unspecified",
+      "priceNote": "Ціну або умови входу в офіційному анонсі не зазначено.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url":"https://visitbregenz.com/events/eventkalender/details/3","title":"2. Vorklöstner Bierfest — Bregenz Tourismus","isPrimary":true,"checkedAt":"2026-08-29T23:20:00+02:00"},
+      {"url":"https://www.kath-kirche-vorarlberg.at/bregenz-mariahilf","title":"Pfarre Bregenz-Mariahilf","isPrimary":false,"checkedAt":"2026-08-29T23:20:00+02:00"}
+    ],
+    "verificationNotes": ["Для обох днів збережено окремі підтверджені години й музичну програму; адресу церкви звірено окремо.", "festivalsAndFairs — основна категорія; music і foodAndMarket відповідають заявленому формату. Ціну навмисно не припущено."],
+    "missingFields": ["price"],
+    "imagePath": "functions/content-planning/assets/2026-08-29/austria-baseline/vorarlberg/vorkloestner-bierfest.png",
+    "imageAlternativeText": "Районне свято з живою музикою й довгими столами біля церкви Mariahilf у Bregenz"
+  }
+]

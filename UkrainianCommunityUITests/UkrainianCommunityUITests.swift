@@ -307,24 +307,25 @@ final class UkrainianCommunityUITests: XCTestCase {
         // Scripted LocalAuthentication verifies app behavior, not real Face ID hardware.
         let app = launchAppLockTestApp(scenario: "failureThenSuccess")
         enableAppLock(in: app)
-        app.buttons["navigation.back"].firstMatch.tap()
+        app.buttons.matching(NSPredicate(format: "label == %@", "Zurück")).firstMatch.tap()
         tapRootTab(rootTabs[0], in: app, timeout: 10)
         app.buttons["notificationInbox.bell"].firstMatch.tap()
-        XCTAssertTrue(app.buttons["navigation.back"].firstMatch.waitForExistence(timeout: 10))
+        let inboxBack = app.buttons.matching(NSPredicate(format: "label == %@", "Zurück")).firstMatch
+        XCTAssertTrue(inboxBack.waitForExistence(timeout: 10))
         XCUIDevice.shared.press(.home)
         XCTAssertTrue(app.wait(for: .runningBackground, timeout: 10))
         app.activate()
         let unlock = app.buttons["appLock.unlock"]
         XCTAssertTrue(unlock.waitForExistence(timeout: 10))
-        XCTAssertFalse(app.buttons["navigation.back"].firstMatch.isHittable)
+        XCTAssertFalse(inboxBack.isHittable)
         attachScreenshot(named: "app-lock-covers-inbox", from: app)
         unlock.tap()
         XCTAssertTrue(app.staticTexts["Der Zugriff konnte nicht bestätigt werden. Versuchen Sie es erneut oder melden Sie sich mit Ihrem Passwort an."].waitForExistence(timeout: 8))
-        XCTAssertFalse(app.buttons["navigation.back"].firstMatch.isHittable)
+        XCTAssertFalse(inboxBack.isHittable)
         unlock.tap()
         XCTAssertTrue(unlock.waitForNonExistence(timeout: 8))
-        XCTAssertTrue(app.buttons["navigation.back"].firstMatch.isHittable)
-        app.buttons["navigation.back"].firstMatch.tap()
+        XCTAssertTrue(inboxBack.isHittable)
+        inboxBack.tap()
         XCTAssertTrue(app.tabBars.firstMatch.isHittable)
     }
 
@@ -333,7 +334,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         let app = launchAppLockTestApp(language: "uk", largeText: true)
         enableAppLock(in: app)
         attachScreenshot(named: "app-lock-settings-uk-accessibility", from: app)
-        app.buttons["navigation.back"].firstMatch.tap()
+        app.buttons.matching(NSPredicate(format: "label == %@", "Назад")).firstMatch.tap()
         tapRootTab(rootTabs[0], in: app, timeout: 10)
         let create = app.buttons["quickCreate.news"]
         XCTAssertTrue(create.waitForExistence(timeout: 10))
@@ -356,6 +357,28 @@ final class UkrainianCommunityUITests: XCTestCase {
         unlock.tap()
         XCTAssertTrue(unlock.waitForNonExistence(timeout: 8))
         XCTAssertEqual(title.value as? String, "Draft kept")
+    }
+
+    @MainActor
+    func testOptionalAppLockGraceAllowsQuickReturnButColdLaunchStillLocks() throws {
+        let app = launchAppLockTestApp()
+        enableAppLock(in: app)
+        let delay = app.buttons["profile.settings.appLock.delay"].firstMatch
+        scrollToElement(delay, in: app, maxSwipes: 8)
+        XCTAssertTrue(delay.isHittable)
+        delay.tap()
+        app.buttons["Nach einer Minute"].tap()
+        attachScreenshot(named: "app-lock-optional-minute", from: app)
+        XCUIDevice.shared.press(.home)
+        XCTAssertTrue(app.wait(for: .runningBackground, timeout: 10))
+        app.activate()
+        XCTAssertFalse(app.buttons["appLock.unlock"].exists)
+        XCTAssertTrue(app.switches["profile.settings.appLock"].firstMatch.waitForExistence(timeout: 8))
+        app.terminate()
+        app.launchEnvironment["UITestResetAppLock"] = nil
+        app.launch()
+        XCTAssertTrue(app.buttons["appLock.unlock"].waitForExistence(timeout: 20))
+        attachScreenshot(named: "app-lock-grace-cold-launch", from: app)
     }
 
     @MainActor
@@ -720,6 +743,18 @@ final class UkrainianCommunityUITests: XCTestCase {
         line: UInt = #line
     ) {
         let tabBar = app.tabBars.firstMatch
+        // iPad presents its top tab controls as ordinary buttons, not an
+        // XCUIElementTypeTabBar. Assert the same destination using their IDs.
+        if !tabBar.exists {
+            let adaptiveTab = app.buttons[tab.tabIdentifier].firstMatch
+            if adaptiveTab.waitForExistence(timeout: 2) {
+                XCTAssertTrue(adaptiveTab.isHittable, file: file, line: line)
+                adaptiveTab.tap()
+                XCTAssertTrue(app.otherElements[tab.screenIdentifier].waitForExistence(timeout: timeout), file: file, line: line)
+                XCTAssertEqual(app.state, .runningForeground, file: file, line: line)
+                return
+            }
+        }
         XCTAssertTrue(tabBar.waitForExistence(timeout: timeout), file: file, line: line)
 
         let tabButton = rootTabButton(tab, in: tabBar)
@@ -855,17 +890,6 @@ final class UkrainianCommunityUITests: XCTestCase {
                 }
                 XCTAssertTrue(button.isHittable, button.debugDescription)
             }
-            if namespace == "events" {
-                let initialReset = chip("reset")
-                if initialReset.exists {
-                    reveal(initialReset)
-                    initialReset.tap()
-                    XCTAssertTrue(
-                        initialReset.waitForNonExistence(timeout: 5),
-                        "Reset chip should clear the persisted event region"
-                    )
-                }
-            }
             expectOrder(configuration.order)
             let first = chip(configuration.order[0])
             let region = chip("region")
@@ -877,16 +901,11 @@ final class UkrainianCommunityUITests: XCTestCase {
             let saved = chip(savedName)
             reveal(saved)
             saved.tap()
-            let promoted: [String]
-            if namespace == "events" {
-                promoted = Array(configuration.order.prefix(2))
-                    + ["reset", savedName]
-                    + configuration.order.dropFirst(2).dropLast()
-            } else {
-                promoted = Array(configuration.order.prefix(2))
-                    + [savedName]
-                    + configuration.order.dropFirst(2).dropLast()
-            }
+            // The reset chip was deliberately removed in bf5ab31. Active
+            // filters still move after the two pinned controls in every catalog.
+            let promoted = Array(configuration.order.prefix(2))
+                + [savedName]
+                + configuration.order.dropFirst(2).dropLast()
             expectOrder(promoted)
             XCTAssertTrue(first.isHittable, "Row should return to its leading controls after reordering")
             XCTAssertTrue(region.isHittable)
@@ -897,7 +916,7 @@ final class UkrainianCommunityUITests: XCTestCase {
                 reveal(audience)
                 audience.tap()
                 app.buttons["Für Familien"].tap()
-                expectOrder(["period", "region", "reset", "audience", "saved", "category", "age", "registered"])
+                expectOrder(["period", "region", "audience", "saved", "category", "age", "registered"])
                 XCTAssertTrue(first.isHittable)
                 attachScreenshot(named: "events-audience-active-before-reveal", from: app)
                 reveal(audience)
@@ -905,18 +924,9 @@ final class UkrainianCommunityUITests: XCTestCase {
                 app.buttons["Für alle"].tap()
                 expectOrder(promoted)
 
-                let reset = chip("reset")
-                reveal(reset)
-                XCTAssertTrue(reset.isHittable)
-                reset.tap()
-                XCTAssertTrue(
-                    reset.waitForNonExistence(timeout: 5),
-                    "Reset chip should disappear after all event filters are cleared"
-                )
-            } else {
-                reveal(saved)
-                saved.tap()
             }
+            reveal(saved)
+            saved.tap()
             expectOrder(configuration.order)
             XCTAssertTrue(first.isHittable)
             XCTAssertTrue(region.isHittable)
@@ -1011,6 +1021,35 @@ final class UkrainianCommunityUITests: XCTestCase {
 
         XCTAssertEqual(app.state, .runningForeground)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testOrganizationChoicesRemainReadableAtLargestTextSize() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launchEnvironment = ["UITestResetUserSettings": "1", "UITestResetContentDrafts": "1",
+                                 "UITestAppLanguage": "de", "UITestForceAuthenticatedSession": "1"]
+        app.launch()
+        defer { app.terminate() }
+        tapRootTab(rootTabs[2], in: app)
+        let add = app.buttons["organizations.add"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+        let field = app.textFields["organization.editor.name"]
+        scrollToElement(field, in: app, maxSwipes: 25)
+        XCTAssertTrue(field.isHittable)
+        let availableWidth = field.frame.width
+        let first = app.buttons["organization.editor.category.ukrainianProducts"]
+        let second = app.buttons["organization.editor.category.foodAndDrink"]
+        scrollToElement(first, in: app, maxSwipes: 25)
+        XCTAssertTrue(first.isHittable)
+        XCTAssertGreaterThanOrEqual(first.frame.width, availableWidth * 0.9,
+                                    "Large-text choices must have the full editor width")
+        scrollToElement(second, in: app, maxSwipes: 5)
+        XCTAssertTrue(second.isHittable)
+        XCTAssertGreaterThanOrEqual(second.frame.minY, first.frame.maxY + 4,
+                                    "Large-text choices must occupy separate rows")
+        attachScreenshot(named: "organization-categories-largest-text", from: app)
     }
 
     @MainActor
@@ -1456,6 +1495,98 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertFalse(appLock.isEnabled)
         XCTAssertEqual(appLock.value as? String, "0")
         attachScreenshot(named: "registration-faceid-unavailable-de", from: app)
+    }
+
+    @MainActor
+    func testOwnerLegalHistoryShowsAll501EntriesAndExport() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "de"
+        app.launchEnvironment["UITestLegalEvidence"] = "1"
+        app.launch()
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let legal = app.buttons["profile.owner.legalEvidence"].firstMatch
+        scrollToElement(legal, in: app, maxSwipes: 24)
+        XCTAssertTrue(legal.isHittable)
+        legal.tap()
+        let account = app.buttons["legalEvidence.account.legal-fixture"].firstMatch
+        scrollToElement(account, in: app, maxSwipes: 10)
+        XCTAssertTrue(account.isHittable)
+        account.tap()
+        let export = app.buttons["legalEvidence.export"].firstMatch
+        scrollToElement(export, in: app, maxSwipes: 10)
+        XCTAssertTrue(export.isHittable)
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "501")).firstMatch.exists)
+        attachScreenshot(named: "legal-history-501-and-export", from: app)
+    }
+
+    @MainActor
+    func testGalleryReplacementOpensSystemPickerAndPreservesPhotoCount() throws {
+        try checkGalleryReplacement(conflict: false)
+    }
+
+    @MainActor
+    func testGalleryConflictShowsReasonAndKeepsEditorDraft() throws {
+        try checkGalleryReplacement(conflict: true)
+    }
+
+    @MainActor
+    private func checkGalleryReplacement(conflict: Bool) throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "de"
+        app.launchEnvironment["UITestGallery"] = "1"
+        if conflict { app.launchEnvironment["UITestGalleryConflict"] = "1" }
+        app.launch()
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let organizations = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Meine Organisationen")).firstMatch
+        scrollToElement(organizations, in: app)
+        XCTAssertTrue(organizations.waitForExistence(timeout: 10)); organizations.tap()
+        let manage = app.buttons["organization.manage.org-1"]
+        scrollToElement(manage, in: app, maxSwipes: 20)
+        XCTAssertTrue(manage.waitForExistence(timeout: 10)); manage.tap()
+        let photo = app.buttons["Audit photo"].firstMatch
+        scrollToElement(photo, in: app)
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.press(forDuration: 1)
+        let replace = app.buttons["Foto ersetzen"].firstMatch
+        XCTAssertTrue(replace.waitForExistence(timeout: 5)); replace.tap()
+        // The system picker uses the simulator's own Photos library, seeded by the local test command.
+        let cell = app.images.matching(identifier: "PXGGridLayout-Info").firstMatch
+        XCTAssertTrue(cell.waitForExistence(timeout: 8))
+        // Photos' remote accessibility image exposes its visible frame but no
+        // tappable action on this iOS version. Select the observed cell center.
+        XCTAssertTrue(app.frame.intersects(cell.frame))
+        cell.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        let caption = app.textFields.firstMatch
+        XCTAssertTrue(caption.waitForExistence(timeout: 10)); caption.tap()
+        caption.typeText(" replacement")
+        let editedCaption = try XCTUnwrap(caption.value as? String)
+        XCTAssertTrue(editedCaption.contains("replacement"))
+        XCTAssertNotEqual(editedCaption, "Audit photo")
+        app.buttons["Hochladen"].firstMatch.tap()
+        if conflict {
+            let error = app.staticTexts["organization.photo.editor.error"].firstMatch
+            XCTAssertTrue(error.waitForExistence(timeout: 10))
+            attachScreenshot(named: "gallery-conflict-keeps-draft", from: app)
+            XCTAssertTrue(error.label.contains("inzwischen geändert"), error.label)
+            XCTAssertEqual(caption.value as? String, editedCaption)
+            XCTAssertTrue(app.buttons["Hochladen"].firstMatch.exists)
+            app.buttons["organization.photo.editor.reload"].tap()
+            XCTAssertTrue(error.waitForNonExistence(timeout: 10))
+            XCTAssertEqual(caption.value as? String, editedCaption)
+            app.buttons["Hochladen"].firstMatch.tap()
+            XCTAssertTrue(app.buttons[editedCaption].firstMatch.waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["1/30"].firstMatch.exists)
+            attachScreenshot(named: "gallery-conflict-recovered", from: app)
+        } else {
+            XCTAssertTrue(app.buttons[editedCaption].firstMatch.waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["1/30"].firstMatch.exists)
+            attachScreenshot(named: "gallery-replacement-count-preserved", from: app)
+        }
     }
 
     @MainActor

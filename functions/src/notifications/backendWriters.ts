@@ -2,16 +2,17 @@ import { randomUUID } from "node:crypto";
 
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import {
+  onDocumentCreated,
   onDocumentDeleted,
   onDocumentUpdated,
 } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { requireVerifiedActiveUser } from "../auth/context";
+import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {assertActiveUser} from "../auth/context";
 import {deleteEventContent} from "../content/contentDeletion";
 import { db } from "../firebase/admin";
-import { getOrganizationRoles } from "../permissions/organizationPermissions";
-import { assertOwner, getUserPermissions, isOwner } from "../permissions/userPermissions";
+import { assertOwner, isOwner, userPermissionSnapshotFromData } from "../permissions/userPermissions";
 import {
   type NotificationActionType,
   type NotificationSeverity,
@@ -110,29 +111,6 @@ function parseEventCancellationRequest(data: unknown): EventCancellationRequest 
 function stringField(data: Record<string, unknown> | undefined, field: string): string | undefined {
   const value = data?.[field];
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
-}
-
-async function assertCanCancelEvent(
-  actorPermissions: Awaited<ReturnType<typeof getUserPermissions>>,
-  eventData: Record<string, unknown>
-): Promise<void> {
-  if (isOwner(actorPermissions)) {
-    return;
-  }
-
-  if (stringField(eventData, "sourceType") !== "organization") {
-    throw new HttpsError("permission-denied", "Event cancellation permissions are required.");
-  }
-
-  const organizationId = stringField(eventData, "organizationId");
-  if (!organizationId) {
-    throw new HttpsError("permission-denied", "Event organization is missing.");
-  }
-
-  const roles = await getOrganizationRoles(organizationId);
-  if (roles.ownerId !== actorPermissions.uid) {
-    throw new HttpsError("permission-denied", "Event cancellation permissions are required.");
-  }
 }
 
 function timestampField(
@@ -408,63 +386,88 @@ export const notifyEventCancelledOnDelete = onDocumentDeleted(
   }
 );
 
-export const cancelEvent = onCall(
-  callableOptions,
-  async (request): Promise<EventCancellationResponse> => {
-    const auth = await requireVerifiedActiveUser(request);
-    const actorPermissions = auth.permissions;
-    const cancellationRequest = parseEventCancellationRequest(request.data);
-    const eventReference = db.collection("events").doc(cancellationRequest.eventId);
-    const eventSnapshot = await eventReference.get();
-    if (!eventSnapshot.exists) {
-      throw new HttpsError("not-found", "Event does not exist.");
-    }
-
-    const eventData = eventSnapshot.data() ?? {};
-    await assertCanCancelEvent(actorPermissions, eventData);
-
-    const eventId = cancellationRequest.eventId;
-    const userIds = await registeredUserIds(eventId);
-    const cancelledAt = Timestamp.now();
-    const requiresPopup = isSoon(eventData);
-    if (userIds.length === 0) {
-      await deleteEventContent(eventId, eventData);
-      return {
-        eventId,
-        status: "deleted",
-        recipientCount: 0,
-        notificationCount: 0,
-        pushRecipientCount: 0,
-        cancelledAt: cancelledAt.toDate().toISOString(),
-      };
-    }
-
-    await eventReference.update({
-      moderationStatus: "archived",
-      cancellationState: "cancelled",
-      cancelledAt,
-      cancelledBy: auth.uid,
-      cancellationReason: cancellationRequest.reason ?? FieldValue.delete(),
-      updatedAt: cancelledAt,
-    });
-
-    const notificationResult = await writeEventCancellationNotifications(eventId, userIds, {
-      eventData,
-      cancelledAt,
-      requiresPopup,
-    });
-    // Dispatch is asynchronous; this response must not claim device delivery.
-    const pushRecipientCount = 0;
-
-    return {
-      eventId,
-      status: "cancelled",
-      recipientCount: notificationResult.recipientCount,
-      notificationCount: notificationResult.createdNotifications.length,
-      pushRecipientCount,
-      cancelledAt: cancelledAt.toDate().toISOString(),
-    };
+export const cancelEvent = onCall(callableOptions, async (request): Promise<EventCancellationResponse> => {
+  const auth = await requireVerifiedActiveUser(request);
+  const input = parseEventCancellationRequest(request.data);
+  if (input.eventId.includes("/") || input.eventId.length > 200 || (input.reason?.length ?? 0) > 2000) {
+    throw new HttpsError("invalid-argument", "Invalid cancellation request.");
   }
+  const eventReference = db.collection("events").doc(input.eventId);
+  const operation = db.collection("eventCancellationOperations").doc(input.eventId);
+  await db.runTransaction(async transaction => {
+    const [event, previous, profile] = await transaction.getAll(eventReference, operation, db.doc(`users/${auth.uid}`));
+    if (!profile.exists) throw new HttpsError("permission-denied", "User profile no longer exists.");
+    const actor = userPermissionSnapshotFromData(auth.uid, profile.data());
+    assertActiveUser(actor);
+    const data = event.data() ?? previous.get("eventData") ?? previous.get("eventIdentity");
+    if (!data) throw new HttpsError("not-found", "Event does not exist.");
+    if (!isOwner(actor) && previous.get("actorUserId") !== auth.uid) {
+      const organizationId = data.organizationId;
+      if (data.sourceType !== "organization" || typeof organizationId !== "string") {
+        throw new HttpsError("permission-denied", "Event cancellation permissions are required.");
+      }
+      const organization = await transaction.get(db.doc(`organizations/${organizationId}`));
+      if (organization.get("ownerId") !== auth.uid) throw new HttpsError("permission-denied", "Event cancellation permissions are required.");
+    }
+    if (previous.exists) {
+      if (event.exists && data.cancellationState !== "cancelled") {
+        throw new HttpsError("failed-precondition", "This event ID was reused. Reload the event before cancelling.");
+      }
+      return;
+    }
+    const registrations = await transaction.get(db.collection("registrations").where("eventId", "==", input.eventId));
+    const recipients = [...new Set(registrations.docs.map(row => row.get("userId")).filter((id): id is string => typeof id === "string"))];
+    const cancelledAt = data.cancelledAt instanceof Timestamp ? data.cancelledAt : Timestamp.now();
+    const deleteEmpty = recipients.length === 0 && data.cancellationState !== "cancelled";
+    transaction.update(eventReference, {
+      moderationStatus: "archived", cancellationState: "cancelled", cancelledAt,
+      cancelledBy: auth.uid, cancellationReason: input.reason ?? FieldValue.delete(), updatedAt: cancelledAt,
+    });
+    // The state change and durable delivery/cleanup intent commit together.
+    transaction.create(operation, {eventId: input.eventId, actorUserId: auth.uid,
+      // Delivery needs titles, not the full original document or its author data.
+      eventData: {title: eventTitle(data), sourceType: data.sourceType ?? null, organizationId: data.organizationId ?? null,
+        localizations: {uk: {title: localizedEventTitle(data, "uk")}, de: {title: localizedEventTitle(data, "de")}}},
+      eventIdentity: {sourceType: data.sourceType ?? null, organizationId: data.organizationId ?? null},
+      requiresPopup: isSoon(data), recipients, cancelledAt, deleteEmpty, status: "pending", createdAt: Timestamp.now()});
+  });
+  return finishEventCancellation(input.eventId);
+});
+
+export async function finishEventCancellation(eventId: string): Promise<EventCancellationResponse> {
+  const reference = db.collection("eventCancellationOperations").doc(eventId);
+  const snapshot = await reference.get();
+  const operation = snapshot.data();
+  if (!operation) throw new HttpsError("not-found", "Cancellation operation does not exist.");
+  if (operation.status === "completed") return operation.response as EventCancellationResponse;
+  let recipients = 0;
+  if (operation.deleteEmpty) {
+    await deleteEventContent(eventId, operation.eventData);
+  } else {
+    const written = await writeEventCancellationNotifications(eventId, operation.recipients, {
+      eventData: operation.eventData, cancelledAt: operation.cancelledAt,
+      requiresPopup: typeof operation.requiresPopup === "boolean" ? operation.requiresPopup : isSoon(operation.eventData),
+    });
+    recipients = written.recipientCount;
+  }
+  const response: EventCancellationResponse = {eventId, status: operation.deleteEmpty ? "deleted" : "cancelled",
+    recipientCount: recipients, notificationCount: recipients, pushRecipientCount: 0,
+    cancelledAt: (operation.cancelledAt as Timestamp).toDate().toISOString()};
+  return db.runTransaction(async transaction => {
+    const current = await transaction.get(reference);
+    if (current.get("status") === "completed") return current.get("response") as EventCancellationResponse;
+    // Retain the receipt so a retry after an empty event was deleted remains
+    // attributable to the same authenticated actor, without recreating data.
+    transaction.update(reference, {status: "completed", response, completedAt: Timestamp.now(),
+      eventData: FieldValue.delete(), recipients: FieldValue.delete(),
+      expiresAt: Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000)});
+    return response;
+  });
+}
+
+export const completeEventCancellationOnCreate = onDocumentCreated(
+  {...triggerOptions, document: "eventCancellationOperations/{eventId}"},
+  async event => { await finishEventCancellation(event.params.eventId); }
 );
 
 export const createSystemAnnouncement = onCall(

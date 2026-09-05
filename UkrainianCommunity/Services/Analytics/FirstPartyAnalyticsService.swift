@@ -341,16 +341,36 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
             ?? LocalizationStore.language.rawValue
         let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         Task { @MainActor [weak self] in
-            guard let self else { return }
+            guard let self, self.authContext.principalID == principalID,
+                  Auth.auth().currentUser?.uid == principalID else { return }
             do {
-                _ = try await Functions.functions(region: "europe-west3")
-                    .httpsCallable("updateAnalyticsConsent")
-                    .call([
-                        "enabled": enabled,
-                        "consentID": consentID,
-                        "locale": locale,
-                        "appVersion": appVersion ?? "unknown"
-                    ])
+                let legacy: [String: Any] = [
+                    "enabled": enabled, "consentID": consentID,
+                    "locale": locale, "appVersion": appVersion ?? "unknown"
+                ]
+                var versioned = legacy
+                versioned["principalId"] = principalID
+                if let versions = self.consentService.analyticsConsentVersions(for: principalID) {
+                    versioned["privacyVersion"] = versions.privacyVersion
+                    versioned["disclosureVersion"] = versions.disclosureVersion
+                } else if enabled {
+                    // An upgraded local choice does not prove which document
+                    // version was originally shown. Preserve an existing receipt;
+                    // never manufacture a historical grant using today's version.
+                    versioned["existingReceiptOnly"] = true
+                }
+                do {
+                    _ = try await Functions.functions(region: "europe-west3")
+                        .httpsCallable("updateAnalyticsConsentV2").call(versioned)
+                } catch {
+                    let failure = error as NSError
+                    guard failure.domain == FunctionsErrorDomain,
+                          FunctionsErrorCode(rawValue: failure.code) == .notFound else { throw error }
+                    guard self.authContext.principalID.map(Self.principalBinding) == principalBinding,
+                          Auth.auth().currentUser?.uid == principalID else { return }
+                    _ = try await Functions.functions(region: "europe-west3")
+                        .httpsCallable("updateAnalyticsConsent").call(legacy)
+                }
                 guard self.authContext.principalID.map(Self.principalBinding) == principalBinding else {
                     return
                 }
@@ -364,6 +384,11 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
                 guard enabled,
                       self.authContext.principalID.map(Self.principalBinding) == principalBinding,
                       self.authorizedConsentID(for: self.authContext) == consentID else { return }
+                let failure = error as NSError
+                // A temporary network failure must not revoke the user's choice.
+                // Delivery stays suspended until the next successful sync.
+                guard failure.domain == FunctionsErrorDomain,
+                      [.failedPrecondition, .invalidArgument, .permissionDenied].contains(FunctionsErrorCode(rawValue: failure.code)) else { return }
                 self.consentService.setAnalyticsEnabled(false, for: self.authContext.principalID)
                 self.transitionAggregateDelivery(analyticsConsentID: nil)
             }

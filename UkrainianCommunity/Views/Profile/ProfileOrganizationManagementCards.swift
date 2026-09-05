@@ -354,6 +354,7 @@ struct ManagedOrganizationCard: View {
             )
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("organization.manage.\(organization.id)")
 
         NavigationLink {
             OrganizationDetailView(

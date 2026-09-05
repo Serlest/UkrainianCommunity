@@ -1,6 +1,364 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "access_failure.sign_in_required": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійдіть в обліковий запис, щоб продовжити."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melden Sie sich an, um fortzufahren."
+          }
+        }
+      }
+    },
+    "access_failure.email_unverified": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтвердьте електронну пошту, щоб зберегти зміни."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestätigen Sie Ihre E-Mail-Adresse, um Änderungen zu speichern."
+          }
+        }
+      }
+    },
+    "access_failure.account_inactive": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обліковий запис наразі має обмеження. Перевірте повідомлення у профілі."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Konto ist derzeit eingeschränkt. Prüfen Sie die Hinweise in Ihrem Profil."
+          }
+        }
+      }
+    },
+    "access_failure.session_refresh_required": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновіть сеанс входу та повторіть спробу. Ваші зміни залишаються у редакторі."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneuern Sie Ihre Anmeldung und versuchen Sie es erneut. Ihre Änderungen bleiben im Editor."
+          }
+        }
+      }
+    },
+    "access_failure.account_changed": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обліковий запис змінився. Відкрийте редактор у потрібному обліковому записі."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Konto wurde gewechselt. Öffnen Sie den Editor im gewünschten Konto."
+          }
+        }
+      }
+    },
+    "access_failure.role_missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваша поточна роль не дозволяє цю дію. Перевірте доступ у власника організації."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihre aktuelle Rolle erlaubt diese Aktion nicht. Prüfen Sie den Zugriff mit dem Organisationsinhaber."
+          }
+        }
+      }
+    },
+    "access_failure.object_missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Матеріал більше недоступний. Оновіть список."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Eintrag ist nicht mehr verfügbar. Aktualisieren Sie die Liste."
+          }
+        }
+      }
+    },
+    "access_failure.object_changed": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Матеріал уже змінено в іншому сеансі. Оновіть його та перевірте свої зміни перед збереженням."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Eintrag wurde inzwischen geändert. Laden Sie ihn neu und prüfen Sie Ihre Änderungen vor dem Speichern."
+          }
+        }
+      }
+    },
+    "access_failure.invalid_request": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося прийняти ці дані. Перевірте поля редактора та повторіть спробу."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Angaben konnten nicht übernommen werden. Prüfen Sie die Felder und versuchen Sie es erneut."
+          }
+        }
+      }
+    },
+    "access_failure.route_disabled": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ця дія тимчасово недоступна. Ваші зміни залишаються у редакторі."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Aktion ist vorübergehend nicht verfügbar. Ihre Änderungen bleiben im Editor."
+          }
+        }
+      }
+    },
+    "access_failure.operation_expired": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попередня спроба завантаження застаріла. Виберіть фото ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der vorherige Upload ist abgelaufen. Wählen Sie das Foto erneut aus."
+          }
+        }
+      }
+    },
+    "access_failure.limit_reached": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Досягнуто ліміт фотографій організації. Спочатку видаліть непотрібне фото."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Fotolimit der Organisation ist erreicht. Entfernen Sie zuerst ein nicht mehr benötigtes Foto."
+          }
+        }
+      }
+    },
+    "access_failure.network_unavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає з’єднання із сервером. Перевірте інтернет і повторіть спробу; зміни залишаються у редакторі."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Verbindung zum Server. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut; Ihre Änderungen bleiben im Editor."
+          }
+        }
+      }
+    },
+    "access_failure.outcome_unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результат збереження ще не підтверджено. Повторіть цю спробу, щоб перевірити результат."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Speichern wurde noch nicht bestätigt. Wiederholen Sie diesen Versuch, um das Ergebnis zu prüfen."
+          }
+        }
+      }
+    },
+    "organizations.photos.reload_current": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuellen Stand laden und meinen Entwurf behalten"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновити дані, зберігши мій чернетковий варіант"
+          }
+        }
+      }
+    },
+    "organizations.photos.replace": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Замінити фото"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Foto ersetzen"
+          }
+        }
+      }
+    }
+,
+    "organization.edit_conflict" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Організацію вже змінено в іншому сеансі. Відкрийте її ще раз і перевірте свої зміни перед збереженням."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Organisation wurde inzwischen in einer anderen Sitzung geändert. Öffnen Sie sie erneut und prüfen Sie Ihre Änderungen vor dem Speichern."
+          }
+        }
+      }
+    },
+    "legal_evidence.export_history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Експортувати повну історію"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vollständigen Verlauf exportieren"
+          }
+        }
+      }
+    },
+    "app_lock.delay_immediately" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Одразу"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sofort"
+          }
+        }
+      }
+    },
+    "app_lock.delay_minute" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Через хвилину"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach einer Minute"
+          }
+        }
+      }
+    },
+    "app_lock.delay_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Блокувати після згортання"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Verlassen sperren"
+          }
+        }
+      }
+    },
     "app_update.title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2131,13 +2489,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Nach dem Wechsel in den Hintergrund wird der Zugriff auf dieses Konto auf diesem Gerät mit Face ID, Touch ID oder dem Gerätecode geschützt. Nach dem Abmelden sind E-Mail und Passwort erneut erforderlich."
+            "value" : "Nach dem Wechsel in den Hintergrund wird dieses Konto nach dem gewählten Zeitraum gesperrt. Nach einem Neustart sind Face ID, Touch ID oder der Gerätecode erforderlich. Nach dem Abmelden benötigen Sie E-Mail und Passwort."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Після згортання застосунку доступ до цього акаунту на цьому пристрої потребуватиме Face ID, Touch ID або коду пристрою. Після виходу з акаунту потрібно знову ввести email і пароль."
+            "value" : "Після згортання застосунку захист цього акаунту вмикається через вибраний інтервал. Після перезапуску потрібен Face ID, Touch ID або код пристрою. Після виходу з акаунту потрібно знову ввести email і пароль."
           }
         }
       }

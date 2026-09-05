@@ -62,6 +62,7 @@ final class AppLockService: ObservableObject {
     @Published private(set) var isAuthenticating = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var biometry: AppBiometry = .unavailable
+    @Published private(set) var gracePeriod: TimeInterval = 0
 
     // Emitted synchronously AFTER mutations, so a window shield can be installed
     // before AuthState publishes a restored account or UIKit takes a snapshot.
@@ -71,8 +72,11 @@ final class AppLockService: ObservableObject {
     private let storageKey = "appLock.enabledAccounts.v1"
     private var generation = 0
     private var isInBackground = false
+    private var backgroundedAt: TimeInterval?
+    private let now: () -> TimeInterval
 
-    init(defaults: UserDefaults = .standard, authentication: (any LocalAuthenticationProviding)? = nil) {
+    init(defaults: UserDefaults = .standard, authentication: (any LocalAuthenticationProviding)? = nil, now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime }) {
+        self.now = now
 #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            let scenario = ProcessInfo.processInfo.environment["UITestAppLockScenario"] {
@@ -97,9 +101,11 @@ final class AppLockService: ObservableObject {
         if self.userID != userID {
             cancelAuthentication()
             self.userID = userID
+            backgroundedAt = nil
             isUnlocked = false
         }
         isEnabled = userID.map { defaults.bool(forKey: preferenceKey($0)) } ?? false
+        gracePeriod = userID.map { defaults.double(forKey: preferenceKey($0) + ".grace") == 60 ? 60 : 0 } ?? 0
         if passwordAuthenticated, userID != nil { isUnlocked = !isInBackground }
         if userID == nil { isUnlocked = false }
         errorMessage = nil
@@ -110,18 +116,31 @@ final class AppLockService: ObservableObject {
 
     func enterBackground() {
         isInBackground = true
-        lock()
+        if isEnabled && isUnlocked && !isAuthenticating && gracePeriod > 0 {
+            backgroundedAt = now()
+        } else {
+            lock()
+        }
     }
 
     func becomeActive() {
+        if let backgroundedAt, now() - backgroundedAt >= gracePeriod { lock() }
+        backgroundedAt = nil
         isInBackground = false
         refreshAvailability()
     }
 
     func lock() {
+        backgroundedAt = nil
         cancelAuthentication()
         isUnlocked = false
         protectionChanges.send()
+    }
+
+    func setGracePeriod(_ seconds: TimeInterval) {
+        guard let userID, isEnabled, isUnlocked, [0.0, 60.0].contains(seconds) else { return }
+        gracePeriod = seconds
+        defaults.set(seconds, forKey: preferenceKey(userID) + ".grace")
     }
 
     func cancelAuthentication() {
@@ -212,6 +231,7 @@ final class RegistrationAppLockChoice: ObservableObject {
     @Published private(set) var authorization: RegistrationAppLockAuthorization?
     @Published private(set) var isAuthenticating = false
     @Published private(set) var biometry: AppBiometry = .unavailable
+    @Published private(set) var gracePeriod: TimeInterval = 0
     @Published private(set) var errorMessage: String?
     private let authentication: any LocalAuthenticationProviding
     private var generation = 0

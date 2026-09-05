@@ -432,6 +432,17 @@ service cloud.firestore {
       ];
     }
 
+    // Only the existing trusted cancellation callable may create, change or
+    // remove these fields. Ordinary editing and moderation preserve them.
+    function serverEventCancellationFields() {
+      return ['cancellationState', 'cancelledAt', 'cancelledBy', 'cancellationReason'];
+    }
+
+    function eventCancellationFieldsArePreserved() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(serverEventCancellationFields());
+    }
+
     function validOptionalString(data, field, maximumLength) {
       return !(field in data)
         || data[field] == null
@@ -713,7 +724,7 @@ service cloud.firestore {
           || request.resource.data.registrationType == 'token'
           || (request.resource.data.registrationType == 'fid'
             && request.resource.data.token.matches('^[A-Za-z0-9_-]{22}$')))
-        && request.resource.data.platform == 'ios'
+        && request.resource.data.platform in ['ios', 'android']
         && (!('deviceName' in request.resource.data) || request.resource.data.deviceName is string)
         && (!('appVersion' in request.resource.data) || request.resource.data.appVersion is string)
         && request.resource.data.updatedAt is timestamp
@@ -2470,6 +2481,7 @@ service cloud.firestore {
         || canReadModerationQueue('events')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if validEventDocument(request.resource.data, eventId)
+        && !request.resource.data.keys().hasAny(serverEventCancellationFields())
         && hasValidPublicationSchedule(request.resource.data)
         && canCreateOrganizationContent()
         && request.resource.data.requiresRegistration is bool
@@ -2483,13 +2495,14 @@ service cloud.firestore {
             && !('scheduledAt' in request.resource.data))
         );
       allow delete: if false;
-      allow update: if onlyModerationStatusChanged()
-        ? canModerateAppContent('events')
-        : (validEventDocument(request.resource.data, eventId)
-          && (canUpdateOrganizationContent() || canUpdateAppContent())
-          && request.resource.data.id == resource.data.id
-          && request.resource.data.createdAt == resource.data.createdAt
-          && request.resource.data.moderationStatus == resource.data.moderationStatus);
+      allow update: if eventCancellationFieldsArePreserved()
+        && (onlyModerationStatusChanged()
+          ? canModerateAppContent('events')
+          : (validEventDocument(request.resource.data, eventId)
+            && (canUpdateOrganizationContent() || canUpdateAppContent())
+            && request.resource.data.id == resource.data.id
+            && request.resource.data.createdAt == resource.data.createdAt
+            && request.resource.data.moderationStatus == resource.data.moderationStatus));
 
       match /comments/{commentId} {
         allow read: if get(/databases/$(database)/documents/events/$(eventId)).data.moderationStatus == 'approved'

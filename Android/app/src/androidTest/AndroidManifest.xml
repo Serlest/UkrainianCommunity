@@ -1,0 +1,20 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Test APK only. The protected provider participates in the real DocumentsUI picker. -->
+        <provider
+            android:name="at.uac.android.PhotoFixtureDocumentsProvider"
+            android:authorities="at.uac.android.local.test.photo_documents"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+        <!-- No general data surface: custom calls enforce exact local target UID + signature. -->
+        <provider
+            android:name="at.uac.android.PhotoFixtureDocumentsProvider$Seeder"
+            android:authorities="at.uac.android.local.test.photo_fixture_seed"
+            android:exported="true" />
+    </application>
+</manifest>

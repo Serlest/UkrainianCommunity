@@ -1,3 +1,4 @@
+import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {
   FieldPath,
   FieldValue,
@@ -9,7 +10,7 @@ import {
 import * as logger from "firebase-functions/logger";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireVerifiedActiveUser} from "../auth/context";
+import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
 import {auditLogRef, buildAuditLog} from "../audit/auditLog";
 import {adminStorage, db} from "../firebase/admin";
 import {getOrganizationRoles} from "../permissions/organizationPermissions";
@@ -289,7 +290,7 @@ async function deleteQuery(query: Query<DocumentData>): Promise<void> {
       return;
     }
 
-    const writer = db.bulkWriter();
+    const writer = new CheckedBulkWriter();
     for (const document of snapshot.docs) {
       writer.delete(document.ref);
     }
@@ -314,7 +315,7 @@ async function deletePolicyQuery(
 
     const matchingDocuments = snapshot.docs.filter(shouldDelete);
     if (matchingDocuments.length > 0) {
-      const writer = db.bulkWriter();
+      const writer = new CheckedBulkWriter();
       for (const document of matchingDocuments) {
         writer.delete(document.ref);
       }
@@ -340,7 +341,7 @@ async function disableFeaturedBanners(kind: ContentKind, contentId: string): Pro
     return;
   }
 
-  const writer = db.bulkWriter();
+  const writer = new CheckedBulkWriter();
   const updatedAt = Timestamp.now();
   for (const banner of matchingBanners) {
     writer.update(banner.ref, {

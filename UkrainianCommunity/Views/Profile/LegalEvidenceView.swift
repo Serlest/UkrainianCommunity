@@ -6,7 +6,7 @@ struct LegalEvidenceView: View {
     @FocusState private var isSearchFocused: Bool
     private let repository: LegalEvidenceRepository
 
-    init(repository: LegalEvidenceRepository = CloudLegalEvidenceRepository()) {
+    init(repository: LegalEvidenceRepository = LegalEvidenceRepositories.makeDefault()) {
         self.repository = repository
         _viewModel = StateObject(wrappedValue: LegalEvidenceViewModel(repository: repository))
     }
@@ -235,6 +235,12 @@ private struct LegalEvidenceUserDetailView: View {
         ) {
             accountCard
             filterCard
+            if let export = viewModel.exportText {
+                ShareLink(item: export) {
+                    Label(AppStrings.LegalEvidence.exportHistory, systemImage: "square.and.arrow.up")
+                }
+                .accessibilityIdentifier("legalEvidence.export")
+            }
             content
         }
         .task { await viewModel.load() }
@@ -321,8 +327,11 @@ private struct LegalEvidenceUserDetailView: View {
                 subtitle: AppStrings.legalEvidenceConfirmationCount(viewModel.filteredEvents.count)
             )
 
-            ForEach(viewModel.filteredEvents) { event in
-                LegalEvidenceEventCard(event: event)
+
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                ForEach(viewModel.filteredEvents) { event in
+                    LegalEvidenceEventCard(event: event)
+                }
             }
         }
     }

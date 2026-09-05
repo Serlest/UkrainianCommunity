@@ -263,6 +263,12 @@ struct PermissionService {
     }
 
     static func canEditOrganizationInfo(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("editInfo", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canEditOrganizationInfo(organization, user: user))
+    }
+
+    private static func legacy_canEditOrganizationInfo(_ organization: Organization, user: AppUser?) -> Bool {
         guard let user else { return false }
         guard hasUsableAccount(user) else { return false }
 
@@ -289,6 +295,12 @@ struct PermissionService {
     }
 
     static func canCreateOrganizationEvent(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("createEvent", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canCreateOrganizationEvent(organization, user: user))
+    }
+
+    private static func legacy_canCreateOrganizationEvent(_ organization: Organization, user: AppUser?) -> Bool {
         guard let user else { return false }
         guard hasUsableAccount(user) else { return false }
 
@@ -312,7 +324,13 @@ struct PermissionService {
     }
 
     static func canEditOrganizationEvent(_ organization: Organization, user: AppUser?) -> Bool {
-        canCreateOrganizationEvent(organization, user: user)
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("editEvent", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canEditOrganizationEvent(organization, user: user))
+    }
+
+    private static func legacy_canEditOrganizationEvent(_ organization: Organization, user: AppUser?) -> Bool {
+        legacy_canCreateOrganizationEvent(organization, user: user)
     }
 
     @available(*, unavailable, message: "Load the Organization and use canEditOrganizationEvent(_:user:) instead.")
@@ -321,6 +339,12 @@ struct PermissionService {
     }
 
     static func canCreateOrganizationNews(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("createNews", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canCreateOrganizationNews(organization, user: user))
+    }
+
+    private static func legacy_canCreateOrganizationNews(_ organization: Organization, user: AppUser?) -> Bool {
         guard let user else { return false }
         guard hasUsableAccount(user) else { return false }
 
@@ -344,7 +368,13 @@ struct PermissionService {
     }
 
     static func canEditOrganizationNews(_ organization: Organization, user: AppUser?) -> Bool {
-        canCreateOrganizationNews(organization, user: user)
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("editNews", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canEditOrganizationNews(organization, user: user))
+    }
+
+    private static func legacy_canEditOrganizationNews(_ organization: Organization, user: AppUser?) -> Bool {
+        legacy_canCreateOrganizationNews(organization, user: user)
     }
 
     @available(*, unavailable, message: "Load the Organization and use canEditOrganizationNews(_:user:) instead.")
@@ -353,6 +383,12 @@ struct PermissionService {
     }
 
     static func canManageOrganizationRoles(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("manageTeam", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canManageOrganizationRoles(organization, user: user))
+    }
+
+    private static func legacy_canManageOrganizationRoles(_ organization: Organization, user: AppUser?) -> Bool {
         hasOrganizationOwnerAuthority(organization, user: user)
     }
 
@@ -364,10 +400,13 @@ struct PermissionService {
     // The community surface exposes only sanitized public profiles and follow
     // timestamps. Keep the permission semantic and aligned with Firestore Rules:
     // every active signed-in account may browse an approved organization's community.
-    static func canViewOrganizationSubscriberIdentities(
-        _ organization: Organization,
-        user: AppUser?
-    ) -> Bool {
+    static func canViewOrganizationSubscriberIdentities(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("viewSubscribers", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canViewOrganizationSubscriberIdentities(organization, user: user))
+    }
+
+    private static func legacy_canViewOrganizationSubscriberIdentities(_ organization: Organization, user: AppUser?) -> Bool {
         hasUsableAccount(user)
     }
 
@@ -388,10 +427,13 @@ struct PermissionService {
         false
     }
 
-    static func canDeleteOrganizationContent(
-        _ organization: Organization,
-        user: AppUser?
-    ) -> Bool {
+    static func canDeleteOrganizationContent(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("deleteContent", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canDeleteOrganizationContent(organization, user: user))
+    }
+
+    private static func legacy_canDeleteOrganizationContent(_ organization: Organization, user: AppUser?) -> Bool {
         hasOrganizationOwnerAuthority(organization, user: user)
     }
 
@@ -456,6 +498,12 @@ struct PermissionService {
     }
 
     static func canAccessManagedOrganization(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("manageContent", organizationID: organization.id, userID: user?.id,
+            legacy: legacy_canAccessManagedOrganization(organization, user: user))
+    }
+
+    private static func legacy_canAccessManagedOrganization(_ organization: Organization, user: AppUser?) -> Bool {
         canModerateOrganizationContent(organization, user: user)
     }
 

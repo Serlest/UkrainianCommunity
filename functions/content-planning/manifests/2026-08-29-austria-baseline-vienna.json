@@ -1,0 +1,184 @@
+[
+  {
+    "idempotencyKey": "event:https://www.stadthalle.com/en/events/all-events/51217/European-Street-Food-Festival#2026-09-05",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "European Street Food Festival у Відні",
+      "summary": "Два дні міжнародної вуличної кухні просто неба біля Wiener Stadthalle — вхід вільний.",
+      "details": "На відкритому майданчику біля Halle E зберуться десятки фудтраків, мобільних кухонь і гастрономічних стендів. Організатори анонсують страви з різних країн, зокрема вегетаріанські та веганські варіанти, закуски, основні страви й десерти. Фестиваль працює в суботу 5 вересня з 11:00 до 22:00 та в неділю 6 вересня з 11:00 до 20:00. Вхід на територію безкоштовний; їжа та напої оплачуються окремо.",
+      "city": "Wien",
+      "venue": "Wiener Stadthalle, Außengelände Halle E",
+      "address": "Roland-Rainer-Platz 1, 1150 Wien",
+      "eventOrganizerName": "Wildstyle & Tattoo Messeveranstaltungs GmbH",
+      "organizerURL": "https://www.streetfood-festival.eu/",
+      "contactURL": "https://www.stadthalle.com/en/events/all-events/51217/European-Street-Food-Festival",
+      "federalState": "wien",
+      "startDate": "2026-09-05T11:00:00+02:00",
+      "endDate": "2026-09-05T22:00:00+02:00",
+      "isAllDay": false,
+      "category": "foodAndMarket",
+      "additionalCategories": ["festivalsAndFairs"],
+      "audience": "everyone",
+      "tags": ["Wien", "street food", "вулична їжа", "безкоштовний вхід"],
+      "germanTitle": "European Street Food Festival in Wien",
+      "germanSummary": "Zwei Tage internationale Straßenküche unter freiem Himmel bei der Wiener Stadthalle – Eintritt frei.",
+      "germanDetails": "Auf dem Außengelände bei Halle E treffen zahlreiche Foodtrucks, mobile Küchen und gastronomische Stände zusammen. Angekündigt sind Gerichte aus unterschiedlichen Ländern, darunter vegetarische und vegane Angebote, Snacks, Hauptspeisen und Desserts. Das Festival ist am Samstag, 5. September, von 11 bis 22 Uhr und am Sonntag, 6. September, von 11 bis 20 Uhr geöffnet. Der Eintritt zum Gelände ist frei; Speisen und Getränke werden separat bezahlt.",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.stadthalle.com/en/events/all-events/51217/European-Street-Food-Festival",
+      "priceKind": "free",
+      "priceNote": "Вхід безкоштовний; споживання оплачується окремо.",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-06T11:00:00+02:00",
+          "endDate": "2026-09-06T20:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.stadthalle.com/en/events/all-events/51217/European-Street-Food-Festival",
+        "title": "European Street Food Festival — Wiener Stadthalle",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T22:45:36+02:00"
+      },
+      {
+        "url": "https://www.stadthalle.com/de/events/alle-events/51216/European-Street-Food-Festival",
+        "title": "European Street Food Festival — deutsche Veranstaltungsseite",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T22:45:36+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дати, обидва розклади, відкритий майданчик, безкоштовний вхід та організатора звірено з офіційними сторінками Wiener Stadthalle.",
+      "Основна категорія foodAndMarket відповідає гастрономічному формату; festivalsAndFairs додана через дводенний фестивальний формат.",
+      "Чернетка прив'язана лише до Wien; подія не дублюється для інших земель."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/austria-baseline/vienna/european-street-food-festival.png",
+    "imageAlternativeText": "Відвідувачі гуляють між фудтраками та стендами вуличної їжі біля великої віденської арени"
+  },
+  {
+    "idempotencyKey": "event:https://langenacht.orf.at/en/state-list/bl/wien/#2026-10-03",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Довга ніч музеїв у Відні",
+      "summary": "Один квиток відкриває музеї Відня з 18:00 до опівночі та діє у міському транспорті.",
+      "details": "У суботу 3 жовтня музеї та культурні простори Відня працюватимуть у спеціальному вечірньому режимі з 18:00 до 24:00. Один квиток дає доступ до всіх зазначених у програмі локацій, спеціальних подій і автобусів-шатлів. У Відні він також діє як квиток на громадський транспорт, включно з Nightline, з 17:30 3 жовтня до 00:30 4 жовтня. Головний інформаційний пункт розташований на Maria-Theresien-Platz. Повна програма та перелік музеїв доступні на офіційному сайті.",
+      "city": "Wien",
+      "venue": "Музеї та культурні простори Відня",
+      "address": "Treffpunkt Museum, Maria-Theresien-Platz, 1010 Wien",
+      "locationNote": "Подія проходить одночасно в багатьох локаціях; Maria-Theresien-Platz — центральний інформаційний пункт, а не єдине місце проведення.",
+      "eventOrganizerName": "ORF",
+      "organizerURL": "https://langenacht.orf.at/en/",
+      "contactURL": "https://langenacht.orf.at/en/state-list/bl/wien/",
+      "federalState": "wien",
+      "startDate": "2026-10-03T18:00:00+02:00",
+      "endDate": "2026-10-04T00:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": ["education"],
+      "audience": "everyone",
+      "tags": ["Wien", "музеї", "культура", "нічна програма"],
+      "germanTitle": "ORF-Lange Nacht der Museen in Wien",
+      "germanSummary": "Ein Ticket öffnet Wiens Museen von 18 Uhr bis Mitternacht und gilt auch in den öffentlichen Verkehrsmitteln.",
+      "germanDetails": "Am Samstag, 3. Oktober, öffnen Museen und Kulturräume in Wien von 18 Uhr bis Mitternacht für ein besonderes Abendprogramm. Ein Ticket gilt für alle im Programm angeführten Standorte und Veranstaltungen sowie für die Shuttlebusse. In Wien kann es außerdem von 17:30 Uhr am 3. Oktober bis 00:30 Uhr am 4. Oktober als Fahrschein für die öffentlichen Verkehrsmittel einschließlich Nightline verwendet werden. Der zentrale Museumstreffpunkt befindet sich am Maria-Theresien-Platz. Das vollständige Programm und alle teilnehmenden Museen stehen auf der offiziellen Website.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Програма і квитки",
+      "externalActionURL": "https://langenacht.orf.at/en/state-list/bl/wien/",
+      "priceKind": "range",
+      "price": 16,
+      "maximumPrice": 19,
+      "priceNote": "Звичайний квиток — 19 євро, пільговий — 16 євро; дітям до 12 років безкоштовно за умовами організатора.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://langenacht.orf.at/en/",
+        "title": "ORF Long Night of Museums 2026",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T22:45:36+02:00"
+      },
+      {
+        "url": "https://langenacht.orf.at/en/state-list/bl/wien/",
+        "title": "Vienna state programme and ticket information",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T22:45:36+02:00"
+      },
+      {
+        "url": "https://museum.wienerlinien.at/en/events",
+        "title": "Verkehrsmuseum Remise — Long Night of Museums",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T22:45:36+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, час, квитки, пільги, транспортна дія квитка та центральний інформаційний пункт підтверджені офіційними сторінками ORF.",
+      "Verkehrsmuseum Remise незалежно підтверджує віденську участь і час до опівночі.",
+      "Основна категорія culture відповідає музейній події; education додана через екскурсії та освітні програми.",
+      "Загальноавстрійська ініціатива представлена як один віденський регіональний пакет і не повинна дублюватися як та сама подія в інших землях."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/austria-baseline/vienna/long-night-museums.png",
+    "imageAlternativeText": "Відвідувачі ввечері заходять до освітленого музею у Відні"
+  },
+  {
+    "idempotencyKey": "event:https://www.christkindlmarkt.at/en/#2026-11-13",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Віденський різдвяний ярмарок на Rathausplatz",
+      "summary": "Головний різдвяний ярмарок Відня працюватиме щодня з 13 листопада до 26 грудня.",
+      "details": "На площі перед Віденською ратушею відкриється великий різдвяний ярмарок із сезонними стендами та святково освітленим Rathauspark. Він працюватиме щодня з 10:00 до 22:00 від 13 листопада до 26 грудня. 24 грудня діє скорочений графік — з 10:00 до 18:30. Поруч працюватиме льодова зона Eistraum: від 13 листопада 2026 року до 6 січня 2027 року щодня з 10:00 до 22:00; 31 грудня вона зачинена.",
+      "city": "Wien",
+      "venue": "Wiener Christkindlmarkt am Rathausplatz",
+      "address": "Rathausplatz, 1010 Wien",
+      "eventOrganizerName": "Stadt Wien Marketing GmbH",
+      "organizerURL": "https://www.christkindlmarkt.at/en/",
+      "contactURL": "https://www.christkindlmarkt.at/en/",
+      "federalState": "wien",
+      "startDate": "2026-11-13T10:00:00+01:00",
+      "endDate": "2026-12-26T22:00:00+01:00",
+      "isAllDay": false,
+      "category": "festivalsAndFairs",
+      "additionalCategories": ["foodAndMarket", "celebration"],
+      "audience": "everyone",
+      "tags": ["Wien", "Різдво", "ярмарок", "Rathausplatz"],
+      "germanTitle": "Wiener Christkindlmarkt am Rathausplatz",
+      "germanSummary": "Wiens großer Weihnachtsmarkt ist vom 13. November bis 26. Dezember täglich geöffnet.",
+      "germanDetails": "Auf dem Platz vor dem Wiener Rathaus öffnet der große Christkindlmarkt mit saisonalen Ständen und festlich beleuchtetem Rathauspark. Er ist vom 13. November bis 26. Dezember täglich von 10 bis 22 Uhr geöffnet. Am 24. Dezember gelten verkürzte Öffnungszeiten von 10 bis 18:30 Uhr. Daneben läuft der Eistraum vom 13. November 2026 bis 6. Jänner 2027 täglich von 10 bis 22 Uhr; am 31. Dezember bleibt er geschlossen.",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.christkindlmarkt.at/en/",
+      "priceKind": "unspecified",
+      "priceNote": "Вхід на ярмарок не позначений окремим квитком; умови та ціни льодової зони перевіряйте на офіційному сайті.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.christkindlmarkt.at/en/",
+        "title": "Vienna Christmas Market — official website",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T22:45:36+02:00"
+      },
+      {
+        "url": "https://www.wien.info/en/now-on/christmas/christmas-markets-342664",
+        "title": "Vienna's Christmas markets — Vienna Tourist Board",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T22:45:36+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, щоденні години, виняток 24 грудня, адреса та розклад Eistraum звірені з офіційним сайтом ярмарку й Vienna Tourist Board.",
+      "Основна категорія festivalsAndFairs відповідає сезонному ярмарку; foodAndMarket та celebration відображають самостійні гастрономічний і святковий аспекти.",
+      "Ціну входу не вигадано: ярмарок не показує окремий вхідний квиток, а ціни льодової зони залишені для перевірки на офіційній сторінці."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/austria-baseline/vienna/christmas-market-rathausplatz.png",
+    "imageAlternativeText": "Освітлений різдвяний ярмарок і льодова доріжка перед Віденською ратушею"
+  }
+]

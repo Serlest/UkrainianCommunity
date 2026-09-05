@@ -16,7 +16,8 @@ import { HttpsError, onCall } from "firebase-functions/v2/https";
 import {defineBoolean} from "firebase-functions/params";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
-import {assertActiveUser, requireVerifiedActiveUser} from "../auth/context";
+import {assertActiveUser} from "../auth/context";
+import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
 import { db } from "../firebase/admin";
 import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {
@@ -28,7 +29,7 @@ import {
   type AnalyticsActionProofBinding,
 } from "./analyticsActionProof";
 import {
-  analyticsConsentStateCollection,
+  analyticsConsentStateCollection, analyticsConsentReceiptCollection, analyticsConsentReceiptID,
   isCurrentAnalyticsConsent,
 } from "./analyticsConsent";
 import {dailyDocumentIDFor, datedAnalyticsDocumentIDs} from "./analyticsDate";
@@ -872,12 +873,14 @@ async function commitAnalyticsEvent(
     // Account deletion first mutates and then deletes this document, which now
     // conflicts with an in-flight analytics write and prevents a UID-keyed
     // marker from being recreated after deletion.
-    const [userSnapshot, consentSnapshot] = await transaction.getAll(
+    const [userSnapshot, consentSnapshot, consentReceipt] = await transaction.getAll(
       userReference,
-      consentReference
+      consentReference,
+      db.collection(analyticsConsentReceiptCollection).doc(analyticsConsentReceiptID(uid, consentID))
     );
     assertAnalyticsUserProfileActive(uid, userSnapshot.exists, userSnapshot.data());
-    if (!isCurrentAnalyticsConsent(consentSnapshot.data(), consentID)) {
+    if (!isCurrentAnalyticsConsent(consentSnapshot.data(), consentID)
+      || consentReceipt.get("enabled") !== true || consentReceipt.get("withdrawnAt") != null) {
       throw new HttpsError(
         "failed-precondition",
         "A current server-recorded analytics consent is required."

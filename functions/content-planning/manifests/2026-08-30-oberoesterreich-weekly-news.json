@@ -1,0 +1,222 @@
+[
+  {
+    "idempotencyKey": "news:https://www.linz.at/medienservice/2026/202608_136894.php#update-2026-08-29",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "У районі Лінца вже 32 випадки легіонельозу",
+      "summary": "Троє людей померли, п’ятеро залишаються в лікарні; джерела зараження продовжують перевіряти.",
+      "body": "Станом на 29 серпня у Великому Лінці підтверджено 32 випадки легіонельозу. Троє людей померли, п’ятеро перебувають у лікарні. У холодильній установці підприємства в районі Linz-Leonding, поблизу Doppl і Haidfeldstraße, виявили Legionella pneumophila; установку зупинили та продезінфікували. Перевірки інших можливих джерел тривають, тому остаточну причину всього спалаху ще не встановлено. Легіонели передаються переважно через вдихання дрібного водяного аерозолю, а не через пиття води. Особливо вразливі люди старшого віку, курці, люди з ослабленим імунітетом, діабетом або хронічними захворюваннями легень. Після тривалої відсутності вдома фахівці радять дати воді стекти, підтримувати належну температуру гарячої води та регулярно обслуговувати водяні установки. За появи високої температури, кашлю, задишки або сильного погіршення самопочуття слід звернутися по медичну допомогу.",
+      "sourceInput": "https://www.linz.at/medienservice/2026/202608_136894.php",
+      "category": "health",
+      "additionalCategories": ["safetyAndEmergencies"],
+      "tags": ["Oberösterreich", "Linz", "Linz-Land", "легіонельоз", "здоров’я"],
+      "federalState": "oberoesterreich",
+      "germanTitle": "Bereits 32 Legionellose-Fälle im Großraum Linz",
+      "germanSummary": "Drei Menschen sind verstorben, fünf werden stationär behandelt; die Suche nach den Infektionsquellen läuft weiter.",
+      "germanBody": "Mit Stand 29. August wurden im Großraum Linz 32 Legionellose-Fälle bestätigt. Drei Menschen sind verstorben, fünf werden stationär behandelt. In der Kühlanlage eines Gewerbebetriebs im Raum Linz-Leonding, im Bereich Doppl/Haidfeldstraße, wurde Legionella pneumophila nachgewiesen. Die Anlage wurde stillgelegt und desinfiziert. Weitere mögliche Quellen werden untersucht; eine abschließende Zuordnung des gesamten Ausbruchsgeschehens liegt noch nicht vor. Legionellen werden vor allem durch das Einatmen fein zerstäubten Wassernebels übertragen, nicht durch das Trinken von Wasser. Besonders gefährdet sind ältere Menschen, Raucherinnen und Raucher, immungeschwächte Personen sowie Menschen mit Diabetes oder chronischen Lungenerkrankungen. Nach längerer Abwesenheit sollte Wasser ausreichend ablaufen; Warmwasseranlagen und andere wasserführende Installationen sollten sachgerecht betrieben und gewartet werden. Bei hohem Fieber, Husten, Atemnot oder einer deutlichen Verschlechterung des Allgemeinzustands ist medizinische Hilfe angezeigt.",
+      "imageAlternativeText": "Фахівці санітарної служби перевіряють технічну водяну установку в районі Лінца",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Офіційна інформація міста Лінц",
+      "externalActionURL": "https://www.linz.at/medienservice/2026/202608_136894.php",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url": "https://www.linz.at/medienservice/2026/202608_136894.php", "title": "Stadt Linz, Land OÖ, BH Linz-Land und AGES — offizielles Update vom 27. August 2026", "isPrimary": true, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://ooe.orf.at/stories/3368978/", "title": "ORF Oberösterreich — 32 Erkrankte durch Legionellen", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"}
+    ],
+    "verificationNotes": [
+      "Офіційне спільне повідомлення від 27 серпня підтверджує 31 випадок, три смерті, позитивну пробу в Linz-Leonding, групи ризику та профілактичні поради; ORF від 29 серпня підтверджує актуальне збільшення до 32 випадків і п’ятьох госпіталізованих.",
+      "Текст чітко відрізняє підтверджені позитивні проби від ще не завершеного встановлення остаточного джерела всього спалаху.",
+      "health — основна категорія через інфекційне захворювання; safetyAndEmergencies додана через чинний регіональний спалах і практичні запобіжні дії."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30/oberoesterreich-weekly-news/legionella-linz.png",
+    "imageAlternativeText": "Фахівці санітарної служби перевіряють технічну водяну установку в районі Лінца"
+  },
+  {
+    "idempotencyKey": "news:https://www.land-oberoesterreich.gv.at/560315.htm",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Чотири дні безкоштовного транспорту для сімей в Oberösterreich",
+      "summary": "З OÖ Familienkarte можна отримати безкоштовний Freizeit-Ticket на 5, 6, 19 або 20 вересня.",
+      "body": "Сім’ї з чинною OÖ Familienkarte можуть один раз обрати 5, 6, 19 або 20 вересня та безкоштовно отримати Freizeit-Ticket OÖ. Квиток діє цілий день для максимум двох дорослих і чотирьох дітей віком до 15 років у регіональних поїздах, автобусах і міському транспорті Linz, Wels та Steyr по всій Верхній Австрії. Діти не обов’язково мають бути внесені до Familienkarte, тому можна взяти із собою також друзів дитини. Не входять поїзди далекого сполучення та Pöstlingbergbahn у Лінці. Безкоштовний квиток потрібно завантажити за номером Familienkarte; на кожен акційний день доступно не більше 1 500 квитків. Одним номером Familienkarte акцію можна використати лише один раз.",
+      "sourceInput": "https://www.land-oberoesterreich.gv.at/560315.htm",
+      "category": "transport",
+      "additionalCategories": ["benefitsAndSupport"],
+      "tags": ["Oberösterreich", "Linz", "сім’я", "громадський транспорт", "безкоштовно"],
+      "federalState": "oberoesterreich",
+      "germanTitle": "Vier Tage kostenlose Öffis für Familien in Oberösterreich",
+      "germanSummary": "Mit der OÖ Familienkarte ist ein kostenloses Freizeit-Ticket für den 5., 6., 19. oder 20. September erhältlich.",
+      "germanBody": "Familien mit einer gültigen OÖ Familienkarte können einmalig den 5., 6., 19. oder 20. September wählen und ein kostenloses Freizeit-Ticket OÖ beziehen. Es gilt einen ganzen Tag für bis zu zwei Erwachsene und vier Kinder unter 15 Jahren in Regionalzügen, Bussen sowie den Stadtverkehren Linz, Wels und Steyr in ganz Oberösterreich. Die Kinder müssen nicht in der Familienkarte eingetragen sein; auch befreundete Kinder können mitfahren. Fernverkehrszüge und die Pöstlingbergbahn sind ausgenommen. Das kostenlose Ticket muss mit der Familienkarten-Nummer heruntergeladen werden. Pro Aktionstag stehen höchstens 1.500 Tickets zur Verfügung; jede Familienkarten-Nummer kann die Aktion nur einmal nutzen.",
+      "imageAlternativeText": "Сім’я з дітьми сідає до регіонального поїзда в Oberösterreich",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Отримати безкоштовний квиток",
+      "externalActionURL": "https://www.familienkarte.at/de/freizeit/familien-oeffi-tage-2026.html",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url": "https://www.land-oberoesterreich.gv.at/560315.htm", "title": "Land Oberösterreich — Familien-Öffi-Tage", "isPrimary": true, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://www.familienkarte.at/de/freizeit/familien-oeffi-tage-2026.html", "title": "OÖ Familienkarte — Bedingungen und Ticketabruf", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://www.ooevv.at/de/ausfluege-events.html", "title": "OÖVV — Familien-Öffi-Tage 2026", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://ooe.orf.at/stories/3368335/", "title": "ORF Oberösterreich — Vier Tage freie Fahrt mit Öffis für Familien", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"}
+    ],
+    "verificationNotes": [
+      "Дати 5, 6, 19 і 20 вересня, склад групи, територія дії та винятки збігаються на сторінках Land OÖ, Familienkarte, OÖVV та ORF.",
+      "Ліміт 1 500 квитків на день і одноразове використання номера Familienkarte підтверджені офіційною сторінкою отримання квитка.",
+      "transport — основна категорія через проїзний квиток; benefitsAndSupport додана через безкоштовну сімейну пільгу."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30/oberoesterreich-weekly-news/family-public-transport.png",
+    "imageAlternativeText": "Сім’я з дітьми сідає до регіонального поїзда в Oberösterreich"
+  },
+  {
+    "idempotencyKey": "news:https://www.ots.at/presseaussendung/OTM_20260828_OTM0012/lh-stvin-haberlander-in-oberoesterreich-besuchen-mehr-als-7700-kinder-und-jugendliche-die-sommerschule",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "В Oberösterreich починається Sommerschule",
+      "summary": "З 31 серпня до 11 вересня навчатимуться 7 705 дітей; для частини учнів із Deutschförderklassen участь обов’язкова.",
+      "body": "З 31 серпня до 11 вересня в 132 локаціях Oberösterreich проходить Sommerschule. У ній беруть участь 7 705 дітей і підлітків, 638 педагогів та 41 Buddy. Програма допомагає повторити матеріал, підготуватися до нового навчального року й посилити знання німецької мови. Важливо для багатьох українських сімей: з 2026 року участь є обов’язковою для außerordentliche Schülerinnen und Schüler, які навчаються в Deutschförderklassen. Батькам таких дітей варто перевірити у своїй школі місце проведення, години занять і транспорт. Для інших учасників діють умови зарахування, узгоджені зі школою. За організаційними питаннями можна звертатися до школи або Bildungsdirektion Oberösterreich.",
+      "sourceInput": "https://www.ots.at/presseaussendung/OTM_20260828_OTM0012/lh-stvin-haberlander-in-oberoesterreich-besuchen-mehr-als-7700-kinder-und-jugendliche-die-sommerschule",
+      "category": "education",
+      "additionalCategories": ["communityAndIntegration"],
+      "tags": ["Oberösterreich", "школа", "Sommerschule", "німецька мова", "батьки"],
+      "federalState": "oberoesterreich",
+      "germanTitle": "Die Sommerschule startet in Oberösterreich",
+      "germanSummary": "Von 31. August bis 11. September nehmen 7.705 Kinder teil; für einen Teil der Schülerinnen und Schüler aus Deutschförderklassen ist die Teilnahme verpflichtend.",
+      "germanBody": "Von 31. August bis 11. September findet die Sommerschule an 132 Standorten in Oberösterreich statt. 7.705 Kinder und Jugendliche werden von 638 Lehrkräften und 41 Buddys begleitet. Die Sommerschule dient der Wiederholung, der Vorbereitung auf das neue Schuljahr und der Förderung der Deutschkenntnisse. Seit 2026 ist die Teilnahme für außerordentliche Schülerinnen und Schüler aus Deutschförderklassen verpflichtend. Betroffene Eltern sollten Standort, Unterrichtszeiten und Anreise direkt mit ihrer Schule klären. Für andere Teilnehmende gelten die mit der Schule vereinbarten Aufnahmebedingungen. Organisatorische Fragen beantworten die Schule oder die Bildungsdirektion Oberösterreich.",
+      "imageAlternativeText": "Діти навчаються в невеликій групі під час літньої школи в Oberösterreich",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Інформація Bildungsdirektion OÖ",
+      "externalActionURL": "https://www.bildung-ooe.gv.at/Schule-und-Unterricht/Paedagogische-Themen/Sommerschule.html",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url": "https://www.ots.at/presseaussendung/OTM_20260828_OTM0012/lh-stvin-haberlander-in-oberoesterreich-besuchen-mehr-als-7700-kinder-und-jugendliche-die-sommerschule", "title": "Land Oberösterreich — Sommerschule 2026", "isPrimary": true, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://www.bildung-ooe.gv.at/Schule-und-Unterricht/Paedagogische-Themen/Sommerschule.html", "title": "Bildungsdirektion Oberösterreich — Sommerschule", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://www.tips.at/nachrichten/ooe/land-leute/733131-mehr-als-7-700-kinder-besuchen-die-sommerschule-in-ooe", "title": "Tips — Mehr als 7.700 Kinder besuchen die Sommerschule in OÖ", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"}
+    ],
+    "verificationNotes": [
+      "Період 31 серпня — 11 вересня, 132 локації, 7 705 учасників, 638 педагогів і 41 Buddy підтверджені повідомленням Land OÖ та незалежним матеріалом Tips.",
+      "Обов’язкова участь стосується саме außerordentliche Schülerinnen und Schüler із Deutschförderklassen; текст не поширює цю вимогу на всіх дітей.",
+      "education — основна категорія; communityAndIntegration додана через підтверджене мовне навчання дітей з außerordentlicher Status."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30/oberoesterreich-weekly-news/summer-school.png",
+    "imageAlternativeText": "Діти навчаються в невеликій групі під час літньої школи в Oberösterreich"
+  },
+  {
+    "idempotencyKey": "news:https://vcoe.at/index.php/presse/presseaussendungen/detail/vcoe-im-vorjahr-nahm-zahl-der-schulwegunfaelle-in-oesterreich-um-28-prozent-zu?page_n168=7#oberoesterreich",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "В Oberösterreich найбільше ДТП на шляху до школи",
+      "summary": "У 2025 році сталося 102 шкільні дорожні пригоди, у яких травмувалися 105 дітей.",
+      "body": "За аналізом VCÖ на основі даних Statistik Austria, у 2025 році в Oberösterreich сталося 102 дорожні пригоди на шляху до школи — проти 73 роком раніше. У них травмувалися 105 дітей, загиблих не було. Це найбільша кількість серед федеральних земель Австрії. Перед початком навчання батькам радять кілька разів пройти маршрут разом із дитиною, особливо якщо вона вперше йде до школи або переходить до іншого навчального закладу. Варто обирати шлях із якомога меншою кількістю переходів і добрими тротуарами, перевіряти огляд через припарковані автомобілі та пояснювати безпечну поведінку на переходах. Небезпечне місце можна повідомити громаді та дирекції школи, щоб вони перевірили можливі заходи.",
+      "sourceInput": "https://vcoe.at/index.php/presse/presseaussendungen/detail/vcoe-im-vorjahr-nahm-zahl-der-schulwegunfaelle-in-oesterreich-um-28-prozent-zu?page_n168=7",
+      "category": "safetyAndEmergencies",
+      "additionalCategories": ["education", "transport"],
+      "tags": ["Oberösterreich", "діти", "шкільний шлях", "безпека", "транспорт"],
+      "federalState": "oberoesterreich",
+      "germanTitle": "Oberösterreich hat die meisten Schulwegunfälle",
+      "germanSummary": "Im Jahr 2025 gab es 102 Schulwegunfälle, bei denen 105 Kinder verletzt wurden.",
+      "germanBody": "Laut einer VCÖ-Analyse auf Basis von Daten der Statistik Austria ereigneten sich 2025 in Oberösterreich 102 Schulwegunfälle, nach 73 im Jahr davor. Dabei wurden 105 Kinder verletzt; tödliche Schulwegunfälle gab es nicht. Oberösterreich verzeichnete damit die höchste Zahl aller Bundesländer. Eltern sollten den Schulweg vor Schulbeginn mehrmals gemeinsam mit dem Kind üben, besonders bei Schulanfängern oder einem Schulwechsel. Empfehlenswert sind Wege mit möglichst wenigen Straßenquerungen und gut ausgebauten Gehwegen. Auch Sichtbehinderungen durch parkende Fahrzeuge sollten aus Kinderperspektive geprüft werden. Gefahrenstellen können der Gemeinde und der Schulleitung gemeldet werden, damit mögliche Entschärfungsmaßnahmen geprüft werden.",
+      "imageAlternativeText": "Один із батьків разом із дитиною відпрацьовує безпечний перехід дороги до школи",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Поради та статистика VCÖ",
+      "externalActionURL": "https://vcoe.at/index.php/presse/presseaussendungen/detail/vcoe-im-vorjahr-nahm-zahl-der-schulwegunfaelle-in-oesterreich-um-28-prozent-zu?page_n168=7",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url": "https://vcoe.at/index.php/presse/presseaussendungen/detail/vcoe-im-vorjahr-nahm-zahl-der-schulwegunfaelle-in-oesterreich-um-28-prozent-zu?page_n168=7", "title": "VCÖ — Analyse der Schulwegunfälle auf Basis von Statistik Austria", "isPrimary": true, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://ooe.orf.at/stories/3368718/", "title": "ORF Oberösterreich — OÖ bei Schulwegunfällen an erster Stelle", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"}
+    ],
+    "verificationNotes": [
+      "102 пригоди, 105 травмованих дітей, відсутність загиблих і зростання з 73 випадків підтверджені первинним аналізом VCÖ та ORF.",
+      "Практичні поради щодо тренування маршруту, вибору переходів і повідомлення небезпечних місць передані без додавання непідтверджених вимог.",
+      "safetyAndEmergencies — основна категорія через дитячу дорожню безпеку; education і transport описують сам шкільний маршрут та підготовку до навчання."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30/oberoesterreich-weekly-news/school-route-safety.png",
+    "imageAlternativeText": "Один із батьків разом із дитиною відпрацьовує безпечний перехід дороги до школи"
+  },
+  {
+    "idempotencyKey": "news:https://www.gunskirchen.com/Verkehrsbehinderungen_Strassenbauarbeiten_6",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Ремонт B1 у Gunskirchen: об’їзд і обмеження до 7 вересня",
+      "summary": "До 3 вересня рух частково односторонній, а 4 і 7 вересня закриють ділянки L1249 та Au bei der Traun.",
+      "body": "У Gunskirchen триває ремонт B1 Wiener Straße та L1249 Grünbachtalstraße. З 24 серпня до 3 вересня на B1 у напрямку Wels зберігається одна смуга, а рух у напрямку Lambach перенаправляють через Welser Straße. На цій вулиці та частині L1249 діє одностороння організація руху. 4 і 7 вересня заплановане повне закриття ділянки L1249 біля Autohaus Scheinecker; Gemeindestraße Au bei der Traun у ці ж дні буде закрита від перехрестя з B1 до будинку №19. На решті перехрестя B1 рух регулюватиме світлофор. Маршрутні автобуси також ідуть об’їздом. Водіям і мешканцям варто закласти додатковий час та стежити за актуальними вказівниками на місці.",
+      "sourceInput": "https://www.gunskirchen.com/Verkehrsbehinderungen_Strassenbauarbeiten_6",
+      "category": "transport",
+      "additionalCategories": [],
+      "tags": ["Oberösterreich", "Gunskirchen", "Wels-Land", "B1", "об’їзд"],
+      "federalState": "oberoesterreich",
+      "germanTitle": "B1-Sanierung in Gunskirchen: Umleitung und Einschränkungen bis 7. September",
+      "germanSummary": "Bis 3. September gilt teilweise eine Einbahnführung; am 4. und 7. September werden Abschnitte der L1249 und Au bei der Traun gesperrt.",
+      "germanBody": "In Gunskirchen werden die B1 Wiener Straße und die L1249 Grünbachtalstraße saniert. Von 24. August bis 3. September bleibt auf der B1 Richtung Wels eine Fahrspur offen; der Verkehr Richtung Lambach wird über die Welser Straße umgeleitet. Dort und auf einem Teil der L1249 gilt eine Einbahnregelung. Am 4. und 7. September ist eine Totalsperre der L1249 im Bereich Autohaus Scheinecker vorgesehen. Die Gemeindestraße Au bei der Traun wird an denselben Tagen von der B1-Kreuzung bis Haus Nr. 19 gesperrt. Im verbleibenden Kreuzungsbereich der B1 wird der Verkehr mit einer Ampel wechselweise geführt. Auch der Linienverkehr wird umgeleitet. Verkehrsteilnehmende sollten mehr Zeit einplanen und die Beschilderung vor Ort beachten.",
+      "imageAlternativeText": "Дорожня бригада ремонтує асфальт на регіональній дорозі біля Gunskirchen",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Схема робіт і об’їзду",
+      "externalActionURL": "https://www.gunskirchen.com/Verkehrsbehinderungen_Strassenbauarbeiten_6",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url": "https://www.gunskirchen.com/Verkehrsbehinderungen_Strassenbauarbeiten_6", "title": "Marktgemeinde Gunskirchen — Straßensanierung B1 Wiener Straße", "isPrimary": true, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://doris.land-oberoesterreich.gv.at/themen/verkehr/baustellen.aspx", "title": "Land Oberösterreich DORIS — Baustellen und Sperren", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://ooe.orf.at/stories/3368162/", "title": "ORF Oberösterreich — Umfangreiche Sanierungsarbeiten auf der B1", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"}
+    ],
+    "verificationNotes": [
+      "Період робіт, напрямки руху, об’їзд і повні закриття 4 та 7 вересня підтверджені детальним повідомленням Marktgemeinde Gunskirchen.",
+      "DORIS підтверджує обмеження B1 у напрямку Gunskirchen до 3 вересня; ORF підтверджує масштаб робіт і навантаження на місцевий об’їзд.",
+      "transport — єдина основна категорія, оскільки матеріал стосується актуальної організації дорожнього та автобусного руху."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30/oberoesterreich-weekly-news/b1-gunskirchen.png",
+    "imageAlternativeText": "Дорожня бригада ремонтує асфальт на регіональній дорозі біля Gunskirchen"
+  },
+  {
+    "idempotencyKey": "news:https://www.land-oberoesterreich.gv.at/560262.htm#24-august-2026",
+    "kind": "news",
+    "state": "readyForReview",
+    "payload": {
+      "title": "У Suben запускають цілодобову санітарну авіацію",
+      "summary": "Із 25 вересня Christophorus Europa 3 працюватиме вдень і вночі для Oberösterreich та прикордонної Баварії.",
+      "body": "Із 25 вересня рятувальний вертоліт Christophorus Europa 3 на базі Suben переходить на цілодобову роботу. Це перший 24/7-пункт санітарної авіації на заході Австрії та важливе посилення нічної екстреної допомоги для Innviertel, решти Oberösterreich і прикордонної частини Баварії. У 2025 році вертольоти екстреної допомоги в Oberösterreich виконали 2 654 вильоти, із них 1 523 припали на Christophorus Europa 3. Для нічного режиму очікують близько 250 додаткових вильотів на рік. Це інформація про роботу служби, а не новий номер виклику: у медичній надзвичайній ситуації в Австрії потрібно телефонувати 144 або 112.",
+      "sourceInput": "https://www.land-oberoesterreich.gv.at/560262.htm",
+      "category": "health",
+      "additionalCategories": ["safetyAndEmergencies"],
+      "tags": ["Oberösterreich", "Suben", "Innviertel", "санітарна авіація", "екстрена допомога"],
+      "federalState": "oberoesterreich",
+      "germanTitle": "24-Stunden-Flugrettung startet in Suben",
+      "germanSummary": "Ab 25. September ist Christophorus Europa 3 Tag und Nacht für Oberösterreich und das bayerische Grenzgebiet einsatzbereit.",
+      "germanBody": "Ab 25. September geht der in Suben stationierte Rettungshubschrauber Christophorus Europa 3 in den 24-Stunden-Betrieb. Damit entsteht der erste durchgehend besetzte Flugrettungsstützpunkt im Westen Österreichs. Die nächtliche Notfallversorgung im Innviertel, in Oberösterreich und im bayerischen Grenzraum wird dadurch erweitert. 2025 absolvierten die Rettungshubschrauber in Oberösterreich 2.654 Einsätze; 1.523 davon entfielen auf Christophorus Europa 3. Für den Nachtbetrieb werden rund 250 zusätzliche Einsätze pro Jahr erwartet. Die neue Betriebszeit ändert die Notrufnummern nicht: Bei einem medizinischen Notfall gelten in Österreich weiterhin 144 beziehungsweise 112.",
+      "imageAlternativeText": "Рятувальний вертоліт готують до нічного чергування на базі в Oberösterreich",
+      "imageCredit": "Зображення створене ШІ",
+      "externalActionTitle": "Офіційне повідомлення Land OÖ",
+      "externalActionURL": "https://www.land-oberoesterreich.gv.at/560262.htm",
+      "regionScope": "federalState",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {"url": "https://www.land-oberoesterreich.gv.at/560262.htm", "title": "Land Oberösterreich — 24/7-Helikopter Suben hebt bald ab", "isPrimary": true, "checkedAt": "2026-08-30T13:18:28+02:00"},
+      {"url": "https://ooe.orf.at/stories/3368110/", "title": "ORF Oberösterreich — 24/7-Rettungshubschrauber hebt bald ab", "isPrimary": false, "checkedAt": "2026-08-30T13:18:28+02:00"}
+    ],
+    "verificationNotes": [
+      "Початок 24/7-режиму 25 вересня, база Suben, транскордонне охоплення та статистика вильотів підтверджені Land OÖ; ORF незалежно підтверджує запуск і практичне значення для нічної допомоги.",
+      "Офіційне оновлення Land OÖ опубліковане 24 серпня 2026 року в поточному тижневому вікні; попередній матеріал ORF від 23 серпня використано лише як незалежний контекст.",
+      "health — основна категорія через медичну екстрену допомогу; safetyAndEmergencies додана через цілодобову готовність рятувальної служби."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30/oberoesterreich-weekly-news/rescue-helicopter-suben.png",
+    "imageAlternativeText": "Рятувальний вертоліт готують до нічного чергування на базі в Oberösterreich"
+  }
+]

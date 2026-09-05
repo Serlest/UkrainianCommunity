@@ -353,7 +353,7 @@ struct OrganizationDetailView: View {
         newsRepository: NewsRepository = FirestoreNewsRepository(),
         eventRepository: EventRepository = FirestoreEventRepository(),
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
-        photoRepository: OrganizationPhotoRepository = FirestoreOrganizationPhotoRepository(),
+        photoRepository: OrganizationPhotoRepository = OrganizationPhotoRepositoryFactory.make(),
         newsViewModel: NewsViewModel? = nil,
         eventsViewModel: EventsViewModel? = nil,
         analyticsService: AnalyticsTracking = NoopAnalyticsService(),

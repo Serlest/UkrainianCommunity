@@ -93,6 +93,7 @@ final class LegalEvidenceUserViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published var filter: LegalEvidenceFilter = .all
 
+    private var requestRevision: UInt = 0
     private let repository: LegalEvidenceRepository
     let account: LegalEvidenceAccount
 
@@ -101,22 +102,36 @@ final class LegalEvidenceUserViewModel: ObservableObject {
         self.repository = repository
     }
 
+    var exportText: String? {
+        guard hasLoaded, !isLoading, errorMessage == nil else { return nil }
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        return (try? encoder.encode(events)).flatMap { String(data: $0, encoding: .utf8) }
+    }
+
     var filteredEvents: [LegalEvidenceEvent] {
         events.filter { filter.includes($0.eventType) }
     }
 
     func load() async {
+        requestRevision &+= 1
+        let revision = requestRevision
         isLoading = true
         errorMessage = nil
         defer {
-            isLoading = false
-            hasLoaded = true
+            if revision == requestRevision { isLoading = false }
         }
         do {
-            events = try await RefreshRequest.run { [self] in try await repository.fetchEvidence(userID: account.userID) }
+            let loaded = try await RefreshRequest.run(timeout: .seconds(120)) { [self] in try await repository.fetchEvidence(userID: account.userID) }
+            guard revision == requestRevision else { return }
+            events = loaded
+            hasLoaded = true
         } catch is CancellationError {
             return
         } catch {
+            guard revision == requestRevision else { return }
+            hasLoaded = true
             errorMessage = legalEvidenceErrorMessage(for: error, userDetail: true)
         }
     }

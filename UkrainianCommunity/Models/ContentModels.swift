@@ -888,6 +888,7 @@ struct OrganizationDirectoryProfile: Codable, Equatable {
 }
 
 struct Organization: Identifiable, Codable {
+    var accessRevision: String? = nil
     let id: String
     let localizations: [String: OrganizationLocalizedContent]
     let name: String

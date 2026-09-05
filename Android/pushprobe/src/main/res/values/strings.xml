@@ -1,0 +1,4 @@
+<resources>
+    <string name="probe_enable">Enable synthetic push — 1 hour</string>
+    <string name="probe_disable">Opt out / retry cleanup</string>
+</resources>

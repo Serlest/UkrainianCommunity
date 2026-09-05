@@ -1,3 +1,4 @@
+import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {
   DocumentReference,
   DocumentData,
@@ -60,6 +61,8 @@ type CleanupSummary = {
   deletedNotifications: number;
   dsaCases: number;
   dsaPortalRateLimits: number;
+  organizationMutationReceipts: number;
+  eventCancellationOperations: number;
 };
 
 export const cleanupExpiredData = onSchedule(
@@ -102,6 +105,10 @@ export const cleanupExpiredData = onSchedule(
       organizationCreationProofs: await cleanupExpiredOrganizationCreationProofs(now),
       deletedNotifications: await cleanupExpiredDeletedNotifications(now),
       dsaCases: await cleanupExpiredDsaCases(now),
+      organizationMutationReceipts: await deleteLimitedQuery(
+        db.collection("organizationMutationReceipts").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
+      eventCancellationOperations: await deleteLimitedQuery(
+        db.collection("eventCancellationOperations").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
       dsaPortalRateLimits: await deleteLimitedQuery(
         db.collection("dsaPortalRateLimits").where("expiresAt", "<=", Timestamp.fromDate(now)),
         maxLogDocumentsPerPolicy,
@@ -330,7 +337,7 @@ async function deleteSnapshots(
     return 0;
   }
 
-  const writer = db.bulkWriter();
+  const writer = new CheckedBulkWriter();
   for (const document of documents) {
     writer.delete(document.ref);
   }
@@ -351,7 +358,7 @@ async function deleteLimitedQuery(
     return 0;
   }
 
-  const writer = db.bulkWriter();
+  const writer = new CheckedBulkWriter();
   for (const document of snapshot.docs) {
     writer.delete(document.ref);
   }

@@ -10,6 +10,8 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
     @Published private(set) var deletingPhotoIDs = Set<String>()
     @Published var errorMessage: String?
     @Published var statusMessage: String?
+    @Published private(set) var supportsReplacement = false
+    @Published private(set) var hasReplacementConflict = false
 
     private let organizationId: String
     private let repository: OrganizationPhotoRepository
@@ -22,6 +24,51 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
 
     var canAddMorePhotos: Bool {
         photos.count < 30
+    }
+
+    func refreshReplacementAvailability() async {
+        supportsReplacement = (try? await repository.supportsPhotoReplacement(organizationId: organizationId)) == true
+    }
+
+    func replacePhoto(_ original: OrganizationPhoto, imageData: Data, caption: String?) async {
+        guard !isUploading else { return }
+        isUploading = true
+        errorMessage = nil
+        hasReplacementConflict = false
+        defer { isUploading = false }
+        do {
+            let replacement = try await repository.replacePhoto(original, imageData: imageData, caption: caption)
+            if let index = photos.firstIndex(where: { $0.id == original.id }) { photos[index] = replacement }
+        } catch let failure as OrganizationAccessFailure {
+            errorMessage = failure.localizedDescription
+            hasReplacementConflict = failure.reason == "object_changed"
+        }
+        catch { errorMessage = AppStrings.Organizations.photosUploadFailed }
+    }
+
+    func reloadReplacementTarget(id: String) async -> OrganizationPhoto? {
+        guard !isLoading, !isUploading else { return nil }
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let latest = try await RefreshRequest.run { [self] in try await repository.fetchPhotos(organizationId: organizationId) }
+            photos = latest
+            guard let photo = latest.first(where: { $0.id == id }) else {
+                hasReplacementConflict = false
+                errorMessage = OrganizationAccessFailure(reason: "object_missing").localizedDescription
+                return nil
+            }
+            clearEditorFailure()
+            return photo
+        } catch {
+            errorMessage = AppStrings.Organizations.photosLoadFailed
+            return nil
+        }
+    }
+
+    func clearEditorFailure() {
+        errorMessage = nil
+        hasReplacementConflict = false
     }
 
     func loadIfNeeded() async {
@@ -65,6 +112,8 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
             photos.insert(photo, at: 0)
             statusMessage = nil
             hasLoaded = true
+        } catch let failure as OrganizationAccessFailure {
+            errorMessage = failure.localizedDescription
         } catch let appError as AppError {
             errorMessage = readablePhotoErrorText(appError)
         } catch {
@@ -82,6 +131,8 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
         do {
             try await repository.deletePhoto(photo)
             photos.removeAll { $0.id == photo.id }
+        } catch let failure as OrganizationAccessFailure {
+            errorMessage = failure.localizedDescription
         } catch {
             errorMessage = AppStrings.Organizations.photosDeleteFailed
         }
@@ -107,6 +158,9 @@ struct OrganizationPhotoGallerySection: View {
 
     @StateObject private var viewModel: OrganizationPhotoGalleryViewModel
     @State private var selectedPickerItem: PhotosPickerItem?
+    @State private var replacementPickerItem: PhotosPickerItem?
+    @State private var replacementTarget: OrganizationPhoto?
+    @State private var isShowingReplacementPicker = false
     @State private var pendingPhotoData: Data?
     @State private var pendingCaption = ""
     @State private var isPreparingPhoto = false
@@ -122,7 +176,7 @@ struct OrganizationPhotoGallerySection: View {
         organizationId: String,
         canManage: Bool,
         currentUser: AppUser?,
-        repository: OrganizationPhotoRepository = FirestoreOrganizationPhotoRepository(),
+        repository: OrganizationPhotoRepository = OrganizationPhotoRepositoryFactory.make(),
         onPhotosChanged: @escaping ([OrganizationPhoto]) -> Void = { _ in }
     ) {
         self.organizationId = organizationId
@@ -142,14 +196,21 @@ struct OrganizationPhotoGallerySection: View {
         }
         .task(id: organizationId) {
             await viewModel.loadIfNeeded()
+            if canManage { await viewModel.refreshReplacementAvailability() }
         }
         .appRefreshable {
             await viewModel.refresh()
+            if canManage { await viewModel.refreshReplacementAvailability() }
         }
         .onChange(of: selectedPickerItem) { _, item in
+            replacementTarget = nil
             Task {
                 await prepareSelectedPhoto(item)
             }
+        }
+        .photosPicker(isPresented: $isShowingReplacementPicker, selection: $replacementPickerItem, matching: .images)
+        .onChange(of: replacementPickerItem) { _, item in
+            Task { await prepareSelectedPhoto(item) }
         }
         .onChange(of: viewModel.photos) { _, photos in
             onPhotosChanged(photos)
@@ -241,6 +302,10 @@ struct OrganizationPhotoGallerySection: View {
                     isDeleting: viewModel.deletingPhotoIDs.contains(photo.id),
                     cellSize: metrics.cellSize,
                     onOpen: { selectedPreviewPhoto = photo },
+                    onReplace: canManage && viewModel.supportsReplacement && !viewModel.isUploading ? {
+                        replacementTarget = photo
+                        isShowingReplacementPicker = true
+                    } : nil,
                     onDelete: { pendingDeletePhoto = photo }
                 )
             }
@@ -299,6 +364,25 @@ struct OrganizationPhotoGallerySection: View {
 
     private var captionSheet: some View {
         Form {
+            if let errorMessage = viewModel.errorMessage {
+                Section {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(AppTheme.accentDestructiveForeground)
+                        .accessibilityIdentifier("organization.photo.editor.error")
+                    if viewModel.hasReplacementConflict, let target = replacementTarget {
+                        Button(AppStrings.Organizations.photosReloadCurrent) {
+                            Task {
+                                if let latest = await viewModel.reloadReplacementTarget(id: target.id),
+                                   isShowingCaptionSheet, replacementTarget?.id == target.id {
+                                    replacementTarget = latest
+                                }
+                            }
+                        }
+                        .disabled(viewModel.isLoading)
+                        .accessibilityIdentifier("organization.photo.editor.reload")
+                    }
+                }
+            }
             Section {
                 TextField(AppStrings.Organizations.photosCaptionPlaceholder, text: $pendingCaption, axis: .vertical)
                     .lineLimit(2...4)
@@ -314,7 +398,7 @@ struct OrganizationPhotoGallerySection: View {
                     .monospacedDigit()
             }
         }
-        .navigationTitle(AppStrings.Organizations.photosAdd)
+        .navigationTitle(replacementTarget == nil ? AppStrings.Organizations.photosAdd : AppStrings.Organizations.photosReplace)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -327,7 +411,7 @@ struct OrganizationPhotoGallerySection: View {
                 Button(AppStrings.Organizations.photosUpload) {
                     uploadPendingPhoto()
                 }
-                .disabled(pendingPhotoData == nil || viewModel.isUploading)
+                .disabled(pendingPhotoData == nil || viewModel.isUploading || viewModel.isLoading)
             }
         }
     }
@@ -359,7 +443,8 @@ struct OrganizationPhotoGallerySection: View {
         isPreparingPhoto = true
         defer {
             isPreparingPhoto = false
-            selectedPickerItem = nil
+            if replacementTarget == nil { selectedPickerItem = nil }
+            replacementPickerItem = nil
         }
 
         do {
@@ -368,8 +453,9 @@ struct OrganizationPhotoGallerySection: View {
                 return
             }
             let processedImage = try await ImageProcessingService.process(data: data, profile: .galleryPhoto)
+            viewModel.clearEditorFailure()
             pendingPhotoData = processedImage.data
-            pendingCaption = ""
+            pendingCaption = replacementTarget?.caption ?? ""
             isShowingCaptionSheet = true
         } catch {
             viewModel.errorMessage = AppStrings.Organizations.photosSelectionFailed
@@ -380,8 +466,13 @@ struct OrganizationPhotoGallerySection: View {
         guard let pendingPhotoData, let currentUser else { return }
         guard !viewModel.isUploading else { return }
         let caption = pendingCaption
+        let target = replacementTarget
         Task {
-            await viewModel.addPhoto(imageData: pendingPhotoData, caption: caption, uploadedBy: currentUser.id)
+            if let target {
+                await viewModel.replacePhoto(target, imageData: pendingPhotoData, caption: caption)
+            } else {
+                await viewModel.addPhoto(imageData: pendingPhotoData, caption: caption, uploadedBy: currentUser.id)
+            }
             if viewModel.errorMessage == nil {
                 resetPendingPhoto()
             }
@@ -392,6 +483,7 @@ struct OrganizationPhotoGallerySection: View {
         pendingPhotoData = nil
         pendingCaption = ""
         isShowingCaptionSheet = false
+        replacementTarget = nil
     }
 }
 
@@ -401,6 +493,7 @@ private struct OrganizationPhotoTile: View {
     let isDeleting: Bool
     let cellSize: CGFloat
     let onOpen: () -> Void
+    let onReplace: (() -> Void)?
     let onDelete: () -> Void
 
     var body: some View {
@@ -413,6 +506,12 @@ private struct OrganizationPhotoTile: View {
         .accessibilityLabel(photo.caption ?? AppStrings.Organizations.tabPhoto)
         .overlay(alignment: .topTrailing) {
             deleteButton
+        }
+        .contextMenu {
+            if let onReplace {
+                Button(AppStrings.Organizations.photosReplace, systemImage: "arrow.triangle.2.circlepath", action: onReplace)
+                    .disabled(isDeleting)
+            }
         }
     }
 

@@ -6,34 +6,16 @@ extension OrganizationEditorView {
             VStack(alignment: .leading, spacing: editorCardSpacing) {
                 editorSectionTitle(AppStrings.Organizations.servicesSectionTitle)
 
-                LazyVGrid(
-                    columns: [GridItem(.adaptive(minimum: 138, maximum: 260), spacing: 8)],
-                    alignment: .leading,
-                    spacing: 8
-                ) {
+                OrganizationEditorChoiceGrid {
                     ForEach(OrganizationServiceMode.allCases) { mode in
                         Button {
                             viewModel.toggleServiceMode(mode)
                         } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: mode.systemImage)
-                                    .frame(width: 20)
-                                Text(mode.title)
-                                    .lineLimit(2)
-                                Spacer(minLength: 0)
-                            }
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(viewModel.serviceModes.contains(mode) ? Color.white : AppTheme.textPrimary)
-                            .padding(.horizontal, 12)
-                            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                            .background(
-                                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                    .fill(viewModel.serviceModes.contains(mode) ? AppTheme.accentPrimary : AppTheme.surfaceControl)
+                            OrganizationEditorChoiceTile(
+                                title: mode.title,
+                                systemImage: mode.systemImage,
+                                isSelected: viewModel.serviceModes.contains(mode)
                             )
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 13, style: .continuous)
-                                    .stroke(AppTheme.borderSubtle, lineWidth: 1)
-                            }
                         }
                         .buttonStyle(.plain)
                     }

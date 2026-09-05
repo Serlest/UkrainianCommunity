@@ -526,7 +526,7 @@ final class OrganizationEditorViewModel: ObservableObject {
         }
 
         let now = Date()
-        let organization: Organization
+        var organization: Organization
         switch mode {
         case .create:
             let legacyImageURL: String? = nil
@@ -634,6 +634,7 @@ final class OrganizationEditorViewModel: ObservableObject {
                 isSubscribed: existing.isSubscribed,
                 isBookmarked: existing.isBookmarked
             )
+            organization.accessRevision = existing.accessRevision
         }
 
         do {

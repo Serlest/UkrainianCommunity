@@ -1,0 +1,196 @@
+[
+{
+  "idempotencyKey": "event:https://slashfilmfestival.com/en/infos-en/#2026-09-23",
+  "kind": "event",
+  "state": "needsAttention",
+  "payload": {
+    "title": "SLASH Filmfestival 2026 у Wien",
+    "summary": "Міжнародний фестиваль фантастичного кіно з показами в кількох віденських кінотеатрах.",
+    "details": "Фестиваль заявлений на 23 вересня – 4 жовтня. Офіційна сторінка підтверджує майданчики й дату старту продажу квитків, але повний сеансовий розклад із точним часом першого показу ще не опублікований. Міський календар також називає Schikaneder, тоді як актуальна сторінка фестивалю перелічує Club Celeste; перед live-публікацією потрібно звірити остаточні майданчики.",
+    "city": "Wien",
+    "venue": "Gartenbaukino / Filmcasino / Metro Kinokulturhaus / Club Celeste",
+    "address": "Parkring 12 / Margaretenstraße 78 / Johannesgasse 4 / Hamburgerstraße 18, Wien",
+    "eventOrganizerName": "SLASH Filmfestival",
+    "organizerURL": "https://slashfilmfestival.com/",
+    "contactURL": "https://slashfilmfestival.com/en/infos-en/",
+    "federalState": "wien",
+    "startDate": "2026-09-23T00:00:00+02:00",
+    "endDate": "2026-09-23T00:00:00+02:00",
+    "hasExplicitEndDate": false,
+    "isAllDay": true,
+    "category": "culture",
+    "additionalCategories": [
+      "festivalsAndFairs"
+    ],
+    "audience": "adults",
+    "germanTitle": "SLASH Filmfestival 2026 in Wien",
+    "germanSummary": "Internationales Festival des fantastischen Films mit Vorführungen in mehreren Wiener Kinos.",
+    "germanDetails": "Das Festival ist vom 23. September bis 4. Oktober angekündigt. Die offizielle Seite bestätigt Spielorte und Ticketstart, veröffentlicht aber noch keinen vollständigen Spielplan mit genauer Uhrzeit der ersten Vorstellung. Der städtische Kalender nennt zusätzlich das Schikaneder, während die aktuelle Festivalseite Club Celeste aufführt; vor der Live-Veröffentlichung müssen die endgültigen Spielorte abgeglichen werden.",
+    "requiresRegistration": true,
+    "participationMode": "externalTickets",
+    "externalActionTitle": "Офіційна інформація",
+    "externalActionURL": "https://slashfilmfestival.com/en/infos-en/",
+    "publicationMode": "now",
+    "additionalOccurrences": []
+  },
+  "sources": [
+    {
+      "url": "https://slashfilmfestival.com/en/infos-en/",
+      "title": "SLASH — офіційна інформація",
+      "isPrimary": true,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    },
+    {
+      "url": "https://slashfilmfestival.com/eroeffnungsfilm-slash-2026-her-private-hell/",
+      "title": "SLASH — офіційний фільм-відкриття",
+      "isPrimary": false,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    },
+    {
+      "url": "https://www.wien.gv.at/veranstaltungen/herbst-veranstaltungen",
+      "title": "Stadt Wien — міський анонс",
+      "isPrimary": false,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    }
+  ],
+  "verificationNotes": [
+    "Період 23 вересня – 4 жовтня та основні майданчики підтверджені офіційною сторінкою фестивалю.",
+    "Категорії: culture; додаткова — festivalsAndFairs.",
+    "Відсутність часу завершення не є причиною уваги; потрібен саме точний час першого сеансу й остаточний перелік майданчиків."
+  ],
+  "missingFields": [
+    "Поле «Дата початку»: офіційна сторінка підтверджує 23 вересня, але ще не публікує точний час першого сеансу",
+    "Поле «Місце»: актуальний сайт фестивалю вказує Club Celeste, а календар Stadt Wien — Schikaneder; потрібен остаточний перелік майданчиків"
+  ],
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-attention/01-slash.png",
+  "imageAlternativeText": "Вечірня атмосфера фестивалю фантастичного кіно біля історичного віденського кінотеатру"
+}
+,
+{
+  "idempotencyKey": "event:https://parallelvienna.com/#2026-09-09",
+  "kind": "event",
+  "state": "needsAttention",
+  "payload": {
+    "title": "PARALLEL VIENNA 2026 в Otto-Wagner-Areal",
+    "summary": "Великий ярмарок сучасного мистецтва в історичних павільйонах Otto-Wagner-Areal.",
+    "details": "Сайт PARALLEL VIENNA вказує загальний період 9–13 вересня, а календар Otto-Wagner-Areal — 10–13 вересня. Повна програма є, але в перевірених джерелах немає однозначного часу початку першого публічного дня. Квитки: Fair Pass 25 €, Combo Ticket 30 €, до 18 років безкоштовно.",
+    "city": "Wien",
+    "venue": "Otto-Wagner-Areal",
+    "address": "Baumgartner Höhe 1, 1140 Wien",
+    "eventOrganizerName": "PARALLEL VIENNA",
+    "organizerURL": "https://parallelvienna.com/",
+    "contactURL": "https://parallelvienna.com/tickets/",
+    "federalState": "wien",
+    "startDate": "2026-09-09T00:00:00+02:00",
+    "endDate": "2026-09-09T00:00:00+02:00",
+    "hasExplicitEndDate": false,
+    "isAllDay": true,
+    "category": "culture",
+    "additionalCategories": [
+      "festivalsAndFairs"
+    ],
+    "audience": "everyone",
+    "germanTitle": "PARALLEL VIENNA 2026 im Otto-Wagner-Areal",
+    "germanSummary": "Große Messe für zeitgenössische Kunst in den historischen Pavillons des Otto-Wagner-Areals.",
+    "germanDetails": "Die Website von PARALLEL VIENNA nennt den Gesamtzeitraum 9.–13. September, der Kalender des Otto-Wagner-Areals dagegen 10.–13. September. Das Programm ist verfügbar, doch die geprüften Quellen nennen keine eindeutige Beginnzeit des ersten öffentlichen Tages. Tickets: Fair Pass 25 Euro, Combo Ticket 30 Euro, unter 18 Jahren frei.",
+    "requiresRegistration": true,
+    "participationMode": "externalTickets",
+    "externalActionTitle": "Програма й квитки",
+    "externalActionURL": "https://parallelvienna.com/tickets/",
+    "publicationMode": "now",
+    "additionalOccurrences": []
+  },
+  "sources": [
+    {
+      "url": "https://parallelvienna.com/",
+      "title": "PARALLEL VIENNA — офіційна сторінка",
+      "isPrimary": true,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    },
+    {
+      "url": "https://parallelvienna.com/program-2026/",
+      "title": "PARALLEL VIENNA — офіційна програма",
+      "isPrimary": false,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    },
+    {
+      "url": "https://www.owa-wien.at/",
+      "title": "Otto-Wagner-Areal — календар майданчика",
+      "isPrimary": false,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    }
+  ],
+  "verificationNotes": [
+    "Майданчик, формат і квиткові ціни підтверджені офіційними сторінками.",
+    "Категорії: culture; додаткова — festivalsAndFairs.",
+    "Час завершення не потрібен; увага викликана суперечністю першої дати та відсутнім часом старту."
+  ],
+  "missingFields": [
+    "Поле «Дата початку»: сайт PARALLEL VIENNA вказує 9 вересня, а календар Otto-Wagner-Areal — 10 вересня",
+    "Поле «Час початку»: перевірені офіційні сторінки не дають однозначного часу початку першого публічного дня"
+  ],
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-attention/02-parallel.png",
+  "imageAlternativeText": "Ярмарок сучасного мистецтва в історичному павільйоні Otto-Wagner-Areal"
+}
+,
+{
+  "idempotencyKey": "event:https://www.favoritefall.wien/en/event-details/ausstellung-4600-nocturnes#2026-09-24",
+  "kind": "event",
+  "state": "needsAttention",
+  "payload": {
+    "title": "4600 Nocturnes: українська фотовиставка у Wien",
+    "summary": "Групова виставка української чорно-білої фотографії у просторі Das LOT.",
+    "details": "Сторінка фестивалю вказує загальний інтервал від 24 вересня 19:00 до 27 вересня 23:00, але не пояснює, чи це безперервна робота, чи межі фестивального періоду. Перед публікацією потрібні точні години відкриття для 25–27 вересня. Вартість входу також не вказана.",
+    "city": "Wien",
+    "venue": "Das LOT",
+    "address": "Absberggasse 31, 1100 Wien",
+    "eventOrganizerName": "FAVORITE FALL",
+    "organizerURL": "https://www.favoritefall.wien/",
+    "contactURL": "https://www.favoritefall.wien/en/event-details/ausstellung-4600-nocturnes",
+    "federalState": "wien",
+    "startDate": "2026-09-24T19:00:00+02:00",
+    "endDate": "2026-09-24T19:00:00+02:00",
+    "hasExplicitEndDate": false,
+    "isAllDay": false,
+    "category": "culture",
+    "additionalCategories": [
+        "supportAndIntegration"
+    ],
+    "audience": "everyone",
+    "germanTitle": "4600 Nocturnes: ukrainische Fotoausstellung in Wien",
+    "germanSummary": "Gruppenausstellung ukrainischer Schwarz-Weiß-Fotografie im Das LOT.",
+    "germanDetails": "Die Festivalseite nennt einen Gesamtzeitraum von 24. September 19:00 Uhr bis 27. September 23:00 Uhr, erklärt aber nicht, ob dies eine durchgehende Öffnung oder nur der Festivalzeitraum ist. Vor der Veröffentlichung werden genaue Öffnungszeiten für 25.–27. September benötigt. Auch der Eintrittspreis ist nicht angegeben.",
+    "requiresRegistration": false,
+    "participationMode": "none",
+    "externalActionTitle": "Офіційна сторінка",
+    "externalActionURL": "https://www.favoritefall.wien/en/event-details/ausstellung-4600-nocturnes",
+    "publicationMode": "now",
+    "additionalOccurrences": []
+  },
+  "sources": [
+    {
+      "url": "https://www.favoritefall.wien/en/event-details/ausstellung-4600-nocturnes",
+      "title": "FAVORITE FALL — офіційна сторінка події",
+      "isPrimary": true,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    },
+    {
+      "url": "https://www.favoritefall.wien/",
+      "title": "FAVORITE FALL — програма фестивалю",
+      "isPrimary": false,
+      "checkedAt": "2026-08-30T22:30:00+02:00"
+    }
+  ],
+  "verificationNotes": [
+    "Назва, український фокус, майданчик і межі 24–27 вересня підтверджені організатором.",
+    "Категорії: culture; додаткова — communityAndIntegration.",
+    "Потрібні не вигадані щоденні години та умова входу."
+  ],
+  "missingFields": [
+    "Поле «Розклад»: офіційна сторінка дає один загальний інтервал 24 вересня 19:00 – 27 вересня 23:00, але не публікує щоденні години роботи",
+    "Поле «Ціна»: офіційна сторінка не вказує, чи вхід безкоштовний або платний"
+  ],
+  "imagePath": "functions/content-planning/assets/2026-08-30/wien-attention/03-nocturnes.png",
+  "imageAlternativeText": "Відвідувачі розглядають українську чорно-білу фотовиставку у промисловому культурному просторі Wien"
+}
+]

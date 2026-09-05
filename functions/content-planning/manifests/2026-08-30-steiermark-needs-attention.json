@@ -1,0 +1,99 @@
+[
+  {
+    "idempotencyKey": "event:https://www.steiermark.com/de/Suedsteiermark/Urlaub-planen/Veranstaltungen/Hopfen-Weinlesefest-Leutschach_ed_75456945#2026-09-26",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Hopfen- & Weinlesefest у Leutschach",
+      "summary": "Дводенне свято збору хмелю й винограду з регіональною кухнею, музикою та осінньою програмою.",
+      "details": "Свято заявлене на 26–27 вересня у Leutschach an der Weinstraße. Офіційна сторінка підтверджує дводенну програму, однак містить внутрішню суперечність щодо суботнього початку: у тексті програми вказано 12:00, а в блоці дати й часу — 13:00. Перед публікацією потрібно вибрати підтверджений час. Час завершення не опублікований і не потребує уточнення.",
+      "city": "Leutschach an der Weinstraße",
+      "venue": "Leutschach an der Weinstraße",
+      "address": "8463 Leutschach an der Weinstraße",
+      "eventOrganizerName": "Tourismusverband Südsteiermark",
+      "organizerURL": "https://www.steiermark.com/de/Suedsteiermark/Urlaub-planen/Veranstaltungen/Hopfen-Weinlesefest-Leutschach_ed_75456945",
+      "contactURL": "https://www.steiermark.com/de/Suedsteiermark/Urlaub-planen/Veranstaltungen/Hopfen-Weinlesefest-Leutschach_ed_75456945",
+      "federalState": "steiermark",
+      "startDate": "2026-09-26T12:00:00+02:00",
+      "endDate": "2026-09-26T12:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "festivalsAndFairs",
+      "additionalCategories": ["foodAndMarket", "music"],
+      "audience": "everyone",
+      "germanTitle": "Hopfen- & Weinlesefest in Leutschach",
+      "germanSummary": "Zweitägiges Erntefest rund um Hopfen, Wein, regionale Kulinarik und Musik.",
+      "germanDetails": "Das Fest ist für den 26. und 27. September in Leutschach an der Weinstraße angekündigt. Die offizielle Seite bestätigt das zweitägige Programm, nennt für den Samstag jedoch widersprüchliche Beginnzeiten: 12:00 Uhr im Programmtext und 13:00 Uhr im Datumsblock. Vor der Veröffentlichung muss die bestätigte Beginnzeit ausgewählt werden. Eine Endzeit wird nicht veröffentlicht und muss nicht ergänzt werden.",
+      "requiresRegistration": false,
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна програма",
+      "externalActionURL": "https://www.steiermark.com/de/Suedsteiermark/Urlaub-planen/Veranstaltungen/Hopfen-Weinlesefest-Leutschach_ed_75456945",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {"startDate": "2026-09-27T10:00:00+02:00", "endDate": "2026-09-27T10:00:00+02:00", "hasExplicitEndDate": false, "isAllDay": false}
+      ]
+    },
+    "sources": [
+      {"url":"https://www.steiermark.com/de/Suedsteiermark/Urlaub-planen/Veranstaltungen/Hopfen-Weinlesefest-Leutschach_ed_75456945","title":"Steiermark Tourismus — офіційна сторінка події","isPrimary":true,"checkedAt":"2026-08-30T20:30:00+02:00"},
+      {"url":"https://www.steiermark.com/de/Suedsteiermark/Kampagnen-LP/Winterruhe/Weingenuss-im-Herbst","title":"Südsteiermark — осінній календар регіону","isPrimary":false,"checkedAt":"2026-08-30T20:30:00+02:00"}
+    ],
+    "verificationNotes": [
+      "Період 26–27 вересня, місце та характер програми підтверджені Steiermark Tourismus.",
+      "Категорії: festivalsAndFairs; додаткові — foodAndMarket і music.",
+      "Завершення події офіційно не опубліковане, тому hasExplicitEndDate=false."
+    ],
+    "missingFields": [
+      "Поле «Дата початку»: офіційний опис програми вказує 12:00, а блок дати й часу на тій самій сторінці — 13:00"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30/steiermark-attention/02-hopfen-weinlesefest.png",
+    "imageAlternativeText": "Осіннє свято врожаю хмелю й винограду серед виноградників Südsteiermark"
+  },
+  {
+    "idempotencyKey": "event:https://fagtory.at/the-fagtory-club-alt/#2026-09-26",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "The FAGtory Club у Postgarage Graz",
+      "summary": "Квір-френдлі клубна ніч з електронною музикою у Postgarage.",
+      "details": "Організатор і Postgarage підтверджують клубну подію 26 вересня. На перевірених офіційних сторінках не опублікований точний час початку саме вересневого випуску, тому матеріал не можна безпечно випустити live. Час завершення також не опублікований, але він є опціональним.",
+      "city": "Graz",
+      "venue": "Postgarage",
+      "address": "Dreihackengasse 42, 8020 Graz",
+      "eventOrganizerName": "The FAGtory Club",
+      "organizerURL": "https://fagtory.at/",
+      "contactURL": "https://www.postgarage.at/program/",
+      "federalState": "steiermark",
+      "startDate": "2026-09-26T00:00:00+02:00",
+      "endDate": "2026-09-26T00:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": true,
+      "category": "nightlifeAndParties",
+      "additionalCategories": ["music"],
+      "audience": "adults",
+      "minimumAge": 18,
+      "germanTitle": "The FAGtory Club in der Postgarage Graz",
+      "germanSummary": "Queerfreundliche Clubnacht mit elektronischer Musik in der Postgarage.",
+      "germanDetails": "Veranstalter und Postgarage bestätigen die Clubnacht am 26. September. Auf den geprüften offiziellen Seiten wird jedoch keine genaue Beginnzeit für diese Septemberausgabe genannt. Daher kann der Beitrag noch nicht sicher live veröffentlicht werden. Eine Endzeit wird ebenfalls nicht veröffentlicht, ist aber optional.",
+      "requiresRegistration": false,
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна програма",
+      "externalActionURL": "https://www.postgarage.at/program/",
+      "publicationMode": "now",
+      "additionalOccurrences": []
+    },
+    "sources": [
+      {"url":"https://fagtory.at/the-fagtory-club-alt/","title":"The FAGtory Club — офіційна сторінка організатора","isPrimary":true,"checkedAt":"2026-08-30T20:30:00+02:00"},
+      {"url":"https://www.postgarage.at/program/","title":"Postgarage — офіційна програма майданчика","isPrimary":false,"checkedAt":"2026-08-30T20:30:00+02:00"}
+    ],
+    "verificationNotes": [
+      "Дата 26 вересня, Postgarage та організатор підтверджені двома офіційними сторінками.",
+      "Категорії: nightlifeAndParties; додаткова — music.",
+      "Поле завершення не є причиною уваги: hasExplicitEndDate=false."
+    ],
+    "missingFields": [
+      "Поле «Дата початку»: офіційні сторінки підтверджують 26 вересня, але не публікують точний час початку"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30/steiermark-attention/01-fagtory.png",
+    "imageAlternativeText": "Інклюзивна клубна ніч з електронною музикою й кольоровим сценічним світлом у Graz"
+  }
+]

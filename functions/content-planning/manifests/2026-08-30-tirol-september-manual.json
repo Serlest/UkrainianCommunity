@@ -1,0 +1,1222 @@
+[
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/events/e/122253898.html#2026-09-03",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Airport Reef Closing — останній танець літа",
+      "summary": "Чотири дні музики, серфінгу, їжі та прощання з літнім майданчиком Airport Reef.",
+      "details": "Airport Reef завершує літній сезон чотириденною програмою One Last Dance. На гостей чекають діджеї, спільнотні активності, Up Stream Surfing, пляжний бар, їжа, настільний теніс і боча. Програма триває з четверга до неділі з окремими годинами кожного дня.",
+      "city": "Innsbruck",
+      "venue": "Airport Reef Innsbruck",
+      "address": "Hans-Flöckinger-Promenade 199, 6020 Innsbruck",
+      "eventOrganizerName": "Airport Reef Innsbruck",
+      "organizerURL": "https://www.innsbruck.info/events/e/122253898.html",
+      "contactURL": "https://www.innsbruck.info/events/e/122253898.html",
+      "federalState": "tirol",
+      "startDate": "2026-09-03T16:00:00+02:00",
+      "endDate": "2026-09-03T22:00:00+02:00",
+      "isAllDay": false,
+      "category": "nightlifeAndParties",
+      "additionalCategories": [
+        "sportsAndWellness",
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "DJ",
+        "Surfing",
+        "Closing"
+      ],
+      "germanTitle": "Airport Reef Closing — One Last Dance",
+      "germanSummary": "Vier Tage Musik, Surfen, Essen und ein gemeinsamer Abschied vom Airport-Reef-Sommer.",
+      "germanDetails": "Airport Reef beendet die Sommersaison mit dem viertägigen Programm One Last Dance. DJs, Community-Aktivitäten, Up Stream Surfing, Beachbar, Essen, Tischtennis und Boccia begleiten das Wochenende. Für jeden Veranstaltungstag gelten eigene Öffnungszeiten.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.innsbruck.info/events/e/122253898.html",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-04T15:00:00+02:00",
+          "endDate": "2026-09-04T23:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-05T15:00:00+02:00",
+          "endDate": "2026-09-05T23:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-06T13:00:00+02:00",
+          "endDate": "2026-09-06T22:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/events/e/122253898.html",
+        "title": "Airport Reef Closing — Innsbruck.info",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Усі чотири дати та години, формат програми й адреса звірені з офіційним календарем Innsbruck Tourismus.",
+      "Категорії: nightlifeAndParties; додаткові — sportsAndWellness, foodAndMarket."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/airport-reef-closing.png",
+    "imageAlternativeText": "Літня вечірка з діджеєм біля міської хвилі на тлі гір Інсбрука"
+  },
+  {
+    "idempotencyKey": "event:https://www.tiroler-landesmuseen.at/besuch/veranstaltungen/#2026-09-03",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "IKSIT — міжнародний керамічний симпозіум",
+      "summary": "Відкриття мистецької інтервенції міжнародного керамічного симпозіуму в Volkskunstmuseum.",
+      "details": "Tiroler Volkskunstmuseum відкриває інтервенцію Міжнародного керамічного симпозіуму Innsbruck–Tirol. Це нагода побачити сучасну художню кераміку в історичному музейному просторі та познайомитися з роботами учасників. Інтервенція триватиме до 27 вересня.",
+      "city": "Innsbruck",
+      "venue": "Tiroler Volkskunstmuseum",
+      "address": "Universitätsstraße 2, 6020 Innsbruck",
+      "eventOrganizerName": "Tiroler Landesmuseen",
+      "organizerURL": "https://www.tiroler-landesmuseen.at/besuch/veranstaltungen/",
+      "contactURL": "https://www.tiroler-landesmuseen.at/besuch/veranstaltungen/",
+      "federalState": "tirol",
+      "startDate": "2026-09-03T15:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "кераміка",
+        "виставка",
+        "IKSIT"
+      ],
+      "germanTitle": "IKSIT — Internationales Keramik-Symposium Innsbruck–Tirol",
+      "germanSummary": "Eröffnung der Intervention des internationalen Keramik-Symposiums im Volkskunstmuseum.",
+      "germanDetails": "Das Tiroler Volkskunstmuseum eröffnet die Intervention des Internationalen Keramik-Symposiums Innsbruck–Tirol. Zeitgenössische Keramikkunst begegnet dabei dem historischen Museumsraum. Die Intervention ist bis 27. September zu sehen.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.tiroler-landesmuseen.at/besuch/veranstaltungen/",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tiroler-landesmuseen.at/besuch/veranstaltungen/",
+        "title": "IKSIT — Tiroler Landesmuseen",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, початок, музей і період інтервенції підтверджені календарем Tiroler Landesmuseen; час завершення не опублікований.",
+      "Категорії: culture."
+    ],
+    "missingFields": [
+      "офіційний час завершення відкриття"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/iksit.png",
+    "imageAlternativeText": "Відвідувачі розглядають сучасну кераміку в історичному музеї"
+  },
+  {
+    "idempotencyKey": "event:https://pmk.or.at/de/#2026-09-04",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "25 років 7 Years Bad Luck — велика punk-вечірка",
+      "summary": "Шість punk- і indie-punk проєктів святкують ювілей гурту в PMK Innsbruck.",
+      "details": "7 Years Bad Luck відзначають 25-річчя великим концертом разом із Pigeon Boys, Morgan Pines, Weird Minds, Meezer та Matt Deecrack. У програмі punkrock, pop punk, indie punk і акустичний punk.",
+      "city": "Innsbruck",
+      "venue": "PMK",
+      "address": "Viaduktbogen 19–20, 6020 Innsbruck",
+      "locationNote": "Вхід з 19:30, початок о 20:30.",
+      "eventOrganizerName": "Firefly Concerts / PMK",
+      "organizerURL": "https://pmk.or.at/de/",
+      "contactURL": "https://pmk.or.at/de/",
+      "federalState": "tirol",
+      "startDate": "2026-09-04T20:30:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "nightlifeAndParties"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "punkrock",
+        "PMK"
+      ],
+      "germanTitle": "25 Jahre 7 Years Bad Luck — große Punk-Party",
+      "germanSummary": "Sechs Punk- und Indie-Punk-Acts feiern das Bandjubiläum in der PMK Innsbruck.",
+      "germanDetails": "7 Years Bad Luck feiern ihr 25-jähriges Bestehen gemeinsam mit Pigeon Boys, Morgan Pines, Weird Minds, Meezer und Matt Deecrack. Das Programm reicht von Punkrock und Pop-Punk bis Indie- und Acoustic-Punk.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://pmk.or.at/de/",
+      "priceKind": "range",
+      "price": 10,
+      "maximumPrice": 15,
+      "priceNote": "Передпродаж €10, вечірня каса €15.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://pmk.or.at/de/",
+        "title": "7 Years Bad Luck 25 Years Fest — PMK",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, вхід, початок, склад учасників і ціни підтверджені PMK.",
+      "Категорії: music; додаткові — nightlifeAndParties."
+    ],
+    "missingFields": [
+      "офіційний час завершення концерту"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/punk-25.png",
+    "imageAlternativeText": "Енергійний punk-концерт у камерному клубі з близькою публікою"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/en/events/e/122283605.html#2026-09-05",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Almfest на Patscher Alm",
+      "summary": "Гірське свято з живою музикою, регіональною кухнею та краєвидом над Інсбруком.",
+      "details": "На Patscher Alm відбудеться осіннє гірське свято з живою музикою від Zweifach Gewaltig та кулінарною програмою. Захід проводять лише за хорошої погоди. Останній спуск канатною дорогою заплановано на 17:00.",
+      "city": "Patsch",
+      "venue": "Patscher Alm / Patscherkofel",
+      "address": "Patscherkofel, 6082 Patsch",
+      "locationNote": "Лише за хорошої погоди; останній спуск канатної дороги о 17:00.",
+      "eventOrganizerName": "Patscherkofelbahn / Patscher Alm",
+      "organizerURL": "https://www.innsbruck.info/en/events/e/122283605.html",
+      "contactURL": "https://www.innsbruck.info/en/events/e/122283605.html",
+      "federalState": "tirol",
+      "startDate": "2026-09-05T11:30:00+02:00",
+      "endDate": "2026-09-05T16:45:00+02:00",
+      "isAllDay": false,
+      "category": "celebration",
+      "additionalCategories": [
+        "music",
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Patscherkofel",
+        "Almfest",
+        "жива музика"
+      ],
+      "germanTitle": "Almfest auf der Patscher Alm",
+      "germanSummary": "Bergfest mit Livemusik, regionaler Küche und Aussicht über Innsbruck.",
+      "germanDetails": "Auf der Patscher Alm findet ein herbstliches Bergfest mit Livemusik von Zweifach Gewaltig und kulinarischem Angebot statt. Die Veranstaltung wird nur bei Schönwetter durchgeführt. Die letzte Talfahrt der Bahn ist für 17 Uhr angekündigt.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.innsbruck.info/en/events/e/122283605.html",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/en/events/e/122283605.html",
+        "title": "Almfest auf der Patscher Alm — Innsbruck.info",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Час, музична програма, погодне обмеження й останній спуск звірені з Innsbruck.info.",
+      "Категорії: celebration; додаткові — music, foodAndMarket."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/patscher-alm.png",
+    "imageAlternativeText": "Гірське свято з музикою біля альпійської хатини над долиною Інсбрука"
+  },
+  {
+    "idempotencyKey": "event:https://www.olympiaworld.at/events-tickets/nena/#2026-09-11",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "NENA наживо в Olympiahalle Innsbruck",
+      "summary": "Великий pop-rock концерт із хітами та новою програмою Wir gehören zusammen.",
+      "details": "NENA приїздить до Інсбрука з туром Wir gehören zusammen. Програма поєднує відомі композиції за понад чотири десятиліття та нові пісні. Квиток на концерт також діє як проїзний IVB у центральній зоні за 1,5 години до та після події; від головного вокзалу передбачені шатли.",
+      "city": "Innsbruck",
+      "venue": "Olympiahalle Innsbruck",
+      "address": "Olympiastraße 10, 6020 Innsbruck",
+      "eventOrganizerName": "Olympiaworld Innsbruck",
+      "organizerURL": "https://www.olympiaworld.at/events-tickets/nena/",
+      "contactURL": "https://www.olympiaworld.at/events-tickets/nena/",
+      "federalState": "tirol",
+      "startDate": "2026-09-11T20:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "NENA",
+        "pop rock",
+        "Olympiahalle"
+      ],
+      "germanTitle": "NENA live in der Olympiahalle Innsbruck",
+      "germanSummary": "Großes Pop-Rock-Konzert mit Hits und dem Programm Wir gehören zusammen.",
+      "germanDetails": "NENA kommt mit der Tour Wir gehören zusammen nach Innsbruck. Das Programm verbindet bekannte Songs aus mehr als vier Jahrzehnten mit neuem Material. Das Ticket gilt außerdem 1,5 Stunden vor und nach der Veranstaltung als IVB-Fahrschein in der Kernzone; Shuttlebusse fahren ab Hauptbahnhof.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.olympiaworld.at/events-tickets/nena/",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.olympiaworld.at/events-tickets/nena/",
+        "title": "NENA — Olympiaworld Innsbruck",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, початок, майданчик і транспортні умови підтверджені Olympiaworld.",
+      "Категорії: music."
+    ],
+    "missingFields": [
+      "офіційний час завершення концерту"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/nena.png",
+    "imageAlternativeText": "Великий pop-rock концерт у заповненій арені"
+  },
+  {
+    "idempotencyKey": "event:https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen.html#2026-09-11",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Back 2 School — White Girl Music Hall Night",
+      "summary": "Тематична ніч популярної музики й танців у Music Hall Innsbruck.",
+      "details": "Music Hall відкриває вересневий клубний сезон тематичною Back 2 School Night. Вечір орієнтований на танцювальну mainstream- і pop-програму та триває до третьої години ночі.",
+      "city": "Innsbruck",
+      "venue": "Music Hall Innsbruck",
+      "address": "Grabenweg 74, 6020 Innsbruck",
+      "eventOrganizerName": "Music Hall Innsbruck",
+      "organizerURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen.html",
+      "contactURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen.html",
+      "federalState": "tirol",
+      "startDate": "2026-09-11T21:00:00+02:00",
+      "endDate": "2026-09-12T03:00:00+02:00",
+      "isAllDay": false,
+      "category": "nightlifeAndParties",
+      "additionalCategories": [
+        "music"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "party",
+        "Music Hall"
+      ],
+      "germanTitle": "Back 2 School — White Girl Music Hall Night",
+      "germanSummary": "Thematische Pop- und Partynacht in der Music Hall Innsbruck.",
+      "germanDetails": "Die Music Hall eröffnet die September-Partysaison mit einer Back 2 School Night. Der Abend ist als tanzbare Mainstream- und Pop-Nacht angekündigt und dauert bis drei Uhr morgens.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen.html",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen.html",
+        "title": "Back 2 School — Music Hall Innsbruck",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата й повний часовий проміжок підтверджені офіційною програмою Music Hall.",
+      "Категорії: nightlifeAndParties; додаткові — music."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/back-2-school.png",
+    "imageAlternativeText": "Молоді люди танцюють на тематичній вечірці в сучасному клубі"
+  },
+  {
+    "idempotencyKey": "event:https://pmk.or.at/de/#2026-09-11",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "GothThing — Summer Edition у PMK",
+      "summary": "Ніч gothic, electro та industrial із міжнародним клубним звучанням.",
+      "details": "DJ Terrorismo та запрошені артисти підготують різноманітну програму від dark electronica й harsh EBM до future pop і trance. Організатори обіцяють вільний underground-формат та welcome-коктейль, поки є запас.",
+      "city": "Innsbruck",
+      "venue": "PMK",
+      "address": "Viaduktbogen 19–20, 6020 Innsbruck",
+      "eventOrganizerName": "Bühne Innsbruck / PMK",
+      "organizerURL": "https://pmk.or.at/de/",
+      "contactURL": "https://pmk.or.at/de/",
+      "federalState": "tirol",
+      "startDate": "2026-09-11T21:00:00+02:00",
+      "isAllDay": false,
+      "category": "nightlifeAndParties",
+      "additionalCategories": [
+        "music"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "gothic",
+        "electro",
+        "industrial"
+      ],
+      "germanTitle": "GothThing — Summer Edition in der PMK",
+      "germanSummary": "Eine Nacht mit Gothic, Electro und Industrial in internationaler Clubatmosphäre.",
+      "germanDetails": "DJ Terrorismo und Featured Acts präsentieren ein abwechslungsreiches Programm von Dark Electronica und Harsh EBM bis Future Pop und Trance. Angekündigt sind ein freier Underground-Mix und ein Welcome-Cocktail, solange der Vorrat reicht.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://pmk.or.at/de/",
+      "priceKind": "range",
+      "price": 8,
+      "maximumPrice": 10,
+      "priceNote": "Передпродаж €8, вечірня каса €10.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://pmk.or.at/de/",
+        "title": "GothThing Summer Edition — PMK",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, час входу, жанри та ціни підтверджені PMK.",
+      "Категорії: nightlifeAndParties; додаткові — music."
+    ],
+    "missingFields": [
+      "офіційний час завершення вечірки"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/goththing.png",
+    "imageAlternativeText": "Атмосферна gothic-electro вечірка у фіолетовому клубному світлі"
+  },
+  {
+    "idempotencyKey": "event:https://pmk.or.at/de/#2026-09-12",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Garage punk: Baby Tyler Band, Heather The Jerk і Naga",
+      "summary": "Подвійний американський garage-punk концерт із підтримкою гурту Naga з Інсбрука.",
+      "details": "У PMK виступлять Baby Tyler Band і Heather The Jerk із Медісона, США. Локальну сцену представить інсбруцький garage-punk гурт Naga. Квитки продають у вечірній касі.",
+      "city": "Innsbruck",
+      "venue": "PMK",
+      "address": "Viaduktbogen 19–20, 6020 Innsbruck",
+      "locationNote": "Вхід з 20:00, початок о 21:00.",
+      "eventOrganizerName": "Rude Sounds / PMK",
+      "organizerURL": "https://pmk.or.at/de/",
+      "contactURL": "https://pmk.or.at/de/",
+      "federalState": "tirol",
+      "startDate": "2026-09-12T21:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "nightlifeAndParties"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "garage punk",
+        "PMK"
+      ],
+      "germanTitle": "Garage Punk: Baby Tyler Band, Heather The Jerk und Naga",
+      "germanSummary": "Doppeltes US-Garage-Punk-Konzert mit Support der Innsbrucker Band Naga.",
+      "germanDetails": "In der PMK spielen Baby Tyler Band und Heather The Jerk aus Madison, USA. Die lokale Szene ist mit der Innsbrucker Garage-Punk-Band Naga vertreten. Tickets gibt es an der Abendkassa.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://pmk.or.at/de/",
+      "priceKind": "exact",
+      "price": 15,
+      "priceNote": "Вечірня каса €15.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://pmk.or.at/de/",
+        "title": "Baby Tyler Band / Heather The Jerk / Naga — PMK",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, вхід, початок, склад і ціна підтверджені PMK.",
+      "Категорії: music; додаткові — nightlifeAndParties."
+    ],
+    "missingFields": [
+      "офіційний час завершення концерту"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/baby-tyler.png",
+    "imageAlternativeText": "Garage-punk гурти виступають перед близькою клубною публікою"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/alle-events/schafschied-tarrenz#2026-09-13",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Schafschied у Тарренці — сотні овець повертаються з гір",
+      "summary": "Один із найбільших овечих перегонів регіону Імст перетворює село на традиційне свято.",
+      "details": "Сотні овець проходять вузькими вулицями Тарренца під дзвони й музику. Після повернення з альпійських пасовищ тварин розподіляють між власниками — саме це означає Schafschied. Подія є одним із найбільших традиційних свят такого типу в регіоні Імст.",
+      "city": "Tarrenz",
+      "venue": "Dorfzentrum Tarrenz",
+      "address": "6464 Tarrenz",
+      "eventOrganizerName": "Gemeinde Tarrenz",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/alle-events/schafschied-tarrenz",
+      "contactURL": "https://www.tirol.at/aktivitaeten/events/alle-events/schafschied-tarrenz",
+      "federalState": "tirol",
+      "startDate": "2026-09-13T00:00:00+02:00",
+      "isAllDay": true,
+      "category": "festivalsAndFairs",
+      "additionalCategories": [
+        "celebration"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Tarrenz",
+        "Schafschied",
+        "традиції"
+      ],
+      "germanTitle": "Schafschied in Tarrenz — Hunderte Schafe kehren heim",
+      "germanSummary": "Eines der größten Schafabtriebsfeste der Region Imst verwandelt das Dorf in ein lebendiges Brauchtumsfest.",
+      "germanDetails": "Hunderte Schafe ziehen unter Glockengeläut und Musik durch die engen Straßen von Tarrenz. Nach der Rückkehr von den Almen werden die Tiere ihren Besitzerinnen und Besitzern zugeteilt — daher der Name Schafschied. Die Veranstaltung zählt zu den größten ihrer Art in der Region Imst.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/alle-events/schafschied-tarrenz",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events/schafschied-tarrenz",
+        "title": "Schafschied Tarrenz — Tirol Werbung",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, місце, формат і організатор підтверджені Tirol Werbung; точні години не опубліковані.",
+      "Категорії: festivalsAndFairs; додаткові — celebration."
+    ],
+    "missingFields": [
+      "офіційний час початку та завершення"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/schafschied-tarrenz.png",
+    "imageAlternativeText": "Сотні овець проходять вулицями тирольського села"
+  },
+  {
+    "idempotencyKey": "event:https://www.seefeld.com/de/iml-einhornmarsch.html#2026-09-18",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Три дні Einhornmarsch у Лойташі",
+      "summary": "Міжнародна спільна хода мальовничими маршрутами без перегонів і тиску на результат.",
+      "details": "26-й міжнародний Einhornmarsch збирає учасників різного віку й рівня підготовки на плато Зеефельд. Протягом трьох днів групи проходять нові маршрути й знайомляться з регіоном. Це не змагання: головними є рух, природа та міжнародне спілкування.",
+      "city": "Leutasch",
+      "venue": "ErlebnisWelt Alpenbad Leutasch / Startbereich",
+      "address": "Weidach 275b, 6105 Leutasch",
+      "eventOrganizerName": "Region Seefeld — Tirols Hochplateau",
+      "organizerURL": "https://www.seefeld.com/de/iml-einhornmarsch.html",
+      "contactURL": "https://www.seefeld.com/de/iml-einhornmarsch.html",
+      "federalState": "tirol",
+      "startDate": "2026-09-18T06:00:00+02:00",
+      "isAllDay": false,
+      "category": "excursionsAndNature",
+      "additionalCategories": [
+        "sportsAndWellness",
+        "meetups"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Leutasch",
+        "wandern",
+        "IML"
+      ],
+      "germanTitle": "Drei Tage Einhornmarsch in Leutasch",
+      "germanSummary": "Internationale Erlebniswanderung auf aussichtsreichen Strecken ohne Zeit- und Leistungsdruck.",
+      "germanDetails": "Der 26. Internationale Einhornmarsch bringt Menschen verschiedener Alters- und Fitnessstufen auf dem Seefelder Hochplateau zusammen. Drei Tage lang führen neue Strecken durch die Region. Im Mittelpunkt stehen Bewegung, Natur und internationale Begegnung statt Wettbewerb.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.seefeld.com/de/iml-einhornmarsch.html",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-19T06:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-20T06:00:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.seefeld.com/de/iml-einhornmarsch.html",
+        "title": "IML 3 Tage Einhornmarsch — Region Seefeld",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Три дати, щоденний старт о 06:00, адреса й несоревновальний формат підтверджені Region Seefeld.",
+      "Категорії: excursionsAndNature; додаткові — sportsAndWellness, meetups."
+    ],
+    "missingFields": [
+      "час завершення кожного дня та точні маршрути/умови реєстрації"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/einhornmarsch.png",
+    "imageAlternativeText": "Міжнародна група мандрівників іде широкою стежкою на плато Зеефельд"
+  },
+  {
+    "idempotencyKey": "event:https://www.landestheater.at/produktionen/codeborn#2026-09-19",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Codeborn — музичний технотрилер про світ під контролем ШІ",
+      "summary": "Австрійська прем’єра сучасного музичного театру про нагляд, алгоритми та свободу людини.",
+      "details": "У вигаданому суспільстві Benthos штучний інтелект контролює повсякденне життя, а людську поведінку постійно оцінюють. Англомовна вистава йде з німецькими субтитрами. Перед прем’єрою о 19:10 відбудеться вступ, після показу — відкрите святкування.",
+      "city": "Innsbruck",
+      "venue": "Kammerspiele, Tiroler Landestheater",
+      "address": "Universitätsstraße 1, 6020 Innsbruck",
+      "eventOrganizerName": "Tiroler Landestheater und Orchester GmbH",
+      "organizerURL": "https://www.landestheater.at/produktionen/codeborn",
+      "contactURL": "https://www.landestheater.at/produktionen/codeborn",
+      "federalState": "tirol",
+      "startDate": "2026-09-19T19:30:00+02:00",
+      "endDate": "2026-09-19T20:30:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "music"
+      ],
+      "audience": "everyone",
+      "minimumAge": 14,
+      "tags": [
+        "Innsbruck",
+        "музичний театр",
+        "ШІ"
+      ],
+      "germanTitle": "Codeborn — Musiktheater-Thriller über eine KI-gesteuerte Welt",
+      "germanSummary": "Österreichische Erstaufführung über Überwachung, Algorithmen und menschliche Freiheit.",
+      "germanDetails": "In der fiktiven Gesellschaft Benthos steuert künstliche Intelligenz den Alltag und bewertet menschliches Verhalten. Die Aufführung ist englisch mit deutschen Übertiteln. Vor der Premiere gibt es um 19:10 Uhr eine Einführung, danach eine öffentliche Premierenfeier.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.landestheater.at/produktionen/codeborn",
+      "priceKind": "exact",
+      "price": 32,
+      "priceNote": "Прем’єрний показ €32; ціни інших дат можуть відрізнятися.",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-26T19:30:00+02:00",
+          "endDate": "2026-09-26T20:30:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-27T19:30:00+02:00",
+          "endDate": "2026-09-27T20:30:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.landestheater.at/produktionen/codeborn",
+        "title": "Codeborn — Tiroler Landestheater",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      },
+      {
+        "url": "https://klangspuren.at/festival/festival-programm/festival-detail/codeborn/",
+        "title": "Codeborn — Klangspuren Schwaz",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дати, мова, субтитри, вік і ціна звірені з театром та Klangspuren; зафіксовано конфлікт щодо тривалості.",
+      "Категорії: culture; додаткові — music."
+    ],
+    "missingFields": [
+      "підтвердити тривалість: Klangspuren вказує 60 хвилин, театр ще не опублікував тривалість"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-29/event-codeborn.png",
+    "imageAlternativeText": "Сучасна сцена музичного театру з електронними інструментами та світловою сіткою"
+  },
+  {
+    "idempotencyKey": "event:https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/seom-essenz-tour-2026.html#2026-09-19",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "SEOM — Essenz Tour в Інсбруку",
+      "summary": "Музика, поезія, гумор і розмова про внутрішню силу та людський зв’язок.",
+      "details": "Музикант, поет і автор SEOM поєднує пісні, особисті історії та роздуми про сміливість, людяність і внутрішню опору. Організатор рекомендує приводити дітей приблизно від п’яти років і радить подбати про захист слуху, адже окремі фрагменти можуть бути гучними.",
+      "city": "Innsbruck",
+      "venue": "Music Hall Innsbruck",
+      "address": "Grabenweg 74, 6020 Innsbruck",
+      "locationNote": "Вхід з 18:00, початок о 19:00.",
+      "eventOrganizerName": "Music Hall Innsbruck",
+      "organizerURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/seom-essenz-tour-2026.html",
+      "contactURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/seom-essenz-tour-2026.html",
+      "federalState": "tirol",
+      "startDate": "2026-09-19T19:00:00+02:00",
+      "endDate": "2026-09-19T23:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "minimumAge": 5,
+      "tags": [
+        "Innsbruck",
+        "SEOM",
+        "поезія"
+      ],
+      "germanTitle": "SEOM — Essenz Tour in Innsbruck",
+      "germanSummary": "Musik, Poesie, Humor und Gedanken über innere Kraft und menschliche Verbindung.",
+      "germanDetails": "Musiker, Poet und Autor SEOM verbindet Songs, persönliche Geschichten und Gedanken über Mut, Menschlichkeit und innere Stärke. Für Familien werden Kinder ab etwa fünf Jahren empfohlen; bei lauteren Passagen wird Gehörschutz angeraten.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/seom-essenz-tour-2026.html",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/seom-essenz-tour-2026.html",
+        "title": "SEOM Essenz Tour — Music Hall Innsbruck",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, години, адреса, сімейна рекомендація та попередження щодо гучності підтверджені Music Hall.",
+      "Категорії: music; додаткові — culture."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/seom.png",
+    "imageAlternativeText": "Музикант-поет виступає перед уважною публікою в теплому світлі"
+  },
+  {
+    "idempotencyKey": "event:https://presse.tirol.at/events-sommer-2026/282901/#2026-09-19",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Tiroler Silberpfad Trophy у Шваці",
+      "summary": "Великий трейловий день із дистанціями від 11 до 86 кілометрів у срібному регіоні Карвендель.",
+      "details": "Швац стане центром трейлраннингу: учасникам пропонують чотири дистанції — від нової 11-кілометрової до ультрадистанції 86 кілометрів. Маршрути проходять гірськими стежками з великим набором висоти й потребують відповідної підготовки.",
+      "city": "Schwaz",
+      "venue": "Silberregion Karwendel / Schwaz",
+      "address": "6130 Schwaz",
+      "eventOrganizerName": "Tiroler Silberpfad Trophy",
+      "organizerURL": "https://presse.tirol.at/events-sommer-2026/282901/",
+      "contactURL": "https://presse.tirol.at/events-sommer-2026/282901/",
+      "federalState": "tirol",
+      "startDate": "2026-09-19T00:00:00+02:00",
+      "isAllDay": true,
+      "category": "sportsAndWellness",
+      "additionalCategories": [
+        "excursionsAndNature"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Schwaz",
+        "trailrunning",
+        "Silberpfad"
+      ],
+      "germanTitle": "Tiroler Silberpfad Trophy in Schwaz",
+      "germanSummary": "Großer Trailrunning-Tag mit Strecken von 11 bis 86 Kilometern in der Silberregion Karwendel.",
+      "germanDetails": "Schwaz wird zum Zentrum der Trailrunning-Szene. Vier Distanzen stehen zur Auswahl — von der neuen 11-Kilometer-Strecke bis zur 86-Kilometer-Ultradistanz. Die Bergtrails umfassen viele Höhenmeter und erfordern entsprechende Vorbereitung.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://presse.tirol.at/events-sommer-2026/282901/",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://presse.tirol.at/events-sommer-2026/282901/",
+        "title": "Tiroler Silberpfad Trophy — Tirol Werbung",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата й діапазон дистанцій підтверджені офіційним матеріалом Tirol Werbung; деталі стартів потребують перевірки на сторінці перегонів.",
+      "Категорії: sportsAndWellness; додаткові — excursionsAndNature."
+    ],
+    "missingFields": [
+      "точні стартові години, місце старту, ціни та реєстраційне посилання для кожної дистанції"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/silberpfad.png",
+    "imageAlternativeText": "Трейлраннери біжать гірською стежкою над містом Швац"
+  },
+  {
+    "idempotencyKey": "event:https://www.landestheater.at/produktionen/tataeae#2026-09-20",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "TATÄÄ! — театр і музика відкривають двері",
+      "summary": "Велике безкоштовне свято з екскурсіями, майстер-класами, виступами та вечірнім концертом.",
+      "details": "Tiroler Landestheater і Haus der Musik запрошують за лаштунки. Вдень відбудуться короткі вистави, екскурсії, дитячі майстер-класи, відкрите танцювальне тренування й інтерактивні музичні формати. О 19:00 святковий концерт Tiroler Symphonieorchester завершить день.",
+      "city": "Innsbruck",
+      "venue": "Tiroler Landestheater und Haus der Musik",
+      "address": "Rennweg 2 / Universitätsstraße 1, 6020 Innsbruck",
+      "eventOrganizerName": "Tiroler Landestheater und Haus der Musik Innsbruck",
+      "organizerURL": "https://www.landestheater.at/produktionen/tataeae",
+      "contactURL": "https://www.landestheater.at/produktionen/tataeae",
+      "federalState": "tirol",
+      "startDate": "2026-09-20T13:00:00+02:00",
+      "endDate": "2026-09-20T18:00:00+02:00",
+      "isAllDay": false,
+      "category": "festivalsAndFairs",
+      "additionalCategories": [
+        "culture",
+        "childrenAndFamily"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "TATÄÄ",
+        "театр",
+        "сім’я"
+      ],
+      "germanTitle": "TATÄÄ! — Theater und Musik öffnen ihre Türen",
+      "germanSummary": "Großes Fest mit Führungen, Workshops, Aufführungen und abendlichem Festkonzert.",
+      "germanDetails": "Tiroler Landestheater und Haus der Musik laden hinter die Kulissen ein. Tagsüber gibt es Kurzvorstellungen, Führungen, Kinderworkshops, öffentliches Tanztraining und interaktive Musikformate. Um 19 Uhr beschließt das Tiroler Symphonieorchester den Tag mit einem Festkonzert.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.landestheater.at/produktionen/tataeae",
+      "priceKind": "free",
+      "priceNote": "Основне свято безкоштовне; для частини форматів потрібні безкоштовні квитки/реєстрація.",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-20T19:00:00+02:00",
+          "endDate": "2026-09-20T20:15:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.landestheater.at/produktionen/tataeae",
+        "title": "TATÄÄ! — Tiroler Landestheater",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      },
+      {
+        "url": "https://www.landestheater.at/produktionen/tataeae-festkonzert",
+        "title": "TATÄÄ Festkonzert — Tiroler Landestheater",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Денний період, окремі формати й час Festkonzert підтверджені двома сторінками Tiroler Landestheater.",
+      "Категорії: festivalsAndFairs; додаткові — culture, childrenAndFamily."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/tataee.png",
+    "imageAlternativeText": "Родини та артисти на відкритому театральному святі в Інсбруку"
+  },
+  {
+    "idempotencyKey": "event:https://www.innsbruck.info/en/events/e/122260146.html#2026-09-24",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Sundown Dance на Patscherkofel",
+      "summary": "Танці на заході сонця, міжнародні діджеї, жива музика та sound healing над Інсбруком.",
+      "details": "Вечір на Patscherkofel поєднає танцювальні сети міжнародних діджеїв із живою музикою та sound healing. Формат відкритий також для сімей. Для учасників заявлена знижка 30% на квиток канатної дороги.",
+      "city": "Patsch",
+      "venue": "Patscherkofelbahn, Seminarraum",
+      "address": "Römerstraße 81, 6080 Igls",
+      "locationNote": "Знижка 30% на квиток канатної дороги за умовами організатора.",
+      "eventOrganizerName": "Patscherkofelbahn",
+      "organizerURL": "https://www.innsbruck.info/en/events/e/122260146.html",
+      "contactURL": "https://www.innsbruck.info/en/events/e/122260146.html",
+      "federalState": "tirol",
+      "startDate": "2026-09-24T19:30:00+02:00",
+      "endDate": "2026-09-24T22:30:00+02:00",
+      "isAllDay": false,
+      "category": "nightlifeAndParties",
+      "additionalCategories": [
+        "music",
+        "sportsAndWellness"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Patscherkofel",
+        "DJ",
+        "Sonnenuntergang"
+      ],
+      "germanTitle": "Sundown Dance am Patscherkofel",
+      "germanSummary": "Tanzen bei Sonnenuntergang, internationale DJs, Livemusik und Sound Healing über Innsbruck.",
+      "germanDetails": "Der Abend am Patscherkofel verbindet Tanzsets internationaler DJs mit Livemusik und Sound Healing. Das Format ist auch für Familien offen. Für Teilnehmende ist eine Ermäßigung von 30 Prozent auf das Bahnticket angekündigt.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.innsbruck.info/en/events/e/122260146.html",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.innsbruck.info/en/events/e/122260146.html",
+        "title": "Sundown Dance at Patscherkofel — Innsbruck.info",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, час, формат, сімейна доступність і знижка підтверджені Innsbruck.info.",
+      "Категорії: nightlifeAndParties; додаткові — music, sportsAndWellness."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/sundown-dance.png",
+    "imageAlternativeText": "Люди танцюють на заході сонця у гірському просторі над Інсбруком"
+  },
+  {
+    "idempotencyKey": "event:https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/dick-brave-back-for-good-back-for-more-tour-2026.html#2026-09-25",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Dick Brave — Back for Good / Back for More",
+      "summary": "Ретро-rock’n’roll шоу повертається до Інсбрука з новим подвійним альбомом.",
+      "details": "Dick Brave продовжує концертне повернення після розпроданого клубного туру. Програма Back for Good / Back for More поєднує новий подвійний альбом, відомі revival-композиції та енергійне rock’n’roll шоу. На розігріві виступить Lena Schaur.",
+      "city": "Innsbruck",
+      "venue": "Music Hall Innsbruck",
+      "address": "Grabenweg 74, 6020 Innsbruck",
+      "eventOrganizerName": "Music Hall Innsbruck",
+      "organizerURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/dick-brave-back-for-good-back-for-more-tour-2026.html",
+      "contactURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/dick-brave-back-for-good-back-for-more-tour-2026.html",
+      "federalState": "tirol",
+      "startDate": "2026-09-25T20:00:00+02:00",
+      "endDate": "2026-09-25T23:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "nightlifeAndParties"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "rock and roll",
+        "Dick Brave"
+      ],
+      "germanTitle": "Dick Brave — Back for Good / Back for More",
+      "germanSummary": "Die Retro-Rock’n’Roll-Show kehrt mit dem neuen Doppelalbum nach Innsbruck zurück.",
+      "germanDetails": "Dick Brave setzt sein Konzert-Comeback nach der ausverkauften Clubtour fort. Back for Good / Back for More verbindet das neue Doppelalbum, bekannte Revival-Songs und eine energiegeladene Rock’n’Roll-Show. Support ist Lena Schaur.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/dick-brave-back-for-good-back-for-more-tour-2026.html",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.music-hall.at/veranstaltungen/aktuelleveranstaltungen/dick-brave-back-for-good-back-for-more-tour-2026.html",
+        "title": "Dick Brave — Music Hall Innsbruck",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, години, майданчик і support підтверджені офіційною сторінкою Music Hall.",
+      "Категорії: music; додаткові — nightlifeAndParties."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/dick-brave.png",
+    "imageAlternativeText": "Енергійний ретро-rock’n’roll концерт із танцюючою публікою"
+  },
+  {
+    "idempotencyKey": "event:https://www.tiroler-landesmuseen.at/veranstaltungsreihe/innsbrucker-hofmusik-2026/#2026-09-25",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Innsbrucker Hofmusik — «Німфи Інну»",
+      "summary": "Концерт старовинної музики в історичній Hofkirche.",
+      "details": "Четвертий концерт циклу Innsbrucker Hofmusik має назву Die Nymphen des Inns і відбудеться в особливій акустиці Hofkirche. Квитки мають вільний вибір місць; передбачені звичайна, пільгова та студентська категорії.",
+      "city": "Innsbruck",
+      "venue": "Hofkirche Innsbruck",
+      "address": "Universitätsstraße 2, 6020 Innsbruck",
+      "eventOrganizerName": "Tiroler Landesmuseen",
+      "organizerURL": "https://www.tiroler-landesmuseen.at/veranstaltungsreihe/innsbrucker-hofmusik-2026/",
+      "contactURL": "https://www.tiroler-landesmuseen.at/veranstaltungsreihe/innsbrucker-hofmusik-2026/",
+      "federalState": "tirol",
+      "startDate": "2026-09-25T19:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "Hofkirche",
+        "Alte Musik"
+      ],
+      "germanTitle": "Innsbrucker Hofmusik — Die Nymphen des Inns",
+      "germanSummary": "Konzert Alter Musik im historischen Ambiente der Hofkirche.",
+      "germanDetails": "Das vierte Konzert der Reihe Innsbrucker Hofmusik trägt den Titel Die Nymphen des Inns und findet in der besonderen Akustik der Hofkirche statt. Es gilt freie Platzwahl; angeboten werden reguläre, ermäßigte sowie Schüler- und Studierendentickets.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.tiroler-landesmuseen.at/veranstaltungsreihe/innsbrucker-hofmusik-2026/",
+      "priceKind": "range",
+      "price": 10,
+      "maximumPrice": 35,
+      "priceNote": "€35 стандартний, €25 пільговий, €10 для школярів і студентів до 27 років.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tiroler-landesmuseen.at/veranstaltungsreihe/innsbrucker-hofmusik-2026/",
+        "title": "Innsbrucker Hofmusik 2026 — Tiroler Landesmuseen",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, початок, зал і всі цінові категорії підтверджені Tiroler Landesmuseen.",
+      "Категорії: music; додаткові — culture."
+    ],
+    "missingFields": [
+      "офіційний час завершення концерту"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/hofmusik.png",
+    "imageAlternativeText": "Ансамбль старовинної музики виступає в історичній Hofkirche"
+  },
+  {
+    "idempotencyKey": "event:https://www.landestheater.at/produktionen/un-ballo-in-maschera#2026-09-26",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "«Бал-маскарад» Верді — прем’єра в Інсбруку",
+      "summary": "Велика опера Джузеппе Верді італійською мовою з німецькими субтитрами.",
+      "details": "Tiroler Landestheater відкриває оперний сезон мелодрамою Джузеппе Верді Un ballo in maschera. Вистава йде італійською мовою з німецькими субтитрами. За 20 хвилин до початку передбачена вступна розповідь; після прем’єри — відкрите святкування.",
+      "city": "Innsbruck",
+      "venue": "Tiroler Landestheater, Großes Haus",
+      "address": "Rennweg 2, 6020 Innsbruck",
+      "eventOrganizerName": "Tiroler Landestheater und Orchester GmbH",
+      "organizerURL": "https://www.landestheater.at/produktionen/un-ballo-in-maschera",
+      "contactURL": "https://www.landestheater.at/produktionen/un-ballo-in-maschera",
+      "federalState": "tirol",
+      "startDate": "2026-09-26T19:00:00+02:00",
+      "endDate": "2026-09-26T22:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "music"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "опера",
+        "Verdi"
+      ],
+      "germanTitle": "Verdis Un ballo in maschera — Premiere in Innsbruck",
+      "germanSummary": "Große Oper von Giuseppe Verdi in italienischer Sprache mit deutschen Übertiteln.",
+      "germanDetails": "Das Tiroler Landestheater eröffnet die Opernsaison mit Giuseppe Verdis Melodramma Un ballo in maschera. Gespielt wird auf Italienisch mit deutschen Übertiteln. 20 Minuten vor Beginn gibt es eine Einführung; nach der Premiere ist eine öffentliche Feier angekündigt.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.landestheater.at/produktionen/un-ballo-in-maschera",
+      "priceKind": "range",
+      "price": 15,
+      "maximumPrice": 74,
+      "priceNote": "Прем’єра: €15–74 залежно від категорії.",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-30T19:30:00+02:00",
+          "endDate": "2026-09-30T22:30:00+02:00",
+          "isAllDay": false
+        }
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.landestheater.at/produktionen/un-ballo-in-maschera",
+        "title": "Un ballo in maschera — Tiroler Landestheater",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Прем’єра, другий вересневий показ, тривалість, мова, субтитри та ціни підтверджені театром.",
+      "Категорії: culture; додаткові — music."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/un-ballo.png",
+    "imageAlternativeText": "Драматична сцена опери Верді з атмосферою балу-маскараду"
+  },
+  {
+    "idempotencyKey": "event:https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-gerlos#2026-09-26",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "30 років Almabtrieb у Герлосі",
+      "summary": "Ювілейне повернення худоби з великою гастрономічною та розважальною програмою.",
+      "details": "Герлос святкує 30-річчя Almabtrieb. Окрім прикрашених корів, у програмі заявлені традиційні музичні колективи, Schuhplattler, старовинні трактори, норикійські коні та велика Genuss- und Erlebnismeile з приблизно 30 учасниками.",
+      "city": "Gerlos",
+      "venue": "Ortszentrum Gerlos",
+      "address": "6281 Gerlos",
+      "eventOrganizerName": "Tourismusverband Zell-Gerlos, Zillertal Arena",
+      "organizerURL": "https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-gerlos",
+      "contactURL": "https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-gerlos",
+      "federalState": "tirol",
+      "startDate": "2026-09-26T00:00:00+02:00",
+      "isAllDay": true,
+      "category": "festivalsAndFairs",
+      "additionalCategories": [
+        "celebration",
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Gerlos",
+        "Almabtrieb",
+        "ювілей"
+      ],
+      "germanTitle": "30 Jahre Almabtrieb in Gerlos",
+      "germanSummary": "Jubiläums-Almabtrieb mit großer Genuss- und Erlebnismeile.",
+      "germanDetails": "Gerlos feiert 30 Jahre Almabtrieb. Neben den geschmückten Kühen sind Musikgruppen, Schuhplattler, Oldtimer-Traktoren, Norikerpferde und eine große Genuss- und Erlebnismeile mit rund 30 Ausstellenden angekündigt.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-gerlos",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events/almabtrieb-in-gerlos",
+        "title": "30 Jahre Almabtrieb Gerlos — Tirol Werbung",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, ювілей, організатор і ключові елементи програми підтверджені Tirol Werbung; години не опубліковані.",
+      "Категорії: festivalsAndFairs; додаткові — celebration, foodAndMarket."
+    ],
+    "missingFields": [
+      "офіційні години початку й завершення"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/gerlos.png",
+    "imageAlternativeText": "Ювілейний Almabtrieb із прикрашеними коровами та святом у Герлосі"
+  },
+  {
+    "idempotencyKey": "event:https://www.alpbachtal.at/de/info-und-service/veranstaltungskalender/Kirchtag-im-Museum-Tiroler-Bauernhoefe_ed_8283765#2026-09-27",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Kramsacher Kirchtag у музеї селянських дворів",
+      "summary": "Музика, ремесла, регіональна кухня та історичні двори на одному з головних свят Unterland.",
+      "details": "Свято починається урочистою ходою о 09:30, а о 10:00 — месою. Протягом дня майстри покажуть плетіння кошиків, гончарство, вишивку павиним пером та інші традиційні техніки. У старовинних дворах звучатиме музика й подаватимуть регіональні страви.",
+      "city": "Kramsach",
+      "venue": "Museum Tiroler Bauernhöfe",
+      "address": "Angerberg 10, 6233 Kramsach",
+      "eventOrganizerName": "Museum Tiroler Bauernhöfe / TVB Alpbachtal",
+      "organizerURL": "https://www.alpbachtal.at/de/info-und-service/veranstaltungskalender/Kirchtag-im-Museum-Tiroler-Bauernhoefe_ed_8283765",
+      "contactURL": "https://www.alpbachtal.at/de/info-und-service/veranstaltungskalender/Kirchtag-im-Museum-Tiroler-Bauernhoefe_ed_8283765",
+      "federalState": "tirol",
+      "startDate": "2026-09-27T09:30:00+02:00",
+      "isAllDay": false,
+      "category": "festivalsAndFairs",
+      "additionalCategories": [
+        "culture",
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Kramsach",
+        "Kirchtag",
+        "ремесла"
+      ],
+      "germanTitle": "Kramsacher Kirchtag im Museum Tiroler Bauernhöfe",
+      "germanSummary": "Musik, Handwerk, regionale Küche und historische Höfe bei einem der wichtigsten Feste im Unterland.",
+      "germanDetails": "Das Fest beginnt um 09:30 Uhr mit dem feierlichen Einzug, um 10 Uhr folgt die Messe. Handwerkerinnen und Handwerker zeigen Korbflechten, Töpfern, Federkielsticken und weitere traditionelle Techniken. In den historischen Höfen gibt es Musik und regionale Spezialitäten.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Деталі та квитки",
+      "externalActionURL": "https://www.alpbachtal.at/de/info-und-service/veranstaltungskalender/Kirchtag-im-Museum-Tiroler-Bauernhoefe_ed_8283765",
+      "priceKind": "exact",
+      "price": 12,
+      "priceNote": "Вхід €12.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.alpbachtal.at/de/info-und-service/veranstaltungskalender/Kirchtag-im-Museum-Tiroler-Bauernhoefe_ed_8283765",
+        "title": "Kirchtag im Museum Tiroler Bauernhöfe — Alpbachtal",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      },
+      {
+        "url": "https://www.tirol.at/aktivitaeten/events/alle-events/kramsacher-kirchtag",
+        "title": "Kramsacher Kirchtag — Tirol Werbung",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, початок, програма, адреса й ціна звірені з Alpbachtal та Tirol Werbung.",
+      "Категорії: festivalsAndFairs; додаткові — culture, foodAndMarket."
+    ],
+    "missingFields": [
+      "офіційний час завершення"
+    ],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/kramsach.png",
+    "imageAlternativeText": "Традиційне свято ремесел біля історичних тирольських селянських дворів"
+  },
+  {
+    "idempotencyKey": "event:https://www.tiroler-landesmuseen.at/veranstaltung/tag-des-denkmals-2026/#2026-09-27",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "День пам’яток у Hofkirche — безкоштовна спеціальна програма",
+      "summary": "Екскурсії та нові погляди на історію Hofkirche і знаменитих «Чорних людей».",
+      "details": "У День пам’яток Hofkirche відкриє спеціальну програму про цінність культурної спадщини. Відвідувачам представлять нове дослідження церкви, політичне й емоційне значення бронзових фігур, кованих решіток та Срібної капели. Вхід безкоштовний, але потрібна реєстрація.",
+      "city": "Innsbruck",
+      "venue": "Hofkirche Innsbruck",
+      "address": "Universitätsstraße 2, 6020 Innsbruck",
+      "eventOrganizerName": "Tiroler Landesmuseen",
+      "organizerURL": "https://www.tiroler-landesmuseen.at/veranstaltung/tag-des-denkmals-2026/",
+      "contactURL": "https://www.tiroler-landesmuseen.at/veranstaltung/tag-des-denkmals-2026/",
+      "federalState": "tirol",
+      "startDate": "2026-09-27T12:15:00+02:00",
+      "endDate": "2026-09-27T17:00:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "education"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Innsbruck",
+        "Hofkirche",
+        "Tag des Denkmals"
+      ],
+      "germanTitle": "Tag des Denkmals in der Hofkirche — kostenloses Sonderprogramm",
+      "germanSummary": "Führungen und neue Einblicke in die Hofkirche und ihre berühmten Schwarzen Mander.",
+      "germanDetails": "Am Tag des Denkmals bietet die Hofkirche ein Sonderprogramm zum Wert des kulturellen Erbes. Vorgestellt werden neue Forschungen zur Kirche sowie die politische und emotionale Bedeutung der Bronzefiguren, der Schmiedegitter und der Silbernen Kapelle. Der Eintritt ist frei, eine Anmeldung ist erforderlich.",
+      "participationMode": "externalRegistration",
+      "externalActionTitle": "Зареєструватися",
+      "externalActionURL": "https://www.tiroler-landesmuseen.at/veranstaltung/tag-des-denkmals-2026/",
+      "priceKind": "free",
+      "priceNote": "Безкоштовно; потрібна попередня реєстрація.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tiroler-landesmuseen.at/veranstaltung/tag-des-denkmals-2026/",
+        "title": "Tag des Denkmals 2026 — Tiroler Landesmuseen",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T10:10:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, повний час, безкоштовний вхід, зміст і обов’язкова реєстрація підтверджені Tiroler Landesmuseen.",
+      "Категорії: culture; додаткові — education."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-30-september/tag-des-denkmals.png",
+    "imageAlternativeText": "Відвідувачі на екскурсії серед бронзових фігур Hofkirche Innsbruck"
+  }
+]

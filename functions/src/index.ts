@@ -44,6 +44,7 @@ export * from "./systemLogs/clientDiagnostics";
 export * from "./systemLogs/systemLogManagement";
 export * from "./users/accountStatusManagement";
 export * from "./users/accountDeletion";
+export {cleanupUnverifiedAccounts} from "./users/unverifiedAccountRetention";
 export * from "./users/platformRoleManagement";
 export * from "./users/userManagementQueries";
 export {updateUserPresence, getManagedUserPresence} from "./users/userPresence";
@@ -267,3 +268,8 @@ export { cleanupAnalyticsAggregates } from "./analytics/cleanupAnalyticsAggregat
 export {notifyOrganizationRequestSubmitted, notifyNewsCommentCreated, notifyEventCommentCreated,
   notifyOrganizationCommentCreated, notifyNewsModerationChanged, notifyEventModerationChanged,
   notifyEventParticipationChanged} from "./notifications/workflowNotifications";
+
+export * from "./organizations/organizationAccess";
+
+export {saveOrganizationPhoto} from "./organizations/organizationPhotoSave";
+export {cleanupOrganizationPhotoLifecycle} from "./organizations/organizationPhotoGarbage";

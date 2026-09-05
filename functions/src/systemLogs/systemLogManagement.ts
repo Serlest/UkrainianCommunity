@@ -1,7 +1,8 @@
+import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {auditLogRef, buildAuditLog} from "../audit/auditLog";
-import {requireVerifiedActiveUser} from "../auth/context";
+import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
 import {db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
 
@@ -40,7 +41,7 @@ export const clearSystemLogs = onCall(
       const snapshot = await db.collection("systemLogs").limit(deleteBatchSize).get();
       if (snapshot.empty) break;
 
-      const writer = db.bulkWriter();
+      const writer = new CheckedBulkWriter();
       for (const document of snapshot.docs) {
         writer.delete(document.ref);
       }

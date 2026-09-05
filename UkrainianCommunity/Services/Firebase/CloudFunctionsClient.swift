@@ -29,6 +29,7 @@ enum CloudFunctionName: String, CaseIterable {
     case listLegalEvidence
     case listLegalEvidenceAccounts
     case getLegalEvidenceForUser
+    case getLegalEvidencePage
     case deleteOwnAccount
     case deleteFeedback
     case clearFeedbackInbox
@@ -287,6 +288,8 @@ struct LegalEvidenceListFunctionResponse: Codable, Equatable {
 struct LegalEvidenceAccountCursorFunctionValue: Codable, Equatable {
     let userId: String
     let createdAt: String
+    var seconds: Int64? = nil
+    var nanoseconds: Int32? = nil
 }
 
 struct LegalEvidenceAccountFunctionValue: Codable, Equatable {
@@ -310,9 +313,11 @@ struct LegalEvidenceAccountsFunctionResponse: Codable, Equatable {
 
 struct LegalEvidenceUserFunctionRequest: Codable, Equatable {
     let userId: String
+    var cursor: String? = nil
 }
 
 struct LegalEvidenceUserFunctionResponse: Codable, Equatable {
+    var nextCursor: String? = nil
     let account: LegalEvidenceAccountFunctionValue
     let events: [LegalEvidenceFunctionEvent]
     let generatedAt: String
@@ -393,6 +398,7 @@ struct OrganizationDeletionFunctionRequest: Codable, Equatable {
 }
 
 struct OrganizationPhotoCreateFunctionRequest: Codable, Equatable {
+    var principalId: String? = nil
     let organizationId: String
     let photoId: String
     let imageURL: String
@@ -400,6 +406,7 @@ struct OrganizationPhotoCreateFunctionRequest: Codable, Equatable {
 }
 
 struct OrganizationPhotoDeleteFunctionRequest: Codable, Equatable {
+    var principalId: String? = nil
     let organizationId: String
     let photoId: String
 }
@@ -621,6 +628,10 @@ final class CloudFunctionsClient {
         )
     }
 
+    func getLegalEvidencePage(userID: String, cursor: String?) async throws -> LegalEvidenceUserFunctionResponse {
+        try await call(.getLegalEvidencePage, request: LegalEvidenceUserFunctionRequest(userId: userID, cursor: cursor))
+    }
+
     func getLegalEvidenceForUser(userID: String) async throws -> LegalEvidenceUserFunctionResponse {
         try await call(
             .getLegalEvidenceForUser,
@@ -695,11 +706,13 @@ final class CloudFunctionsClient {
         organizationId: String,
         photoId: String,
         imageURL: String,
-        caption: String?
+        caption: String?,
+        principalID: String? = nil
     ) async throws -> OrganizationPhotoMutationFunctionResponse {
         try await call(
             .createOrganizationPhotoMetadata,
             request: OrganizationPhotoCreateFunctionRequest(
+                principalId: principalID,
                 organizationId: organizationId,
                 photoId: photoId,
                 imageURL: imageURL,
@@ -710,11 +723,13 @@ final class CloudFunctionsClient {
 
     func deleteOrganizationPhotoMetadata(
         organizationId: String,
-        photoId: String
+        photoId: String,
+        principalID: String? = nil
     ) async throws -> OrganizationPhotoMutationFunctionResponse {
         try await call(
             .deleteOrganizationPhotoMetadata,
             request: OrganizationPhotoDeleteFunctionRequest(
+                principalId: principalID,
                 organizationId: organizationId,
                 photoId: photoId
             )
@@ -909,7 +924,7 @@ final class CloudFunctionsClient {
              .acceptOrganizationRules,
              .listLegalEvidence,
              .listLegalEvidenceAccounts,
-             .getLegalEvidenceForUser:
+             .getLegalEvidenceForUser, .getLegalEvidencePage:
             return .legalDocument
         case .saveFeaturedBanner,
              .setFeaturedBannerActive,
@@ -945,7 +960,7 @@ final class CloudFunctionsClient {
              .restoreUser,
              .listLegalEvidence,
              .listLegalEvidenceAccounts,
-             .getLegalEvidenceForUser,
+             .getLegalEvidenceForUser, .getLegalEvidencePage,
              .saveFeaturedBanner,
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
@@ -1025,7 +1040,7 @@ final class CloudFunctionsClient {
              .acceptOrganizationRules,
              .listLegalEvidence,
              .listLegalEvidenceAccounts,
-             .getLegalEvidenceForUser,
+             .getLegalEvidenceForUser, .getLegalEvidencePage,
              .deleteOwnAccount,
              .deleteFeedback,
              .clearFeedbackInbox,

@@ -1,7 +1,8 @@
+import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {auditLogRef, buildAuditLog} from "../audit/auditLog";
-import {requireVerifiedActiveUser} from "../auth/context";
+import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
 import {db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
 
@@ -40,7 +41,8 @@ export const deleteFeedback = onCall(
     const feedbackDocument = db.collection("feedback").doc(feedbackId);
     const snapshot = await feedbackDocument.get();
     if (!snapshot.exists) {
-      throw new HttpsError("not-found", "Feedback record was not found.");
+      await deleteFeedbackRecords([feedbackDocument]);
+      return {deletedCount: 0};
     }
 
     await deleteFeedbackRecords([feedbackDocument]);
@@ -96,25 +98,26 @@ export const clearFeedbackInbox = onCall(
 async function deleteFeedbackDocuments(
   feedbackDocuments: FirebaseFirestore.DocumentReference[]
 ): Promise<void> {
-  const writer = db.bulkWriter();
+  const children: FirebaseFirestore.DocumentReference[] = [];
   for (const feedbackDocument of feedbackDocuments) {
-    const messagesSnapshot = await feedbackDocument.collection("messages").get();
-    for (const messageDocument of messagesSnapshot.docs) {
-      writer.delete(messageDocument.ref);
-    }
-    writer.delete(feedbackDocument);
+    const messages = await feedbackDocument.collection("messages").get();
+    children.push(...messages.docs.map(document => document.ref));
   }
-  await writer.close();
+  const childWriter = new CheckedBulkWriter();
+  children.forEach(reference => childWriter.delete(reference));
+  await childWriter.close();
+  // Keep the root available for retry until every dependent deletion succeeds.
+  const parentWriter = new CheckedBulkWriter();
+  feedbackDocuments.forEach(reference => parentWriter.delete(reference));
+  await parentWriter.close();
 }
 
 export async function deleteFeedbackRecords(
   feedbackDocuments: FirebaseFirestore.DocumentReference[]
 ): Promise<void> {
   if (feedbackDocuments.length === 0) return;
+  await deleteFeedbackNotifications(feedbackDocuments.map(document => document.id));
   await deleteFeedbackDocuments(feedbackDocuments);
-  await deleteFeedbackNotifications(
-    feedbackDocuments.map((document) => document.id)
-  );
 }
 
 async function deleteFeedbackNotifications(feedbackIds: string[]): Promise<void> {
@@ -125,7 +128,7 @@ async function deleteFeedbackNotifications(feedbackIds: string[]): Promise<void>
       .get();
 
     if (notificationSnapshot.empty) continue;
-    const writer = db.bulkWriter();
+    const writer = new CheckedBulkWriter();
     for (const notificationDocument of notificationSnapshot.docs) {
       if (notificationDocument.get("sourceType") === "feedback") {
         writer.delete(notificationDocument.ref);

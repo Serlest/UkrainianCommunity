@@ -1,9 +1,8 @@
 import {FieldValue, type DocumentData, type Query} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {assertPrivilegedMFA, requireAuth} from "../auth/context";
+import {requireAuth} from "../auth/context";
 import {adminAuth, adminStorage, db} from "../firebase/admin";
-import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {
   accountDeletionReferencePolicies,
   deletedUserDisplayName,
@@ -222,6 +221,8 @@ function referenceAnonymizationUpdate(
       return retainedLogUpdate(data, personalReferences, {
         targetUserId: deletedUserID,
       });
+    case "cancellationActor":
+      return {actorUserId: deletedUserID};
     case "auditActor":
       return retainedLogUpdate(data, personalReferences, {
         performedBy: deletedUserID,
@@ -302,10 +303,10 @@ export const deleteOwnAccount = onCall(
         .get(),
     ]);
 
-    assertPrivilegedMFA(
-      auth.token,
-      userPermissionSnapshotFromData(auth.uid, userSnapshot.data())
-    );
+    // Keep the deployed v1 authentication contract: recent sign-in is
+    // required above. MFA activation is a separate rollout, not a side effect
+    // of extending receipt cleanup (verified against deployed source 2e7ae13).
+
 
     if (stringField(userSnapshot.data(), "globalRole") === "owner") {
       throw new HttpsError(

@@ -1,10 +1,14 @@
+import {assertActiveUser} from "../auth/context";
 import {Timestamp, type DocumentData} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireVerifiedActiveUser} from "../auth/context";
+import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
 import {storageObjectPathFromDownloadURL} from "../content/contentDeletionPolicy";
 import {db} from "../firebase/admin";
-import {isOwner, type UserPermissionSnapshot} from "../permissions/userPermissions";
+import {isOwner, userPermissionSnapshotFromData, type UserPermissionSnapshot} from "../permissions/userPermissions";
+
+import {photoRetirement, queuePhotoGarbage} from "./organizationPhotoGarbage";
+import {accessFailure, withAccessDiagnostics} from "./organizationAccessDiagnostics";
 
 export const maximumOrganizationPhotoCount = 30;
 const maximumCaptionLength = 500;
@@ -38,24 +42,32 @@ export interface OrganizationPhotoMutationResponse {
 
 export const createOrganizationPhotoMetadata = onCall(
   callableOptions,
-  async (request): Promise<OrganizationPhotoMutationResponse> => {
+  request => withAccessDiagnostics(request, "createOrganizationPhotoMetadata", async (): Promise<OrganizationPhotoMutationResponse> => {
     const auth = await requireVerifiedActiveUser(request);
+    if (request.data?.principalId !== undefined && request.data.principalId !== auth.uid) {
+      throw new HttpsError("permission-denied", "The account changed before the photo operation.");
+    }
     const input = parseCreateOrganizationPhotoRequest(request.data);
     const organizationReference = db.collection("organizations").doc(input.organizationId);
     const photos = organizationReference.collection("photos");
     const photoReference = photos.doc(input.photoId);
 
     return db.runTransaction(async (transaction) => {
-      const [organizationSnapshot, photoSnapshot] = await transaction.getAll(
+      const [organizationSnapshot, photoSnapshot, profileSnapshot, retirement] = await transaction.getAll(
         organizationReference,
-        photoReference
+        photoReference,
+        db.doc(`users/${auth.uid}`),
+        photoRetirement(`organizations/${input.organizationId}/photos/${input.photoId}.jpg`)
       );
       if (!organizationSnapshot.exists) {
         throw new HttpsError("not-found", "Organization does not exist.");
       }
 
+      if (!profileSnapshot.exists) throw new HttpsError("permission-denied", "User profile no longer exists.");
+      const permissions = userPermissionSnapshotFromData(auth.uid, profileSnapshot.data());
+      assertActiveUser(permissions);
       assertCanManageOrganizationPhotos(
-        auth.permissions,
+        permissions,
         organizationSnapshot.data(),
         auth.uid
       );
@@ -74,6 +86,7 @@ export const createOrganizationPhotoMetadata = onCall(
         );
       }
 
+      if (retirement.exists) throw accessFailure("failed-precondition", "operation_expired", "This abandoned upload has expired. Select the photo again.");
       if (currentCount >= maximumOrganizationPhotoCount) {
         throw new HttpsError(
           "resource-exhausted",
@@ -104,29 +117,36 @@ export const createOrganizationPhotoMetadata = onCall(
         createdAt: now.toDate().toISOString(),
       };
     });
-  }
+  })
 );
 
 export const deleteOrganizationPhotoMetadata = onCall(
   callableOptions,
-  async (request): Promise<OrganizationPhotoMutationResponse> => {
+  request => withAccessDiagnostics(request, "deleteOrganizationPhotoMetadata", async (): Promise<OrganizationPhotoMutationResponse> => {
     const auth = await requireVerifiedActiveUser(request);
+    if (request.data?.principalId !== undefined && request.data.principalId !== auth.uid) {
+      throw new HttpsError("permission-denied", "The account changed before the photo operation.");
+    }
     const input = parseDeleteOrganizationPhotoRequest(request.data);
     const organizationReference = db.collection("organizations").doc(input.organizationId);
     const photos = organizationReference.collection("photos");
     const photoReference = photos.doc(input.photoId);
 
     return db.runTransaction(async (transaction) => {
-      const [organizationSnapshot, photoSnapshot] = await transaction.getAll(
+      const [organizationSnapshot, photoSnapshot, profileSnapshot] = await transaction.getAll(
         organizationReference,
-        photoReference
+        photoReference,
+        db.doc(`users/${auth.uid}`)
       );
       if (!organizationSnapshot.exists) {
         throw new HttpsError("not-found", "Organization does not exist.");
       }
 
+      if (!profileSnapshot.exists) throw new HttpsError("permission-denied", "User profile no longer exists.");
+      const permissions = userPermissionSnapshotFromData(auth.uid, profileSnapshot.data());
+      assertActiveUser(permissions);
       assertCanManageOrganizationPhotos(
-        auth.permissions,
+        permissions,
         organizationSnapshot.data(),
         auth.uid
       );
@@ -145,6 +165,8 @@ export const deleteOrganizationPhotoMetadata = onCall(
       }
 
       const nextCount = Math.max(0, currentCount - 1);
+      const path = typeof photoSnapshot.get("imageURL") === "string" ? storageObjectPathFromDownloadURL(photoSnapshot.get("imageURL")) : undefined;
+      if (path) queuePhotoGarbage(transaction, input.organizationId, input.photoId, path);
       transaction.delete(photoReference);
       transaction.update(organizationReference, {photoCount: nextCount});
 
@@ -155,7 +177,7 @@ export const deleteOrganizationPhotoMetadata = onCall(
         didChange: true,
       };
     });
-  }
+  })
 );
 
 export function parseCreateOrganizationPhotoRequest(

@@ -17,6 +17,7 @@ import {
   normalizeAndValidateManifestItem,
   normalizePublicationTarget,
   validateOrganization,
+  validatePublicationOrganization,
 } from "./verifiedContentPublisherCore.mjs";
 import {
   CANONICAL_COVER_CONTENT_TYPE,
@@ -165,7 +166,59 @@ describe("verified content publisher core", () => {
     );
   });
 
+  test("explicit regional UAC publishers can publish nationwide news without changing the audience", () => {
+    const item = normalizeAndValidateManifestItem(newsManifest(), "austria");
+    for (const state of ["wien", "niederoesterreich", "oberoesterreich", "salzburg", "tirol", "vorarlberg", "steiermark", "kaernten", "burgenland"]) {
+      const id = `uac-${state}-info`;
+      const publisher = {...organization, id, federalState: state};
+      assert.equal(validatePublicationOrganization(publisher, id, "austria", [item], state), publisher);
+      const document = buildContentDocument(item, publisher, id, "https://example.at/news.png");
+      assert.equal(document.regionScope, "austria");
+      assert.equal("federalState" in document, false);
+      assert.equal(document.organizationId, id);
+      assert.equal(publisher.regionScope, "federalState");
+      assert.equal(publisher.federalState, state);
+      assert.throws(() => validatePublicationOrganization(publisher, id, "austria", [item]), /must use regionScope/);
+      assert.throws(() => validatePublicationOrganization({...publisher, ownerId: "other"}, id, "austria", [item], state), /expected UAC owner/);
+      assert.throws(() => validatePublicationOrganization({...publisher, moderationStatus: "pendingReview"}, id, "austria", [item], state), /not approved/);
+      assert.throws(() => validatePublicationOrganization({...publisher, logoURL: null}, id, "austria", [item], state), /organization.logoURL/);
+    }
+  });
+
+  test("regional publisher selection does not loosen regional, event, or publisher identity checks", () => {
+    const id = "uac-tirol-info";
+    const publisher = {...organization, id, federalState: "tirol"};
+    const news = normalizeAndValidateManifestItem(newsManifest(), "austria");
+    for (const items of [[], [{kind: "event"}], [news, {kind: "event"}]]) {
+      assert.throws(() => validatePublicationOrganization(publisher, id, "austria", items, "tirol"), /only for Austria-wide news/);
+    }
+    assert.throws(() => validatePublicationOrganization(publisher, id, "tirol", [news], "tirol"), /only for Austria-wide news/);
+    assert.throws(() => validatePublicationOrganization(publisher, id, "austria", [news], "wien"), /selected regional publisher/);
+    assert.throws(() => validatePublicationOrganization({...publisher, federalState: "wien"}, id, "austria", [news], "tirol"), /does not belong/);
+    assert.throws(() => validatePublicationOrganization(publisher, id, "austria", [news], "unknown"), /Unsupported federal state/);
+    const opts = parseArguments(["manifest.json", "--organization-id", id, "--region-scope", "austria", "--publisher-federal-state", "tirol", "--dry-run"]);
+    assert.equal(opts.publisherFederalState, "tirol");
+    assert.deepEqual(resolvePublicationTarget(opts), {regionScope: "austria", federalState: undefined});
+  });
+
+  test("live news rejects empty Ukrainian or German descriptions", () => {
+    for (const field of ["body", "deBody"]) {
+      const manifest = newsManifest();
+      manifest[field] = " \n\t ";
+      assert.throws(() => normalizeAndValidateManifestItem(manifest, "wien"), /required/);
+    }
+  });
+
+  test("live news rejects descriptions consisting only of a heading or a link in either language", () => {
+    for (const [bodyField, titleField, subtitleField] of [["body", "title", "subtitle"], ["deBody", "deTitle", "deSubtitle"]]) {
+      for (const value of [newsManifest()[titleField], newsManifest()[subtitleField], "https://example.at/details", "[Details](https://example.at/details)"]) {
+        assert.throws(() => normalizeAndValidateManifestItem({...newsManifest(), [bodyField]: value}, "wien"), /full article/);
+      }
+    }
+  });
+
   test("CLI exposes explicit regional and nationwide scope contracts", () => {
+    // Scope belongs to the article; publisher region is explicitly separate.
     const legacyCountry = parseArguments([
       "manifest.json", "--organization-id", "central-uac", "--federal-state", "austria", "--dry-run",
     ]);

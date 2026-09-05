@@ -10,6 +10,12 @@ protocol LocalEventReminderServiceProtocol {
 
 struct LocalEventReminderService: LocalEventReminderServiceProtocol {
     func scheduleEventReminder(event: Event, userID: String, leadMinutes: Int) async throws {
+        try await LocalReminderSession.shared.perform(for: userID) {
+            try await scheduleReminder(event: event, userID: userID, leadMinutes: leadMinutes)
+        }
+    }
+
+    private func scheduleReminder(event: Event, userID: String, leadMinutes: Int) async throws {
         guard let occurrence = event.nextOccurrence() else { return }
         let reminderDate = occurrence.startDate.addingTimeInterval(TimeInterval(-max(0, leadMinutes) * 60))
         guard reminderDate > Date() else { return }
@@ -34,6 +40,12 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
     }
 
     func scheduleTestNotification(userID: String) async throws {
+        try await LocalReminderSession.shared.perform(for: userID) {
+            try await scheduleTest(userID: userID)
+        }
+    }
+
+    private func scheduleTest(userID: String) async throws {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard settings.authorizationStatus.canShowLocalNotifications else {
             throw AppError.permissionDenied
@@ -64,9 +76,11 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
     }
 
     func cancelEventReminder(eventID: String, userID: String) {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(
-            withIdentifiers: [notificationIdentifier(eventID: eventID, userID: userID)]
-        )
+        LocalReminderSession.shared.enqueue(for: userID) {
+            let identifiers = [notificationIdentifier(eventID: eventID, userID: userID)]
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: identifiers)
+        }
     }
 
     func reconcileEventReminders(
@@ -74,6 +88,12 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
         userID: String,
         preferences: NotificationPreferences
     ) async throws {
+        try await LocalReminderSession.shared.perform(for: userID) {
+            try await reconcileCurrentSession(events: events, userID: userID, preferences: preferences)
+        }
+    }
+
+    private func reconcileCurrentSession(events: [Event], userID: String, preferences: NotificationPreferences) async throws {
         let pendingRequests = await UNUserNotificationCenter.current().pendingNotificationRequests()
         let userSuffix = ":\(userID)"
         let reminderIdentifiers = pendingRequests
@@ -83,9 +103,22 @@ struct LocalEventReminderService: LocalEventReminderServiceProtocol {
             withIdentifiers: reminderIdentifiers
         )
 
+        let activeIDs = Set(events.filter { !$0.isCancelled && $0.moderationStatus != .archived }
+            .map { notificationIdentifier(eventID: $0.id, userID: userID) })
+        let delivered = await UNUserNotificationCenter.current().deliveredNotifications().map { $0.request.identifier }
+        let obsolete = delivered.filter { id in
+            id.hasPrefix("eventReminder:") && id.hasSuffix(userSuffix)
+                && (!preferences.notificationsEnabled || !preferences.eventRemindersEnabled || !activeIDs.contains(id))
+        }
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: obsolete)
+        if !preferences.notificationsEnabled {
+            let test = [testNotificationIdentifier(userID: userID)]
+            UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: test)
+            UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: test)
+        }
         guard preferences.notificationsEnabled, preferences.eventRemindersEnabled else { return }
         for event in events where event.nextOccurrence() != nil {
-            try await scheduleEventReminder(
+            try await scheduleReminder(
                 event: event,
                 userID: userID,
                 leadMinutes: preferences.reminderLeadMinutes

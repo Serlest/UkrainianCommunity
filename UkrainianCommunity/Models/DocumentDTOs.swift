@@ -264,6 +264,8 @@ struct OrganizationDTO: Codable, Identifiable {
     let likeState: String
     let isSubscribed: Bool
     let isBookmarked: Bool
+    var accessRevision: String? = nil
+
 }
 
 extension AppUser {
@@ -724,6 +726,7 @@ extension Organization {
             isSubscribed: dto.isSubscribed,
             isBookmarked: dto.isBookmarked
         )
+        self.accessRevision = dto.accessRevision
     }
 
     var dto: OrganizationDTO {
@@ -786,7 +789,8 @@ extension Organization {
             likeCount: likeCount,
             likeState: likeState.rawValue,
             isSubscribed: isSubscribed,
-            isBookmarked: isBookmarked
+            isBookmarked: isBookmarked,
+            accessRevision: accessRevision
         )
     }
 }

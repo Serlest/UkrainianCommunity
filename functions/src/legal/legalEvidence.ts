@@ -1,7 +1,7 @@
 import {FieldPath, Timestamp, type DocumentData, type DocumentSnapshot, type QueryDocumentSnapshot} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireVerifiedActiveUser} from "../auth/context";
+import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
 import {db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
 
@@ -44,6 +44,8 @@ interface LegalEvidenceAccount {
 interface LegalEvidenceAccountCursor {
   userId: string;
   createdAt: string;
+  seconds?: number;
+  nanoseconds?: number;
 }
 
 interface ListLegalEvidenceAccountsResponse {
@@ -114,6 +116,16 @@ export function parseLegalEvidenceAccountRequest(data: unknown): {
   if (!createdAt || Number.isNaN(Date.parse(createdAt))) {
     throw new HttpsError("invalid-argument", "cursor.createdAt is invalid.");
   }
+  const {seconds, nanoseconds} = cursorValue;
+  if (seconds !== undefined || nanoseconds !== undefined) {
+    if (!Number.isSafeInteger(seconds) || !Number.isInteger(nanoseconds)
+      || (nanoseconds as number) < 0 || (nanoseconds as number) >= 1_000_000_000) {
+      throw new HttpsError("invalid-argument", "Invalid precise cursor.");
+    }
+    try { new Timestamp(seconds as number, nanoseconds as number); }
+    catch { throw new HttpsError("invalid-argument", "Invalid precise cursor."); }
+    return {query: null, limit, cursor: {userId, createdAt, seconds: seconds as number, nanoseconds: nanoseconds as number}};
+  }
   return {query: null, limit, cursor: {userId, createdAt}};
 }
 
@@ -151,7 +163,19 @@ export const listLegalEvidenceAccounts = onCall(
       .orderBy(FieldPath.documentId(), "desc")
       .limit(input.limit + 1);
     if (input.cursor) {
-      query = query.startAfter(Timestamp.fromDate(new Date(input.cursor.createdAt)), input.cursor.userId);
+      let timestamp: Timestamp;
+      if (input.cursor.seconds !== undefined && input.cursor.nanoseconds !== undefined) {
+        timestamp = new Timestamp(input.cursor.seconds, input.cursor.nanoseconds);
+      } else {
+        // Recover the exact timestamp for old clients, which only echo ISO ms.
+        const anchor = await db.collection("users").doc(input.cursor.userId).get();
+        const original = anchor.get("createdAt");
+        if (!(original instanceof Timestamp)) {
+          throw new HttpsError("failed-precondition", "The account list changed. Reload the first page.");
+        }
+        timestamp = original;
+      }
+      query = query.startAfter(timestamp, input.cursor.userId);
     }
     const snapshot = await query.get();
     const page = snapshot.docs.slice(0, input.limit);
@@ -162,6 +186,8 @@ export const listLegalEvidenceAccounts = onCall(
       nextCursor: snapshot.size > input.limit && last && lastCreatedAt ? {
         userId: last.id,
         createdAt: lastCreatedAt,
+        seconds: (last.get("createdAt") as Timestamp).seconds,
+        nanoseconds: (last.get("createdAt") as Timestamp).nanoseconds,
       } : null,
       totalMatches: null,
     };
@@ -206,6 +232,57 @@ export const getLegalEvidenceForUser = onCall(
     };
   }
 );
+
+interface EvidencePageCursor { userId: string; source: number; after: string | null }
+
+export const getLegalEvidencePage = onCall(callableOptions, async (request) => {
+  const auth = await requireVerifiedActiveUser(request);
+  assertOwner(auth.permissions);
+  const userId = parseLegalEvidenceUserRequest(request.data);
+  const value = request.data as Record<string, unknown>;
+  const limit = value.limit === undefined ? 200 : value.limit;
+  if (!Number.isInteger(limit) || (limit as number) < 1 || (limit as number) > 200) {
+    throw new HttpsError("invalid-argument", "Invalid page limit.");
+  }
+  let cursor: EvidencePageCursor = {userId, source: 0, after: null};
+  if (value.cursor !== undefined && value.cursor !== null) {
+    try {
+      if (typeof value.cursor !== "string" || value.cursor.length > 2048) throw new Error();
+      const decoded = JSON.parse(Buffer.from(value.cursor, "base64url").toString("utf8"));
+      if (decoded.userId !== userId || ![1, 2].includes(decoded.source)
+        || !(decoded.after === null || (typeof decoded.after === "string" && decoded.after.length > 0
+          && decoded.after.length <= 512 && !decoded.after.includes("/")))) throw new Error();
+      cursor = decoded;
+    } catch { throw new HttpsError("invalid-argument", "Invalid evidence cursor."); }
+  }
+  const user = await db.collection("users").doc(userId).get();
+  let events: LegalEvidenceEvent[] = [];
+  let next: EvidencePageCursor | null = null;
+  if (cursor.source === 0) {
+    events = user.exists ? registrationEvents(user) : [];
+    next = {userId, source: 1, after: null};
+  } else {
+    const collection = cursor.source === 1 ? "legalAcceptanceLogs" : "analyticsConsentReceipts";
+    let query = db.collection(collection).where("userId", "==", userId)
+      .orderBy(FieldPath.documentId()).limit((limit as number) + 1);
+    if (cursor.after) query = query.startAfter(cursor.after);
+    const snapshot = await query.get();
+    const page = snapshot.docs.slice(0, limit as number);
+    events = page.flatMap(cursor.source === 1 ? legalAcceptanceEvents : analyticsConsentEvents);
+    if (snapshot.size > (limit as number)) next = {userId, source: cursor.source, after: page.at(-1)!.id};
+    else if (cursor.source === 1) next = {userId, source: 2, after: null};
+  }
+  const identity = user.data() ?? {};
+  return {
+    account: {userId, displayName: nullableString(identity.displayName) ?? nullableString(identity.fullName),
+      email: nullableString(identity.email), createdAt: timestampISO(identity.createdAt)},
+    events: events.map(event => ({...event,
+      displayName: nullableString(identity.displayName) ?? nullableString(identity.fullName),
+      email: nullableString(identity.email)})),
+    nextCursor: next ? Buffer.from(JSON.stringify(next)).toString("base64url") : null,
+    generatedAt: new Date().toISOString(),
+  };
+});
 
 export const listLegalEvidence = onCall(
   callableOptions,

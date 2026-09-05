@@ -40,6 +40,7 @@ final class AuthState: ObservableObject {
     private let userProfileLoader: UserProfileLoader
     let appLock: AppLockService
     private var userLoadGeneration = 0
+    private var accessObservation: AnyCancellable?
 
     init(
         appLock: AppLockService? = nil,
@@ -49,6 +50,9 @@ final class AuthState: ObservableObject {
     ) {
         self.appLock = appLock ?? AppLockService()
         self.userProfileLoader = userProfileLoader
+        accessObservation = OrganizationAccessStore.shared.objectWillChange.sink { [weak self] in
+            self?.objectWillChange.send()
+        }
     }
 
     var isGuest: Bool {
@@ -98,6 +102,8 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func setGuestSession() {
+        OrganizationAccessStore.shared.transition(to: nil)
+        LocalReminderSession.shared.transition(to: nil)
         appLock.updateSession(userID: nil)
         invalidateUserLoad()
         user = nil
@@ -109,6 +115,8 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func setAuthenticatedSession(user: AppUser, passwordAuthenticated: Bool = false) {
+        OrganizationAccessStore.shared.transition(to: user.id)
+        LocalReminderSession.shared.transition(to: user.id)
         appLock.updateSession(userID: user.id, passwordAuthenticated: passwordAuthenticated)
         invalidateUserLoad()
         self.user = user
@@ -133,6 +141,8 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func setVerificationPendingSession(userID: String, email: String?) {
+        OrganizationAccessStore.shared.transition(to: userID)
+        LocalReminderSession.shared.transition(to: userID)
         appLock.updateSession(userID: userID)
         invalidateUserLoad()
         user = nil
@@ -148,6 +158,8 @@ final class AuthState: ObservableObject {
         email: String?,
         errorMessage: String
     ) {
+        OrganizationAccessStore.shared.transition(to: userID)
+        LocalReminderSession.shared.transition(to: userID)
         appLock.updateSession(userID: userID)
         invalidateUserLoad()
         user = nil

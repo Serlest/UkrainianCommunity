@@ -5,6 +5,7 @@ export const deletedUserDisplayName = "Видалений користувач";
 
 export type AccountDeletionPatch =
   | "auditActor"
+  | "cancellationActor"
   | "auditTarget"
   | "commentAuthor"
   | "contentAuthor"
@@ -42,6 +43,14 @@ export interface AccountDeletionReferencePolicy {
  * so the tested policy cannot drift away from the deletion implementation.
  */
 export const accountDeletionReferencePolicies = [
+  {name: "photo operation actors", scope: "collection", collection: "organizationPhotoOperations",
+    field: "actorUserId", operator: "==", action: "anonymize", patch: "cancellationActor"},
+  {name: "organization mutation receipts", scope: "collection", collection: "organizationMutationReceipts",
+    field: "userId", operator: "==", action: "delete"},
+  {name: "cancellation actors", scope: "collection", collection: "eventCancellationOperations",
+    field: "actorUserId", operator: "==", action: "anonymize", patch: "cancellationActor"},
+  {name: "cancellation recipients", scope: "collection", collection: "eventCancellationOperations",
+    field: "recipients", operator: "array-contains", action: "removeArrayValue"},
   {
     name: "event authors",
     scope: "collection",

@@ -1,0 +1,4471 @@
+{
+  "news/synthetic-news-01": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispielnachricht 01",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 01. Keine echten Angebote oder Termine. Lange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\n",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "Suchziel"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 01",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 01. Keine echten Angebote oder Termine. Lange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\n"
+      },
+      "uk": {
+        "title": "Тестова новина 01",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 01. Тут немає справжніх пропозицій чи зустрічей. Довгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\n"
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-01": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispieltreffen 01",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 01. Keine echten Angebote oder Termine. Lange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\n",
+    "startDate": {
+      "$date": "2030-09-01T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-01T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-01",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 01",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 01. Keine echten Angebote oder Termine. Lange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\n"
+      },
+      "uk": {
+        "title": "Тестова зустріч 01",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 01. Тут немає справжніх пропозицій чи зустрічей. Довгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\n"
+      }
+    }
+  },
+  "organizations/synthetic-org-01": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "name": "Beispielverein 01",
+    "description": "Dies ist der frei erfundene Beispieltext 01. Keine echten Angebote oder Termine. Lange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\n",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 01. Keine echten Angebote oder Termine. Lange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\n",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "community",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 01",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 01. Keine echten Angebote oder Termine. Lange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\nLange Texte bleiben vollständig lesbar, auch bei großer Schrift.\n\n"
+      },
+      "uk": {
+        "name": "Тестова організація 01",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 01. Тут немає справжніх пропозицій чи зустрічей. Довгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\nДовгий текст залишається доступним навіть із великим шрифтом.\n\n",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-01/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-02": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispielnachricht 02",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 02. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 02",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 02. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 02",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 02. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-02": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispieltreffen 02",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 02. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-02T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-02T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-02",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": true,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 10,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 02",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 02. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 02",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 02. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-02": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "name": "Beispielverein 02",
+    "description": "Dies ist der frei erfundene Beispieltext 02. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 02. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "business",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 02",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 02. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 02",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 02. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-02/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-03": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispielnachricht 03",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 03. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 03",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 03. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 03",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 03. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-03": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispieltreffen 03",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 03. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-03T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-03T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-03",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "cancelled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "cancelled",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 03",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 03. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 03",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 03. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-03": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "name": "Beispielverein 03",
+    "description": "Dies ist der frei erfundene Beispieltext 03. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 03. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "restaurant",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 03",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 03. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 03",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 03. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-03/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-04": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispielnachricht 04",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 04. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 04",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 04. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 04",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 04. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-04": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispieltreffen 04",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 04. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-04T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-04T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-04",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "externalTickets",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 04",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 04. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 04",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 04. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-04": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "name": "Beispielverein 04",
+    "description": "Dies ist der frei erfundene Beispieltext 04. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 04. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "specialist",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 04",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 04. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 04",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 04. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-04/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-05": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispielnachricht 05",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 05. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "uk": {
+        "title": "Тестова новина 05",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 05. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-05": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispieltreffen 05",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 05. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-05T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-05T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-05",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 05",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 05. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 05",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 05. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-05": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "name": "Beispielverein 05",
+    "description": "Dies ist der frei erfundene Beispieltext 05. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 05. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "institution",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 05",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 05. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 05",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 05. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-05/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-06": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispielnachricht 06",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 06. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 06",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 06. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 06",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 06. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-06": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispieltreffen 06",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 06. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-06T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-06T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-06",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 06",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 06. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 06",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 06. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-06": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "name": "Beispielverein 06",
+    "description": "Dies ist der frei erfundene Beispieltext 06. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 06. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "mediaProject",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 06",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 06. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 06",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 06. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-06/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-07": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispielnachricht 07",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 07. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 07",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 07. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 07",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 07. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-07": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispieltreffen 07",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 07. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-07T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-07T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-07",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 07",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 07. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 07",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 07. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-07": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "name": "Beispielverein 07",
+    "description": "Dies ist der frei erfundene Beispieltext 07. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 07. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "community",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 07",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 07. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 07",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 07. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-07/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-08": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispielnachricht 08",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 08. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 08",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 08. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 08",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 08. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-08": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispieltreffen 08",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 08. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-08T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-08T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-08",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 08",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 08. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 08",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 08. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-08": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "name": "Beispielverein 08",
+    "description": "Dies ist der frei erfundene Beispieltext 08. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 08. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "business",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 08",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 08. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 08",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 08. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-08/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-09": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispielnachricht 09",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 09. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 09",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 09. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 09",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 09. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-09": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispieltreffen 09",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 09. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-09T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-09T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-09",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 09",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 09. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 09",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 09. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-09": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "name": "Beispielverein 09",
+    "description": "Dies ist der frei erfundene Beispieltext 09. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 09. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "restaurant",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 09",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 09. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 09",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 09. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-09/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-10": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispielnachricht 10",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 10. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 10",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 10. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 10",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 10. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-10": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispieltreffen 10",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 10. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-10T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-10T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-10",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 10",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 10. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 10",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 10. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-10": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "name": "Beispielverein 10",
+    "description": "Dies ist der frei erfundene Beispieltext 10. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 10. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "specialist",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 10",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 10. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 10",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 10. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-10/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-11": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispielnachricht 11",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 11. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 11",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 11. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 11",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 11. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-11": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispieltreffen 11",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 11. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-11T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-11T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-11",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 11",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 11. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 11",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 11. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-11": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "name": "Beispielverein 11",
+    "description": "Dies ist der frei erfundene Beispieltext 11. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 11. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "institution",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 11",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 11. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 11",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 11. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-11/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-12": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispielnachricht 12",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 12. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 12",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 12. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 12",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 12. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-12": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispieltreffen 12",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 12. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-12T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-12T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-12",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 12",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 12. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 12",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 12. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-12": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "name": "Beispielverein 12",
+    "description": "Dies ist der frei erfundene Beispieltext 12. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 12. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "mediaProject",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 12",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 12. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 12",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 12. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-12/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-13": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispielnachricht 13",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 13. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 13",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 13. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 13",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 13. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-13": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispieltreffen 13",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 13. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-13T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-13T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-13",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 13",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 13. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 13",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 13. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-13": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "name": "Beispielverein 13",
+    "description": "Dies ist der frei erfundene Beispieltext 13. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 13. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "community",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 13",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 13. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 13",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 13. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-13/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-14": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispielnachricht 14",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 14. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 14",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 14. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 14",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 14. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-14": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispieltreffen 14",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 14. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2030-09-14T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2030-09-14T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-14",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 14",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 14. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 14",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 14. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-14": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "name": "Beispielverein 14",
+    "description": "Dies ist der frei erfundene Beispieltext 14. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 14. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "business",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 14",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 14. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 14",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 14. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-14/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-15": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispielnachricht 15",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 15. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 15",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 15. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 15",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 15. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-15": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispieltreffen 15",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 15. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2026-01-01T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2026-01-01T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-15",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 15",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 15. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 15",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 15. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-15": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "name": "Beispielverein 15",
+    "description": "Dies ist der frei erfundene Beispieltext 15. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 15. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "restaurant",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 15",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 15. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 15",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 15. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-15/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-16": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispielnachricht 16",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 16. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 16",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 16. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 16",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 16. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-16": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "title": "Beispieltreffen 16",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 16. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2026-01-01T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2026-01-01T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-16",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 16",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 16. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 16",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 16. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-16": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "wien",
+    "name": "Beispielverein 16",
+    "description": "Dies ist der frei erfundene Beispieltext 16. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 16. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "specialist",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 16",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 16. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 16",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 16. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-16/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-17": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispielnachricht 17",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 17. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "communityAndIntegration",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 17",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 17. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 17",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 17. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-17": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Beispieltreffen 17",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 17. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2026-01-01T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2026-01-01T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-17",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "meetups",
+    "audience": "everyone",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "free",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 17",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 17. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 17",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 17. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-17": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "name": "Beispielverein 17",
+    "description": "Dies ist der frei erfundene Beispieltext 17. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 17. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "institution",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 17",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 17. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 17",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 17. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-17/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "news/synthetic-news-18": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispielnachricht 18",
+    "summary": "Gemeinschaft vor Ort",
+    "body": "Dies ist der frei erfundene Beispieltext 18. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "category": "education",
+    "additionalCategories": [
+      "culture"
+    ],
+    "tags": [
+      "demo",
+      "lokal"
+    ],
+    "localizations": {
+      "de": {
+        "title": "Beispielnachricht 18",
+        "subtitle": "Gemeinschaft vor Ort",
+        "body": "Dies ist der frei erfundene Beispieltext 18. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова новина 18",
+        "subtitle": "Спільнота поруч",
+        "body": "Це повністю вигаданий приклад 18. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    },
+    "sourceName": "Lokale Testredaktion",
+    "sourceURL": "https://example.invalid/source",
+    "externalAction": {
+      "title": "Demo",
+      "url": "https://example.invalid/demo"
+    }
+  },
+  "events/synthetic-event-18": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "title": "Beispieltreffen 18",
+    "summary": "Erfundener Termin",
+    "details": "Dies ist der frei erfundene Beispieltext 18. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "startDate": {
+      "$date": "2026-01-01T10:00:00Z"
+    },
+    "endDate": {
+      "$date": "2026-01-01T12:00:00Z"
+    },
+    "occurrences": [
+      {
+        "id": "occurrence-18",
+        "startDate": {
+          "$date": "2030-10-27T00:30:00Z"
+        },
+        "endDate": {
+          "$date": "2030-10-27T02:30:00Z"
+        },
+        "isAllDay": false,
+        "status": "scheduled"
+      }
+    ],
+    "category": "education",
+    "audience": "families",
+    "cancellationState": "active",
+    "participationMode": "inAppRegistration",
+    "capacity": 10,
+    "registeredCount": 2,
+    "pricing": {
+      "kind": "range",
+      "amount": 5,
+      "maximumAmount": 12,
+      "currencyCode": "EUR"
+    },
+    "venue": "Erfundener Begegnungsraum",
+    "address": "Testadresse, kein Veranstaltungsort",
+    "organizerName": "Beispielverein",
+    "contactEmail": "demo@example.invalid",
+    "contactPhone": "+430000000",
+    "externalAction": {
+      "title": "Demo Tickets",
+      "url": "https://example.invalid/tickets"
+    },
+    "localizations": {
+      "de": {
+        "title": "Beispieltreffen 18",
+        "summary": "Erfundener Termin",
+        "details": "Dies ist der frei erfundene Beispieltext 18. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "title": "Тестова зустріч 18",
+        "summary": "Вигадана подія",
+        "details": "Це повністю вигаданий приклад 18. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки."
+      }
+    }
+  },
+  "organizations/synthetic-org-18": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "federalState",
+    "city": "Innsbruck",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "federalState": "tirol",
+    "name": "Beispielverein 18",
+    "description": "Dies ist der frei erfundene Beispieltext 18. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "shortDescription": "Erfundene Organisation",
+    "fullDescription": "Dies ist der frei erfundene Beispieltext 18. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung.",
+    "logoURL": "https://example.invalid/media/community.png",
+    "coverURL": "https://example.invalid/media/community.png",
+    "ownerId": "synthetic-public-owner",
+    "adminIds": [],
+    "moderatorIds": [
+      "synthetic-public-helper"
+    ],
+    "subscriberCount": 7,
+    "missionStatement": "Gemeinsam lernen und helfen.",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "foundedYear": 2020,
+    "website": "https://example.invalid/community",
+    "contactEmail": "demo@example.invalid",
+    "phone": "+430000000",
+    "address": "Testadresse",
+    "donationURL": "https://example.invalid/support",
+    "telegramURL": "https://example.invalid/telegram",
+    "directoryProfile": {
+      "profileKind": "mediaProject",
+      "serviceModes": [
+        "online",
+        "onSite"
+      ],
+      "serviceArea": "Österreich",
+      "regularHours": {
+        "monday": "09:00-17:00",
+        "sunday": "closed"
+      },
+      "specialHoursNote": "Keine echten Öffnungszeiten",
+      "services": [
+        "Beratung",
+        "Sprachcafé"
+      ],
+      "bookingURL": "https://example.invalid/booking",
+      "currentOfferTitle": "Lokales Testangebot",
+      "currentOfferDetails": "Nur eine Demonstration",
+      "currentOfferURL": "https://example.invalid/offer",
+      "currentOfferValidUntil": {
+        "$date": "2031-01-01T00:00:00Z"
+      }
+    },
+    "localizations": {
+      "de": {
+        "name": "Beispielverein 18",
+        "shortDescription": "Erfundene Organisation",
+        "fullDescription": "Dies ist der frei erfundene Beispieltext 18. Keine echten Angebote oder Termine. Informationen für die lokale Prüfung."
+      },
+      "uk": {
+        "name": "Тестова організація 18",
+        "shortDescription": "Вигадана організація",
+        "fullDescription": "Це повністю вигаданий приклад 18. Тут немає справжніх пропозицій чи зустрічей. Матеріал для локальної перевірки.",
+        "missionStatement": "Навчаємось та допомагаємо разом.",
+        "services": [
+          "Консультації",
+          "Мовна зустріч"
+        ],
+        "specialHoursNote": "Години роботи вигадані",
+        "currentOfferTitle": "Тестова пропозиція",
+        "currentOfferDetails": "Лише демонстрація"
+      }
+    }
+  },
+  "organizations/synthetic-org-18/photos/synthetic-photo": {
+    "imageURL": "https://example.invalid/media/community.png",
+    "uploadedBy": "synthetic-public-owner",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "caption": "Demo · Приклад"
+  },
+  "publicProfiles/synthetic-public-owner": {
+    "displayName": "Demo · Олена",
+    "city": "Wien",
+    "avatarURL": "https://example.invalid/media/community.png",
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    }
+  },
+  "publicProfiles/synthetic-public-helper": {
+    "displayName": "Demo · Андрій",
+    "city": "Wien",
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    }
+  },
+  "featuredBanners/synthetic-banner-welcome": {
+    "id": "synthetic-banner-welcome",
+    "createdBy": "synthetic-owner",
+    "title": "Demo welcome",
+    "subtitle": "Lokales Beispiel",
+    "localizations": {
+      "de": {
+        "title": "Gemeinsam in Österreich",
+        "subtitle": "Entdecke die lokalen Beispiele"
+      },
+      "uk": {
+        "title": "Разом в Австрії",
+        "subtitle": "Перегляньте локальні приклади"
+      }
+    },
+    "imageURL": "https://example.invalid/media/community.png",
+    "isActive": true,
+    "actionType": "news",
+    "regionScope": "allAustria",
+    "visibleSections": [
+      "home",
+      "events",
+      "organizations"
+    ],
+    "displayDurationSeconds": 6,
+    "priority": 30,
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "actionTargetID": "synthetic-news-01"
+  },
+  "featuredBanners/synthetic-banner-event": {
+    "id": "synthetic-banner-event",
+    "createdBy": "synthetic-owner",
+    "title": "Demo event",
+    "subtitle": "Lokales Beispiel",
+    "localizations": {
+      "de": {
+        "title": "Gemeinsam in Österreich",
+        "subtitle": "Entdecke die lokalen Beispiele"
+      },
+      "uk": {
+        "title": "Разом в Австрії",
+        "subtitle": "Перегляньте локальні приклади"
+      }
+    },
+    "imageURL": "https://example.invalid/media/community.png",
+    "isActive": true,
+    "actionType": "event",
+    "regionScope": "allAustria",
+    "visibleSections": [
+      "home",
+      "events",
+      "organizations"
+    ],
+    "displayDurationSeconds": 6,
+    "priority": 20,
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "actionTargetID": "synthetic-event-01"
+  },
+  "featuredBanners/synthetic-banner-community": {
+    "id": "synthetic-banner-community",
+    "createdBy": "synthetic-owner",
+    "title": "Demo community",
+    "subtitle": "Lokales Beispiel",
+    "localizations": {
+      "de": {
+        "title": "Gemeinsam in Österreich",
+        "subtitle": "Entdecke die lokalen Beispiele"
+      },
+      "uk": {
+        "title": "Разом в Австрії",
+        "subtitle": "Перегляньте локальні приклади"
+      }
+    },
+    "imageURL": "https://example.invalid/media/community.png",
+    "isActive": true,
+    "actionType": "organization",
+    "regionScope": "allAustria",
+    "visibleSections": [
+      "home",
+      "events",
+      "organizations"
+    ],
+    "displayDurationSeconds": 6,
+    "priority": 10,
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "actionTargetID": "synthetic-org-01"
+  },
+  "featuredBanners/synthetic-banner-expired": {
+    "id": "synthetic-banner-expired",
+    "createdBy": "synthetic-owner",
+    "title": "Demo expired",
+    "subtitle": "Lokales Beispiel",
+    "localizations": {
+      "de": {
+        "title": "Gemeinsam in Österreich",
+        "subtitle": "Entdecke die lokalen Beispiele"
+      },
+      "uk": {
+        "title": "Разом в Австрії",
+        "subtitle": "Перегляньте локальні приклади"
+      }
+    },
+    "imageURL": "https://example.invalid/media/community.png",
+    "isActive": true,
+    "actionType": "none",
+    "regionScope": "allAustria",
+    "visibleSections": [
+      "home",
+      "events",
+      "organizations"
+    ],
+    "displayDurationSeconds": 6,
+    "priority": 0,
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "endsAt": {
+      "$date": "2020-01-01T00:00:00Z"
+    }
+  },
+  "featuredBanners/synthetic-banner-future": {
+    "id": "synthetic-banner-future",
+    "createdBy": "synthetic-owner",
+    "title": "Demo future",
+    "subtitle": "Lokales Beispiel",
+    "localizations": {
+      "de": {
+        "title": "Gemeinsam in Österreich",
+        "subtitle": "Entdecke die lokalen Beispiele"
+      },
+      "uk": {
+        "title": "Разом в Австрії",
+        "subtitle": "Перегляньте локальні приклади"
+      }
+    },
+    "imageURL": "https://example.invalid/media/community.png",
+    "isActive": true,
+    "actionType": "none",
+    "regionScope": "allAustria",
+    "visibleSections": [
+      "home",
+      "events",
+      "organizations"
+    ],
+    "displayDurationSeconds": 6,
+    "priority": 0,
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "startsAt": {
+      "$date": "2099-01-01T00:00:00Z"
+    }
+  },
+  "featuredBanners/synthetic-banner-legacy": {
+    "id": "synthetic-banner-legacy",
+    "createdBy": "synthetic-owner",
+    "title": "Demo legacy",
+    "subtitle": "Lokales Beispiel",
+    "localizations": {
+      "de": {
+        "title": "Gemeinsam in Österreich",
+        "subtitle": "Entdecke die lokalen Beispiele"
+      },
+      "uk": {
+        "title": "Разом в Австрії",
+        "subtitle": "Перегляньте локальні приклади"
+      }
+    },
+    "imageURL": "https://example.invalid/media/community.png",
+    "isActive": true,
+    "actionType": "guide",
+    "regionScope": "allAustria",
+    "visibleSections": [
+      "home",
+      "events",
+      "organizations"
+    ],
+    "displayDurationSeconds": 6,
+    "priority": 0,
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    }
+  },
+  "featuredBanners/synthetic-banner-tirol": {
+    "id": "synthetic-banner-tirol",
+    "createdBy": "synthetic-owner",
+    "title": "Demo tirol",
+    "subtitle": "Lokales Beispiel",
+    "localizations": {
+      "de": {
+        "title": "Gemeinsam in Österreich",
+        "subtitle": "Entdecke die lokalen Beispiele"
+      },
+      "uk": {
+        "title": "Разом в Австрії",
+        "subtitle": "Перегляньте локальні приклади"
+      }
+    },
+    "imageURL": "https://example.invalid/media/community.png",
+    "isActive": true,
+    "actionType": "none",
+    "regionScope": "federalState",
+    "visibleSections": [
+      "home",
+      "events",
+      "organizations"
+    ],
+    "displayDurationSeconds": 6,
+    "priority": 0,
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "federalState": "tirol"
+  },
+  "appConfig/donation": {
+    "isEnabled": true,
+    "donationURL": "https://example.invalid/donation",
+    "titleDE": "Projekt unterstützen · Demo",
+    "titleUK": "Підтримати проєкт · демо",
+    "messageDE": "Testansicht. Hier wird kein Geld gesammelt.",
+    "messageUK": "Тестовий екран. Тут не збирають кошти.",
+    "buttonTitleDE": "Demo-Link",
+    "buttonTitleUK": "Демо-посилання"
+  },
+  "news/synthetic-news-private": {
+    "moderationStatus": "pendingReview",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": "Private fixture",
+    "body": "Denied"
+  },
+  "news/synthetic-news-malformed": {
+    "moderationStatus": "approved",
+    "sourceType": "organization",
+    "createdAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "updatedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "publishedAt": {
+      "$date": "2026-09-02T10:00:00.123456Z"
+    },
+    "regionScope": "austria",
+    "city": "Wien",
+    "organizationId": "synthetic-org-01",
+    "organizationName": "Beispielverein / Вигадана спільнота",
+    "imageURL": "https://example.invalid/media/community.png",
+    "mediaMetadata": {
+      "alternativeText": "UAC · Demo",
+      "caption": "Synthetisches Motiv / Вигадана ілюстрація",
+      "credit": "UAC local test"
+    },
+    "title": 123,
+    "body": "Invalid fixture"
+  }
+}

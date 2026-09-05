@@ -1,16 +1,20 @@
 import {after, before, beforeEach, describe, test} from "node:test";
+import assert from "node:assert/strict";
 
 import {
   assertFails,
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {doc, setDoc} from "firebase/firestore";
+import {doc, getDoc, setDoc} from "firebase/firestore";
 import {
   deleteObject,
   getBytes,
+  getDownloadURL,
+  getMetadata,
   ref,
   uploadBytes,
+  updateMetadata,
 } from "firebase/storage";
 import {readFileSync} from "node:fs";
 
@@ -224,6 +228,27 @@ describe("account state enforcement", () => {
 });
 
 describe("organization media permissions", () => {
+  test("versioned photo objects stay readable but every client is denied create, overwrite and delete", async () => {
+    const path = "organizations/approved-org/photoVersions/" + "a".repeat(64) + ".jpg";
+    await testEnv.withSecurityRulesDisabled(async context => { await imageUpload(context.storage(), path); });
+    await assertSucceeds(getBytes(ref(guestStorage(), path)));
+    for (const uid of ["owner", "org-owner", "org-admin", "org-moderator", "outsider"]) {
+      await assertFails(imageUpload(storage(uid), path));
+      await assertFails(deleteObject(ref(storage(uid), path)));
+      await assertFails(imageUpload(storage(uid), path.replace("a".repeat(64), "b".repeat(64))));
+    }
+  });
+
+  test("photo operation receipts, cleanup tasks and rollout configuration are server-only", async () => {
+    for (const collection of ["organizationPhotoOperations", "organizationPhotoGarbage", "organizationPhotoRetirements", "serverConfiguration"]) {
+      await testEnv.withSecurityRulesDisabled(async context => { await setDoc(doc(context.firestore(), collection, "fixture"), {state: "pending"}); });
+      for (const uid of ["owner", "org-owner", "outsider"]) {
+        const db = testEnv.authenticatedContext(uid, {email_verified: true}).firestore();
+        await assertFails(getDoc(doc(db, collection, "fixture")));
+        await assertFails(setDoc(doc(db, collection, "fixture"), {state: "committed"}));
+      }
+    }
+  });
   test("rejects logo uploads before the organization document exists", async () => {
     await assertFails(imageUpload(
       storage("requester"),
@@ -248,6 +273,31 @@ describe("organization media permissions", () => {
       storage("org-moderator"),
       "organizations/approved-org/photos/photo-1.jpg",
     ));
+  });
+
+  test("gallery photo binary contents and metadata are immutable after creation", async () => {
+    const actor = storage("org-owner");
+    const path = "organizations/approved-org/photos/immutable-photo.jpg";
+    const photo = ref(actor, path);
+    await assertSucceeds(imageUpload(actor, path));
+    const before = await getMetadata(photo);
+    const originalUrl = await getDownloadURL(photo);
+
+    // Storage CREATE applies to binary replacement too, whereas UPDATE only changes metadata.
+    await assertFails(imageUpload(actor, path));
+    await assertFails(imageUpload(actor, path, {bytes: new Uint8Array([0xff, 0xd8, 1, 2, 0xff, 0xd9])}));
+    await assertFails(updateMetadata(photo, {customMetadata: {unapproved: "metadata-write"}}));
+
+    const after = await getMetadata(photo);
+    assert.equal(after.generation, before.generation);
+    assert.equal(after.metageneration, before.metageneration);
+    assert.equal(after.md5Hash, before.md5Hash);
+    assert.equal(after.customMetadata?.unapproved, undefined);
+    assert.equal(await getDownloadURL(photo), originalUrl);
+    assert.deepEqual(new Uint8Array(await getBytes(photo)), JPEG);
+    // The existing explicit removal operation remains permitted for the organization role.
+    await assertSucceeds(deleteObject(photo));
+    await assert.rejects(getMetadata(photo), (error) => error.code === "storage/object-not-found");
   });
 
   test("rejects outsiders and retired draft upload paths", async () => {

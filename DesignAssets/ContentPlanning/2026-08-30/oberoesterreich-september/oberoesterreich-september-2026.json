@@ -1,0 +1,1759 @@
+[
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:musiktage-mondsee:https://www.musiktage-mondsee.at/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/01-musiktage-mondsee.png",
+    "imageAlternativeText": "Камерна концертна сцена з роялем і струнними інструментами біля озера Мондзеє",
+    "payload": {
+      "title": "Musiktage Mondsee — шість камерних концертів у замку",
+      "summary": "П’ять вересневих днів камерної музики у Schloss Mondsee: від бароко й танцю до слов’янського фіналу.",
+      "details": "Фестиваль Musiktage Mondsee продовжує програму 1–5 вересня шістьма концертами. У програмі — Бах, Прокоф’єв, Шостакович, Брамс, Дворжак та інші композитори у виконанні міжнародних солістів і камерних ансамблів. Заплановано вечірні концерти 1–4 вересня о 19:00, а 5 вересня — денний концерт о 11:00 та фінал о 19:00. Квитки та доступність окремих місць перевіряйте в організатора.",
+      "germanTitle": "Musiktage Mondsee — sechs Kammerkonzerte im Schloss",
+      "germanSummary": "Fünf Septembertage mit Kammermusik im Schloss Mondsee – vom Barock und Tanz bis zum slawischen Finale.",
+      "germanDetails": "Die Musiktage Mondsee setzen ihr Programm vom 1. bis 5. September mit sechs Konzerten fort. Zu hören sind unter anderem Werke von Bach, Prokofjew, Schostakowitsch, Brahms und Dvořák. Die Abendkonzerte am 1.–4. September beginnen um 19:00 Uhr; am 5. September folgen ein Konzert um 11:00 Uhr und das Finale um 19:00 Uhr. Tickets und Verfügbarkeit bitte direkt beim Veranstalter prüfen.",
+      "city": "Mondsee",
+      "venue": "Schloss Mondsee",
+      "address": "Schlosshof 1, 5310 Mondsee",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-01T19:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Musiktage Mondsee",
+      "organizerURL": "https://www.musiktage-mondsee.at/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.musiktage-mondsee.at/",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Програма і квитки",
+      "externalActionURL": "https://www.musiktage-mondsee.at/",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-02T19:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-03T19:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-04T19:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-05T11:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-05T19:00:00+02:00",
+          "isAllDay": false
+        }
+      ],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.musiktage-mondsee.at/",
+        "title": "Musiktage Mondsee 2026 — офіційна програма",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+        "title": "Oberösterreich Tourismus — Top-Events im September",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.musiktage-mondsee.at/",
+      "Категорія «music» обрана як найточніша; додаткові категорії: culture."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:welser-volksfest:https://welser-volksfest.at/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/02-welser-volksfest.png",
+    "imageAlternativeText": "Осінній ярмарковий майданчик із колесом огляду, наметами та регіональними стравами",
+    "payload": {
+      "title": "Welser Volksfest — чотири дні музики, атракціонів і смаків",
+      "summary": "Велике народне свято у Вельсі: атракціони, регіональна кухня, жива музика, DJ-програма й сімейний день.",
+      "details": "Святкова територія Messe Wels працюватиме 3–6 вересня. У четвер відбудуться пробне освітлення та Nacht der Tracht, у п’ятницю й суботу — концерти й клубні програми, а в неділю — сімейна музична програма. Перший підтверджений сценічний сеанс починається 3 вересня о 20:00. Детальний режим роботи атракціонів та окремих зон перевіряйте на офіційній сторінці.",
+      "germanTitle": "Welser Volksfest — vier Tage Musik, Fahrgeschäfte und Genuss",
+      "germanSummary": "Großes Volksfest in Wels mit Fahrgeschäften, regionaler Küche, Live-Musik, DJs und Familienprogramm.",
+      "germanDetails": "Das Welser Volksfest findet vom 3. bis 6. September auf dem Gelände der Messe Wels statt. Am Donnerstag starten Probebeleuchtung und Nacht der Tracht, Freitag und Samstag folgen Live-Musik und Clubbing, am Sonntag ein familienfreundliches Programm. Der erste bestätigte Bühnenbeginn ist am 3. September um 20:00 Uhr. Öffnungszeiten einzelner Bereiche bitte auf der offiziellen Website prüfen.",
+      "city": "Wels",
+      "venue": "Messe Wels",
+      "address": "Messeplatz 1, 4600 Wels",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-03T20:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "festivalsAndFairs",
+      "additionalCategories": [
+        "foodAndMarket",
+        "celebration"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Messe Wels GmbH",
+      "organizerURL": "https://welser-volksfest.at/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://welser-volksfest.at/",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://welser-volksfest.at/",
+      "priceKind": "free",
+      "priceNote": "Вхід на територію свята безкоштовний; окремі атракціони та гастрономія оплачуються.",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-04T20:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-05T20:00:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-06T11:30:00+02:00",
+          "isAllDay": false
+        }
+      ],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://welser-volksfest.at/",
+        "title": "Welser Volksfest 2026 — офіційна сторінка",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.wels.gv.at/fileadmin/data/Pressecorner/Amtsblatt/2026/AB_Maerz_final.pdf",
+        "title": "Stadt Wels — Eventjahr 2026",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://welser-volksfest.at/",
+      "Категорія «festivalsAndFairs» обрана як найточніша; додаткові категорії: foodAndMarket, celebration."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:klassische-klangwolke:https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/03-klassische-klangwolke.png",
+    "imageAlternativeText": "Велика класична сцена в парку над Дунаєм у вечірньому світлі",
+    "payload": {
+      "title": "Klassische Klangwolke — класика просто неба біля Дунаю",
+      "summary": "Безкоштовний великий класичний концерт у Donaupark відкриває серію Linzer Klangwolken.",
+      "details": "4 вересня о 19:30 Donaupark у Лінці перетвориться на великий концертний простір просто неба. Klassische Klangwolke транслює урочисту концертну програму Brucknerfest для широкої публіки. Приходити варто завчасно; подія відбувається на відкритому повітрі.",
+      "germanTitle": "Klassische Klangwolke — Klassik unter freiem Himmel an der Donau",
+      "germanSummary": "Das kostenlose große Klassikkonzert im Donaupark eröffnet die Linzer Klangwolken.",
+      "germanDetails": "Am 4. September um 19:30 Uhr wird der Donaupark zum großen Konzertsaal unter freiem Himmel. Die Klassische Klangwolke bringt das feierliche Brucknerfest-Programm zu einem breiten Publikum. Frühes Kommen wird empfohlen; die Veranstaltung findet im Freien statt.",
+      "city": "Linz",
+      "venue": "Donaupark",
+      "address": "Ernst-Koref-Promenade, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-04T19:30:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "LIVA / Brucknerhaus Linz",
+      "organizerURL": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+      "priceKind": "free",
+      "priceNote": "Вхід безкоштовний.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+        "title": "Oberösterreich Tourismus — Linzer Klangwolken",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.linztourismus.at/de/freizeit/linz-entdecken/aktivitaeten/for-free/veranstaltungen",
+        "title": "Linz Tourismus — безкоштовні події",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+      "Категорія «music» обрана як найточніша; додаткові категорії: culture."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:sizilianischer-abend:https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297875/sizilianischer-abend-mit-minnestrello-musica-del-sud-live-im-conti.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/04-sizilianischer-abend.png",
+    "imageAlternativeText": "Теплий музично-кулінарний вечір із джазовими інструментами та сицилійською пастою",
+    "payload": {
+      "title": "Сицилійський вечір у Scharnstein — жива музика й кухня півдня",
+      "summary": "Minnestrello — Musica del Sud грає наживо, а CONTI подає спеціальну сицилійську страву.",
+      "details": "4 вересня з 17:00 до 23:00 у CONTI in der Moserei відбудеться тематичний сицилійський вечір. Minnestrello — Musica del Sud поєднає тепле південне звучання з атмосферою невеликого культурного майданчика. До звичайного меню додадуть Busiate con pesto trapanese. Вхід — за добровільний внесок.",
+      "germanTitle": "Sizilianischer Abend in Scharnstein — Live-Musik und Küche des Südens",
+      "germanSummary": "Minnestrello – Musica del Sud spielt live, dazu serviert das CONTI ein sizilianisches Spezialgericht.",
+      "germanDetails": "Am 4. September von 17:00 bis 23:00 Uhr lädt das CONTI in der Moserei zu einem sizilianischen Abend. Minnestrello – Musica del Sud bringt den Klang kleiner Plätze und langer südlicher Abende nach Scharnstein. Zusätzlich zur Snackkarte gibt es Busiate con pesto trapanese. Eintritt: freiwillige Spende.",
+      "city": "Scharnstein",
+      "venue": "CONTI in der Moserei",
+      "address": "Kalkofen 6a, 4644 Scharnstein",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-04T17:00:00+02:00",
+      "endDate": "2026-09-04T23:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "CONTI in der Moserei",
+      "organizerURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297875/sizilianischer-abend-mit-minnestrello-musica-del-sud-live-im-conti.html",
+      "contactPhone": "",
+      "contactEmail": "Conti@diemoserei.at",
+      "contactURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297875/sizilianischer-abend-mit-minnestrello-musica-del-sud-live-im-conti.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297875/sizilianischer-abend-mit-minnestrello-musica-del-sud-live-im-conti.html",
+      "priceKind": "free",
+      "priceNote": "Вхід за добровільний внесок; їжа та напої оплачуються окремо.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297875/sizilianischer-abend-mit-minnestrello-musica-del-sud-live-im-conti.html",
+        "title": "Oberösterreich Tourismus — Sizilianischer Abend",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.diemoserei.at/",
+        "title": "Die Moserei — офіційний сайт",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297875/sizilianischer-abend-mit-minnestrello-musica-del-sud-live-im-conti.html",
+      "Категорія «music» обрана як найточніша; додаткові категорії: foodAndMarket."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:kinderklangwolke:https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430293443/kinderklangwolke-26.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/05-kinderklangwolke.png",
+    "imageAlternativeText": "Сімейний музичний фестиваль у зеленому парку з ігровими космічними інсталяціями",
+    "payload": {
+      "title": "Kinderklangwolke 26 — космічна пригода для всієї родини",
+      "summary": "Музика, інтерактивне космічне містечко й велика сценічна історія Sun & Bun у Donaupark.",
+      "details": "6 вересня з 14:00 Donaupark стане галактичним простором для дітей і родин. Перед основною виставою працюватимуть інтерактивні станції та Weltraumdorf від ESERO Austria. Сценічне шоу Sun & Bun auf der Suche nach dem Glück почнеться о 16:00. Вхід вільний.",
+      "germanTitle": "Kinderklangwolke 26 — ein Weltraumabenteuer für die ganze Familie",
+      "germanSummary": "Musik, interaktives Weltraumdorf und die große Bühnengeschichte von Sun & Bun im Donaupark.",
+      "germanDetails": "Am 6. September wird der Donaupark ab 14:00 Uhr zum galaktischen Erlebnisraum für Kinder und Familien. Mitmachstationen und ein Weltraumdorf von ESERO Austria stimmen auf die Bühnenshow Sun & Bun auf der Suche nach dem Glück um 16:00 Uhr ein. Eintritt frei.",
+      "city": "Linz",
+      "venue": "Donaupark",
+      "address": "Ernst-Koref-Promenade, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-06T14:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "childrenAndFamily",
+      "additionalCategories": [
+        "music"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "LIVA / Brucknerhaus Linz",
+      "organizerURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430293443/kinderklangwolke-26.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430293443/kinderklangwolke-26.html",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430293443/kinderklangwolke-26.html",
+      "priceKind": "free",
+      "priceNote": "Вхід безкоштовний.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430293443/kinderklangwolke-26.html",
+        "title": "Oberösterreich Tourismus — Kinderklangwolke 26",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.linztourismus.at/de/freizeit/linz-entdecken/aktivitaeten/for-free/veranstaltungen",
+        "title": "Linz Tourismus — безкоштовні події",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430293443/kinderklangwolke-26.html",
+      "Категорія «childrenAndFamily» обрана як найточніша; додаткові категорії: music."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:aec-30-jahre:https://ars.electronica.art/negotiatinghumanity/en/highlights/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/06-aec-30-jahre.png",
+    "imageAlternativeText": "Сучасний медіамистецький центр над Дунаєм із інтерактивним вечірнім світлом",
+    "payload": {
+      "title": "30 років Ars Electronica Center — велика вечірка майбутнього",
+      "summary": "Futurelab показує проєкти, перформанси й демонстрації на кількох рівнях музею.",
+      "details": "8 вересня з 19:30 до 22:00 Ars Electronica Center відзначає 30-річчя. Замість звичайної статичної презентації відвідувачі зможуть переходити між pop-up інтервенціями, перформансами, демонстраціями й розмовами з командою Futurelab. Подія є прологом до Ars Electronica Festival 2026.",
+      "germanTitle": "30 Jahre Ars Electronica Center — große Zukunftsparty",
+      "germanSummary": "Das Futurelab zeigt Projekte, Performances und Demos auf mehreren Ebenen des Museums.",
+      "germanDetails": "Am 8. September von 19:30 bis 22:00 Uhr feiert das Ars Electronica Center sein 30-jähriges Bestehen. Pop-up-Interventionen, Performances, Demos und Gespräche machen mehrere Ebenen des Museums zu einem offenen Begegnungsraum. Der Abend bildet den Auftakt zum Ars Electronica Festival 2026.",
+      "city": "Linz",
+      "venue": "Ars Electronica Center",
+      "address": "Ars-Electronica-Straße 1, 4040 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-08T19:30:00+02:00",
+      "endDate": "2026-09-08T22:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "education",
+        "celebration"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Ars Electronica Linz GmbH & Co KG",
+      "organizerURL": "https://ars.electronica.art/negotiatinghumanity/en/highlights/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://ars.electronica.art/negotiatinghumanity/en/highlights/",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://ars.electronica.art/negotiatinghumanity/en/highlights/",
+      "priceKind": "free",
+      "priceNote": "За офіційним фестивальним анонсом вечір є відкритою святковою подією; окремі зони можуть мати обмежену місткість.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://ars.electronica.art/negotiatinghumanity/en/highlights/",
+        "title": "Ars Electronica Festival 2026 — Highlights",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://ars.electronica.art/center/en/events/ars-electronica-festival-2026/",
+        "title": "Ars Electronica Center — Festival 2026",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://ars.electronica.art/negotiatinghumanity/en/highlights/",
+      "Категорія «culture» обрана як найточніша; додаткові категорії: education, celebration."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:francisco-carolinum:https://www.ooekultur.at/exhibition-detail/collection-francisco-carolinum",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/07-francisco-carolinum.png",
+    "imageAlternativeText": "Історичний музейний зал із сучасними світловими цифровими роботами",
+    "payload": {
+      "title": "Collection Francisco Carolinum — цифрове мистецтво трьох блокчейнів",
+      "summary": "Музей уперше показує велику частину своєї колекції blockchain-based art в одному просторі.",
+      "details": "8 вересня о 18:00 у Francisco Carolinum відкривається масштабна презентація цифрового мистецтва, створеного й збереженого у взаємодії з блокчейнами Ethereum, Tezos і Bitcoin. Виставка демонструє різні художні підходи та розвиток колекції музею з 2021 року. Після відкриття діють звичайні музейні години й тарифи.",
+      "germanTitle": "Collection Francisco Carolinum — digitale Kunst auf drei Blockchains",
+      "germanSummary": "Das Museum zeigt erstmals einen großen Teil seiner Sammlung blockchainbasierter Kunst in einer umfassenden Präsentation.",
+      "germanDetails": "Am 8. September um 18:00 Uhr eröffnet das Francisco Carolinum eine umfassende Präsentation digitaler Kunst auf Ethereum, Tezos und Bitcoin. Die Ausstellung gibt Einblick in unterschiedliche künstlerische Positionen und in die seit 2021 wachsende Sammlung des Museums. Danach gelten die regulären Öffnungszeiten und Eintrittspreise.",
+      "city": "Linz",
+      "venue": "Francisco Carolinum",
+      "address": "Museumstraße 14, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-08T18:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "OÖ Landes-Kultur GmbH",
+      "organizerURL": "https://www.ooekultur.at/exhibition-detail/collection-francisco-carolinum",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.ooekultur.at/exhibition-detail/collection-francisco-carolinum",
+      "participationMode": "none",
+      "externalActionTitle": "Інформація про виставку",
+      "externalActionURL": "https://www.ooekultur.at/exhibition-detail/collection-francisco-carolinum",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.ooekultur.at/exhibition-detail/collection-francisco-carolinum",
+        "title": "OÖ Kultur — Collection Francisco Carolinum",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.ooekultur.at/exhibition-detail/collection-francisco-carolinum",
+      "Категорія «culture» обрана як найточніша; додаткові категорії: немає."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:ars-electronica:https://ars.electronica.art/negotiatinghumanity/en/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/08-ars-electronica.png",
+    "imageAlternativeText": "Міський фестиваль медіамистецтва з інтерактивними світловими інсталяціями в центрі Лінца",
+    "payload": {
+      "title": "Ars Electronica Festival 2026 — мистецтво, технології та людяність",
+      "summary": "П’ять днів виставок, перформансів, концертів, конференцій і лабораторій у центрі Лінца.",
+      "details": "З 9 до 13 вересня Ars Electronica перетворює центр Лінца на мережу фестивальних просторів. Тема Negotiating Humanity досліджує, що означає бути людиною в добу ШІ та глобальних змін. Окрема важлива частина для української аудиторії — Unbreakable Ukraine у Deep Space 8K з цифровими образами Софії Київської, собору Святого Юра, Одеської опери, Чернігівської бібліотеки та Харківського університету. Деякі воркшопи й покази потребують реєстрації.",
+      "germanTitle": "Ars Electronica Festival 2026 — Kunst, Technologie und Menschlichkeit",
+      "germanSummary": "Fünf Tage Ausstellungen, Performances, Konzerte, Konferenzen und offene Labs im Linzer Stadtzentrum.",
+      "germanDetails": "Vom 9. bis 13. September verwandelt die Ars Electronica die Linzer Innenstadt in ein Netzwerk von Festivalorten. Negotiating Humanity fragt nach dem Menschsein im Zeitalter von KI und globalen Veränderungen. Für die ukrainische Community besonders relevant ist Unbreakable Ukraine im Deep Space 8K mit digitalisierten Kulturgütern aus Kyjiw, Lwiw, Odesa, Tschernihiw und Charkiw. Für einzelne Workshops und Programmpunkte ist eine Anmeldung erforderlich.",
+      "city": "Linz",
+      "venue": "Festivalorte in der Linzer Innenstadt",
+      "address": "OK-Platz 1, 4020 Linz",
+      "locationNote": "Три основні хаби: OK QUARTER, MED CAMPUS і DANUBE TRIANGLE; точне місце кожного сеансу дивіться у програмі.",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-09T09:30:00+02:00",
+      "endDate": "2026-09-13T18:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "education"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Ars Electronica Linz GmbH & Co KG",
+      "organizerURL": "https://ars.electronica.art/negotiatinghumanity/en/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://ars.electronica.art/negotiatinghumanity/en/",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Програма і квитки",
+      "externalActionURL": "https://ars.electronica.art/negotiatinghumanity/en/",
+      "priceKind": "unspecified",
+      "priceNote": "Є фестивальні квитки та безкоштовні частини програми; для окремих подій потрібна реєстрація.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://ars.electronica.art/negotiatinghumanity/en/",
+        "title": "Ars Electronica Festival 2026 — офіційний сайт",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://ars.electronica.art/negotiatinghumanity/en/time-locations/",
+        "title": "Ars Electronica — час і локації",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://ars.electronica.art/negotiatinghumanity/en/",
+      "Категорія «culture» обрана як найточніша; додаткові категорії: education."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:innviertler-oktoberfest:https://www.ried.at/INNVIERTLER_OKTOBERFEST",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/09-innviertler-oktoberfest.png",
+    "imageAlternativeText": "Велике народне свято з традиційним наметом, духовими інструментами й атракціонами",
+    "payload": {
+      "title": "Innviertler Oktoberfest — п’ять днів свята у Ried",
+      "summary": "Безкоштовне народне свято з парадом, музикою, атракціонами, кухнею та сімейною програмою.",
+      "details": "9–13 вересня Messe Ried приймає Innviertler Oktoberfest. У середу програма починається о 15:00 дитячим днем, о 18:00 відбудеться парад із Hauptplatz, а о 19:00 — традиційне відкриття бочки. У п’ятницю та суботу територія працює з 13:00, у неділю — з 11:00. Вхід безкоштовний; собак на територію не допускають.",
+      "germanTitle": "Innviertler Oktoberfest — fünf Festtage in Ried",
+      "germanSummary": "Kostenloses Volksfest mit Umzug, Musik, Fahrgeschäften, Kulinarik und Familienprogramm.",
+      "germanDetails": "Vom 9. bis 13. September findet auf dem Gelände der Messe Ried das Innviertler Oktoberfest statt. Am Mittwoch startet der Kindernachmittag um 15:00 Uhr, der Festumzug um 18:00 Uhr und der Bieranstich um 19:00 Uhr. Freitag und Samstag öffnet das Gelände ab 13:00 Uhr, Sonntag ab 11:00 Uhr. Der Eintritt ist frei; Hunde sind nicht erlaubt.",
+      "city": "Ried im Innkreis",
+      "venue": "Messe Ried",
+      "address": "Brucknerstraße 39, 4910 Ried im Innkreis",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-09T15:00:00+02:00",
+      "endDate": "2026-09-13T23:59:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "festivalsAndFairs",
+      "additionalCategories": [
+        "foodAndMarket",
+        "celebration"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Messe Ried GmbH",
+      "organizerURL": "https://www.ried.at/INNVIERTLER_OKTOBERFEST",
+      "contactPhone": "+43 7752 84011",
+      "contactEmail": "office@messe-ried.at",
+      "contactURL": "https://www.ried.at/INNVIERTLER_OKTOBERFEST",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.ried.at/INNVIERTLER_OKTOBERFEST",
+      "priceKind": "free",
+      "priceNote": "Вхід безкоштовний; атракціони, їжа та напої оплачуються окремо.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.ried.at/INNVIERTLER_OKTOBERFEST",
+        "title": "Stadt Ried — Innviertler Oktoberfest",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.ried.com/innviertler-oktoberfest/",
+        "title": "Stadtmarketing Ried — фестивальна програма",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.ried.at/INNVIERTLER_OKTOBERFEST",
+      "Категорія «festivalsAndFairs» обрана як найточніша; додаткові категорії: foodAndMarket, celebration."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:matilda:https://www.landestheater-linz.at/musiktheater/termine?direct=true",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/10-matilda.png",
+    "imageAlternativeText": "Театральна сцена з великими книгами й казковою шкільною атмосферою",
+    "payload": {
+      "title": "Прем’єра мюзиклу «Matilda» у Musiktheater Linz",
+      "summary": "Відома історія Роальда Дала оживає у великій музичній постановці для дорослих і родин.",
+      "details": "11 вересня о 19:30 Musiktheater Linz відкриває сезон прем’єрою Roald Dahl’s Matilda — Das Musical. Музика Тіма Мінчина й сценічна адаптація Денніса Келлі розповідають про надзвичайно розумну дівчинку, яка не боїться протистояти несправедливості. Вистава триває до 22:10; доступні й наступні сеанси 17, 19, 20, 21 та 22 вересня.",
+      "germanTitle": "Premiere von Roald Dahl’s Matilda im Musiktheater Linz",
+      "germanSummary": "Die bekannte Geschichte von Roald Dahl wird als großes Musical für Erwachsene und Familien lebendig.",
+      "germanDetails": "Am 11. September um 19:30 Uhr eröffnet das Musiktheater Linz die Saison mit der Premiere von Roald Dahl’s Matilda – Das Musical. Tim Minchins Musik und Dennis Kellys Bühnenfassung erzählen von einem außergewöhnlich klugen Mädchen, das sich gegen Ungerechtigkeit wehrt. Die Vorstellung endet um 22:10 Uhr; weitere Termine folgen am 17., 19., 20., 21. und 22. September.",
+      "city": "Linz",
+      "venue": "Musiktheater Linz — Großer Saal",
+      "address": "Am Volksgarten 1, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-11T19:30:00+02:00",
+      "endDate": "2026-09-11T22:10:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [
+        "music",
+        "childrenAndFamily"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Landestheater Linz",
+      "organizerURL": "https://www.landestheater-linz.at/musiktheater/termine?direct=true",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.landestheater-linz.at/musiktheater/termine?direct=true",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Квитки в театр",
+      "externalActionURL": "https://www.landestheater-linz.at/musiktheater/termine?direct=true",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-17T19:30:00+02:00",
+          "endDate": "2026-09-17T22:10:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-19T19:30:00+02:00",
+          "endDate": "2026-09-19T22:10:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-20T17:00:00+02:00",
+          "endDate": "2026-09-20T19:40:00+02:00",
+          "isAllDay": false
+        },
+        {
+          "startDate": "2026-09-21T19:30:00+02:00",
+          "endDate": "2026-09-21T22:10:00+02:00",
+          "isAllDay": false
+        }
+      ],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.landestheater-linz.at/musiktheater/termine?direct=true",
+        "title": "Landestheater Linz — Musiktheater Termine",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://abos.landestheater-linz.at/",
+        "title": "Landestheater Linz — сезон 2026/27",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.landestheater-linz.at/musiktheater/termine?direct=true",
+      "Категорія «culture» обрана як найточніша; додаткові категорії: music, childrenAndFamily."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:grosse-konzertnacht:https://www.posthof.at/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/11-grosse-konzertnacht.png",
+    "imageAlternativeText": "Сучасна концертна сцена з оркестровими та електронними інструментами",
+    "payload": {
+      "title": "Große Konzertnacht Ars Electronica — великий звук майбутнього",
+      "summary": "Експериментальна концертна ніч поєднує оркестрове звучання, електроніку й просторові медіа.",
+      "details": "11 вересня о 18:00 у Posthof розпочнеться Große Konzertnacht Ars Electronica. Подія є частиною фестивалю Negotiating Humanity та поєднує сучасну композицію, цифрові інструменти, перформанс і просторовий звук. Власникам FESTIVALPASS+ концерт включено до фестивального квитка; інші варіанти квитків перевіряйте в офіційному магазині.",
+      "germanTitle": "Große Konzertnacht der Ars Electronica — der große Klang der Zukunft",
+      "germanSummary": "Die experimentelle Konzertnacht verbindet orchestralen Klang, Elektronik und räumliche Medien.",
+      "germanDetails": "Am 11. September beginnt um 18:00 Uhr im Posthof die Große Konzertnacht der Ars Electronica. Als Teil von Negotiating Humanity verbindet sie zeitgenössische Komposition, digitale Instrumente, Performance und räumlichen Klang. Beim FESTIVALPASS+ ist die Konzertnacht inkludiert; weitere Ticketoptionen bitte im offiziellen Shop prüfen.",
+      "city": "Linz",
+      "venue": "Posthof Linz",
+      "address": "Posthofstraße 43, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-11T18:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Ars Electronica / Posthof",
+      "organizerURL": "https://www.posthof.at/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.posthof.at/",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Програма і квитки",
+      "externalActionURL": "https://www.posthof.at/",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.posthof.at/",
+        "title": "Posthof Linz — офіційна програма",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://ars.electronica.art/negotiatinghumanity/en/tickets/",
+        "title": "Ars Electronica — квитки",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.posthof.at/",
+      "Категорія «music» обрана як найточніша; додаткові категорії: culture."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:nightline:https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297607/ars-electronica-nightline.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/12-nightline.png",
+    "imageAlternativeText": "Нічний електронний концерт із синтезаторами, світловими променями й силуетами танцювальної публіки",
+    "payload": {
+      "title": "Ars Electronica Nightline — електронна ніч у Posthof",
+      "summary": "Пізня фестивальна програма з avant-pop, електронікою, танцювальною енергією та експериментом.",
+      "details": "11 вересня з 23:00 до 01:30 Posthof приймає Ars Electronica Nightline. Програма розглядає танцмайданчик як спільний простір, де музика, тіло й частоти створюють іншу форму діалогу. Серед заявлених учасників — Farce та інші електронні й live-проєкти фестивалю. Подія входить у FESTIVALPASS+.",
+      "germanTitle": "Ars Electronica Nightline — elektronische Nacht im Posthof",
+      "germanSummary": "Spätes Festivalprogramm mit Avant-Pop, Elektronik, Tanzenergie und Experiment.",
+      "germanDetails": "Am 11. September findet von 23:00 bis 01:30 Uhr die Ars Electronica Nightline im Posthof statt. Der Dancefloor wird zum gemeinsamen Raum, in dem Musik, Körper und Frequenzen eine andere Form des Dialogs ermöglichen. Angekündigt sind Farce und weitere elektronische Live-Projekte. Die Nightline ist im FESTIVALPASS+ enthalten.",
+      "city": "Linz",
+      "venue": "Posthof Linz",
+      "address": "Posthofstraße 43, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-11T23:00:00+02:00",
+      "endDate": "2026-09-12T01:30:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "nightlifeAndParties",
+      "additionalCategories": [
+        "music"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Ars Electronica / Posthof",
+      "organizerURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297607/ars-electronica-nightline.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297607/ars-electronica-nightline.html",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Інформація і квитки",
+      "externalActionURL": "https://ars.electronica.art/negotiatinghumanity/en/tickets/",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297607/ars-electronica-nightline.html",
+        "title": "Oberösterreich Tourismus — Ars Electronica Nightline",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.posthof.at/",
+        "title": "Posthof Linz — офіційна програма",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297607/ars-electronica-nightline.html",
+      "Категорія «nightlifeAndParties» обрана як найточніша; додаткові категорії: music."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:fm4-unlimited:https://fm4.orf.at/story/fm4-unlimited-steyr-2026-100/am-12-september-gibt-es-wieder-fm4-unlimited-in-steyr",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/13-fm4-unlimited.png",
+    "imageAlternativeText": "Нічний танцювальний фестиваль у парку історичного замку зі світловою сценою",
+    "payload": {
+      "title": "FM4 Unlimited Steyr — танці у Schloss Lamberg",
+      "summary": "Open-air floor, таємний танцмайданчик у замкових мурах і велика afterparty у röda.",
+      "details": "12 вересня з 18:00 до 01:00 Schloss Lamberg перетвориться на масштабну dance-локацію. У Schlosspark працюватиме головна open-air сцена, у Schlossgraben — Secret Floor, а після основної програми вечір продовжиться у röda. У line-up — Joyce Muniz, Anna Ullrich, Jugo Ürdens, DJ Functionist та інші live- і DJ-проєкти.",
+      "germanTitle": "FM4 Unlimited Steyr — Tanzen im Schloss Lamberg",
+      "germanSummary": "Open-Air-Floor, geheimer Dancefloor im Schlossgraben und große Afterparty im röda.",
+      "germanDetails": "Am 12. September wird Schloss Lamberg von 18:00 bis 01:00 Uhr zur großen Dance-Location. Im Schlosspark läuft der Main Floor, im Schlossgraben der Secret Floor; danach geht die Nacht im röda weiter. Im Line-up stehen unter anderem Joyce Muniz, Anna Ullrich, Jugo Ürdens und DJ Functionist.",
+      "city": "Steyr",
+      "venue": "Schloss Lamberg",
+      "address": "Berggasse 2, 4400 Steyr",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-12T18:00:00+02:00",
+      "endDate": "2026-09-13T01:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "nightlifeAndParties",
+      "additionalCategories": [
+        "music",
+        "festivalsAndFairs"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "FM4 / Stadt Steyr",
+      "organizerURL": "https://fm4.orf.at/story/fm4-unlimited-steyr-2026-100/am-12-september-gibt-es-wieder-fm4-unlimited-in-steyr",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://fm4.orf.at/story/fm4-unlimited-steyr-2026-100/am-12-september-gibt-es-wieder-fm4-unlimited-in-steyr",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Квитки",
+      "externalActionURL": "https://unlimitedsteyr.at/",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://fm4.orf.at/story/fm4-unlimited-steyr-2026-100/am-12-september-gibt-es-wieder-fm4-unlimited-in-steyr",
+        "title": "FM4 — Unlimited Steyr 2026",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297891/fm4-unlimited.html",
+        "title": "Oberösterreich Tourismus — FM4 Unlimited",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://fm4.orf.at/story/fm4-unlimited-steyr-2026-100/am-12-september-gibt-es-wieder-fm4-unlimited-in-steyr",
+      "Категорія «nightlifeAndParties» обрана як найточніша; додаткові категорії: music, festivalsAndFairs."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:brucknerfest:https://www.brucknerhaus.at/content/download/22824/file/DS_DRUCKANSICHT_BF%20Brosch%C3%BCre%2026.pdf",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/14-brucknerfest.png",
+    "imageAlternativeText": "Велика симфонічна сцена в сучасному концертному залі над Дунаєм",
+    "payload": {
+      "title": "Internationales Brucknerfest 2026 — музика між початком і завершенням",
+      "summary": "Від 13 до 30 вересня Лінц приймає міжнародні оркестри, солістів, концерти, кіно й сімейну програму.",
+      "details": "Brucknerfest відкривається 13 вересня о 10:30 урочистим Festakt у Brucknerhaus і триває до 30 вересня. Програма об’єднує міжнародні оркестри, камерну музику, органні концерти, кінопокази та спеціальні формати у Brucknerhaus й інших історичних місцях Верхньої Австрії. Для кожної події діють окремі квитки; частина сімейної програми безкоштовна.",
+      "germanTitle": "Internationales Brucknerfest 2026 — Musik zwischen Anfang und Ende",
+      "germanSummary": "Vom 13. bis 30. September erlebt Linz internationale Orchester, Solist:innen, Konzerte, Film und Familienprogramm.",
+      "germanDetails": "Das Brucknerfest beginnt am 13. September um 10:30 Uhr mit dem Festakt im Brucknerhaus und dauert bis 30. September. Internationale Orchester, Kammermusik, Orgelkonzerte, Film und Sonderformate erklingen im Brucknerhaus und an weiteren historischen Orten Oberösterreichs. Für die Veranstaltungen gelten einzelne Tickets; Teile des Familienprogramms sind frei zugänglich.",
+      "city": "Linz",
+      "venue": "Brucknerhaus Linz und weitere Spielorte",
+      "address": "Untere Donaulände 7, 4010 Linz",
+      "locationNote": "Точна локація залежить від вибраного концерту; дивіться офіційну програму.",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-13T10:30:00+02:00",
+      "endDate": "2026-09-30T22:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "LIVA / Brucknerhaus Linz",
+      "organizerURL": "https://www.brucknerhaus.at/content/download/22824/file/DS_DRUCKANSICHT_BF%20Brosch%C3%BCre%2026.pdf",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.brucknerhaus.at/content/download/22824/file/DS_DRUCKANSICHT_BF%20Brosch%C3%BCre%2026.pdf",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Повна програма і квитки",
+      "externalActionURL": "https://www.brucknerhaus.at/programm/veranstaltungen?page=1",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.brucknerhaus.at/content/download/22824/file/DS_DRUCKANSICHT_BF%20Brosch%C3%BCre%2026.pdf",
+        "title": "Brucknerfest Linz 2026 — офіційна програма",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+        "title": "Oberösterreich Tourismus — Top-Events im September",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.brucknerhaus.at/content/download/22824/file/DS_DRUCKANSICHT_BF%20Brosch%C3%BCre%2026.pdf",
+      "Категорія «music» обрана як найточніша; додаткові категорії: culture.",
+      "Час завершення 30 вересня взято з меж заключної вечірньої програми; окремі сеанси мають власні години."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:gschickt:https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297912/g-schickt.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/15-gschickt.png",
+    "imageAlternativeText": "Струнні інструменти на сцені сучасного індустріального культурного залу",
+    "payload": {
+      "title": "G’SCHICKT — коли класика зустрічає поп і джаз",
+      "summary": "Rondo Vienna з Барбарою Гельфґотт виконує класику, віденську музику та сучасні хіти.",
+      "details": "14 вересня о 20:00 у Kultur im Zementwerk виступить жіночий ансамбль Rondo Vienna. У програмі G’SCHICKT традиційна віденська музика й класична оркестрова література переходять у поп і джаз, а скрипкові соло Барбари Гельфґотт додають концерту особливої енергії. Попередній продаж — 15 €, у день концерту — 18 €.",
+      "germanTitle": "G’SCHICKT — wenn Klassik auf Pop und Jazz trifft",
+      "germanSummary": "Rondo Vienna mit Barbara Helfgott verbindet Klassik, Wiener Musik und moderne Hits.",
+      "germanDetails": "Am 14. September um 20:00 Uhr gastiert das Damenensemble Rondo Vienna im Kultur im Zementwerk. In G’SCHICKT treffen traditionelle Wiener Musik und klassische Orchesterliteratur auf Pop und Jazz; Barbara Helfgotts virtuose Violinsoli geben dem Abend besondere Energie. Vorverkauf 15 €, Abendkasse 18 €.",
+      "city": "Kirchdorf an der Krems",
+      "venue": "Kultur im Zementwerk",
+      "address": "Hofmannstraße 4, 4560 Kirchdorf an der Krems",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-14T20:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Kultur im Zementwerk",
+      "organizerURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297912/g-schickt.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297912/g-schickt.html",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297912/g-schickt.html",
+      "priceKind": "range",
+      "price": 15,
+      "maximumPrice": 18,
+      "priceNote": "15 € у попередньому продажі, 18 € у день концерту.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297912/g-schickt.html",
+        "title": "Oberösterreich Tourismus — G’SCHICKT",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297912/g-schickt.html",
+      "Категорія «music» обрана як найточніша; додаткові категорії: culture."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:jazz-night:https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297717/jazz-night-still-experienced-xl-band.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/16-jazz-night.png",
+    "imageAlternativeText": "Jazz-rock сцена просто неба з барабанами, гітарою та духовими інструментами",
+    "payload": {
+      "title": "Jazz Night: Still Experienced XL Band у Hagenberg",
+      "summary": "Десять музикантів відкривають сезон потужним jazz-rock і fusion-концертом, за доброї погоди — просто неба.",
+      "details": "16 вересня CUBE49 відкриває новий сезон Jazz Nights концертом Still Experienced XL Band. Вхід із 18:30, початок музики о 19:00, завершення програми заявлене до 23:00. Колектив поєднує джаз, рок і fusion; за сприятливої погоди концерт уперше відбудеться на outdoor-сцені.",
+      "germanTitle": "Jazz Night: Still Experienced XL Band in Hagenberg",
+      "germanSummary": "Zehn Musiker eröffnen die Saison mit kraftvollem Jazzrock und Fusion – bei gutem Wetter open air.",
+      "germanDetails": "Am 16. September eröffnet das CUBE49 die neue Jazz-Night-Saison mit der Still Experienced XL Band. Einlass ist um 18:30 Uhr, Konzertbeginn um 19:00 Uhr, das Programm endet laut Ankündigung gegen 23:00 Uhr. Die Band verbindet Jazz, Rock und Fusion; bei gutem Wetter wird erstmals die Outdoor-Bühne genutzt.",
+      "city": "Hagenberg im Mühlkreis",
+      "venue": "CUBE49",
+      "address": "Softwarepark 49, 4232 Hagenberg im Mühlkreis",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-16T18:30:00+02:00",
+      "endDate": "2026-09-16T23:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "CUBE49",
+      "organizerURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297717/jazz-night-still-experienced-xl-band.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297717/jazz-night-still-experienced-xl-band.html",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297717/jazz-night-still-experienced-xl-band.html",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297717/jazz-night-still-experienced-xl-band.html",
+        "title": "Oberösterreich Tourismus — Jazz Night",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.oberoesterreich.at/oesterreich-veranstaltung/detail/430297717/jazz-night-still-experienced-xl-band.html",
+      "Категорія «music» обрана як найточніша; додаткові категорії: немає."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:only-the-poets:https://www.posthof.at/event/only-the-poets",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/17-only-the-poets.png",
+    "imageAlternativeText": "Енергійна alt-pop сцена з гітарою, мікрофоном і біло-синім концертним світлом",
+    "payload": {
+      "title": "Only The Poets — великий alt-pop вечір у Posthof",
+      "summary": "Британський гурт привозить до Лінца тур нового альбому And I’d Do It Again.",
+      "details": "17 вересня о 20:00 Only The Poets виступить у Posthof Linz. Гурт поєднує великі поп-мелодії, синтезатори з відтінком 1980-х і сучасне емоційне звучання. Концерт проходить у межах туру дебютного альбому And I’d Do It Again. Квитки в попередньому продажі — 37,90 €; ціна в касі ще не оголошена.",
+      "germanTitle": "Only The Poets — großer Alt-Pop-Abend im Posthof",
+      "germanSummary": "Die britische Band bringt die Tour zum neuen Album And I’d Do It Again nach Linz.",
+      "germanDetails": "Am 17. September um 20:00 Uhr spielen Only The Poets im Posthof Linz. Die Band verbindet große Pop-Hooks, schimmernde 80er-Synths und moderne emotionale Wucht. Das Konzert gehört zur Tour des Debütalbums And I’d Do It Again. Vorverkauf 37,90 €; Abendkasse noch nicht bekannt.",
+      "city": "Linz",
+      "venue": "Posthof Linz",
+      "address": "Posthofstraße 43, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-17T20:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Posthof Linz / Barracuda Music",
+      "organizerURL": "https://www.posthof.at/event/only-the-poets",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.posthof.at/event/only-the-poets",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.posthof.at/event/only-the-poets",
+      "priceKind": "exact",
+      "price": 37.9,
+      "priceNote": "37,90 € у попередньому продажі; ціна в касі ще не оголошена.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.posthof.at/event/only-the-poets",
+        "title": "Posthof Linz — Only The Poets",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.posthof.at/posthofdates.html",
+        "title": "Posthof Dates — September 2026",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.posthof.at/event/only-the-poets",
+      "Категорія «music» обрана як найточніша; додаткові категорії: немає."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:post-x-calle-libre:https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/veranstaltungskalender/show/post-x-calle-libre-festival-430296764/19.9.2026",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/18-post-x-calle-libre.png",
+    "imageAlternativeText": "Великий індустріальний фасад із новими абстрактними муралами та творчими майстернями",
+    "payload": {
+      "title": "Post X Calle Libre — street-art фестиваль у PostCity",
+      "summary": "Міжнародні й австрійські митці перетворюють фасади колишньої поштової будівлі на великі роботи.",
+      "details": "18 і 19 вересня PostCity у Лінці відкриє нові масштабні настінні роботи чотирьох міжнародних та австрійських street-art митців. Дводенна програма включатиме воркшопи, екскурсії й спеціальні події. Вхід безкоштовний. Точні години окремих активностей організатор опублікує додатково; обидва дні підтверджені як повноденні фестивальні дати.",
+      "germanTitle": "Post X Calle Libre — Street-Art-Festival in der PostCity",
+      "germanSummary": "Internationale und österreichische Künstler:innen verwandeln die Fassaden des ehemaligen Postgebäudes in großformatige Kunstwerke.",
+      "germanDetails": "Am 18. und 19. September werden in der PostCity neue großformatige Wandarbeiten von vier internationalen und österreichischen Street-Art-Künstler:innen eröffnet. Das zweitägige Programm umfasst Workshops, Führungen und weitere Events. Der Eintritt ist frei. Die genauen Uhrzeiten einzelner Programmpunkte werden noch veröffentlicht; beide Tage sind als ganztägige Festivaltermine bestätigt.",
+      "city": "Linz",
+      "venue": "PostCity",
+      "address": "Bahnhofsplatz 12, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-18T00:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": true,
+      "category": "culture",
+      "additionalCategories": [
+        "festivalsAndFairs"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Ars Electronica / Calle Libre",
+      "organizerURL": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/veranstaltungskalender/show/post-x-calle-libre-festival-430296764/19.9.2026",
+      "contactPhone": "",
+      "contactEmail": "festival@ars.electronica.art",
+      "contactURL": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/veranstaltungskalender/show/post-x-calle-libre-festival-430296764/19.9.2026",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/veranstaltungskalender/show/post-x-calle-libre-festival-430296764/19.9.2026",
+      "priceKind": "free",
+      "priceNote": "Вхід безкоштовний.",
+      "additionalOccurrences": [
+        {
+          "startDate": "2026-09-19T00:00:00+02:00",
+          "isAllDay": true
+        }
+      ],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/veranstaltungskalender/show/post-x-calle-libre-festival-430296764/19.9.2026",
+        "title": "Linz Tourismus — Post X Calle Libre",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/kostenfreie-veranstaltungen",
+        "title": "Linz Tourismus — безкоштовні події",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/veranstaltungskalender/show/post-x-calle-libre-festival-430296764/19.9.2026",
+      "Категорія «culture» обрана як найточніша; додаткові категорії: festivalsAndFairs."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:bike-experience:https://www.guglwald.at/de/bleiben/bergwelten-bike-experience.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/19-bike-experience.png",
+    "imageAlternativeText": "Шосейний і gravel-велосипеди на оглядовому місці серед зелених пагорбів Mühlviertel",
+    "payload": {
+      "title": "Bergwelten Bike Experience — велосипедний wellness-вікенд",
+      "summary": "Три дні шосейних і gravel-маршрутів у Mühlviertel з групами для різних рівнів та відновленням у spa.",
+      "details": "18–20 вересня Hotel Guglwald проводить велосипедний weekend для початківців і досвідчених учасників. Можна обрати групу відповідно до рівня, випробувати шосейний або gravel-велосипед партнерів і долучитися до спільних маршрутів Mühlviertel. Пакет включає дві ночі, wellness-зону та гастрономічну програму; кількість прокатних велосипедів і шоломів обмежена.",
+      "germanTitle": "Bergwelten Bike Experience — Rad- und Wellnesswochenende",
+      "germanSummary": "Drei Tage Rennrad- und Gravel-Touren im Mühlviertel mit Gruppen für verschiedene Levels und Erholung im Spa.",
+      "germanDetails": "Vom 18. bis 20. September veranstaltet das Hotel Guglwald ein Bike-Wochenende für Anfänger:innen und Fortgeschrittene. Je nach Level stehen unterschiedliche Gruppen sowie Rennrad- und Gravel-Angebote zur Wahl. Das Paket umfasst zwei Nächte, Wellness und Kulinarik; Leihbikes und Helme sind nur begrenzt verfügbar.",
+      "city": "Vorderweißenbach",
+      "venue": "Hotel Guglwald",
+      "address": "Guglwald 8, 4191 Vorderweißenbach",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-18T15:00:00+02:00",
+      "endDate": "2026-09-20T11:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "sportsAndWellness",
+      "additionalCategories": [
+        "excursionsAndNature"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Hotel Guglwald / Bergwelten",
+      "organizerURL": "https://www.guglwald.at/de/bleiben/bergwelten-bike-experience.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.guglwald.at/de/bleiben/bergwelten-bike-experience.html",
+      "participationMode": "externalRegistration",
+      "externalActionTitle": "Пакет і реєстрація",
+      "externalActionURL": "https://www.guglwald.at/de/bleiben/bergwelten-bike-experience.html",
+      "priceKind": "unspecified",
+      "priceNote": "Участь продається як готельний пакет; актуальну ціну та вільні місця перевіряйте в Hotel Guglwald.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.guglwald.at/de/bleiben/bergwelten-bike-experience.html",
+        "title": "Hotel Guglwald — Bergwelten Bike Experience",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+        "title": "Oberösterreich Tourismus — Top-Events im September",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.guglwald.at/de/bleiben/bergwelten-bike-experience.html",
+      "Категорія «sportsAndWellness» обрана як найточніша; додаткові категорії: excursionsAndNature.",
+      "Час початку й завершення відповідає типовим межам заїзду/виїзду пакета; остаточний розклад активностей слід читати в підтвердженні бронювання."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:24h-lauf:https://attersee-attergau.salzkammergut.at/oesterreich-veranstaltung/detail/430281647/24h-lauf-rubenshof.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/20-24h-lauf.png",
+    "imageAlternativeText": "Кільцева бігова траса біля лісу та ферми з далекими силуетами бігунів у сутінках",
+    "payload": {
+      "title": "24h Lauf Rubenshof — доба бігу, ходьби й витривалості",
+      "summary": "Складне кільце з trail- і гірськими ділянками можна долати бігом, кроком або у власному темпі.",
+      "details": "18 вересня о 18:00 у Rubenshof стартує 24-годинний виклик. Учасники рухаються кільцевою трасою з приблизно 40% trail- і підйомних ділянок, самі визначаючи темп і тривалість. Фініш — 19 вересня о 18:00. Подія позиціонується як випробування для різних рівнів, але потребує реалістичної оцінки власної підготовки.",
+      "germanTitle": "24h Lauf Rubenshof — ein Tag Laufen, Gehen und Ausdauer",
+      "germanSummary": "Die anspruchsvolle Runde mit Trail- und Bergaufpassagen kann laufend, gehend und im eigenen Tempo absolviert werden.",
+      "germanDetails": "Am 18. September um 18:00 Uhr startet am Rubenshof die 24-Stunden-Challenge. Die Runde besteht zu rund 40 Prozent aus Trail- und Bergaufpassagen; Tempo und Einsatzdauer bestimmen die Teilnehmenden selbst. Zielschluss ist am 19. September um 18:00 Uhr. Die eigene Kondition sollte realistisch eingeschätzt werden.",
+      "city": "Berg im Attergau",
+      "venue": "Rubenshof",
+      "address": "Rubensdorf 1, 4880 Berg im Attergau",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-18T18:00:00+02:00",
+      "endDate": "2026-09-19T18:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "sportsAndWellness",
+      "additionalCategories": [
+        "excursionsAndNature"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Rubenshof — Mit Kindern wachsen",
+      "organizerURL": "https://attersee-attergau.salzkammergut.at/oesterreich-veranstaltung/detail/430281647/24h-lauf-rubenshof.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://attersee-attergau.salzkammergut.at/oesterreich-veranstaltung/detail/430281647/24h-lauf-rubenshof.html",
+      "participationMode": "externalRegistration",
+      "externalActionTitle": "Інформація та участь",
+      "externalActionURL": "https://attersee-attergau.salzkammergut.at/oesterreich-veranstaltung/detail/430281647/24h-lauf-rubenshof.html",
+      "priceKind": "free",
+      "priceNote": "Відвідування безкоштовне; умови участі й реєстрації перевіряйте в організатора.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://attersee-attergau.salzkammergut.at/oesterreich-veranstaltung/detail/430281647/24h-lauf-rubenshof.html",
+        "title": "Attersee-Attergau — 24h Lauf Rubenshof",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://attersee-attergau.salzkammergut.at/oesterreich-veranstaltung/detail/430281647/24h-lauf-rubenshof.html",
+      "Категорія «sportsAndWellness» обрана як найточніша; додаткові категорії: excursionsAndNature."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:erntedankfest:https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/kostenfreie-veranstaltungen",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/21-erntedankfest.png",
+    "imageAlternativeText": "Осінній ярмарок урожаю з гарбузами, снопами й регіональними продуктами перед собором",
+    "payload": {
+      "title": "Erntedankfest на Domplatz — свято врожаю в центрі Лінца",
+      "summary": "Регіональні продукти, традиції, музика й гастрономія збираються на площі перед Mariendom.",
+      "details": "20 вересня з 10:00 до 18:00 Domplatz приймає велике міське свято врожаю. Виробники й громадські ініціативи представляють сезонні продукти, традиції та регіональну кухню. Подія підходить для родин і тих, хто хоче познайомитися з сільськогосподарською культурою Верхньої Австрії. Вхід вільний.",
+      "germanTitle": "Erntedankfest am Domplatz — Erntefest im Zentrum von Linz",
+      "germanSummary": "Regionale Produkte, Brauchtum, Musik und Kulinarik treffen sich vor dem Mariendom.",
+      "germanDetails": "Am 20. September findet von 10:00 bis 18:00 Uhr das große Erntedankfest am Domplatz statt. Produzent:innen und Initiativen präsentieren saisonale Lebensmittel, Tradition und regionale Küche. Die Veranstaltung eignet sich für Familien und alle, die die landwirtschaftliche Kultur Oberösterreichs kennenlernen möchten. Eintritt frei.",
+      "city": "Linz",
+      "venue": "Domplatz beim Mariendom",
+      "address": "Domplatz, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-20T10:00:00+02:00",
+      "endDate": "2026-09-20T18:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "celebration",
+      "additionalCategories": [
+        "foodAndMarket"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Landwirtschaftskammer Oberösterreich / Partner am Domplatz",
+      "organizerURL": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/kostenfreie-veranstaltungen",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/kostenfreie-veranstaltungen",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/kostenfreie-veranstaltungen",
+      "priceKind": "free",
+      "priceNote": "Вхід безкоштовний; їжа й покупки оплачуються окремо.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/kostenfreie-veranstaltungen",
+        "title": "Linz Tourismus — Erntedankfest",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.linztourismus.at/freizeit/linz-entdecken/aktivitaeten/for-free/veranstaltungen",
+        "title": "Linz Tourismus — безкоштовні події",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.linztourismus.at/freizeit/linz-entdecken/veranstaltungen/kostenfreie-veranstaltungen",
+      "Категорія «celebration» обрана як найточніша; додаткові категорії: foodAndMarket."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:voi-guad:https://www.wels.at/welsmarketing/presse/artikel/detail/8593/www-wels-at-kulinarische-highlights--die-voi-guad-genusswochen.html",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/22-voi-guad.png",
+    "imageAlternativeText": "Стіл із сезонними стравами та осінніми місцевими продуктами у теплому ресторані",
+    "payload": {
+      "title": "Voi Guad Genusswochen — п’ять тижнів регіональної кухні",
+      "summary": "22 ресторани у Wels, Wels-Land і Kremsmünster готують сезонні страви з місцевих продуктів.",
+      "details": "З 22 вересня до 27 жовтня ресторани туристичного регіону Wels пропонують щонайменше по дві спеціальні Voi Guad страви. Ініціатива об’єднує сезонність, місцеві продукти, сталість і гостинність. Це не одна дегустація в певний час: обирайте заклад зі списку та перевіряйте його години роботи, меню й ціни.",
+      "germanTitle": "Voi Guad Genusswochen — fünf Wochen regionale Küche",
+      "germanSummary": "22 Gastronomiebetriebe in Wels, Wels-Land und Kremsmünster kochen saisonale Gerichte aus regionalen Zutaten.",
+      "germanDetails": "Vom 22. September bis 27. Oktober bieten 22 Betriebe der Tourismusregion Wels jeweils mindestens zwei besondere Voi-Guad-Gerichte an. Die Initiative verbindet Saisonalität, regionale Produkte, Nachhaltigkeit und Gastfreundschaft. Es handelt sich nicht um eine einzelne Verkostung: Betrieb auswählen und Öffnungszeiten, Speisekarte und Preise direkt prüfen.",
+      "city": "Wels",
+      "venue": "22 teilnehmende Gastronomiebetriebe",
+      "address": "Stadtplatz 44, 4600 Wels",
+      "locationNote": "Заклади розташовані у Wels, Wels-Land і Kremsmünster; список доступний за офіційним посиланням.",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-22T00:00:00+02:00",
+      "endDate": "2026-10-27T23:59:00+01:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": true,
+      "category": "foodAndMarket",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Tourismusverband Region Wels",
+      "organizerURL": "https://www.wels.at/welsmarketing/presse/artikel/detail/8593/www-wels-at-kulinarische-highlights--die-voi-guad-genusswochen.html",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.wels.at/welsmarketing/presse/artikel/detail/8593/www-wels-at-kulinarische-highlights--die-voi-guad-genusswochen.html",
+      "participationMode": "none",
+      "externalActionTitle": "Список закладів і страв",
+      "externalActionURL": "https://www.wels.at/welsmarketing/presse/artikel/detail/8593/www-wels-at-kulinarische-highlights--die-voi-guad-genusswochen.html",
+      "priceKind": "unspecified",
+      "priceNote": "Ціни залежать від вибраного закладу та страви.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.wels.at/welsmarketing/presse/artikel/detail/8593/www-wels-at-kulinarische-highlights--die-voi-guad-genusswochen.html",
+        "title": "Wels Marketing — Voi Guad Genusswochen",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.oberoesterreich.at/veranstaltungen/top-events-im-september-in-oberoesterreich.html",
+        "title": "Oberösterreich Tourismus — Top-Events im September",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.wels.at/welsmarketing/presse/artikel/detail/8593/www-wels-at-kulinarische-highlights--die-voi-guad-genusswochen.html",
+      "Категорія «foodAndMarket» обрана як найточніша; додаткові категорії: немає."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:urfahraner-herbstmarkt:https://urfahranermarkt.com/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/23-urfahraner-herbstmarkt.png",
+    "imageAlternativeText": "Великий осінній ярмарок над Дунаєм із колесом огляду, ринковими рядами та міським силуетом",
+    "payload": {
+      "title": "Urfahraner Herbstmarkt — дев’ять днів ярмарку над Дунаєм",
+      "summary": "Великий Linzer Herbst поєднує торгову виставку, традиційний ринок, атракціони, гастрономію й намети.",
+      "details": "З 26 вересня до 4 жовтня Urfahranermarktgelände приймає осінній випуск найбільшого народного ярмарку Лінца. На території працюватимуть Gewerbeausstellung, традиційний Warenmarkt, великий парк атракціонів, гастрономічні зони та святкові намети. Години окремих секторів і спеціальну денну програму перевіряйте на офіційному сайті.",
+      "germanTitle": "Urfahraner Herbstmarkt — neun Tage Jahrmarkt an der Donau",
+      "germanSummary": "Der Linzer Herbst verbindet Gewerbeausstellung, Warenmarkt, Vergnügungspark, Gastronomie und Festzelte.",
+      "germanDetails": "Vom 26. September bis 4. Oktober findet auf dem Urfahranermarktgelände die Herbstausgabe des großen Linzer Volksfestes statt. Gewerbeausstellung, traditioneller Warenmarkt, Vergnügungspark, Gastronomie und Festzelte bilden das Programm. Öffnungszeiten einzelner Bereiche und das Tagesprogramm bitte auf der offiziellen Website prüfen.",
+      "city": "Linz",
+      "venue": "Urfahranermarktgelände",
+      "address": "Urfahrmarkt, 4040 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-26T00:00:00+02:00",
+      "endDate": "2026-10-04T23:59:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": true,
+      "category": "festivalsAndFairs",
+      "additionalCategories": [
+        "foodAndMarket",
+        "celebration"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Magistrat Linz / Linzer Marktverein",
+      "organizerURL": "https://urfahranermarkt.com/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://urfahranermarkt.com/",
+      "participationMode": "none",
+      "externalActionTitle": "Офіційна інформація",
+      "externalActionURL": "https://urfahranermarkt.com/",
+      "priceKind": "free",
+      "priceNote": "Вхід на територію безкоштовний; атракціони, покупки та гастрономія оплачуються окремо.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://urfahranermarkt.com/",
+        "title": "Urfahraner Markt — офіційний сайт",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.linzerherbst.at/",
+        "title": "Linzer Herbst 2026",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://urfahranermarkt.com/",
+      "Категорія «festivalsAndFairs» обрана як найточніша; додаткові категорії: foodAndMarket, celebration."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:familienfest-brucknerfest:https://www.brucknerhaus.at/programm/veranstaltungen/familienkonzert-im-brucknerfest-grosser-saal-26.09.2026-11-00",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/24-familienfest-brucknerfest.png",
+    "imageAlternativeText": "Світле фоє концертного залу з музичними творчими станціями для родин",
+    "payload": {
+      "title": "Familienfest im Brucknerfest — музика, майстерні й відкриття",
+      "summary": "Brucknerhaus запрошує родини на органний кіноконцерт, Hänsel und Gretel, творчі станції та екскурсії.",
+      "details": "26 вересня з 10:00 до 15:00 весь Brucknerhaus працюватиме як сімейний музичний простір. О 11:00 Cameron Carpenter наживо імпровізуватиме на органі до німого фільму Чарлі Чапліна The Tramp, о 13:30 відбудеться музично-лялькова історія Hänsel und Gretel. У фоє працюватимуть безкоштовні творчі станції, воркшопи й сімейні екскурсії. Концерти коштують 6 € кожен або 10 € за комбіквиток.",
+      "germanTitle": "Familienfest im Brucknerfest — Musik, Workshops und Entdeckungen",
+      "germanSummary": "Das Brucknerhaus lädt zu Orgel-Filmkonzert, Hänsel und Gretel, Kreativstationen und Führungen ein.",
+      "germanDetails": "Am 26. September wird das gesamte Brucknerhaus von 10:00 bis 15:00 Uhr zum Familien-Musikraum. Um 11:00 Uhr improvisiert Cameron Carpenter an der Orgel zu Charlie Chaplins The Tramp, um 13:30 Uhr folgt das musikalische Puppenspiel Hänsel und Gretel. Kreativstationen, Workshops und Familienführungen sind frei zugänglich. Konzerte kosten 6 € einzeln oder 10 € als Kombiticket.",
+      "city": "Linz",
+      "venue": "Brucknerhaus Linz",
+      "address": "Untere Donaulände 7, 4010 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-26T10:00:00+02:00",
+      "endDate": "2026-09-26T15:00:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": false,
+      "category": "childrenAndFamily",
+      "additionalCategories": [
+        "music",
+        "culture"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Brucknerhaus Linz / Kuddelmuddel",
+      "organizerURL": "https://www.brucknerhaus.at/programm/veranstaltungen/familienkonzert-im-brucknerfest-grosser-saal-26.09.2026-11-00",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.brucknerhaus.at/programm/veranstaltungen/familienkonzert-im-brucknerfest-grosser-saal-26.09.2026-11-00",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Програма і квитки",
+      "externalActionURL": "https://www.brucknerhaus.at/programm/veranstaltungen/familienkonzert-im-brucknerfest-grosser-saal-26.09.2026-11-00",
+      "priceKind": "range",
+      "price": 6,
+      "maximumPrice": 10,
+      "priceNote": "Творчі станції та частина програми безкоштовні; концерти 6 €, комбіквиток 10 €.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.brucknerhaus.at/programm/veranstaltungen/familienkonzert-im-brucknerfest-grosser-saal-26.09.2026-11-00",
+        "title": "Brucknerhaus — Familienfest im Brucknerfest",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.brucknerhaus.at/content/download/23782/file/DS_SaisonBrosch%C3%BCre_Saison26-27_05-03-2026_sm.pdf",
+        "title": "Brucknerhaus Saison 2026/27",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.brucknerhaus.at/programm/veranstaltungen/familienkonzert-im-brucknerfest-grosser-saal-26.09.2026-11-00",
+      "Категорія «childrenAndFamily» обрана як найточніша; додаткові категорії: music, culture."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:divine-matter:https://www.landestheater-linz.at/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/25-divine-matter.png",
+    "imageAlternativeText": "Сучасна танцювальна сцена зі скульптурною тканиною та силуетами у теплому світлі",
+    "payload": {
+      "title": "Divine Matter — прем’єра подвійного танцювального вечора",
+      "summary": "TANZ LINZ відкриває сезон двома роботами про тіло, ритуал, творчість і трансформацію.",
+      "details": "26 вересня у Musiktheater Linz відбудеться прем’єра Divine Matter — подвійного танцювального вечора Drew Jacoby та Stephanie Lake. Worship досліджує архетипні жіночі образи через ритуал і колективну присутність, а Auto Cannibal дивиться на цикли творчого процесу з перспективи митців. Точний час і доступність квитків перевіряйте у календарі театру.",
+      "germanTitle": "Divine Matter — Premiere eines zweiteiligen Tanzabends",
+      "germanSummary": "TANZ LINZ eröffnet die Saison mit zwei Arbeiten über Körper, Ritual, Kreativität und Transformation.",
+      "germanDetails": "Am 26. September feiert Divine Matter im Musiktheater Linz Premiere. Der zweiteilige Tanzabend von Drew Jacoby und Stephanie Lake untersucht Körper, Ritual und kreative Transformation: Worship nähert sich archetypischen Frauenfiguren, Auto Cannibal den Kreisläufen künstlerischer Arbeit. Beginn und Ticketverfügbarkeit bitte im Theaterkalender prüfen.",
+      "city": "Linz",
+      "venue": "Musiktheater Linz",
+      "address": "Am Volksgarten 1, 4020 Linz",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-26T19:30:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Landestheater Linz / TANZ LINZ",
+      "organizerURL": "https://www.landestheater-linz.at/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.landestheater-linz.at/",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Квитки в театр",
+      "externalActionURL": "https://www.landestheater-linz.at/musiktheater/termine?direct=true",
+      "priceKind": "unspecified",
+      "priceNote": "Актуальну вартість перевіряйте на офіційній сторінці.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.landestheater-linz.at/",
+        "title": "Landestheater Linz — Divine Matter",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://abos.landestheater-linz.at/",
+        "title": "Landestheater Linz — Premieren 2026/27",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.landestheater-linz.at/",
+      "Категорія «culture» обрана як найточніша; додаткові категорії: немає.",
+      "Початок 19:30 відповідає вечірньому прем’єрному слоту Musiktheater; перед публікацією редактор має звірити актуальний календар театру."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:king-of-the-lake:https://www.kotl.at/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/26-king-of-the-lake.png",
+    "imageAlternativeText": "Велосипедисти на закритій приозерній дорозі вздовж бірюзового Attersee",
+    "payload": {
+      "title": "King of the Lake — 47,2 км навколо Attersee на швидкість",
+      "summary": "Найбільша в Європі індивідуальна велогонка з роздільним стартом перекриває приозерну дорогу для учасників.",
+      "details": "26 вересня відбудеться 16-й King of the Lake — 47,2-кілометрова гонка навколо Attersee. Учасники стартують індивідуально або командами на повністю контрольованій трасі вздовж озера. Реєстраційне вікно вже закрите; з 1 серпня працює список очікування. Подія цікава також глядачам, але слід враховувати тривалі перекриття доріг у регіоні.",
+      "germanTitle": "King of the Lake — 47,2 Kilometer rund um den Attersee",
+      "germanSummary": "Europas größtes Einzelzeitfahren sperrt die Uferstraße für ein spektakuläres Rennen rund um den See.",
+      "germanDetails": "Am 26. September findet die 16. Ausgabe des King of the Lake statt: 47,2 Kilometer rund um den Attersee, einzeln oder im Team. Das reguläre Anmeldefenster ist geschlossen; seit 1. August gibt es eine Warteliste. Auch für Zuschauer:innen ist das Rennen interessant, rund um den See sind jedoch längere Straßensperren zu beachten.",
+      "city": "Schörfling am Attersee",
+      "venue": "Rundkurs um den Attersee — Start bei der Marina Kammer",
+      "address": "Marina Kammer, 4861 Schörfling am Attersee",
+      "locationNote": "",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-26T12:00:00+02:00",
+      "hasExplicitEndDate": false,
+      "isAllDay": false,
+      "category": "sportsAndWellness",
+      "additionalCategories": [],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "ASVÖ King of the Lake",
+      "organizerURL": "https://www.kotl.at/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.kotl.at/",
+      "participationMode": "externalRegistration",
+      "externalActionTitle": "Офіційна інформація і список очікування",
+      "externalActionURL": "https://www.kotl.at/",
+      "priceKind": "unspecified",
+      "priceNote": "Основна реєстрація завершена; доступний список очікування.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.kotl.at/",
+        "title": "King of the Lake — офіційний сайт",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.steinbach-attersee.at/King_of_the_Lake-_Strassensperre_26_09_2026_1",
+        "title": "Steinbach am Attersee — перекриття 26.09.2026",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.kotl.at/",
+      "Категорія «sportsAndWellness» обрана як найточніша; додаткові категорії: немає.",
+      "Перший учасник досягає Steinbach приблизно о 13:15; стартова зона працює раніше, тому картка використовує 12:00 як початок спортивної події."
+    ],
+    "missingFields": []
+  },
+  {
+    "kind": "event",
+    "idempotencyKey": "manual-oberoesterreich-september-2026:tag-des-denkmals:https://www.tagdesdenkmals.at/",
+    "state": "readyForReview",
+    "imagePath": "DesignAssets/ContentPlanning/2026-08-30/oberoesterreich-september/27-tag-des-denkmals.png",
+    "imageAlternativeText": "Відчинені двері історичної барокової будівлі та відвідувачі на спеціальній екскурсії",
+    "payload": {
+      "title": "Tag des Denkmals — безкоштовно до пам’яток Верхньої Австрії",
+      "summary": "Історичні будівлі й місця, які зазвичай закриті або доступні обмежено, відкривають двері 27 вересня.",
+      "details": "27 вересня по всій Австрії відбудеться Tag des Denkmals під гаслом Denkmale: Wert für alle. У Верхній Австрії заплановані спеціальні екскурсії, відкриття історичних об’єктів і програми про культурну, екологічну та суспільну цінність спадщини. Вхід безкоштовний. Більшість пунктів не потребує реєстрації, але для окремих екскурсій запис відкривається 12 вересня.",
+      "germanTitle": "Tag des Denkmals — Oberösterreichs Kulturerbe kostenlos entdecken",
+      "germanSummary": "Historische Gebäude und Orte, die sonst geschlossen oder nur eingeschränkt zugänglich sind, öffnen am 27. September ihre Türen.",
+      "germanDetails": "Am 27. September findet österreichweit der Tag des Denkmals unter dem Motto Denkmale: Wert für alle statt. In Oberösterreich bieten historische Orte Sonderführungen und Programme zum kulturellen, ökologischen und gesellschaftlichen Wert des Erbes. Der Eintritt ist frei. Meist ist keine Anmeldung nötig; für einzelne Führungen startet sie am 12. September.",
+      "city": "Linz",
+      "venue": "Historische Orte in Oberösterreich",
+      "address": "Oberösterreich",
+      "locationNote": "Оберіть конкретний об’єкт і час у федеральному каталозі програми.",
+      "federalState": "oberoesterreich",
+      "startDate": "2026-09-27T00:00:00+02:00",
+      "endDate": "2026-09-27T23:59:00+02:00",
+      "hasExplicitEndDate": true,
+      "isAllDay": true,
+      "category": "culture",
+      "additionalCategories": [
+        "education"
+      ],
+      "audience": "everyone",
+      "tags": [
+        "Oberösterreich",
+        "September 2026"
+      ],
+      "eventOrganizerName": "Bundesdenkmalamt Österreich",
+      "organizerURL": "https://www.tagdesdenkmals.at/",
+      "contactPhone": "",
+      "contactEmail": "",
+      "contactURL": "https://www.tagdesdenkmals.at/",
+      "participationMode": "externalRegistration",
+      "externalActionTitle": "Програма Верхньої Австрії",
+      "externalActionURL": "https://www.tagdesdenkmals.at/",
+      "priceKind": "free",
+      "priceNote": "Вхід безкоштовний; окремі екскурсії потребують попередньої реєстрації.",
+      "additionalOccurrences": [],
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.tagdesdenkmals.at/",
+        "title": "Bundesdenkmalamt — Tag des Denkmals 2026",
+        "isPrimary": true,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      },
+      {
+        "url": "https://www.bmwkms.gv.at/themen/kunst-und-kultur/sparten/architektur-baukultur/denkmalschutz/tag-des-denkmals.html",
+        "title": "Федеральне міністерство — Tag des Denkmals",
+        "isPrimary": false,
+        "checkedAt": "2026-08-30T12:30:00+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Період, місце й організатора перевірено 2026-08-30T12:30:00+02:00 за офіційною сторінкою: https://www.tagdesdenkmals.at/",
+      "Категорія «culture» обрана як найточніша; додаткові категорії: education."
+    ],
+    "missingFields": []
+  }
+]

@@ -103,6 +103,25 @@ export function validateOrganization(organization, organizationId, targetValue) 
   return organization;
 }
 
+// A regional publisher and a nationwide news audience are separate concepts.
+// Keep the existing strict scope contract unless the caller explicitly selects
+// a verified regional UAC Info organization for an Austria-wide news batch.
+export function validatePublicationOrganization(organization, organizationId, targetValue, items, publisherFederalState) {
+  if (publisherFederalState == null) {
+    return validateOrganization(organization, organizationId, targetValue);
+  }
+  const target = normalizePublicationTarget(targetValue);
+  if (target.regionScope !== "austria" || !Array.isArray(items) || items.length === 0
+    || items.some((item) => item.kind !== "news")) {
+    throw new Error("publisher-federal-state is supported only for Austria-wide news.");
+  }
+  const state = validateFederalState(publisherFederalState);
+  if (organizationId !== `uac-${state}-info`) {
+    throw new Error(`Nationwide news requires the selected regional publisher uac-${state}-info.`);
+  }
+  return validateOrganization(organization, organizationId, state);
+}
+
 export function normalizeAndValidateManifestItem(rawItem, targetValue) {
   const target = normalizePublicationTarget(targetValue);
   if (!rawItem || typeof rawItem !== "object" || Array.isArray(rawItem)) {
@@ -740,6 +759,8 @@ function normalizeNews(item, shared, target) {
   const deTitle = requiredString(item.deTitle, "deTitle", 180);
   const deSubtitle = requiredString(item.deSubtitle, "deSubtitle", 500);
   const deBody = requiredString(item.deBody, "deBody", 50_000);
+  validateNewsBody(body, title, subtitle, "body");
+  validateNewsBody(deBody, deTitle, deSubtitle, "deBody");
   return compactObject({
     ...shared,
     regionScope: target.regionScope,
@@ -756,6 +777,17 @@ function normalizeNews(item, shared, target) {
       ?? shared.sources.find((source) => source.isPrimary).title,
     externalAction: normalizeExternalAction(item, shared.canonicalURL),
   });
+}
+
+function validateNewsBody(body, title, subtitle, field) {
+  const normalizedBody = normalizeDedupeText(body);
+  if ([title, subtitle].some((value) => normalizedBody === normalizeDedupeText(value))) {
+    throw new Error(`${field} must contain the full article, not only its title or subtitle.`);
+  }
+  const linksOnly = body.replace(/\[[^\]]*\]\((https?:\/\/[^)]+)\)/g, "$1");
+  if (/^(?:https?:\/\/\S+\s*)+$/i.test(linksOnly.trim())) {
+    throw new Error(`${field} must contain the full article, not only source links.`);
+  }
 }
 
 function normalizeEvent(item, shared, target) {

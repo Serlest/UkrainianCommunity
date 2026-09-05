@@ -1,0 +1,250 @@
+[
+  {
+    "idempotencyKey": "event:https://www.altemusik.at/de/veranstaltungen/ottavio-plus#2026-08-29",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Ottavio plus — бароковий фінал у замку Амбрас",
+      "summary": "Оттавіо Дантоне й Джованні Антоніні завершують фестиваль програмою Кореллі, Телемана та Баха.",
+      "details": "Фінальний вечір Фестивалю старовинної музики Інсбрука відбудеться в Іспанській залі замку Амбрас. Клавесиніст Оттавіо Дантоне та блокфлейтист Джованні Антоніні разом з ансамблем виконають барокову програму з творів Кореллі, Телемана, Баха та інших композиторів. За годину до концерту передбачена вступна розповідь. Орієнтовна тривалість — 2 години 15 хвилин з однією антрактною перервою.",
+      "city": "Innsbruck",
+      "venue": "Schloss Ambras Innsbruck, Spanischer Saal",
+      "address": "Schlossstraße 20, 6020 Innsbruck",
+      "locationNote": "Вступ до програми починається о 19:00, концерт — о 20:00.",
+      "eventOrganizerName": "Innsbrucker Festwochen der Alten Musik",
+      "organizerURL": "https://www.altemusik.at/",
+      "contactURL": "https://www.altemusik.at/de/veranstaltungen/ottavio-plus",
+      "federalState": "tirol",
+      "startDate": "2026-08-29T20:00:00+02:00",
+      "endDate": "2026-08-29T22:15:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": ["culture"],
+      "audience": "everyone",
+      "tags": ["Innsbruck", "бароко", "класична музика", "Schloss Ambras"],
+      "germanTitle": "Ottavio plus — barockes Festivalfinale auf Schloss Ambras",
+      "germanSummary": "Ottavio Dantone und Giovanni Antonini beschließen das Festival mit Werken von Corelli, Telemann und Bach.",
+      "germanDetails": "Das Finale der Innsbrucker Festwochen der Alten Musik findet im Spanischen Saal von Schloss Ambras statt. Der Cembalist Ottavio Dantone und der Blockflötist Giovanni Antonini präsentieren gemeinsam mit dem Ensemble ein Barockprogramm mit Werken von Corelli, Telemann, Bach und weiteren Komponisten. Eine Stunde vor Konzertbeginn gibt es eine Einführung. Die ungefähre Dauer beträgt 2 Stunden 15 Minuten inklusive einer Pause.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Купити квиток",
+      "externalActionURL": "https://shop.altemusik.at/de/buyingflow/tickets/15163/24443",
+      "priceKind": "range",
+      "price": 30,
+      "maximumPrice": 87,
+      "priceNote": "Офіційні категорії: 30–87 євро. Продаж відбувається у квитковій системі організатора.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.altemusik.at/de/veranstaltungen/ottavio-plus",
+        "title": "Ottavio plus — Innsbrucker Festwochen der Alten Musik",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      },
+      {
+        "url": "https://www.haus-der-musik-innsbruck.at/",
+        "title": "Haus der Musik Innsbruck — Programmhinweis",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, початок, тривалість, антракт, вступ, місце, виконавці, програма та ціни звірені з офіційною сторінкою фестивалю.",
+      "Основна категорія music відображає концерт; culture додана як самостійний контекст фестивалю старовинної музики.",
+      "Квиткова кнопка веде безпосередньо до офіційної каси організатора; UAC не продає квитки."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/event-ottavio-plus.png",
+    "imageAlternativeText": "Бароковий ансамбль із клавесином виступає в історичній палацовій залі"
+  },
+  {
+    "idempotencyKey": "event:https://www.altemusik.at/de/veranstaltungen/finalkonzert-17-cestiwettbewerb#2026-08-30",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "Фінальний концерт 17-го конкурсу Честі",
+      "summary": "Фіналісти міжнародного конкурсу барокової опери виступлять з ансамблем Los Elementos.",
+      "details": "У Великій залі Haus der Musik відбудеться фінал 17-го Міжнародного конкурсу барокового оперного співу імені П'єтро Антоніо Честі. Найкращі молоді співаки конкурсу вийдуть на сцену разом з ансамблем Los Elementos під керівництвом Альберто Мігелеса Роуко. Вечір триватиме приблизно 4 години та матиме дві перерви.",
+      "city": "Innsbruck",
+      "venue": "Haus der Musik Innsbruck, Großer Saal",
+      "address": "Universitätsstraße 1, 6020 Innsbruck",
+      "eventOrganizerName": "Innsbrucker Festwochen der Alten Musik",
+      "organizerURL": "https://www.altemusik.at/",
+      "contactURL": "https://www.altemusik.at/de/veranstaltungen/finalkonzert-17-cestiwettbewerb",
+      "federalState": "tirol",
+      "startDate": "2026-08-30T19:00:00+02:00",
+      "endDate": "2026-08-30T23:00:00+02:00",
+      "isAllDay": false,
+      "category": "music",
+      "additionalCategories": ["culture"],
+      "audience": "everyone",
+      "tags": ["Innsbruck", "барокова опера", "вокальний конкурс", "Haus der Musik"],
+      "germanTitle": "Finalkonzert des 17. Cesti-Wettbewerbs",
+      "germanSummary": "Die Finalistinnen und Finalisten des internationalen Barockopern-Wettbewerbs treten mit Los Elementos auf.",
+      "germanDetails": "Im Großen Saal des Hauses der Musik findet das Finale des 17. Internationalen Gesangswettbewerbs für Barockoper Pietro Antonio Cesti statt. Die besten jungen Stimmen des Wettbewerbs musizieren mit dem Ensemble Los Elementos unter der Leitung von Alberto Miguélez Rouco. Der Abend dauert ungefähr 4 Stunden und umfasst zwei Pausen.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Купити квиток",
+      "externalActionURL": "https://shop.altemusik.at/de/buyingflow/tickets/15164/24444",
+      "priceKind": "exact",
+      "price": 38,
+      "priceNote": "Ціна на офіційній сторінці — 38 євро. Продаж здійснює організатор.",
+      "publicationMode": "now"
+    },
+    "sources": [
+      {
+        "url": "https://www.altemusik.at/de/veranstaltungen/finalkonzert-17-cestiwettbewerb",
+        "title": "Finalkonzert 17. Cesti-Wettbewerb",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      },
+      {
+        "url": "https://www.haus-der-musik-innsbruck.at/",
+        "title": "Haus der Musik Innsbruck — Veranstaltungshinweis",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата, час, чотиригодинна тривалість, дві перерви, зал, учасники та ціна звірені з офіційною сторінкою фестивалю.",
+      "Haus der Musik незалежно підтверджує дату, час, місце, організатора та ціну.",
+      "Основна категорія music обрана для концертного фіналу; culture позначає оперно-фестивальний контекст."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/event-cesti-final.png",
+    "imageAlternativeText": "Молоді оперні співаки вклоняються разом із бароковим ансамблем у концертній залі"
+  },
+  {
+    "idempotencyKey": "event:https://www.landestheater.at/produktionen/codeborn#2026-09-19",
+    "kind": "event",
+    "state": "needsAttention",
+    "payload": {
+      "title": "Codeborn — музичний технотрилер про світ під контролем ШІ",
+      "summary": "Австрійська прем'єра сучасного музичного театру про нагляд, алгоритми та свободу людини.",
+      "details": "У суспільстві Benthos штучний інтелект контролює повсякденне життя, а людська поведінка постійно оцінюється. Коли Гай і Нур стикаються з межами цієї системи, технологічна утопія перетворюється на трилер про маніпуляцію, нагляд і особисту свободу. Англомовна вистава супроводжується німецькими субтитрами. Перед прем'єрою 19 вересня о 19:10 відбудеться вступ; після показу заплановане відкрите святкування прем'єри.",
+      "city": "Innsbruck",
+      "venue": "Kammerspiele, Tiroler Landestheater",
+      "address": "Universitätsstraße 1, 6020 Innsbruck",
+      "locationNote": "Вступ перед прем'єрою: 19 вересня о 19:10. Мова вистави — англійська, німецькі субтитри.",
+      "eventOrganizerName": "Tiroler Landestheater und Orchester GmbH Innsbruck",
+      "organizerURL": "https://www.landestheater.at/",
+      "contactURL": "https://www.landestheater.at/produktionen/codeborn",
+      "federalState": "tirol",
+      "startDate": "2026-09-19T19:30:00+02:00",
+      "endDate": "2026-09-19T20:30:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": ["music"],
+      "audience": "everyone",
+      "minimumAge": 14,
+      "tags": ["Innsbruck", "музичний театр", "штучний інтелект", "Klangspuren"],
+      "germanTitle": "Codeborn — Musiktheater-Thriller über eine KI-gesteuerte Welt",
+      "germanSummary": "Österreichische Erstaufführung über Überwachung, Algorithmen und menschliche Freiheit.",
+      "germanDetails": "In der Gesellschaft Benthos steuert künstliche Intelligenz den Alltag, während menschliches Verhalten permanent bewertet wird. Als Guy und Nur an die Grenzen des Systems geraten, wird die technologische Utopie zum Thriller über Manipulation, Überwachung und persönliche Freiheit. Die Aufführung ist in englischer Sprache mit deutschen Übertiteln. Vor der Premiere gibt es am 19. September um 19:10 Uhr eine Einführung; anschließend ist eine öffentliche Premierenfeier angekündigt.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Купити квиток",
+      "externalActionURL": "https://shop.landestheater.at/de/buyingflow/tickets/15877/26168",
+      "priceKind": "exact",
+      "price": 32,
+      "priceNote": "Ціна першого показу на офіційній сторінці — 32 євро. Для інших дат перевірте актуальну категорію у касі театру.",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {"startDate": "2026-09-26T19:30:00+02:00", "endDate": "2026-09-26T20:30:00+02:00", "isAllDay": false},
+        {"startDate": "2026-09-27T19:30:00+02:00", "endDate": "2026-09-27T20:30:00+02:00", "isAllDay": false},
+        {"startDate": "2026-10-02T20:00:00+02:00", "endDate": "2026-10-02T21:00:00+02:00", "isAllDay": false},
+        {"startDate": "2026-10-03T19:30:00+02:00", "endDate": "2026-10-03T20:30:00+02:00", "isAllDay": false},
+        {"startDate": "2026-10-04T19:30:00+02:00", "endDate": "2026-10-04T20:30:00+02:00", "isAllDay": false}
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.landestheater.at/produktionen/codeborn",
+        "title": "Codeborn — Tiroler Landestheater",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      },
+      {
+        "url": "https://klangspuren.at/festival/festival-programm/festival-detail/codeborn/",
+        "title": "Codeborn — Klangspuren Schwaz",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дата прем'єри, усі шість сеансів, вступ, місце, мова, субтитри, вікове обмеження, ціна та партнерство звірені з офіційними сторінками театру й Klangspuren.",
+      "Klangspuren зазначає тривалість 60 хвилин, тоді як Tiroler Landestheater ще пише, що тривалість не оголошена. Через це чернетка потребує ручного підтвердження перед публікацією.",
+      "Основна категорія culture відповідає музичному театру; music додана через композиторську та фестивальну складову."
+    ],
+    "missingFields": ["підтвердити тривалість вистави у Tiroler Landestheater"],
+    "imagePath": "functions/content-planning/assets/2026-08-29/event-codeborn.png",
+    "imageAlternativeText": "Темна сцена сучасного музичного театру з електронними інструментами та світловою сіткою"
+  },
+  {
+    "idempotencyKey": "event:https://www.landestheater.at/produktionen/the-rocky-horror-show#2026-09-25",
+    "kind": "event",
+    "state": "readyForReview",
+    "payload": {
+      "title": "The Rocky Horror Show повертається до Інсбрука",
+      "summary": "Культовий рок-мюзикл знову на великій сцені Tiroler Landestheater.",
+      "details": "Tiroler Landestheater повертає на сцену культовий рок-мюзикл Річарда О'Браєна. Вистава йде німецькою мовою, пісні виконуються англійською. Тривалість — приблизно 2 години 20 хвилин. Рекомендований вік — від 14 років. Окрім показу 25 вересня, підтверджені вистави 9 і 11 жовтня, 10, 13 і 30 грудня, а також 3 січня і 10 лютого. Ще один показ оголошено на 19 лютого 2027 року о 19:30, але час завершення поки не опублікований.",
+      "city": "Innsbruck",
+      "venue": "Tiroler Landestheater, Großes Haus",
+      "address": "Rennweg 2, 6020 Innsbruck",
+      "locationNote": "Німецька мова, пісні англійською. Рекомендовано від 14 років.",
+      "eventOrganizerName": "Tiroler Landestheater und Orchester GmbH Innsbruck",
+      "organizerURL": "https://www.landestheater.at/",
+      "contactURL": "https://www.landestheater.at/produktionen/the-rocky-horror-show",
+      "federalState": "tirol",
+      "startDate": "2026-09-25T19:30:00+02:00",
+      "endDate": "2026-09-25T21:50:00+02:00",
+      "isAllDay": false,
+      "category": "culture",
+      "additionalCategories": ["music"],
+      "audience": "everyone",
+      "minimumAge": 14,
+      "tags": ["Innsbruck", "мюзикл", "рок-музика", "Tiroler Landestheater"],
+      "germanTitle": "The Rocky Horror Show kehrt nach Innsbruck zurück",
+      "germanSummary": "Das Kult-Rockmusical ist wieder auf der großen Bühne des Tiroler Landestheaters zu sehen.",
+      "germanDetails": "Das Tiroler Landestheater bringt Richard O'Briens Kult-Rockmusical zurück auf die Bühne. Gespielt wird auf Deutsch, die Songs bleiben englisch. Die Aufführung dauert ungefähr 2 Stunden 20 Minuten und wird ab 14 Jahren empfohlen. Neben dem 25. September sind Vorstellungen am 9. und 11. Oktober, am 10., 13. und 30. Dezember sowie am 3. Jänner und 10. Februar bestätigt. Eine weitere Vorstellung ist für den 19. Februar 2027 um 19:30 Uhr angekündigt; die Endzeit ist noch nicht veröffentlicht.",
+      "participationMode": "externalTickets",
+      "externalActionTitle": "Купити квиток",
+      "externalActionURL": "https://shop.landestheater.at/de/buyingflow/tickets/15852/25922",
+      "priceKind": "range",
+      "price": 14,
+      "maximumPrice": 74,
+      "priceNote": "Для першого показу офіційно вказано категорії від 14 до 74 євро; для наступних дат ціни можуть відрізнятися.",
+      "publicationMode": "now",
+      "additionalOccurrences": [
+        {"startDate": "2026-10-09T19:30:00+02:00", "endDate": "2026-10-09T21:50:00+02:00", "isAllDay": false},
+        {"startDate": "2026-10-11T18:00:00+02:00", "endDate": "2026-10-11T20:20:00+02:00", "isAllDay": false},
+        {"startDate": "2026-12-10T19:30:00+01:00", "endDate": "2026-12-10T21:50:00+01:00", "isAllDay": false},
+        {"startDate": "2026-12-13T19:00:00+01:00", "endDate": "2026-12-13T21:20:00+01:00", "isAllDay": false},
+        {"startDate": "2026-12-30T19:30:00+01:00", "endDate": "2026-12-30T21:50:00+01:00", "isAllDay": false},
+        {"startDate": "2027-01-03T18:00:00+01:00", "endDate": "2027-01-03T20:20:00+01:00", "isAllDay": false},
+        {"startDate": "2027-02-10T19:30:00+01:00", "endDate": "2027-02-10T21:50:00+01:00", "isAllDay": false}
+      ]
+    },
+    "sources": [
+      {
+        "url": "https://www.landestheater.at/produktionen/the-rocky-horror-show",
+        "title": "The Rocky Horror Show — Tiroler Landestheater",
+        "isPrimary": true,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      },
+      {
+        "url": "https://www.innsbruck.info/en/events/e/122167402.html",
+        "title": "The Rocky Horror Show — Innsbruck.info",
+        "isPrimary": false,
+        "checkedAt": "2026-08-29T10:39:37+02:00"
+      }
+    ],
+    "verificationNotes": [
+      "Дати, час, тривалість, мова, вікове обмеження, місце та ціни звірені з офіційною сторінкою Tiroler Landestheater.",
+      "Innsbruck.info незалежно підтверджує опубліковані дати, час і організатора.",
+      "Показ 19 лютого 2027 року залишено в тексті без структурованого сеансу, бо офіційний час завершення ще не вказаний.",
+      "Основна категорія culture відповідає театральній постановці; music додана через формат рок-мюзиклу."
+    ],
+    "missingFields": [],
+    "imagePath": "functions/content-planning/assets/2026-08-29/event-rocky-horror-show.png",
+    "imageAlternativeText": "Яскравий рок-мюзикл на великій театральній сцені в червоно-фіолетовому світлі"
+  }
+]

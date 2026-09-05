@@ -6,10 +6,10 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { deleteDoc, doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { readFileSync } from "node:fs";
 
-const PROJECT_ID = "ukrainian-community-push-registration-rules";
+const PROJECT_ID = "demo-ukrainian-community-push-registration-rules";
 const RULES_PATH = "../../Firebase/firestore.rules";
 const FIREBASE_INSTALLATION_ID = "a123456789012345678901";
 
@@ -55,6 +55,61 @@ function registration(overrides = {}) {
     updatedAt: serverTimestamp(),
     ...overrides,
   };
+}
+
+for (const platform of ["ios", "android"]) {
+  describe(`${platform} preserves push-registration security gates`, () => {
+    const reference = (db, uid = "verified-user") => doc(db, "users", uid, "notificationPushTokens", "registration-doc");
+
+    test("accepts token and FID registrations, including the maximum token length", async () => {
+      const db = authenticated();
+      for (const fields of [{registrationType: "token"}, {token: "x".repeat(4096)},
+        {token: FIREBASE_INSTALLATION_ID, registrationType: "fid"}]) {
+        await assertSucceeds(setDoc(reference(db), registration({platform, ...fields})));
+      }
+    });
+
+    test("rejects foreign uid, unverified, unknown platform/type and oversized/empty tokens", async () => {
+      const db = authenticated();
+      await assertFails(setDoc(reference(db, "another-user"), registration({platform})));
+      await assertFails(setDoc(reference(authenticated(false)), registration({platform})));
+      for (const fields of [{platform: "web"}, {platform: "Android"}, {registrationType: "unknown"},
+        {token: ""}, {token: "x".repeat(4097)}, {token: 123}, {id: "different"},
+        {extra: true}, {updatedAt: "now"}, {createdAt: "now"}]) {
+        await assertFails(setDoc(reference(db), registration({platform, ...fields})));
+      }
+    });
+
+    test("keeps protected owner TOTP and account-status restrictions", async () => {
+      for (const status of ["suspendedUntil", "bannedPermanent", "deactivated"]) {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+          await setDoc(doc(context.firestore(), "users", "verified-user"), {
+            globalRole: "user", accountStatus: status, blockState: status,
+          });
+        });
+        await assertFails(setDoc(reference(authenticated()), registration({platform})));
+      }
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await setDoc(doc(context.firestore(), "users", "verified-user"), {
+          globalRole: "owner", accountStatus: "active", blockState: "active", requiresMultiFactorAuth: true,
+        });
+      });
+      await assertFails(setDoc(reference(authenticated()), registration({platform})));
+      const totp = testEnv.authenticatedContext("verified-user", {
+        email_verified: true, firebase: {sign_in_second_factor: "totp"},
+      }).firestore();
+      await assertSucceeds(setDoc(reference(totp), registration({platform})));
+    });
+
+    test("allows only self cleanup without reading private device registrations", async () => {
+      const db = authenticated();
+      await assertSucceeds(setDoc(reference(db), registration({platform})));
+      await assertFails(getDoc(reference(db)));
+      const foreign = testEnv.authenticatedContext("another-user", {email_verified: true}).firestore();
+      await assertFails(deleteDoc(reference(foreign)));
+      await assertSucceeds(deleteDoc(reference(authenticated(false))));
+    });
+  });
 }
 
 describe("push registration schema compatibility", () => {
