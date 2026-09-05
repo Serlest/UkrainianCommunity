@@ -112,3 +112,90 @@ Markdown-to-resource generation and diff inspection were performed.
 - During separately authorized external work: read back the website, Firestore
   and deployed compatibility before release; App Privacy/physical-device gates
   remain with the release task. None are claimed complete here.
+
+## Scoped publisher added during coordinator validation
+
+`scripts/publish_privacy_2026_13.py` is the narrow Firestore publisher. It uses
+Python's standard library and the existing external `control.py` authentication
+helper. No SDK installation, server ports or simulator are needed. Project and
+`(default)` database are fixed to `ukrainiancommunity-dbd5f`; there is no project,
+version or force override.
+
+Default execution is read-only against Firestore and creates a new local JSON
+review plan. It reads the three legal pointers and **all** their version documents
+with pagination. The plan contains only hashes/technical metadata, never tokens,
+actor identities, or full policy bodies. No acceptance or analytics collections
+are read or written. Existing plan files are never overwritten.
+
+Commands below are relative to the coordinator's integrated checkout. First run
+read-only dry-run; inspect the saved plan and the source/website/bundle diff:
+
+```sh
+python3 scripts/publish_privacy_2026_13.py --plan work/privacy-2026.13-plan.json
+```
+
+The helper defaults to the read-only authentication module supplied by the
+coordinator at
+`/Users/serlest/Documents/Codex/2026-09-04/new-chat/production-release/control.py`.
+`--control PATH` supports a relocated copy with the same request API and fixed
+project. Authentication is performed by that helper; credentials are never saved
+in the plan. Do not commit private authentication helpers or generated plans.
+
+Only the coordinator, after common verification and publication authorization,
+should execute the explicit apply command:
+
+```sh
+python3 scripts/publish_privacy_2026_13.py --apply --plan work/privacy-2026.13-plan.json
+```
+
+Before sending a write it regenerates and compares the complete plan: locale
+source hashes, privacy bundle, generated website, manifest privacy definition,
+active pointer update time and every historical document fingerprint. Source
+header dates must match the manifest. The effective date must be today's date in
+Vienna at apply time. If dates or inputs change, reconcile and create a new plan
+at a new path. This is preparation, not automatic date adjustment or permission.
+
+There is exactly one atomic Firestore commit containing two writes:
+
+1. Create `legalDocuments/privacy/versions/2026.13` with `exists: false`, full
+   bilingual text and content hashes, supersedesVersion 2026.12, false acceptance,
+   and server publication/creation/update timestamps.
+2. Update only the named privacy pointer fields with its reviewed `updateTime`
+   precondition. An update mask preserves any unrelated pointer fields.
+
+After the attempt it makes one read-back pass, verifies both locale hashes and
+version/pointer payloads, and compares every prior version and the other legal
+pointers with the plan. This verifies preservation of 2026.12 and earlier privacy
+versions, as well as terms/organization versions. There are no other write paths.
+A concurrent unrelated legal change causes verification to fail, not an automatic
+rollback or a claim that the publisher caused that change.
+
+A lost commit response never causes a write retry. If the one read-back proves
+success, the result explicitly says `verified-after-uncertain-response`. Otherwise
+it exits with publication unconfirmed. Use the **same** plan for read-only recovery:
+
+```sh
+python3 scripts/publish_privacy_2026_13.py --verify --plan work/privacy-2026.13-plan.json
+```
+
+Do not rerun apply to resolve ambiguity. An existing 2026.13 is never overwritten.
+Keep the plan and the successful output (including publishedAt and DE/UK hashes)
+with release evidence. No website upload, Function deploy, Apple change or consent
+migration is included; their existing coordination gates still apply.
+
+Validation performed here, limited to this publisher:
+
+- 10 offline tests passed using in-memory Firestore responses. Cases cover the
+  default CLI's lack of writes, create/CAS envelope, stale plans, existing target,
+  project/input mismatch, date guard, preservation, locale tampering, CAS conflict
+  and lost response recovery. Command:
+  `python3 -m unittest discover -s scripts -p test_publish_privacy_2026_13.py -v`.
+- Read-only production schema inspection and a live **dry-run only** succeeded.
+  Active privacy was 2026.12, target 2026.13 absent; 26 legal documents were
+  fingerprinted. New locale hashes: DE
+  `e131a66168ffc0d0c514314fc3461a0dfd449359f50587e4ed7360f81e26b9b9`, UK
+  `43b729625d0f7fae044460f247a156954d99f6e1efa58e23fe1c7e2ce3bf734c`.
+- No production commit/apply, deploy, simulator or server process was executed.
+  Offline fake transport tests do not prove production write permission or
+  successful publication. The coordinator must create a fresh review plan in the
+  integrated checkout before applying; the task's dry-run plan is local evidence.
