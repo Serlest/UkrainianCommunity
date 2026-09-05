@@ -147,3 +147,38 @@ Primary references used to prepare the request shapes:
   required upload hashes and version-scoped upload URL.
 - [Create a release](https://firebase.google.com/docs/reference/hosting/rest/v1beta1/sites.releases/create):
   versionName query parameter, channel parent and absence of a CAS parameter.
+
+## GET-only diagnostic helper after finalize-intent interruption
+
+The coordinator's attempt for candidate
+`sites/ukrainiancommunity-dbd5f/versions/289d3fbeb1ea99d4` stopped with a generic
+exception while its journal still said `finalize-intent`. That phase covers the
+PATCH response and subsequent inventory/baseline reads until release-intent; it
+alone does not identify the failing operation or prove finalize failed.
+
+On subsequent GET-only inspection, candidate status was FINALIZED, fileCount 15,
+all ACTIVE file hashes and config matched the reviewed plan, and the original
+version inventory was unchanged. At the helper's live-release read, the baseline
+was still live. This is a point-in-time diagnosis, not the coordinator's later
+release result. No original traceback was saved, so the original cause remains
+unconfirmed (a transport/JSON/schema error cannot be distinguished retrospectively).
+Do not attribute it to any one of those possibilities without evidence.
+
+Use the new helper on any existing state, without repeating apply or finalize:
+
+```sh
+python3 scripts/diagnose_privacy_hosting_2026_13.py --plan PATH_TO_ORIGINAL_PLAN --state PATH_TO_ORIGINAL_STATE
+```
+
+It issues only GET requests. Its transport rejects every other method and any
+upload before reaching the network. It does not update the local journal. It
+reports candidate metadata, exact candidate-map comparison, baseline preservation,
+current release identity and public HTML hash. Independent reads continue when
+one stage fails, with a separate error entry per stage.
+
+Error output contains exception class, allowlisted missing schema key, HTTP
+status, JSON line/column or OS errno where applicable, plus file/line/function
+locations. Raw exception messages, response text, account objects, credentials
+and local variables are never printed. Four offline safety tests passed. This
+improves future diagnosis; it does not recover the suppressed original exception.
+Only the coordinator may decide how to release the already finalized candidate.
