@@ -55,8 +55,8 @@
     }
   },
   "unresolvedReleaseBlocks": [
-    "1.0.3 (69): final operator release/content-rights confirmation remains required for this candidate; build 68 submission authorization does not authorize build 69 or public publication.",
-    "1.0.3 (69): installed final-build accepted/rejected comment smoke remains open; historical server probes do not prove this candidate."
+    "1.0.3 (69): one held event and final operator content/image-rights confirmation remain open; three German event translations have publication/read-back proof. Agreed external work is authorized; public App Store publication is outside the current scope.",
+    "1.0.3 (69): installed final-build live accepted/rejected comment smoke remains open; local UI/SDK and historical production probes do not close this gate."
   ],
   "releaseRecommendations": [
     "qualified Austrian legal review before launch and after material legal changes"

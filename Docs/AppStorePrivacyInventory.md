@@ -2,7 +2,15 @@
 
 Historical archive and authenticated App Privacy UI verification: 2026-09-02, version 1.0.1 (65). The 30 archive privacy manifests are unchanged from build 64. See `Docs/PrivacyPublication-2026-09-02.md`, `Docs/Build65ReleaseReadiness-2026-09-02.md` and the ignored release evidence `build65-privacy-readback.md`.
 
-Current candidate: 1.0.3 (69), implementation only. Build 68 release evidence is in `Docs/Build68Release-2026-09-04.md`. On 2026-09-05 the available browser redirected to Apple login (`authResult=FAILED`); current questionnaire answers remain unverified. No answers or metadata were changed. See `Docs/ReleaseChecklist-1.0.3.md`.
+Current candidate: 1.0.3 (69), shared Simulator verification completed. See
+`Docs/ReleaseChecklist-1.0.3.md` and `Docs/ReleaseEvidence-1.0.3.json`. Release
+Simulator bundle contains 30 privacy manifests and 14 categories; every manifest
+matches the retained build 68 archive byte-for-byte. First-party UserDefaults
+CA92.1 and SDK required reasons are unchanged. This is not final signed-archive
+or runtime collection proof. Privacy2026.13 Functions/Firestore/Hosting publication
+and hashes are verified. On 2026-09-05 the available Apple browser redirected to
+login (`authResult=FAILED`); current questionnaire answers remain unverified.
+No answers or Apple metadata were changed by this task.
 
 This inventory is a release aid, not a substitute for the answers entered in App Store Connect. Recheck it whenever data flows or third-party SDKs change. Apple requires the App Store privacy answers to include the practices of third-party partners.
 
@@ -61,8 +69,8 @@ The client does not request Core Location permission or read the device's locati
 - Only active, email-verified platform `owner` and `admin` accounts can obtain the sanitized online/last-seen result through `getManagedUserPresence`. Organization ownership, administration and moderation do not grant access. All direct client reads and writes are denied, including self reads.
 - Storage is `users/{uid}/privatePresence/current`: one last-confirmed server timestamp and at most 32 random per-process/account session markers (sequence, active flag, server timestamp). No device identifiers, visited screens, content, location or historical activity timeline are recorded. Old session markers are pruned on subsequent updates after ten minutes; the last-seen timestamp persists until account deletion. Recursive account deletion removes the document; inactive/deleting/missing profiles cannot write new markers.
 - The client sends only while authenticated and foreground-active, approximately every 90 seconds, plus transitions. It does not persist an offline queue. The server online lease expires 180 seconds after the last confirmed active signal if no new active signal arrives; an ordinary sign-out may also rely on expiry because the original credential is no longer available. The detail screen polls every 30 seconds while active. This is approximate presence, not proof of attendance or an exact disconnect timestamp.
-- Prepared privacy policy 2026.13, section 18, describes this separate administrative purpose and its legitimate-interest basis, restricted recipients, approximation, retention and right to object. Existing analytics opt-in is not consent for presence. Analytics disclosure 2026-08-25.1 remains unchanged; existing receipts retain their original privacy version. New choices in the prepared client reference 2026.13. The server compatibility update must precede that client release. Terms and organization rules also remain 2026.10.
-- App Store category remains account-linked Product Interaction, App Functionality, no tracking, already present in the app privacy manifest. Verify the live App Store Connect answers before release; the manifest does not publish those answers. The 1.0.3 package corrects the description of existing timing, without adding presence processing. Website/Firestore publication and App Privacy account verification remain pending with the release coordinator; the manifest is not evidence of publication.
+- Published privacy policy 2026.13, section 18, describes this separate administrative purpose and its legitimate-interest basis, restricted recipients, approximation, retention and right to object. The bilingual correction is published with Firestore/Hosting hash read-back. Existing analytics opt-in is not consent for presence; existing receipts retain their original privacy version and analytics disclosure 2026-08-25.1 is unchanged. New client choices reference 2026.13; the three compatible server functions are deployed and verified. Terms and organization rules remain 2026.10.
+- App Store category remains account-linked Product Interaction, App Functionality, no tracking, already present in the app privacy manifest. Verify the live App Store Connect answers before release; the manifest does not publish those answers. This package corrects the description of existing timing without adding presence processing. TestFlight notes should describe this correction and link the updated policy. App Privacy account verification remains open.
 
 ## Personal organization hiding (build 65)
 

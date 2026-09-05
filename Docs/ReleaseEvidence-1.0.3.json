@@ -1,0 +1,202 @@
+{
+  "scope": "Sanitized dated evidence summary for 1.0.3 (69), read from coordinator artifacts; not a new test run or final independent audit.",
+  "date": "2026-09-05",
+  "sourceState": {
+    "integrationHead": "21126fea721952a00730a79554b4c6074fd06611",
+    "appCodeEquivalentTo": "0172860dbfa0f61aef9626eb1b825d4a25436632",
+    "serverRuntimeEquivalentTo": "0681aa0540a8557a57f8c49f9f295bc5266784f2",
+    "staticGitComparison": "No diff for UkrainianCommunity/, UkrainianCommunity.xcodeproj/, UkrainianCommunity-Info.plist against app commit; no diff for functions/src/, package.json and package-lock.json against server commit. Original source-map artifact has older integrationHead 53bb1ad; refreshed by direct Git reading at 21126fe."
+  },
+  "tests": {
+    "iosUnit": {
+      "result": "Passed",
+      "passedTests": 414,
+      "failedTests": 0,
+      "skippedTests": 2,
+      "totalTestCount": 416
+    },
+    "iosUI": {
+      "result": "Passed",
+      "passedTests": 50,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "totalTestCount": 50
+    },
+    "uiExecutions": 53,
+    "actualSDK": [
+      {
+        "scenario": "timestamp cursor",
+        "result": "Passed",
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0
+      },
+      {
+        "scenario": "Auth/content/media/account lifecycle",
+        "result": "Passed",
+        "passedTests": 1,
+        "failedTests": 0,
+        "skippedTests": 0
+      }
+    ],
+    "sdkScope": "Actual iOS SDK against isolated local emulators; not production SDK canary or physical device. Two SDK cases excluded from general unit run were run separately.",
+    "server": {
+      "sha": "0681aa0540a8557a57f8c49f9f295bc5266784f2",
+      "build": "PASS",
+      "lint": "PASS",
+      "functionsUnit": {
+        "pass": 392,
+        "skip": 67,
+        "fail": 0,
+        "total": 459
+      },
+      "integrations": {
+        "pass": 74,
+        "skip": 0,
+        "fail": 0,
+        "runs": 21
+      },
+      "rulesCommon": {
+        "pass": 172,
+        "skip": 0,
+        "fail": 0
+      },
+      "rulesIOSAdapted": {
+        "pass": 169,
+        "skip": 0,
+        "fail": 0
+      },
+      "prodAudit": {
+        "moderate": 0,
+        "high": 0,
+        "critical": 0,
+        "total": 0
+      },
+      "validatorFixtures": {
+        "pass": 28
+      }
+    },
+    "releaseSimulatorBuild": "Existing log ends BUILD SUCCEEDED; 1.0.3 (69), minimum iOS 17, 30 manifests / 14 categories; unchanged vs archive 68. Not signed device archive."
+  },
+  "privacyPublication": {
+    "version": "2026.13",
+    "result": "published-and-verified",
+    "publishedAt": "2026-09-05T17:26:45.364Z",
+    "localeHashes": {
+      "de": "e131a66168ffc0d0c514314fc3461a0dfd449359f50587e4ed7360f81e26b9b9",
+      "uk": "43b729625d0f7fae044460f247a156954d99f6e1efa58e23fe1c7e2ce3bf734c"
+    },
+    "preservedDocumentCount": 25,
+    "functions": [
+      {
+        "name": "trackAnalyticsEvent",
+        "verified": true,
+        "checks": {
+          "stateActive": true,
+          "entryPoint": true,
+          "nonSourceBuild": true,
+          "serviceSettings": true,
+          "sourceEntriesExact": true,
+          "function-iam": true,
+          "run-iam": true,
+          "runTemplateExceptRevisionImage": true
+        }
+      },
+      {
+        "name": "updateAnalyticsConsent",
+        "verified": true,
+        "checks": {
+          "stateActive": true,
+          "entryPoint": true,
+          "nonSourceBuild": true,
+          "serviceSettings": true,
+          "sourceEntriesExact": true,
+          "function-iam": true,
+          "run-iam": true,
+          "runTemplateExceptRevisionImage": true
+        }
+      },
+      {
+        "name": "updateAnalyticsConsentV2",
+        "verified": true,
+        "checks": {
+          "stateActive": true,
+          "entryPoint": true,
+          "nonSourceBuild": true,
+          "serviceSettings": true,
+          "sourceEntriesExact": true,
+          "function-iam": true,
+          "run-iam": true,
+          "runTemplateExceptRevisionImageAndExactNewProviderIdentityLabels": true
+        }
+      }
+    ],
+    "otherFunctionsUnchangedAtPrivacyReadback": 118,
+    "globalAppCheckUnchanged": true,
+    "authenticatedProductionCanary": false,
+    "hosting": {
+      "phase": "verified",
+      "time": "2026-09-05T17:30:40.164Z",
+      "htmlHash": "014f47ba8e18df18135fffeb27c27df93553fcb84785ce7719dc908b178e803d",
+      "locales": [
+        "de",
+        "uk"
+      ],
+      "fileCount": 15,
+      "unchangedOtherFiles": 14
+    },
+    "readback": "Hosting helper verifies live version and live HTML hash; Firestore active version and locale hashes verified. Existing coordinator logs show legal structure and bundled-source checks passed. Local published schema alone was not used as proof."
+  },
+  "content": {
+    "publishedTranslations": 3,
+    "readbackPassed": true,
+    "allTargetMatches": true,
+    "otherFieldsUnchanged": true,
+    "checkedAt": "2026-09-05T17:23:20.064579+00:00",
+    "remaining": "One held event and final operator content/image-rights confirmation remain open."
+  },
+  "restore": {
+    "result": "Restored isolated temporary database; sampled 23 documents in five collections; historical privacy hash matched; anonymous read denied403.",
+    "checkedAt": "2026-09-05T16:23:18.716168+00:00",
+    "deleteDone": true,
+    "destinationGetStatus": 404,
+    "sourceUIDUnchanged": true,
+    "sourceDeleteProtection": "DELETE_PROTECTION_ENABLED",
+    "sourcePITR": "POINT_IN_TIME_RECOVERY_ENABLED",
+    "backupState": "READY",
+    "backupNameUnchanged": true,
+    "operationConfirmedAt": "2026-09-05T16:32:39.690931+00:00",
+    "limits": "Not full database comparison or Storage restore."
+  },
+  "authorization": {
+    "source": "Coordinator user authorization and external-phase-gate.json",
+    "authorized": "Complete agreed 1.0.3 plan and scoped external changes after verification; Android excluded.",
+    "publicAppStoreRelease": "Outside current scope; not performed. No lack of general external authorization blocker."
+  },
+  "pending": [
+    "App Privacy authenticated login/questionnaire",
+    "signed archive and TestFlight",
+    "physical device, iOS 17, App Attest/APNs/Face ID/TOTP recovery",
+    "held event and content/image rights",
+    "final installed live accepted/rejected comments",
+    "management deployment/read-back in progress at coordinator snapshot; not marked passed",
+    "verification task owns final audit and ratings"
+  ],
+  "sourceArtifactSHA256": {
+    "ios-unit-fixed-summary.json": "e62766298364ec33209829ebe812c3aa86adf06a4f2cffc9305d9131cb065a2d",
+    "ios-ui-fixed-summary.json": "2cfbc6032c8c83d3043ace9a44960ac8cf1914a8f701f462f7e3d8184242006d",
+    "ios-cursor-sdk-summary.json": "91ce6a8f319d61a6f144a2960b78c08f48844a72e5ac5643ecd56c10dd0415d2",
+    "ios-sdk-journey-summary.json": "762451856677aef7e5e2ae1017a4a446852a1e0da8084c3a2869284534d98071",
+    "verification-0681aa0/summary.json": "cfe337aafb319c52ad29fc75f96cf96b47ce06b276993d17aa995fff0d5efec9",
+    "privacy-server-deployment.json": "bab3c1c40c7a3e99a59ad8e96c4aff1d056c5d5b9be9fd385fab3955773175a7",
+    "privacy-publication-result.json": "a331d14694a9ca625126314e89601c9acbe745d1ec6912a06f2c369cf34abdea",
+    "privacy-hosting-resumed-result.json": "784620f854568c8443874126c7c0c369d7fa2bbb3e1cf989d25ce70d3c83100d",
+    "privacy-hosting-state.json": "6e8fec970bb3ba921a3748be7e52bac972b7441e208b9af248e1aae9af92cc15",
+    "content-publication/after.json": "480cf2f0842a7d0dcc786fa1d5e6c5288b97208837ebdfb2405b3a56caf118df",
+    "content-publication/receipt.json": "c35a9afe2b02d48918eb0c7fdeb7da29bb39ce7086b40ed231a84b9e3cb3b202",
+    "restore-drill/cleanup-readback.json": "b015cf6364c508f91e21cd4ceed87a992d25bdfd9af79cf6e0e14e8950347bef",
+    "external-phase-gate.json": "588eed6ce231b667d02049974e48c3526a6aa5c4768d425a8d3d7f7f0a53a733",
+    "privacy-release-simulator-inventory.json": "b9d50ecf83b86c2707252c33f7be7b2529e017e4145fe2b279aae0c4eb501e64",
+    "validation-source-map.json": "93ebe198d235903c6932d48cc31d3b1da2598b91599f5e15a12b0300101aef3b"
+  }
+}

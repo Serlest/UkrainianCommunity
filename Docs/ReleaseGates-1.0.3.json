@@ -20,15 +20,19 @@
     },
     {
       "id": "privacy-publication",
-      "status": "open",
-      "requirement": "Privacy 2026.13 publication is pending. Local manifest/bundle status published is serialization, not live proof. After central verification and external authorization, deploy compatible updateAnalyticsConsent, updateAnalyticsConsentV2 and trackAnalyticsEvent before the client ships; create only immutable legalDocuments/privacy/versions/2026.13 and switch the reread active pointer using atomic create/update-time preconditions; publish matching DE/UK website. Read back version metadata, titles, content and locale hashes against the intended bundle, deployed function compatibility, unchanged 2026.12 and unrelated legal pointers. Record commit, approver, publication time and effective date. Keep release gated throughout mismatches; never force-seed or overwrite historical evidence. See Docs/PrivacyCorrection-2026-09-05.md.",
-      "evidence": []
+      "status": "passed",
+      "requirement": "Privacy 2026.13 published/read back: all three compatible Functions verified; immutable Firestore version/active pointer and DE/UK hashes verified with 25 documents preserved; Hosting live HTML hash verified, 14 unrelated files unchanged. No authenticated production SDK canary inferred. App Privacy questionnaire remains separate.",
+      "evidence": [
+        "Docs/ReleaseEvidence-1.0.3.json"
+      ]
     },
     {
       "id": "candidate-validation",
-      "status": "open",
-      "requirement": "Central verification must complete exact integrated candidate builds, full iOS unit/UI, cursor integration and server/Rules checks; implementation phase ran none.",
-      "evidence": []
+      "status": "passed",
+      "requirement": "Central candidate code verification recorded: 414 iOS unit passed, two excluded SDK cases separately passed; 50 unique UI / 53 executions; server unit 392, integrations 74, common Rules 172 and iOS Rules 169. App/server runtime unchanged at 21126fe from tested 0172860/0681aa0. This closes local code verification only, not device/production/end-to-end release gates.",
+      "evidence": [
+        "Docs/ReleaseEvidence-1.0.3.json"
+      ]
     },
     {
       "id": "archive-testflight",
@@ -45,8 +49,10 @@
     {
       "id": "content-rights",
       "status": "open",
-      "requirement": "Four German event translations require approved publication/read-back; retain operator content/image-rights confirmation before public release.",
-      "evidence": []
+      "requirement": "Three German event translations published and read back with unrelated fields unchanged. One event remains held; final operator content/image-rights confirmation remains open.",
+      "evidence": [
+        "Docs/ReleaseEvidence-1.0.3.json"
+      ]
     },
     {
       "id": "final-comments",
@@ -56,8 +62,24 @@
     },
     {
       "id": "release-authorization",
+      "status": "passed",
+      "requirement": "User authorized completion of agreed 1.0.3 plan including scoped external changes after checks; Android excluded. Public App Store publication is outside this task and has not been performed. This records existing scope authorization and does not authorize public release.",
+      "evidence": [
+        "Docs/ReleaseEvidence-1.0.3.json"
+      ]
+    },
+    {
+      "id": "restore-drill",
+      "status": "passed",
+      "requirement": "Isolated Firestore restore sampled 23 documents/five collections; anonymous 403; temporary database deletion completed and exact GET 404; source/PITR/protection/backup preserved. Full database/Storage restore not claimed.",
+      "evidence": [
+        "Docs/ReleaseEvidence-1.0.3.json"
+      ]
+    },
+    {
+      "id": "management-deployment",
       "status": "open",
-      "requirement": "Separate authorization for external changes, upload/submission and manual public publication; leave current 1.0.2 (68) application unchanged.",
+      "requirement": "Coordinator management deployment is in progress at this evidence snapshot. Require final exact-source/settings and legal endpoint read-back before closing; existing legal read-back does not prove unfinished deployment.",
       "evidence": []
     }
   ]

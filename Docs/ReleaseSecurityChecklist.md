@@ -2,29 +2,27 @@
 
 Use this checklist for the first release after the security and privacy hardening work. A merged pull request means the repository is prepared; it does not mean Firebase configuration, backend code, rules, indexes, legal documents or App Store metadata have been deployed.
 
-## Current candidate — 2026-09-05
+## Current candidate — 2026-09-05, after shared verification
 
-1.0.3 (69) is prepared locally from checkpoint `120a60212c12a3451332c18fdfdcbe3a0b6f8df9`.
-Implementation phase: no validators, tests, builds, archive, uploads or deployments.
-Use [the candidate checklist](ReleaseChecklist-1.0.3.md) and
-[structured release gates](ReleaseGates-1.0.3.json) for current readiness.
+1.0.3 (69): code verification and privacy 2026.13 publication/read-back are recorded
+in [the current checklist](ReleaseChecklist-1.0.3.md),
+[structured gates](ReleaseGates-1.0.3.json) and
+[sanitized evidence](ReleaseEvidence-1.0.3.json). These supersede the August and
+implementation-phase status notes. General checkboxes below are reusable procedures,
+not a current list of unperformed deployments.
 
-The baseline audit records 1.0.2 (68) VALID / WAITING_FOR_REVIEW, with MANUAL
-publication; published 1.0.1 (65) is a separate package. See
-[build 68 evidence](Build68Release-2026-09-04.md). Do not cancel or publish that
-application while preparing 69. Earlier August checklists are historical.
+414 unit tests, 50 unique UI tests and two separate actual SDK scenarios passed;
+local server/Rules checks passed. Three privacy Functions, Firestore 2026.13 and
+Hosting live hashes were verified; three German translations and isolated restore
+cleanup have proof. Management deployment is still in progress at the coordinator
+snapshot. Exact app/server code equivalence was read at integration 21126fe.
 
-Privacy 2026.12 was published on September 2; the September 5 audit found that
-its presence intervals disagree with runtime (90-second heartbeat, 180-second
-lease). The privacy task owns the corrected policy/version and generated copies.
-Publication/read-back and current authenticated App Privacy reconciliation remain
-open. The September 5 browser attempt reached Apple login (`authResult=FAILED`).
-
-The strict legal gate intentionally remains closed for real outstanding gates.
-Historical build 64 preparation wording has been retired, not treated as evidence
-that final comments, rights confirmation or candidate validation passed.
-Legal counsel review remains a recommendation unless separately required by an
-operator decision; technical validation does not provide legal approval.
+App Privacy login, signed archive/TestFlight, physical device/iOS 17, one held event
+and final rights confirmation, and final live comments remain open. The user has
+authorized the agreed external work; no missing general authorization is a blocker.
+Public App Store release remains outside this task. Strict gates remain closed for
+actual evidence gaps. Qualified legal review stays a recommendation; these technical
+checks do not provide a legal opinion.
 
 ## Repository gate
 
