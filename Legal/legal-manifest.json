@@ -41,10 +41,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.12",
-      "effectiveDate": "2026-09-02",
-      "supersedesVersion": "2026.11",
-      "changeSummary": "Local biometric lock, required account region, SDK diagnostics, restricted account-region reports, TOTP security and verified retention/backup periods; optional content analytics unchanged."
+      "version": "2026.13",
+      "effectiveDate": "2026-09-05",
+      "supersedesVersion": "2026.12",
+      "changeSummary": "Corrects presence disclosure to the existing 90-second client heartbeat and 180-second server lease, with approximate display timing; runtime processing and optional analytics disclosure unchanged."
     },
     "organizationRules": {
       "requiresAcceptance": true,

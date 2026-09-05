@@ -14,8 +14,12 @@ import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 export const analyticsConsentStateCollection = "analyticsConsentStates";
 export const analyticsConsentReceiptCollection = "analyticsConsentReceipts";
 export const analyticsConsentPurposeVersion = "owner-aggregate-analytics-v1";
-export const analyticsConsentPrivacyVersion = "2026.12";
+export const analyticsConsentPrivacyVersion = "2026.13";
 export const analyticsConsentDisclosureVersion = "2026-08-25.1";
+
+// The presence-only notice correction leaves the analytics disclosure unchanged.
+// Keep explicit grants/withdrawals from released 2026.12 clients valid too.
+const mutationPrivacyVersions = new Set(["2026.12", analyticsConsentPrivacyVersion]);
 
 export interface AnalyticsConsentMutationInput {
   enabled: boolean;
@@ -82,7 +86,7 @@ export function parseAnalyticsConsentMutation(data: unknown): AnalyticsConsentMu
   if (data.principalId !== undefined && (typeof data.principalId !== "string" || data.principalId.length > 128)) throw invalidConsentMutation();
   if (data.existingReceiptOnly !== undefined && typeof data.existingReceiptOnly !== "boolean") throw invalidConsentMutation();
   if ((data.privacyVersion !== undefined || data.disclosureVersion !== undefined)
-    && (data.privacyVersion !== analyticsConsentPrivacyVersion
+    && (!mutationPrivacyVersions.has(data.privacyVersion as string)
       || data.disclosureVersion !== analyticsConsentDisclosureVersion)) {
     throw invalidConsentMutation();
   }
@@ -134,6 +138,7 @@ export async function requireCurrentAnalyticsConsent(
 const compatibleConsentVersions = new Set([
   "2026.1|2026-08-24.1", "2026.10|2026-08-25.1",
   "2026.11|2026-08-25.1", "2026.12|2026-08-25.1",
+  "2026.13|2026-08-25.1",
 ]);
 
 export function consentPrivacyVersion(input: AnalyticsConsentMutationInput): string {

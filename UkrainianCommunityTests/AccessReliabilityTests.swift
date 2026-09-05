@@ -89,6 +89,30 @@ struct AccessReliabilityTests {
         #expect(service.analyticsConsentID(for: "a") != originalID)
     }
 
+    @Test func privacyCorrectionPreservesExistingConsentUntilANewChoice() throws {
+        let suite = "PrivacyCorrection.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let service = AnalyticsConsentService(userDefaults: defaults)
+        service.setAnalyticsEnabled(true, for: "a")
+        let originalID = service.analyticsConsentID(for: "a")
+        let key = "analyticsCollectionConsentByPrincipal.v1.versions"
+        var versions = try #require(defaults.dictionary(forKey: key))
+        let principalKey = try #require(versions.keys.first)
+        versions[principalKey] = ["privacyVersion": "2026.12", "disclosureVersion": "2026-08-25.1"]
+        defaults.set(versions, forKey: key)
+
+        let restored = AnalyticsConsentService(userDefaults: defaults)
+        restored.setAnalyticsEnabled(true, for: "a")
+        #expect(restored.analyticsConsentID(for: "a") == originalID)
+        #expect(restored.analyticsConsentVersions(for: "a")?.privacyVersion == "2026.12")
+        restored.setAnalyticsEnabled(false, for: "a")
+        restored.setAnalyticsEnabled(true, for: "a")
+        #expect(restored.analyticsConsentID(for: "a") != originalID)
+        #expect(restored.analyticsConsentVersions(for: "a")?.privacyVersion == "2026.13")
+        #expect(restored.analyticsConsentVersions(for: "a")?.disclosureVersion == "2026-08-25.1")
+    }
+
     @Test func legalExportContainsTheWholeHistoryIndependentOfTheVisibleFilter() async throws {
         let account = LegalEvidenceAccount(userID: "fixture", displayName: "Fixture", email: nil, createdAt: nil)
         let model = LegalEvidenceUserViewModel(account: account, repository: UITestLegalEvidenceRepository())

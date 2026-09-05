@@ -8,6 +8,7 @@ import {
   analyticsConsentPrivacyVersion,
   analyticsConsentPurposeVersion,
   analyticsConsentReceiptID,
+  consentPrivacyVersion,
   isCurrentAnalyticsConsent,
   parseAnalyticsConsentMutation,
 } from "./analyticsConsent";
@@ -59,4 +60,35 @@ test("server receipt versions match the current iOS disclosure contract", () => 
   const consent = readFileSync(resolve(root, "Analytics/AnalyticsConsentService.swift"), "utf8");
   assert.equal(auth.match(/currentPrivacyVersion = "([^"]+)"/)?.[1], analyticsConsentPrivacyVersion);
   assert.equal(consent.match(/disclosureVersion = "([^"]+)"/)?.[1], analyticsConsentDisclosureVersion);
+});
+
+
+test("privacy correction accepts both released and new explicit consent versions without relabeling", () => {
+  for (const privacyVersion of ["2026.12", "2026.13"]) {
+    for (const enabled of [true, false]) {
+      const input = parseAnalyticsConsentMutation({
+        enabled, consentID, locale: "uk", appVersion: "1.0.3",
+        privacyVersion, disclosureVersion: analyticsConsentDisclosureVersion,
+      });
+      assert.equal(consentPrivacyVersion(input), privacyVersion);
+    }
+    assert.equal(isCurrentAnalyticsConsent({
+      enabled: true, consentID, privacyVersion,
+      disclosureVersion: analyticsConsentDisclosureVersion,
+      purposeVersion: analyticsConsentPurposeVersion,
+    }, consentID), true);
+  }
+  const input = {enabled: true, consentID, locale: "de" as const};
+  assert.equal(consentPrivacyVersion({...input, appVersion: "1.0.1"}), "2026.12");
+  assert.equal(consentPrivacyVersion({...input, appVersion: "1.0.2"}), "2026.12");
+  // Never infer evidence for the new release from its app version alone.
+  assert.throws(() => consentPrivacyVersion({...input, appVersion: "1.0.3"}));
+  for (const versions of [
+    {privacyVersion: "2026.14", disclosureVersion: analyticsConsentDisclosureVersion},
+    {privacyVersion: "2026.13", disclosureVersion: "unknown"},
+    {privacyVersion: "2026.13"},
+    {disclosureVersion: analyticsConsentDisclosureVersion},
+  ]) {
+    assert.throws(() => parseAnalyticsConsentMutation({...input, ...versions}));
+  }
 });

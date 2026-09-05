@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.13 · Gültig ab 5. September 2026 · ersetzt Version 2026.12.
+Version 2026.12 · Gültig ab 2. September 2026 · ersetzt Version 2026.11.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -133,7 +133,7 @@ Daten stammen überwiegend direkt von der betroffenen Person, aus ihren App-Hand
 
 ## 18. Administrativer Online-Status und letzte Aktivität
 
-Die aktuelle App übermittelt für angemeldete aktive Konten im Vordergrund ungefähr alle 90 Sekunden sowie bei Zustandswechseln ein minimales Anwesenheitssignal. Es enthält die Konto-ID, eine zufällige Sitzungskennung, eine laufende Nummer und den Aktivstatus; der Server setzt den Zeitpunkt. „Online“ und „zuletzt online“ sind von der letzten Anmeldung bei Firebase Authentication getrennt. Der serverseitige Online-Status gilt bis zu 180 Sekunden nach dem letzten bestätigten aktiven Signal. Ohne ein neues aktives Signal läuft diese Frist ab; die sichtbare Anzeige kann sich abhängig von Aktualisierung und Verbindung verzögert ändern. Die Anzeige ist eine Annäherung und kein Nachweis genauer Anwesenheits- oder Abmeldezeiten.
+Ab App-Version 1.0, Build 32, übermittelt die App für angemeldete aktive Konten im Vordergrund ungefähr alle 30 Sekunden sowie bei Zustandswechseln ein minimales Anwesenheitssignal. Es enthält die Konto-ID, eine zufällige Sitzungskennung, eine laufende Nummer und den Aktivstatus; der Server setzt den Zeitpunkt. „Online“ und „zuletzt online“ sind von der letzten Anmeldung bei Firebase Authentication getrennt. Ohne weitere Bestätigung läuft „Online“ nach höchstens 90 Sekunden ab. Die Anzeige ist eine Annäherung und kein Nachweis genauer Anwesenheits- oder Abmeldezeiten.
 
 Nur der Plattforminhaber und berechtigte Plattformadministratoren mit aktivem, verifiziertem Konto können den abgeleiteten Status und den letzten bestätigten Zeitpunkt in der Benutzerverwaltung sehen. Andere Nutzer sowie Inhaber, Administratoren oder Moderatoren einzelner Organisationen erhalten dadurch keinen Zugriff. Zweck ist die Unterstützung bei aktuellen Konto- und Verbindungsproblemen sowie die nachvollziehbare Verwaltung des Plattformbetriebs. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO: unser berechtigtes Interesse an diesem beschränkten administrativen Support. Aus der Anzeige allein werden keine Sperren oder anderen nachteiligen Entscheidungen abgeleitet.
 
