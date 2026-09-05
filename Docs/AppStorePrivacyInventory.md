@@ -2,17 +2,7 @@
 
 Historical archive and authenticated App Privacy UI verification: 2026-09-02, version 1.0.1 (65). The 30 archive privacy manifests are unchanged from build 64. See `Docs/PrivacyPublication-2026-09-02.md`, `Docs/Build65ReleaseReadiness-2026-09-02.md` and the ignored release evidence `build65-privacy-readback.md`.
 
-Current candidate: 1.0.3 (69), shared Simulator verification completed. See
-`Docs/ReleaseChecklist-1.0.3.md` and `Docs/ReleaseEvidence-1.0.3.json`. Release
-Simulator bundle contains 30 privacy manifests and 14 categories; every manifest
-matches the retained build 68 archive byte-for-byte. First-party UserDefaults
-CA92.1 and SDK required reasons are unchanged. This is not final signed-archive
-or runtime collection proof. Privacy2026.13 Functions/Firestore/Hosting publication
-and hashes are verified. On 2026-09-05 the available Apple browser redirected to
-login (`authResult=FAILED`); current questionnaire answers remain unverified.
-No answers or Apple metadata were changed by this task.
-
-This inventory is a release aid, not a substitute for the answers entered in App Store Connect. Recheck it whenever data flows or third-party SDKs change. Apple requires the App Store privacy answers to include the practices of third-party partners.
+Current candidate: 1.0.3 (69). Shared Simulator checks and a local Apple Development-signed device Release archive passed. See [release evidence](ReleaseEvidence-1.0.3.json) and [remaining gates](ReleaseGates-1.0.3.json). The final archive contains 30 privacy manifests and 14 collected-data categories; every manifest matches retained build68 byte-for-byte. First-party UserDefaults CA92.1 and SDK required reasons are unchanged. This is archive packaging evidence, not authenticated App Privacy answers, distribution export or physical-device behavior. Privacy2026.13 is published in Firestore/Hosting with read-back. Apple questionnaire login remains blocked.
 
 ## Tracking
 

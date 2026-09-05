@@ -1,93 +1,39 @@
-# UAC 1.0.3 (69) — release evidence and remaining gates
+# UAC 1.0.3 (69) — validation and remaining release gates
 
-Updated 2026-09-05 from coordinator evidence after shared verification and scoped
-external work. Integration snapshot: `21126fea721952a00730a79554b4c6074fd06611`.
-This document update ran no new tests/builds and made no external changes.
-The verification task owns the final independent audit and ratings.
+Final validation: 2026-09-05. App runtime `81020508e8454cec636f7a8935b8279c2b17bd0a`; test source `d20c9e0c63a012c10c77435327541722cae8f9aa`. Server runtime remains `0681aa0540a8557a57f8c49f9f295bc5266784f2`. Android was neither changed nor tested.
 
-## Confirmed within scope
+[Sanitized evidence](ReleaseEvidence-1.0.3.json) records source mapping and artifact hashes. [Structured gates](ReleaseGates-1.0.3.json) distinguish completed validation from publication readiness.
 
-[Sanitized evidence](ReleaseEvidence-1.0.3.json) retains results, limitations and
-SHA-256 references to the shared source artifacts. [Structured gates](ReleaseGates-1.0.3.json)
-are the current readiness record; dated implementation notes below other reports
-must not override these results.
+## Confirmed
 
 | Area | Evidence and scope |
 | --- | --- |
-| iOS unit | 414 passed, 0 failed; two actual SDK scenarios excluded from this general run and each passed separately |
-| UI | 50 unique tests, 53 executions, 0 failures/skips; Simulator |
-| Actual SDK | Timestamp cursor and Auth/content/media/account lifecycle each 1/1 passed against isolated local emulators; not production/device proof |
-| Server | Unit 392 passed (67 integration skips in unit command), separate integrations 74/74, common Rules 172/172 and iOS-adapted Rules 169/169; lint/build passed, dependency audit 0 findings |
-| Release Simulator | Build passed; bundle 1.0.3 (69), minimum iOS 17.0; 30 privacy manifests / 14 categories, all manifests identical to retained archive 68; not a signed device archive |
-| Privacy Functions | updateAnalyticsConsent, updateAnalyticsConsentV2 and trackAnalyticsEvent deployment/source/settings read-back verified; global App Check unchanged; no authenticated production canary claimed |
-| Privacy Firestore | 2026.13 active, DE/UK hashes verified, 25 documents preserved; immutable version/pointer publication completed |
-| Privacy Hosting | Live version/HTML hash verified, DE/UK present, 14 unrelated files unchanged; local `published` serialization was not used as live proof |
-| Legal package | Coordinator's existing structural and bundled-source read-back checks passed; App Privacy questionnaire remains separate |
-| Content | Three German event translations published/read back; unrelated fields unchanged. One event remains held |
-| Restore | Isolated database restore completed; sampled 23 documents/five collections, anonymous 403; deletion completed, exact GET 404, source/PITR/protection/backup unchanged. Not full-database comparison or Storage restore |
+| Full unit | 417 passed, zero failed, three opt-in skips on 415ac7d. Both SDK tests and the OS notification probe passed separately. Later app delta is only explicit accessibility grouping, covered by final UI. |
+| Full functional UI | 50 unique / 53 executions, zero failed/skipped on 0172860. |
+| Final regression UI | Four DE/UK and AX5 multi-day scenarios passed on d20c9e0; range and endpoint screenshots independently inspected. Both dates/times visible and wrapped. |
+| Actual SDK | Timestamp pagination across five repositories and Auth/media/consent/account lifecycle each 1/1 against isolated local emulators. Fixtures cleaned. |
+| OS notifications | Separate 1/1 actual Simulator notification-queue account-switch/sign-out probe; not physical APNs delivery. |
+| Server | Build/lint, 392 unit checks, 74 integrations, 172 common Rules and 169 iOS-adapted Rules passed; tested production dependency audit zero. |
+| iPhone archive | Local Apple Development-signed Release archive69 succeeded on8102050; strict codesign, matching profile, app dSYM UUID, production Firebase configuration and 30 privacy manifests verified. All manifests equal build68; 14 categories. APNs development entitlement; no export/upload/device launch. |
+| Privacy | 2026.13 active in Firestore and Hosting; locale/content hashes match, 25 related/historical documents and 14 unrelated website files preserved. Three compatible existing Functions deployed and read back. |
+| Search | Two existing Functions deployed; source/runtime settings/IAM verified. The other116 Functions unchanged after sorting unordered event filters; total121 and global App Check unchanged. Reads remain O(N). |
+| Content | Three DE title/summary/details patches published with guarded field masks and read-back; actual guest DE cards/details inspected. One event held. |
+| Restore | Real backup restored to isolated database;23 documents/five collections sampled, anonymous403, historical hash matched. Temporary database deletion completed with exact404; source/PITR/protection preserved. |
 
-Static Git reading at 21126fe found no app-source/project/plist differences from
-`0172860dbfa0f61aef9626eb1b825d4a25436632`, and no Functions runtime/package
-changes from `0681aa0540a8557a57f8c49f9f295bc5266784f2`. The older source-map
-artifact names 53bb1ad; this equivalence was refreshed without rerunning tests.
-Later changes to app/server code require their own verification; matching code
-is not a claim that every later deployment has completed.
+No authenticated production canary is claimed for the deployed functions. The privacy correction describes existing90/180 timing; it does not add presence processing. The multi-day presentation fix preserves stored dates and does not verify their factual accuracy.
 
-Management deployment read-back now confirms both search Functions. All 116
-Functions outside the five privacy/search updates are unchanged after normalizing
-unordered event-filter order (16 ordering-only differences); total 121 and global
-App Check unchanged. No authenticated production canary is claimed; search still
-performs O(N) reads. Canonical cursor fixture cleanup records 61 documents complete.
+## Remaining gates
 
-## Open gates
+- **App Privacy:** authenticated questionnaire unavailable (`authResult=FAILED`); compare current answers with the final archive and published policy when access is restored.
+- **Distribution/TestFlight:** App Store export/signing, upload, processing and installed TestFlight smoke have not been performed. A development archive is not distribution proof.
+- **Physical device / minimum OS:** actual APNs, Face ID/passcode, App Attest, privileged TOTP/recovery and iOS17 runtime remain unverified. Do not infer them from configured entitlements or Simulator26.5.
+- **Content:** source confirmation for the held fourth event, content/image rights and structured daily schedule clarification. Hall end17:00 is not source-confirmed; Hackathon admission09:00 and program09:30 must not be conflated. Tags remain source-language content.
+- **Final live comments:** accepted/rejected comments in the installed final candidate against the intended backend remain separate from fixtures and older probes.
+- **Accessibility/performance:** full manual VoiceOver, global AX5 layout and physical latency/memory/energy measurements remain open. Existing large header action buttons overlap at AX5; the successful date-range regression is not a global accessibility pass.
+- **Scaling:** bounded memory does not remove O(N) user reads; index readiness/backfill and shared writers were not activated.
 
-- **Candidate visual assessment:** Hackathon feed shows 11–12 September while detail
-  shows 11 September in coordinator review. UI owner is tracing the cause read-only.
-  Candidate validation is reopened pending that assessment; prior passing tests
-  remain recorded. Cause/regression/resolution are not assumed.
+## Authorization and current submission
 
-- **App Privacy:** available browser reached Apple login (`authResult=FAILED`).
-  Current questionnaire answers must be compared with signed candidate SDK report,
-  account-linked presence, optional analytics and published 2026.13. No answers changed.
-- **Archive/TestFlight:** exact signed device archive, signing/entitlements/privacy
-  report, upload and TestFlight smoke remain unproved. Build68's five SDK dSYM
-  warnings remain historical unresolved limitations, not fixed by Simulator success.
-- **Physical device and iOS 17:** APNs permission/delivery/tap/account-switch cleanup;
-  Face ID success/failure/cancel/passcode fallback; App Attest attestation; privileged
-  TOTP authenticator handoff and backup-admin recovery; minimum-OS installation and
-  critical paths. Simulator iOS 26.5 and declared minimum 17 do not prove iOS 17 runtime.
-  Retain manual VoiceOver/Dynamic Type/iPad and device performance coverage limits.
-- **Content/rights:** resolve the held fourth event and retain final operator
-  content/image-rights confirmation. Three verified translations do not prove all rights.
-- **Final live comments:** accepted/rejected comments in installed final candidate
-  against intended live backend. Local UI/SDK and older server probes do not close it.
+The user authorized the agreed implementation and scoped external work. Public App Store publication is outside this run. The existing1.0.2(68) submission was not cancelled or published. Historical Apple states are dated evidence and must be refreshed before any later submission action.
 
-## Authorization and publication boundary
-
-The user authorized completion of the agreed 1.0.3 plan and scoped external changes
-after verification. There is no missing general-authorization blocker. Public
-App Store publication is outside this task and is not being performed. Recording
-`release-authorization=passed` means the current work scope is authorized; it is
-not permission or evidence for a public release. Do not cancel or publish the
-existing 1.0.2 (68) application as a side effect of this preparation.
-
-Historical [build 68 evidence](Build68Release-2026-09-04.md) records
-VALID / WAITING_FOR_REVIEW / MANUAL; baseline published 1.0.1 (65) is separate.
-Refresh Apple status before future authorized upload/submission; no current
-questionnaire or final archive proof is inferred from those dated states.
-
-## Gate operation and next handoff
-
-`Legal/legal-manifest.json` keeps held-content/rights and final-live-comment blockers.
-Privacy-owned document/version/history keys are unchanged by this release update.
-The published 2026.13 proof closes `privacy-publication`; local code results remain recorded but
-`candidate-validation` awaits the visual date assessment. Scoped authorization,
-management deployment and isolated restore are recorded passed.
-App Privacy, archive/device, held-content/rights, comments and candidate visual assessment
-remain open. Do not clear them for a green strict command.
-
-Evidence references must be reviewed, not merely exist. Strict `--release` remains
-a publication-readiness check and is expected to fail for genuine remaining gates.
-It is not a reason to repeat the entire passing suite or block authorized independent
-work. This doc-only update does not rerun validators. Coordinator/verification will
-refresh strict output and complete the final audit after the remaining UI assessment.
+`candidate-validation`, `privacy-publication`, scoped authorization, search deployment and bounded restore are recorded passed. Archive/TestFlight remains open for its distribution/TestFlight portion. The strict legal release validator is expected to fail while real publication gates remain; do not remove them to obtain a green command.

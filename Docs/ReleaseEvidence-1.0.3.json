@@ -2,25 +2,40 @@
   "scope": "Sanitized dated evidence summary for 1.0.3 (69), read from coordinator artifacts; not a new test run or final independent audit.",
   "date": "2026-09-05",
   "sourceState": {
-    "integrationHead": "21126fea721952a00730a79554b4c6074fd06611",
-    "appCodeEquivalentTo": "0172860dbfa0f61aef9626eb1b825d4a25436632",
+    "checkedAt": "2026-09-05T18:08:24.912957+00:00",
+    "integrationSourceCommit": "d20c9e0c63a012c10c77435327541722cae8f9aa",
+    "appRuntimeEquivalentTo": "81020508e8454cec636f7a8935b8279c2b17bd0a",
+    "appRuntimeDelta": [],
     "serverRuntimeEquivalentTo": "0681aa0540a8557a57f8c49f9f295bc5266784f2",
-    "staticGitComparison": "No diff for UkrainianCommunity/, UkrainianCommunity.xcodeproj/, UkrainianCommunity-Info.plist against app commit; no diff for functions/src/, package.json and package-lock.json against server commit. Original source-map artifact has older integrationHead 53bb1ad; refreshed by direct Git reading at 21126fe."
+    "serverRuntimeDelta": [],
+    "fullUnitCommit": "415ac7da85a40375ec80f32c4f8eff97970acfb7",
+    "appDeltaAfterFullUnit": [
+      "UkrainianCommunity/Views/Events/EventMultiDaySchedule.swift"
+    ],
+    "deltaExplanation": "Only accessibility grouping and explicit range label; formatter, repositories, services and models unchanged. Four targeted UI tests validate the final grouping.",
+    "previousFullUICommit": "0172860dbfa0f61aef9626eb1b825d4a25436632",
+    "finalTargetUIBuildCommit": "d20c9e0c63a012c10c77435327541722cae8f9aa",
+    "sdkRepositoryDeltaAfterSDKProof": [],
+    "androidDelta": [],
+    "publicReleasePerformed": false
   },
   "tests": {
     "iosUnit": {
       "result": "Passed",
-      "passedTests": 414,
+      "passedTests": 417,
       "failedTests": 0,
-      "skippedTests": 2,
-      "totalTestCount": 416
+      "skippedTests": 3,
+      "totalTestCount": 420,
+      "runnerExitCode": 0,
+      "sourceCommit": "415ac7da85a40375ec80f32c4f8eff97970acfb7"
     },
     "iosUI": {
       "result": "Passed",
       "passedTests": 50,
       "failedTests": 0,
       "skippedTests": 0,
-      "totalTestCount": 50
+      "totalTestCount": 50,
+      "sourceCommit": "0172860dbfa0f61aef9626eb1b825d4a25436632"
     },
     "uiExecutions": 53,
     "actualSDK": [
@@ -39,7 +54,7 @@
         "skippedTests": 0
       }
     ],
-    "sdkScope": "Actual iOS SDK against isolated local emulators; not production SDK canary or physical device. Two SDK cases excluded from general unit run were run separately.",
+    "sdkScope": "Actual iOS SDK against isolated local emulators, not production/device canary. Final full unit skips two SDK cases and one real OS notification probe; all three passed separately. Earlier 414-unit run preceded the cursor test and skipped journey plus notification probe.",
     "server": {
       "sha": "0681aa0540a8557a57f8c49f9f295bc5266784f2",
       "build": "PASS",
@@ -76,7 +91,23 @@
         "pass": 28
       }
     },
-    "releaseSimulatorBuild": "Existing log ends BUILD SUCCEEDED; 1.0.3 (69), minimum iOS 17, 30 manifests / 14 categories; unchanged vs archive 68. Not signed device archive."
+    "releaseSimulatorBuild": "Existing log ends BUILD SUCCEEDED; 1.0.3 (69), minimum iOS 17, 30 manifests / 14 categories; unchanged vs archive 68. Not signed device archive.",
+    "targetedMultiDayUI": {
+      "result": "Passed",
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "runnerExitCode": 0,
+      "sourceCommit": "d20c9e0c63a012c10c77435327541722cae8f9aa"
+    },
+    "notificationOSQueue": {
+      "result": "Passed",
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0,
+      "runnerExitCode": 0,
+      "sourceCommit": "415ac7da85a40375ec80f32c4f8eff97970acfb7"
+    }
   },
   "privacyPublication": {
     "version": "2026.13",
@@ -153,7 +184,8 @@
     "allTargetMatches": true,
     "otherFieldsUnchanged": true,
     "checkedAt": "2026-09-05T17:23:20.064579+00:00",
-    "remaining": "One held event and final operator content/image-rights confirmation remain open."
+    "remaining": "One held event, image/content rights, Hall unconfirmed end time and per-day schedule/source clarification remain open.",
+    "manualGermanReview": "Three published cards/details checked in production guest app; privacy 2026.13 also displayed."
   },
   "restore": {
     "result": "Restored isolated temporary database; sampled 23 documents in five collections; historical privacy hash matched; anonymous read denied403.",
@@ -174,13 +206,13 @@
     "publicAppStoreRelease": "Outside current scope; not performed. No lack of general external authorization blocker."
   },
   "pending": [
-    "App Privacy authenticated login/questionnaire",
-    "signed archive and TestFlight",
-    "physical device, iOS 17, App Attest/APNs/Face ID/TOTP recovery",
-    "held event and content/image rights",
-    "final installed live accepted/rejected comments",
-    "verification task owns final audit and ratings",
-    "Hackathon feed/detail date discrepancy assessment by UI owner; candidate validation not finalized"
+    "Authenticated App Privacy questionnaire",
+    "Distribution export and TestFlight",
+    "Physical iPhone/iOS17, APNs/App Attest/Face ID/TOTP recovery",
+    "Held event, content/image rights and source schedule clarifications",
+    "Final installed live accepted/rejected comments",
+    "Full manual VoiceOver/global AX5 layout and hardware performance; existing large header actions overlap at AX5",
+    "O(N) search reads remain; incomplete index is not activated"
   ],
   "sourceArtifactSHA256": {
     "ios-unit-fixed-summary.json": "e62766298364ec33209829ebe812c3aa86adf06a4f2cffc9305d9131cb065a2d",
@@ -197,9 +229,16 @@
     "restore-drill/cleanup-readback.json": "b015cf6364c508f91e21cd4ceed87a992d25bdfd9af79cf6e0e14e8950347bef",
     "external-phase-gate.json": "588eed6ce231b667d02049974e48c3526a6aa5c4768d425a8d3d7f7f0a53a733",
     "privacy-release-simulator-inventory.json": "b9d50ecf83b86c2707252c33f7be7b2529e017e4145fe2b279aae0c4eb501e64",
-    "validation-source-map.json": "93ebe198d235903c6932d48cc31d3b1da2598b91599f5e15a12b0300101aef3b",
+    "validation-source-map.json": "fc1d9fd5cc525f62ebc0813fbad490725953c6c2059a6c87ebea3e7b66c32be0",
     "search-server-deployment.json": "787a2867a1a00c68f22805824953cb403f08cad6b08f8aa6d4cf3bac65ced62c",
-    "cursor-sdk-cleanup-canonical.json": "49f3855d25f75f344ec5cf6ef9251dfd8df2597328051b9995be735c6f3ada11"
+    "cursor-sdk-cleanup-canonical.json": "49f3855d25f75f344ec5cf6ef9251dfd8df2597328051b9995be735c6f3ada11",
+    "final-unit-summary.json": "69d856a0d761d05d2f894497a12dc6d24d0d3e1a88f2a5ea70830131b45c1d99",
+    "final-ui-summary.json": "195303a5d65a7da981fb6051f91fee8acd4d3d89c42760e96ecad05ab61a4eb4",
+    "final-notification-summary.json": "5c8a718e831e8a5e5acf9d90eacc0084a17aa86d2fd5b1bcbdeed873bb869b25",
+    "final-simulator-build.json": "b487c1538f0ddf2fa8161c2e2f7b196f97ee6463a43ea1ba9b06fa2b823f3cc4",
+    "final-archive-build.json": "49eb17d12a0ccf394acc326add474f65b213d66b89eab095b68a3b7998098e08",
+    "final-archive-verification.json": "f41e26689867c1fc56e9cb8de3a393d8ae4cb8b699524cebe6c50b33d95f320d",
+    "vis01-fixed/summary.json": "8462d8eccd4074cee0bb25a451bc1b27065f60bfb1d93b9ac2b5c0e24b4d1ce9"
   },
   "managementDeployment": {
     "checkedAt": "2026-09-05T17:45:38.840626+00:00",
@@ -248,8 +287,41 @@
     "scope": "Dedicated local demo emulator fixture cleanup; sanitized canonical JSON replaces warning-prefixed original output."
   },
   "candidateReview": {
-    "status": "pending",
-    "observation": "Coordinator visual review reports Hackathon feed 11–12 Sep vs detail 11 Sep. UI owner is tracing the cause read-only; no cause, regression classification or resolution inferred.",
-    "testResults": "Previously recorded passing tests remain valid within their scope; candidate gate is reopened pending assessment."
+    "status": "passed within bounded validation scope",
+    "fix": "415ac7d and 8102050; test capture d20c9e0",
+    "result": "4/4 final DE/UK/AX5 UI passed; range and endpoint screenshots visually inspected. Both dates and times visible. Full earlier UI50 retained separately.",
+    "limitation": "Rendering fix does not rewrite structured source times or establish global VoiceOver/AX5 compliance."
+  },
+  "archive": {
+    "checkedAt": "2026-09-05T18:06:42.484668+00:00",
+    "buildSourceCommit": "81020508e8454cec636f7a8935b8279c2b17bd0a",
+    "type": "Apple Development-signed Release archive for iOS device; not App Store distribution export",
+    "version": "1.0.3",
+    "build": "69",
+    "checks": {
+      "versionAndBuild": true,
+      "devicePlatform": true,
+      "minimumIOS17": true,
+      "nonExemptEncryptionFlagFalse": true,
+      "codesignStrict": true,
+      "profileMatchesAppIdentity": true,
+      "profileNotExpired": true,
+      "developmentSigning": true,
+      "productionAppAttest": true,
+      "productionFirebaseProject": true,
+      "appDSYMMatches": true,
+      "privacyManifestsUnchangedFrom68": true,
+      "noPrivacyTrackingDeclared": true,
+      "sourceEquivalentToCurrentApp": true
+    },
+    "verified": true,
+    "applicationBinarySHA256": "91cca93ef827f51c9f1079e5fda1dc1a7b7f9adad10ed02fdd6298554706e849",
+    "privacyManifestCount": 30,
+    "collectedDataCategoryCount": 14,
+    "appDSYMUUIDCount": 1,
+    "exported": false,
+    "uploaded": false,
+    "physicalDeviceTested": false,
+    "remaining": "Distribution export/signing, App Privacy questionnaire, TestFlight and physical APNs/App Attest/Face ID/TOTP/iOS17 checks remain open"
   }
 }

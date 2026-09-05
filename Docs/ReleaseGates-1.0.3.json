@@ -28,8 +28,8 @@
     },
     {
       "id": "candidate-validation",
-      "status": "open",
-      "requirement": "Recorded unit/UI/actual SDK and server/Rules runs passed, but candidate validation awaits UI-owner assessment of Hackathon feed 11–12 Sep versus detail 11 Sep. Preserve prior test evidence; do not infer cause or final readiness before the assessment.",
+      "status": "passed",
+      "requirement": "Central full unit417, prior full UI50, final targeted multi-day DE/UK/AX5 UI4, two actual local SDK cases, OS notification probe, server/Rules and signed archive all passed with explicit source mapping. Manual global accessibility, physical device and production canaries are separate gates.",
       "evidence": [
         "Docs/ReleaseEvidence-1.0.3.json"
       ]
@@ -37,8 +37,10 @@
     {
       "id": "archive-testflight",
       "status": "open",
-      "requirement": "Exact candidate signed archive, privacy report, signing/export checks and authorized TestFlight smoke remain outstanding. Historical build 68 VALID and SDK dSYM warnings do not establish build 69 evidence.",
-      "evidence": []
+      "requirement": "Local Apple Development-signed Release archive69, entitlements, 30 privacy manifests and app dSYM verified. App Store distribution export/signing, upload and TestFlight smoke are not performed.",
+      "evidence": [
+        "Docs/ReleaseEvidence-1.0.3.json"
+      ]
     },
     {
       "id": "physical-device",

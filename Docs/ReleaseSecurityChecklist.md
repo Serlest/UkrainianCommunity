@@ -11,18 +11,9 @@ in [the current checklist](ReleaseChecklist-1.0.3.md),
 implementation-phase status notes. General checkboxes below are reusable procedures,
 not a current list of unperformed deployments.
 
-414 unit tests, 50 unique UI tests and two separate actual SDK scenarios passed;
-local server/Rules checks passed. Three privacy Functions, Firestore 2026.13 and
-Hosting live hashes were verified; three German translations and isolated restore
-cleanup have proof. Management deployment now has verified read-back. Candidate validation is reopened
-pending UI-owner assessment of the Hackathon feed/detail date discrepancy. Exact app/server code equivalence was read at integration 21126fe.
+417 unit checks passed; the final run skipped two local SDK cases and an OS notification probe, all three passed separately. The prior full UI set passed 50 unique tests; four final multi-day DE/UK/AX5 regression scenarios also passed. Source mapping and evidence are in Docs/ReleaseEvidence-1.0.3.json.
 
-App Privacy login, signed archive/TestFlight, physical device/iOS 17, one held event
-and final rights confirmation, and final live comments remain open. The user has
-authorized the agreed external work; no missing general authorization is a blocker.
-Public App Store release remains outside this task. Strict gates remain closed for
-actual evidence gaps. Qualified legal review stays a recommendation; these technical
-checks do not provide a legal opinion.
+The multi-day date omission and accessibility label were corrected and visually verified. A local Apple Development-signed iPhone Release archive69 passed strict signing, app dSYM and privacy-manifest checks. App Store distribution export/TestFlight, authenticated App Privacy, physical device/iOS17, held content/rights, final live comments and global accessibility/performance remain open. Public App Store publication is outside this run.
 
 ## Repository gate
 
