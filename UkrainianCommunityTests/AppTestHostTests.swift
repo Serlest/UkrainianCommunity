@@ -4,6 +4,16 @@ import Testing
 @testable import UkrainianCommunity
 
 struct AppTestHostTests {
+    @Test @MainActor func constructingServiceWrappersDoesNotRequireFirebase() {
+        // These wrappers are created by validation-only editor fixtures.
+        _ = ImageUploadService.shared
+        _ = CloudFunctionsClient()
+        _ = CloudFunctionsClient.shared
+        if ProcessInfo.processInfo.environment["UACFirebaseEmulators"] != "1" {
+            #expect(FirebaseApp.app() == nil)
+        }
+    }
+
     @Test func ordinaryLaunchUsesTheApp() {
         #expect(!AppTestHost.isUnitTesting(arguments: [], environment: [:], hasXCTestCase: false))
     }

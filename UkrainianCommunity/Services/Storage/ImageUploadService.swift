@@ -17,7 +17,9 @@ protocol FeaturedBannerImageService: AnyObject {
 final class ImageUploadService {
     static let shared = ImageUploadService()
 
-    private let storage = Storage.storage()
+    // Constructing an editor must not initialize Firebase. Resolve Storage only
+    // when an actual upload/delete operation needs it; Firebase owns its instance.
+    private var storage: Storage { Storage.storage() }
     private let preferredImageWidths: [CGFloat] = [1600, 1200, 900, 700]
     private let preferredCompressionQualities: [CGFloat] = [0.75, 0.65, 0.55, 0.45, 0.40]
     private let maxUploadBytes = 3_000_000

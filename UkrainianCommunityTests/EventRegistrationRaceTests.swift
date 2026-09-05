@@ -105,7 +105,10 @@ struct EventRegistrationRaceTests {
 
     @Test func registrationRejectsDoubleTapAndUsesAuthoritativeResponse() async {
         let repository = ControlledEventRepository()
-        let viewModel = EventsViewModel(repository: repository)
+        let viewModel = EventsViewModel(repository: repository, reminderUserID: {
+            Issue.record("No reminder service is installed; Auth must not be read")
+            return nil
+        })
         let event = makeEvent(id: "registration-double-tap", registeredCount: 3)
         viewModel.events = [event]
 
@@ -183,7 +186,10 @@ struct EventRegistrationRaceTests {
         let repository = ControlledEventRepository()
         let eventID = "my-registration-shared-id"
         repository.events = [makeEvent(id: eventID, registrationState: .registered, registeredCount: 5)]
-        let viewModel = MyRegistrationsViewModel(repository: repository)
+        let viewModel = MyRegistrationsViewModel(repository: repository, reminderUserID: {
+            Issue.record("No reminder service is installed; Auth must not be read")
+            return nil
+        })
         await viewModel.refresh()
 
         let oldCancellation = Task { await viewModel.cancelRegistration(for: eventID) }

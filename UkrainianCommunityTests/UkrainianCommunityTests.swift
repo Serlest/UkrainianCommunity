@@ -1358,9 +1358,14 @@ struct UkrainianCommunityTests {
     @Test func myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount() async throws {
         let repository = MockEventRepository()
         let targetEvent = try #require((try await repository.fetchEvents()).first(where: { $0.registrationState == .registered }))
+        var reminderUserReads = 0
         let viewModel = MyRegistrationsViewModel(
             repository: repository,
-            localEventReminderService: MockLocalEventReminderService()
+            localEventReminderService: MockLocalEventReminderService(),
+            reminderUserID: {
+                reminderUserReads += 1
+                return "unit-reminder-user"
+            }
         )
 
         await viewModel.refresh()
@@ -1368,6 +1373,7 @@ struct UkrainianCommunityTests {
 
         await viewModel.cancelRegistration(for: targetEvent.id)
 
+        #expect(reminderUserReads == 1)
         #expect(viewModel.events.contains(where: { $0.id == targetEvent.id }) == false)
         #expect(viewModel.pendingCancellationIDs.contains(targetEvent.id) == false)
         #expect(viewModel.registrationsCount == viewModel.events.count)

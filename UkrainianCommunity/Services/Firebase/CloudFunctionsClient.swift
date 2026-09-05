@@ -483,10 +483,14 @@ struct PrivilegedMFAActivationFunctionResponse: Codable, Equatable {
 final class CloudFunctionsClient {
     static let shared = CloudFunctionsClient()
 
-    private let functions: Functions
+    private let injectedFunctions: Functions?
+    // Validation-only editors may construct this wrapper without using Firebase.
+    private var functions: Functions {
+        injectedFunctions ?? Functions.functions(region: "europe-west3")
+    }
 
-    init(functions: Functions = Functions.functions(region: "europe-west3")) {
-        self.functions = functions
+    init(functions: Functions? = nil) {
+        self.injectedFunctions = functions
     }
 
     func assignOrganizationAdmin(

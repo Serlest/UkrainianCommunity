@@ -366,6 +366,9 @@ enum ActivityLogRecorder {
     }
 
     private static func record(_ item: ActivityLogItem) {
+        // Hosted unit tests exercise mock interactions, not account activity writes.
+        // Keep this before the task so the live repository is never initialized.
+        guard !AppTestHost.isUnitTesting else { return }
         Task {
             try? await repository.recordActivity(item)
         }

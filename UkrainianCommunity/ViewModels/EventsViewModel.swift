@@ -31,6 +31,7 @@ final class EventsViewModel: ObservableObject {
     private let analyticsService: AnalyticsTracking
     private let notificationPreferencesRepository: NotificationPreferencesRepository?
     private let localEventReminderService: LocalEventReminderServiceProtocol?
+    private let reminderUserID: () -> String?
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
@@ -54,13 +55,15 @@ final class EventsViewModel: ObservableObject {
         notificationPreferencesRepository: NotificationPreferencesRepository? = nil,
         localEventReminderService: LocalEventReminderServiceProtocol? = nil,
         analyticsService: AnalyticsTracking = NoopAnalyticsService(),
-        registrationMutator: EventRegistrationMutating? = nil
+        registrationMutator: EventRegistrationMutating? = nil,
+        reminderUserID: @escaping () -> String? = { AuthService.shared.currentUser?.uid }
     ) {
         self.repository = repository
         self.commentReadDeadline = commentReadDeadline
         self.analyticsService = analyticsService
         self.notificationPreferencesRepository = notificationPreferencesRepository
         self.localEventReminderService = localEventReminderService
+        self.reminderUserID = reminderUserID
         if let registrationMutator {
             self.registrationMutator = registrationMutator
         } else {
@@ -364,8 +367,8 @@ final class EventsViewModel: ObservableObject {
     }
 
     private func updateLocalReminder(for event: Event, isRegistered: Bool) async {
-        guard let userID = AuthService.shared.currentUser?.uid,
-              let localEventReminderService else { return }
+        guard let localEventReminderService,
+              let userID = reminderUserID() else { return }
 
         guard isRegistered else {
             localEventReminderService.cancelEventReminder(eventID: event.id, userID: userID)
