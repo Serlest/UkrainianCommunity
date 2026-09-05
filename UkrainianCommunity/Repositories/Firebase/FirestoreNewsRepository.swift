@@ -94,7 +94,7 @@ struct FirestoreNewsRepository: NewsRepository {
         }
 
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.publishedAt), cursor.documentID])
+            query = query.start(after: cursor.firestoreStartAfterValues)
         }
 
         let snapshot = try await query.getDocuments()
@@ -782,7 +782,7 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     private func makeNewsPageCursor(from document: QueryDocumentSnapshot) -> NewsPageCursor? {
-        guard let publishedAt = (document.data()["publishedAt"] as? Timestamp)?.dateValue() else {
+        guard let publishedAt = document.data()["publishedAt"] as? Timestamp else {
             return nil
         }
         return NewsPageCursor(publishedAt: publishedAt, documentID: document.documentID)

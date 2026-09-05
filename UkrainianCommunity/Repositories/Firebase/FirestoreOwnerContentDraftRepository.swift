@@ -29,7 +29,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             .limit(to: pageSize + 1)
 
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.sortDate), cursor.documentID])
+            query = query.start(after: cursor.firestoreStartAfterValues)
         }
 
         do {
@@ -42,7 +42,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             return OwnerContentDraftPage(
                 items: items,
                 nextCursor: documents.last.flatMap { document in
-                    guard let sortDate = date(document.data()[sortField]) else { return nil }
+                    guard let sortDate = document.data()[sortField] as? Timestamp else { return nil }
                     return OwnerContentDraftPageCursor(sortDate: sortDate, documentID: document.documentID)
                 },
                 hasMore: snapshot.documents.count > pageSize

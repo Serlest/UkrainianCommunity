@@ -50,6 +50,14 @@ enum OwnerContentPublicationOutcome: String, Codable {
 struct OwnerContentDraftPageCursor: Equatable {
     let sortDate: Date
     let documentID: String
+    /// Present for Firestore pages; Date-only callers retain their existing behavior.
+    let exactTimestamp: PageCursorTimestamp?
+
+    init(sortDate: Date, documentID: String, exactTimestamp: PageCursorTimestamp? = nil) {
+        self.sortDate = sortDate
+        self.documentID = documentID
+        self.exactTimestamp = exactTimestamp
+    }
 }
 
 struct OwnerContentDraftPage: Equatable {

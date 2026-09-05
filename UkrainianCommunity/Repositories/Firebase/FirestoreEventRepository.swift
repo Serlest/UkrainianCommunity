@@ -79,7 +79,7 @@ struct FirestoreEventRepository: EventRepository {
         }
 
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.endDate), cursor.documentID])
+            query = query.start(after: cursor.firestoreStartAfterValues)
         }
 
         let snapshot = try await query.getDocuments()
@@ -1183,7 +1183,7 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     private func makeEventPageCursor(from document: QueryDocumentSnapshot) -> EventPageCursor? {
-        guard let endDate = (document.data()["endDate"] as? Timestamp)?.dateValue() else {
+        guard let endDate = document.data()["endDate"] as? Timestamp else {
             return nil
         }
         return EventPageCursor(endDate: endDate, documentID: document.documentID)

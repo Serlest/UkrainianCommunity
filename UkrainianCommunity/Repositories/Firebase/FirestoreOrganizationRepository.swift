@@ -127,7 +127,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         }
 
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.documentID])
+            query = query.start(after: cursor.firestoreStartAfterValues)
         }
 
         let snapshot = try await query.getDocuments()
@@ -154,7 +154,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     private func makeOrganizationPageCursor(from document: QueryDocumentSnapshot) -> OrganizationPageCursor? {
-        guard let createdAt = (document.data()["createdAt"] as? Timestamp)?.dateValue() else {
+        guard let createdAt = document.data()["createdAt"] as? Timestamp else {
             return nil
         }
         return OrganizationPageCursor(createdAt: createdAt, documentID: document.documentID)
@@ -593,7 +593,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             .limit(to: limit + 1)
 
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.followedAt), cursor.documentID])
+            query = query.start(after: cursor.firestoreStartAfterValues)
         }
 
         let snapshot: QuerySnapshot
@@ -625,7 +625,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             return OrganizationSubscriberReference(userID: userID, followedAt: followedAt, documentID: document.documentID)
         }
         let nextCursor = documents.last.flatMap { document -> OrganizationSubscriberCursor? in
-            guard let followedAt = (document.data()["createdAt"] as? Timestamp)?.dateValue() else { return nil }
+            guard let followedAt = document.data()["createdAt"] as? Timestamp else { return nil }
             return OrganizationSubscriberCursor(followedAt: followedAt, documentID: document.documentID)
         }
 

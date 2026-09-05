@@ -186,9 +186,24 @@ extension FeedbackItem {
     }
 }
 
+/// Firestore query boundaries must retain the original timestamp components.
+/// Date is suitable for display, but a Timestamp -> Date -> Timestamp roundtrip is lossy.
+struct PageCursorTimestamp: Hashable, Sendable {
+    let seconds: Int64
+    let nanoseconds: Int32
+}
+
 struct NewsPageCursor: Equatable {
     let publishedAt: Date
     let documentID: String
+    /// Present for Firestore pages; Date-only callers retain their existing behavior.
+    let exactTimestamp: PageCursorTimestamp?
+
+    init(publishedAt: Date, documentID: String, exactTimestamp: PageCursorTimestamp? = nil) {
+        self.publishedAt = publishedAt
+        self.documentID = documentID
+        self.exactTimestamp = exactTimestamp
+    }
 }
 
 struct NewsPage {
@@ -200,6 +215,14 @@ struct NewsPage {
 struct EventPageCursor: Equatable {
     let endDate: Date
     let documentID: String
+    /// Present for Firestore pages; Date-only callers retain their existing behavior.
+    let exactTimestamp: PageCursorTimestamp?
+
+    init(endDate: Date, documentID: String, exactTimestamp: PageCursorTimestamp? = nil) {
+        self.endDate = endDate
+        self.documentID = documentID
+        self.exactTimestamp = exactTimestamp
+    }
 }
 
 struct EventPage {
@@ -255,6 +278,14 @@ protocol EventRegistrationMutating {
 struct OrganizationPageCursor: Equatable {
     let createdAt: Date
     let documentID: String
+    /// Present for Firestore pages; Date-only callers retain their existing behavior.
+    let exactTimestamp: PageCursorTimestamp?
+
+    init(createdAt: Date, documentID: String, exactTimestamp: PageCursorTimestamp? = nil) {
+        self.createdAt = createdAt
+        self.documentID = documentID
+        self.exactTimestamp = exactTimestamp
+    }
 }
 
 struct OrganizationPage {

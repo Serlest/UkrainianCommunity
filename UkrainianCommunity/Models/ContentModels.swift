@@ -1138,6 +1138,14 @@ struct OrganizationSubscriberReference: Identifiable, Hashable {
 struct OrganizationSubscriberCursor: Hashable {
     let followedAt: Date
     let documentID: String
+    /// Present for Firestore pages; Date-only callers retain their existing behavior.
+    let exactTimestamp: PageCursorTimestamp?
+
+    init(followedAt: Date, documentID: String, exactTimestamp: PageCursorTimestamp? = nil) {
+        self.followedAt = followedAt
+        self.documentID = documentID
+        self.exactTimestamp = exactTimestamp
+    }
 }
 
 struct OrganizationSubscriberPage: Hashable {
