@@ -56,6 +56,7 @@ final class MultiDayEventScheduleUITests: XCTestCase {
         reveal(header, in: app)
         XCTAssertTrue(header.label.contains(endpoints.start), header.label)
         XCTAssertTrue(header.label.contains(endpoints.end), header.label)
+        XCTAssertEqual(header.label, "\(endpoints.start) – \(endpoints.end)", "The interval must be one accessibility label, without the decorative calendar name")
         assertHorizontalBounds(header, in: app)
         capture("\(scenario)-\(language)-header-AX\(largeText)", app: app)
 

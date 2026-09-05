@@ -38,6 +38,9 @@ struct EventMultiDayScheduleLabel: View {
             .lineLimit(nil)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
+            // The calendar is decorative; expose the complete interval as one element.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(schedule.range)
     }
 }
 
