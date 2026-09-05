@@ -1,0 +1,48 @@
+{
+  "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/09CBA4CE-6066-4DA1-822A-F50A02E25A44",
+  "updateTime": "2026-08-30T09:34:06.417167Z",
+  "fields": {
+    "details": {
+      "stringValue": "12 вересня Hall in Tirol приймає свято органічного гірського фермерства. Заплановані продукти зі 100% органічною якістю, музична програма та активності для дітей. Точний час слід звірити на сторінці організатора перед публікацією."
+    },
+    "address": {
+      "stringValue": "Marktanger 1, 6060 Hall in Tirol"
+    },
+    "startDate": {
+      "timestampValue": "2026-09-12T08:00:00Z"
+    },
+    "organizationId": {
+      "stringValue": "157C7FAF-B843-4DB1-9EE3-79B5714FDEAC"
+    },
+    "localizations": {
+      "mapValue": {
+        "fields": {
+          "uk": {
+            "mapValue": {
+              "fields": {
+                "details": {
+                  "stringValue": "12 вересня Hall in Tirol приймає свято органічного гірського фермерства. Заплановані продукти зі 100% органічною якістю, музична програма та активності для дітей. Точний час слід звірити на сторінці організатора перед публікацією."
+                },
+                "summary": {
+                  "stringValue": "Органічні продукти тирольських гірських фермерів, музика та програма для дітей."
+                },
+                "title": {
+                  "stringValue": "Bio-Bergbauernfest у Халлі"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "title": {
+      "stringValue": "Bio-Bergbauernfest у Халлі"
+    },
+    "organizerURL": {
+      "stringValue": "https://www.tirol.at/aktivitaeten/events/volks-und-traditionsfeste"
+    },
+    "endDate": {
+      "timestampValue": "2026-09-12T15:00:00Z"
+    }
+  }
+}

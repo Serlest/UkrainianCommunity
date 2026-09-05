@@ -1,0 +1,45 @@
+{
+  "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/FE5637D0-6B8D-483B-869C-C628E3941D92",
+  "updateTime": "2026-09-04T12:41:00.332095Z",
+  "fields": {
+    "startDate": {
+      "timestampValue": "2026-09-20T08:30:55Z"
+    },
+    "organizationId": {
+      "stringValue": "43A94F68-6ED2-468E-94DD-C873240E3468"
+    },
+    "address": {
+      "stringValue": "Tschurtschenthalerstraße 7, 6020 Innsbruck"
+    },
+    "title": {
+      "stringValue": "Недільне Богослужіння"
+    },
+    "endDate": {
+      "timestampValue": "2026-09-20T10:00:55Z"
+    },
+    "localizations": {
+      "mapValue": {
+        "fields": {
+          "uk": {
+            "mapValue": {
+              "fields": {
+                "details": {
+                  "stringValue": "Початок Літургії о 10:30, перед Літургією є можливість приступити до Сповіді, а також взяти участь у Молитві матерів (молитва Вервиці)"
+                },
+                "summary": {
+                  "stringValue": "Недільна Літургія, на якій ми молимось у Ваших наміреннях за здоров’я та упокій!"
+                },
+                "title": {
+                  "stringValue": "Недільне Богослужіння"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "details": {
+      "stringValue": "Початок Літургії о 10:30, перед Літургією є можливість приступити до Сповіді, а також взяти участь у Молитві матерів (молитва Вервиці)"
+    }
+  }
+}

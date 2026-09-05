@@ -1,0 +1,48 @@
+{
+  "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/4CCF2D2C-204B-403C-AD3C-162767C7BB65",
+  "updateTime": "2026-08-27T21:47:37.434991Z",
+  "fields": {
+    "address": {
+      "stringValue": "Marktplatz, 6020 Innsbruck"
+    },
+    "details": {
+      "stringValue": "З 13 листопада до 23 грудня Marktplatz перетвориться на різдвяний ярмарок. Це зручний варіант для сімейної прогулянки з сезонними стравами, напоями й святковими декораціями. Щоденний старт зазначений об 11:00; час закриття слід звірити."
+    },
+    "organizerURL": {
+      "stringValue": "https://www.innsbruck.info/en/events/d/markets.html"
+    },
+    "organizationId": {
+      "stringValue": "157C7FAF-B843-4DB1-9EE3-79B5714FDEAC"
+    },
+    "localizations": {
+      "mapValue": {
+        "fields": {
+          "uk": {
+            "mapValue": {
+              "fields": {
+                "details": {
+                  "stringValue": "З 13 листопада до 23 грудня Marktplatz перетвориться на різдвяний ярмарок. Це зручний варіант для сімейної прогулянки з сезонними стравами, напоями й святковими декораціями. Щоденний старт зазначений об 11:00; час закриття слід звірити."
+                },
+                "summary": {
+                  "stringValue": "Сімейний адвент-ярмарок у центрі Інсбрука з вогнями, частуванням і святковою програмою."
+                },
+                "title": {
+                  "stringValue": "Різдвяний ярмарок на Marktplatz"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "endDate": {
+      "timestampValue": "2026-12-23T20:00:00Z"
+    },
+    "startDate": {
+      "timestampValue": "2026-11-13T10:00:00Z"
+    },
+    "title": {
+      "stringValue": "Різдвяний ярмарок на Marktplatz"
+    }
+  }
+}

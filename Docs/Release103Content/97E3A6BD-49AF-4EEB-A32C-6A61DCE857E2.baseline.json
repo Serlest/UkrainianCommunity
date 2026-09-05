@@ -1,0 +1,54 @@
+{
+  "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/97E3A6BD-49AF-4EEB-A32C-6A61DCE857E2",
+  "updateTime": "2026-08-29T14:06:08.703039Z",
+  "fields": {
+    "startDate": {
+      "timestampValue": "2026-09-11T07:00:04Z"
+    },
+    "endDate": {
+      "timestampValue": "2026-09-12T14:00:04Z"
+    },
+    "address": {
+      "stringValue": "Peter-Behrens-Platz 6, 4020 Linz"
+    },
+    "externalAction": {
+      "mapValue": {
+        "fields": {
+          "url": {
+            "stringValue": "https://hackathon.ars.electronica.art/de/hackathon/"
+          }
+        }
+      }
+    },
+    "title": {
+      "stringValue": "AI Hackathon — Ars Electronica 2026"
+    },
+    "details": {
+      "stringValue": "Протягом двох днів учасники працюватимуть над власними ідеями та проєктами з використанням AI, даних Ars Electronica та Open Data міста Лінц. Досвід програмування не обов’язковий. Можна брати участь самостійно або командою."
+    },
+    "organizationId": {
+      "stringValue": "C177D69C-5230-4159-9A55-285A967C8F72"
+    },
+    "localizations": {
+      "mapValue": {
+        "fields": {
+          "uk": {
+            "mapValue": {
+              "fields": {
+                "details": {
+                  "stringValue": "Протягом двох днів учасники працюватимуть над власними ідеями та проєктами з використанням AI, даних Ars Electronica та Open Data міста Лінц. Досвід програмування не обов’язковий. Можна брати участь самостійно або командою."
+                },
+                "summary": {
+                  "stringValue": "Дводенний AI-хакатон у Лінці в рамках Ars Electronica Festival. Створюйте нові проєкти з AI, використовуючи дані фестивалю та відкриті дані міста Лінц."
+                },
+                "title": {
+                  "stringValue": "AI Hackathon — Ars Electronica 2026"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

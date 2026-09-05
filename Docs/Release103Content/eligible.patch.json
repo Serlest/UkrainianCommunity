@@ -1,0 +1,118 @@
+{
+  "writes": [
+    {
+      "update": {
+        "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/09CBA4CE-6066-4DA1-822A-F50A02E25A44",
+        "fields": {
+          "localizations": {
+            "mapValue": {
+              "fields": {
+                "de": {
+                  "mapValue": {
+                    "fields": {
+                      "title": {
+                        "stringValue": "Bio-Bergbauernfest in Hall in Tirol"
+                      },
+                      "details": {
+                        "stringValue": "Am Samstag, 12. September 2026, findet am Marktanger in Hall in Tirol das Bio-Bergbauernfest statt, das die regionale Veranstaltungsseite als Tiroler Biofest ankündigt. Beginn ist um 10:00 Uhr.\n\nTiroler Bio-Betriebe stellen ihre Lebensmittel vor. Besucherinnen und Besucher können regionale Produkte kennenlernen, probieren und direkt einkaufen. Das Angebot umfasst unter anderem Obst und Gemüse, Brot, Käse, Fleisch- und Wurstspezialitäten sowie Säfte. Musik und ein Kinderprogramm begleiten den Markt.\n\nVeranstaltungsort: Marktanger, 6060 Hall in Tirol. Eine verbindliche Schlusszeit ist auf den ausgewerteten Veranstaltungsseiten nicht angegeben. Aktuelle Hinweise stehen auf der verlinkten Veranstaltungsseite."
+                      },
+                      "summary": {
+                        "stringValue": "Regionale Bio-Lebensmittel, Musik und Angebote für Kinder beim Fest am Haller Marktanger."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "updateMask": {
+        "fieldPaths": [
+          "localizations.de.title",
+          "localizations.de.details",
+          "localizations.de.summary"
+        ]
+      },
+      "currentDocument": {
+        "updateTime": "2026-08-30T09:34:06.417167Z"
+      }
+    },
+    {
+      "update": {
+        "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/4CCF2D2C-204B-403C-AD3C-162767C7BB65",
+        "fields": {
+          "localizations": {
+            "mapValue": {
+              "fields": {
+                "de": {
+                  "mapValue": {
+                    "fields": {
+                      "title": {
+                        "stringValue": "Christkindlmarkt am Marktplatz in Innsbruck"
+                      },
+                      "details": {
+                        "stringValue": "Vom 13. November bis 23. Dezember 2026 lädt der Christkindlmarkt am Innsbrucker Marktplatz zu einem Adventbesuch mit der Familie ein. Der Markt ist täglich von 11:00 bis 21:00 Uhr geöffnet; die Verkaufsstände schließen um 20:30 Uhr.\n\nAn mehr als 68 Ständen gibt es Kunsthandwerk, weihnachtliche Waren und traditionelle Speisen. Für Kinder bietet das Programm unter anderem ein nostalgisches Karussell und Kasperltheater. Der beleuchtete Swarovski-Kristallbaum gehört zur festlichen Gestaltung des Platzes.\n\nOrt: Marktplatz, 6020 Innsbruck. Einzelne Kinderangebote haben eigene Programmzeiten. Den aktuellen Ablauf und die Öffnungszeiten veröffentlicht der Veranstalter auf seiner Website."
+                      },
+                      "summary": {
+                        "stringValue": "Adventmarkt für die ganze Familie: Weihnachtsstände, regionale Küche, Karussell und Kasperltheater am Innsbrucker Marktplatz."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "updateMask": {
+        "fieldPaths": [
+          "localizations.de.title",
+          "localizations.de.details",
+          "localizations.de.summary"
+        ]
+      },
+      "currentDocument": {
+        "updateTime": "2026-08-27T21:47:37.434991Z"
+      }
+    },
+    {
+      "update": {
+        "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/97E3A6BD-49AF-4EEB-A32C-6A61DCE857E2",
+        "fields": {
+          "localizations": {
+            "mapValue": {
+              "fields": {
+                "de": {
+                  "mapValue": {
+                    "fields": {
+                      "title": {
+                        "stringValue": "AI Hackathon – Ars Electronica Festival 2026"
+                      },
+                      "details": {
+                        "stringValue": "Am 11. und 12. September 2026 findet in der Grand Garage in Linz ein AI Hackathon im Rahmen des Ars Electronica Festival statt. Die Teilnehmenden entwickeln eigene digitale Projekte mit Daten des Festivals, offenen Daten der Stadt Linz und KI-Werkzeugen. Mentorinnen und Mentoren begleiten die Arbeit.\n\nMitmachen können Personen ab 14 Jahren. Programmier- oder Vibe-Coding-Erfahrung ist nicht erforderlich. Eine Teilnahme ist allein, mit gewünschter Team-Zuteilung oder als bestehendes Team aus zwei bis fünf Personen möglich.\n\nAm Freitag läuft das Programm von 09:30 bis 18:00 Uhr, am Samstag von 09:30 bis 16:00 Uhr. Einlass ist jeweils ab 09:00 Uhr. Am Samstagnachmittag können Projekte freiwillig vorgestellt werden; anschließend folgen eine Abstimmung der Community und die Preisvergabe.\n\nDie Teilnahme ist kostenlos, eine Anmeldung bis 7. September 2026 ist erforderlich. Anmeldung und aktuelle Hinweise sind über die verlinkte Veranstaltungsseite erreichbar."
+                      },
+                      "summary": {
+                        "stringValue": "Zwei Tage in Linz: eigene KI-Projekte mit Festivaldaten und offenen Stadtdaten entwickeln – auch ohne Programmiererfahrung."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "updateMask": {
+        "fieldPaths": [
+          "localizations.de.title",
+          "localizations.de.details",
+          "localizations.de.summary"
+        ]
+      },
+      "currentDocument": {
+        "updateTime": "2026-08-29T14:06:08.703039Z"
+      }
+    }
+  ]
+}

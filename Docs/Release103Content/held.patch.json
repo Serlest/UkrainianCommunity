@@ -1,0 +1,42 @@
+{
+  "writes": [
+    {
+      "update": {
+        "name": "projects/ukrainiancommunity-dbd5f/databases/(default)/documents/events/FE5637D0-6B8D-483B-869C-C628E3941D92",
+        "fields": {
+          "localizations": {
+            "mapValue": {
+              "fields": {
+                "de": {
+                  "mapValue": {
+                    "fields": {
+                      "title": {
+                        "stringValue": "Sonntagsgottesdienst"
+                      },
+                      "details": {
+                        "stringValue": "Die Göttliche Liturgie beginnt um 10:30 Uhr. Vor der Liturgie besteht die Möglichkeit zur Beichte sowie zur Teilnahme am Gebet der Mütter, bei dem der Rosenkranz gebetet wird.\n\nIn der Sonntagsliturgie wird für Ihre Anliegen, für die Gesundheit und für die Verstorbenen gebetet."
+                      },
+                      "summary": {
+                        "stringValue": "Göttliche Liturgie am Sonntag mit Gebeten für Ihre Anliegen, für die Gesundheit und für die Verstorbenen."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "updateMask": {
+        "fieldPaths": [
+          "localizations.de.title",
+          "localizations.de.details",
+          "localizations.de.summary"
+        ]
+      },
+      "currentDocument": {
+        "updateTime": "2026-09-04T12:41:00.332095Z"
+      }
+    }
+  ]
+}
