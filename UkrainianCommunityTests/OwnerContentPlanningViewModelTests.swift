@@ -326,6 +326,10 @@ struct OwnerContentPlanningViewModelTests {
             editor.details = "Повний опис"
             editor.city = "Innsbruck"
             editor.venue = "Community Center"
+            // This test covers the publication lease, not CoreLocation's external service.
+            // Both coordinates prevent publish() from awaiting a real CLGeocoder request.
+            editor.latitude = 47.2692
+            editor.longitude = 11.4041
             editor.startDate = Date().addingTimeInterval(86_400)
             editor.endDate = editor.startDate.addingTimeInterval(3_600)
             #expect(await editor.publish(
@@ -338,6 +342,8 @@ struct OwnerContentPlanningViewModelTests {
             #expect(editor.errorMessage == nil)
             let result = try #require(editor.lastPublicationResult)
             let saved = try await contentRepository.fetchEvent(id: lease.contentID)
+            #expect(saved.latitude == 47.2692)
+            #expect(saved.longitude == 11.4041)
             #expect(saved.title == editor.title)
             #expect(saved.source.organizationId == "organization-1")
             try await contentRepository.deleteEvent(id: lease.contentID)
