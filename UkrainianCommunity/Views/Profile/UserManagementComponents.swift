@@ -189,3 +189,151 @@ struct UserRolePermissionsSheet: View {
         .presentationDetents([.large])
     }
 }
+
+struct ManagedUserRow: View {
+    let user: AppUser
+    let organizationRoles: [UserOrganizationRole]
+
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 12) {
+                    UserManagementAvatar(user: user, size: 46)
+                    identityText
+                }
+                badges
+                registrationDate
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var identityText: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(user.preferredDisplayName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(secondaryLine)
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var badges: some View {
+        UserManagementBadgeFlowLayout(spacing: 6) {
+            UserManagementStatusBadge(title: user.blockState.title, tint: statusTint)
+
+            if !user.city.isEmpty {
+                UserManagementStatusBadge(title: user.city, tint: AppTheme.textSecondary)
+            }
+
+            if let primaryOrganizationRole {
+                UserManagementStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimaryForeground)
+            }
+
+            if organizationRoles.count > 1 {
+                UserManagementStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count - 1), tint: AppTheme.accentPrimaryForeground)
+            }
+        }
+    }
+
+    private var registrationDate: some View {
+        Label(
+            LocalizationStore.dateString(from: user.createdAt, dateStyle: .short, timeStyle: .none),
+            systemImage: "calendar"
+        )
+        .font(.caption2)
+        .foregroundStyle(AppTheme.textSecondary)
+        .multilineTextAlignment(.leading)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var secondaryLine: String {
+        if !user.email.isEmpty { return user.email }
+        if let telegramUsername = user.telegramUsername, !telegramUsername.isEmpty { return telegramUsername }
+        return user.id
+    }
+
+    private var statusTint: Color {
+        switch user.blockState {
+        case .active:
+            AppTheme.accentPrimaryForeground
+        case .warned:
+            AppTheme.accentSupportForeground
+        case .suspendedUntil, .blocked, .bannedPermanent, .deactivated:
+            AppTheme.accentDestructiveForeground
+        }
+    }
+
+    private var primaryOrganizationRole: String? {
+        if organizationRoles.contains(where: { $0.role == .communityOwner }) { return AppStrings.UserManagement.organizationOwnerRole }
+        if organizationRoles.contains(where: { $0.role == .communityAdmin }) { return AppStrings.UserManagement.organizationAdminRole }
+        if organizationRoles.contains(where: { $0.role == .communityModerator }) { return AppStrings.UserManagement.organizationModeratorRole }
+        return nil
+    }
+}
+
+
+/// Presentation only: audit loading and pagination remain owned by the history card.
+struct UserManagementAuditRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    let title: String
+    let date: String
+    let reason: String
+    let performedBy: String
+    let changeSummary: String?
+
+    private var headingLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+            : AnyLayout(HStackLayout())
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            headingLayout {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !dynamicTypeSize.isAccessibilitySize {
+                    Spacer(minLength: 8)
+                }
+
+                Text(date)
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Text(reason)
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if !performedBy.isEmpty {
+                Text(AppStrings.UserManagement.auditPerformedBy(performedBy))
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let changeSummary {
+                Text(changeSummary)
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}

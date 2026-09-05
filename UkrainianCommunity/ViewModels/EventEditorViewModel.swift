@@ -256,9 +256,9 @@ final class EventEditorViewModel: ObservableObject {
             externalActionTitle = existingEvent.externalAction?.title ?? ""
             externalActionURL = existingEvent.externalAction?.url ?? ""
             priceKind = existingEvent.pricing.kind
-            maximumPriceText = Self.priceText(from: existingEvent.pricing.maximumAmount ?? 0)
+            maximumPriceText = EventEditorInputNormalization.priceText(from: existingEvent.pricing.maximumAmount ?? 0)
             priceNote = existingEvent.pricing.note ?? ""
-            priceText = Self.priceText(from: existingEvent.price)
+            priceText = EventEditorInputNormalization.priceText(from: existingEvent.price)
             capacityText = existingEvent.capacity.map(String.init) ?? ""
             if let existingScheduledAt = existingEvent.scheduledAt {
                 publicationMode = .scheduled
@@ -336,9 +336,9 @@ final class EventEditorViewModel: ObservableObject {
 
     var canAdvanceAudience: Bool {
         guard !requiresOrganizationRegionBeforePublishing, isValidPublishingMetadata else { return false }
-        guard !requiresRegistration || Self.isValidPositiveIntegerOrBlank(capacityText) else { return false }
+        guard !requiresRegistration || EventEditorInputNormalization.isValidPositiveIntegerOrBlank(capacityText) else { return false }
         guard isValidPricing, isValidExternalParticipation else { return false }
-        guard Self.isValidAgeOrBlank(minimumAgeText), Self.isValidAgeOrBlank(maximumAgeText) else { return false }
+        guard EventEditorInputNormalization.isValidAgeOrBlank(minimumAgeText), EventEditorInputNormalization.isValidAgeOrBlank(maximumAgeText) else { return false }
 
         if let minimumAge = resolvedMinimumAge, let maximumAge = resolvedMaximumAge {
             return maximumAge >= minimumAge
@@ -426,7 +426,7 @@ final class EventEditorViewModel: ObservableObject {
         case .unspecified, .free:
             return true
         case .exact, .startingFrom:
-            return Self.isValidNonNegativeDecimalOrBlank(priceText) && parsedPrice != nil
+            return EventEditorInputNormalization.isValidNonNegativeDecimalOrBlank(priceText) && parsedPrice != nil
         case .range:
             guard let minimum = parsedPrice,
                   let maximum = parsedMaximumPrice else { return false }
@@ -609,22 +609,22 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     func setStartDateComponent(_ dateValue: Date) {
-        startDate = Self.combinedDate(dateFrom: dateValue, timeFrom: startDate)
+        startDate = EventEditorInputNormalization.combinedDate(dateFrom: dateValue, timeFrom: startDate)
         correctDateRangeAfterStartChange()
     }
 
     func setStartTimeComponent(_ timeValue: Date) {
-        startDate = Self.combinedDate(dateFrom: startDate, timeFrom: timeValue)
+        startDate = EventEditorInputNormalization.combinedDate(dateFrom: startDate, timeFrom: timeValue)
         correctDateRangeAfterStartChange()
     }
 
     func setEndDateComponent(_ dateValue: Date) {
-        endDate = Self.combinedDate(dateFrom: dateValue, timeFrom: endDate)
+        endDate = EventEditorInputNormalization.combinedDate(dateFrom: dateValue, timeFrom: endDate)
         correctDateRangeAfterEndChange()
     }
 
     func setEndTimeComponent(_ timeValue: Date) {
-        endDate = Self.combinedDate(dateFrom: endDate, timeFrom: timeValue)
+        endDate = EventEditorInputNormalization.combinedDate(dateFrom: endDate, timeFrom: timeValue)
         correctDateRangeAfterEndChange()
     }
 
@@ -1084,7 +1084,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private var resolvedOrganizerURL: String? {
-        normalizedURLString(from: organizerURL)
+        EventEditorInputNormalization.normalizedURLString(from: organizerURL)
     }
 
     private var resolvedContactPhone: String? {
@@ -1096,29 +1096,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private var resolvedContactURL: String? {
-        normalizedURLString(from: contactURL)
-    }
-
-    private func normalizedURLString(from value: String) -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !trimmed.contains(where: { $0.isWhitespace }) else {
-            return nil
-        }
-
-        if let url = URL(string: trimmed),
-           let scheme = url.scheme?.lowercased(),
-           ["http", "https"].contains(scheme),
-           url.host?.isEmpty == false {
-            return url.absoluteString
-        }
-
-        guard !trimmed.contains("://"), trimmed.contains("."),
-              let url = URL(string: "https://\(trimmed)"),
-              url.host?.isEmpty == false else {
-            return trimmed
-        }
-
-        return url.absoluteString
+        EventEditorInputNormalization.normalizedURLString(from: contactURL)
     }
 
     private var trimmedCapacityText: String {
@@ -1445,12 +1423,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     private func normalizedAdditionalCategories(_ categories: [EventCategory]) -> [EventCategory] {
-        Array(categories.reduce(into: [EventCategory]()) { result, candidate in
-            guard candidate != selectedCategory,
-                  candidate != .unspecified,
-                  !result.contains(candidate) else { return }
-            result.append(candidate)
-        }.prefix(EventCategory.maximumAdditionalCategoryCount))
+        EventEditorInputNormalization.additionalCategories(categories, excluding: selectedCategory)
     }
 
     private func downloadGeneratedImageIfNeeded() async throws -> Data? {
@@ -1527,7 +1500,7 @@ final class EventEditorViewModel: ObservableObject {
     private func correctDateRangeAfterStartChange() {
         if isAllDay {
             if Calendar.current.startOfDay(for: endDate) < Calendar.current.startOfDay(for: startDate) {
-                endDate = Self.combinedDate(dateFrom: startDate, timeFrom: endDate)
+                endDate = EventEditorInputNormalization.combinedDate(dateFrom: startDate, timeFrom: endDate)
             }
             return
         }
@@ -1540,7 +1513,7 @@ final class EventEditorViewModel: ObservableObject {
     private func correctDateRangeAfterEndChange() {
         if isAllDay {
             if Calendar.current.startOfDay(for: endDate) < Calendar.current.startOfDay(for: startDate) {
-                endDate = Self.combinedDate(dateFrom: startDate, timeFrom: endDate)
+                endDate = EventEditorInputNormalization.combinedDate(dateFrom: startDate, timeFrom: endDate)
             }
             return
         }
@@ -1548,48 +1521,6 @@ final class EventEditorViewModel: ObservableObject {
         if endDate <= startDate {
             endDate = Calendar.current.date(byAdding: .hour, value: 1, to: startDate) ?? startDate
         }
-    }
-
-    private static func combinedDate(dateFrom dateValue: Date, timeFrom timeValue: Date) -> Date {
-        let calendar = Calendar.current
-        let dateComponents = calendar.dateComponents([.year, .month, .day], from: dateValue)
-        let timeComponents = calendar.dateComponents([.hour, .minute, .second], from: timeValue)
-
-        var components = DateComponents()
-        components.year = dateComponents.year
-        components.month = dateComponents.month
-        components.day = dateComponents.day
-        components.hour = timeComponents.hour
-        components.minute = timeComponents.minute
-        components.second = timeComponents.second ?? 0
-
-        return calendar.date(from: components) ?? dateValue
-    }
-
-    private static func priceText(from price: Double) -> String {
-        guard price > 0 else { return "" }
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: "de_AT")
-        formatter.minimumFractionDigits = 0
-        formatter.maximumFractionDigits = 2
-        formatter.numberStyle = .decimal
-        return formatter.string(from: NSNumber(value: price)) ?? "\(price)"
-    }
-
-    private static func isValidPositiveIntegerOrBlank(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty || Int(trimmed).map { $0 > 0 } == true
-    }
-
-    private static func isValidNonNegativeDecimalOrBlank(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return true }
-        return Double(trimmed.replacingOccurrences(of: ",", with: ".")).map { $0 >= 0 } == true
-    }
-
-    private static func isValidAgeOrBlank(_ value: String) -> Bool {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty || Int(trimmed).map { (0...120).contains($0) } == true
     }
 }
 
