@@ -21,7 +21,7 @@
     {
       "id": "privacy-publication",
       "status": "open",
-      "requirement": "Privacy owner must reconcile presence 90-second heartbeat / 180-second lease in both languages, versioning, bundle, website and server publication with hashes/read-back. Local generated pages do not prove publication.",
+      "requirement": "Privacy 2026.13 publication is pending. Local manifest/bundle status published is serialization, not live proof. After central verification and external authorization, deploy compatible updateAnalyticsConsent, updateAnalyticsConsentV2 and trackAnalyticsEvent before the client ships; create only immutable legalDocuments/privacy/versions/2026.13 and switch the reread active pointer using atomic create/update-time preconditions; publish matching DE/UK website. Read back version metadata, titles, content and locale hashes against the intended bundle, deployed function compatibility, unchanged 2026.12 and unrelated legal pointers. Record commit, approver, publication time and effective date. Keep release gated throughout mismatches; never force-seed or overwrite historical evidence. See Docs/PrivacyCorrection-2026-09-05.md.",
       "evidence": []
     },
     {

@@ -72,6 +72,32 @@ do not bypass or weaken them. No validation command belongs in implementation ph
    publication/read-back. Preserve rights/provenance confirmation and candidate media
    review for UK/DE iPhone/iPad; 24 accepted build-68 images are historical evidence.
 
+## Pending publication of privacy 2026.13
+
+The privacy package (`2856b265`, integrated by the coordinator) prepares 2026.13.
+Its local manifest and generated bundle use `published` serialization; this is
+not evidence of live publication. The `privacy-publication` gate stays open.
+Follow [PrivacyCorrection-2026-09-05.md](PrivacyCorrection-2026-09-05.md) after
+central verification and separately authorized external work:
+
+1. Deploy compatible `updateAnalyticsConsent`, `updateAnalyticsConsentV2` and
+   `trackAnalyticsEvent` before distributing the new client. Confirm all deployed
+   callers of the receipt compatibility helper; updating only consent writes can
+   leave new receipts rejected by the old event reader.
+2. Create only immutable `legalDocuments/privacy/versions/2026.13`; switch the
+   active pointer from its reread prior state with atomic create/update-time
+   preconditions. Preserve historical versions and logs; never use force-seeding.
+3. Publish matching DE/UK website content and read back version metadata, titles,
+   content and hashes against the intended bundle. Keep release gated during any
+   mismatch. Verify old 2026.12 content and unrelated legal pointers unchanged.
+4. Retain deployed function compatibility evidence, commit, approver, publication
+   time, effective date and both locale hashes. Reconcile effective date if the
+   actual publication date changes; do not backdate evidence.
+
+Only reviewed external read-back closes this gate. App Privacy login and physical
+privileged TOTP/recovery gates remain unchanged. No publication is performed by
+this release preparation task.
+
 ## Physical and operational proof still required
 
 | Scenario | Evidence to retain |
