@@ -4,6 +4,7 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {requireVerifiedActiveUser} from "../auth/context";
 import {adminAuth, db} from "../firebase/admin";
 import {assertCanManageUsers} from "../permissions/userPermissions";
+import {adminSearchDocuments, adminSearchFields, collectAdminSearch} from "./adminUserSearch";
 
 interface UserSearchRequest {
   query: string;
@@ -34,14 +35,7 @@ const callableOptions = {
   enforceAppCheck: false,
 };
 
-const searchableFields = [
-  "displayName",
-  "fullName",
-  "email",
-  "telegramUsername",
-  "city",
-  "selectedFederalState",
-] as const;
+const searchableFields = adminSearchFields;
 
 export function normalizeUserSearchQuery(value: unknown): string {
   if (typeof value !== "string") {
@@ -107,17 +101,14 @@ export const searchManagedUsers = onCall(
     const data = request.data as Partial<UserSearchRequest> | undefined;
     const query = normalizeUserSearchQuery(data?.query);
     const limit = normalizedLimit(data?.limit);
-    const snapshot = await db.collection("users")
-      .select(...searchableFields)
-      .get();
-
-    const matchingIds = snapshot.docs
-      .filter((document) => userDocumentMatchesSearch(document.id, document.data(), query))
-      .map((document) => document.id);
-
+    const matches = await collectAdminSearch(
+      adminSearchDocuments(db, query, searchableFields),
+      document => userDocumentMatchesSearch(document.id, document.data(), query),
+      limit
+    );
     return {
-      userIds: matchingIds.slice(0, limit),
-      totalMatches: matchingIds.length,
+      userIds: matches.items.map(document => document.id),
+      totalMatches: matches.totalMatches,
     };
   }
 );

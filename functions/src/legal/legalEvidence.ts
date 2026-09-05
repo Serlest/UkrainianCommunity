@@ -4,6 +4,7 @@ import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
 import {db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
+import {adminSearchDocuments, collectAdminSearch} from "../users/adminUserSearch";
 
 type LegalEvidenceEventType =
   | "termsAccepted"
@@ -145,16 +146,16 @@ export const listLegalEvidenceAccounts = onCall(
 
     if (input.query) {
       const normalizedQuery = normalizedSearch(input.query);
-      const snapshot = await db.collection("users")
-        .select("displayName", "fullName", "email", "createdAt")
-        .get();
-      const matches = snapshot.docs
-        .filter((document) => accountMatchesSearch(document.id, document.data(), normalizedQuery))
-        .sort((left, right) => timestampMillis(right.data().createdAt) - timestampMillis(left.data().createdAt));
+      const matches = await collectAdminSearch(
+        adminSearchDocuments(db, normalizedQuery, ["displayName", "fullName", "email", "createdAt"]),
+        document => accountMatchesSearch(document.id, document.data(), normalizedQuery),
+        input.limit,
+        (left, right) => timestampMillis(right.data().createdAt) - timestampMillis(left.data().createdAt)
+      );
       return {
-        accounts: matches.slice(0, input.limit).map(accountFromDocument),
+        accounts: matches.items.map(accountFromDocument),
         nextCursor: null,
-        totalMatches: matches.length,
+        totalMatches: matches.totalMatches,
       };
     }
 
@@ -468,7 +469,7 @@ function normalizedSearch(value: string): string {
     .trim();
 }
 
-function accountMatchesSearch(userId: string, data: DocumentData, query: string): boolean {
+export function accountMatchesSearch(userId: string, data: DocumentData, query: string): boolean {
   const haystack = [userId, data.displayName, data.fullName, data.email]
     .filter((value): value is string => typeof value === "string")
     .join(" ");

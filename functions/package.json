@@ -53,5 +53,13 @@
     "@firebase/rules-unit-testing": "^4.0.1",
     "firebase": "^11.0.0",
     "typescript": "^5.7.0"
+  },
+  "overrides": {
+    "gaxios@6.7.1": {
+      "uuid": "11.1.1"
+    },
+    "teeny-request@9.0.0": {
+      "uuid": "11.1.1"
+    }
   }
 }
