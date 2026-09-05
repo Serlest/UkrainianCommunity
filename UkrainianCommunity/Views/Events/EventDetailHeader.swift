@@ -142,14 +142,28 @@ extension EventDetailView {
             }
         }
 
+        @ViewBuilder
         func metadataRow(for event: Event) -> some View {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 14) {
-                    metadataItems(for: event)
-                }
-
+            let occurrence = event.nextOccurrence() ?? event.occurrences.first
+            if let schedule = EventMultiDaySchedule(
+                startDate: occurrence?.startDate ?? event.startDate,
+                endDate: occurrence?.endDate ?? event.endDate,
+                isAllDay: occurrence?.isAllDay ?? event.isAllDay
+            ) {
                 VStack(alignment: .leading, spacing: 7) {
-                    metadataItems(for: event)
+                    EventMultiDayScheduleLabel(schedule: schedule)
+                        .accessibilityIdentifier("event.schedule.header")
+                    AppMetadataLine(title: eventViewCountText(for: event), systemImage: "eye")
+                }
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 14) {
+                        metadataItems(for: event)
+                    }
+
+                    VStack(alignment: .leading, spacing: 7) {
+                        metadataItems(for: event)
+                    }
                 }
             }
         }

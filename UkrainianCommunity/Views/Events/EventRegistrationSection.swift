@@ -34,16 +34,28 @@ extension EventDetailView {
 
                     ForEach(Array(event.occurrences.enumerated()), id: \.element.id) { index, occurrence in
                         if index > 0 { Divider().overlay(AppTheme.borderSubtle) }
-                        EventDetailRow(
-                            systemImage: index == 0 ? "calendar" : "calendar.badge.plus",
-                            title: event.occurrences.count == 1 ? AppStrings.Events.fieldStartDate : "\(ContentPublishingStrings.multipleDates) \(index + 1)",
-                            value: LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .full, timeStyle: .none)
-                        )
-                        EventDetailRow(
-                            systemImage: "clock",
-                            title: AppStrings.Events.startTime,
-                            value: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay)
-                        )
+                        if let schedule = EventMultiDaySchedule(
+                            startDate: occurrence.startDate,
+                            endDate: occurrence.endDate,
+                            isAllDay: occurrence.isAllDay
+                        ) {
+                            if event.occurrences.count > 1 {
+                                Text("\(ContentPublishingStrings.multipleDates) \(index + 1)")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            EventMultiDayScheduleDetails(schedule: schedule, occurrenceID: occurrence.id)
+                        } else {
+                            EventDetailRow(
+                                systemImage: index == 0 ? "calendar" : "calendar.badge.plus",
+                                title: event.occurrences.count == 1 ? AppStrings.Events.fieldStartDate : "\(ContentPublishingStrings.multipleDates) \(index + 1)",
+                                value: LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .full, timeStyle: .none)
+                            )
+                            EventDetailRow(
+                                systemImage: "clock",
+                                title: AppStrings.Events.startTime,
+                                value: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay)
+                            )
+                        }
                     }
                 }
             }

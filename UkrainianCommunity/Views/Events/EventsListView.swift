@@ -100,6 +100,9 @@ func eventScheduleText(for event: Event) -> String {
     let startDate = occurrence?.startDate ?? event.startDate
     let endDate = occurrence?.endDate ?? event.endDate
     let isAllDay = occurrence?.isAllDay ?? event.isAllDay
+    if let schedule = EventMultiDaySchedule(startDate: startDate, endDate: endDate, isAllDay: isAllDay) {
+        return schedule.range
+    }
     let startDateText = LocalizationStore.dateString(from: startDate, dateStyle: .medium, timeStyle: .none)
     let timeRangeText = LocalizationStore.timeRangeString(startDate: startDate, endDate: endDate, isAllDay: isAllDay)
 
@@ -1022,15 +1025,24 @@ struct EventCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: AppTheme.compactCardInnerSpacingTight) {
-                    AppMetadataLine(title: timeText, systemImage: "clock")
-                    AppMetadataLine(title: locationText, systemImage: locationIcon)
-                }
+            if let schedule = EventMultiDaySchedule(
+                startDate: displayOccurrence.startDate,
+                endDate: displayOccurrence.endDate,
+                isAllDay: displayOccurrence.isAllDay
+            ) {
+                EventMultiDayScheduleLabel(schedule: schedule)
+                AppMetadataLine(title: locationText, systemImage: locationIcon)
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: AppTheme.compactCardInnerSpacingTight) {
+                        AppMetadataLine(title: timeText, systemImage: "clock")
+                        AppMetadataLine(title: locationText, systemImage: locationIcon)
+                    }
 
-                VStack(alignment: .leading, spacing: 3) {
-                    AppMetadataLine(title: timeText, systemImage: "clock")
-                    AppMetadataLine(title: locationText, systemImage: locationIcon)
+                    VStack(alignment: .leading, spacing: 3) {
+                        AppMetadataLine(title: timeText, systemImage: "clock")
+                        AppMetadataLine(title: locationText, systemImage: locationIcon)
+                    }
                 }
             }
         }
