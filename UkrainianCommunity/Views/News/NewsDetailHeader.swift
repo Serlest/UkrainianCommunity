@@ -169,9 +169,9 @@ extension NewsDetailView {
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
 
                     Text(post.localizedBody)
-                        .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-                        .lineSpacing(2)
+                        .font(.body)
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineSpacing(4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }

@@ -21,39 +21,22 @@ struct SystemLogsOverviewCards: View {
 
     private func metricCard(_ metric: SystemLogOverviewMetric) -> some View {
         SoftContentCard(padding: AppTheme.metricCardPadding) {
-            HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
-                Image(systemName: metric.systemImage)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(SystemLogDisplayFormatting.toneTint(metric.tone))
-                    .frame(width: AppTheme.compactIconSurfaceSize, height: AppTheme.compactIconSurfaceSize)
-                    .background(
-                        SystemLogDisplayFormatting.toneFill(metric.tone),
-                        in: RoundedRectangle(cornerRadius: AppTheme.metricIconSurfaceRadius, style: .continuous)
-                    )
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(metric.value)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(AppTheme.textPrimary)
-
-                    Text(metric.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-
-                    Text(metric.subtitle)
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 8) {
+                    Image(systemName: metric.systemImage)
+                        .foregroundStyle(SystemLogDisplayFormatting.toneTint(metric.tone))
+                    Text(metric.value).font(.title3.weight(.bold)).foregroundStyle(AppTheme.textPrimary)
+                    Spacer(minLength: 0)
+                    if onSelect != nil {
+                        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(AppTheme.textSecondary)
+                    }
                 }
-
-                Spacer(minLength: 0)
-
-                if onSelect != nil {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
+                Text(metric.title).font(.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary).fixedSize(horizontal: false, vertical: true)
+                Text(metric.subtitle).font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary).fixedSize(horizontal: false, vertical: true)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
     }
 }

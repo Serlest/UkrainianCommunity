@@ -88,12 +88,14 @@ struct FeaturedBannerCarouselView: View {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 carouselFrame
 
-                FeaturedBannerPageIndicator(
-                    count: banners.count,
-                    selectedIndex: selectedIndex,
-                    onIncrement: { moveSelection(by: 1) },
-                    onDecrement: { moveSelection(by: -1) }
-                )
+                if !dynamicTypeSize.isAccessibilitySize {
+                    FeaturedBannerPageIndicator(
+                        count: banners.count,
+                        selectedIndex: selectedIndex,
+                        onIncrement: { moveSelection(by: 1) },
+                        onDecrement: { moveSelection(by: -1) }
+                    )
+                }
             }
             .opacity(isRestartingCarousel ? 0 : 1)
             .onAppear(perform: normalizeSelection)
@@ -108,17 +110,50 @@ struct FeaturedBannerCarouselView: View {
 
     @ViewBuilder
     private var carouselFrame: some View {
-        switch sizing {
-        case let .fixedHeight(height):
-            carouselContent
-                .frame(height: resolvedMinimumHeight(for: height))
-        case let .aspectRatio(aspectRatio, maxHeight):
-            FeaturedBannerAspectLayout(
-                aspectRatio: aspectRatio,
-                minimumHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
-                maximumHeight: resolvedMaximumHeight(maxHeight)
-            ) {
+        if dynamicTypeSize.isAccessibilitySize {
+            if let banner = selectedBanner {
+                VStack(spacing: 8) {
+                    if isActionable(banner) {
+                        Button { onBannerTap(banner) } label: {
+                            FeaturedBannerCardView(banner: banner).fixedSize(horizontal: false, vertical: true)
+                        }.buttonStyle(.plain)
+                    } else {
+                        FeaturedBannerCardView(banner: banner).fixedSize(horizontal: false, vertical: true)
+                    }
+                    if banners.count > 1 {
+                        HStack {
+                            Button { moveSelection(by: -1) } label: {
+                                Image(systemName: "chevron.left").frame(width: 44, height: 44)
+                            }
+                            .disabled(selectedIndex == 0)
+                            .accessibilityLabel(AppStrings.Featured.bannerPageIndicator(current: max(1, selectedIndex), total: banners.count))
+                            Spacer()
+                            Text("\(selectedIndex + 1) / \(banners.count)").font(.caption).monospacedDigit()
+                            Spacer()
+                            Button { moveSelection(by: 1) } label: {
+                                Image(systemName: "chevron.right").frame(width: 44, height: 44)
+                            }
+                            .disabled(selectedIndex == banners.count - 1)
+                            .accessibilityLabel(AppStrings.Featured.bannerPageIndicator(current: min(banners.count, selectedIndex + 2), total: banners.count))
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    }
+                }
+            }
+        } else {
+            switch sizing {
+            case let .fixedHeight(height):
                 carouselContent
+                    .frame(height: resolvedMinimumHeight(for: height))
+            case let .aspectRatio(aspectRatio, maxHeight):
+                FeaturedBannerAspectLayout(
+                    aspectRatio: aspectRatio,
+                    minimumHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
+                    maximumHeight: resolvedMaximumHeight(maxHeight)
+                ) {
+                    carouselContent
+                }
             }
         }
     }
@@ -186,7 +221,7 @@ struct FeaturedBannerCarouselView: View {
         let bannerConfiguration = banners
             .map { "\($0.id)-\($0.displayDurationSeconds)" }
             .joined(separator: "|")
-        return "\(bannerConfiguration)-reduceMotion:\(reduceMotion)-voiceOver:\(voiceOverEnabled)"
+        return "\(bannerConfiguration)-reduceMotion:\(reduceMotion)-voiceOver:\(voiceOverEnabled)-largeText:\(dynamicTypeSize.isAccessibilitySize)"
     }
 
     private var interactionGesture: some Gesture {
@@ -213,7 +248,7 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func runRotationLoop() async {
-        guard !reduceMotion, !voiceOverEnabled else { return }
+        guard !reduceMotion, !voiceOverEnabled, !dynamicTypeSize.isAccessibilitySize else { return }
 
         while !Task.isCancelled {
             guard banners.count > 1 else { return }

@@ -139,10 +139,10 @@ enum AppTheme {
     static let metricCardPadding: CGFloat = 14
     static let homeSectionSpacing: CGFloat = 14
     static let homeHeaderHeroSpacing: CGFloat = 14
-    static let feedRowSpacing: CGFloat = 14
-    static let homeFeedCardPadding: CGFloat = 10
+    static let feedRowSpacing: CGFloat = 8
+    static let homeFeedCardPadding: CGFloat = 12
     static let homeFeedDateBadgeSize: CGFloat = 42
-    static let homeBottomContentPadding: CGFloat = 116
+    static let homeBottomContentPadding: CGFloat = 32
     static let appHeaderLogoSize = CGSize(width: 160, height: 56)
     static let appHeaderBottomSpacing: CGFloat = 16
     static let appHeaderLeadingAdjustment: CGFloat = 0
@@ -361,7 +361,7 @@ enum AppTheme {
 
     static let editorScreenHorizontalPadding = pushedScreenHorizontalPadding
     static let editorScreenTopPadding = pushedScreenTopPadding
-    static let editorScreenBottomPadding = pushedScreenBottomPadding
+    static let editorScreenBottomPadding: CGFloat = 116
     static let editorScreenContentSpacing = pushedScreenContentSpacing
     static let editorScreenBottomActionPadding = sectionSpacing
     static let editorScreenHeaderSpacing = pushedScreenHeaderSpacing
@@ -394,7 +394,7 @@ enum AppTheme {
 
     static let detailScreenHorizontalPadding = detailPageHorizontalPadding
     static let detailScreenTopPadding = detailPageTopPadding
-    static let detailScreenBottomPadding = homeBottomContentPadding + 160
+    static let detailScreenBottomPadding: CGFloat = 48
     static let detailScreenContentSpacing = detailSectionSpacing
     static let detailScreenHeaderSpacing = pushedScreenHeaderSpacing
     static let detailScreenTitleFont = pushedScreenTitleFont

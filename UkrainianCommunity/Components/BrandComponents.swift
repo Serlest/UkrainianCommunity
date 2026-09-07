@@ -141,6 +141,7 @@ struct AppBrandHeader<TrailingContent: View>: View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: AppTheme.eventsControlGroupSpacing) {
                 AdaptiveBrandLockupView(layout: .horizontal)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .fixedSize(horizontal: true, vertical: false)
 
                 Spacer(minLength: 0)
@@ -149,6 +150,7 @@ struct AppBrandHeader<TrailingContent: View>: View {
             }
             VStack(alignment: .leading, spacing: 8) {
                 AdaptiveBrandLockupView(layout: .horizontal)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 HStack { Spacer(minLength: 0); trailingContent }
             }
         }

@@ -24,7 +24,7 @@ struct ContentFeedCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
             cardBody
             if includesFooter { ContentCardMetadataFooter(item: item) }
         }
@@ -36,27 +36,28 @@ struct ContentFeedCard: View {
             shadowRadius: 0,
             shadowY: 0
         ) {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
-                    HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
+            VStack(alignment: .leading, spacing: 8) {
+                if dynamicTypeSize.isAccessibilitySize {
+                    cardDetails
+                } else {
+                    HStack(alignment: .top, spacing: 12) {
                         leadingMedia
-
-                        Spacer(minLength: 0)
-
-                        rightAccessory
+                        cardDetails
                     }
-
-                    cardDetails
                 }
-            } else {
-                HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
-                    leadingMedia
-                    cardDetails
-
-                    if item.itemType != .organization {
-                        Spacer(minLength: 2)
-
-                        rightAccessory
+                if item.itemType == .event {
+                    HStack(alignment: .center, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            if let publisherText { publisherLine(title: publisherText) }
+                            metadataLine
+                            if let secondaryMetadataText {
+                                AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
+                            }
+                        }
+                        Spacer(minLength: 0)
+                        if let eventStartDate = item.eventStartDate {
+                            HomeEventDateBadge(date: eventStartDate)
+                        }
                     }
                 }
             }
@@ -67,12 +68,14 @@ struct ContentFeedCard: View {
 
     private var cardDetails: some View {
         VStack(alignment: .leading, spacing: 4) {
-            typeChip
+            if dynamicTypeSize.isAccessibilitySize {
+                Text(itemTypeTitle).font(.caption.weight(.semibold)).foregroundStyle(itemTypeTint)
+            } else { typeChip }
 
             Text(item.title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                 .fixedSize(horizontal: false, vertical: true)
 
             if item.itemType == .organization {
@@ -88,28 +91,11 @@ struct ContentFeedCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if let publisherText {
-                publisherLine(title: publisherText)
-                    .padding(.top, 1)
+            if item.itemType == .news {
+                if let publisherText { publisherLine(title: publisherText) }
+                timestampText
             }
 
-            if item.itemType == .event {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: AppTheme.compactCardInnerSpacing) {
-                        metadataLine
-                        if let secondaryMetadataText {
-                            AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        metadataLine
-                        if let secondaryMetadataText {
-                            AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
-                        }
-                    }
-                }
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -152,23 +138,6 @@ struct ContentFeedCard: View {
             .foregroundStyle(AppTheme.textSecondary)
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
             .fixedSize(horizontal: false, vertical: true)
-    }
-
-    @ViewBuilder
-    private var rightAccessory: some View {
-        if item.itemType == .news {
-            timestampText
-                .padding(.top, 1)
-        } else if item.itemType == .event {
-            if let eventStartDate = item.eventStartDate {
-                VStack {
-                    Spacer(minLength: 6)
-                    HomeEventDateBadge(date: eventStartDate)
-                    Spacer(minLength: 0)
-                }
-                .frame(minHeight: thumbnailSize + AppTheme.compactCardInnerSpacingRelaxed, alignment: .center)
-            }
-        }
     }
 
     private func publisherLine(title: String) -> some View {
@@ -242,7 +211,7 @@ struct ContentFeedCard: View {
     }
 
     private var thumbnailSize: CGFloat {
-        AppTheme.feedThumbnailSize + 14
+        64
     }
 
     private var shouldShowPreview: Bool {

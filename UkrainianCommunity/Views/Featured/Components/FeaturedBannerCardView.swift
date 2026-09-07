@@ -15,8 +15,12 @@ struct FeaturedBannerCardView: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            background
-            visualTreatment
+            if dynamicTypeSize.isAccessibilitySize {
+                AppTheme.accentPrimary
+            } else {
+                background
+                visualTreatment
+            }
             if hasTextContent {
                 textContent
             }

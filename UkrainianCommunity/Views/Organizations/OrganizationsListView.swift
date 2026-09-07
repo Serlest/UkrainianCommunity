@@ -149,7 +149,7 @@ struct OrganizationsListView: View {
                     )
                     .padding(.bottom, AppTheme.homeSectionSpacing)
 
-                    AppGroupedContentPlane {
+                    VStack(alignment: .leading, spacing: 0) {
                         organizationsPlaneContent
                     }
                 }
@@ -297,7 +297,7 @@ struct OrganizationsListView: View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
-                sizing: .responsiveHero,
+                sizing: .compactHero,
                 onBannerTap: onFeaturedBannerTap
             )
         } else if let error = featuredBannerViewModel.error {

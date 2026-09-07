@@ -46,7 +46,7 @@ struct ContentCardMetadataFooter: View {
         }
         .frame(minHeight: AppTheme.minimumInteractiveTarget)
         .padding(.horizontal, AppTheme.homeFeedCardPadding)
-        .padding(.vertical, 4)
+
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("content.metadata.\(item.id)")
     }
@@ -60,7 +60,11 @@ struct ContentCardMetadataFooter: View {
 
     @ViewBuilder private var category: some View {
         if let topic = item.newsCategory, let selectNewsTopic {
-            Button { selectNewsTopic(topic) } label: { categoryLabel }
+            Button { selectNewsTopic(topic) } label: {
+                categoryLabel
+                    .frame(minHeight: AppTheme.minimumInteractiveTarget, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
                 .buttonStyle(.plain)
 
                 .accessibilityIdentifier("home.news.topicLink.\(item.id)")
@@ -72,7 +76,7 @@ struct ContentCardMetadataFooter: View {
     private var categoryLabel: some View {
         Label(item.cardCategoryTitle, systemImage: "tag")
             .font(.caption.weight(.medium))
-            .foregroundStyle(AppTheme.accentPrimaryForeground)
+            .foregroundStyle(selectNewsTopic != nil && item.newsCategory != nil ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 

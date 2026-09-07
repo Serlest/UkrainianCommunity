@@ -353,7 +353,7 @@ struct ProfileView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, AppTheme.pageHorizontal)
-                        .padding(.bottom, AppTheme.homeBottomContentPadding + 32)
+                        .padding(.bottom, AppTheme.homeBottomContentPadding)
                         .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
                     }
                     .frame(width: proxy.size.width)

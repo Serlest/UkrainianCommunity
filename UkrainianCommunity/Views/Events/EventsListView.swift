@@ -366,7 +366,7 @@ struct EventsListView: View {
                     )
                     .padding(.bottom, AppTheme.homeSectionSpacing)
 
-                    AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
+                    VStack(alignment: .leading, spacing: 0) {
                         eventListContent
                     }
                 }
@@ -518,7 +518,7 @@ struct EventsListView: View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
-                sizing: .responsiveHero,
+                sizing: .compactHero,
                 onBannerTap: onFeaturedBannerTap
             )
         } else if let error = featuredBannerViewModel.error {

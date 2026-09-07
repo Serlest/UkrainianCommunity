@@ -105,7 +105,7 @@ struct HomeView: View {
                     )
                         .padding(.bottom, AppTheme.homeSectionSpacing)
 
-                    AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
+                    VStack(alignment: .leading, spacing: 0) {
                         feedContent
                     }
                 }
@@ -199,7 +199,7 @@ struct HomeView: View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
-                sizing: .responsiveHero,
+                sizing: .fixedHeight(176),
                 onBannerTap: onFeaturedBannerTap
             )
         } else if let error = featuredBannerViewModel.error {
@@ -261,7 +261,7 @@ struct HomeView: View {
                     items: visibleFeedItems,
                     spacing: AppTheme.feedRowSpacing
                 ) { item in
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 0) {
                         NavigationLink(value: item.destination) {
                             ContentFeedCard(item: item, includesFooter: false)
                         }
@@ -306,7 +306,7 @@ struct HomeView: View {
             }
             ForEach(newsViewModel.visibilityPolicy.visibleNews(newsBrowser.posts)) { post in
                 let item = HomeFeedItem(post: post)
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
                     NavigationLink(value: item.destination) { ContentFeedCard(item: item, includesFooter: false) }
                         .buttonStyle(.plain).accessibilityIdentifier("home.card.\(item.id)")
                     ContentCardMetadataFooter(item: item, selectNewsTopic: selectNewsTopic)
