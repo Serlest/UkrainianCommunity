@@ -7,6 +7,34 @@ production data/configuration, TestFlight or any public release.
 
 ## Completed autonomously
 
+### Permanent upload-key release candidate
+
+- Reused the existing permanent upload keystore outside the repository; no new or
+  replacement signing identity was created.
+- The keystore and Firebase build values are read from macOS Keychain by
+  `Android/scripts/build-production-aab-keychain.sh`; secrets are not written to
+  Gradle properties, source files, artifacts or logs.
+- A fresh R8/lintVital production AAB passed signing verification with upload
+  certificate SHA-256
+  `C7:F9:7B:B4:BE:68:C8:5E:AD:95:A6:7D:29:35:67:08:87:4C:36:97:A6:EA:69:45:3F:78:37:D8:3F:7F:EF:BE`.
+- Upload candidate:
+  `outputs/android-build72/app-production-release-build72-UPLOAD-SIGNED.aab`;
+  SHA-256
+  `8c954eb820a97982dfd6bfddf64c9e02b12c2742e839491f54290c0eca6aad38`.
+- Manifest read-back remains package `at.serlest.ukrainiancommunity`, version code
+  `72`, version name `1.0.3`, min SDK 26 and target SDK 36.
+- The matching signed/minified release APK installed and cold-started on the API 37
+  Play AVD in 400 ms. The process remained alive and loaded current public
+  production news, events and organizations.
+- That smoke exposed a release-facing offline message that incorrectly mentioned a
+  local emulator. Android now uses neutral German/Ukrainian user copy, protected by
+  two focused tests; the full unit suite passed `1909/1909` with zero failures,
+  errors or skips. A repeated release smoke contained no emulator wording and no
+  fatal process signal.
+- Eight localized 1080 x 1920 RGB JPEG screenshot candidates (four German, four
+  Ukrainian) were captured from the signed production release under
+  `Android/release/play/screenshots/` and visually inspected.
+
 ### Production-flavor build proof
 
 - `bundleProductionRelease` completed with R8, resource shrinking and lintVital.
@@ -116,28 +144,29 @@ the difference is deployment state. No Hosting deployment was attempted.
 
 ## Remaining gates requiring owner access or approval
 
-1. Make the real upload-key password/alias available through the four
-   `UAC_PRODUCTION_*` signing inputs, then create a fresh AAB and verify its
-   certificate against the retained upload-key fingerprint.
-2. Use the restored staging Firebase access and the proven staging-only App Check
+1. Use the staging Firebase access and the proven staging-only App Check
    CI path to run authenticated Auth/Firestore/Functions/Storage/FCM acceptance.
-3. Complete Play internal distribution and interactive device checks for Play
+2. Complete Play internal distribution and interactive device checks for Play
    Integrity, background notification, biometric, TOTP, email-link, Storage and
    corporate/OEM behavior. Test Lab has proven physical startup and App Check only.
-4. Approve the bilingual cross-platform legal candidate and its immutable version;
+3. Approve the bilingual cross-platform legal candidate and its immutable version;
    only then perform a scoped Firestore/Hosting publication with hash/read-back and
    iOS regression verification.
-5. Complete or confirm the Google Play developer account, reviewer accounts,
-   declarations, testing track and upload decisions.
+4. Wait for Google to approve the newly submitted personal-account identity
+   verification, then confirm the contact phone and any remaining real-device task.
+5. Create the Play app, complete reviewer accounts/declarations, and start the
+   required closed test with at least 12 continuously opted-in testers for 14 days.
+6. Reconfirm that every photo visible in the screenshot candidates has explicit
+   store-marketing reuse rights; replace uncertain captures before upload.
 
 ## Updated readiness
 
 - Functional parity against iOS build 72: **95%**.
-- Release engineering readiness: **87%**.
+- Release engineering readiness: **91%**.
 
-The increase from 80% reflects production-flavor/R8/lintVital compilation, 16 KiB
-native alignment proof, emulator and physical Test Lab staging startup, positive
-staging App Check token exchange, and prepared Play graphics/legal materials.
-Signing identity, authenticated cloud workflows, interactive Play/OEM acceptance,
-legal approval and Play Console remain blocking; therefore this is still not a
-releasable build.
+The increase reflects the permanent-key signed AAB, reproducible Keychain-backed
+build, minified production runtime smoke, corrected release copy, full unit rerun
+and localized screenshot candidates. Authenticated cloud workflows, interactive
+Play/OEM acceptance, legal approval, screenshot rights review, Play verification
+and the mandatory closed-testing period remain blocking; therefore this is still
+not a publicly releasable build.

@@ -13,19 +13,39 @@ if (missing.length) throw new Error(`Release signing configuration missing: ${mi
 
 const project = "ukrainiancommunity-dbd5f";
 const appId = "1:919042658790:android:c3e9447ac6f2a120ac4627";
-const config = JSON.parse(
-  execFileSync("firebase", ["apps:sdkconfig", "ANDROID", appId, "--project", project], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "inherit"],
-  }),
-);
-const client = config.client?.[0];
+const firebaseKeys = [
+  "UAC_PRODUCTION_FIREBASE_PROJECT_ID",
+  "UAC_PRODUCTION_FIREBASE_APPLICATION_ID",
+  "UAC_PRODUCTION_FIREBASE_API_KEY",
+  "UAC_PRODUCTION_FIREBASE_BUCKET",
+];
+const suppliedFirebaseKeys = firebaseKeys.filter((key) => process.env[key]);
+if (suppliedFirebaseKeys.length !== 0 && suppliedFirebaseKeys.length !== firebaseKeys.length) {
+  const missingFirebaseKeys = firebaseKeys.filter((key) => !process.env[key]);
+  throw new Error(`Production Firebase configuration incomplete: ${missingFirebaseKeys.join(", ")}`);
+}
+
+let firebaseConfig;
+if (suppliedFirebaseKeys.length === firebaseKeys.length) {
+  firebaseConfig = Object.fromEntries(firebaseKeys.map((key) => [key, process.env[key]]));
+} else {
+  const config = JSON.parse(
+    execFileSync("firebase", ["apps:sdkconfig", "ANDROID", appId, "--project", project], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "inherit"],
+    }),
+  );
+  const client = config.client?.[0];
+  firebaseConfig = {
+    UAC_PRODUCTION_FIREBASE_PROJECT_ID: config.project_info?.project_id ?? "",
+    UAC_PRODUCTION_FIREBASE_APPLICATION_ID: client?.client_info?.mobilesdk_app_id ?? "",
+    UAC_PRODUCTION_FIREBASE_API_KEY: client?.api_key?.[0]?.current_key ?? "",
+    UAC_PRODUCTION_FIREBASE_BUCKET: config.project_info?.storage_bucket ?? "",
+  };
+}
 const env = {
   ...process.env,
-  UAC_PRODUCTION_FIREBASE_PROJECT_ID: config.project_info?.project_id ?? "",
-  UAC_PRODUCTION_FIREBASE_APPLICATION_ID: client?.client_info?.mobilesdk_app_id ?? "",
-  UAC_PRODUCTION_FIREBASE_API_KEY: client?.api_key?.[0]?.current_key ?? "",
-  UAC_PRODUCTION_FIREBASE_BUCKET: config.project_info?.storage_bucket ?? "",
+  ...firebaseConfig,
 };
 for (const key of Object.keys(env).filter((key) => key.startsWith("UAC_PRODUCTION_FIREBASE_"))) {
   if (!env[key]) throw new Error(`Missing production configuration: ${key}`);

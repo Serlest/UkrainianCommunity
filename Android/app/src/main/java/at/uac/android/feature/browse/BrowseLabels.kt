@@ -129,8 +129,8 @@ fun failureText(reason: ReadFailure, language: String) =
         ReadFailure.OFFLINE ->
             tr(
                 language,
-                "Der lokale Emulator ist offline. Keine passende gespeicherte Seite verfügbar.",
-                "Локальний емулятор недоступний. Відповідної збереженої сторінки немає.",
+                "Inhalte sind derzeit nicht verfügbar. Keine passende gespeicherte Seite vorhanden.",
+                "Матеріали зараз недоступні. Відповідної збереженої сторінки немає.",
             )
         ReadFailure.DENIED ->
             tr(

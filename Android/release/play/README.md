@@ -24,3 +24,36 @@ Final generation prompt:
 
 Before upload, the owner must approve the feature graphic and reconfirm both files
 against the exact signed release candidate.
+
+## Phone screenshot candidates
+
+The localized candidates under `screenshots/de-DE/` and `screenshots/uk/` were
+captured from the upload-key-signed, R8-minified production release on the API 37
+Play AVD at 1080 x 1920. They are RGB JPEG files without test labels, synthetic
+accounts, private identifiers or debug overlays.
+
+Each locale contains the same four-screen story:
+
+1. `01-home.jpg` — current public news and event discovery.
+2. `02-events.jpg` — event filters and upcoming event cards.
+3. `03-organizations.jpg` — organization discovery and category filters.
+4. `04-profile.jpg` — guest sign-in boundary and features available without an account.
+
+Suggested German alt text:
+
+- `01-home.jpg`: `Startseite mit regionalen Nachrichten und Veranstaltungen.`
+- `02-events.jpg`: `Kommende Veranstaltungen mit Suche und Kategorien.`
+- `03-organizations.jpg`: `Organisationen in Österreich mit Kategorieauswahl.`
+- `04-profile.jpg`: `Profilbereich mit Anmeldung und Gastzugang.`
+
+Suggested Ukrainian alt text:
+
+- `01-home.jpg`: `Головна сторінка з регіональними новинами та подіями.`
+- `02-events.jpg`: `Майбутні події з пошуком і категоріями.`
+- `03-organizations.jpg`: `Організації в Австрії з вибором категорії.`
+- `04-profile.jpg`: `Розділ профілю з входом і гостьовим доступом.`
+
+The captures contain current public production content. Before uploading them,
+reconfirm that every visible third-party photo may be reused in store marketing;
+replace any uncertain capture with owner-controlled content rather than cropping
+out attribution or assuming publication rights cover promotional use.
