@@ -41,6 +41,27 @@ Firebase CLI account receives HTTP 403 for the staging app/config APIs, and an
 unauthenticated Firestore REST read correctly receives 403. No staging deployment,
 fixture write, account creation or configuration change was made.
 
+### Physical Firebase Test Lab smoke
+
+- Matrix `matrix-1cmv8cyvsf0fl` ran the exact staging APK on a physical Samsung
+  Galaxy A35 (`a35x`), Android 15 / API 35, German locale, portrait.
+- The dedicated read-only `StagingPhysicalSmokeTest` passed 1/1 in 3.278 s. It
+  launched the real `MainActivity`, verified package
+  `at.serlest.ukrainiancommunity.staging`, verified Firebase project
+  `uac-android-test-20260903`, and found Home, Events, Organizations, Profile and
+  Settings in the rendered shell.
+- Raw evidence was retained under
+  `outputs/android-build72/testlab/matrix-1cmv8cyvsf0fl/`; the cloud result page is
+  tied to Firebase matrix `4660116178651670227`.
+- App process logs contain no fatal exception. They do show the expected remaining
+  cloud blocker: the Test Lab instance generated an unregistered App Check debug
+  token, and token exchange returned HTTP 403 `App attestation failed`.
+
+This upgrades physical-device startup/navigation from unverified to passed, but it
+does not claim authenticated Firebase acceptance. A fixed CI debug token must be
+created and allow-listed only in staging, supplied as an instrumentation argument,
+and explicitly exercised in a follow-up cloud test.
+
 ### Play preparation
 
 - Updated the listing and conservative Data Safety draft for 1.0.3 (72), including
@@ -97,9 +118,10 @@ the difference is deployment state. No Hosting deployment was attempted.
 ## Updated readiness
 
 - Functional parity against iOS build 72: **95%**.
-- Release engineering readiness: **84%**.
+- Release engineering readiness: **85%**.
 
 The increase from 80% reflects production-flavor/R8/lintVital compilation, 16 KiB
-native alignment proof, staging cold-start proof and prepared Play graphics/legal
-materials. Signing identity, authenticated cloud/device acceptance, legal approval
-and Play Console remain blocking; therefore this is still not a releasable build.
+native alignment proof, emulator and physical Test Lab staging startup, and prepared
+Play graphics/legal materials. Signing identity, authenticated cloud/device
+acceptance, legal approval and Play Console remain blocking; therefore this is
+still not a releasable build.
