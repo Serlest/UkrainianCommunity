@@ -5,6 +5,30 @@ import XCTest
 
 @MainActor
 final class ContentFeedCardRenderingTests: XCTestCase {
+    func testMixedFeedBodiesShareCompactHeight() throws {
+        let originalLanguage = LocalizationStore.language
+        defer { LocalizationStore.language = originalLanguage }
+        for language in ["uk", "de"] {
+            LocalizationStore.language = try XCTUnwrap(AppLanguage(rawValue: language))
+            let items = [
+                HomeFeedItem(post: try XCTUnwrap(MockContentBuilder.newsPosts().first)),
+                HomeFeedItem(event: try XCTUnwrap(MockContentBuilder.events().first)),
+                HomeFeedItem(organization: try XCTUnwrap(MockContentBuilder.organizations().first))
+            ]
+            for width in [288.0, 340.0, 370.0] {
+                let heights = try items.map { item in
+                    let renderer = ImageRenderer(content: ContentFeedCard(item: item, includesFooter: false)
+                        .frame(width: width)
+                        .environment(\.dynamicTypeSize, .large))
+                    return try XCTUnwrap(renderer.uiImage).size.height
+                }
+                XCTAssertLessThanOrEqual(try XCTUnwrap(heights.max()), 110)
+                XCTAssertEqual(try XCTUnwrap(heights.min()), try XCTUnwrap(heights.max()), accuracy: 1,
+                               "Mixed feed must keep the same body height at width \(width), \(language)")
+            }
+        }
+    }
+
     func testCompleteCardsWithLongCategoryAndLargestText() throws {
         let originalLanguage = LocalizationStore.language
         defer { LocalizationStore.language = originalLanguage }

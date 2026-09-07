@@ -63,7 +63,7 @@ struct NewsListView: View {
             VStack(alignment: .leading, spacing: AppTheme.eventsHeaderContentSpacing) {
                 newsHero
 
-                AppGroupedContentPlane {
+                VStack(alignment: .leading, spacing: 0) {
                     newsContent
                 }
             }

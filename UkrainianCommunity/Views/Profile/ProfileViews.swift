@@ -851,7 +851,7 @@ struct ProfileView: View {
     private func quickActionsSection(for user: AppUser, includeMyOrganizations: Bool = true) -> some View {
         ProfileSectionCard(
             title: AppStrings.Profile.personalContentTitle,
-            subtitle: AppStrings.Profile.personalContentSubtitle
+            subtitle: nil
         ) {
             AppAdaptiveGrid(
                 minimumWidth: 145,
@@ -898,7 +898,7 @@ struct ProfileView: View {
     private var activityNavigationSection: some View {
         ProfileSectionCard(
             title: AppStrings.Profile.myActivity,
-            subtitle: AppStrings.Profile.activitySectionSummary
+            subtitle: nil
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 NavigationLink(value: ProfileNavigationRoute.recentViews) {
@@ -925,7 +925,7 @@ struct ProfileView: View {
     private func supportNavigationSection(for user: AppUser) -> some View {
         ProfileSectionCard(
             title: AppStrings.Profile.feedbackSupport,
-            subtitle: AppStrings.Profile.supportSectionSubtitle
+            subtitle: nil
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 NavigationLink(value: ProfileNavigationRoute.myFeedback(userID: user.id)) {
@@ -1085,7 +1085,7 @@ struct ProfileView: View {
         if canShowOrganizationRequests || canShowModerationTools || canShowFeedbackReports {
             ProfileSectionCard(
                 title: AppStrings.Profile.platformOperationsTitle,
-                subtitle: AppStrings.Profile.platformOperationsSubtitle
+                subtitle: nil
             ) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
                     if canShowOrganizationRequests {
@@ -1135,7 +1135,7 @@ struct ProfileView: View {
         if hasPlatformAdministrationItems {
             ProfileSectionCard(
                 title: AppStrings.Profile.platformAdministrationTitle,
-                subtitle: AppStrings.Profile.platformAdministrationSubtitle
+                subtitle: nil
             ) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
                     if canShowAdminTools {

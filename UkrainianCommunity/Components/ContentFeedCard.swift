@@ -36,29 +36,12 @@ struct ContentFeedCard: View {
             shadowRadius: 0,
             shadowY: 0
         ) {
-            VStack(alignment: .leading, spacing: 8) {
-                if dynamicTypeSize.isAccessibilitySize {
+            if dynamicTypeSize.isAccessibilitySize {
+                cardDetails
+            } else {
+                HStack(alignment: .center, spacing: 12) {
+                    leadingMedia
                     cardDetails
-                } else {
-                    HStack(alignment: .top, spacing: 12) {
-                        leadingMedia
-                        cardDetails
-                    }
-                }
-                if item.itemType == .event {
-                    HStack(alignment: .center, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            if let publisherText { publisherLine(title: publisherText) }
-                            metadataLine
-                            if let secondaryMetadataText {
-                                AppMetadataLine(title: secondaryMetadataText, systemImage: "mappin.and.ellipse")
-                            }
-                        }
-                        Spacer(minLength: 0)
-                        if let eventStartDate = item.eventStartDate {
-                            HomeEventDateBadge(date: eventStartDate)
-                        }
-                    }
                 }
             }
         }
@@ -68,36 +51,52 @@ struct ContentFeedCard: View {
 
     private var cardDetails: some View {
         VStack(alignment: .leading, spacing: 4) {
-            if dynamicTypeSize.isAccessibilitySize {
-                Text(itemTypeTitle).font(.caption.weight(.semibold)).foregroundStyle(itemTypeTint)
-            } else { typeChip }
+            HStack(spacing: 8) {
+                typeChip
+                Spacer(minLength: 0)
+                if item.itemType == .news && !dynamicTypeSize.isAccessibilitySize {
+                    timestampText
+                }
+            }
 
-            Text(item.title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textPrimary)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    Text(item.title).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(item.title).lineLimit(2, reservesSpace: true)
+                }
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+
+            Text(contextText)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: true)
-
-            if item.itemType == .organization {
-                organizationMetadataLine
-                    .padding(.top, 1)
-            }
-
-            if shouldShowPreview, !item.summary.isEmpty {
-                Text(item.summary)
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if item.itemType == .news {
-                if let publisherText { publisherLine(title: publisherText) }
-                timestampText
-            }
-
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // One contextual line per type keeps the mixed feed on the same baseline.
+    // Full descriptions and event schedules remain on the destination screen.
+    private var contextText: String {
+        switch item.itemType {
+        case .news:
+            return publisherText ?? sourceTypeTitle
+        case .event:
+            guard let start = item.eventStartDate else { return primaryMetadataText }
+            let template = item.eventIsAllDay ? "d MMM" : "d MMM HH:mm"
+            let startText = LocalizationStore.dateString(from: start, localizedTemplate: template)
+            guard let end = item.eventEndDate, end > start else { return startText }
+            if Calendar.current.isDate(start, inSameDayAs: end) {
+                return LocalizationStore.dateString(from: start, localizedTemplate: "d MMM")
+                    + " · " + LocalizationStore.timeRangeString(startDate: start, endDate: end, isAllDay: item.eventIsAllDay)
+            }
+            return startText + " – " + LocalizationStore.dateString(from: end, localizedTemplate: template)
+        case .organization:
+            return organizationMetadataText
+        }
     }
 
     @ViewBuilder private var leadingMedia: some View {
@@ -137,32 +136,6 @@ struct ContentFeedCard: View {
             .font(.caption2.weight(.medium))
             .foregroundStyle(AppTheme.textSecondary)
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private func publisherLine(title: String) -> some View {
-        Label(title, systemImage: "person.crop.circle")
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(AppTheme.textSecondary)
-            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    @ViewBuilder private var metadataLine: some View {
-        if let start = item.eventStartDate, let end = item.eventEndDate,
-           let schedule = EventMultiDaySchedule(startDate: start, endDate: end, isAllDay: item.eventIsAllDay) {
-            EventMultiDayScheduleLabel(schedule: schedule)
-        } else {
-            AppMetadataLine(title: primaryMetadataText, systemImage: primaryMetadataIcon)
-        }
-    }
-
-    private var organizationMetadataLine: some View {
-        Text(organizationMetadataText)
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(AppTheme.textSecondary)
-            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-            .truncationMode(.tail)
             .fixedSize(horizontal: false, vertical: true)
     }
 
@@ -211,11 +184,7 @@ struct ContentFeedCard: View {
     }
 
     private var thumbnailSize: CGFloat {
-        64
-    }
-
-    private var shouldShowPreview: Bool {
-        item.itemType == .news || item.itemType == .event
+        72
     }
 
     private var publishedDateText: String {
@@ -351,73 +320,6 @@ struct ContentFeedCard: View {
             parts.append("\(item.likeCount) \(AppStrings.Common.likes)")
         }
         return parts.joined(separator: ", ")
-    }
-}
-
-private struct HomeEventDateBadge: View {
-    let date: Date
-    let calendar: Calendar
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    init(date: Date, calendar: Calendar = .current) {
-        self.date = date
-        self.calendar = calendar
-    }
-
-    var body: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                Text("\(weekdayText), \(dayText) \(monthText)")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                            .strokeBorder(AppTheme.borderSubtle)
-                    )
-            } else {
-                VStack(spacing: 3) {
-                    VStack(spacing: 1) {
-                        Text(dayText)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
-
-                        Text(monthText.uppercased())
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(AppTheme.accentDestructiveForeground)
-                    }
-                    .frame(width: AppTheme.homeFeedDateBadgeSize, height: AppTheme.homeFeedDateBadgeSize)
-                    .background(AppTheme.surfaceElevated, in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                            .strokeBorder(AppTheme.borderSubtle)
-                    )
-                    .shadow(color: AppTheme.textPrimary.opacity(0.06), radius: 5, y: 2)
-
-                    Text(weekdayText.uppercased())
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-                }
-                .frame(width: AppTheme.homeFeedDateBadgeSize)
-            }
-        }
-    }
-
-    private var dayText: String {
-        "\(calendar.component(.day, from: date))"
-    }
-
-    private var weekdayText: String {
-        LocalizationStore.dateString(from: date, localizedTemplate: "EEE")
-    }
-
-    private var monthText: String {
-        LocalizationStore.dateString(from: date, localizedTemplate: "MMM")
     }
 }
 

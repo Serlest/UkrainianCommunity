@@ -1,5 +1,7 @@
 # Visual refinement — simulator preview, 2026-09-07
 
+> This first iteration was rejected for inconsistent mixed-feed density. See [Revision 2](VisualRefinement-Revision2-2026-09-07.md) for the current design and audit status.
+
 Baseline: `ada5f1f` (build 76), preserved in `UACUnifiedCards-20260907`.
 Preview branch: `codex/visual-refinement-20260907`, separate worktree
 `/Users/serlest/Developer/UACVisualRefinement-20260907`.

@@ -140,7 +140,7 @@ enum AppTheme {
     static let homeSectionSpacing: CGFloat = 14
     static let homeHeaderHeroSpacing: CGFloat = 14
     static let feedRowSpacing: CGFloat = 8
-    static let homeFeedCardPadding: CGFloat = 12
+    static let homeFeedCardPadding: CGFloat = 10
     static let homeFeedDateBadgeSize: CGFloat = 42
     static let homeBottomContentPadding: CGFloat = 32
     static let appHeaderLogoSize = CGSize(width: 160, height: 56)
