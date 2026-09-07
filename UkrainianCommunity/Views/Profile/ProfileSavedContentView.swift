@@ -566,38 +566,7 @@ private struct SavedNewsCard: View {
     let post: NewsPost
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.rowCardPadding) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "newspaper")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .frame(width: 38, height: 38)
-                    .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(post.localizedTitle)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-
-                    Text(post.localizedSubtitle)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-
-                    Label(LocalizationStore.dateString(from: post.publishedAt), systemImage: "calendar")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-        }
+        ContentFeedCard(item: HomeFeedItem(post: post))
     }
 }
 
@@ -605,38 +574,7 @@ private struct SavedEventCard: View {
     let event: Event
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.rowCardPadding) {
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "calendar")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .frame(width: 38, height: 38)
-                    .background(AppTheme.accentPrimary.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(event.localizedTitle)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-
-                    Text(event.localizedSummary)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-
-                    Label(LocalizationStore.dateString(from: event.startDate), systemImage: "clock")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-        }
+        ContentFeedCard(item: HomeFeedItem(event: event))
     }
 }
 
@@ -644,53 +582,6 @@ struct ProfileOrganizationListCard: View {
     let organization: Organization
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.rowCardPadding) {
-            HStack(alignment: .center, spacing: 12) {
-                AppFeedThumbnail(
-                    imageURL: organization.imageURL,
-                    fallbackSystemImage: "building.2",
-                    tint: AppTheme.accentPrimaryForeground,
-                    fill: AppTheme.accentPrimary.opacity(0.10),
-                    size: thumbnailSize,
-                    source: "ProfileOrganizationListCard"
-                )
-                .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(organization.localizedName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-
-                    Text(organization.localizedShortDescription)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-
-                    Label(metadataText, systemImage: "mappin.and.ellipse")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
-        }
-    }
-
-    private var thumbnailSize: CGFloat {
-        50
-    }
-
-    @MainActor private var metadataText: String {
-        let region = organization.federalState.map(AppStrings.FederalStates.title(for:)) ?? organization.city
-        if organization.city.isEmpty || organization.city == region {
-            return region
-        }
-        return "\(organization.city), \(region)"
+        ContentFeedCard(item: HomeFeedItem(organization: organization))
     }
 }

@@ -382,48 +382,12 @@ extension NewsDetailView {
         }
 
         func relatedNewsCard(_ recommendation: NewsContentRecommendation) -> some View {
-            let post = recommendation.post
-            return SoftContentCard(padding: 10) {
-                HStack(alignment: .center, spacing: AppTheme.eventsControlGroupSpacing) {
-                    relatedNewsThumbnail(for: post)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(post.localizedTitle)
-                            .font(AppTheme.cardTitleFont)
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        if !post.localizedSubtitle.isEmpty {
-                            Text(post.localizedSubtitle)
-                                .font(AppTheme.metadataFont)
-                                .foregroundStyle(AppTheme.textSecondary)
-                                .lineLimit(2)
-                        }
-
-                        Label(
-                            recommendation.primaryReason.title,
-                            systemImage: recommendation.primaryReason.systemImage
-                        )
-                        .font(AppTheme.metadataFont)
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-                        .lineLimit(1)
-
-                        ViewThatFits(in: .horizontal) {
-                            HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                                AppMetadataLine(title: newsDateText(for: post), systemImage: "calendar")
-                                AppMetadataLine(title: viewCountText(for: post), systemImage: "eye")
-                            }
-
-                            AppMetadataLine(title: newsDateText(for: post), systemImage: "calendar")
-                        }
-                    }
-
-                    Image(systemName: "chevron.right")
-                        .font(AppTheme.metadataStrongFont)
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
-                .contentShape(Rectangle())
+            VStack(alignment: .leading, spacing: 4) {
+                ContentFeedCard(item: HomeFeedItem(post: recommendation.post))
+                Label(recommendation.primaryReason.title, systemImage: recommendation.primaryReason.systemImage)
+                    .font(AppTheme.metadataFont)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    .padding(.horizontal, AppTheme.homeFeedCardPadding)
             }
         }
 

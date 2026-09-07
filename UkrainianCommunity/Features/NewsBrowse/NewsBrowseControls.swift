@@ -73,24 +73,3 @@ struct NewsBrowseFilterSheet: View {
         }
     }
 }
-
-struct NewsTopicLink: View {
-    let item: HomeFeedItem
-    let select: (NewsCategory) -> Void
-    var body: some View {
-        if let topic = item.newsCategory {
-            HStack {
-                Button { select(topic) } label: {
-                    Label(NewsBrowseStrings.topic(topic), systemImage: "tag")
-                        .font(.caption.weight(.medium))
-                }.buttonStyle(.plain)
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .accessibilityIdentifier("home.news.topicLink.\(item.id)")
-                Spacer()
-                Text(item.regionScope == .austria ? NewsBrowseStrings.text("austria")
-                     : item.federalState?.displayName ?? NewsBrowseStrings.text("austria"))
-                    .font(.caption).foregroundStyle(AppTheme.textSecondary)
-            }.padding(.horizontal, AppTheme.homeFeedCardPadding)
-        }
-    }
-}
