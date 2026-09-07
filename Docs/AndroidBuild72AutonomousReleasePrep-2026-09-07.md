@@ -51,6 +51,21 @@ fixture write, account creation or configuration change was made.
 - Prepared bilingual cross-platform privacy/terms wording as an approval-only
   document; published iOS legal versions remain unchanged.
 
+### iOS-priority regression guard
+
+- The diff from the iOS build 72 base commit `5b0ba56` contains no Swift,
+  Xcode-project or iOS application-path changes.
+- On the `iPhone 17 Pro` simulator (iOS 26.4.1), all eight selected
+  `AnnouncementTests` and `ContentTranslationTests` unit checks passed.
+- All three selected UI flows passed: owner bilingual announcement creation,
+  guest announcement popup/history, and the real news editor translation/preview.
+- The two `.xcresult` summaries report 8/8 unit and 3/3 UI tests passed, with no
+  failure, skip or expected failure.
+
+This is targeted regression evidence for the iOS features shared with Android. It
+does not replace the already separate TestFlight, physical-iPhone or App Review
+evidence levels, and no iOS source or release state was changed.
+
 ### Live public-page read-back
 
 | URL | Result | Release meaning |
