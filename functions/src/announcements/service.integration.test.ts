@@ -72,3 +72,48 @@ test("installation challenge is required and bound to its current account", {ski
     assert.equal((await device.get()).exists,false);
   } finally { await device.delete(); }
 });
+
+test("verified refresh races with disable without NOT_FOUND or partial registrations", {skip: !enabled}, async () => {
+  const secret = "device-disable-race-fixture-".repeat(3);
+  const device = db.collection("announcementDevices").doc(createHash("sha256").update(secret).digest("hex"));
+  const payload = {secret, fid: "c123456789012345678901", platform: "ios", capability: 1, language: "uk"};
+  const send: Parameters<typeof register>[1] = async () => ({targetCount: 1, successCount: 1, failureCount: 0});
+  try {
+    for (let iteration = 0; iteration < 20; iteration++) {
+      await device.set({token: payload.fid, uid: "ann-vienna", verified: true, language: "de", updatedAt: 0});
+      const results: PromiseSettledResult<unknown>[] = await Promise.allSettled([
+        register(request("ann-vienna", payload), send),
+        register(request("ann-vienna", {...payload, operation: "disable"}), send),
+      ]);
+      for (const result of results) assert.equal(result.status, "fulfilled",
+        result.status === "rejected" ? String(result.reason) : "");
+      const current = (await device.get()).data();
+      if (current) {
+        assert.equal(current.uid, "ann-vienna");
+        assert.equal(current.token, payload.fid);
+        if (!current.verified) assert.equal(typeof current.challengeHash, "string");
+      }
+    }
+  } finally { await device.delete(); }
+});
+
+test("concurrent initial registrations issue one challenge and preserve account binding", {skip: !enabled}, async () => {
+  const secret = "device-registration-race-fixture-".repeat(3);
+  const device = db.collection("announcementDevices").doc(createHash("sha256").update(secret).digest("hex"));
+  const payload = {secret, fid: "c123456789012345678901", platform: "ios", capability: 1};
+  let sends = 0;
+  const send: Parameters<typeof register>[1] = async () => {
+    sends++; return {targetCount: 1, successCount: 1, failureCount: 0};
+  };
+  try {
+    await device.delete();
+    const results: PromiseSettledResult<unknown>[] = await Promise.allSettled(Array.from({length: 4}, () => register(request("ann-vienna", payload), send)));
+    assert.equal(results.filter((r) => r.status === "fulfilled").length, 1);
+    for (const result of results) if (result.status === "rejected") assert.equal(result.reason.code, "resource-exhausted");
+    assert.equal(sends, 1);
+    assert.equal((await device.get()).get("verified"), false);
+    await register(request("ann-tirol", payload), send);
+    assert.equal((await device.get()).get("uid"), "ann-tirol");
+    assert.equal((await device.get()).get("verified"), false);
+  } finally { await device.delete(); }
+});

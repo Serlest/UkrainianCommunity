@@ -186,15 +186,26 @@ export async function register(request: CallableRequest, send: typeof sendPushTo
   }
   const fid = text(data.fid, 22); if (!isStrictFirebaseInstallationID(fid)) return fail("Invalid installation ID.");
   const uid = request.auth?.uid ?? null, language = data.language === "uk" ? "uk" : "de";
-  const previous = (await ref.get()).data();
-  if (previous?.token === fid && previous.uid === uid && previous.verified === true) {
-    await ref.update({language, updatedAt: Date.now()}); return {ok: true};
-  }
-  if (previous && previous.updatedAt > Date.now() - 30000 && previous.uid === uid && previous.token === fid) throw new HttpsError("resource-exhausted", "Please retry registration later.");
+  // Keep the verified fast path atomic with disable, account changes and cleanup.
+  // A plain get/update can update a deleted document or a different account's record.
   const challenge = randomBytes(32).toString("hex");
-  await ref.set({token: fid, registrationType: "fid", platform: "ios", capability: 1, uid, language,
-    verified: false, challengeHash: digest(challenge), challengeExpiresAt: Date.now() + 300000, updatedAt: Date.now()});
+  const needsChallenge = await db.runTransaction(async (tx) => {
+    const previous = (await tx.get(ref)).data();
+    if (previous?.token === fid && previous.uid === uid && previous.verified === true) {
+      tx.update(ref, {language, updatedAt: Date.now()});
+      return false;
+    }
+    if (previous && previous.updatedAt > Date.now() - 30000 && previous.uid === uid && previous.token === fid) {
+      throw new HttpsError("resource-exhausted", "Please retry registration later.");
+    }
+    tx.set(ref, {token: fid, registrationType: "fid", platform: "ios", capability: 1, uid, language,
+      verified: false, challengeHash: digest(challenge), challengeExpiresAt: Date.now() + 300000, updatedAt: Date.now()});
+    return true;
+  });
+  if (!needsChallenge) return {ok: true};
   const doc = await ref.get();
+  // Another request may have disabled or replaced this registration before delivery.
+  if (!doc.exists || doc.get("challengeHash") !== digest(challenge) || doc.get("uid") !== uid) return {ok: true};
   await send([doc as typeof doc & {data(): DocumentData}], {
     data: {announcementChallenge: challenge}, apns: {headers: {"apns-push-type": "background", "apns-priority": "5"}, payload: {aps: {contentAvailable: true}}},
   });
