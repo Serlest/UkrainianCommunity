@@ -254,11 +254,101 @@ struct OrganizationActivityCompactCard: View {
     let item: OrganizationActivityItem
     var isPinned = false
 
+    private let thumbnailSize: CGFloat = 58
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ContentFeedCard(item: item.feedItem)
-            if isPinned { Label(AppStrings.Organizations.pinnedLabel, systemImage: "pin.fill").font(.caption).foregroundStyle(AppTheme.textSecondary) }
+        SoftContentCard(padding: AppTheme.organizationsCardPadding) {
+            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
+                thumbnail
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(item.title)
+                        .font(AppTheme.cardTitleFont)
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    metadataRow
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    @ViewBuilder
+    private var thumbnail: some View {
+        AppFeedThumbnail(
+            imageURL: item.imageURL,
+            fallbackSystemImage: itemTypeSystemImage,
+            tint: AppTheme.accentPrimaryForeground,
+            fill: AppTheme.accentPrimary.opacity(0.10),
+            size: thumbnailSize,
+            cornerRadius: AppTheme.feedThumbnailRadius,
+            source: "OrganizationActivityCompactCard"
+        )
+        .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
+    }
+
+    private var metadataRow: some View {
+        HStack(spacing: 6) {
+            ContentMetadataPill(systemImage: itemTypeSystemImage, text: itemTypeTitle)
+                .fixedSize(horizontal: true, vertical: false)
+
+            if let eventText = organizationActivityEventText(for: item) {
+                ContentMetadataPill(systemImage: "clock", text: eventText)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            } else {
+                ContentMetadataPill(systemImage: "calendar", text: organizationActivityDateText(for: item))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+
+            if isPinned {
+                ContentMetadataPill(systemImage: "pin.fill", text: AppStrings.Organizations.pinnedLabel)
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .clipped()
+    }
+
+    private var itemTypeTitle: String {
+        switch item.itemType {
+        case .news:
+            AppStrings.News.title
+        case .event:
+            AppStrings.Tabs.events
+        case .organizationProfile:
+            AppStrings.Tabs.organizations
+        }
+    }
+
+    private var itemTypeSystemImage: String {
+        switch item.itemType {
+        case .news:
+            "newspaper"
+        case .event:
+            "calendar"
+        case .organizationProfile:
+            "building.2"
+        }
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [itemTypeTitle, item.title, item.summary]
+
+        if let eventText = organizationActivityEventText(for: item) {
+            parts.append(eventText)
+        }
+
+        if let locationText = organizationActivityLocationText(for: item) {
+            parts.append(locationText)
+        }
+
+        return parts.filter { !$0.isEmpty }.joined(separator: ", ")
     }
 }
 
@@ -266,6 +356,80 @@ struct OrganizationActivityCard: View {
     let item: OrganizationActivityItem
 
     var body: some View {
-        ContentFeedCard(item: item.feedItem)
+        CommunityCard {
+            if item.imageURL != nil {
+                RemoteCardImage(imageURL: item.imageURL, height: 160, source: "OrganizationActivityCard", isDecorative: true)
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 8) {
+                        ContentMetadataPill(systemImage: itemTypeSystemImage, text: itemTypeTitle)
+                        ContentMetadataPill(systemImage: "calendar", text: organizationActivityDateText(for: item))
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        ContentMetadataPill(systemImage: itemTypeSystemImage, text: itemTypeTitle)
+                        ContentMetadataPill(systemImage: "calendar", text: organizationActivityDateText(for: item))
+                    }
+                }
+
+                Text(item.title)
+                    .font(AppTheme.sectionTitleFont)
+                    .foregroundStyle(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(item.summary)
+                    .font(AppTheme.secondaryBodyFont)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let eventText = organizationActivityEventText(for: item) {
+                    ContentMetadataPill(systemImage: "clock", text: eventText)
+                }
+
+                if let locationText = organizationActivityLocationText(for: item) {
+                    ContentMetadataPill(systemImage: "mappin.and.ellipse", text: locationText)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var itemTypeTitle: String {
+        switch item.itemType {
+        case .news:
+            AppStrings.News.title
+        case .event:
+            AppStrings.Tabs.events
+        case .organizationProfile:
+            AppStrings.Tabs.organizations
+        }
+    }
+
+    private var itemTypeSystemImage: String {
+        switch item.itemType {
+        case .news:
+            "newspaper"
+        case .event:
+            "calendar"
+        case .organizationProfile:
+            "building.2"
+        }
+    }
+
+    private var accessibilitySummary: String {
+        var parts = [itemTypeTitle, item.title, item.summary, organizationActivityDateText(for: item)]
+
+        if let eventText = organizationActivityEventText(for: item) {
+            parts.append(eventText)
+        }
+
+        if let locationText = organizationActivityLocationText(for: item) {
+            parts.append(locationText)
+        }
+
+        return parts.filter { !$0.isEmpty }.joined(separator: ", ")
     }
 }

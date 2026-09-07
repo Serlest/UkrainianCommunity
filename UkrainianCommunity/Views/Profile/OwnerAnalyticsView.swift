@@ -343,19 +343,14 @@ struct OwnerAnalyticsView: View {
     }
 
     private func metricGrid<T: Identifiable>(_ items: [T]) -> some View where T: OwnerAnalyticsMetricDisplayable {
-        VStack(alignment: .leading, spacing: 8) {
-            OwnerAnalyticsMetricGrid {
-                ForEach(items) { item in
-                    OwnerAnalyticsMetricTile(
-                        title: item.title, value: item.value,
-                        previousValue: item.previousValue, systemImage: item.systemImage
-                    )
-                }
-            }
-            if items.contains(where: { ($0.previousValue ?? 0) > 0 }) {
-                Text(AppStrings.OwnerAnalytics.deltaComparisonCaption)
-                    .font(.caption).foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+        OwnerAnalyticsMetricGrid {
+            ForEach(items) { item in
+                OwnerAnalyticsMetricTile(
+                    title: item.title,
+                    value: item.value,
+                    previousValue: item.previousValue,
+                    systemImage: item.systemImage
+                )
             }
         }
     }

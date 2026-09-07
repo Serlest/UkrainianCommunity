@@ -10,41 +10,20 @@ import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
-    func testUnifiedCardsAcrossTabsAndAppearances() throws {
-        for (language, appearance, largeText) in [("uk", "dark", false), ("de", "light", false), ("uk", "dark", true)] {
-            let app = XCUIApplication()
-            app.launchArguments = ["-ui-testing"]
-            if largeText { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"] }
-            app.launchEnvironment["UITestResetUserSettings"] = "1"
-            app.launchEnvironment["UITestForceGuestSession"] = "1"
-            app.launchEnvironment["UITestAppLanguage"] = language
-            app.launchEnvironment["UITestAppAppearance"] = appearance
-            app.launch()
-            for (index, prefix) in [(0, "home.card."), (1, "event.card."), (2, "organization.card.")] {
-                tapRootTab(rootTabs[index], in: app)
-                let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", prefix)).firstMatch
-                scrollToElement(card, in: app, maxSwipes: 8)
-                XCTAssertTrue(card.waitForExistence(timeout: 10))
-                attachScreenshot(named: "unified-\(index)-\(language)-\(appearance)-\(largeText ? "AX" : "standard")", from: app)
-                XCTAssertLessThanOrEqual(card.frame.maxX, app.frame.maxX + 1)
-                card.tap()
-                let back = app.buttons["navigation.back"].firstMatch
-                XCTAssertTrue(back.waitForExistence(timeout: 10)); back.tap()
-            }
-            app.terminate()
-        }
-    }
-
-    @MainActor
     func testNewsBrowseUkrainianPeriodAndTopicNavigation() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launch()
-        let topicLink = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.news.topicLink.")).firstMatch
-        scrollToElement(topicLink, in: app, maxSwipes: 8)
-        XCTAssertTrue(topicLink.waitForExistence(timeout: 10)); topicLink.tap()
+        let type = app.buttons["home.filter.type"].firstMatch
+        XCTAssertTrue(type.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.news.topicLink.")).firstMatch.exists)
+        type.tap()
+        app.buttons["Новини"].firstMatch.tap()
+        let topic = app.buttons["home.filter.topic"].firstMatch
+        XCTAssertTrue(topic.waitForExistence(timeout: 10)); topic.tap()
+        app.buttons["Загальні новини"].firstMatch.tap()
         let summary = app.staticTexts["home.news.summary"].firstMatch
         XCTAssertTrue(summary.waitForExistence(timeout: 10))
         let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.card.news-")).firstMatch

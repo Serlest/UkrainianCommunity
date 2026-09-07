@@ -69,6 +69,11 @@ struct OwnerHeroCard: View {
                             .foregroundStyle(AppTheme.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
 
+                        Text(mode.statusText)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+
                         ViewThatFits(in: .horizontal) {
                             HStack(spacing: 8) {
                                 ProfileBadge(title: mode.badgeTitle, systemImage: mode.badgeSymbol)

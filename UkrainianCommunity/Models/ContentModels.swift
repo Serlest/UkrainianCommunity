@@ -1199,9 +1199,6 @@ enum HomeFeedDestinationReference: Hashable {
 
 struct HomeFeedItem: Identifiable, Equatable {
     var newsCategory: NewsCategory? = nil
-    var eventCategory: EventCategory? = nil
-    var eventIsAllDay = false
-    var eventRegistrationTitle: String? = nil
     let id: String
     let sourceType: HomeFeedSourceType
     let itemType: HomeFeedItemType
@@ -1250,7 +1247,6 @@ struct HomeFeedItem: Identifiable, Equatable {
     }
 
     init(event: Event) {
-        eventCategory = event.category
         id = "event-\(event.id)"
         sourceType = event.source.sourceType == .organization ? .organization : .app
         itemType = .event
@@ -1262,8 +1258,6 @@ struct HomeFeedItem: Identifiable, Equatable {
         federalState = event.federalState
         city = event.city
         let occurrence = event.nextOccurrence() ?? event.occurrences.first
-        eventIsAllDay = occurrence?.isAllDay ?? event.isAllDay
-        eventRegistrationTitle = event.registrationState.title
         eventStartDate = occurrence?.startDate ?? event.startDate
         eventEndDate = occurrence?.endDate ?? event.endDate
         eventVenue = event.venue
@@ -1309,7 +1303,6 @@ enum OrganizationActivityItemType: String, Codable {
 }
 
 struct OrganizationActivityItem: Identifiable, Equatable {
-    let feedItem: HomeFeedItem
     let id: String
     let itemType: OrganizationActivityItemType
     let title: String
@@ -1330,7 +1323,6 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     let destination: HomeFeedDestinationReference?
 
     init(profile organization: Organization) {
-        feedItem = HomeFeedItem(organization: organization)
         id = "organization-profile-\(organization.id)"
         itemType = .organizationProfile
         title = organization.localizedName
@@ -1352,7 +1344,6 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     }
 
     init(post: NewsPost) {
-        feedItem = HomeFeedItem(post: post)
         id = "organization-news-\(post.id)"
         itemType = .news
         title = post.title
@@ -1374,7 +1365,6 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     }
 
     init(event: Event) {
-        feedItem = HomeFeedItem(event: event)
         id = "organization-event-\(event.id)"
         itemType = .event
         title = event.title

@@ -149,7 +149,7 @@ struct OrganizationsListView: View {
                     )
                     .padding(.bottom, AppTheme.homeSectionSpacing)
 
-                    VStack(alignment: .leading, spacing: 0) {
+                    AppGroupedContentPlane {
                         organizationsPlaneContent
                     }
                 }
@@ -297,7 +297,7 @@ struct OrganizationsListView: View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
-                sizing: .compactHero,
+                sizing: .responsiveHero,
                 onBannerTap: onFeaturedBannerTap
             )
         } else if let error = featuredBannerViewModel.error {
@@ -517,10 +517,136 @@ func readableOrganizationErrorText(_ error: AppError?) -> String {
 
 private struct OrganizationCard: View {
     let organization: Organization
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        ContentFeedCard(item: HomeFeedItem(organization: organization))
+        SoftContentCard(
+            padding: AppTheme.compactCardInnerSpacing,
+            shadowRadius: 0,
+            shadowY: 0
+        ) {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
+                    organizationThumbnail
+                    organizationDetails
+                }
+            } else {
+                HStack(alignment: .center, spacing: AppTheme.compactCardInnerSpacing) {
+                    organizationThumbnail
+                    organizationDetails
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
+
+    private var organizationThumbnail: some View {
+        AppFeedThumbnail(
+            imageURL: organization.imageURL,
+            fallbackSystemImage: "building.2",
+            tint: AppTheme.accentPrimaryForeground,
+            fill: AppTheme.badgeBlueFill,
+            size: thumbnailSize,
+            cornerRadius: AppTheme.feedThumbnailRadius,
+            source: "OrganizationCard"
+        )
+        .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
+    }
+
+    private var organizationDetails: some View {
+        VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingDense) {
+            Text(organization.localizedName)
+                .font(AppTheme.cardTitleFont)
+                .foregroundStyle(AppTheme.textPrimary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Text(organization.localizedShortDescription)
+                .font(AppTheme.cardSubtitleFont)
+                .foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            organizationMetadataChips
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var thumbnailSize: CGFloat {
+        AppTheme.organizationsThumbnailSize
+    }
+
+    private var organizationMetadataChips: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: AppTheme.compactCardInnerSpacingTight) {
+                metadataChips
+            }
+
+            VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacingTight) {
+                metadataChips
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private var metadataChips: some View {
+        ForEach(Array(metadataItems.enumerated()), id: \.offset) { _, item in
+            AppInfoChip(
+                title: item.title,
+                systemImage: item.systemImage,
+                tint: AppTheme.textSecondary,
+                fill: AppTheme.surfaceControl.opacity(0.62),
+                size: .small,
+                fallbackUsesMaterial: false,
+                shadowRadius: 0,
+                shadowY: 0
+            )
+            .fixedSize(horizontal: true, vertical: false)
+        }
+    }
+
+    private var metadataItems: [(title: String, systemImage: String)] {
+        var items: [(title: String, systemImage: String)] = []
+
+        if let region = regionText {
+            items.append((region, "mappin.and.ellipse"))
+        }
+
+        items.append((organizationCategoryText, organization.directoryProfile?.profileKind.systemImage ?? "building.2"))
+        return items
+    }
+
+    private var accessibilitySummary: String {
+        [
+            organization.localizedName,
+            organization.localizedShortDescription,
+            regionText ?? organization.city,
+            organizationCategoryText
+        ]
+        .filter { !$0.isEmpty }
+        .joined(separator: ", ")
+    }
+
+    private var regionText: String? {
+        if let federalState = organization.federalState {
+            return AppStrings.FederalStates.title(for: federalState)
+        }
+
+        let city = organization.city.trimmingCharacters(in: .whitespacesAndNewlines)
+        return city.isEmpty ? nil : city
+    }
+
+    private var organizationCategoryText: String {
+        guard let organizationType = organization.organizationType,
+              let category = OrganizationEditorCategory(rawValue: organizationType) else {
+            return AppStrings.Organizations.detailBadge
+        }
+
+        return category.title
+    }
+
 }
 
 private struct OrganizationFiltersSection: View {

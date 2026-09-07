@@ -353,7 +353,7 @@ struct ProfileView: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, AppTheme.pageHorizontal)
-                        .padding(.bottom, AppTheme.homeBottomContentPadding)
+                        .padding(.bottom, AppTheme.homeBottomContentPadding + 32)
                         .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
                     }
                     .frame(width: proxy.size.width)
@@ -851,7 +851,7 @@ struct ProfileView: View {
     private func quickActionsSection(for user: AppUser, includeMyOrganizations: Bool = true) -> some View {
         ProfileSectionCard(
             title: AppStrings.Profile.personalContentTitle,
-            subtitle: nil
+            subtitle: AppStrings.Profile.personalContentSubtitle
         ) {
             AppAdaptiveGrid(
                 minimumWidth: 145,
@@ -898,7 +898,7 @@ struct ProfileView: View {
     private var activityNavigationSection: some View {
         ProfileSectionCard(
             title: AppStrings.Profile.myActivity,
-            subtitle: nil
+            subtitle: AppStrings.Profile.activitySectionSummary
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 NavigationLink(value: ProfileNavigationRoute.recentViews) {
@@ -925,7 +925,7 @@ struct ProfileView: View {
     private func supportNavigationSection(for user: AppUser) -> some View {
         ProfileSectionCard(
             title: AppStrings.Profile.feedbackSupport,
-            subtitle: nil
+            subtitle: AppStrings.Profile.supportSectionSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 NavigationLink(value: ProfileNavigationRoute.myFeedback(userID: user.id)) {
@@ -1085,7 +1085,7 @@ struct ProfileView: View {
         if canShowOrganizationRequests || canShowModerationTools || canShowFeedbackReports {
             ProfileSectionCard(
                 title: AppStrings.Profile.platformOperationsTitle,
-                subtitle: nil
+                subtitle: AppStrings.Profile.platformOperationsSubtitle
             ) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
                     if canShowOrganizationRequests {
@@ -1135,7 +1135,7 @@ struct ProfileView: View {
         if hasPlatformAdministrationItems {
             ProfileSectionCard(
                 title: AppStrings.Profile.platformAdministrationTitle,
-                subtitle: nil
+                subtitle: AppStrings.Profile.platformAdministrationSubtitle
             ) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
                     if canShowAdminTools {

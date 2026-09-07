@@ -151,7 +151,7 @@ struct AppFilterChip: View {
             trailingSystemImage: trailingSystemImage,
             size: .regular,
             glassTint: isSelected ? AppTheme.accentPrimary : nil,
-            isInteractive: true,
+            isInteractive: false,
             usesNativeGlass: false,
             fallbackUsesMaterial: false,
             shadowRadius: 0,
@@ -215,7 +215,6 @@ enum AppFilterOrder {
 }
 
 struct AppPrioritizedFilterRow<Item: Hashable, Content: View>: View {
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let pinned: [Item]
     let filters: [Item]
     let isActive: (Item) -> Bool
@@ -224,22 +223,19 @@ struct AppPrioritizedFilterRow<Item: Hashable, Content: View>: View {
     var body: some View {
         let active = Set(filters.filter(isActive))
         let ordered = AppFilterOrder.ordered(pinned: pinned, filters: filters, active: active)
-        if dynamicTypeSize.isAccessibilitySize {
-            VStack(alignment: .leading, spacing: 8) {
+        ScrollViewReader { proxy in
+            AppHorizontalFilterRow {
                 ForEach(ordered, id: \.self) { item in
-                    content(item).frame(maxWidth: .infinity, alignment: .leading)
+                    content(item)
+                        .id(item)
                 }
             }
-        } else {
-            ScrollViewReader { proxy in
-                AppHorizontalFilterRow {
-                    ForEach(ordered, id: \.self) { item in content(item).id(item) }
-                }
-                .onChange(of: ordered) { _, _ in
-                    if let first = pinned.first { proxy.scrollTo(first, anchor: .leading) }
+            .onChange(of: ordered) { _, _ in
+                // A newly active chip may have moved out of the current viewport.
+                if let first = pinned.first {
+                    proxy.scrollTo(first, anchor: .leading)
                 }
             }
-            .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

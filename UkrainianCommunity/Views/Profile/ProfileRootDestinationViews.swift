@@ -19,7 +19,7 @@ struct ProfilePreferencesView: View {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
                     ProfileSettingsPickerRow(
                         title: AppStrings.Profile.appLanguage,
-                        subtitle: "",
+                        subtitle: AppStrings.Profile.languageSettingsSubtitle,
                         systemImage: "globe"
                     ) {
                         Picker(AppStrings.Settings.language, selection: $viewModel.settings.language) {
@@ -36,7 +36,7 @@ struct ProfilePreferencesView: View {
 
                     ProfileSettingsPickerRow(
                         title: AppStrings.Profile.appAppearance,
-                        subtitle: "",
+                        subtitle: AppStrings.Profile.appearanceSettingsSubtitle,
                         systemImage: "circle.lefthalf.filled"
                     ) {
                         Picker(AppStrings.Settings.appearance, selection: $viewModel.settings.appearance) {

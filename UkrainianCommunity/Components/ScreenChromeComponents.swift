@@ -1012,15 +1012,25 @@ extension BrandedScreenHeader where TrailingContent == EmptyView {
 
 struct AppBackgroundView: View {
     @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
-        Color(uiColor: .systemGroupedBackground)
-            .overlay(alignment: .top) {
-                LinearGradient(
-                    colors: [AppTheme.accentPrimary.opacity(colorScheme == .dark ? 0.08 : 0.04), .clear],
-                    startPoint: .top, endPoint: .bottom
-                ).frame(height: 240)
-            }
-            .ignoresSafeArea()
+        GeometryReader { proxy in
+            Image("background")
+                .resizable()
+                .scaledToFill()
+                .frame(width: proxy.size.width, height: proxy.size.height)
+                .clipped()
+                .overlay(readabilityOverlay)
+        }
+        .ignoresSafeArea()
+    }
+
+    private var readabilityOverlay: some View {
+        LinearGradient(
+            colors: AppTheme.screenBackgroundOverlayColors(for: colorScheme),
+            startPoint: .top,
+            endPoint: .bottom
+        )
     }
 }
 

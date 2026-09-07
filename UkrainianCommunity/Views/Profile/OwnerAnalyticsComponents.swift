@@ -80,7 +80,12 @@ struct OwnerAnalyticsMetricTile: View {
                         .foregroundStyle(deltaPresentation.color)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
-
+                    if deltaPresentation.valueText != nil {
+                        Text(AppStrings.OwnerAnalytics.deltaComparisonCaption)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
