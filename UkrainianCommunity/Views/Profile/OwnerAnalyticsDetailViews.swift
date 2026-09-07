@@ -347,11 +347,7 @@ private struct AnalyticsDetailMetricGrid: View {
     let items: [OwnerAnalyticsDetailMetricItem]
 
     var body: some View {
-        AppAdaptiveGrid(
-            minimumWidth: 140,
-            maximumWidth: 240,
-            spacing: AppTheme.eventsMetadataSpacing
-        ) {
+        OwnerAnalyticsMetricGrid {
             ForEach(items) { item in
                 OwnerAnalyticsMetricTile(
                     title: item.title,
@@ -410,12 +406,7 @@ private struct AnalyticsDetailValueRow: View {
 
     private var label: some View {
         HStack(alignment: .center, spacing: 12) {
-            Image(systemName: systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: 34, height: 34)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
+            OwnerAnalyticsIconBadge(systemImage: systemImage, baseSize: 34)
 
             Text(title)
                 .font(.subheadline.weight(.semibold))
@@ -464,12 +455,7 @@ private struct AnalyticsDetailRegionRow: View {
             value: row.signalCount,
             label: AppStrings.OwnerAnalytics.trackedSignals
         ) {
-            Image(systemName: "mappin.and.ellipse")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: 34, height: 34)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
+            OwnerAnalyticsIconBadge(systemImage: "mappin.and.ellipse", baseSize: 34)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(row.title)
@@ -556,12 +542,7 @@ private struct AnalyticsOrganizationTopContentRow: View {
             value: item.viewCount,
             label: AppStrings.OwnerAnalytics.views
         ) {
-            Image(systemName: item.contentType.analyticsDetailSystemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: 34, height: 34)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
+            OwnerAnalyticsIconBadge(systemImage: item.contentType.analyticsDetailSystemImage, baseSize: 34)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(item.analyticsDisplayTitle)

@@ -15,7 +15,8 @@ struct OwnerAnalyticsView: View {
         ProfileDestinationLayout(
             title: AppStrings.OwnerAnalytics.title,
             introSubtitle: AppStrings.OwnerAnalytics.subtitle,
-            contentSpacing: AppTheme.sectionSpacing
+            contentSpacing: AppTheme.sectionSpacing,
+            scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize
         ) {
             periodPicker
             searchField
@@ -176,7 +177,7 @@ struct OwnerAnalyticsView: View {
                 subtitle: viewModel.selectedPeriod.analyticsSummarySubtitle
             ) {
                 if !viewModel.overviewMetricItems.isEmpty {
-                    metricGrid(viewModel.overviewMetricItems, accentFirst: true)
+                    metricGrid(viewModel.overviewMetricItems)
                 }
 
                 if !viewModel.contentViewMetricItems.isEmpty {
@@ -186,7 +187,7 @@ struct OwnerAnalyticsView: View {
                             .foregroundStyle(AppTheme.textPrimary)
                             .accessibilityAddTraits(.isHeader)
 
-                        metricGrid(viewModel.contentViewMetricItems, accentFirst: false)
+                        metricGrid(viewModel.contentViewMetricItems)
                     }
                 }
             }
@@ -200,7 +201,7 @@ struct OwnerAnalyticsView: View {
                 title: AppStrings.OwnerAnalytics.actionsOverviewTitle,
                 subtitle: AppStrings.OwnerAnalytics.actionsOverviewSubtitle
             ) {
-                metricGrid(viewModel.actionMetricItems, accentFirst: false)
+                metricGrid(viewModel.actionMetricItems)
             }
         } else if !viewModel.hasActiveSearch {
             OwnerAnalyticsSectionCard(
@@ -231,7 +232,7 @@ struct OwnerAnalyticsView: View {
                 }
 
                 if !viewModel.userMetricItems.isEmpty {
-                    metricGrid(viewModel.userMetricItems, accentFirst: false)
+                    metricGrid(viewModel.userMetricItems)
                 }
 
                 if !viewModel.hasActiveSearch && viewModel.userFederalStateRows.isEmpty {
@@ -341,19 +342,14 @@ struct OwnerAnalyticsView: View {
         }
     }
 
-    private func metricGrid<T: Identifiable>(_ items: [T], accentFirst: Bool) -> some View where T: OwnerAnalyticsMetricDisplayable {
-        AppAdaptiveGrid(
-            minimumWidth: 140,
-            maximumWidth: 240,
-            spacing: AppTheme.eventsMetadataSpacing
-        ) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+    private func metricGrid<T: Identifiable>(_ items: [T]) -> some View where T: OwnerAnalyticsMetricDisplayable {
+        OwnerAnalyticsMetricGrid {
+            ForEach(items) { item in
                 OwnerAnalyticsMetricTile(
                     title: item.title,
                     value: item.value,
                     previousValue: item.previousValue,
-                    systemImage: item.systemImage,
-                    accentStyle: accentFirst && index == 0
+                    systemImage: item.systemImage
                 )
             }
         }

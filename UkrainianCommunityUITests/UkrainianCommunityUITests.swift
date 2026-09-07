@@ -1916,6 +1916,30 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOwnerAnalyticsMetricRowsStayAligned() throws {
+        for appearance in ["light", "dark"] {
+            let app = launchOwnerApp(language: "uk", appearance: appearance)
+            openOwnerAnalytics(in: app)
+            let views = element("ownerAnalytics.metric.eye", in: app)
+            let regions = element("ownerAnalytics.metric.map", in: app)
+            scrollToElement(views, in: app)
+            XCTAssertTrue(views.waitForExistence(timeout: 5))
+            XCTAssertTrue(regions.exists)
+            XCTAssertEqual(views.frame.minY, regions.frame.minY, accuracy: 1)
+            XCTAssertEqual(views.frame.height, regions.frame.height, accuracy: 1)
+            XCTAssertEqual(views.frame.width, regions.frame.width, accuracy: 1)
+            attachScreenshot(named: "Analytics aligned overview uk \(appearance)", from: app)
+            let news = element("ownerAnalytics.metric.newspaper", in: app)
+            let events = element("ownerAnalytics.metric.calendar", in: app)
+            scrollToElement(news, in: app)
+            XCTAssertEqual(news.frame.minY, events.frame.minY, accuracy: 1)
+            XCTAssertEqual(news.frame.height, events.frame.height, accuracy: 1)
+            attachScreenshot(named: "Analytics aligned activity uk \(appearance)", from: app)
+            app.terminate()
+        }
+    }
+
+    @MainActor
     func testOwnerAnalyticsSearchPeriodAndDetailJourney() throws {
         let app = launchOwnerApp()
         openOwnerAnalytics(in: app)
@@ -1953,6 +1977,28 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOwnerAnalyticsThirtyDaysAndOrganizationSearch() throws {
+        let app = launchOwnerApp()
+        openOwnerAnalytics(in: app)
+        app.buttons["30 Tage"].firstMatch.tap()
+        let search = element("ownerAnalytics.search", in: app)
+        search.tap()
+        search.typeText("Ukrainian Community Center Vienna\n")
+        let organization = element("ownerAnalytics.content.organization.org-ukrainian-center-vienna", in: app)
+        scrollToElement(organization, in: app, maxSwipes: 16)
+        XCTAssertTrue(organization.isHittable)
+        organization.tap()
+        XCTAssertTrue(element("screen.ownerAnalytics.organizationDetail", in: app).waitForExistence(timeout: 10))
+        attachScreenshot(named: "Analytics organization 30 days", from: app)
+        let detailSearch = element("ownerAnalytics.detail.search", in: app)
+        detailSearch.tap()
+        detailSearch.typeText("zzzz-no-match\n")
+        XCTAssertTrue(element("ownerAnalytics.detail.search.empty", in: app).waitForExistence(timeout: 5))
+        app.buttons["Suche löschen"].firstMatch.tap()
+        XCTAssertFalse(element("ownerAnalytics.detail.search.empty", in: app).exists)
+    }
+
+    @MainActor
     func testOwnerAnalyticsSupportsDarkUkrainianAccessibilityText() throws {
         let app = launchOwnerApp(
             language: "uk",
@@ -1965,6 +2011,10 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(element("ownerAnalytics.updatedAt", in: app).waitForExistence(timeout: 10))
         XCTAssertTrue(element("ownerAnalytics.search", in: app).waitForExistence(timeout: 10))
         XCTAssertEqual(app.state, .runningForeground)
+        let total = element("ownerAnalytics.metric.eye", in: app)
+        scrollToElement(total, in: app, maxSwipes: 12)
+        XCTAssertTrue(total.exists)
+        XCTAssertLessThanOrEqual(total.frame.maxX, app.frame.maxX)
         attachScreenshot(named: "Owner Analytics Ukrainian Dark AX", from: app)
     }
 }

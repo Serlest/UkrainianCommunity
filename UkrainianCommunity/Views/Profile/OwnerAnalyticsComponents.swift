@@ -55,22 +55,15 @@ struct OwnerAnalyticsMetricTile: View {
     let value: Int
     var previousValue: Int? = nil
     let systemImage: String
-    var accentStyle: Bool = false
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locale) private var locale
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Image(systemName: systemImage)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: 30, height: 30)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
+            OwnerAnalyticsIconBadge(systemImage: systemImage, baseSize: 30)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(OwnerAnalyticsFormatting.integer(value, locale: locale))
-                    .font((accentStyle ? Font.title2 : Font.title3).weight(.bold))
+                    .font(.title2.weight(.bold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .monospacedDigit()
                     .fixedSize(horizontal: false, vertical: true)
@@ -78,20 +71,26 @@ struct OwnerAnalyticsMetricTile: View {
                 Text(title)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                    .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let deltaPresentation {
-                    Label(deltaPresentation.text, systemImage: deltaPresentation.systemImage)
+                    Label(deltaPresentation.valueText ?? deltaPresentation.text, systemImage: deltaPresentation.systemImage)
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(deltaPresentation.color)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                        .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
+                    if deltaPresentation.valueText != nil {
+                        Text(AppStrings.OwnerAnalytics.deltaComparisonCaption)
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
         }
         .padding(AppTheme.metricCardPadding)
-        .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
+        .frame(maxWidth: .infinity, minHeight: 126, maxHeight: .infinity, alignment: .topLeading)
         .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.rowCardCornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: AppTheme.rowCardCornerRadius, style: .continuous)
@@ -99,6 +98,7 @@ struct OwnerAnalyticsMetricTile: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(title)
+        .accessibilityIdentifier("ownerAnalytics.metric.\(systemImage)")
         .accessibilityValue(accessibilityValue)
     }
 
@@ -119,7 +119,8 @@ struct OwnerAnalyticsMetricTile: View {
         return OwnerAnalyticsDeltaPresentation(
             text: AppStrings.OwnerAnalytics.deltaVsPreviousPeriod(formattedPercentage),
             systemImage: delta > 0 ? "arrow.up.right" : "arrow.down.right",
-            color: delta > 0 ? AppTheme.accentPrimaryForeground : AppTheme.accentDestructiveForeground
+            color: delta > 0 ? AppTheme.accentPrimaryForeground : AppTheme.accentDestructiveForeground,
+            valueText: formattedPercentage
         )
     }
 
@@ -365,6 +366,7 @@ private struct OwnerAnalyticsDeltaPresentation {
     let text: String
     let systemImage: String
     let color: Color
+    var valueText: String? = nil
 }
 
 struct OwnerAnalyticsSectionCard<Content: View>: View {
@@ -482,12 +484,7 @@ struct OwnerAnalyticsRegionRow: View {
             value: row.viewCount,
             label: AppStrings.OwnerAnalytics.views
         ) {
-            Image(systemName: "mappin.and.ellipse")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: 34, height: 34)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
+            OwnerAnalyticsIconBadge(systemImage: "mappin.and.ellipse", baseSize: 34)
 
             VStack(alignment: .leading, spacing: 6) {
                 Text(row.title)
@@ -523,12 +520,7 @@ struct OwnerAnalyticsFederalStateUserRow: View {
             value: row.userCount,
             label: AppStrings.OwnerAnalytics.users
         ) {
-            Image(systemName: "person.2")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: 34, height: 34)
-                .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityHidden(true)
+            OwnerAnalyticsIconBadge(systemImage: "person.2", baseSize: 34)
 
             Text(AppStrings.FederalStates.title(for: row.federalState))
                 .font(.subheadline.weight(.semibold))
@@ -723,5 +715,77 @@ extension String {
             of: #"^[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$"#,
             options: .regularExpression
         ) != nil
+    }
+}
+
+/// Analytics cards share each row's measured height; long translations remain visible.
+struct OwnerAnalyticsMetricGrid<Content: View>: View {
+    @ViewBuilder let content: Content
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+
+    var body: some View {
+        OwnerAnalyticsTileLayout(
+            singleColumn: dynamicTypeSize.isAccessibilitySize || verticalSizeClass == .compact,
+            spacing: AppTheme.eventsMetadataSpacing
+        ) { content }
+    }
+}
+
+private struct OwnerAnalyticsTileLayout: Layout {
+    let singleColumn: Bool
+    let spacing: CGFloat
+
+    private func measurements(width: CGFloat, subviews: Subviews) -> (columns: Int, cellWidth: CGFloat, heights: [CGFloat]) {
+        let columns = singleColumn ? 1 : max(1, min(4, Int((width + spacing) / (140 + spacing))))
+        let cellWidth = max(0, (width - CGFloat(columns - 1) * spacing) / CGFloat(columns))
+        var heights: [CGFloat] = []
+        for index in subviews.indices {
+            let height = subviews[index].sizeThatFits(ProposedViewSize(width: cellWidth, height: nil)).height
+            let row = index / columns
+            if row == heights.count { heights.append(height) }
+            else { heights[row] = max(heights[row], height) }
+        }
+        return (columns, cellWidth, heights)
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let width = proposal.width.flatMap { $0.isFinite ? $0 : nil } ?? 320
+        let sizes = measurements(width: width, subviews: subviews)
+        return CGSize(width: width, height: sizes.heights.reduce(0, +) + CGFloat(max(0, sizes.heights.count - 1)) * spacing)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let sizes = measurements(width: bounds.width, subviews: subviews)
+        var y = bounds.minY
+        for index in subviews.indices {
+            let row = index / sizes.columns
+            let column = index % sizes.columns
+            if index > 0 && column == 0 { y += sizes.heights[row - 1] + spacing }
+            subviews[index].place(
+                at: CGPoint(x: bounds.minX + CGFloat(column) * (sizes.cellWidth + spacing), y: y),
+                anchor: .topLeading,
+                proposal: ProposedViewSize(width: sizes.cellWidth, height: sizes.heights[row])
+            )
+        }
+    }
+}
+
+struct OwnerAnalyticsIconBadge: View {
+    let systemImage: String
+    @ScaledMetric(relativeTo: .subheadline) private var size: CGFloat = 34
+
+    init(systemImage: String, baseSize: CGFloat = 34) {
+        self.systemImage = systemImage
+        _size = ScaledMetric(wrappedValue: baseSize, relativeTo: .subheadline)
+    }
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.accentPrimaryForeground)
+            .frame(width: size, height: size)
+            .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .accessibilityHidden(true)
     }
 }

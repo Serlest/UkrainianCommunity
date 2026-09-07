@@ -10,6 +10,7 @@ struct ProfileDestinationLayout<Content: View>: View {
     let title: String
     let introSubtitle: String
     let contentSpacing: CGFloat
+    let scrollsIntroSubtitle: Bool
     let clearAction: ProfileDestinationClearAction?
     @ViewBuilder let content: Content
 
@@ -18,10 +19,12 @@ struct ProfileDestinationLayout<Content: View>: View {
         introSubtitle: String,
         contentSpacing: CGFloat = AppTheme.feedRowSpacing,
         clearAction: ProfileDestinationClearAction? = nil,
+        scrollsIntroSubtitle: Bool = false,
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
         self.introSubtitle = introSubtitle
+        self.scrollsIntroSubtitle = scrollsIntroSubtitle
         self.contentSpacing = contentSpacing
         self.clearAction = clearAction
         self.content = content()
@@ -30,7 +33,7 @@ struct ProfileDestinationLayout<Content: View>: View {
     var body: some View {
         PushedScreenShell(
             title: title,
-            subtitle: introSubtitle
+            subtitle: scrollsIntroSubtitle ? nil : introSubtitle
         ) {
             if let clearAction {
                 if clearAction.isLoading {
@@ -49,6 +52,12 @@ struct ProfileDestinationLayout<Content: View>: View {
             }
         } content: {
             AppGroupedContentPlane(spacing: contentSpacing) {
+                if scrollsIntroSubtitle {
+                    Text(introSubtitle)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 content
             }
         }

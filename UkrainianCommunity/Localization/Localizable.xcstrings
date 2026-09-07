@@ -1,6 +1,23 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+  "owner_analytics.delta.comparison_caption": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Порівняно з попереднім періодом"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Zum vorherigen Zeitraum"
+        }
+      }
+    }
+  },
   "safety.organization_block.mfa_required": {
     "localizations": {
       "de": {

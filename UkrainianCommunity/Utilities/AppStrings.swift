@@ -1326,6 +1326,7 @@ enum AppStrings {
         static var sevenDaysSummarySubtitle: String { text("owner_analytics.overview.seven_days_subtitle", "Metrics for the last 7 days") }
         static var thirtyDaysSummarySubtitle: String { text("owner_analytics.overview.thirty_days_subtitle", "Metrics for the last 30 days") }
         static var totalViews: String { text("owner_analytics.metric.total_views", "Total views") }
+        static var deltaComparisonCaption: String { text("owner_analytics.delta.comparison_caption", "Compared with the previous period") }
         static var deltaNoChange: String { text("owner_analytics.delta.no_change", "No change") }
         static func deltaVsPreviousPeriod(_ value: String) -> String {
             LocalizationStore.localizedFormat(
