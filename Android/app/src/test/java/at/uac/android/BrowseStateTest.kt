@@ -57,6 +57,14 @@ class BrowseStateTest {
     }
 
     @Test
+    fun missingOptionalDonationDoesNotRenderAFeedWarning() = runTest {
+        val vm = model()
+        advanceUntilIdle()
+        assertNull(vm.state.value.data.donation)
+        assertTrue(vm.state.value.data.warnings.none { it.first == "donation" })
+    }
+
+    @Test
     fun backRestoresFiltersAndLoadedPages() = runTest {
         val vm = model()
         vm.navigate("news", true)

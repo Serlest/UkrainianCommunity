@@ -31,6 +31,7 @@ export function messageForAndroid(message: BaseMessage, nowMs = Date.now()): Bas
   const bodyLocKey = androidPushResourceKey(localized?.locKey);
   const notification: AndroidNotification = {
     channelId: androidPushChannelId,
+    clickAction: "at.uac.android.PUSH_TAP",
     icon: androidPushIcon,
     visibility: "private",
     defaultSound: true,

@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import at.uac.android.feature.auth.AuthStore
 import at.uac.android.feature.browse.BrowseViewModel
 import at.uac.android.feature.feedback.feedbackScope
+import at.uac.android.feature.moderation.moderationScope
 import java.time.Instant
 
 @Composable
@@ -43,6 +44,8 @@ fun InboxPopupDestination(
                     live.inboxScope(),
                     live.feedbackScope()?.canManage == true,
                     Instant.now(),
+                    canOpenContentPlanning =
+                        live.moderationScope()?.let { it.ready && it.role == "owner" } == true,
                 )
         ) {
             is InboxNavigationTarget.Route -> {

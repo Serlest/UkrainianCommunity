@@ -1,5 +1,6 @@
 package at.uac.android.feature.browse
 
+import at.uac.android.BuildConfig
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -85,6 +86,9 @@ class BrowseViewModel(
     initialTheme: String,
     private val savePreference: (String, String) -> Unit,
 ) : ViewModel() {
+    private val availableModes =
+        if (BuildConfig.USE_LOCAL_BACKEND) setOf("synthetic", "emulator") else setOf("emulator")
+
     private fun savedString(key: String): String? = saved.get<Any?>(key) as? String
 
     private fun savedRoutes(key: String): List<String> {
@@ -118,8 +122,8 @@ class BrowseViewModel(
                 region = region(savedString("region") ?: initialRegion),
                 theme = theme(savedString("theme") ?: initialTheme),
                 mode =
-                    savedString("mode")?.takeIf { it in setOf("synthetic", "emulator") }
-                        ?: "synthetic",
+                    savedString("mode")?.takeIf { it in availableModes }
+                        ?: if (BuildConfig.USE_LOCAL_BACKEND) "synthetic" else "emulator",
                 canBack = navigation.canBack,
                 selectedTab = navigation.selected,
                 retainedRoutes = navigation.stacks.values.flatten().toSet(),
@@ -379,7 +383,7 @@ class BrowseViewModel(
             when (name) {
                 "language" -> value in listOf("de", "uk")
                 "theme" -> value in listOf("system", "light", "dark")
-                "mode" -> value in listOf("synthetic", "emulator")
+                "mode" -> value in availableModes
                 "region" -> value.isEmpty() || regions.any { it.first == value }
                 else -> false
             }
@@ -463,7 +467,11 @@ class BrowseViewModel(
         job = viewModelScope.launch {
             if (debounce) delay(250)
             var result = BrowseData(loading = false)
-            suspend fun <T> optional(label: String, request: suspend () -> ReadResult<T>): T? =
+            suspend fun <T> optional(
+                label: String,
+                missingIsEmpty: Boolean = false,
+                request: suspend () -> ReadResult<T>,
+            ): T? =
                 try {
                     val read = request()
                     result =
@@ -472,7 +480,8 @@ class BrowseViewModel(
                         )
                     read.value
                 } catch (e: ReadException) {
-                    result = result.copy(warnings = result.warnings + (label to e.reason))
+                    if (!(missingIsEmpty && e.reason == ReadFailure.MISSING))
+                        result = result.copy(warnings = result.warnings + (label to e.reason))
                     null
                 }
             try {
@@ -585,7 +594,11 @@ class BrowseViewModel(
                                             .thenBy { it.id }
                                     )
                         )
-                    val donation = optional("donation") { repository.donation() }
+                    // Donation is an optional app configuration document. Its absence means that
+                    // no support card is configured, not that public content failed to load.
+                    val donation = optional("donation", missingIsEmpty = true) {
+                        repository.donation()
+                    }
                     result = result.copy(donation = donation)
                 }
                 if (

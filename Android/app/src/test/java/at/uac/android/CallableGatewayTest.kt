@@ -107,7 +107,7 @@ class CallableGatewayTest {
     fun referencePolicyStillRejectsUnknownCallsAndWrongDeadline() {
         val recording = RecordingGateway()
         assertThrows(IllegalArgumentException::class.java) {
-            recording.getHttpsCallable("trackAnalyticsEvent")
+            recording.getHttpsCallable("unknownCallable")
         }
         val reference = recording.getHttpsCallable("saveComment")
         assertThrows(IllegalArgumentException::class.java) {

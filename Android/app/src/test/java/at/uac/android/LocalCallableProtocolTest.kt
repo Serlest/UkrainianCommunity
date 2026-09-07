@@ -45,7 +45,7 @@ class LocalCallableProtocolTest {
                 { LocalCallableProtocol.endpoint("../deleteOwnAccount") },
                 { LocalCallableProtocol.endpoint("saveComment?target=production") },
                 { LocalCallableProtocol.endpoint("deleteAnyAccount") },
-                { LocalCallableProtocol.endpoint("sendTestPushNotification") },
+                { LocalCallableProtocol.endpoint("sendArbitraryPushNotification") },
             )
         for (action in invalid) try {
             action()

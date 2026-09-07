@@ -36,6 +36,7 @@ data class ManagedUsersActions(
     val search: (String) -> Unit = {},
     val filter: (ManagedUsersFilter) -> Unit = {},
     val open: (String) -> Unit = {},
+    val legalEvidence: ((String) -> Unit)? = null,
 )
 
 @Composable
@@ -48,6 +49,7 @@ fun ManagedUsersScreen(
     interactive: Boolean = true,
     statuses: UserStatusViewModel? = null,
     roles: PlatformRoleViewModel? = null,
+    onLegalEvidence: ((String) -> Unit)? = null,
 ) {
     val stored by model.state.collectAsStateWithLifecycle(minActiveState = Lifecycle.State.RESUMED)
     val privacy = LocalWindowPrivacy.current
@@ -199,6 +201,13 @@ fun ManagedUsersScreen(
             { value -> guarded { model.search(value) } },
             { value -> guarded { model.filter(value) } },
             { target -> guarded { model.open(target) } },
+            onLegalEvidence?.takeIf { session?.role == "owner" }?.let { open ->
+                { target ->
+                    guarded {
+                        if (model.currentSession() == session && session?.ready == true) open(target)
+                    }
+                }
+            },
         ),
         actionContent =
             if (statuses != null || roles != null) {
@@ -491,7 +500,13 @@ fun ManagedUsersContent(
                 state.detail
                     ?.takeIf { it.id == state.selectedId }
                     ?.let { user ->
-                        item("profile") { ManagedUserProfile(user, language) }
+                        item("profile") {
+                            ManagedUserProfile(
+                                user,
+                                language,
+                                actions.legalEvidence?.let { open -> { open(user.id) } },
+                            )
+                        }
                         item("security") {
                             Card(Modifier.fillMaxWidth().testTag("managed-user-security")) {
                                 Column(
@@ -567,7 +582,11 @@ fun ManagedUsersContent(
 }
 
 @Composable
-private fun ManagedUserProfile(user: ManagedUser, language: String) {
+private fun ManagedUserProfile(
+    user: ManagedUser,
+    language: String,
+    onLegalEvidence: (() -> Unit)? = null,
+) {
     Card(Modifier.fillMaxWidth().testTag("managed-user-detail")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -621,6 +640,19 @@ private fun ManagedUserProfile(user: ManagedUser, language: String) {
                 tr(language, "Profil erstellt", "Профіль створено"),
                 date(user.createdAt, language),
             )
+            if (onLegalEvidence != null)
+                OutlinedButton(
+                    onLegalEvidence,
+                    Modifier.fillMaxWidth().testTag("managed-user-legal-evidence"),
+                ) {
+                    Text(
+                        tr(
+                            language,
+                            "Rechtliche Nachweise öffnen",
+                            "Відкрити юридичні підтвердження",
+                        )
+                    )
+                }
         }
     }
 }

@@ -1,25 +1,27 @@
 package at.uac.android.core.backend
 
+import at.uac.android.BuildConfig
+
 /** One fixed APK definition. Reading it has no Android/Firebase, disk or network side effects. */
 object CompiledBackend {
-    const val ANDROID_PACKAGE = "at.uac.android.local"
-    const val FIREBASE_APP_NAME = "uac-local"
-    const val PROJECT_ID = "demo-uac-android"
-    const val FIREBASE_APPLICATION_ID = "1:1234567890:android:0000000000000000000000"
-    internal const val SYNTHETIC_API_KEY = "synthetic-local-key-not-a-credential"
+    val ANDROID_PACKAGE = BuildConfig.APPLICATION_ID
+    val FIREBASE_APP_NAME = BuildConfig.BACKEND_APP_NAME
+    val PROJECT_ID = BuildConfig.BACKEND_PROJECT_ID
+    val FIREBASE_APPLICATION_ID = BuildConfig.BACKEND_APPLICATION_ID
+    internal val SYNTHETIC_API_KEY = BuildConfig.BACKEND_API_KEY
     const val HOST = "10.0.2.2"
     const val AUTH_PORT = 9098
     const val FIRESTORE_PORT = 8088
     const val STORAGE_PORT = 9198
     const val CALLABLE_PORT = 5008
-    const val STORAGE_BUCKET = "demo-uac-android.appspot.com"
+    val STORAGE_BUCKET = BuildConfig.BACKEND_BUCKET
     const val CALLABLE_REGION = "europe-west3"
 
     val configuration =
         BackendConfiguration(
             identity =
                 BackendIdentity(
-                    BackendKind.LOCAL_EMULATOR,
+                    if (BuildConfig.USE_LOCAL_BACKEND) BackendKind.LOCAL_EMULATOR else BackendKind.FIREBASE_CLOUD,
                     ANDROID_PACKAGE,
                     FIREBASE_APP_NAME,
                     PROJECT_ID,
@@ -27,7 +29,7 @@ object CompiledBackend {
                 ),
             bucket = STORAGE_BUCKET,
             callableRegion = CALLABLE_REGION,
-            services =
+            services = if (BuildConfig.USE_LOCAL_BACKEND) {
                 mapOf(
                     BackendService.AUTH to BackendServiceAccess.LocalEndpoint(HOST, AUTH_PORT),
                     BackendService.FIRESTORE to
@@ -40,6 +42,9 @@ object CompiledBackend {
                         BackendServiceAccess.Unavailable(
                             BackendUnavailableReason.NOT_INCLUDED_IN_LOCAL_BUILD
                         ),
-                ),
+                )
+            } else {
+                BackendService.entries.associateWith { BackendServiceAccess.Cloud }
+            },
         )
 }

@@ -24,6 +24,7 @@ import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.string
 import at.uac.android.feature.contentlifecycle.ContentLifecycleContract
+import at.uac.android.feature.contentplanning.ContentPlanningDraft
 import at.uac.android.feature.organization.OrganizationSession
 import java.time.Instant
 import java.time.LocalDate
@@ -70,14 +71,20 @@ fun AuthoringScreen(
     initialKind: ContentKind = ContentKind.NEWS,
     onCover: ((AuthoringItem) -> Unit)? = null,
     onLifecycle: ((AuthoringItem) -> Unit)? = null,
+    planningSource: ContentPlanningDraft? = null,
+    planningBridge: PlanningAuthoringBridge? = null,
 ) {
     val stored by model.state.collectAsStateWithLifecycle(minActiveState = Lifecycle.State.RESUMED)
     val state =
         if (stored.session == session && stored.organizationId == organizationId) stored
         else AuthoringState(session, organizationId, kind = initialKind)
-    LifecycleResumeEffect(session, organizationId, initialKind) {
-        model.show(organizationId, initialKind)
+    LifecycleResumeEffect(session, organizationId, initialKind, planningSource?.id) {
+        model.show(organizationId, initialKind, planningSource?.id)
         onPauseOrDispose { model.hide() }
+    }
+    LaunchedEffect(stored.fresh, planningSource, planningBridge) {
+        if (stored.fresh && planningSource != null && planningBridge != null)
+            model.importPlanning(planningSource, planningBridge)
     }
     AuthoringContent(
         state,

@@ -8,6 +8,10 @@ import at.uac.android.feature.browse.RawDocument
 import at.uac.android.feature.browse.map
 import at.uac.android.feature.browse.string
 import at.uac.android.feature.browse.strings
+import at.uac.android.feature.contentplanning.ContentPlanningDraft
+import at.uac.android.feature.contentplanning.ContentPlanningKind
+import at.uac.android.feature.contentplanning.ContentPlanningLease
+import at.uac.android.feature.contentplanning.ContentPlanningPublication
 import at.uac.android.feature.organization.OrganizationAuthority
 import at.uac.android.feature.organization.OrganizationContract
 import at.uac.android.feature.organization.OrganizationRecord
@@ -139,6 +143,18 @@ data class AuthoringSubmission(
     val fields: Fields,
     val base: AuthoringItem?,
 )
+
+interface PlanningAuthoringBridge {
+    suspend fun begin(draft: ContentPlanningDraft): ContentPlanningLease
+
+    suspend fun finalize(
+        draft: ContentPlanningDraft,
+        lease: ContentPlanningLease,
+        publication: ContentPlanningPublication,
+    )
+
+    suspend fun fail(draft: ContentPlanningDraft, lease: ContentPlanningLease, message: String)
+}
 
 object AuthoringContract {
     const val PAGE_SIZE = 25
@@ -350,6 +366,106 @@ object AuthoringContract {
                 ),
         )
     }
+
+    fun planningDraft(source: ContentPlanningDraft): AuthoringDraft {
+        if (!source.canPublish || source.missingFields.any { it.isBlank() }) invalid()
+        val payload = source.payload
+        fun text(key: String) = (payload[key] as? String).orEmpty()
+        fun strings(key: String) =
+            (payload[key] as? List<*>)?.map { it as? String ?: invalid(key) }.orEmpty()
+        fun instant(key: String) = payload[key] as? Instant
+        val kind =
+            if (source.kind == ContentPlanningKind.NEWS) ContentKind.NEWS else ContentKind.EVENTS
+        val scheduled = text("publicationMode") == "scheduled"
+        val event = kind == ContentKind.EVENTS
+        val occurrences =
+            if (!event) emptyList()
+            else {
+                val primaryStart = instant("startDate") ?: invalid("dates")
+                val primaryEnd = instant("endDate") ?: primaryStart
+                val primary =
+                    AuthoringOccurrence(
+                        id = planningOccurrenceId(source.id, 0),
+                        start = primaryStart,
+                        end = primaryEnd,
+                        allDay = payload["isAllDay"] == true,
+                        endKnown = payload["hasExplicitEndDate"] != false,
+                    )
+                val additional =
+                    (payload["additionalOccurrences"] as? List<*>).orEmpty().mapIndexed { index, raw
+                        ->
+                        val value =
+                            (raw as? Map<*, *>)?.entries?.associate { (key, child) ->
+                                (key as? String ?: invalid("dates")) to child
+                            } ?: invalid("dates")
+                        val start = value["startDate"] as? Instant ?: invalid("dates")
+                        val end = value["endDate"] as? Instant ?: start
+                        AuthoringOccurrence(
+                            id = planningOccurrenceId(source.id, index + 1),
+                            start = start,
+                            end = end,
+                            allDay = value["isAllDay"] == true,
+                            endKnown = value["endDate"] != null,
+                        )
+                    }
+                listOf(primary) + additional
+            }
+        return AuthoringDraft(
+                id = "planning-${source.id}",
+                kind = kind,
+                title = text("title"),
+                summary = text("summary"),
+                body = text(if (event) "details" else "body"),
+                germanTitle = text("germanTitle"),
+                germanSummary = text("germanSummary"),
+                germanBody = text(if (event) "germanDetails" else "germanBody"),
+                category = text("category").ifEmpty { if (event) "other" else "news" },
+                additionalCategories = strings("additionalCategories").toSet(),
+                tags = strings("tags").joinToString(", "),
+                regionScope = text("regionScope").ifEmpty { "federalState" },
+                source =
+                    text("sourceInput").ifEmpty {
+                        source.sources.firstOrNull { it.primary }?.url.orEmpty()
+                    },
+                actionTitle = text("externalActionTitle"),
+                actionUrl = text("externalActionURL"),
+                event =
+                    AuthoringEventDraft(
+                        city = text("city"),
+                        venue = text("venue"),
+                        address = text("address"),
+                        locationNote = text("locationNote"),
+                        organizer = text("eventOrganizerName"),
+                        organizerUrl = text("organizerURL"),
+                        contactPhone = text("contactPhone"),
+                        contactEmail = text("contactEmail"),
+                        contactUrl = text("contactURL"),
+                        occurrences = occurrences,
+                        participation = text("participationMode").ifEmpty { "none" },
+                        capacity = (payload["capacity"] as? Number)?.toInt()?.toString().orEmpty(),
+                        priceKind = text("priceKind").ifEmpty { "unspecified" },
+                        amount = (payload["price"] as? Number)?.toString().orEmpty(),
+                        maximumAmount = (payload["maximumPrice"] as? Number)?.toString().orEmpty(),
+                        priceNote = text("priceNote"),
+                        audience = text("audience").ifEmpty { "everyone" },
+                        minimumAge =
+                            (payload["minimumAge"] as? Number)?.toInt()?.toString().orEmpty(),
+                        maximumAge =
+                            (payload["maximumAge"] as? Number)?.toInt()?.toString().orEmpty(),
+                    ),
+                publicationMode =
+                    if (scheduled) AuthoringPublicationMode.SCHEDULED
+                    else AuthoringPublicationMode.NOW,
+                scheduledAt =
+                    if (scheduled) instant("scheduledAt") ?: invalid("schedule") else null,
+            )
+            .also {
+                if (!id(it.id) || it.kind !in kinds) invalid()
+            }
+    }
+
+    private fun planningOccurrenceId(draftId: String, index: Int): String =
+        UUID.nameUUIDFromBytes("planning:$draftId:$index".toByteArray(Charsets.UTF_8)).toString()
 
     fun draft(item: AuthoringItem): AuthoringDraft {
         val f = item.fields

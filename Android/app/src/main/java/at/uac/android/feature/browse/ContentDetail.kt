@@ -102,9 +102,6 @@ fun ContentDetail(
                 ContentCard(item, l) { model.navigate("${item.kind.collection}/${item.id}") }
             }
         }
-        TextButton(model::refresh, Modifier.testTag("detail-refresh")) {
-            Text(tr(l, "Aktualisieren", "Оновити"))
-        }
     }
 }
 

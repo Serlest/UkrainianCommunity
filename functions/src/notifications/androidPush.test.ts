@@ -27,6 +27,7 @@ test("Android envelope uses native localization, private channel/icon, current b
   assert.equal(sent.android?.notification?.body, undefined);
   assert.equal(sent.android?.notification?.notificationCount, 4);
   assert.equal(sent.android?.notification?.channelId, "uac_updates");
+  assert.equal(sent.android?.notification?.clickAction, "at.uac.android.PUSH_TAP");
   assert.equal(sent.android?.notification?.icon, "ic_stat_uac");
   assert.equal(sent.android?.notification?.visibility, "private");
   assert.equal(sent.android?.ttl, 1_800_000);

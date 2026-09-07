@@ -1,5 +1,7 @@
 package at.uac.android.feature.authoring
 
+import at.uac.android.feature.contentplanning.ContentPlanningException
+import at.uac.android.feature.contentplanning.ContentPlanningFailure
 import at.uac.android.feature.organization.OrganizationException
 import at.uac.android.feature.organization.OrganizationFailure
 
@@ -10,6 +12,19 @@ import at.uac.android.feature.organization.OrganizationFailure
 fun authoringFailure(error: Throwable): AuthoringFailure =
     when (error) {
         is AuthoringException -> error.failure
+        is ContentPlanningException ->
+            when (error.failure) {
+                ContentPlanningFailure.SIGN_IN -> AuthoringFailure.SIGN_IN
+                ContentPlanningFailure.NOT_READY -> AuthoringFailure.NOT_READY
+                ContentPlanningFailure.DENIED -> AuthoringFailure.DENIED
+                ContentPlanningFailure.INVALID -> AuthoringFailure.INVALID
+                ContentPlanningFailure.MISSING -> AuthoringFailure.MISSING
+                ContentPlanningFailure.CONFLICT -> AuthoringFailure.STALE
+                ContentPlanningFailure.OFFLINE -> AuthoringFailure.OFFLINE
+                ContentPlanningFailure.INDEX -> AuthoringFailure.INDEX
+                ContentPlanningFailure.UNCONFIRMED -> AuthoringFailure.UNCONFIRMED
+                ContentPlanningFailure.UNKNOWN -> AuthoringFailure.UNKNOWN
+            }
         is OrganizationException ->
             when (error.failure) {
                 OrganizationFailure.SIGN_IN -> AuthoringFailure.SIGN_IN

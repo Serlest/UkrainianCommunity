@@ -32,6 +32,7 @@ import at.uac.android.feature.browse.safeHttps
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.dsastatement.DsaStatementContract
 import at.uac.android.feature.feedback.feedbackScope
+import at.uac.android.feature.moderation.moderationScope
 import java.net.URI
 import java.time.Instant
 
@@ -49,6 +50,7 @@ fun availableInboxDestination(destination: InboxDestination): Boolean =
                 InboxDestinationKind.URL,
                 InboxDestinationKind.FEEDBACK,
                 InboxDestinationKind.ORGANIZATION_REQUEST,
+                InboxDestinationKind.CONTENT_PLANNING,
             )
 
 @Composable
@@ -123,6 +125,8 @@ fun InboxDestinationScreen(
                             live.inboxScope(),
                             live.feedbackScope()?.canManage == true,
                             Instant.now(),
+                            canOpenContentPlanning =
+                                live.moderationScope()?.let { it.ready && it.role == "owner" } == true,
                         )
                     if (current() && target != null) {
                         inbox.change(notice, InboxMutation.READ)

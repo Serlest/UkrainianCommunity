@@ -1,5 +1,6 @@
 package at.uac.android.feature.contentmedia
 
+import at.uac.android.BuildConfig
 import at.uac.android.core.LocalImagePolicy
 import at.uac.android.core.LocalImagePreparation
 import at.uac.android.core.LocalStorage
@@ -136,12 +137,17 @@ object ContentCoverContract {
      */
     fun token(value: String, target: ContentCoverTarget): String? = runCatching {
         val uri = URI(value)
-        val host =
+        val cloudHost =
             uri.scheme == "https" &&
                 uri.host == "firebasestorage.googleapis.com" &&
-                uri.port == -1 || uri.scheme == "http" && uri.host == "10.0.2.2" && uri.port == 9198
+                uri.port == -1
+        val localHost =
+            BuildConfig.USE_LOCAL_BACKEND &&
+                uri.scheme == "http" &&
+                uri.host == "10.0.2.2" &&
+                uri.port == 9198
         if (
-            !host ||
+            (!cloudHost && !localHost) ||
                 uri.userInfo != null ||
                 uri.fragment != null ||
                 URLDecoder.decode(uri.rawPath, "UTF-8") !=

@@ -1,6 +1,7 @@
 package at.uac.android.feature.auth
 
 import android.content.Context
+import at.uac.android.BuildConfig
 import at.uac.android.core.LocalEnvironment
 import at.uac.android.core.backend.AppBackend
 import at.uac.android.core.backend.FirebaseBackendGuard
@@ -77,7 +78,7 @@ class FirebaseAuthBackend(private val auth: FirebaseAuth) : AuthBackend {
             }
 
     private fun requireSyntheticEmail(email: String) {
-        if (!email.trim().endsWith(".invalid", ignoreCase = true))
+        if (!emailAllowedForBackend(email, BuildConfig.USE_LOCAL_BACKEND))
             throw AuthException(AuthProblem.LOCAL_ONLY)
     }
 
@@ -165,6 +166,9 @@ class FirebaseAuthBackend(private val auth: FirebaseAuth) : AuthBackend {
         Unit
     }
 }
+
+internal fun emailAllowedForBackend(email: String, localOnly: Boolean): Boolean =
+    email.isNotBlank() && (!localOnly || email.trim().endsWith(".invalid", ignoreCase = true))
 
 class FirestoreAuthProfiles(private val database: FirebaseFirestore) : AuthProfiles {
     init {

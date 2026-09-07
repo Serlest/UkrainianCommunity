@@ -3,6 +3,7 @@ package at.uac.android.feature.browse
 import android.content.Context
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -11,14 +12,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -51,7 +55,6 @@ fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
     var index by rememberSaveable { mutableIntStateOf(0) }
     val selected = index.coerceIn(0, banners.lastIndex)
     val banner = banners[selected]
-    var auto by rememberSaveable { mutableStateOf(false) }
     var resumed by remember { mutableStateOf(false) }
     val accessibility =
         LocalContext.current.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
@@ -65,63 +68,81 @@ fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
         resumed = true
         onPauseOrDispose { resumed = false }
     }
-    LaunchedEffect(auto, resumed, spoken, banner.id) {
-        if (auto && resumed && !spoken && banners.size > 1) {
+    LaunchedEffect(resumed, spoken, banner.id, banners.size) {
+        if (resumed && !spoken && banners.size > 1) {
             delay(banner.fields.count("displayDurationSeconds").coerceIn(3, 12) * 1_000)
             index = (selected + 1) % banners.size
         }
     }
+    var horizontalDrag by remember { mutableFloatStateOf(0f) }
+    fun previous(): Boolean {
+        index = (selected - 1 + banners.size) % banners.size
+        return true
+    }
+    fun next(): Boolean {
+        index = (selected + 1) % banners.size
+        return true
+    }
     Column(
-        Modifier.widthIn(max = UacDesign.readableWidth).fillMaxWidth(),
+        Modifier.widthIn(max = UacDesign.readableWidth)
+            .fillMaxWidth()
+            .testTag("banner-carousel")
+            .pointerInput(banners.size) {
+                val threshold = 48.dp.toPx()
+                detectHorizontalDragGestures(
+                    onDragStart = { horizontalDrag = 0f },
+                    onHorizontalDrag = { _, amount -> horizontalDrag += amount },
+                    onDragEnd = {
+                        when {
+                            horizontalDrag < -threshold -> next()
+                            horizontalDrag > threshold -> previous()
+                        }
+                        horizontalDrag = 0f
+                    },
+                    onDragCancel = { horizontalDrag = 0f },
+                )
+            }
+            .semantics {
+                if (banners.size > 1) {
+                    stateDescription = "${selected + 1} / ${banners.size}"
+                    customActions =
+                        listOf(
+                            CustomAccessibilityAction(
+                                tr(state.language, "Vorherige Empfehlung", "Попередня добірка"),
+                                ::previous,
+                            ),
+                            CustomAccessibilityAction(
+                                tr(state.language, "Nächste Empfehlung", "Наступна добірка"),
+                                ::next,
+                            ),
+                        )
+                }
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        BannerHero(banner, state.language, { model.navigate(it) })
-        if (banners.size > 1) {
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
-            ) {
-                IconButton(
-                    { index = (selected - 1 + banners.size) % banners.size },
-                    Modifier.testTag("banner-previous"),
+        Box {
+            BannerHero(banner, state.language, { model.navigate(it) })
+            if (banners.size > 1)
+                Row(
+                    Modifier.align(Alignment.TopCenter)
+                        .padding(top = 10.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(UacDesign.bannerScrim.copy(alpha = .72f))
+                        .padding(horizontal = 8.dp, vertical = 6.dp)
+                        .testTag("banner-indicator"),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    UacSymbol(
-                        UacIcon.BACK,
-                        tr(state.language, "Vorherige Empfehlung", "Попередня добірка"),
-                    )
-                }
-                Text(
-                    "${selected + 1} / ${banners.size}",
-                    Modifier.align(Alignment.CenterVertically),
-                    style = MaterialTheme.typography.labelMedium,
-                )
-                IconButton(
-                    { index = (selected + 1) % banners.size },
-                    Modifier.testTag("banner-next"),
-                ) {
-                    UacSymbol(
-                        UacIcon.BACK,
-                        tr(state.language, "Nächste Empfehlung", "Наступна добірка"),
-                        Modifier.rotate(180f),
-                    )
-                }
-                if (!spoken)
-                    IconToggleButton(
-                        auto,
-                        { auto = it },
-                        Modifier.size(48.dp).testTag("banner-auto"),
-                    ) {
-                        UacSymbol(
-                            if (auto) UacIcon.PAUSE else UacIcon.PLAY,
-                            if (auto)
-                                tr(
-                                    state.language,
-                                    "Automatik pausieren",
-                                    "Призупинити автоперегляд",
+                    banners.indices.forEach { dot ->
+                        Box(
+                            Modifier.size(if (dot == selected) 8.dp else 6.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(
+                                    if (dot == selected) Color.White
+                                    else Color.White.copy(alpha = .5f)
                                 )
-                            else tr(state.language, "Automatik starten", "Увімкнути автоперегляд"),
                         )
                     }
-            }
+                }
         }
     }
 }

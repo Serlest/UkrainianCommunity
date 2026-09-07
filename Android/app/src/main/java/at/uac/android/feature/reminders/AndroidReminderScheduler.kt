@@ -14,12 +14,13 @@ import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import at.uac.android.BuildConfig
 import at.uac.android.core.LocalEnvironment
 import java.time.Instant
 
 object ReminderIntents {
-    const val ALARM = "at.uac.android.local.EVENT_REMINDER_ALARM"
-    const val TAP = "at.uac.android.local.EVENT_REMINDER_TAP"
+    val ALARM = "${BuildConfig.APPLICATION_ID}.EVENT_REMINDER_ALARM"
+    val TAP = "${BuildConfig.APPLICATION_ID}.EVENT_REMINDER_TAP"
     const val CHANNEL = "uac_event_reminders"
     private const val EPOCH = "reminder_epoch"
     private const val TOKEN = "reminder_ticket"
@@ -210,7 +211,7 @@ class AndroidReminderNotifications(private val context: Context) : ReminderNotif
 
 internal fun requireReminderEnvironment(context: Context) {
     LocalEnvironment.requireSafe()
-    require(context.applicationContext.packageName == "at.uac.android.local")
+    require(context.applicationContext.packageName == at.uac.android.core.backend.CompiledBackend.ANDROID_PACKAGE)
 }
 
 internal fun reminderLanguage(saved: String?, device: String?): String =

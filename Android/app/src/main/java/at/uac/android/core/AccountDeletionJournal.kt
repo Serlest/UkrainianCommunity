@@ -1,6 +1,7 @@
 package at.uac.android.core
 
 import android.content.Context
+import at.uac.android.core.backend.CompiledBackend
 import android.util.AtomicFile
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -182,7 +183,7 @@ object LocalAccountDeletionJournal {
 
     fun get(context: Context): AccountDeletionJournal {
         LocalEnvironment.requireSafe()
-        check(context.applicationContext.packageName == "at.uac.android.local")
+        check(context.applicationContext.packageName == CompiledBackend.ANDROID_PACKAGE)
         return value
             ?: synchronized(this) {
                 value

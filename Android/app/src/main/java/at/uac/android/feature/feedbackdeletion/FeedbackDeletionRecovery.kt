@@ -75,8 +75,8 @@ enum class FeedbackDeletionObservation {
     val parentAbsent: Boolean
         get() = this in setOf(ACCEPTED_ABSENT, ABSENT_WITHOUT_RECEIPT)
 
-    // The known server aggregation gap is unresolved. Even own ACK + parent absence does not
-    // establish that messages/notifications were deleted. Never borrow role-recovery clearance.
+    // Read-back never permits automatic replay/clearance. Successful dispatch settlement is
+    // handled by the mutation repository directly from its operation-bound callable receipt.
     val clearsPending: Boolean
         get() = false
 

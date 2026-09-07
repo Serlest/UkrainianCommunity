@@ -40,6 +40,12 @@ class AuthStore(
     private var pendingEnrollment: Pair<String, AuthTotpEnrollment>? = null
     private val foregroundPolicy = AuthForegroundPolicy()
     private val localUnlockPolicy = AuthLocalUnlockPolicy()
+    @Volatile private var beforeExplicitSignOut: suspend (AuthSession) -> Unit = {}
+
+    /** Application-scoped integrations may install one best-effort-safe pre-sign-out barrier. */
+    fun setBeforeExplicitSignOut(action: suspend (AuthSession) -> Unit) {
+        beforeExplicitSignOut = action
+    }
 
     private enum class MfaPurpose {
         SIGN_IN,
@@ -249,13 +255,16 @@ class AuthStore(
             restoreLocked(revision)
         }
 
-    fun signOut(): Job =
-        transition(AuthStage.AUTHENTICATING) { revision ->
+    fun signOut(): Job {
+        val captured = state.value
+        return transition(AuthStage.AUTHENTICATING) { revision ->
+            withContext(NonCancellable) { beforeExplicitSignOut(captured) }
             backend.signOut()
             requireCurrent(revision)
             pendingRegistration = null
             mutable.value = AuthSession(AuthStage.GUEST, revision = revision)
         }
+    }
 
     fun resendVerification(language: String): Job? {
         if (state.value.busy || state.value.stage != AuthStage.VERIFICATION_PENDING) return null
