@@ -314,15 +314,20 @@ Official asset rules and guidance:
 - Validate the two bundled native-library families on a 16 KB page-size device and
   inspect Play’s bundle/pre-launch reports.
 - Upload first to Internal testing. If the developer account is a personal account
-  created after 2023-11-13, verify whether the current requirement for 12 testers
-  continuously opted into Closed testing for 14 days applies before production
-  access.
+  created after 2023-11-13, run a Closed test with at least 12 testers continuously
+  opted in for 14 days before applying for production access. The UAC Play account
+  was created on 2026-09-07, so this gate applies.
 - Run physical-device Play Integrity/App Check, Auth/email links/TOTP, FCM
   foreground/background/cold start, Storage upload, callable/read-back, deletion,
   notification permission and release-minified runtime tests.
 - Complete Store settings, countries, category, contact email, privacy URL, Data
   Safety, App access, target audience, content rating, ads, UGC/news declarations,
   pricing and review release notes. Upload/review/rollout remain separate actions.
+
+Current Console boundary: the personal developer account exists and identity
+documents have been submitted. Google identity approval is pending, so app creation
+and contact-phone verification remain unavailable. Do not treat payment/account
+creation as completion of these verification gates.
 
 Official release sources:
 
