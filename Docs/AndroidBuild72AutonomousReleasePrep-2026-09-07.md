@@ -36,10 +36,10 @@ artifact is deliberately quarantined and **must never be uploaded**.
 - Captured log contained no fatal exception, Firebase exception, App Check error or
   explicit permission-denied line.
 
-This is startup proof only. It is not authenticated cloud acceptance: the active
-Firebase CLI account receives HTTP 403 for the staging app/config APIs, and an
-unauthenticated Firestore REST read correctly receives 403. No staging deployment,
-fixture write, account creation or configuration change was made.
+This is startup proof only. Firebase CLI project/app access was subsequently
+restored through the authorized Google account; an unauthenticated Firestore REST
+read still correctly receives 403. No staging deployment, fixture write, account
+creation or production configuration change was made.
 
 ### Physical Firebase Test Lab smoke
 
@@ -53,14 +53,29 @@ fixture write, account creation or configuration change was made.
 - Raw evidence was retained under
   `outputs/android-build72/testlab/matrix-1cmv8cyvsf0fl/`; the cloud result page is
   tied to Firebase matrix `4660116178651670227`.
-- App process logs contain no fatal exception. They do show the expected remaining
-  cloud blocker: the Test Lab instance generated an unregistered App Check debug
-  token, and token exchange returned HTTP 403 `App attestation failed`.
+- The initial matrix deliberately exposed the next gate: its generated App Check
+  token was not registered, so token exchange returned HTTP 403
+  `App attestation failed` even though the shell test passed.
+- The test was hardened with Firebase's CI `DebugAppCheckTestHelper` and a
+  staging-only dependency. Matrix `matrix-2bdsgms123cgc` then failed because the
+  helper registrar was confined to the test APK; this was a diagnosed harness
+  packaging failure, not an application crash.
+- After moving the registrar to the staging application only and aligning its
+  AndroidX Test runtime, the same hardened check passed locally and on the physical
+  A35 in matrix `matrix-2xludxv1o4xoj` (Firebase execution
+  `5110753193396570288`): 1/1 passed in 3.383 s.
+- The final log contains zero UAC fatal-process signals and zero App Check exchange,
+  attestation, token-fetch or retry failures. APK SHA-256 values were
+  `ea93c4b3cd5ef8b74b037b847d7d9c3f2a91f6423faa4d6c94d56b587280830f`
+  (app) and
+  `db928a7424b1784ad0afc6ba7f6be00ee152bfc51e21a508f543b57701117dbd`
+  (test).
 
-This upgrades physical-device startup/navigation from unverified to passed, but it
-does not claim authenticated Firebase acceptance. A fixed CI debug token must be
-created and allow-listed only in staging, supplied as an instrumentation argument,
-and explicitly exercised in a follow-up cloud test.
+This upgrades physical startup/navigation and staging App Check token exchange to
+passed. It still does not claim authenticated Auth/Firestore/Functions/Storage/FCM
+acceptance, Play Integrity from a Play-installed release, or interactive OEM proof.
+The registered debug secret was supplied only as a transient test-runner argument;
+it was not printed, stored in an artifact or committed.
 
 ### Play preparation
 
@@ -104,11 +119,11 @@ the difference is deployment state. No Hosting deployment was attempted.
 1. Make the real upload-key password/alias available through the four
    `UAC_PRODUCTION_*` signing inputs, then create a fresh AAB and verify its
    certificate against the retained upload-key fingerprint.
-2. Restore sufficient Firebase access or an authenticated browser session for the
-   staging project; register the App Check debug token only in staging and run
-   Auth/Firestore/Functions/Storage/FCM acceptance.
-3. Connect and authorize a physical Android device for Play Integrity, background,
-   notification, biometric, TOTP, email-link, Storage and OEM checks.
+2. Use the restored staging Firebase access and the proven staging-only App Check
+   CI path to run authenticated Auth/Firestore/Functions/Storage/FCM acceptance.
+3. Complete Play internal distribution and interactive device checks for Play
+   Integrity, background notification, biometric, TOTP, email-link, Storage and
+   corporate/OEM behavior. Test Lab has proven physical startup and App Check only.
 4. Approve the bilingual cross-platform legal candidate and its immutable version;
    only then perform a scoped Firestore/Hosting publication with hash/read-back and
    iOS regression verification.
@@ -118,10 +133,11 @@ the difference is deployment state. No Hosting deployment was attempted.
 ## Updated readiness
 
 - Functional parity against iOS build 72: **95%**.
-- Release engineering readiness: **85%**.
+- Release engineering readiness: **87%**.
 
 The increase from 80% reflects production-flavor/R8/lintVital compilation, 16 KiB
-native alignment proof, emulator and physical Test Lab staging startup, and prepared
-Play graphics/legal materials. Signing identity, authenticated cloud/device
-acceptance, legal approval and Play Console remain blocking; therefore this is
-still not a releasable build.
+native alignment proof, emulator and physical Test Lab staging startup, positive
+staging App Check token exchange, and prepared Play graphics/legal materials.
+Signing identity, authenticated cloud workflows, interactive Play/OEM acceptance,
+legal approval and Play Console remain blocking; therefore this is still not a
+releasable build.

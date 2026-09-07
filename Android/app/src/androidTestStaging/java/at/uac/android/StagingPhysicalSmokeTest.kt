@@ -7,6 +7,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.firebase.FirebaseApp
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.debug.testing.DebugAppCheckTestHelper
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.tasks.await
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -36,5 +40,11 @@ class StagingPhysicalSmokeTest {
             "Every initialized Firebase app must remain bound to staging",
             firebaseApps.all { it.options.projectId == "uac-android-test-20260903" },
         )
+
+        val app = firebaseApps.single()
+        DebugAppCheckTestHelper.fromInstrumentationArgs().withDebugProvider<Exception>(app) {
+            val token = runBlocking { FirebaseAppCheck.getInstance(app).getAppCheckToken(true).await() }
+            assertTrue("Staging App Check must return a non-empty token", token.token.isNotBlank())
+        }
     }
 }
