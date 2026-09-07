@@ -439,7 +439,7 @@ private struct OwnerContentDraftCard: View {
 
     @ViewBuilder
     private var actionsMenu: some View {
-        if draft.isEditableInPlanning {
+        if draft.canDiscardInPlanning {
             if isPerformingAction {
                 ProgressView()
                     .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)

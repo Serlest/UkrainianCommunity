@@ -1,6 +1,70 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+  "safety.organization_block.mfa_required": {
+    "localizations": {
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Für dieses Konto ist eine Zwei-Faktor-Verifizierung erforderlich. Melden Sie sich ab und mit dem Authenticator-Code erneut an."
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Для цього облікового запису потрібна двофакторна перевірка. Вийдіть і увійдіть знову з кодом автентифікатора."
+        }
+      }
+    }
+  },
+  "safety.organization_block.network_failed": {
+    "localizations": {
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die Verbindung zum Server ist fehlgeschlagen. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не вдалося з’єднатися із сервером. Перевірте інтернет і повторіть спробу."
+        }
+      }
+    }
+  },
+  "safety.organization_block.timed_out": {
+    "localizations": {
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Der Server hat nicht rechtzeitig geantwortet. Versuchen Sie es erneut."
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Сервер не відповів вчасно. Повторіть спробу."
+        }
+      }
+    }
+  },
+  "safety.organization_block.tls_failed": {
+    "localizations": {
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Eine sichere Verbindung konnte nicht hergestellt werden. Prüfen Sie Ihr Netzwerk und versuchen Sie es erneut."
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не вдалося встановити захищене з’єднання. Перевірте мережу та повторіть спробу."
+        }
+      }
+    }
+  },
   "news.browse.topic": {
     "extractionState": "manual",
     "localizations": {

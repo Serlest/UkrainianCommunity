@@ -843,6 +843,7 @@ final class CloudFunctionsClient {
         request: Request
     ) async throws -> Response {
         let callable: Callable<Request, Response> = functions.httpsCallable(functionName.rawValue)
+        let startedAt = ProcessInfo.processInfo.systemUptime
         do {
             let response = try await callable.call(request)
             await logSecuritySuccessIfNeeded(functionName, request: request, response: response)
@@ -857,7 +858,10 @@ final class CloudFunctionsClient {
                     targetId: securityTargetId(functionName: functionName, request: request),
                     metadata: [
                         "functionName": functionName.rawValue,
-                        "callable": functionName.rawValue
+                        "callable": functionName.rawValue,
+                        "elapsedMilliseconds": String(Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)),
+                        "timeoutSeconds": String(callable.timeoutInterval),
+                        "appBuild": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
                     ]
                 )
             )

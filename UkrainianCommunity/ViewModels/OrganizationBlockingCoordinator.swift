@@ -1,4 +1,5 @@
 import Combine
+import FirebaseFunctions
 import Foundation
 
 @MainActor
@@ -48,7 +49,7 @@ final class OrganizationBlockingCoordinator: ObservableObject {
             errorMessage = nil
         } catch {
             guard generation == requestGeneration else { return }
-            errorMessage = AppStrings.Safety.organizationBlockFailed
+            errorMessage = Self.failureMessage(error)
         }
     }
 
@@ -80,9 +81,27 @@ final class OrganizationBlockingCoordinator: ObservableObject {
             return true
         } catch {
             guard generation == requestGeneration else { return false }
-            errorMessage = AppStrings.Safety.organizationBlockFailed
+            errorMessage = Self.failureMessage(error)
             return false
         }
+    }
+
+    static func failureMessage(_ error: Error) -> String {
+        let error = error as NSError
+        if SystemTechnicalErrorClassifier.isPrivilegedMFAFailure(error) {
+            return AppStrings.Safety.organizationBlockMFARequired
+        }
+        if error.domain == NSURLErrorDomain {
+            if error.code == NSURLErrorSecureConnectionFailed {
+                return AppStrings.Safety.organizationBlockTLSFailed
+            }
+            return AppStrings.Safety.organizationBlockNetworkFailed
+        }
+        if error.domain == FunctionsErrorDomain,
+           error.code == FunctionsErrorCode.deadlineExceeded.rawValue {
+            return AppStrings.Safety.organizationBlockTimedOut
+        }
+        return AppStrings.Safety.organizationBlockFailed
     }
 
     private func cacheKey(_ userID: String) -> String { "uac.blockedOrganizations.v1.\(userID)" }

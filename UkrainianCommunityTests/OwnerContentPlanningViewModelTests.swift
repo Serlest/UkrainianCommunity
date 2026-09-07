@@ -18,6 +18,8 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
     var finalizeError: Error?
     private(set) var pageRequests: [PageRequest] = []
     private(set) var exactRequests: [(userID: String, draftID: String)] = []
+    private(set) var deletedDraftIDs: [String] = []
+    private(set) var archivedDraftIDs: [String] = []
     private(set) var finalizedPublications: [ContentPlanningPublicationResult] = []
     private(set) var beginRequests: [(draftID: String, attemptID: String)] = []
 
@@ -67,12 +69,44 @@ private final class OwnerContentDraftRepositoryStub: OwnerContentDraftRepository
     }
 
     func failPublication(userID: String, draftID: String, leaseID: String, message: String) async throws {}
-    func archive(userID: String, draftID: String) async throws {}
-    func delete(userID: String, draftID: String) async throws {}
+    func archive(userID: String, draftID: String) async throws { archivedDraftIDs.append(draftID) }
+    func delete(userID: String, draftID: String) async throws { deletedDraftIDs.append(draftID) }
 }
 
 @MainActor
 struct OwnerContentPlanningViewModelTests {
+    @Test func incompleteEventCanBeDeletedWithoutAnEditorPayload() async {
+        let draft = makeDraft(id: "missing-start-date", state: .needsAttention, kind: .event)
+        #expect(!draft.isEditableInPlanning)
+        #expect(draft.canDiscardInPlanning)
+        let repository = OwnerContentDraftRepositoryStub()
+        let viewModel = OwnerContentPlanningViewModel(repository: repository)
+        viewModel.start(userID: "owner")
+        viewModel.reveal(draft)
+        #expect(await viewModel.delete(draft))
+        #expect(repository.deletedDraftIDs == [draft.id])
+        #expect(viewModel.snapshot(for: .attention).items.isEmpty)
+    }
+
+    @Test func incompleteEventCanBeArchivedWithoutAnEditorPayload() async {
+        let draft = makeDraft(id: "missing-start-date", state: .needsAttention, kind: .event)
+        let repository = OwnerContentDraftRepositoryStub()
+        let viewModel = OwnerContentPlanningViewModel(repository: repository)
+        viewModel.start(userID: "owner")
+        viewModel.reveal(draft)
+        #expect(await viewModel.archive(draft))
+        #expect(repository.archivedDraftIDs == [draft.id])
+        #expect(viewModel.snapshot(for: .attention).items.isEmpty)
+        #expect(!viewModel.snapshot(for: .history).hasLoaded)
+    }
+
+    @Test func discardActionsRespectServerLifecycleStates() {
+        for state in OwnerContentDraftState.allCases {
+            let draft = makeDraft(id: "state-check", state: state)
+            #expect(draft.canDiscardInPlanning == [.readyForReview, .needsAttention, .failed].contains(state))
+        }
+    }
+
     @Test func loadsEachSectionFromTheServerInPagesOfFifteen() async {
         let repository = OwnerContentDraftRepositoryStub()
         repository.pages[.drafts] = [OwnerContentDraftPage(

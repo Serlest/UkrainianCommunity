@@ -2009,6 +2009,10 @@ enum AppStrings {
 
     enum Safety {
         static var blockOrganizationAction: String { text("safety.organization_block.action", "Заблокувати організацію") }
+        static var organizationBlockMFARequired: String { text("safety.organization_block.mfa_required", "Для цього облікового запису потрібна двофакторна перевірка. Вийдіть і увійдіть знову з кодом автентифікатора.") }
+        static var organizationBlockTLSFailed: String { text("safety.organization_block.tls_failed", "Не вдалося встановити захищене з’єднання. Перевірте мережу та повторіть спробу.") }
+        static var organizationBlockNetworkFailed: String { text("safety.organization_block.network_failed", "Не вдалося з’єднатися із сервером. Перевірте інтернет і повторіть спробу.") }
+        static var organizationBlockTimedOut: String { text("safety.organization_block.timed_out", "Сервер не відповів вчасно. Повторіть спробу.") }
         static var blockedOrganizationsTitle: String { text("safety.organization_block.list", "Заблоковані організації") }
         static var blockedOrganizationsEmpty: String { text("safety.organization_block.empty", "Немає заблокованих організацій") }
         static var organizationBlockFailed: String { text("safety.organization_block.error", "Не вдалося оновити список організацій. Перевірте з’єднання та спробуйте ще раз.") }

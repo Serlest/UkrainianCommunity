@@ -142,6 +142,14 @@ enum SystemTechnicalErrorClassifier {
     ) -> SystemTechnicalErrorClassification {
         let code = FunctionsErrorCode(rawValue: error.code)
         switch code {
+        case .failedPrecondition:
+            let mfaRequired = isPrivilegedMFAFailure(error)
+            return classification(severity: .warning,
+                errorCode: mfaRequired ? "cloudFunctions.mfaRequired" : "cloudFunctions.failedPrecondition",
+                technicalMessage: mfaRequired
+                    ? "This privileged session has not completed TOTP verification. Sign out and sign in again using the authenticator code."
+                    : "The server rejected the operation because a required precondition was not met. This code alone does not identify which condition failed.",
+                error: error, context: context)
         case .unavailable:
             return classification(severity: .warning, errorCode: "cloudFunctions.unavailable", technicalMessage: "Cloud Function is temporarily unavailable.", error: error, context: context)
         case .deadlineExceeded:
@@ -184,6 +192,18 @@ enum SystemTechnicalErrorClassifier {
         context: SystemTechnicalErrorContext
     ) -> SystemTechnicalErrorClassification {
         switch error.code {
+        case NSURLErrorSecureConnectionFailed:
+            return classification(severity: .warning, errorCode: "network.secureConnectionFailed", technicalMessage: "TLS/SSL connection establishment failed. Inspect underlying error and stream codes; this error alone does not identify a certificate, VPN, or network fault.", error: error, context: context)
+        case NSURLErrorServerCertificateHasBadDate, NSURLErrorServerCertificateNotYetValid:
+            return classification(severity: .error, errorCode: "network.certificateDateInvalid", technicalMessage: "The server certificate is outside its validity period. Check the device clock and server certificate validity.", error: error, context: context)
+        case NSURLErrorServerCertificateUntrusted, NSURLErrorServerCertificateHasUnknownRoot:
+            return classification(severity: .error, errorCode: "network.certificateUntrusted", technicalMessage: "The server certificate trust check failed. Inspect the certificate chain and network configuration.", error: error, context: context)
+        case NSURLErrorCannotFindHost, NSURLErrorDNSLookupFailed:
+            return classification(severity: .warning, errorCode: "network.dnsFailed", technicalMessage: "The server hostname could not be resolved.", error: error, context: context)
+        case NSURLErrorCannotConnectToHost:
+            return classification(severity: .warning, errorCode: "network.cannotConnectToHost", technicalMessage: "A connection to the server could not be established.", error: error, context: context)
+        case NSURLErrorCancelled:
+            return classification(severity: .warning, errorCode: "network.cancelled", technicalMessage: "The network request was cancelled.", error: error, context: context)
         case NSURLErrorNotConnectedToInternet:
             return classification(severity: .warning, errorCode: "network.notConnectedToInternet", technicalMessage: "Network is unavailable.", error: error, context: context)
         case NSURLErrorTimedOut:
@@ -208,6 +228,21 @@ enum SystemTechnicalErrorClassifier {
         metadata["errorNumber"] = "\(nsError.code)"
         metadata["classification"] = errorCode
         metadata["targetType"] = context.targetType.rawValue
+        // Preserve structured causes, never arbitrary userInfo, URLs, headers or server text.
+        var cause: NSError? = nsError
+        var visited = Set<ObjectIdentifier>()
+        for depth in 0..<5 {
+            guard let current = cause, visited.insert(ObjectIdentifier(current)).inserted else { break }
+            let prefix = depth == 0 ? "cause" : "underlying\(depth)"
+            metadata["\(prefix)Domain"] = safeMetadataValue(current.domain)
+            metadata["\(prefix)Code"] = String(current.code)
+            for key in ["_kCFStreamErrorDomainKey", "_kCFStreamErrorCodeKey"] {
+                if let number = current.userInfo[key] as? NSNumber {
+                    metadata["\(prefix)\(key)"] = number.stringValue
+                }
+            }
+            cause = current.userInfo[NSUnderlyingErrorKey] as? NSError
+        }
 
         return SystemTechnicalErrorClassification(
             severity: severity,
@@ -215,6 +250,12 @@ enum SystemTechnicalErrorClassifier {
             technicalMessage: technicalMessage,
             metadata: metadata
         )
+    }
+
+    static func isPrivilegedMFAFailure(_ error: NSError) -> Bool {
+        error.domain == FunctionsErrorDomain
+            && error.code == FunctionsErrorCode.failedPrecondition.rawValue
+            && error.localizedDescription == "A TOTP-authenticated session is required for this privileged account."
     }
 
     private static func stableFallbackCode(for error: NSError) -> String {

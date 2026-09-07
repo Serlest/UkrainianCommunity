@@ -183,6 +183,12 @@ struct OwnerContentDraft: Identifiable, Equatable {
         }
     }
 
+    // Discarding an unpublished record must not require a decodable editor payload.
+    // The server separately checks for linked content before accepting either action.
+    var canDiscardInPlanning: Bool {
+        [.readyForReview, .needsAttention, .failed].contains(state)
+    }
+
     var isHistory: Bool {
         [.completed, .archived].contains(state)
     }
