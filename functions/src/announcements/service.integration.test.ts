@@ -7,11 +7,11 @@ import {manage, feed, acknowledge, register} from "./service";
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const request = (uid: string | undefined, data: unknown, totp = true) => ({data, auth: uid ? {uid, token: {email_verified: true, firebase: {sign_in_second_factor: totp ? "totp" : undefined}}} : undefined}) as CallableRequest;
 const now = Date.now();
-const draft = {id: "announcement-integration", title: {uk: "Тест", de: "Test"}, body: {uk: "Текст", de: "Text"}, groups: ["registered", "guests"], userIds: [], regions: ["wien"], targetPlatforms: ["ios"], mode: "acknowledge", feedback: true, push: false, startsAt: now - 1000, expiresAt: now + 3600000};
+const draft = {id: "announcement-integration", title: {uk: "Тест", de: "Test"}, body: {uk: "Текст", de: "Text"}, groups: ["registered", "guests"], userIds: [], regions: ["wien"], targetPlatforms: ["ios", "android"], mode: "acknowledge", feedback: true, push: false, startsAt: now - 1000, expiresAt: now + 3600000};
 const userIDs = ["ann-owner", "ann-admin", "ann-vienna", "ann-tirol"];
 before(async () => {
   if (!enabled) return;
-  await db.doc("appConfig/announcements").set({enabled:true,iosEnabled:true,pushEnabled:true});
+  await db.doc("appConfig/announcements").set({enabled:true,iosEnabled:true,androidEnabled:true,pushEnabled:true});
   for (const uid of userIDs) await db.collection("users").doc(uid).set({globalRole: uid === "ann-owner" ? "owner" : uid === "ann-admin" ? "admin" : "user", selectedFederalState: uid === "ann-tirol" ? "tirol" : "wien", accountStatus: "active", requiresMultiFactorAuth: uid === "ann-owner"});
   await db.recursiveDelete(db.collection("announcements").doc(draft.id));
 });
@@ -38,7 +38,7 @@ test("owner authorization, draft lifecycle, audience privacy and receipt idempot
   assert.ok(item); assert.equal("userIds" in item, false); assert.equal("authorId" in item, false);
   assert.equal((await feed(request("ann-tirol", {platform: "ios", capability: 1}))).items.some((i) => i.id === draft.id), false);
   assert.equal((await feed(request(undefined, {platform: "ios", capability: 1}))).items.some((i) => i.id === draft.id), true);
-  await assert.rejects(feed(request("ann-vienna", {platform: "android", capability: 1})));
+  assert.equal((await feed(request("ann-vienna", {platform: "android", capability: 1}))).items.some((i) => i.id === draft.id), true);
   await assert.rejects(feed(request("ann-vienna", {platform: "ios"})));
   for (const uid of [undefined, "ann-tirol"]) await assert.rejects(acknowledge(request(uid, {id: draft.id, event: "acknowledged", platform: "ios", capability: 1})));
   for (let n = 0; n < 2; n++) await acknowledge(request("ann-vienna", {id: draft.id, event: "acknowledged", platform: "ios", capability: 1}));
@@ -70,5 +70,21 @@ test("installation challenge is required and bound to its current account", {ski
     assert.equal((await device.get()).get("verified"),true);
     await register(request(undefined,{operation:"disable",secret,platform:"ios",capability:1}));
     assert.equal((await device.get()).exists,false);
+  } finally { await device.delete(); }
+});
+
+test("Android installation keeps its platform through challenge confirmation", {skip: !enabled}, async () => {
+  const secret = "android-device-proof-".repeat(4);
+  const device = db.collection("announcementDevices").doc(createHash("sha256").update(secret).digest("hex"));
+  let challenge = "";
+  try {
+    await register(request("ann-vienna", {secret, fid:"d123456789012345678901",platform:"android",capability:1}), async (_docs,message) => {
+      challenge = message.data!.announcementChallenge;
+      return {targetCount:1,successCount:1,failureCount:0};
+    });
+    assert.equal((await device.get()).get("platform"), "android");
+    await assert.rejects(register(request("ann-vienna", {operation:"confirm",secret,challenge,platform:"ios",capability:1})));
+    await register(request("ann-vienna", {operation:"confirm",secret,challenge,platform:"android",capability:1}));
+    assert.equal((await device.get()).get("verified"), true);
   } finally { await device.delete(); }
 });

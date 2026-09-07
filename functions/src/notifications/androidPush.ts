@@ -26,6 +26,17 @@ export function messageForAndroid(message: BaseMessage, nowMs = Date.now()): Bas
     };
   }
 
+  // Installation ownership challenges and refresh signals are deliberately data-only. Adding an
+  // empty Android notification would let the system consume them without invoking the app's
+  // FirebaseMessagingService in the foreground/background contract.
+  if (!message.notification && !alert) {
+    const ttl = message.data?.announcementChallenge ? 300_000 : androidPushMaximumTtlMs;
+    return {
+      ...(message.data ? {data: message.data} : {}),
+      android: {priority: "high", ttl},
+    };
+  }
+
   const localized = typeof alert === "object" && alert !== null ? alert : undefined;
   const titleLocKey = androidPushResourceKey(localized?.titleLocKey);
   const bodyLocKey = androidPushResourceKey(localized?.locKey);

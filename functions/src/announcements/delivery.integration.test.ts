@@ -5,10 +5,10 @@ import {dispatchAnnouncements} from "./service";
 import {parseDraft} from "./contract";
 test("push dispatch resumes a failed page without duplicating successful deliveries or reaching unsupported clients", {skip: !process.env.FIRESTORE_EMULATOR_HOST}, async () => {
  const now = Date.now(), id = "ann-delivery-fixture", ref = db.collection("announcements").doc(id);
- const draft = parseDraft({id,title:{uk:"a",de:"a"},body:{uk:"b",de:"b"},groups:["guests"],userIds:[],regions:[],targetPlatforms:["ios"],mode:"once",feedback:false,push:true,startsAt:now-100,expiresAt:now+60000},"owner",now);
+ const draft = parseDraft({id,title:{uk:"a",de:"a"},body:{uk:"b",de:"b"},groups:["guests"],userIds:[],regions:[],targetPlatforms:["ios","android"],mode:"once",feedback:false,push:true,startsAt:now-100,expiresAt:now+60000},"owner",now);
  const refs = ["ann-fixture-a","ann-fixture-b","ann-fixture-c"].map((d) => db.collection("announcementDevices").doc(d));
  try {
-  await db.doc("appConfig/announcements").set({enabled:true,iosEnabled:true,pushEnabled:true});
+  await db.doc("appConfig/announcements").set({enabled:true,iosEnabled:true,androidEnabled:true,pushEnabled:true});
   await ref.set({...draft,status:"published",pushState:"pending"});
   for(let i=0;i<refs.length;i++) await refs[i].set({verified:true,platform:i===2?"android":"ios",capability:1,uid:null,token:"c123456789012345678901",registrationType:"fid",updatedAt:now});
   const delivered: string[] = []; let failOnce = true;
@@ -21,7 +21,7 @@ test("push dispatch resumes a failed page without duplicating successful deliver
   };
   await assert.rejects(dispatchAnnouncements(sender));
   await dispatchAnnouncements(sender); await dispatchAnnouncements(sender);
-  assert.deepEqual(delivered,[refs[0].id,refs[1].id,refs[1].id]);
+  assert.deepEqual(delivered,[refs[0].id,refs[1].id,refs[1].id,refs[2].id]);
   assert.equal((await ref.get()).data()?.pushState,"completed");
  } finally {await db.recursiveDelete(ref);for(const r of refs) await r.delete();}
 });

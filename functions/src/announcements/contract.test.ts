@@ -16,9 +16,11 @@ test("roles and personal recipients are unioned; region still applies", () => {
   assert.equal(matchesAudience(a, {uid: "x", region: "tirol", organizationRoles: ["communityOwner"]}), false);
   assert.equal(matchesAudience(a), false);
 });
-test("old and Android clients are excluded independently of audience", () => {
+test("only capability-one clients on an explicitly targeted mobile platform are supported", () => {
   assert.equal(supports(draft(), "ios", 1), true);
-  for (const [p, c] of [["ios", undefined], ["android", 1], ["ios", 2]]) assert.equal(supports(draft(), p, c), false);
+  assert.equal(supports(draft({targetPlatforms: ["android"]}), "android", 1), true);
+  assert.equal(supports(draft({targetPlatforms: ["ios", "android"]}), "android", 1), true);
+  for (const [p, c] of [["ios", undefined], ["web", 1], ["android", 2]]) assert.equal(supports(draft(), p, c), false);
 });
 test("expiration, scheduling and cancellation use exact server boundaries", () => {
   const a = {...draft(), status: "published" as const};
@@ -31,7 +33,7 @@ test("public projection never exposes recipient IDs or author", () => {
 });
 test("malformed and unsupported drafts fail closed", () => {
   for (const change of [{id: "../u"}, {groups: ["owner"]}, {regions: ["Vienna"]}, {mode: "critical"}, {push: "true"}, {expiresAt: NaN}, {targetPlatforms: []}, {body: {uk: "a".repeat(6001), de: "a"}}]) assert.throws(() => draft(change));
-  assert.throws(() => assertPublishable(draft({targetPlatforms: ["android"]}), now));
+  assert.doesNotThrow(() => assertPublishable(draft({targetPlatforms: ["android"]}), now));
   assert.throws(() => assertPublishable(draft({title: {uk: "", de: "Title"}}), now));
   assert.doesNotThrow(() => assertPublishable(draft(), now));
 });

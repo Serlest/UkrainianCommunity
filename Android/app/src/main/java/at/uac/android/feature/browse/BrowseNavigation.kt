@@ -110,6 +110,8 @@ private constructor(
                 "profile/content-planning",
                 "profile/system-logs",
                 "profile/analytics",
+                "profile/announcements",
+                "profile/announcements/manage",
             )
 
         private fun validRoute(route: String): Boolean {

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import at.uac.android.MainActivity
 import at.uac.android.R
+import at.uac.android.feature.announcements.AnnouncementPushInbox
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import java.util.concurrent.atomic.AtomicReference
@@ -21,6 +22,10 @@ interface PushRuntimeDelegate {
     fun route(decision: PushRouteDecision): Boolean
 
     fun inboxSync(unreadCount: Int): Boolean
+
+    fun announcement(id: String): Boolean = false
+
+    fun announcementChallenge(value: String): Boolean = false
 }
 
 /** Process-only bridge. An absent owner deliberately drops events instead of guessing a session. */
@@ -44,6 +49,11 @@ object PushRuntime {
 
     internal fun inboxSync(unreadCount: Int): Boolean =
         delegate.get()?.inboxSync(unreadCount) == true
+
+    internal fun announcement(id: String): Boolean = delegate.get()?.announcement(id) == true
+
+    internal fun announcementChallenge(value: String): Boolean =
+        delegate.get()?.announcementChallenge(value) == true
 }
 
 class UacFirebaseMessagingService : FirebaseMessagingService() {
@@ -65,6 +75,23 @@ class UacFirebaseMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
+        message.data["announcementChallenge"]
+            ?.takeIf { Regex("[a-f0-9]{64}").matches(it) }
+            ?.let {
+                if (!PushRuntime.announcementChallenge(it)) {
+                    AnnouncementPushInbox.putChallenge(this, it)
+                }
+                return
+            }
+        message.data["announcementId"]
+            ?.takeIf { Regex("[A-Za-z0-9_-]{1,128}").matches(it) }
+            ?.let {
+                if (!PushRuntime.announcement(it)) {
+                    AnnouncementPushInbox.putId(this, it)
+                }
+                showAnnouncement(message, it)
+                return
+            }
         // Both foreground notification messages and data messages pass through the same allowlists.
         PushRouting.inboxSync(message.data)?.let {
             PushRuntime.inboxSync(it)
@@ -72,6 +99,31 @@ class UacFirebaseMessagingService : FirebaseMessagingService() {
         }
         val decision = PushRouting.route(message.data) ?: return
         if (PushRuntime.route(decision)) show(message, decision)
+    }
+
+    private fun showAnnouncement(message: RemoteMessage, id: String) {
+        val tap =
+            Intent(this, MainActivity::class.java)
+                .setAction(PushNavigationViewModel.ACTION_TAP)
+                .setPackage(packageName)
+                .putExtra("announcementId", id)
+        val pending =
+            PendingIntent.getActivity(
+                this,
+                id.hashCode(),
+                tap,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+            )
+        val notification =
+            Notification.Builder(this, PushChannelPolicy.ID)
+                .setSmallIcon(R.drawable.ic_notification_uac)
+                .setContentTitle(message.notification?.title?.take(160) ?: "UAC")
+                .setContentText(message.notification?.body?.take(512) ?: return)
+                .setVisibility(Notification.VISIBILITY_PRIVATE)
+                .setAutoCancel(true)
+                .setContentIntent(pending)
+                .build()
+        getSystemService(NotificationManager::class.java)?.notify(id, 2, notification)
     }
 
     private fun show(message: RemoteMessage, decision: PushRouteDecision) {

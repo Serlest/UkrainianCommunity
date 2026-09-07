@@ -18,9 +18,9 @@ android {
     defaultConfig {
         minSdk = 26
         targetSdk = 36
-        // First Google Play artifact; the user-visible product version matches iOS build 68.
-        versionCode = 1
-        versionName = "1.0.2"
+        // First Google Play artifact; product/build identity follows the current iOS build 72.
+        versionCode = 72
+        versionName = "1.0.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["appLabel"] = "UAC"
     }

@@ -56,7 +56,6 @@ export function parseDraft(value: unknown, uid: string, now: number): Announceme
 }
 export function assertPublishable(a: Announcement, now: number): void {
   if (a.expiresAt <= now || !a.title.uk || !a.title.de || !a.body.uk || !a.body.de) fail("Complete both languages and the validity period.");
-  if (a.targetPlatforms.some((p) => p !== "ios")) fail("Android announcements are not enabled yet.");
 }
 export function matchesAudience(a: Announcement, user?: AudienceUser): boolean {
   if (!user) return a.groups.includes("guests");
@@ -68,7 +67,7 @@ export function matchesAudience(a: Announcement, user?: AudienceUser): boolean {
     (a.groups.includes("organizationModerators") && user.organizationRoles.includes("communityModerator"));
 }
 export function supports(a: Announcement, platform: unknown, capability: unknown): boolean {
-  return platform === "ios" && capability === 1 && a.targetPlatforms.includes(platform);
+  return (platform === "ios" || platform === "android") && capability === 1 && a.targetPlatforms.includes(platform);
 }
 export function isActive(a: Announcement, now: number): boolean {
   return a.status === "published" && a.startsAt <= now && a.expiresAt > now;

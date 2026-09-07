@@ -12,9 +12,17 @@ import {Announcement, AudienceUser, parseDraft, identifier, record, text, fail, 
 const options = {region: "europe-west3", maxInstances: 10, enforceAppCheck: true};
 const campaigns = db.collection("announcements");
 const devices = db.collection("announcementDevices");
-async function rolloutEnabled(push = false): Promise<boolean> {
-  const config = (await db.doc("appConfig/announcements").get()).data();
-  return config?.enabled === true && config.iosEnabled === true && (!push || config.pushEnabled === true);
+const rolloutRef = db.doc("appConfig/announcements");
+function rolloutConfigSupports(config: DocumentData | undefined, platforms: string[], push = false): boolean {
+  return config?.enabled === true && (!push || config.pushEnabled === true) && platforms.length > 0 &&
+    platforms.every((platform) => platform === "ios" ? config.iosEnabled === true :
+      platform === "android" ? config.androidEnabled === true : false);
+}
+async function rolloutEnabled(platform: "ios" | "android", push = false): Promise<boolean> {
+  return rolloutConfigSupports((await rolloutRef.get()).data(), [platform], push);
+}
+async function rolloutEnabledForTargets(platforms: string[], push = false): Promise<boolean> {
+  return rolloutConfigSupports((await rolloutRef.get()).data(), [...new Set(platforms)], push);
 }
 
 const digest = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -36,8 +44,9 @@ async function readCampaign(id: string): Promise<Announcement> {
   if (!doc.exists) throw new HttpsError("not-found", "Announcement unavailable.");
   return doc.data() as Announcement;
 }
-function client(data: Record<string, unknown>): void {
-  if (data.platform !== "ios" || data.capability !== 1) throw new HttpsError("failed-precondition", "Client does not support announcements.");
+function client(data: Record<string, unknown>): "ios" | "android" {
+  if ((data.platform !== "ios" && data.platform !== "android") || data.capability !== 1) throw new HttpsError("failed-precondition", "Client does not support announcements.");
+  return data.platform;
 }
 function receiptRef(uid: string, id: string) { return db.collection("users").doc(uid).collection("announcementReceipts").doc(id); }
 
@@ -63,14 +72,17 @@ export async function manage(request: CallableRequest) {
       return {item: draft};
     }
     case "publish": {
-      if (!await rolloutEnabled()) throw new HttpsError("failed-precondition", "Announcements are not enabled.");
       const ref = campaigns.doc(identifier(data.id));
       await db.runTransaction(async (tx) => {
-        const a = (await tx.get(ref)).data() as Announcement | undefined;
+        const [announcementSnapshot, rolloutSnapshot] = await Promise.all([
+          tx.get(ref), tx.get(rolloutRef),
+        ]);
+        const a = announcementSnapshot.data() as Announcement | undefined;
         if (!a) throw new HttpsError("not-found", "Draft unavailable.");
         if (a.status === "published") return;
         if (a.status !== "draft" || a.revision !== data.revision) throw new HttpsError("failed-precondition", "Reload the draft.");
         assertPublishable(a, now);
+        if (!rolloutConfigSupports(rolloutSnapshot.data(), a.targetPlatforms, a.push)) throw new HttpsError("failed-precondition", "A selected announcement platform is not enabled.");
         // Bound the active feed rather than silently dropping excess messages.
         const active = await tx.get(campaigns.where("status", "==", "published"));
         if (active.docs.filter((d) => d.data().expiresAt > now).length >= 100) throw new HttpsError("resource-exhausted", "There are already 100 active or scheduled announcements.");
@@ -110,8 +122,8 @@ export async function manage(request: CallableRequest) {
       return {presented: p.data().count, acknowledged: a.data().count, action: f.data().count, pushState: delivery.data()?.pushState ?? "disabled", pushSuccess: pushOK.data().count, pushFailure: pushFailed.data().count, guestPresented: guestP.data().count, guestAcknowledged: guestA.data().count};
     }
     case "test": {
-      if (!await rolloutEnabled()) throw new HttpsError("failed-precondition", "Announcements are not enabled.");
       const draft = parseDraft(data.draft, auth.uid, now); assertPublishable(draft, now);
+      if (!await rolloutEnabledForTargets(draft.targetPlatforms, draft.push)) throw new HttpsError("failed-precondition", "A selected announcement platform is not enabled.");
       const id = `test_${randomBytes(12).toString("hex")}`;
       await campaigns.doc(id).set({...draft, id, groups: [], userIds: [auth.uid], regions: [], status: "published", startsAt: now, expiresAt: now + 3600000, pushState: draft.push ? "pending" : "disabled", test: true});
       return {id};
@@ -123,8 +135,8 @@ export async function manage(request: CallableRequest) {
 export const manageAnnouncements = onCall(options, manage);
 
 export async function feed(request: CallableRequest) {
-  const data = record(request.data); client(data);
-  if (!await rolloutEnabled()) return {items: [], serverNow: Date.now(), cursor: null};
+  const data = record(request.data); const platform = client(data);
+  if (!await rolloutEnabled(platform)) return {items: [], serverNow: Date.now(), cursor: null};
   const uid = request.auth?.uid;
   const user = uid ? await audienceUser(uid) : undefined;
   if (uid && !user) return denied();
@@ -172,7 +184,7 @@ export const acknowledgeAnnouncement = onCall(options, acknowledge);
 // The secret identifies a local installation. A push challenge proves control of its FID
 // before it may receive announcements. Merely knowing another installation's FID is insufficient.
 export async function register(request: CallableRequest, send: typeof sendPushToRegistrationDocuments = sendPushToRegistrationDocuments) {
-  const data = record(request.data); client(data);
+  const data = record(request.data); const platform = client(data);
   const secret = text(data.secret, 128); if (secret.length < 32) return fail("Invalid installation credential.");
   const ref = devices.doc(digest(secret));
   if (data.operation === "disable") {await ref.delete(); return {ok: true};}
@@ -180,7 +192,8 @@ export async function register(request: CallableRequest, send: typeof sendPushTo
     const challenge = text(data.challenge, 128);
     await db.runTransaction(async (tx) => {
       const device = (await tx.get(ref)).data();
-      if (!device || device.challengeHash !== digest(challenge) || device.challengeExpiresAt < Date.now() || device.uid !== (request.auth?.uid ?? null)) return denied();
+      if (!device || device.platform !== platform || device.challengeHash !== digest(challenge) ||
+          device.challengeExpiresAt < Date.now() || device.uid !== (request.auth?.uid ?? null)) return denied();
       tx.update(ref, {verified: true, challengeHash: null, updatedAt: Date.now()});
     }); return {ok: true};
   }
@@ -192,7 +205,7 @@ export async function register(request: CallableRequest, send: typeof sendPushTo
   }
   if (previous && previous.updatedAt > Date.now() - 30000 && previous.uid === uid && previous.token === fid) throw new HttpsError("resource-exhausted", "Please retry registration later.");
   const challenge = randomBytes(32).toString("hex");
-  await ref.set({token: fid, registrationType: "fid", platform: "ios", capability: 1, uid, language,
+  await ref.set({token: fid, registrationType: "fid", platform, capability: 1, uid, language,
     verified: false, challengeHash: digest(challenge), challengeExpiresAt: Date.now() + 300000, updatedAt: Date.now()});
   const doc = await ref.get();
   await send([doc as typeof doc & {data(): DocumentData}], {
@@ -217,7 +230,11 @@ async function translate(data: Record<string, unknown>, uid: string) {
 }
 
 export async function dispatchAnnouncements(send: typeof sendPushToRegistrationDocuments = sendPushToRegistrationDocuments) {
-  if (!await rolloutEnabled(true)) return;
+  const rollout = {
+    ios: await rolloutEnabled("ios", true),
+    android: await rolloutEnabled("android", true),
+  };
+  if (!rollout.ios && !rollout.android) return;
   const page = await campaigns.where("status", "==", "published").get();
   for (const doc of page.docs) {
     const a = doc.data() as Announcement;
@@ -234,14 +251,21 @@ export async function dispatchAnnouncements(send: typeof sendPushToRegistrationD
       let done = false;
       // A bounded number of pages per invocation; next minute resumes the cursor.
       for (let batch = 0; batch < 4 && !done; batch++) {
-        const latest = await doc.ref.get();
-        if (!await rolloutEnabled(true) || !isActive(latest.data() as Announcement, Date.now())) break;
+        const [latest, currentRolloutSnapshot] = await Promise.all([
+          doc.ref.get(), rolloutRef.get(),
+        ]);
+        const currentRollout = {
+          ios: rolloutConfigSupports(currentRolloutSnapshot.data(), ["ios"], true),
+          android: rolloutConfigSupports(currentRolloutSnapshot.data(), ["android"], true),
+        };
+        if ((!currentRollout.ios && !currentRollout.android) || !isActive(latest.data() as Announcement, Date.now())) break;
         let query = devices.orderBy(FieldPath.documentId()).limit(100);
         if (cursor) query = query.startAfter(cursor);
         const registrations = await query.get();
         let successes = 0, failures = 0;
         for (const registration of registrations.docs) {
           const d = registration.data();
+          if ((d.platform === "android" ? !currentRollout.android : !currentRollout.ios)) continue;
           if (!d.verified || !supports(a, d.platform, d.capability) || d.updatedAt < Date.now() - 90 * 86400000) continue;
           const user = d.uid ? await audienceUser(d.uid) : undefined;
           if ((d.uid && !user) || !matchesAudience(a, user)) continue;

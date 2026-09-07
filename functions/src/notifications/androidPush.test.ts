@@ -60,6 +60,14 @@ test("read/delete badge sync is data-only, normal priority, zero TTL and never a
     android: {priority: "normal", ttl: 0, collapseKey: "uac-inbox-sync"}});
 });
 
+test("announcement installation challenge remains a high-priority data-only message", () => {
+  const sent = messageForAndroid({data: {announcementChallenge: "a".repeat(64)}}, now);
+  assert.deepEqual(sent, {
+    data: {announcementChallenge: "a".repeat(64)},
+    android: {priority: "high", ttl: 300_000},
+  });
+});
+
 test("mixed iOS/Android registrations split envelopes without mutating APNs or target order semantics", async () => {
   const original = JSON.parse(JSON.stringify(source));
   const messages: PushMulticastMessage[] = [];

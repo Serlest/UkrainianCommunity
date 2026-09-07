@@ -25,6 +25,8 @@ import at.uac.android.core.ProtectedDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
 import at.uac.android.feature.authoring.AuthoringContract
 import at.uac.android.feature.browse.ContentKind
+import at.uac.android.feature.translation.ContentTranslationButton
+import at.uac.android.feature.translation.TranslationField
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -832,6 +834,70 @@ private fun OrganizationInformationExtras(
     }()
     OrganizationOfferDate(d.directory.offerUntil, language, enabled) { value ->
         change { it.copy(directory = it.directory.copy(offerUntil = value)) }
+    }
+    ContentTranslationButton(
+        kind = "organization",
+        language = language,
+        fields =
+            listOf(
+                TranslationField(
+                    "mission",
+                    om(language, "Mission", "Місія"),
+                    d.mission,
+                    d.german.mission,
+                    2_000,
+                ),
+                TranslationField(
+                    "serviceArea",
+                    om(language, "Einzugsgebiet", "Територія послуг"),
+                    d.directory.serviceArea,
+                    d.german.serviceArea,
+                    500,
+                ),
+                TranslationField(
+                    "hoursNote",
+                    om(language, "Öffnungszeiten-Hinweis", "Особливі години"),
+                    d.directory.specialHoursNote,
+                    d.german.hoursNote,
+                    500,
+                ),
+                TranslationField(
+                    "services",
+                    om(language, "Leistungen", "Послуги"),
+                    d.directory.services,
+                    d.german.services,
+                    2_000,
+                ),
+                TranslationField(
+                    "offerTitle",
+                    om(language, "Aktuelles Angebot", "Поточна пропозиція"),
+                    d.directory.offerTitle,
+                    d.german.offerTitle,
+                    500,
+                ),
+                TranslationField(
+                    "offerDetails",
+                    om(language, "Angebotsdetails", "Деталі пропозиції"),
+                    d.directory.offerDetails,
+                    d.german.offerDetails,
+                    2_000,
+                ),
+            ),
+        enabled = enabled,
+    ) { translated ->
+        change {
+            it.copy(
+                german =
+                    it.german.copy(
+                        mission = translated["mission"] ?: it.german.mission,
+                        serviceArea = translated["serviceArea"] ?: it.german.serviceArea,
+                        hoursNote = translated["hoursNote"] ?: it.german.hoursNote,
+                        services = translated["services"] ?: it.german.services,
+                        offerTitle = translated["offerTitle"] ?: it.german.offerTitle,
+                        offerDetails = translated["offerDetails"] ?: it.german.offerDetails,
+                    )
+            )
+        }
     }
     Text(
         om(

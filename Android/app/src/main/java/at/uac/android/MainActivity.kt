@@ -2,6 +2,7 @@ package at.uac.android
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -28,6 +29,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
@@ -50,6 +52,7 @@ import at.uac.android.design.UacTheme
 import at.uac.android.feature.accountdeletion.*
 import at.uac.android.feature.accountstatus.*
 import at.uac.android.feature.analyticsconsent.*
+import at.uac.android.feature.announcements.*
 import at.uac.android.feature.applinks.*
 import at.uac.android.feature.applock.*
 import at.uac.android.feature.attendees.*
@@ -88,6 +91,7 @@ import at.uac.android.feature.systemlogs.*
 import at.uac.android.feature.usermanagement.*
 import at.uac.android.feature.userstatusmanagement.*
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -101,6 +105,10 @@ class MainActivity : FragmentActivity() {
     private var presence: UserPresenceService? = null
     private var push: MainPushRuntime? = null
     private var pushNavigation: PushNavigationViewModel? = null
+    private var announcementOpen: String? = null
+    private var announcementChallenge: String? = null
+    private var announcementIntentHandler: ((String) -> Unit)? = null
+    private var announcementChallengeHandler: ((String) -> Unit)? = null
     private val reminderPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
             reminders?.controller?.permissionReturned()
@@ -122,6 +130,7 @@ class MainActivity : FragmentActivity() {
         if (!BuildConfig.USE_LOCAL_BACKEND) {
             push = MainPushRuntime.get(applicationContext, auth)
             acceptPushIntent(intent)
+            acceptAnnouncementIntent(intent)
         }
         val analyticsConsent =
             AnalyticsConsentSettingsController(
@@ -257,6 +266,13 @@ class MainActivity : FragmentActivity() {
                     modelClass: Class<T>,
                     extras: CreationExtras,
                 ): T {
+                    if (modelClass == AnnouncementViewModel::class.java) {
+                        return AnnouncementViewModel(
+                            announcementSource(applicationContext),
+                            AnnouncementInstallationStore(applicationContext),
+                        )
+                            as T
+                    }
                     if (modelClass == StartupViewModel::class.java) {
                         return StartupViewModel().also { startup ->
                             startup.observeSessions(
@@ -759,6 +775,7 @@ class MainActivity : FragmentActivity() {
             val contentLifecycle: ContentLifecycleViewModel = viewModel(factory = factory)
             val media: ProfileMediaViewModel = viewModel(factory = factory)
             val deletion: AccountDeletionViewModel = viewModel(factory = factory)
+            val announcements: AnnouncementViewModel = viewModel(factory = factory)
             val authSession by auth.state.collectAsStateWithLifecycle()
             val lockSnapshot by lockHost.model.state.collectAsStateWithLifecycle()
             val lockState = lockSnapshot.forSession(authSession.appLockSession())
@@ -790,6 +807,10 @@ class MainActivity : FragmentActivity() {
             val mediaState = mediaSnapshot.forSession(authSession.personalScope())
             val deletionSnapshot by deletion.state.collectAsStateWithLifecycle()
             val deletionState = deletionSnapshot.forSession(authSession.accountDeletionScope())
+            val announcementSession = authSession.announcementSession()
+            val announcementSnapshot by announcements.state.collectAsStateWithLifecycle()
+            val announcementState = announcementSnapshot.forSession(announcementSession)
+            val announcementOwnerState by announcements.ownerState.collectAsStateWithLifecycle()
             val contentPlanningState by contentPlanning.state.collectAsStateWithLifecycle()
             val browseState by model.state.collectAsStateWithLifecycle()
             val startupState by startup.state.collectAsStateWithLifecycle()
@@ -798,6 +819,42 @@ class MainActivity : FragmentActivity() {
             val statusSnapshot by accountStatus.state.collectAsStateWithLifecycle()
             val statusSession = authSession.accountStatusScope()
             val securityRemediation = authSession.mfa.interactive || authSession.mfa.unconfirmed
+            LaunchedEffect(announcementSession, browseState.language, push) {
+                announcements.configure(announcementSession)
+                while (true) {
+                    announcements.refresh()
+                    if (push != null)
+                        announcements.syncPush(
+                            browseState.language,
+                            notificationsGranted(),
+                        )
+                    delay(60_000)
+                }
+            }
+            DisposableEffect(push, announcements) {
+                val binding = push?.bindAnnouncements(announcements::push, announcements::challenge)
+                val openIntent: (String) -> Unit = announcements::open
+                val confirmChallenge: (String) -> Unit = announcements::challenge
+                announcementIntentHandler = openIntent
+                announcementChallengeHandler = confirmChallenge
+                announcementOpen?.let {
+                    openIntent(it)
+                    announcementOpen = null
+                }
+                announcementChallenge?.let {
+                    confirmChallenge(it)
+                    announcementChallenge = null
+                }
+                AnnouncementPushInbox.takeId(applicationContext)?.let(announcements::push)
+                AnnouncementPushInbox.takeChallenge(applicationContext)
+                    ?.let(announcements::challenge)
+                onDispose {
+                    binding?.close()
+                    if (announcementIntentHandler === openIntent) announcementIntentHandler = null
+                    if (announcementChallengeHandler === confirmChallenge)
+                        announcementChallengeHandler = null
+                }
+            }
             LaunchedEffect(
                 browseState.entryRevision,
                 browseState.data.detail,
@@ -817,6 +874,23 @@ class MainActivity : FragmentActivity() {
                     statusSnapshot.coversContent(statusSession)
             val interactive =
                 hostInteractive && !remediationActive && !securityRemediation && !statusCovered
+            LaunchedEffect(
+                announcementState.items,
+                announcementState.serverNow,
+                announcementState.pendingPushId,
+                interactive,
+                startupState.covered,
+                lockState.canRoute,
+                popupState.active,
+            ) {
+                if (
+                    interactive &&
+                        !startupState.covered &&
+                        lockState.canRoute &&
+                        popupState.active == null
+                )
+                    announcements.presentIfPossible()
+            }
             val focusManager = LocalFocusManager.current
             val keyboardController = LocalSoftwareKeyboardController.current
             LaunchedEffect(statusCovered) {
@@ -1003,6 +1077,28 @@ class MainActivity : FragmentActivity() {
                                 onVerification = { model.navigate("profile") },
                                 onMfa = { model.navigate("profile") },
                             )
+                            announcementState.active?.let { item ->
+                                AnnouncementPopup(
+                                    item,
+                                    browseState.language,
+                                    announcements::dismiss,
+                                    announcements::acknowledge,
+                                    {
+                                        announcements.action()
+                                        feedback.draft(
+                                            FeedbackDraft(
+                                                message =
+                                                    if (browseState.language == "uk")
+                                                        "Оповіщення «${item.title.uk}» (${item.id}): "
+                                                    else
+                                                        "Mitteilung „${item.title.de}“ (${item.id}): "
+                                            )
+                                        )
+                                        model.navigate("profile/feedback", tab = true)
+                                    },
+                                    item.active(announcementState.serverNow),
+                                )
+                            }
                         },
                         visibilityNotice = {
                             if (reminderRouteState.unavailable)
@@ -1482,6 +1578,48 @@ class MainActivity : FragmentActivity() {
                                         onAccount = { model.navigate("profile") },
                                     )
                                 }
+                            } else if (route == "profile/announcements") {
+                                AnnouncementHistoryScreen(
+                                    announcementState,
+                                    selectedLanguage,
+                                    push != null,
+                                    notificationsGranted(),
+                                    { announcements.refresh() },
+                                    announcements::open,
+                                    { enabled ->
+                                        if (
+                                            enabled &&
+                                                push != null &&
+                                                Build.VERSION.SDK_INT >= 33 &&
+                                                !notificationsGranted()
+                                        )
+                                            reminderPermission.launch(
+                                                Manifest.permission.POST_NOTIFICATIONS
+                                            )
+                                        announcements.guestPush(
+                                            enabled,
+                                            selectedLanguage,
+                                            push != null && notificationsGranted(),
+                                        )
+                                    },
+                                )
+                            } else if (route == "profile/announcements/manage") {
+                                AnnouncementOwnerScreen(
+                                    announcementOwnerState,
+                                    selectedLanguage,
+                                    announcements::loadOwner,
+                                    announcements::loadMoreOwner,
+                                    { announcements.edit() },
+                                    announcements::changeDraft,
+                                    announcements::saveDraft,
+                                    announcements::testDraft,
+                                    announcements::previewDraft,
+                                    announcements::loadUsers,
+                                    announcements::publishDraft,
+                                    announcements::edit,
+                                    announcements::statistics,
+                                    announcements::cancel,
+                                )
                             } else if (
                                 route in
                                     setOf(
@@ -1581,6 +1719,13 @@ class MainActivity : FragmentActivity() {
                                     InboxAccountLink(inboxState, selectedLanguage) {
                                         if (auth.state.value.inboxScope() != null)
                                             model.navigate("profile/inbox")
+                                    }
+                                    OutlinedButton(
+                                        { model.navigate("profile/announcements") },
+                                        Modifier.fillMaxWidth()
+                                            .testTag("account-open-announcements"),
+                                    ) {
+                                        Text(tr(selectedLanguage, "Mitteilungen", "Оповіщення"))
                                     }
                                     if (lockState.session != null)
                                         AppLockSettingsSection(lockState, selectedLanguage) {
@@ -1779,6 +1924,22 @@ class MainActivity : FragmentActivity() {
                                                     selectedLanguage,
                                                     "Organisationsanträge prüfen",
                                                     "Перевірка заявок організацій",
+                                                )
+                                            )
+                                        }
+                                        OutlinedButton(
+                                            {
+                                                if (auth.state.value.announcementSession().owner)
+                                                    model.navigate("profile/announcements/manage")
+                                            },
+                                            Modifier.fillMaxWidth()
+                                                .testTag("account-open-announcement-owner"),
+                                        ) {
+                                            Text(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Nutzer-Mitteilungen verwalten",
+                                                    "Керувати оповіщеннями користувачів",
                                                 )
                                             )
                                         }
@@ -2037,6 +2198,7 @@ class MainActivity : FragmentActivity() {
         acceptReminderIntent(intent)
         acceptAppLinkIntent(intent)
         acceptPushIntent(intent)
+        acceptAnnouncementIntent(intent)
     }
 
     private fun acceptReminderIntent(intent: Intent?) {
@@ -2055,6 +2217,25 @@ class MainActivity : FragmentActivity() {
             AppBackend.auth(applicationContext).currentUser?.takeUnless { it.isAnonymous }?.uid
         pushNavigation?.offer(intent, uid)
     }
+
+    private fun acceptAnnouncementIntent(intent: Intent?) {
+        if (BuildConfig.USE_LOCAL_BACKEND || intent?.action != PushNavigationViewModel.ACTION_TAP)
+            return
+        intent.getStringExtra("announcementId")?.takeIf(AnnouncementContract::id)?.let { id ->
+            announcementIntentHandler?.invoke(id) ?: run { announcementOpen = id }
+        }
+        intent
+            .getStringExtra("announcementChallenge")
+            ?.takeIf { Regex("[a-f0-9]{64}").matches(it) }
+            ?.let { value ->
+                announcementChallengeHandler?.invoke(value) ?: run { announcementChallenge = value }
+            }
+    }
+
+    private fun notificationsGranted(): Boolean =
+        Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
 
     override fun onPause() {
         presence?.update(

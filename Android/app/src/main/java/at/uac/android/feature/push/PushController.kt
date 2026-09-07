@@ -14,6 +14,8 @@ class PushController(
     private val deliver: (PushRouteDecision) -> Unit,
     private val scope: CoroutineScope,
     private val syncInbox: (Int) -> Unit = {},
+    private val openAnnouncement: (String) -> Unit = {},
+    private val confirmAnnouncementChallenge: (String) -> Unit = {},
 ) : PushRuntimeDelegate {
     private val closed = AtomicBoolean(false)
     private val started = AtomicBoolean(false)
@@ -61,9 +63,27 @@ class PushController(
         return allowed
     }
 
+    override fun announcement(id: String): Boolean {
+        if (closed.get() || !AnnouncementPushContract.id(id)) return false
+        openAnnouncement(id)
+        return true
+    }
+
+    override fun announcementChallenge(value: String): Boolean {
+        if (closed.get() || !AnnouncementPushContract.challenge(value)) return false
+        confirmAnnouncementChallenge(value)
+        return true
+    }
+
     fun close() {
         if (!closed.compareAndSet(false, true)) return
         if (started.get()) PushRuntime.uninstall(this)
         coordinator.close()
     }
+}
+
+private object AnnouncementPushContract {
+    fun id(value: String) = Regex("[A-Za-z0-9_-]{1,128}").matches(value)
+
+    fun challenge(value: String) = Regex("[a-f0-9]{64}").matches(value)
 }

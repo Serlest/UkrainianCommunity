@@ -97,6 +97,11 @@ object LocalCallableProtocol {
             "deleteSystemLog",
             "clearSystemLogs",
             "sendTestPushNotification",
+            "getAnnouncements",
+            "acknowledgeAnnouncement",
+            "registerAnnouncementDevice",
+            "manageAnnouncements",
+            "translateContent",
             COVER_UPLOAD,
         )
     private const val INT64 = "type.googleapis.com/google.protobuf.Int64Value"
@@ -165,6 +170,10 @@ object LocalCallableProtocol {
                 "deleteSystemLog",
                 "clearSystemLogs",
                 "sendTestPushNotification",
+                "acknowledgeAnnouncement",
+                "registerAnnouncementDevice",
+                "manageAnnouncements",
+                "translateContent",
                 COVER_UPLOAD,
             )
 

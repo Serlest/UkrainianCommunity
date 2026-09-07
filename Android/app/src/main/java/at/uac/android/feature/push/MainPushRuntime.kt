@@ -36,6 +36,8 @@ private constructor(
     private val current = AtomicReference<PushSession?>()
     private val consent = AtomicBoolean(false)
     private val inboxRefresh = AtomicReference<(() -> Unit)?>(null)
+    private val announcementOpen = AtomicReference<((String) -> Unit)?>(null)
+    private val announcementChallenge = AtomicReference<((String) -> Unit)?>(null)
     private val tokenSource = FirebasePushTokenSource(AppBackend.app(appContext))
     private val coordinator =
         PushCoordinator(
@@ -57,6 +59,10 @@ private constructor(
             { PushGate(consent.get(), notificationsGranted()) },
             deliver = {},
             syncInbox = { inboxRefresh.get()?.invoke() },
+            openAnnouncement = { id -> announcementOpen.get()?.invoke(id) },
+            confirmAnnouncementChallenge = { value ->
+                announcementChallenge.get()?.invoke(value)
+            },
             scope = scope,
         )
 
@@ -105,6 +111,18 @@ private constructor(
     fun bindInboxRefresh(callback: () -> Unit): AutoCloseable {
         inboxRefresh.set(callback)
         return AutoCloseable { inboxRefresh.compareAndSet(callback, null) }
+    }
+
+    fun bindAnnouncements(
+        open: (String) -> Unit,
+        challenge: (String) -> Unit,
+    ): AutoCloseable {
+        announcementOpen.set(open)
+        announcementChallenge.set(challenge)
+        return AutoCloseable {
+            announcementOpen.compareAndSet(open, null)
+            announcementChallenge.compareAndSet(challenge, null)
+        }
     }
 
     private suspend fun prepareSignOut(captured: AuthSession) {
