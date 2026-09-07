@@ -101,3 +101,17 @@ the localized content-type title also needed to remain searchable. These fields
 were added alongside the new body/tag search, with a dedicated regression test.
 Build 74 is the final release target; build 73 is superseded by this correction.
 No additional cloud or schema changes are involved.
+
+
+## Build 74 Apple verification
+
+1.0.3 (74) uploaded successfully and was verified VALID / IN_BETA_TESTING
+at 2026-09-07T17:33:11Z; uk/de-DE notes were written and read back exactly.
+Source: 66a15dd. Archive compilation: zero warnings/errors; strict signing and
+app dSYM UUID verified. Export reported five existing vendor stub dSYM warnings
+(FirebaseFirestoreInternal, absl, grpc, grpcpp, openssl_grpc); UAC app symbols
+are present. Each affected embedded vendor stub has zero defined symbols.
+
+After upload, the user requested build 75 to incorporate the completed diagnostic
+and incomplete-planning-draft fixes from another task. Build 75 supersedes 74;
+see Build75Integration-2026-09-07.md. No App Review/public release requested.
