@@ -1,6 +1,6 @@
 # Оповещения пользователей — реализация и проверка
 
-Дата: 2026-09-07. Реализация и автоматические проверки завершены; архив 1.0.3 (70) готов, загрузка TestFlight выполняется. Физический APNs/device acceptance пока не подтверждён.
+Дата: 2026-09-07. Реализация и автоматические проверки завершены; 1.0.3 (70) обработан Apple: VALID / IN_BETA_TESTING. Физический APNs/device acceptance пока не подтверждён.
 
 Пользователь явно разрешил автономную реализацию, исправления, тесты и новый билд после успешных проверок. Публичная публикация приложения не запрошена.
 
@@ -71,4 +71,18 @@ Production: `ukrainiancommunity-dbd5f`, `europe-west3`.
 
 ## Архив build 70
 
-Release archive завершён успешно, compiler warnings/errors: 0/0. `codesign --verify --deep --strict` PASS. Info.plist: 1.0.3 (70), ITSAppUsesNonExemptEncryption=false. Архив: `/tmp/UAC-announcements-70.xcarchive`; log: `output/announcements/archive70.log`. Export/upload и обработка Apple пока проверяются отдельно.
+Release archive завершён успешно, compiler warnings/errors: 0/0. `codesign --verify --deep --strict` PASS. Info.plist: 1.0.3 (70), ITSAppUsesNonExemptEncryption=false. Архив: `/tmp/UAC-announcements-70.xcarchive`; log: `output/announcements/archive70.log`. Export/upload завершён; Apple подтвердила VALID / IN_BETA_TESTING.
+
+## Export предупреждения и диагностика
+
+Через API key export не получил Cloud Signing permission. Повтор существующим Xcode account успешно подписал и выгрузил тот же archive: `EXPORT SUCCEEDED`, upload accepted 2026-09-07 10:22:25 Europe/Vienna (`export70-account.log`). Приложение и archive менять не потребовалось.
+
+При export остаются 5 `Upload Symbols Failed` warnings: FirebaseFirestoreInternal, absl, grpc, grpcpp, openssl_grpc. Это отдельное ограничение от 0 compiler warnings. Проверено локально: исходные vendor frameworks — static `ar` archives, Xcode `builtin-copy -remove-static-executable` создаёт на их месте codeless framework stub через компиляцию `/dev/null`, затем dylib. Итоговые бинарники около 51 KB, `nm` не содержит символов. Поэтому соответствующих vendor dSYM в пакете нет; недостающие UUID относятся к сгенерированным Xcode stubs. Поддельные dSYM и отключение uploadSymbols не применялись. Отладочные символы самого приложения сохранены.
+
+Проблема описана в [Firebase issue 13764](https://github.com/firebase/firebase-ios-sdk/issues/13764#issuecomment-2773813470) и [ответе Apple DTS](https://developer.apple.com/forums/thread/761589?page=3). Утверждать «вообще никаких предупреждений» нельзя. Переподключение всего Firestore/gRPC из исходников изменило бы сборочную систему и не является проверенным исправлением этой ошибки Xcode. Доказательства: `vendor-symbol-audit.json`, строки `Injecting stub binary into codeless framework` в `archive70.log`, `export70-account.log`.
+
+## Итог TestFlight
+
+2026-09-07 10:26 Europe/Vienna: 1.0.3 (70), `processingState=VALID`, `internalBuildState=IN_BETA_TESTING`, encryption=false. Украинские/немецкие What to Test записаны и проверены read-back. External Beta Review/App Review/public release не запускались. Источник реализации — commit `8b3b127` в ветке `codex/user-announcements-20260907`; журнал и артефакты остаются локально в `output/announcements/`, не входят в коммит.
+
+Полная готовность без каких-либо ограничений не заявляется: реальные APNs/App Attest/owner MFA device-сценарии требуют доступного iPhone; пять сторонних codeless-stub export warnings описаны выше. Реализация, автоматическая регрессия, cloud deployment и TestFlight завершены.
