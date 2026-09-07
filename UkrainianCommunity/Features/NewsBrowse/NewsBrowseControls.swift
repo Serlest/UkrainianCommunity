@@ -14,7 +14,9 @@ struct NewsTopicMenu: View {
         } label: {
             AppFilterChip(title: selection.map { NewsBrowseStrings.topic($0) } ?? NewsBrowseStrings.text("topic"),
                           systemImage: "tag", isSelected: selection != nil, trailingSystemImage: "chevron.down")
-        }.accessibilityIdentifier("home.news.topic")
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("home.news.topic")
     }
 }
 

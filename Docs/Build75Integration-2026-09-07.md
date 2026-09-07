@@ -51,3 +51,15 @@ Build ID: `90efa509-aafc-4426-bd9b-008f50281315`.
 uk/de-DE What to Test written and exact readback verified. Evidence:
 output/announcements/testflight75-apple.json. Build 75 supersedes 74.
 No App Review submission or public release.
+
+
+## Follow-up: topic menu press appearance
+
+After installing build 75, the user reported a brief rectangular appearance of
+the topic control during category changes. Code comparison found NewsTopicMenu
+was missing `.buttonStyle(.plain)`, unlike the neighboring region and sort menus.
+The same explicit style is now applied locally. No filter/query behavior changed.
+The focused German topic/type/reset UI scenario passed after compiling this fix
+(topic-menu-style-test.log). A frame-level reproduction of the reported physical
+device flash has not been captured; this is a likely cause, not proven device
+resolution. The uploaded build 75 does not contain this follow-up change.
