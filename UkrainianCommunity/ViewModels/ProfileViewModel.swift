@@ -253,7 +253,7 @@ final class ProfileViewModel: ObservableObject {
         }
     }
 
-    func submitFeedback(type: FeedbackType, message: String, user: AppUser) async -> Bool {
+    func submitFeedback(type: FeedbackType, message: String, user: AppUser, subject: String? = nil) async -> Bool {
         guard !isSubmittingFeedback else { return false }
         cancelFeedbackSuccessDismiss()
 
@@ -276,7 +276,7 @@ final class ProfileViewModel: ObservableObject {
             try await feedbackRepository.submitFeedback(FeedbackItem(
                 id: UUID().uuidString,
                 type: type,
-                subject: nil,
+                subject: subject,
                 message: trimmedMessage,
                 status: .open,
                 createdAt: now,

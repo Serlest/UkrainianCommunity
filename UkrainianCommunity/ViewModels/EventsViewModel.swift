@@ -31,7 +31,7 @@ final class EventsViewModel: ObservableObject {
     private let analyticsService: AnalyticsTracking
     private let notificationPreferencesRepository: NotificationPreferencesRepository?
     private let localEventReminderService: LocalEventReminderServiceProtocol?
-    private let reminderUserID: () -> String?
+    private let reminderUserID: @MainActor () -> String?
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
@@ -56,7 +56,7 @@ final class EventsViewModel: ObservableObject {
         localEventReminderService: LocalEventReminderServiceProtocol? = nil,
         analyticsService: AnalyticsTracking = NoopAnalyticsService(),
         registrationMutator: EventRegistrationMutating? = nil,
-        reminderUserID: @escaping () -> String? = { AuthService.shared.currentUser?.uid }
+        reminderUserID: @escaping @MainActor () -> String? = { AuthService.shared.currentUser?.uid }
     ) {
         self.repository = repository
         self.commentReadDeadline = commentReadDeadline

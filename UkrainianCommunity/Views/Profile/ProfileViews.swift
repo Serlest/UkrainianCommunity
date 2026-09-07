@@ -4,6 +4,9 @@ import SwiftUI
 private let profileRootScrollTopID = "profileRootScrollTop"
 
 enum ProfileNavigationRoute: Hashable {
+    case announcementManagement
+    case announcementHistory
+    case announcementFeedback(UserAnnouncement)
     case organizationManagement
     case registrations
     case savedContent
@@ -43,6 +46,7 @@ enum ProfileBrowseDestination {
 }
 
 struct ProfileView: View {
+    @EnvironmentObject private var announcementCoordinator: AnnouncementCoordinator
     @ObservedObject var viewModel: ProfileViewModel
     private let feedbackRepository: FeedbackRepository
     private let newsRepository: NewsRepository
@@ -335,6 +339,9 @@ struct ProfileView: View {
 
                         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                             profileHeader
+                            NavigationLink(value: ProfileNavigationRoute.announcementHistory) {
+                                ProfileModuleRow(title: AnnouncementStrings.history, subtitle: "", systemImage: "megaphone")
+                            }.buttonStyle(.plain).accessibilityIdentifier("profile.announcementHistory")
 
                             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                                 if let user = displayUser {
@@ -524,6 +531,16 @@ struct ProfileView: View {
             )
         case .accountSecurity:
             AccountSecurityView()
+        case .announcementManagement:
+            if PermissionService.isAppOwner(user: displayUser) {
+                AnnouncementOwnerView(repository: announcementCoordinator.repository)
+            }
+        case .announcementHistory:
+            AnnouncementHistoryView(coordinator: announcementCoordinator)
+        case .announcementFeedback(let item):
+            if let user = displayUser {
+                AnnouncementFeedbackView(item: item, user: user, viewModel: viewModel)
+            }
         case .feedbackComposer:
             if let user = displayUser {
                 ProfileFeedbackComposerView(
@@ -1145,6 +1162,9 @@ struct ProfileView: View {
                     }
 
                     if PermissionService.isAppOwner(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.announcementManagement) {
+                            ProfileModuleRow(title: AnnouncementStrings.title, subtitle: AnnouncementStrings.subtitle, systemImage: "megaphone")
+                        }.buttonStyle(.plain).accessibilityIdentifier("profile.announcements")
                         NavigationLink(value: ProfileNavigationRoute.contentPlanning(draftID: nil)) {
                             ProfileModuleRow(
                                 title: AppStrings.ContentPlanning.title,

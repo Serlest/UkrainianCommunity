@@ -1,3 +1,4 @@
+import AppIntents
 //
 //  UkrainianCommunityUITests.swift
 //  UkrainianCommunityUITests
@@ -8,6 +9,73 @@
 import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
+    @MainActor
+    func testAnnouncementOwnerCanCreateBilingualDraft() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "de"
+        app.launch()
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let entry = app.buttons["profile.announcements"].firstMatch
+        scrollToElement(entry, in: app, maxSwipes: 24)
+        XCTAssertTrue(entry.isHittable); entry.tap()
+        let create = app.buttons["announcements.create"].firstMatch
+        XCTAssertTrue(create.waitForExistence(timeout: 10)); create.tap()
+        let title = app.textFields["announcements.headline"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 10)); title.tap(); title.typeText("Test UK")
+        let body = app.textFields["announcements.body"].firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 5)); body.tap(); body.typeText("Nachricht UK")
+        app.segmentedControls.buttons["Deutsch"].tap()
+        title.tap(); title.typeText("Test DE")
+        body.tap(); body.typeText("Nachricht DE")
+        let save = app.buttons["announcements.save"].firstMatch
+        scrollToElement(save, in: app, maxSwipes: 16)
+        XCTAssertTrue(save.isHittable); save.tap()
+        XCTAssertTrue(app.buttons.containing(.staticText, identifier: "Test DE").firstMatch.waitForExistence(timeout: 10))
+        attachScreenshot(named: "announcements-owner-draft", from: app)
+        app.buttons.containing(.staticText, identifier: "Test DE").firstMatch.tap()
+        let preview = app.buttons["announcements.preview"].firstMatch
+        scrollToElement(preview, in: app, maxSwipes: 16); preview.tap()
+        XCTAssertTrue(app.staticTexts["Nachricht UK"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Nachricht DE"].exists)
+        app.navigationBars.buttons["announcements.previewClose"].tap()
+        let review = app.switches["announcements.review"].firstMatch
+        scrollToElement(review, in: app, maxSwipes: 16)
+        review.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        XCTAssertEqual(review.value as? String, "1")
+        attachScreenshot(named: "announcements-owner-reviewed", from: app)
+        let send = app.buttons["announcements.send"].firstMatch
+        scrollToElement(send, in: app); XCTAssertTrue(send.isEnabled); send.tap()
+        let confirm = app.buttons["announcements.confirmSend"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(app.buttons["announcements.stats"].waitForExistence(timeout: 10))
+        attachScreenshot(named: "announcements-owner-published", from: app)
+    }
+
+    @MainActor
+    func testAnnouncementGuestPopupAndHistory() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "uk"
+        app.launchEnvironment["UITestAnnouncements"] = "1"
+        app.launchEnvironment["UITestAppAppearance"] = "dark"
+        app.launch()
+        let acknowledge = app.buttons["announcements.acknowledge"].firstMatch
+        XCTAssertTrue(acknowledge.waitForExistence(timeout: 30))
+        attachScreenshot(named: "announcements-guest-popup-uk-dark", from: app)
+        acknowledge.tap()
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let history = app.buttons["profile.announcementHistory"].firstMatch
+        scrollToElement(history, in: app)
+        history.tap()
+        XCTAssertTrue(app.staticTexts["Перевірка оновлення"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["profile.announcements"].exists)
+    }
+
     private let rootTabs: [MainTabSpec] = [
         MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Start"),
         MainTabSpec(screenIdentifier: "screen.events", tabIdentifier: "tab.events", tabLabel: "Veranstaltungen"),

@@ -1,6 +1,7 @@
 import Foundation
 
 struct AppContainer {
+    var announcementRepository: any AnnouncementRepository = MockAnnouncementRepository()
     let userRepository: UserRepository
     let feedbackRepository: FeedbackRepository
     let contentSafetyRepository: ContentSafetyRepository
@@ -24,6 +25,7 @@ struct AppContainer {
     /// Production dependency graph. Preview and UI-test code must use `uiTesting`.
     static var live: AppContainer {
         AppContainer(
+            announcementRepository: CloudAnnouncementRepository(),
             userRepository: FirestoreUserRepository(),
             feedbackRepository: FirestoreFeedbackRepository(),
             contentSafetyRepository: CloudContentSafetyRepository(),

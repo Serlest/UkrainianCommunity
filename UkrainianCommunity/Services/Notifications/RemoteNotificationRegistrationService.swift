@@ -146,6 +146,7 @@ final class RemoteNotificationRegistrationService: NSObject {
                     self?.debugLog("FCM token invalidation after sign out failed: \(error)")
                 } else {
                     self?.debugLog("FCM token invalidated after sign out.")
+                    await AnnouncementPushBridge.shared.registerIfAllowed()
                 }
             }
         }
@@ -229,6 +230,7 @@ final class RemoteNotificationRegistrationService: NSObject {
             // Firebase delivers the FID through the Messaging delegate both for a
             // new registration and an already registered installation.
             debugLog("FCM registration request completed.")
+            await AnnouncementPushBridge.shared.registrationReady()
         } catch {
             debugLog("FCM registration failed: \(error)")
         }

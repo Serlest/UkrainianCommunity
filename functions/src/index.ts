@@ -273,3 +273,5 @@ export * from "./organizations/organizationAccess";
 
 export {saveOrganizationPhoto} from "./organizations/organizationPhotoSave";
 export {cleanupOrganizationPhotoLifecycle} from "./organizations/organizationPhotoGarbage";
+
+export {manageAnnouncements, getAnnouncements, acknowledgeAnnouncement, registerAnnouncementDevice, deliverAnnouncements, cleanupAnnouncements} from "./announcements/service";

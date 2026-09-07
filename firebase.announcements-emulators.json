@@ -1,0 +1,37 @@
+{
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22"
+  },
+  "firestore": {
+    "rules": "Firebase/firestore.rules",
+    "indexes": "Firebase/firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "Firebase/storage.rules"
+  },
+  "emulators": {
+    "auth": {
+      "port": 19099
+    },
+    "firestore": {
+      "port": 28080
+    },
+    "functions": {
+      "port": 15001
+    },
+    "storage": {
+      "port": 29199
+    },
+    "ui": {
+      "enabled": false
+    },
+    "singleProjectMode": true,
+    "eventarc": {
+      "port": 19300
+    },
+    "tasks": {
+      "port": 19500
+    }
+  }
+}

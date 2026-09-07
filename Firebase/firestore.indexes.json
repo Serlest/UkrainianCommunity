@@ -1238,6 +1238,28 @@
       "collectionGroup": "recentViews",
       "fieldPath": "subtitle",
       "indexes": []
+    },
+    {
+      "collectionGroup": "announcementReceipts",
+      "fieldPath": "retentionExpiresAt",
+      "indexes": [
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "DESCENDING",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "arrayConfig": "CONTAINS",
+          "queryScope": "COLLECTION"
+        },
+        {
+          "order": "ASCENDING",
+          "queryScope": "COLLECTION_GROUP"
+        }
+      ]
     }
   ]
 }

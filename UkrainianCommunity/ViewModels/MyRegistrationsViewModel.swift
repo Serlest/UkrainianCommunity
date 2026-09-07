@@ -12,7 +12,7 @@ final class MyRegistrationsViewModel: ObservableObject {
     private let repository: EventRepository
     private let registrationMutator: EventRegistrationMutating
     private let localEventReminderService: LocalEventReminderServiceProtocol?
-    private let reminderUserID: () -> String?
+    private let reminderUserID: @MainActor () -> String?
     private var loadTask: Task<Void, Never>?
     private var cancellationTasks: [String: Task<EventRegistrationMutationResult, Error>] = [:]
     private var cancellationOperationIDs: [String: UUID] = [:]
@@ -24,7 +24,7 @@ final class MyRegistrationsViewModel: ObservableObject {
         repository: EventRepository,
         localEventReminderService: LocalEventReminderServiceProtocol? = nil,
         registrationMutator: EventRegistrationMutating? = nil,
-        reminderUserID: @escaping () -> String? = { AuthService.shared.currentUser?.uid }
+        reminderUserID: @escaping @MainActor () -> String? = { AuthService.shared.currentUser?.uid }
     ) {
         self.repository = repository
         self.localEventReminderService = localEventReminderService

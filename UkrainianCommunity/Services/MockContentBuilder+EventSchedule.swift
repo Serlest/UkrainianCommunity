@@ -29,7 +29,7 @@ extension MockContentBuilder {
             city: "Wien", venue: "Test venue", startDate: startDate, endDate: endDate,
             occurrences: [EventOccurrence(id: "schedule-\(scenario)", startDate: startDate, endDate: endDate)],
             createdAt: startDate, updatedAt: startDate,
-            requiresRegistration: false, participationMode: .none,
+            requiresRegistration: false, participationMode: EventParticipationMode.none,
             capacity: nil, registeredCount: 0, comments: [], moderationStatus: .approved,
             registrationState: .notRegistered, likeCount: 0, likeState: .notLiked
         )

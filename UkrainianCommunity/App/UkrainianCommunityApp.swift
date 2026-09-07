@@ -1,3 +1,4 @@
+import AppIntents
 import DeviceCheck
 import FirebaseAuth
 import FirebaseAppCheck
@@ -84,6 +85,9 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
         guard !AppTestHost.isUnitTesting else { return [] }
+        if await AnnouncementPushBridge.shared.receive(notification.request.content.userInfo) {
+            return notification.request.content.userInfo["announcementChallenge"] != nil ? [] : [.banner, .list, .sound]
+        }
         return [.banner, .list, .sound]
     }
 
@@ -92,6 +96,7 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
         didReceive response: UNNotificationResponse
     ) async {
         guard !AppTestHost.isUnitTesting else { return }
+        if await AnnouncementPushBridge.shared.receive(response.notification.request.content.userInfo) { return }
         guard let route = RemoteNotificationRoute(
             userInfo: response.notification.request.content.userInfo
         ) else {
@@ -99,6 +104,12 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
         }
 
         RemoteNotificationRouteCoordinator.shared.receive(route)
+    }
+
+    nonisolated func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any]) async -> UIBackgroundFetchResult {
+        let id = userInfo["announcementId"] as? String
+        let challenge = userInfo["announcementChallenge"] as? String
+        return await AnnouncementPushBridge.shared.receive(id: id, challenge: challenge) ? .newData : .noData
     }
 
     func application(

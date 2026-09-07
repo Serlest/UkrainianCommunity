@@ -2,6 +2,8 @@ import SwiftUI
 import UIKit
 
 struct ContentView: View {
+    @StateObject private var announcementCoordinator: AnnouncementCoordinator
+    @State private var announcementFeedback: UserAnnouncement?
     @EnvironmentObject private var authState: AuthState
     @Environment(\.openURL) private var openURL
     private enum AppTab: Hashable {
@@ -54,6 +56,7 @@ struct ContentView: View {
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
     init(container: AppContainer, isStartupReady: Bool = true) {
+        _announcementCoordinator = StateObject(wrappedValue: AnnouncementCoordinator(repository: container.announcementRepository))
         self.container = container
         self.isStartupReady = isStartupReady
         _homeViewModel = StateObject(wrappedValue: HomeViewModel(
@@ -111,7 +114,14 @@ struct ContentView: View {
     var body: some View {
         presentedContent
             .environmentObject(organizationBlockingCoordinator)
-            .modifier(AppUpdatePrompt(isReady: isReadyForUpdatePrompt))
+            .environmentObject(announcementCoordinator)
+            .modifier(AnnouncementLifecycle(coordinator: announcementCoordinator,
+                userID: authState.user?.id, available: authState.isGuest || authState.isAuthenticated,
+                ready: isReadyForUpdatePrompt, feedback: openAnnouncementFeedback))
+            .onChange(of: announcementCoordinator.requestedFeedback) { _, item in
+                if let item { announcementCoordinator.requestedFeedback = nil; openAnnouncementFeedback(item) }
+            }
+            .modifier(AppUpdatePrompt(isReady: isReadyForUpdatePrompt && announcementCoordinator.active == nil))
     }
 
     private var isReadyForUpdatePrompt: Bool {
@@ -198,6 +208,7 @@ struct ContentView: View {
         lifecycleContent
         .onChange(of: authIdentityResetKey, initial: true) { _, newKey in
             handleAuthIdentityChange(for: newKey)
+            if authState.isAuthenticated, let item = announcementFeedback { openAnnouncementFeedback(item) }
         }
         .onChange(of: authState.user?.id, initial: true) { oldUserID, newUserID in
             if oldUserID != newUserID {
@@ -398,6 +409,17 @@ struct ContentView: View {
             },
             set: { if $0 == nil { notificationRouteErrorMessage = nil } }
         ))
+    }
+
+    private func openAnnouncementFeedback(_ item: UserAnnouncement) {
+        if authState.isAuthenticated {
+            announcementFeedback = nil
+            selectedTab = .profile
+            profileNavigationPath.append(.announcementFeedback(item))
+        } else {
+            announcementFeedback = item
+            authState.presentedAuthFlow = .login
+        }
     }
 
     private var selectedAppearance: AppAppearance {
