@@ -1,6 +1,174 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+  "editor.translation.overwriteUkrainian": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Замінити наявний український текст перевіреним перекладом?"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Vorhandenen ukrainischen Text durch die geprüfte Übersetzung ersetzen?"
+        }
+      }
+    }
+  },
+  "editor.translation.toUkrainian": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перекласти українською"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ins Ukrainische übersetzen"
+        }
+      }
+    }
+  },
+  "editor.translation.limit": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ліміт перекладу вичерпано. Спробуйте пізніше або заповніть текст вручну."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Übersetzungslimit erreicht. Später erneut versuchen oder den Text manuell eingeben."
+        }
+      }
+    }
+  },
+  "editor.translation.error": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Переклад недоступний. Спробуйте ще раз або заповніть переклад вручну."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Übersetzung nicht verfügbar. Erneut versuchen oder die Übersetzung manuell eingeben."
+        }
+      }
+    }
+  },
+  "editor.translation.changed": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Текст або акаунт змінився. Закрийте перегляд і повторіть переклад. Внесені зміни не замінено."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Text oder Konto wurde geändert. Vorschau schließen und erneut übersetzen. Ihre Änderungen bleiben erhalten."
+        }
+      }
+    }
+  },
+  "editor.translation.overwrite": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Замінити наявний німецький текст перевіреним перекладом?"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Vorhandenen deutschen Text durch die geprüfte Übersetzung ersetzen?"
+        }
+      }
+    }
+  },
+  "editor.translation.apply": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Застосувати переклад"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Übersetzung übernehmen"
+        }
+      }
+    }
+  },
+  "editor.translation.review": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перевірка перекладу"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Übersetzung prüfen"
+        }
+      }
+    }
+  },
+  "editor.translation.hint": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перевірте й відредагуйте переклад перед застосуванням. Публікація виконується окремо."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Übersetzung vor dem Übernehmen prüfen und bearbeiten. Die Veröffentlichung erfolgt separat."
+        }
+      }
+    }
+  },
+  "editor.translation.translate": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перекласти німецькою"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ins Deutsche übersetzen"
+        }
+      }
+    }
+  },
     "announcements.saved": {
       "extractionState": "manual",
       "localizations": {

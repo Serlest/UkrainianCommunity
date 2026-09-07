@@ -12,7 +12,7 @@ test('clients including owner cannot bypass announcement callables', async () =>
  });
  for (const role of ['guest','owner','admin','user']) {
   const db = role === 'guest' ? env.unauthenticatedContext().firestore() : env.authenticatedContext(role,{email_verified:true}).firestore();
-  for (const path of ['announcements/private','announcementDevices/secret','announcements/private/metrics/person','users/user/announcementReceipts/private','announcementTranslationLimits/owner']) {
+  for (const path of ['announcements/private','announcementDevices/secret','announcements/private/metrics/person','users/user/announcementReceipts/private','announcementTranslationLimits/owner','users/owner/privateTranslationLimits/daily','contentTranslationLimits/_daily']) {
    await assertFails(getDoc(doc(db,path))); await assertFails(setDoc(doc(db,path),{status:'published',verified:true,acknowledgedAt:1}));
   }
  }

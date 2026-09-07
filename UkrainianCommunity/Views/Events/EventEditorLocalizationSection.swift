@@ -3,6 +3,11 @@ import SwiftUI
 extension EventEditorView {
     var eventLocalizationCard: some View {
         editorCard {
+            ContentTranslationButton(kind: "event", fields: [
+                .init("title", AppStrings.Events.fieldTitle, source: viewModel.title, target: $viewModel.germanTitle, limit: 120),
+                .init("summary", AppStrings.Events.fieldSummary, source: viewModel.summary, target: $viewModel.germanSummary, limit: 200),
+                .init("details", AppStrings.Events.fieldDetails, source: viewModel.details, target: $viewModel.germanDetails, limit: 2000)
+            ]).padding(.bottom, AppTheme.dashboardSpacing)
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: editorCardSpacing) {
                     Text(ContentPublishingStrings.germanFallbackHint)

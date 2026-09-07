@@ -162,6 +162,12 @@ extension OrganizationEditorView {
 
     var organizationLocalizationCard: some View {
         editorCard {
+            ContentTranslationButton(kind: "organization", fields: [
+                .init("name", AppStrings.Organizations.fieldName, source: viewModel.name, target: $viewModel.germanName, limit: 100),
+                .init("description", AppStrings.Organizations.fieldDescription, source: viewModel.shortDescription, target: $viewModel.germanShortDescription, limit: 160),
+                .init("mission", AppStrings.Organizations.fieldMissionStatement, source: viewModel.missionStatement, target: $viewModel.germanMissionStatement, limit: 2000),
+                .init("about", AppStrings.Organizations.fieldFullDescription, source: viewModel.fullDescription, target: $viewModel.germanFullDescription, limit: 1200)
+            ]).padding(.bottom, AppTheme.dashboardSpacing)
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: editorCardSpacing) {
                     Text(ContentPublishingStrings.germanFallbackHint)

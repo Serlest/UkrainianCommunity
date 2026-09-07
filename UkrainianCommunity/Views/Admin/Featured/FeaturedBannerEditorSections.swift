@@ -49,6 +49,10 @@ struct FeaturedBannerEditorBasicsSection: View {
                     counterText: "\(viewModel.subtitle.count)/\(FeaturedBannerValidationService.subtitleMaxLength)"
                 )
 
+                ContentTranslationButton(kind: "banner", fields: [
+                    .init("title", AppStrings.FeaturedEditor.titleField, source: viewModel.title, target: $viewModel.germanTitle, limit: FeaturedBannerValidationService.titleMaxLength),
+                    .init("subtitle", AppStrings.FeaturedEditor.subtitleField, source: viewModel.subtitle, target: $viewModel.germanSubtitle, limit: FeaturedBannerValidationService.subtitleMaxLength)
+                ])
                 DisclosureGroup {
                     VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                         Text(ContentPublishingStrings.germanFallbackHint)

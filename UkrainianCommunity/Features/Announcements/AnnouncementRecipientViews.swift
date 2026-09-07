@@ -7,8 +7,9 @@ struct AnnouncementPopup: View {
     @State private var busy = false
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+            EditorScreenShell(title: AnnouncementStrings.history, closeStyle: .cancel,
+                              closeAction: { Task { await coordinator.close(item, acknowledge: false) } }) {
+                AnnouncementSection {
                     Text(item.title.localized()).font(.title2.bold())
                     Text(item.body.localized()).textSelection(.enabled)
                     if let error = coordinator.error { Text(error).font(.caption).foregroundStyle(.secondary) }
@@ -16,16 +17,16 @@ struct AnnouncementPopup: View {
                         Button(AnnouncementStrings.writeFeedback) {
                             busy = true
                             Task { await coordinator.mark(item, event: "action"); await coordinator.close(item, acknowledge: false); feedback(item) }
-                        }.buttonStyle(.borderedProminent)
+                        }.appActionButtonStyle(.primary)
                     }
                     if item.mode == "acknowledge" {
                         Button(AnnouncementStrings.ack) { busy = true; Task { await coordinator.close(item, acknowledge: true) } }
-                            .buttonStyle(.borderedProminent).accessibilityIdentifier("announcements.acknowledge")
+                            .appActionButtonStyle(.primary).accessibilityIdentifier("announcements.acknowledge")
                     }
                     Button(item.mode == "acknowledge" ? AnnouncementStrings.later : AnnouncementStrings.close) {
                         Task { await coordinator.close(item, acknowledge: false) }
-                    }.buttonStyle(.bordered).accessibilityIdentifier("announcements.close")
-                }.padding()
+                    }.appActionButtonStyle(.secondary).accessibilityIdentifier("announcements.close")
+                }
             }.navigationTitle(AnnouncementStrings.history).navigationBarTitleDisplayMode(.inline)
         }
         .disabled(busy)
@@ -40,8 +41,8 @@ struct AnnouncementHistoryView: View {
     @AppStorage("announcements.guestPushEnabled") private var guestPushEnabled = false
     @ObservedObject var coordinator: AnnouncementCoordinator
     var body: some View {
-        List {
-            if let error = coordinator.error { Text(error) }
+        ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: AnnouncementStrings.subtitle) {
+            if let error = coordinator.error { InlineMessageCard(style: .error, message: error) }
             if coordinator.isLoading { ProgressView() }
             if authState.isGuest {
                 Toggle(AnnouncementStrings.guestPush, isOn: $guestPushEnabled)
@@ -54,7 +55,7 @@ struct AnnouncementHistoryView: View {
             if coordinator.items.isEmpty && !coordinator.isLoading { Text(AnnouncementStrings.empty) }
             ForEach(coordinator.items) { item in
                 NavigationLink {
-                    ScrollView { VStack(alignment: .leading, spacing: 16) {
+                    ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: "") { AnnouncementSection {
                         Text(item.title.localized()).font(.title2.bold())
                         Text(item.body.localized()).textSelection(.enabled)
                         if item.feedback && item.active(at: coordinator.now) {
@@ -66,9 +67,9 @@ struct AnnouncementHistoryView: View {
                         if item.mode == "acknowledge" && !coordinator.isAcknowledged(item) && item.active(at: coordinator.now) {
                             Button(AnnouncementStrings.ack) { Task { await coordinator.mark(item, event: "acknowledged"); await coordinator.refresh() } }
                         }
-                    }.padding() }.navigationTitle(AnnouncementStrings.history)
+                    } }.navigationTitle(AnnouncementStrings.history)
                 } label: {
-                    VStack(alignment: .leading) {
+                    AnnouncementSection {
                         Text(item.title.localized()).font(.headline)
                         Text(Date(timeIntervalSince1970: item.startsAt / 1000), style: .date).font(.caption)
                     }

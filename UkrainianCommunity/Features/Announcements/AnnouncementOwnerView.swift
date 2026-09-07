@@ -8,18 +8,19 @@ struct AnnouncementOwnerView: View {
     @State private var error: String?
     @State private var loading = false
     var body: some View {
-        List {
+        ProfileDestinationLayout(title: AnnouncementStrings.title, introSubtitle: AnnouncementStrings.subtitle) {
             Button(AnnouncementStrings.create, systemImage: "plus") { editor = UserAnnouncement() }
+                .appActionButtonStyle(.primary)
                 .accessibilityIdentifier("announcements.create")
-            if let error { Text(error).foregroundStyle(.red) }
+            if let error { InlineMessageCard(style: .error, message: error) }
             if loading { ProgressView() }
             ForEach(items) { item in
                 Button { editor = item } label: {
-                    VStack(alignment: .leading) {
+                    AppEditorSectionCard { VStack(alignment: .leading, spacing: 8) {
                         Text(item.title.localized().isEmpty ? AnnouncementStrings.draft : item.title.localized())
-                        Text(AnnouncementStrings.group(item.status)).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
+                        Text(AnnouncementStrings.group(item.status)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    }.frame(maxWidth: .infinity, alignment: .leading) }
+                }.buttonStyle(.plain)
             }
             if cursor != nil { Button(AnnouncementStrings.loadMore) { Task { await load(more: true) } } }
         }
@@ -51,33 +52,33 @@ struct AnnouncementEditorView: View {
     @State private var preview = false
     @State private var users = false
     @State private var confirmSend = false
-    @State private var confirmTranslation = false
     @State private var count: Int?
     @State private var statistics: AnnouncementResponse?
     private var editable: Bool { draft.status == "draft" }
     var body: some View {
-        Form {
-            if let message { Section { Text(message).accessibilityIdentifier("announcements.message") } }
+        EditorScreenShell(title: AnnouncementStrings.title, subtitle: AnnouncementStrings.subtitle,
+                          closeStyle: .cancel, closeAction: { if !busy { dismiss() } }) {
+            if let message { InlineMessageCard(style: .info, message: message).accessibilityIdentifier("announcements.message") }
             if busy { ProgressView() }
             textSection.disabled(!editable || busy)
             if editable {
                 audienceSection.disabled(busy)
                 optionsSection.disabled(busy)
-                Section {
+                AnnouncementSection {
                     Button(AnnouncementStrings.preview) { preview = true }.accessibilityIdentifier("announcements.preview")
                     Button(AnnouncementStrings.countAudience) { run { try await countAudience() } }
                     if let count { Text("\(AnnouncementStrings.count): \(count)") }
                     if draft.groups.contains("guests") { Text(AnnouncementStrings.guestsUnknown).font(.caption) }
                     Toggle(AnnouncementStrings.review, isOn: $reviewed).accessibilityIdentifier("announcements.review")
-                    Button(AnnouncementStrings.save) { run { try await save(); dismiss() } }.buttonStyle(.bordered).accessibilityIdentifier("announcements.save").accessibilityValue(message == AnnouncementStrings.saved ? AnnouncementStrings.saved : "")
+                    Button(AnnouncementStrings.save) { run { try await save(); dismiss() } }.appActionButtonStyle(.secondary).accessibilityIdentifier("announcements.save").accessibilityValue(message == AnnouncementStrings.saved ? AnnouncementStrings.saved : "")
                     Button(AnnouncementStrings.test) { run { _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "test", draft: draft)); message = AnnouncementStrings.tested } }
                         .disabled(!draft.canPublish || !reviewed)
-                    Button(AnnouncementStrings.send) { confirmSend = true }
+                    Button(AnnouncementStrings.send) { confirmSend = true }.appActionButtonStyle(.primary)
                         .disabled(!draft.canPublish || !reviewed)
                         .accessibilityIdentifier("announcements.send")
                 }.disabled(busy)
             } else {
-                Section {
+                AnnouncementSection {
                     Button(AnnouncementStrings.preview) { preview = true }.accessibilityIdentifier("announcements.preview")
                     if draft.status == "published" {
                         Button(AnnouncementStrings.cancel, role: .destructive) { run {
@@ -100,7 +101,6 @@ struct AnnouncementEditorView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .navigationTitle(AnnouncementStrings.title)
-        .toolbar { ToolbarItem(placement: .cancellationAction) { Button(AnnouncementStrings.close) { dismiss() }.disabled(busy) } }
         .interactiveDismissDisabled(busy)
         .onChange(of: draft) { _, _ in reviewed = false; count = nil }
         .sheet(isPresented: $preview) { AnnouncementPreviewView(item: draft) }
@@ -112,24 +112,22 @@ struct AnnouncementEditorView: View {
                 draft.status = "published"; message = AnnouncementStrings.sent
             } }.accessibilityIdentifier("announcements.confirmSend")
         }
-        .confirmationDialog(AnnouncementStrings.overwrite, isPresented: $confirmTranslation) { Button(AnnouncementStrings.translate) { translate() } }
     }
     private var textSection: some View {
-        Section {
+        AnnouncementSection {
             Picker(AnnouncementStrings.body, selection: $language) { Text(AppLanguage.ukrainian.title).tag("uk"); Text(AppLanguage.german.title).tag("de") }.pickerStyle(.segmented)
-            TextField(AnnouncementStrings.headline, text: textBinding(title: true)).accessibilityIdentifier("announcements.headline")
-            TextField(AnnouncementStrings.body, text: textBinding(title: false), axis: .vertical).lineLimit(5...16).accessibilityIdentifier("announcements.body")
+            EditorTextField(AnnouncementStrings.headline, text: textBinding(title: true), systemImage: "textformat").accessibilityIdentifier("announcements.headline")
+            EditorTextArea(AnnouncementStrings.body, text: textBinding(title: false), counterText: "\((language == "uk" ? draft.body.uk : draft.body.de).count)/6000", minHeight: 140).accessibilityIdentifier("announcements.body")
             if editable {
-                Button(AnnouncementStrings.translate) {
-                    let target = language == "uk" ? draft.body.de + draft.title.de : draft.body.uk + draft.title.uk
-                    if target.isEmpty { translate() } else { confirmTranslation = true }
-                }
-                Text(AnnouncementStrings.translationReview).font(.caption)
+                ContentTranslationButton(kind: "announcement", fields: [
+                    .init("title", AnnouncementStrings.headline, source: language == "uk" ? draft.title.uk : draft.title.de, target: language == "uk" ? $draft.title.de : $draft.title.uk, limit: 160),
+                    .init("body", AnnouncementStrings.body, source: language == "uk" ? draft.body.uk : draft.body.de, target: language == "uk" ? $draft.body.de : $draft.body.uk, limit: 6000)
+                ], sourceLanguage: language == "uk" ? .ukrainian : .german).id(language)
             }
         }
     }
     private var audienceSection: some View {
-        Section(AnnouncementStrings.audience) {
+        AnnouncementSection(AnnouncementStrings.audience) {
             ForEach(["registered", "guests", "organizationOwners", "appAdmins", "organizationAdmins", "organizationModerators"], id: \.self) { group in
                 Toggle(AnnouncementStrings.group(group), isOn: selection(group, in: $draft.groups))
             }
@@ -142,7 +140,7 @@ struct AnnouncementEditorView: View {
         }
     }
     private var optionsSection: some View {
-        Section(AnnouncementStrings.mode) {
+        AnnouncementSection(AnnouncementStrings.mode) {
             Picker(AnnouncementStrings.mode, selection: $draft.mode) {
                 Text(AnnouncementStrings.once).tag("once"); Text(AnnouncementStrings.acknowledge).tag("acknowledge")
             }
@@ -172,15 +170,6 @@ struct AnnouncementEditorView: View {
         let response = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "save", revision: draft.revision, draft: draft))
         if let item = response.item { draft = item }
     }
-    private func translate() {
-        let source = language, title = source == "uk" ? draft.title.uk : draft.title.de, body = source == "uk" ? draft.body.uk : draft.body.de
-        run {
-            let result = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "translate", source: source, title: title, body: body))
-            if source == "uk" { draft.title.de = result.title ?? ""; draft.body.de = result.body ?? "" }
-            else { draft.title.uk = result.title ?? ""; draft.body.uk = result.body ?? "" }
-            language = source == "uk" ? "de" : "uk"
-        }
-    }
     private func countAudience() async throws {
         var cursor: String?, total = 0
         repeat {
@@ -201,8 +190,8 @@ private struct AnnouncementUserPicker: View {
     @State private var error: String?
     @State private var busy = false
     var body: some View {
-        List {
-            if let error { Text(error) }
+        EditorScreenShell(title: AnnouncementStrings.people, closeStyle: .cancel) {
+            if let error { InlineMessageCard(style: .error, message: error) }
             ForEach(items.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { user in
                 Toggle(user.name, isOn: Binding(get: { selected.contains(user.id) }, set: { on in
                     selected.removeAll { $0 == user.id }; if on && selected.count < 100 { selected.append(user.id) }
@@ -226,20 +215,36 @@ struct AnnouncementPreviewView: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            List {
+            EditorScreenShell(title: AnnouncementStrings.preview, closeStyle: .cancel) {
                 ForEach(["uk", "de"], id: \.self) { lang in
-                    Section(lang == "uk" ? AppLanguage.ukrainian.title : AppLanguage.german.title) {
+                    AnnouncementSection(lang == "uk" ? AppLanguage.ukrainian.title : AppLanguage.german.title) {
                         Text(lang == "uk" ? item.title.uk : item.title.de).font(.headline)
                         Text(lang == "uk" ? item.body.uk : item.body.de)
                     }
                 }
-                Section(AnnouncementStrings.audience) {
+                AnnouncementSection(AnnouncementStrings.audience) {
                     ForEach(item.groups, id: \.self) { Text(AnnouncementStrings.group($0)) }
                     Text("\(AnnouncementStrings.people): \(item.userIds.count)")
                     Text(item.regions.isEmpty ? AnnouncementStrings.austria : item.regions.compactMap(AustrianFederalState.init(rawValue:)).map(\.displayName).joined(separator: ", "))
                     Text(AnnouncementStrings.regionHelp)
                 }
             }.navigationTitle(AnnouncementStrings.preview).toolbar { Button(AnnouncementStrings.close) { dismiss() }.accessibilityIdentifier("announcements.previewClose") }
+        }
+    }
+}
+
+struct AnnouncementSection<Content: View>: View {
+    let title: String?
+    @ViewBuilder let content: Content
+    init(_ title: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title; self.content = content()
+    }
+    var body: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                if let title { AppEditorSectionTitle(title: title) }
+                content
+            }.frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

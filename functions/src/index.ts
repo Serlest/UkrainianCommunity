@@ -275,3 +275,5 @@ export {saveOrganizationPhoto} from "./organizations/organizationPhotoSave";
 export {cleanupOrganizationPhotoLifecycle} from "./organizations/organizationPhotoGarbage";
 
 export {manageAnnouncements, getAnnouncements, acknowledgeAnnouncement, registerAnnouncementDevice, deliverAnnouncements, cleanupAnnouncements} from "./announcements/service";
+
+export {translateContent} from "./translation/service";

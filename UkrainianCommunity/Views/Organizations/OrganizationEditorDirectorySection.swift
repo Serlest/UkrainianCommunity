@@ -166,6 +166,13 @@ extension OrganizationEditorView {
 
     var organizationDirectoryLocalizationCard: some View {
         editorCard {
+            ContentTranslationButton(kind: "organization", fields: [
+                .init("area", AppStrings.Organizations.serviceAreaPlaceholder, source: viewModel.serviceArea, target: $viewModel.germanServiceArea, limit: 2000),
+                .init("services", AppStrings.Organizations.servicesPlaceholder, source: viewModel.services, target: $viewModel.germanServices, limit: 2000),
+                .init("hours", AppStrings.Organizations.specialHoursPlaceholder, source: viewModel.specialHoursNote, target: $viewModel.germanSpecialHoursNote, limit: 2000),
+                .init("offer", AppStrings.Organizations.offerTitlePlaceholder, source: viewModel.currentOfferTitle, target: $viewModel.germanCurrentOfferTitle, limit: 120),
+                .init("offerDetails", AppStrings.Organizations.offerDetailsPlaceholder, source: viewModel.currentOfferDetails, target: $viewModel.germanCurrentOfferDetails, limit: 2000)
+            ]).padding(.bottom, AppTheme.dashboardSpacing)
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: editorCardSpacing) {
                     Text(ContentPublishingStrings.germanFallbackHint)

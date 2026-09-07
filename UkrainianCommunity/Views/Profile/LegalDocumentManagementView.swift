@@ -271,6 +271,11 @@ private struct LegalDocumentEditorView: View {
                         subtitle: AppStrings.LegalManagement.localizedContentSubtitle
                     )
 
+                    ContentTranslationButton(kind: "legal", fields: [
+                        .init("title", AppStrings.LegalManagement.localizedTitle, source: draft.locales["uk"]?.title ?? "", target: translationBinding(title: true), limit: 500),
+                        .init("markdown", AppStrings.LegalManagement.localizedContent, source: draft.locales["uk"]?.contentMarkdown ?? "", target: translationBinding(title: false), limit: 20000)
+                    ])
+
                     Picker(AppStrings.LegalManagement.localePicker, selection: $selectedLocale) {
                         Text(AppStrings.Settings.german).tag(AppLanguage.german.rawValue)
                         Text(AppStrings.Settings.ukrainian).tag(AppLanguage.ukrainian.rawValue)
@@ -331,6 +336,12 @@ private struct LegalDocumentEditorView: View {
         normalizedDraft != normalized(lastSavedDraft)
     }
 
+    private func translationBinding(title: Bool) -> Binding<String> {
+        Binding(get: { title ? draft.locales["de"]?.title ?? "" : draft.locales["de"]?.contentMarkdown ?? "" }, set: { text in
+            updateLocale(title: title ? text : nil, markdown: title ? nil : text, locale: "de")
+        })
+    }
+
     private var localizedTitleBinding: Binding<String> {
         Binding(
             get: { draft.locales[selectedLocale]?.title ?? "" },
@@ -365,11 +376,12 @@ private struct LegalDocumentEditorView: View {
         )
     }
 
-    private func updateLocale(title: String?, markdown: String?) {
+    private func updateLocale(title: String?, markdown: String?, locale: String? = nil) {
+        let locale = locale ?? selectedLocale
         validationErrors = []
-        let existing = draft.locales[selectedLocale]
+        let existing = draft.locales[locale]
             ?? LegalDocumentLocaleContent(title: "", contentMarkdown: "", contentText: nil, contentHash: nil)
-        draft.locales[selectedLocale] = LegalDocumentLocaleContent(
+        draft.locales[locale] = LegalDocumentLocaleContent(
             title: title ?? existing.title,
             contentMarkdown: markdown ?? existing.contentMarkdown,
             contentText: nil,

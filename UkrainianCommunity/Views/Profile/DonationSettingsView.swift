@@ -102,6 +102,14 @@ struct DonationSettingsView: View {
                 buttonText: $draft.buttonTitleUK
             )
 
+            AppEditorSectionCard {
+                ContentTranslationButton(kind: "donation", fields: [
+                    .init("title", DonationLocalization.titlePlaceholder(for: language), source: draft.titleUK, target: $draft.titleDE, limit: 120),
+                    .init("message", DonationLocalization.messagePlaceholder(for: language), source: draft.messageUK, target: $draft.messageDE, limit: 2000),
+                    .init("button", DonationLocalization.buttonTextPlaceholder(for: language), source: draft.buttonTitleUK, target: $draft.buttonTitleDE, limit: 80)
+                ])
+            }
+
             localizedTextSection(
                 title: DonationLocalization.germanTextSection(for: language),
                 titleText: $draft.titleDE,

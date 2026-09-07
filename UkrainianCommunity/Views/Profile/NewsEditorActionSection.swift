@@ -27,11 +27,11 @@ extension NewsEditorView {
                 }
                 mainInformationCard
                 newsCategoryCard
-                newsLocalizationCard
             case .content:
                 coverImageCard
                 newsMediaMetadataCard
                 bodyContentCard
+                newsLocalizationCard
             case .preview:
                 additionalDetailsCard
                 newsExternalActionCard

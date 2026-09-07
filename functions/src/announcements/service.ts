@@ -6,7 +6,7 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {requireAuth, requireVerifiedActiveUser} from "../auth/context";
 import {assertOwner, isActiveUser} from "../permissions/userPermissions";
 import {sendPushToRegistrationDocuments, isStrictFirebaseInstallationID} from "../notifications/pushRegistrations";
-import {getApp} from "firebase-admin/app";
+import {translateTexts} from "../translation/service";
 import {Announcement, AudienceUser, parseDraft, identifier, record, text, fail, matchesAudience, supports, isActive, publicAnnouncement, assertPublishable} from "./contract";
 
 const options = {region: "europe-west3", maxInstances: 10, enforceAppCheck: true};
@@ -212,19 +212,8 @@ async function translate(data: Record<string, unknown>, uid: string) {
     if (count >= 20 || old?.lastAt > Date.now() - 3000) throw new HttpsError("resource-exhausted", "Translation limit reached. You can enter both languages manually.");
     tx.set(ref, {day, count: count + 1, lastAt: Date.now()});
   });
-  const credential = getApp().options.credential;
-  if (!credential) throw new HttpsError("unavailable", "Translation is unavailable.");
-  const token = await credential.getAccessToken();
-  const project = process.env.GCLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT;
-  const response = await fetch(`https://translation.googleapis.com/v3/projects/${project}/locations/global:translateText`, {
-    method: "POST", signal: AbortSignal.timeout(20000),
-    headers: {Authorization: `Bearer ${token.access_token}`, "Content-Type": "application/json"},
-    body: JSON.stringify({contents: [title, body], mimeType: "text/plain", sourceLanguageCode: source, targetLanguageCode: source === "uk" ? "de" : "uk"}),
-  });
-  if (!response.ok) throw new HttpsError("unavailable", "Translation is unavailable. Please enter the translation manually or retry later.");
-  const result = await response.json() as {translations?: {translatedText?: string}[]};
-  if (result.translations?.length !== 2) throw new HttpsError("unavailable", "Incomplete translation.");
-  return {title: text(result.translations[0].translatedText, 160), body: text(result.translations[1].translatedText, 6000)};
+  const translated = await translateTexts([title, body], source, source === "uk" ? "de" : "uk");
+  return {title: text(translated[0], 160), body: text(translated[1], 6000)};
 }
 
 export async function dispatchAnnouncements(send: typeof sendPushToRegistrationDocuments = sendPushToRegistrationDocuments) {

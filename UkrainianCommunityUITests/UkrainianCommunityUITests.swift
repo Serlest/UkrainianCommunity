@@ -23,13 +23,30 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(entry.isHittable); entry.tap()
         let create = app.buttons["announcements.create"].firstMatch
         XCTAssertTrue(create.waitForExistence(timeout: 10)); create.tap()
-        let title = app.textFields["announcements.headline"].firstMatch
+        let title = app.textFields.firstMatch
         XCTAssertTrue(title.waitForExistence(timeout: 10)); title.tap(); title.typeText("Test UK")
-        let body = app.textFields["announcements.body"].firstMatch
+        let body = app.textViews.firstMatch
         XCTAssertTrue(body.waitForExistence(timeout: 5)); body.tap(); body.typeText("Nachricht UK")
         app.segmentedControls.buttons["Deutsch"].tap()
         title.tap(); title.typeText("Test DE")
         body.tap(); body.typeText("Nachricht DE")
+        dismissEditorKeyboard(in: app)
+        let reverseTranslate = app.buttons["translation.announcement"].firstMatch
+        scrollToElement(reverseTranslate, in: app, maxSwipes: 12); reverseTranslate.tap()
+        let ukrainianResult = app.textViews.matching(NSPredicate(format: "value == %@", "UK: Test DE")).firstMatch
+        XCTAssertTrue(ukrainianResult.waitForExistence(timeout: 10))
+        let applyReverse = app.buttons["translation.apply"].firstMatch
+        scrollToElement(applyReverse, in: app, maxSwipes: 12)
+        XCTAssertFalse(applyReverse.isEnabled)
+        let confirmReverse = app.switches["translation.confirm"].firstMatch
+        XCTAssertTrue(confirmReverse.waitForExistence(timeout: 5))
+        confirmReverse.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
+        XCTAssertTrue(applyReverse.isEnabled); applyReverse.tap()
+        XCTAssertTrue(applyReverse.waitForNonExistence(timeout: 5))
+        app.segmentedControls.buttons["Українська"].tap()
+        XCTAssertEqual(title.value as? String, "UK: Test DE")
+        XCTAssertEqual(body.value as? String, "UK: Nachricht DE")
+        app.segmentedControls.buttons["Deutsch"].tap()
         let save = app.buttons["announcements.save"].firstMatch
         scrollToElement(save, in: app, maxSwipes: 16)
         XCTAssertTrue(save.isHittable); save.tap()
@@ -38,9 +55,9 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.buttons.containing(.staticText, identifier: "Test DE").firstMatch.tap()
         let preview = app.buttons["announcements.preview"].firstMatch
         scrollToElement(preview, in: app, maxSwipes: 16); preview.tap()
-        XCTAssertTrue(app.staticTexts["Nachricht UK"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["UK: Nachricht DE"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Nachricht DE"].exists)
-        app.navigationBars.buttons["announcements.previewClose"].tap()
+        app.buttons["Abbrechen"].firstMatch.tap()
         let review = app.switches["announcements.review"].firstMatch
         scrollToElement(review, in: app, maxSwipes: 16)
         review.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
@@ -258,15 +275,42 @@ final class UkrainianCommunityUITests: XCTestCase {
         let newsSummary = element("editor.news.summary", in: app)
         newsSummary.tap()
         newsSummary.typeText("Короткий опис для перевірки картки")
+        XCTAssertEqual(newsTitle.value as? String, "Тестова новина")
+        XCTAssertEqual(newsSummary.value as? String, "Короткий опис для перевірки картки")
+        dismissEditorKeyboard(in: app)
         let newsNext = element("editor.news.next", in: app)
         scrollToElement(newsNext, in: app, maxSwipes: 10)
+        XCTAssertTrue(newsNext.isEnabled)
         newsNext.tap()
 
         let newsBody = element("editor.news.body", in: app)
         scrollToElement(newsBody, in: app, maxSwipes: 12)
         newsBody.tap()
         newsBody.typeText("Повний текст тестової новини для попереднього перегляду.")
+        dismissEditorKeyboard(in: app)
+        let translate = app.buttons["translation.news"].firstMatch
+        scrollToElement(translate, in: app, maxSwipes: 16)
+        XCTAssertTrue(translate.isEnabled); translate.tap()
+        let translatedTitle = app.textViews.matching(NSPredicate(format: "value == %@", "DE: Тестова новина")).firstMatch
+        XCTAssertTrue(translatedTitle.waitForExistence(timeout: 10))
+        XCTAssertEqual(translatedTitle.value as? String, "DE: Тестова новина")
+        translatedTitle.tap(); translatedTitle.typeText(" edited")
+        let editedTitle = app.textViews.matching(NSPredicate(format: "value CONTAINS %@", "edited")).firstMatch
+        XCTAssertTrue(editedTitle.waitForExistence(timeout: 5))
+        let correctedGermanTitle = editedTitle.value as? String
+        dismissEditorKeyboard(in: app)
+        attachScreenshot(named: "translation-news-edited-review", from: app)
+        let applyTranslation = app.buttons["translation.apply"].firstMatch
+        scrollToElement(applyTranslation, in: app, maxSwipes: 16); applyTranslation.tap()
+        XCTAssertTrue(applyTranslation.waitForNonExistence(timeout: 5))
+        let germanFields = app.buttons["Німецька версія (необов’язково)"].firstMatch
+        scrollToElement(germanFields, in: app, maxSwipes: 12)
+        germanFields.tap()
+        let appliedGermanTitle = app.textFields.matching(NSPredicate(format: "value CONTAINS %@", "edited")).firstMatch
+        XCTAssertTrue(appliedGermanTitle.waitForExistence(timeout: 5))
+        XCTAssertEqual(appliedGermanTitle.value as? String, correctedGermanTitle)
         scrollToElement(newsNext, in: app, maxSwipes: 12)
+        XCTAssertTrue(newsNext.isEnabled)
         newsNext.tap()
         XCTAssertTrue(app.staticTexts["Як виглядатиме новина"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["Тестова новина"].waitForExistence(timeout: 10))
@@ -317,6 +361,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         eventDetails.typeText("Повний опис події для попереднього перегляду.")
         XCTAssertEqual(eventDetails.value as? String, "Повний опис події для попереднього перегляду.")
         XCTAssertEqual(eventTitle.value as? String, "Тестова подія")
+        dismissEditorKeyboard(in: app)
         let eventNext = element("editor.event.next", in: app)
         scrollToElement(eventNext, in: app, maxSwipes: 12)
         XCTAssertTrue(eventNext.isEnabled)
@@ -326,9 +371,12 @@ final class UkrainianCommunityUITests: XCTestCase {
         scrollToElement(eventAddress, in: app, maxSwipes: 12)
         eventAddress.tap()
         eventAddress.typeText("Museumstrasse 1")
+        dismissEditorKeyboard(in: app)
         let eventCity = element("editor.event.city", in: app)
+        scrollToElement(eventCity, in: app, maxSwipes: 12)
         eventCity.tap()
         eventCity.typeText("Innsbruck")
+        dismissEditorKeyboard(in: app)
         scrollToElement(eventNext, in: app, maxSwipes: 12)
         eventNext.tap()
         scrollToElement(eventNext, in: app, maxSwipes: 12)
@@ -871,6 +919,13 @@ final class UkrainianCommunityUITests: XCTestCase {
         if backButton.exists && backButton.isHittable {
             backButton.tap()
         }
+    }
+
+    private func dismissEditorKeyboard(in app: XCUIApplication) {
+        guard app.keyboards.firstMatch.exists else { return }
+        // Tap the fixed editor header, outside inputs and its leading close control.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
     }
 
     private func scrollToElement(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 6) {
