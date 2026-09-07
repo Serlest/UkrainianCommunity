@@ -26,6 +26,19 @@ struct NewsBrowseTests {
         #expect(second.items.map(\.id) == ["national"])
         #expect(!second.hasMore)
     }
+    @Test func searchPreservesPublisherAuthorCityAndContentType() {
+        let post = NewsPost(id: "search", title: "Title", subtitle: "Subtitle", city: "Wien",
+                            source: ContentSourceMetadata(sourceType: .organization, organizationId: "publisher",
+                                                          organizationName: "Test Publisher"),
+                            body: "Body", authorName: "Test Author", publishedAt: now, createdAt: now,
+                            updatedAt: now, comments: [], moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
+        for search in ["Wien", "test publisher", "Test Author", AppStrings.News.title] {
+            let query = NewsBrowseQuery(filter: .init(), region: nil, search: search, referenceDate: now)
+            #expect(query.matches(post))
+        }
+        #expect(!NewsBrowseQuery(filter: .init(), region: nil, search: "unrelated", referenceDate: now).matches(post))
+    }
+
     @Test func bothSortDirectionsHaveStableTiesAcrossPages() async throws {
         let repository = MockNewsRepository(seededNews: [post("a"),post("b"),post("old",offset: -100)])
         for oldest in [false,true] {

@@ -1,7 +1,7 @@
 # Home news filters — 7 September 2026
 
 Implementation checkout: UACAnnouncements-20260907, codex/user-announcements-20260907.
-Release target: iOS 1.0.3 (73). Android UI is not enabled by this change.
+Release target: iOS 1.0.3 (74). Android UI is not enabled by this change.
 
 ## Behavior
 
@@ -91,3 +91,13 @@ news-browse-indexes.json, news-browse-validators.log.
 
 The first archive attempt was intentionally interrupted before upload to include
 the contrast correction. Release/Apple status is recorded below after completion.
+
+
+## Final compatibility correction
+
+Build 73 uploaded successfully and Apple marked it VALID. Before final delivery,
+comparison with the previous Home search found that publisher, author, city and
+the localized content-type title also needed to remain searchable. These fields
+were added alongside the new body/tag search, with a dedicated regression test.
+Build 74 is the final release target; build 73 is superseded by this correction.
+No additional cloud or schema changes are involved.

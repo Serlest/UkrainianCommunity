@@ -51,7 +51,8 @@ struct NewsBrowseQuery: Hashable {
             && (bounds.start == nil || post.publishedAt >= bounds.start!)
             && (bounds.end == nil || post.publishedAt < bounds.end!)
             && (search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || LocalSearchMatcher.matches(query: search, values: [post.localizedTitle, post.localizedSubtitle, post.localizedBody] + post.tags))
+                || LocalSearchMatcher.matches(query: search, values: [post.localizedTitle, post.localizedSubtitle, post.localizedBody,
+                    post.source.displayOrganizationName, post.authorName, post.city, AppStrings.News.title] + post.tags.map(Optional.some)))
     }
     func precedes(_ lhs: NewsPost, _ rhs: NewsPost) -> Bool {
         if lhs.publishedAt == rhs.publishedAt {
