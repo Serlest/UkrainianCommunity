@@ -182,11 +182,13 @@ struct ManagedUserSecurityMetadata: Equatable {
 final class UserManagementViewModel: ObservableObject {
     @Published private(set) var users: [AppUser] = []
     @Published private(set) var organizations: [ManagedOrganization] = []
+    @Published private(set) var organizationsLoaded = false
     @Published private(set) var isLoading = false
     @Published private(set) var isLoadingMore = false
     @Published private(set) var isSearching = false
     @Published private(set) var searchResults: [AppUser] = []
     @Published private(set) var searchTotalMatches = 0
+    @Published private(set) var searchFailed = false
     @Published private(set) var securityMetadataByUserID: [String: ManagedUserSecurityMetadata] = [:]
     @Published private(set) var canLoadMore = false
     @Published private(set) var error: AppError?
@@ -258,8 +260,10 @@ final class UserManagementViewModel: ObservableObject {
             let refreshed = try await RefreshRequest.run { [reads] in try await reads.organizations() }
             guard session == sessionRevision, revision == organizationsRevision, !Task.isCancelled else { return }
             organizations = refreshed
+            organizationsLoaded = true
         } catch {
             guard session == sessionRevision, revision == organizationsRevision, !Task.isCancelled else { return }
+            organizationsLoaded = false
             // Keep the last successful role data; a failed read must not erase the screen.
             self.error = .network
         }
@@ -301,7 +305,7 @@ final class UserManagementViewModel: ObservableObject {
             clearSearch()
             return
         }
-        guard let actor, PermissionService.canManageUsers(user: actor) else {
+        guard let actor, PermissionService.canManageUsers(user: actor), managementActorKey(for: actor) == loadedActorKey else {
             clearSearch()
             return
         }
@@ -309,6 +313,7 @@ final class UserManagementViewModel: ObservableObject {
         searchGeneration &+= 1
         let generation = searchGeneration
         isSearching = true
+        searchFailed = false
         defer {
             if generation == searchGeneration {
                 isSearching = false
@@ -316,30 +321,17 @@ final class UserManagementViewModel: ObservableObject {
         }
 
         do {
-            let response = try await RefreshRequest.run {
-                try await CloudFunctionsClient.shared.searchManagedUsers(query: trimmedQuery)
+            let response = try await RefreshRequest.run { [reads] in
+                try await reads.search(trimmedQuery)
             }
             guard generation == searchGeneration, !Task.isCancelled else { return }
-
-            var usersByID: [String: AppUser] = [:]
-            for userIDs in response.userIds.chunked(into: 30) where !userIDs.isEmpty {
-                let snapshot = try await RefreshRequest.run { [self] in
-                    try await usersCollection.whereField(FieldPath.documentID(), in: Array(userIDs))
-                        .getDocuments(source: .server)
-                }
-                guard generation == searchGeneration, !Task.isCancelled else { return }
-                for document in snapshot.documents {
-                    usersByID[document.documentID] = Self.makeUser(from: document)
-                }
-            }
-
-            searchResults = response.userIds.compactMap { usersByID[$0] }
+            searchResults = response.users
             searchTotalMatches = response.totalMatches
         } catch {
             guard generation == searchGeneration, !Task.isCancelled else { return }
             searchResults = []
             searchTotalMatches = 0
-            statusMessage = AppStrings.UserManagement.searchFailed
+            searchFailed = true
         }
     }
 
@@ -348,6 +340,7 @@ final class UserManagementViewModel: ObservableObject {
         isSearching = false
         searchResults = []
         searchTotalMatches = 0
+        searchFailed = false
     }
 
     func loadSecurityMetadata(userID: String, actor: AppUser?) async {
@@ -575,15 +568,17 @@ final class UserManagementViewModel: ObservableObject {
         guard !updatingUserIDs.contains(target.id) else { return }
         updatingUserIDs.insert(target.id)
         statusMessage = nil
-        defer { updatingUserIDs.remove(target.id) }
+        let session = sessionRevision
+        defer { if session == sessionRevision { updatingUserIDs.remove(target.id) } }
 
         do {
             try await operation()
+            guard session == sessionRevision else { return }
             statusMessage = AppStrings.UserManagement.changesSaved
             mutationRevision &+= 1
             await reloadUser(id: target.id, actor: actor)
         } catch {
-            self.error = .permissionDenied
+            guard session == sessionRevision else { return }
             statusMessage = failureMessage?(error) ?? AppStrings.UserManagement.changesFailed
         }
     }
@@ -596,7 +591,11 @@ final class UserManagementViewModel: ObservableObject {
         do {
             let refreshedUser = try await RefreshRequest.run { [reads] in try await reads.user(id) }
             guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
-            guard let refreshedUser else { self.error = .notFound; return }
+            guard let refreshedUser else {
+                self.error = .notFound
+                if afterMutation { statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed }
+                return
+            }
             if let index = users.firstIndex(where: { $0.id == id }) { users[index] = refreshedUser }
             else { users.append(refreshedUser) }
             if let index = searchResults.firstIndex(where: { $0.id == id }) { searchResults[index] = refreshedUser }
@@ -609,9 +608,10 @@ final class UserManagementViewModel: ObservableObject {
 
     private func reloadOrganizationAfterSuccessfulMutation(id: String) async {
         guard statusMessage == AppStrings.UserManagement.changesSaved else { return }
-
+        let session = sessionRevision
         do {
-            let document = try await organizationsCollection.document(id).getDocument()
+            let document = try await organizationsCollection.document(id).getDocument(source: .server)
+            guard session == sessionRevision else { return }
             guard document.exists, let data = document.data() else {
                 statusMessage = AppStrings.UserManagement.organizationMissing
                 return
@@ -627,6 +627,7 @@ final class UserManagementViewModel: ObservableObject {
                 }
             }
         } catch {
+            guard session == sessionRevision else { return }
             statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed
         }
     }
@@ -750,7 +751,7 @@ final class UserManagementViewModel: ObservableObject {
         let isBlocked = data["isBlocked"] as? Bool ?? false
         let blockState = UserBlockState(rawValue: data["blockState"] as? String ?? "") ?? (isBlocked ? .suspendedUntil : .active)
         return AppUser(
-            id: data["id"] as? String ?? id,
+            id: id,
             fullName: data["fullName"] as? String ?? "",
             displayName: data["displayName"] as? String ?? data["fullName"] as? String ?? "",
             city: data["city"] as? String ?? "",
@@ -814,8 +815,12 @@ final class UserManagementViewModel: ObservableObject {
         isLoading = false
         isLoadingMore = false
         detailRevisions = [:]
+        metadataRevisions = [:]
+        statusMessage = nil
+        updatingUserIDs = []
         users = []
         organizations = []
+        organizationsLoaded = false
         error = nil
         canLoadMore = false
         lastUserDocument = nil

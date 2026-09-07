@@ -11,6 +11,12 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
     case organizationModerators
 
     var id: String { title }
+    var isOrganizationFilter: Bool {
+        switch self {
+        case .organizationOwners, .organizationAdmins, .organizationModerators: true
+        default: false
+        }
+    }
 
     var title: String {
         switch self {
@@ -104,7 +110,7 @@ struct UserManagementView: View {
 
     private var actorLoadKey: String {
         guard let actor else { return "signed-out" }
-        return "\(actor.id)|\(actor.globalRole.authorizationRole.rawValue)"
+        return "\(actor.id)|\(actor.globalRole.authorizationRole.rawValue)|\(canAccessUserManagement)"
     }
 
     private var filteredUsers: [AppUser] {
@@ -125,7 +131,7 @@ struct UserManagementView: View {
             return viewModel.users.filter { user in
                 LocalSearchMatcher.matches(
                     query: normalizedSearch,
-                    values: [user.displayName, user.fullName, user.email, user.id]
+                    values: [user.displayName, user.fullName, user.email, user.telegramUsername ?? "", user.id]
                 )
             }
         }
@@ -227,14 +233,7 @@ struct UserManagementView: View {
                 .buttonStyle(.plain)
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                AppHorizontalFilterRow {
-                    ForEach(UserManagementFilter.allCases.prefix(5)) { filter in
-                        UserManagementStatusBadge(
-                            title: "\(filter.title): \(count(for: filter))",
-                            tint: selectedFilter == filter ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary
-                        )
-                    }
-                }
+
             }
         }
     }
@@ -249,6 +248,7 @@ struct UserManagementView: View {
                 .autocorrectionDisabled()
                 .font(.subheadline)
                 .focused($isSearchFocused)
+                .accessibilityIdentifier("userManagement.search")
                 .submitLabel(.search)
                 .onSubmit { isSearchFocused = false }
 
@@ -274,25 +274,35 @@ struct UserManagementView: View {
     }
 
     private var filterRow: some View {
-        AppHorizontalFilterRow {
-            ForEach(UserManagementFilter.allCases) { filter in
-                Button {
-                    selectedFilter = filter
-                } label: {
-                    AppFilterChip(
-                        title: "\(filter.title) · \(count(for: filter))",
-                        systemImage: filter.systemImage,
-                        isSelected: selectedFilter == filter
-                    )
-                }
-                .buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            ViewThatFits(in: .horizontal) {
+                HStack { filterMenu; Spacer(minLength: 8); sortMenu }
+                VStack(alignment: .leading, spacing: 8) { filterMenu; sortMenu }
             }
-
-            AppSortMenu(
-                selection: $sortOption,
-                options: [.newest, .oldest, .nameAscending, .nameDescending]
-            )
+            if viewModel.canLoadMore && normalizedSearch.count < 2 {
+                Text(AppStrings.UserManagement.loadedScope)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
         }
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            Picker(AppStrings.UserManagement.title, selection: $selectedFilter) {
+                ForEach(UserManagementFilter.allCases) { filter in
+                    Text("\(filter.title) · \(countLabel(for: filter))").tag(filter)
+                        .disabled(filter.isOrganizationFilter && !viewModel.organizationsLoaded)
+                }
+            }
+        } label: {
+            AppFilterChip(title: selectedFilter.title, systemImage: selectedFilter.systemImage, isSelected: true)
+        }
+        .accessibilityIdentifier("userManagement.filter")
+    }
+
+    private var sortMenu: some View {
+        AppSortMenu(selection: $sortOption, options: [.newest, .oldest, .nameAscending, .nameDescending])
     }
 
     private func userSort(_ lhs: AppUser, _ rhs: AppUser) -> Bool {
@@ -320,6 +330,14 @@ struct UserManagementView: View {
     private var contentList: some View {
         if viewModel.isSearching {
             LoadingStateCard(title: AppStrings.UserManagement.searching)
+        } else if normalizedSearch.count >= 2 && viewModel.searchFailed {
+            UnifiedEmptyStateCard(systemImage: "exclamationmark.triangle", title: AppStrings.UserManagement.title,
+                                  message: AppStrings.UserManagement.searchFailed) {
+                PrimaryActionButton(title: AppStrings.UserManagement.retry, systemImage: "arrow.clockwise") {
+                    Task { await viewModel.search(query: normalizedSearch, actor: actor) }
+                }
+            }
+            .accessibilityIdentifier("userManagement.searchError")
         } else if viewModel.isLoading && viewModel.users.isEmpty {
             LoadingStateCard(title: AppStrings.UserManagement.title)
         } else if viewModel.users.isEmpty, viewModel.error != nil {
@@ -332,6 +350,11 @@ struct UserManagementView: View {
                     Task { await viewModel.refresh(actor: actor) }
                 }
             }
+        } else if selectedFilter.isOrganizationFilter && !viewModel.organizationsLoaded {
+            InlineMessageCard(style: .error, message: AppStrings.UserManagement.organizationsNotLoaded)
+            PrimaryActionButton(title: AppStrings.UserManagement.retry, systemImage: "arrow.clockwise") {
+                Task { await viewModel.refresh(actor: actor) }
+            }
         } else if filteredUsers.isEmpty {
             VStack(spacing: AppTheme.dashboardSpacing) {
                 UnifiedEmptyStateCard(
@@ -339,7 +362,7 @@ struct UserManagementView: View {
                     title: AppStrings.UserManagement.noResultsTitle,
                     message: AppStrings.UserManagement.noResultsMessage
                 )
-                if normalizedSearch.isEmpty { loadMoreButton }
+                if normalizedSearch.count < 2 { loadMoreButton }
             }
         } else {
             VStack(spacing: AppTheme.feedRowSpacing) {
@@ -347,16 +370,18 @@ struct UserManagementView: View {
                     InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
                 }
                 ForEach(filteredUsers) { user in
-                    Button { selectedUserRoute = ManagedUserRoute(user: user) } label: {
-                        ManagedUserRow(user: user, organizationRoles: viewModel.organizationRoles(for: user))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("userManagement.user.\(user.id)")
+                    ManagedUserRow(user: user, organizationRoles: viewModel.organizationRoles(for: user))
+                        .contentShape(Rectangle())
+                        .onTapGesture { selectedUserRoute = ManagedUserRoute(user: user) }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityAction { selectedUserRoute = ManagedUserRoute(user: user) }
+                        .accessibilityIdentifier("userManagement.user.\(user.id)")
                 }
-                if normalizedSearch.isEmpty {
+                if normalizedSearch.count < 2 {
                     loadMoreButton
                 } else if normalizedSearch.count >= 2 {
-                    Text(AppStrings.UserManagement.searchResultCount(viewModel.searchTotalMatches))
+                    Text(AppStrings.UserManagement.searchResultSummary(shown: filteredUsers.count, found: viewModel.searchTotalMatches))
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -379,8 +404,12 @@ struct UserManagementView: View {
         }
     }
 
+    private func countLabel(for filter: UserManagementFilter) -> String {
+        filter.isOrganizationFilter && !viewModel.organizationsLoaded ? "—" : String(count(for: filter))
+    }
+
     private func count(for filter: UserManagementFilter) -> Int {
-        viewModel.users.filter {
+        candidateUsers.filter {
             filter.matches($0, organizationRoles: viewModel.organizationRoles(for: $0))
         }.count
     }

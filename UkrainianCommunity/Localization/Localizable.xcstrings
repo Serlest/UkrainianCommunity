@@ -1,6 +1,41 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+  "user_management.email_password_provider": {"extractionState":"manual","localizations":{"uk":{"stringUnit":{"state":"translated","value":"Email і пароль"}},"de":{"stringUnit":{"state":"translated","value":"E-Mail und Passwort"}}}},
+  "user_management.loaded_scope": {
+  "extractionState": "manual",
+  "localizations": {
+    "uk": {
+      "stringUnit": {
+        "state": "translated",
+        "value": "Фільтр і сортування застосовуються до завантажених користувачів. Завантажте ще або скористайтеся пошуком."
+      }
+    },
+    "de": {
+      "stringUnit": {
+        "state": "translated",
+        "value": "Filter und Sortierung gelten für die geladenen Nutzer. Laden Sie weitere Nutzer oder verwenden Sie die Suche."
+      }
+    }
+  }
+},
+  "user_management.search.result_summary": {
+  "extractionState": "manual",
+  "localizations": {
+    "uk": {
+      "stringUnit": {
+        "state": "translated",
+        "value": "Показано: %lld · Знайдено: %lld"
+      }
+    },
+    "de": {
+      "stringUnit": {
+        "state": "translated",
+        "value": "Angezeigt: %lld · Gefunden: %lld"
+      }
+    }
+  }
+},
   "owner_analytics.delta.comparison_caption": {
     "extractionState": "manual",
     "localizations": {

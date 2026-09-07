@@ -658,6 +658,40 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testUserManagementListStaysAlignedAndSearchFailureIsExplicit() throws {
+        let app = launchUserRefreshApp(failing: false, longContent: true)
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let users = element("profile.userManagement", in: app)
+        scrollToElement(users, in: app, maxSwipes: 12)
+        users.tap()
+        let row = element("userManagement.user.user-1", in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 8))
+        let before = row.frame
+        let scroll = app.scrollViews.firstMatch
+        let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.4, dy: 0.65))
+        let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.65))
+        start.press(forDuration: 0.05, thenDragTo: end)
+        let gestureScreenshot = XCTAttachment(screenshot: app.screenshot())
+        gestureScreenshot.name = "Immediately after horizontal gesture"
+        gestureScreenshot.lifetime = .keepAlways
+        add(gestureScreenshot)
+        XCTAssertTrue(row.exists)
+        XCTAssertEqual(row.frame.minX, before.minX, accuracy: 1)
+        XCTAssertLessThanOrEqual(row.frame.maxX, app.frame.maxX)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "User management fixed list"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        let search = app.textFields["userManagement.search"]
+        search.tap()
+        search.typeText("error")
+        XCTAssertTrue(element("userManagement.searchError", in: app).waitForExistence(timeout: 8))
+        search.tap()
+        search.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 5) + "olena")
+        XCTAssertTrue(row.waitForExistence(timeout: 8))
+        XCTAssertFalse(element("userManagement.searchError", in: app).exists)
+    }
+
     func testUserDetailPullRefreshUpdatesPresenceAndKeepsNavigation() throws {
         let app = launchUserRefreshApp(failing: false)
         openRefreshTestUser(in: app)
@@ -735,7 +769,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         }
     }
 
-    private func launchUserRefreshApp(failing: Bool) -> XCUIApplication {
+    private func launchUserRefreshApp(failing: Bool, longContent: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
@@ -743,6 +777,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestForceOwnerSession"] = "1"
         app.launchEnvironment["UITestUserRefresh"] = "1"
         if failing { app.launchEnvironment["UITestUserRefreshFailure"] = "1" }
+        if longContent { app.launchEnvironment["UITestUserManagementLong"] = "1" }
         app.launch()
         return app
     }

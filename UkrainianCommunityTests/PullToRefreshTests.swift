@@ -4,6 +4,68 @@ import Testing
 
 @MainActor
 struct PullToRefreshTests {
+    @Test func managedSearchFailureIsNotAnEmptySuccessAndCanRetry() async {
+        let fixture = ManagementReadFixture()
+        var failSearch = true
+        var reads = fixture.reads
+        reads.search = { _ in
+            if failSearch { throw AppError.network }
+            return .init(users: [fixture.member], totalMatches: 125)
+        }
+        let model = UserManagementViewModel(reads: reads)
+        let owner = MockContentBuilder.ownerUser()
+        await model.load(actor: owner)
+        await model.search(query: "olena", actor: owner)
+        #expect(model.searchFailed)
+        #expect(!model.isSearching)
+        #expect(model.users.count == 2)
+        failSearch = false
+        await model.search(query: "olena", actor: owner)
+        #expect(!model.searchFailed)
+        #expect(model.searchResults.map(\.id) == [fixture.member.id])
+        #expect(model.searchTotalMatches == 125)
+        model.clearSearch()
+        #expect(model.searchResults.isEmpty)
+        #expect(!model.searchFailed)
+    }
+
+    @Test func managedSearchCannotReturnAfterPermissionLoss() async {
+        let fixture = ManagementReadFixture()
+        let gate = ReadGate<UserManagementReads.SearchResult>()
+        var reads = fixture.reads
+        reads.search = { _ in await gate.wait() }
+        let model = UserManagementViewModel(reads: reads)
+        let owner = MockContentBuilder.ownerUser()
+        await model.load(actor: owner)
+        let request = Task { await model.search(query: "olena", actor: owner) }
+        await gate.waitUntilStarted()
+        await model.refresh(actor: nil)
+        gate.complete(.init(users: [fixture.member], totalMatches: 1))
+        await request.value
+        #expect(model.users.isEmpty)
+        #expect(model.searchResults.isEmpty)
+        #expect(!model.searchFailed)
+        #expect(!model.isSearching)
+    }
+
+    @Test func failedOrganizationReadDoesNotClaimNoRoles() async {
+        let fixture = ManagementReadFixture()
+        let model = UserManagementViewModel(reads: fixture.reads)
+        let owner = MockContentBuilder.ownerUser()
+        fixture.fail = true
+        await model.load(actor: owner)
+        #expect(!model.organizationsLoaded)
+        fixture.fail = false
+        await model.refresh(actor: owner)
+        #expect(model.organizationsLoaded)
+        #expect(model.organizations.isEmpty)
+    }
+
+    @Test func managedUserIdentityAlwaysUsesDocumentID() {
+        let user = UserManagementViewModel.makeUser(id: "actual-document", data: ["id": "wrong-target", "displayName": "Olena"])
+        #expect(user.id == "actual-document")
+    }
+
     @Test func viewReevaluationDoesNotAbortRefreshButLeavingScreenDoes() async {
         let deadline = ManualRefreshDeadline()
         defer { deadline.cancel() }

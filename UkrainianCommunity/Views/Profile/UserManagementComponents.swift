@@ -218,7 +218,6 @@ struct ManagedUserRow: View {
             Text(secondaryLine)
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
-                .textSelection(.enabled)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }

@@ -2225,6 +2225,11 @@ enum AppStrings {
         static var organizationSearchPlaceholder: String { text("user_management.organization_search.placeholder", "Пошук організації") }
         static var contentSubtitle: String { text("user_management.content.subtitle", "Пошук, статуси, блокування та ролі користувачів в організаціях.") }
         static var registeredUsers: String { text("user_management.registered_users", "зареєстрованих користувачів") }
+        static var emailPasswordProvider: String { text("user_management.email_password_provider", "Email і пароль") }
+        static var loadedScope: String { text("user_management.loaded_scope", "Фільтр і сортування застосовуються до завантажених користувачів. Завантажте ще або скористайтеся пошуком.") }
+        static func searchResultSummary(shown: Int, found: Int) -> String {
+            LocalizationStore.localizedFormat("user_management.search.result_summary", defaultValue: "Показано: %lld · Знайдено: %lld", arguments: [shown, found])
+        }
         static var loadedUsers: String { text("user_management.loaded_users", "завантажено користувачів") }
         static var loadMore: String { text("user_management.load_more", "Завантажити ще") }
         static var loadMoreFailed: String { text("user_management.load_more_failed", "Не вдалося завантажити наступних користувачів.") }

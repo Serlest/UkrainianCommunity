@@ -9,11 +9,32 @@ struct UserManagementReads {
         let hasMore: Bool
     }
 
+    struct SearchResult {
+        let users: [AppUser]
+        let totalMatches: Int
+    }
+
     var users: (Int) async throws -> Page
     var user: (String) async throws -> AppUser?
     var organizations: () async throws -> [ManagedOrganization]
     var securityMetadata: (String) async throws -> ManagedUserSecurityMetadata
     var presence: (String) async throws -> ManagedUserPresenceSnapshot = UserPresenceAPI.load
+
+    var search: (String) async throws -> SearchResult = liveSearch
+
+    private static func liveSearch(_ query: String) async throws -> SearchResult {
+        let response = try await CloudFunctionsClient.shared.searchManagedUsers(query: query)
+        var usersByID: [String: AppUser] = [:]
+        for ids in response.userIds.chunked(into: 30) where !ids.isEmpty {
+            try Task.checkCancellation()
+            let snapshot = try await Firestore.firestore().collection("users")
+                .whereField(FieldPath.documentID(), in: Array(ids)).getDocuments(source: .server)
+            for document in snapshot.documents {
+                usersByID[document.documentID] = UserManagementViewModel.makeUser(from: document)
+            }
+        }
+        return SearchResult(users: response.userIds.compactMap { usersByID[$0] }, totalMatches: response.totalMatches)
+    }
 
     static let live = UserManagementReads(
         users: { limit in

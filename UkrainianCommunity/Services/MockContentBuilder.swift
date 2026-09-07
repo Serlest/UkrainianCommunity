@@ -30,9 +30,15 @@ enum MockContentBuilder {
         var presenceReads = 0
         var userReads = 0
         let failOnce = ProcessInfo.processInfo.environment["UITestUserRefreshFailure"] == "1"
+        let longContent = ProcessInfo.processInfo.environment["UITestUserManagementLong"] == "1"
+        let member = longContent ? AppUser(id: "user-1", fullName: "Олена Марія Коваль — координаторка української спільноти в Австрії",
+            displayName: "Олена Марія Коваль — координаторка української спільноти в Австрії", city: "Інсбрук / Тіроль",
+            email: "olena.community.coordinator.with.a.very.long.address@example.com", bio: "", role: .user,
+            blockState: .active, createdAt: .now, updatedAt: .now) : currentUser()
         return UserManagementReads(users: { _ in
-            .init(users: [currentUser(), ownerUser()], cursor: nil, hasMore: false)
-        }, user: { _ in
+            .init(users: [member, ownerUser()], cursor: nil, hasMore: false)
+        }, user: { id in
+            if id == ownerUser().id { return ownerUser() }
             userReads += 1
             try await Task.sleep(for: .milliseconds(700))
             if failOnce && userReads == 1 { throw AppError.network }
@@ -50,6 +56,12 @@ enum MockContentBuilder {
             let now = Date().timeIntervalSince1970 * 1_000
             return ManagedUserPresenceSnapshot(response: .init(targetUserId: id, lastSeenAt: now,
                 onlineUntil: presenceReads == 1 ? now + 90_000 : nil, serverTime: now), requestStartedAt: .now)
+        }, search: { query in
+            if query == "error" { throw AppError.network }
+            let matches = [currentUser(), ownerUser()].filter {
+                LocalSearchMatcher.matches(query: query, values: [$0.displayName, $0.email, $0.telegramUsername ?? "", $0.id])
+            }
+            return .init(users: matches, totalMatches: matches.count)
         })
     }
 

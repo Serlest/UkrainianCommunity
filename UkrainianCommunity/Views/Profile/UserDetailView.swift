@@ -112,7 +112,7 @@ struct UserDetailView: View {
     }
 
     private var roleAssignmentBlockingMessage: String? {
-        guard !organizations.isEmpty else {
+        guard viewModel.organizationsLoaded, !organizations.isEmpty else {
             return AppStrings.UserManagement.organizationsNotLoaded
         }
         guard !assignmentOrganizations.isEmpty else {
@@ -325,7 +325,14 @@ struct UserDetailView: View {
                         title: AppStrings.UserManagement.signInProvider,
                         value: securityMetadata.providerIDs.isEmpty
                             ? AppStrings.Common.notAvailable
-                            : securityMetadata.providerIDs.joined(separator: ", ")
+                            : securityMetadata.providerIDs.map { provider in
+                                switch provider {
+                                case "password": AppStrings.UserManagement.emailPasswordProvider
+                                case "apple.com": "Apple"
+                                case "google.com": "Google"
+                                default: provider
+                                }
+                            }.joined(separator: ", ")
                     )
                 }
                 if let banExpiresAt = user.banExpiresAt {
@@ -340,7 +347,11 @@ struct UserDetailView: View {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 SectionHeaderBlock(title: AppStrings.UserManagement.organizationRolesTitle, subtitle: AppStrings.UserManagement.organizationRolesSubtitle)
 
-                if organizationRoles.isEmpty {
+                if !viewModel.organizationsLoaded {
+                    Text(AppStrings.UserManagement.organizationsNotLoaded)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                } else if organizationRoles.isEmpty {
                     Text(AppStrings.UserManagement.organizationRolesEmpty)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -573,7 +584,7 @@ struct UserDetailView: View {
     }
 
     private var locationText: String {
-        let region = user.selectedFederalState?.rawValue
+        let region = user.selectedFederalState?.displayName
         let locationParts: [String] = [user.city, region].compactMap { value in
             guard let value, !value.isEmpty else { return nil }
             return value
@@ -801,6 +812,10 @@ private struct UserAuditHistoryCard: View {
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
                 } else {
+                    if loadError {
+                        InlineMessageCard(style: .error, message: AppStrings.UserManagement.auditHistoryLoadError)
+                        Button(AppStrings.UserManagement.retry) { Task { await load(reset: true) } }
+                    }
                     ForEach(items) { item in
                         UserManagementAuditRow(
                             title: item.title,
@@ -840,7 +855,8 @@ private struct UserAuditHistoryCard: View {
             if !reset, let lastDocument {
                 query = query.start(afterDocument: lastDocument)
             }
-            let snapshot = try await query.getDocuments()
+            let snapshot = try await RefreshRequest.run { try await query.getDocuments(source: .server) }
+            guard !Task.isCancelled else { return }
 
             let newItems = snapshot.documents.map { document in
                 let data = document.data()
@@ -858,12 +874,8 @@ private struct UserAuditHistoryCard: View {
             lastDocument = snapshot.documents.last
             canLoadMore = snapshot.documents.count == 20
         } catch {
+            guard !Task.isCancelled else { return }
             loadError = true
-            if reset {
-                items = []
-                lastDocument = nil
-                canLoadMore = false
-            }
         }
     }
 }
