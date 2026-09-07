@@ -295,6 +295,7 @@ struct OrganizationPage {
 }
 
 protocol NewsRepository {
+    func fetchNewsBrowsePage(query: NewsBrowseQuery, limit: Int, after: NewsPageCursor?) async throws -> NewsPage
     func fetchNews() async throws -> [NewsPost]
     func fetchNews(id: String) async throws -> NewsPost
     func fetchBookmarkedNews() async throws -> [NewsPost]
@@ -420,6 +421,25 @@ extension NewsRepository {
             throw AppError.notFound
         }
         return post
+    }
+
+    func fetchNewsBrowsePage(query: NewsBrowseQuery, limit: Int, after: NewsPageCursor?) async throws -> NewsPage {
+        // Repositories without subscription support must not present all news as subscribed.
+        guard query.filter.scope != .subscribed else {
+            return NewsPage(items: [], nextCursor: nil, hasMore: false)
+        }
+        let posts = try await fetchNews().filter { query.matches($0) }
+            .filter { query.filter.scope != .saved || $0.isBookmarked }.sorted(by: query.precedes)
+        let remaining = posts.filter { post in
+            guard let after else { return true }
+            if post.publishedAt == after.publishedAt {
+                return query.filter.oldestFirst ? post.id > after.documentID : post.id < after.documentID
+            }
+            return query.filter.oldestFirst ? post.publishedAt > after.publishedAt : post.publishedAt < after.publishedAt
+        }
+        let items = Array(remaining.prefix(max(1, limit)))
+        return NewsPage(items: items, nextCursor: items.last.map { NewsPageCursor(publishedAt: $0.publishedAt, documentID: $0.id) },
+                        hasMore: remaining.count > items.count)
     }
 
     func fetchBookmarkedNews() async throws -> [NewsPost] {

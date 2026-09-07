@@ -10,6 +10,75 @@ import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
+    func testNewsBrowseUkrainianPeriodAndTopicNavigation() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "uk"
+        app.launch()
+        let topicLink = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.news.topicLink.")).firstMatch
+        scrollToElement(topicLink, in: app, maxSwipes: 8)
+        XCTAssertTrue(topicLink.waitForExistence(timeout: 10)); topicLink.tap()
+        let summary = app.staticTexts["home.news.summary"].firstMatch
+        XCTAssertTrue(summary.waitForExistence(timeout: 10))
+        let card = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.card.news-")).firstMatch
+        scrollToElement(card, in: app, maxSwipes: 5)
+        XCTAssertTrue(card.waitForExistence(timeout: 10)); card.tap()
+        let back = app.buttons["navigation.back"].firstMatch
+        XCTAssertTrue(back.waitForExistence(timeout: 5)); back.tap()
+        XCTAssertTrue(summary.waitForExistence(timeout: 5))
+        let filter = app.buttons["home.filter.options"].firstMatch
+        scrollToElement(filter, in: app, maxSwipes: 5); filter.tap()
+        app.buttons["home.news.period"].tap()
+        app.buttons["Обрати дати"].firstMatch.tap()
+        XCTAssertTrue(app.datePickers["home.news.from"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.datePickers["home.news.to"].exists)
+        attachScreenshot(named: "news-custom-date-filters-ukrainian", from: app)
+        app.buttons["Скасувати"].firstMatch.tap()
+        XCTAssertTrue(summary.label.contains("За весь час"))
+        filter.tap()
+        app.buttons["home.news.period"].tap()
+        app.buttons["Останні 7 днів"].firstMatch.tap()
+        app.buttons["home.news.apply"].tap()
+        XCTAssertTrue(summary.label.contains("Останні 7 днів"))
+        attachScreenshot(named: "news-seven-days-ukrainian", from: app)
+    }
+
+    @MainActor
+    func testNewsBrowseFiltersAndTypeSwitch() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "de"
+        app.launch()
+        let type = app.buttons["home.filter.type"].firstMatch
+        XCTAssertTrue(type.waitForExistence(timeout: 20)); type.tap()
+        app.buttons["News"].firstMatch.tap()
+        let topic = app.buttons["home.filter.topic"].firstMatch
+        XCTAssertTrue(topic.waitForExistence(timeout: 10)); topic.tap()
+        app.buttons["Allgemeine Nachrichten"].firstMatch.tap()
+        let filters = app.buttons["home.filter.options"].firstMatch
+        XCTAssertTrue(filters.waitForExistence(timeout: 5)); filters.tap()
+        let sort = app.buttons["home.news.sort"].firstMatch
+        XCTAssertTrue(sort.waitForExistence(timeout: 5)); sort.tap()
+        app.buttons["Älteste zuerst"].firstMatch.tap()
+        app.buttons["home.news.apply"].tap()
+        let summary = app.staticTexts["home.news.summary"].firstMatch
+        XCTAssertTrue(summary.waitForExistence(timeout: 5))
+        XCTAssertTrue(summary.label.contains("Älteste zuerst"))
+        attachScreenshot(named: "news-topic-oldest-german", from: app)
+        type.tap(); app.buttons["Alle"].firstMatch.tap()
+        XCTAssertFalse(app.buttons["home.filter.topic"].exists)
+        type.tap(); app.buttons["News"].firstMatch.tap()
+        XCTAssertTrue(summary.waitForExistence(timeout: 5))
+        XCTAssertTrue(summary.label.contains("Älteste zuerst"))
+        app.buttons["home.filter.options"].tap()
+        app.buttons["home.news.reset"].tap()
+        app.buttons["home.news.apply"].tap()
+        XCTAssertTrue(summary.label.contains("Neueste zuerst"))
+    }
+
+    @MainActor
     func testAnnouncementOwnerCanCreateBilingualDraft() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]

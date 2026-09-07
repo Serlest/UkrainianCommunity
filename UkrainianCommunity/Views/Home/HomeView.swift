@@ -25,6 +25,9 @@ struct HomeView: View {
     @Binding var selectedFederalState: AustrianFederalState?
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var selectedContentType: HomeContentTypeFilter = .all
+    @State private var newsFilter = NewsBrowseFilter()
+    @StateObject private var newsBrowser: NewsBrowseViewModel
+    @State private var newsReferenceDate = Date()
     @State private var selectedFeedFilter: HomeFeedFilter = .all
     @State private var isSearchPresented = false
     @State private var searchText = ""
@@ -57,6 +60,7 @@ struct HomeView: View {
         self.eventsViewModel = eventsViewModel
         self.organizationsViewModel = organizationsViewModel
         self.newsRepository = newsRepository
+        _newsBrowser = StateObject(wrappedValue: NewsBrowseViewModel(repository: newsRepository))
         self.onFeaturedBannerTap = onFeaturedBannerTap
         self.scrollResetToken = scrollResetToken
         self.searchResetToken = searchResetToken
@@ -95,7 +99,9 @@ struct HomeView: View {
                         onSelectRegion: selectRegion,
                         onSelectContentType: { selectedContentType = $0 },
                         onToggleSaved: { toggleFeedFilter(.saved) },
-                        onToggleSubscribed: { toggleFeedFilter(.subscribed) }
+                        onToggleSubscribed: { toggleFeedFilter(.subscribed) },
+                        newsFilter: $newsFilter,
+                        authenticated: authState.isAuthenticated
                     )
                         .padding(.bottom, AppTheme.homeSectionSpacing)
 
@@ -123,6 +129,14 @@ struct HomeView: View {
         }
         .task(id: contentLoadKey) {
             await loadContentWhenAuthIsReady()
+        }
+        .task(id: newsBrowseLoadKey) {
+            guard selectedContentType == .news, isAuthBootstrapReady, isActive else { return }
+            await newsBrowser.reload(newsBrowseQuery, visibility: newsViewModel.visibilityPolicy)
+        }
+        .onChange(of: newsViewModel.contentVersion) { _, _ in
+            guard selectedContentType == .news else { return }
+            newsReferenceDate = Date()
         }
         .task(id: featuredBannerLoadKey) {
             guard isActive, isAuthBootstrapReady else { return }
@@ -165,6 +179,8 @@ struct HomeView: View {
             rebuildVisibleFeedItems()
         }
         .onChange(of: authState.user?.id) { _, _ in
+            newsBrowser.clear()
+            newsFilter.scope = .all
             rebuildVisibleFeedItems()
         }
         .observesKeyboardDismissTaps()
@@ -205,7 +221,9 @@ struct HomeView: View {
 
     @ViewBuilder
     private var feedContent: some View {
-        if viewModel.isLoading && viewModel.feedItems.isEmpty {
+        if selectedContentType == .news {
+            newsBrowseContent
+        } else if viewModel.isLoading && viewModel.feedItems.isEmpty {
             LoadingStateCard(title: nil)
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.feedItems.isEmpty && viewModel.error != nil {
@@ -243,16 +261,72 @@ struct HomeView: View {
                     items: visibleFeedItems,
                     spacing: AppTheme.feedRowSpacing
                 ) { item in
-                    NavigationLink(value: item.destination) {
-                        HomeFeedCard(item: item)
+                    VStack(alignment: .leading, spacing: 4) {
+                        NavigationLink(value: item.destination) {
+                            HomeFeedCard(item: item)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("home.card.\(item.id)")
+                        NewsTopicLink(item: item, select: selectNewsTopic)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("home.card.\(item.id)")
                 }
 
                 if hasMoreVisiblePages {
                     loadMoreButton
                 }
+            }
+        }
+    }
+
+    private var newsBrowseQuery: NewsBrowseQuery {
+        NewsBrowseQuery(filter: newsFilter, region: selectedFederalState, search: searchText, accountKey: authBootstrapKey, referenceDate: newsReferenceDate)
+    }
+    private var newsBrowseLoadKey: String {
+        "\(newsBrowseQuery.hashValue):\(authBootstrapKey):\(selectedContentType):\(isActive)"
+    }
+    private func selectNewsTopic(_ topic: NewsCategory) {
+        newsFilter.topic = topic
+        selectedContentType = .news
+    }
+    @ViewBuilder private var newsBrowseContent: some View {
+        VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+            Text([newsFilter.period.title,
+                  NewsBrowseStrings.text(newsFilter.oldestFirst ? "oldest" : "newest"),
+                  newsFilter.scope == .all ? nil : newsFilter.scope.title].compactMap { $0 }.joined(separator: " · "))
+                .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                .accessibilityIdentifier("home.news.summary")
+            if newsFilter.period == .custom {
+                Text("\(LocalizationStore.dateString(from: newsFilter.startDate, dateStyle: .medium, timeStyle: .none)) – \(LocalizationStore.dateString(from: newsFilter.endDate, dateStyle: .medium, timeStyle: .none))")
+                    .font(.caption).foregroundStyle(AppTheme.textSecondary)
+            }
+            if let error = newsBrowser.error {
+                ErrorStateCard(title: AppStrings.Tabs.home, message: error, retryTitle: AppStrings.News.retry) {
+                    Task { await newsBrowser.loadMore(visibility: newsViewModel.visibilityPolicy) }
+                }
+            }
+            ForEach(newsViewModel.visibilityPolicy.visibleNews(newsBrowser.posts)) { post in
+                let item = HomeFeedItem(post: post)
+                VStack(alignment: .leading, spacing: 4) {
+                    NavigationLink(value: item.destination) { HomeFeedCard(item: item) }
+                        .buttonStyle(.plain).accessibilityIdentifier("home.card.\(item.id)")
+                    NewsTopicLink(item: item, select: selectNewsTopic)
+                }
+            }
+            if newsBrowser.loading {
+                ProgressView().frame(maxWidth: .infinity).accessibilityIdentifier("home.news.loading")
+            } else if newsBrowser.hasMore {
+                if newsBrowser.posts.isEmpty { Text(NewsBrowseStrings.text("continueHint")).font(.caption) }
+                Button(NewsBrowseStrings.text("more")) {
+                    Task { await newsBrowser.loadMore(visibility: newsViewModel.visibilityPolicy) }
+                }.accessibilityIdentifier("home.news.more")
+            } else if newsBrowser.posts.isEmpty && newsBrowser.error == nil {
+                Text(NewsBrowseStrings.text("empty")).accessibilityIdentifier("home.news.empty")
+                if newsFilter.period != .all {
+                    Button(NewsBrowseStrings.text("expandPeriod")) { newsFilter.period = .all }
+                }
+                Button(NewsBrowseStrings.text("reset")) {
+                    newsFilter = NewsBrowseFilter(); searchText = ""; selectedFederalState = nil
+                }.accessibilityIdentifier("home.news.clear")
             }
         }
     }
@@ -762,25 +836,33 @@ private struct HomeFilterRow: View {
     let onSelectContentType: (HomeContentTypeFilter) -> Void
     let onToggleSaved: () -> Void
     let onToggleSubscribed: () -> Void
+    @Binding var newsFilter: NewsBrowseFilter
+    let authenticated: Bool
+    @State private var showNewsFilters = false
 
     private enum Filter: String {
-        case type, region, subscribed, saved
+        case type, region, subscribed, saved, topic, options
     }
 
     var body: some View {
         AppPrioritizedFilterRow(
             pinned: [.type, .region],
-            filters: [.subscribed, .saved],
+            filters: selectedContentType == .news ? [.topic, .options] : [.subscribed, .saved],
             isActive: isActive
         ) { filter in
             filterControl(filter)
                 .accessibilityIdentifier("home.filter.\(filter.rawValue)")
         }
         .accessibilityIdentifier("home.filters")
+        .sheet(isPresented: $showNewsFilters) {
+            NewsBrowseFilterSheet(selection: $newsFilter, authenticated: authenticated)
+        }
     }
 
     private func isActive(_ filter: Filter) -> Bool {
         switch filter {
+        case .topic: newsFilter.topic != nil
+        case .options: newsFilter.activeCount > 0
         case .type: selectedContentType != .all
         case .region: selectedFederalState != nil
         case .subscribed: selectedFilter == .subscribed
@@ -791,6 +873,13 @@ private struct HomeFilterRow: View {
     @ViewBuilder
     private func filterControl(_ filter: Filter) -> some View {
         switch filter {
+        case .topic:
+            NewsTopicMenu(selection: $newsFilter.topic)
+        case .options:
+            Button { showNewsFilters = true } label: {
+                AppFilterChip(title: NewsBrowseStrings.text("filters") + (newsFilter.activeCount > 0 ? " (\(newsFilter.activeCount))" : ""),
+                              systemImage: "line.3.horizontal.decrease", isSelected: newsFilter.activeCount > 0)
+            }.accessibilityIdentifier("home.news.filters")
         case .type:
             Menu {
                 ForEach(HomeContentTypeFilter.allCases, id: \.self) { contentType in

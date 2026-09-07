@@ -115,6 +115,59 @@ struct FirestoreNewsRepository: NewsRepository {
         )
     }
 
+    func fetchNewsBrowsePage(query request: NewsBrowseQuery, limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
+        let uid = Auth.auth().currentUser?.uid
+        if request.filter.scope != .all && uid == nil {
+            return NewsPage(items: [], nextCursor: nil, hasMore: false)
+        }
+        var subscriptions = Set<String>()
+        if request.filter.scope == .subscribed, let uid {
+            let snapshot = try await likesCollection.whereField("userId", isEqualTo: uid).getDocuments()
+            subscriptions = Set(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
+            if subscriptions.isEmpty { return NewsPage(items: [], nextCursor: nil, hasMore: false) }
+        }
+        var query: Query = collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+        if let topic = request.filter.topic {
+            query = query.whereFilter(Filter.orFilter([
+                Filter.whereField("category", isEqualTo: topic.rawValue),
+                Filter.whereField("additionalCategories", arrayContains: topic.rawValue)
+            ]))
+        }
+        if let region = request.region {
+            query = query.whereFilter(Filter.orFilter([
+                Filter.whereField("regionScope", isEqualTo: RegionScope.austria.rawValue),
+                Filter.whereField("federalState", isEqualTo: region.rawValue)
+            ]))
+        }
+        let bounds = request.filter.bounds(at: request.referenceDate)
+        if let start = bounds.start { query = query.whereField("publishedAt", isGreaterThanOrEqualTo: Timestamp(date: start)) }
+        if let end = bounds.end { query = query.whereField("publishedAt", isLessThan: Timestamp(date: end)) }
+        query = query.order(by: "publishedAt", descending: !request.filter.oldestFirst)
+            .order(by: FieldPath.documentID(), descending: !request.filter.oldestFirst)
+        if let cursor { query = query.start(after: cursor.firestoreStartAfterValues) }
+        let size = min(max(1, limit), 50)
+        let snapshot = try await query.limit(to: size + 1).getDocuments()
+        try Task.checkCancellation()
+        guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
+        let documents = Array(snapshot.documents.prefix(size))
+        let ids = documents.map(\.documentID)
+        async let liked = fetchLikedNewsIDs(for: ids)
+        async let saved = fetchBookmarkedNewsIDs(for: ids)
+        let (likedIDs, savedIDs) = try await (liked, saved)
+        guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
+        let items = try documents.map {
+            try NewsPost(dto: makeNewsPostDTO(from: $0, likedNewsIDs: likedIDs, bookmarkedNewsIDs: savedIDs))
+        }.filter {
+            request.matches($0)
+                && (request.filter.scope != .saved || savedIDs.contains($0.id))
+                && (request.filter.scope != .subscribed || subscriptions.contains($0.source.organizationId ?? ""))
+        }
+        return NewsPage(items: items, nextCursor: documents.last.flatMap(makeNewsPageCursor),
+                        hasMore: snapshot.documents.count > size)
+    }
+
     func fetchNewsRecommendationCandidates(for source: NewsPost, limit: Int) async throws -> [NewsPost] {
         let boundedLimit = min(max(1, limit), 12)
         let snapshot = try await collection

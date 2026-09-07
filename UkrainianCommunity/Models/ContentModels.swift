@@ -1198,6 +1198,7 @@ enum HomeFeedDestinationReference: Hashable {
 }
 
 struct HomeFeedItem: Identifiable, Equatable {
+    var newsCategory: NewsCategory? = nil
     let id: String
     let sourceType: HomeFeedSourceType
     let itemType: HomeFeedItemType
@@ -1221,6 +1222,7 @@ struct HomeFeedItem: Identifiable, Equatable {
     let destination: HomeFeedDestinationReference
 
     init(post: NewsPost) {
+        newsCategory = post.category
         id = "news-\(post.id)"
         sourceType = post.source.sourceType == .organization ? .organization : .app
         itemType = .news

@@ -330,11 +330,11 @@ struct NewsDetailView: View {
     }
 
     func newsDateText(for post: NewsPost) -> String {
-        LocalizationStore.dateString(from: post.createdAt, dateStyle: .medium, timeStyle: .none)
+        LocalizationStore.dateString(from: post.publishedAt, dateStyle: .medium, timeStyle: .none)
     }
 
     func newsTimeText(for post: NewsPost) -> String {
-        LocalizationStore.dateString(from: post.createdAt, dateStyle: .none, timeStyle: .short)
+        LocalizationStore.dateString(from: post.publishedAt, dateStyle: .none, timeStyle: .short)
     }
 
     func viewCountText(for post: NewsPost) -> String {

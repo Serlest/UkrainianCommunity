@@ -1,6 +1,499 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+  "news.browse.topic": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Тема"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Thema"
+        }
+      }
+    }
+  },
+  "news.browse.allTopics": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Усі теми"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Alle Themen"
+        }
+      }
+    }
+  },
+  "news.browse.general": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Загальні новини"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Allgemeine Nachrichten"
+        }
+      }
+    }
+  },
+  "news.browse.eventNews": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Новини про події"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Nachrichten zu Veranstaltungen"
+        }
+      }
+    }
+  },
+  "news.browse.filters": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Фільтри"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Filter"
+        }
+      }
+    }
+  },
+  "news.browse.period": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Період публікації"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Veröffentlichungszeitraum"
+        }
+      }
+    }
+  },
+  "news.browse.sort": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Порядок"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Sortierung"
+        }
+      }
+    }
+  },
+  "news.browse.newest": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Спочатку нові"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Neueste zuerst"
+        }
+      }
+    }
+  },
+  "news.browse.oldest": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Спочатку старі"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Älteste zuerst"
+        }
+      }
+    }
+  },
+  "news.browse.period.all": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "За весь час"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Gesamter Zeitraum"
+        }
+      }
+    }
+  },
+  "news.browse.period.today": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Сьогодні"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Heute"
+        }
+      }
+    }
+  },
+  "news.browse.period.week": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Останні 7 днів"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Letzte 7 Tage"
+        }
+      }
+    }
+  },
+  "news.browse.period.month": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Останні 30 днів"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Letzte 30 Tage"
+        }
+      }
+    }
+  },
+  "news.browse.period.custom": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Обрати дати"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Zeitraum wählen"
+        }
+      }
+    }
+  },
+  "news.browse.scope.all": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Усі новини"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Alle Nachrichten"
+        }
+      }
+    }
+  },
+  "news.browse.scope.saved": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Збережені"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Gespeichert"
+        }
+      }
+    }
+  },
+  "news.browse.scope.subscribed": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Підписані організації"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Abonnierte Organisationen"
+        }
+      }
+    }
+  },
+  "news.browse.source": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Джерела"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Quellen"
+        }
+      }
+    }
+  },
+  "news.browse.from": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Від"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Von"
+        }
+      }
+    }
+  },
+  "news.browse.to": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "До"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Bis"
+        }
+      }
+    }
+  },
+  "news.browse.reset": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Скинути фільтри"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Filter zurücksetzen"
+        }
+      }
+    }
+  },
+  "news.browse.apply": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Застосувати"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Anwenden"
+        }
+      }
+    }
+  },
+  "news.browse.signIn": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Увійдіть, щоб переглядати збережені новини та підписані організації."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Melden Sie sich an, um gespeicherte Nachrichten und abonnierte Organisationen zu sehen."
+        }
+      }
+    }
+  },
+  "news.browse.error": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не вдалося завантажити новини. Перевірте з’єднання та повторіть спробу."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Nachrichten konnten nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+        }
+      }
+    }
+  },
+  "news.browse.empty": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "За обраною темою, регіоном і періодом новин не знайдено. Спробуйте змінити умови пошуку."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Für das gewählte Thema, die Region und den Zeitraum wurden keine Nachrichten gefunden. Ändern Sie die Suchkriterien."
+        }
+      }
+    }
+  },
+  "news.browse.expandPeriod": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Шукати за весь час"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Im gesamten Zeitraum suchen"
+        }
+      }
+    }
+  },
+  "news.browse.more": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Показати ще"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Mehr anzeigen"
+        }
+      }
+    }
+  },
+  "news.browse.continueHint": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Серед перевірених новин збігів поки немає. Продовжити пошук у наступних публікаціях."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Unter den bisher geprüften Nachrichten gibt es noch keine Treffer. Suche in weiteren Beiträgen fortsetzen."
+        }
+      }
+    }
+  },
+  "news.browse.austria": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Вся Австрія"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ganz Österreich"
+        }
+      }
+    }
+  },
   "editor.translation.overwriteUkrainian": {
     "localizations": {
       "uk": {
