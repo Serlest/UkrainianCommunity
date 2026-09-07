@@ -1,6 +1,6 @@
 # Единый перевод редакторов и стиль оповещений
 
-Рабочая копия: `/Users/serlest/Developer/UACAnnouncements-20260907`, ветка `codex/user-announcements-20260907`. Доработка по прямому поручению пользователя от 2026-09-07. Финальный номер сборки — 72; 71 уже принят Apple как промежуточный вариант.
+Рабочая копия: `/Users/serlest/Developer/UACAnnouncements-20260907`, ветка `codex/user-announcements-20260907`. Доработка по прямому поручению пользователя от 2026-09-07. Финальная 1.0.3 (72) доступна во внутреннем TestFlight: VALID / IN_BETA_TESTING, подтверждено Apple 2026-09-07 11:43 Europe/Vienna. What to Test uk/de-DE записаны и проверены. Commit реализации — `e7575d2`; 71 — промежуточная сборка.
 
 ## Поведение
 
@@ -47,6 +47,6 @@ Callable `translateContent`, регион `europe-west3`. Запрос: `{kind, 
 
 ## Сборка
 
-71: archive PASS (0 compiler warnings/errors), подпись PASS, encryption=false, export SUCCEEDED, Apple VALID / IN_BETA_TESTING. Финальная 72 сохраняет обратный перевод и подтверждение замены прямо в окне проверки; архивируется после успешного завершающего UI-прогона.
+71: archive PASS (0 compiler warnings/errors), подпись PASS, encryption=false, export SUCCEEDED, Apple VALID / IN_BETA_TESTING. Финальная 72 сохраняет обратный перевод и подтверждение замены прямо в окне проверки. Archive PASS, 0 compiler warnings/errors, подпись PASS, encryption=false, EXPORT SUCCEEDED. Apple VALID / IN_BETA_TESTING, notesVerified=true. Доказательства: `archive72.log`, `archive72-verification.json`, `export72-account.log`, `testflight72-apple.json`.
 
 Пять прежних export dSYM warnings для codeless Firebase/gRPC stubs подробно описаны в `UserAnnouncementsImplementationStatus.md`; символы самого приложения сохранены. Физический APNs/App Attest smoke требует доступного iPhone. Публичная публикация и App Review не выполняются.
