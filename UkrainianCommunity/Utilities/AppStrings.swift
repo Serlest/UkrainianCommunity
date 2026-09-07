@@ -2285,6 +2285,8 @@ enum AppStrings {
         static var roleGuideOrganizationModerator: String { text("user_management.role_guide.organization_moderator", "Moderator організації") }
         static var roleGuideOrganizationModeratorDetail: String { text("user_management.role_guide.organization_moderator.detail", "Модерує дозволені матеріали організації без адміністративних повноважень.") }
         static var ownerRoleImmutableNotice: String { text("user_management.platform_roles.owner_immutable", "App Owner не змінюється в цьому екрані.") }
+        static var ownerAccountImmutableNotice: String { text("user_management.account.owner_immutable", "Статус акаунта App Owner не змінюється в цьому екрані.") }
+        static var selfAccountChangeNotice: String { text("user_management.account.self_change_blocked", "Статус власного акаунта не можна змінити в цьому екрані.") }
         static var selfRoleChangeNotice: String { text("user_management.platform_roles.self_change_blocked", "Власну роль не можна змінити тут.") }
         static var statusPermissionDenied: String { text("user_management.status.permission_denied", "Недостатньо прав для зміни статусу користувача.") }
         static var rolePermissionDenied: String { text("user_management.role.permission_denied", "Недостатньо прав для призначення ролі.") }

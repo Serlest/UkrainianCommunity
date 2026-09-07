@@ -66,6 +66,7 @@ struct AccountActionConfirmationSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel) { dismiss() }
+                        .accessibilityIdentifier("user.action.cancel")
                 }
             }
         }
@@ -205,6 +206,7 @@ private struct AdminReasonSheetLayout: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel, action: onCancel)
+                        .accessibilityIdentifier("user.action.cancel")
                 }
             }
         }

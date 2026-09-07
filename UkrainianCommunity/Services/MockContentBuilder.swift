@@ -35,8 +35,37 @@ enum MockContentBuilder {
             displayName: "Олена Марія Коваль — координаторка української спільноти в Австрії", city: "Інсбрук / Тіроль",
             email: "olena.community.coordinator.with.a.very.long.address@example.com", bio: "", role: .user,
             blockState: .active, createdAt: .now, updatedAt: .now) : currentUser()
+        let users = longContent
+            ? [member] + (2...18).map { index in
+                AppUser(
+                    id: "user-\(index)",
+                    fullName: "Test User \(index)",
+                    displayName: ["Olesia", "Yevheniia", "Tester"][index % 3],
+                    city: index.isMultiple(of: 2) ? "Wien" : "Innsbruck",
+                    email: "test.user.\(index)@example.com",
+                    bio: "",
+                    role: .user,
+                    blockState: .active,
+                    createdAt: .now.addingTimeInterval(TimeInterval(-index * 86_400)),
+                    updatedAt: .now
+                )
+            }
+            : [member, ownerUser()]
+        let managedOrganizations: [ManagedOrganization] = longContent
+            ? (1...6).map { index in
+                ManagedOrganization(
+                    id: "organization-\(index)",
+                    name: "Test Organization \(index)",
+                    city: index.isMultiple(of: 2) ? "Wien" : "Innsbruck",
+                    logoURL: nil,
+                    ownerId: member.id,
+                    adminIds: [],
+                    moderatorIds: []
+                )
+            }
+            : []
         return UserManagementReads(users: { _ in
-            .init(users: [member, ownerUser()], cursor: nil, hasMore: false)
+            .init(users: users, cursor: nil, hasMore: false)
         }, user: { id in
             if id == ownerUser().id { return ownerUser() }
             userReads += 1
@@ -46,7 +75,7 @@ enum MockContentBuilder {
             return AppUser(id: member.id, fullName: member.fullName, displayName: "Olena (updated)",
                 city: member.city, email: member.email, bio: member.bio, role: member.role,
                 blockState: member.blockState, createdAt: member.createdAt, updatedAt: .now)
-        }, organizations: { [] }, securityMetadata: { id in
+        }, organizations: { managedOrganizations }, securityMetadata: { id in
             ManagedUserSecurityMetadata(response: .init(targetUserId: id, emailVerified: true,
                 authDisabled: false, creationTime: nil, lastSignInTime: nil, providerIds: ["password"]))
         }, presence: { id in

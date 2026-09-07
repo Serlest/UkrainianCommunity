@@ -229,7 +229,12 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
                         .padding(.bottom, bottomPadding)
-                        .appCenteredContent()
+                        // Give descendants the viewport's exact width. A flexible
+                        // maximum alone lets wide controls grow the vertical scroll
+                        // content beyond the device and makes it draggable sideways.
+                        .containerRelativeFrame(.horizontal, alignment: .center) { length, _ in
+                            min(length, AppTheme.readableContentMaxWidth)
+                        }
                 }
             }
         }

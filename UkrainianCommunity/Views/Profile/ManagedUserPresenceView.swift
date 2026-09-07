@@ -15,20 +15,26 @@ struct ManagedUserPresenceView: View {
     var body: some View {
         if PermissionService.canManageUsers(user: actor) {
             VStack(alignment: .leading, spacing: 8) {
-                if model.failed {
+                if let snapshot = model.snapshot {
+                    TimelineView(.periodic(from: .now, by: 1)) { _ in
+                        ManagedUserPresenceStatus(snapshot: snapshot)
+                    }
+                    if model.failed {
+                        Button(AppStrings.UserManagement.retry) { retry += 1 }
+                            .font(.caption)
+                            .accessibilityHint(AppStrings.UserManagement.presenceUnavailable)
+                    }
+                } else if model.failed {
                     UserManagementMetadataRow(systemImage: "wifi.exclamationmark", title: AppStrings.UserManagement.presenceTitle,
                                               value: AppStrings.UserManagement.presenceUnavailable)
                     Button(AppStrings.UserManagement.retry) { retry += 1 }
                         .font(.subheadline)
-                } else if let snapshot = model.snapshot {
-                    TimelineView(.periodic(from: .now, by: 1)) { _ in
-                        ManagedUserPresenceStatus(snapshot: snapshot)
-                    }
                 } else {
-                    HStack {
-                        ProgressView()
-                        Text(AppStrings.UserManagement.presenceLoading).font(.subheadline)
-                    }
+                    UserManagementMetadataRow(
+                        systemImage: "circle.dotted",
+                        title: AppStrings.UserManagement.presenceTitle,
+                        value: AppStrings.UserManagement.presenceLoading
+                    )
                 }
             }
             .task(id: loadKey) {
@@ -56,21 +62,22 @@ struct ManagedUserPresenceStatus: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if isOnline {
-                Label(AppStrings.UserManagement.presenceOnline, systemImage: "circle.fill")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentSuccessForeground)
-                    .accessibilityIdentifier("user.presence.online")
-            } else if let date = snapshot.lastSeenAt {
-                UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.presenceLastSeen,
-                    value: LocalizationStore.dateString(from: date, dateStyle: .medium, timeStyle: .short))
-                    .accessibilityIdentifier("user.presence.lastSeen")
-            } else {
-                UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.presenceTitle,
-                                          value: AppStrings.UserManagement.presenceUnknown)
-                    .accessibilityIdentifier("user.presence.unknown")
-            }
+        if isOnline {
+            UserManagementMetadataRow(
+                systemImage: "circle.fill",
+                title: AppStrings.UserManagement.presenceTitle,
+                value: AppStrings.UserManagement.presenceOnline,
+                tint: AppTheme.accentSuccessForeground
+            )
+            .accessibilityIdentifier("user.presence.online")
+        } else if let date = snapshot.lastSeenAt {
+            UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.presenceLastSeen,
+                value: LocalizationStore.dateString(from: date, dateStyle: .medium, timeStyle: .short))
+                .accessibilityIdentifier("user.presence.lastSeen")
+        } else {
+            UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.presenceTitle,
+                                      value: AppStrings.UserManagement.presenceUnknown)
+                .accessibilityIdentifier("user.presence.unknown")
         }
     }
 }

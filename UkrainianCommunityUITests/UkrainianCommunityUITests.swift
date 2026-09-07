@@ -711,6 +711,50 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testUserManagementDetailFitsScreenAndActionSheetsOpenSafely() throws {
+        let app = launchUserRefreshApp(failing: false, longContent: true)
+        openRefreshTestUser(in: app)
+
+        let online = element("user.presence.online", in: app)
+        XCTAssertTrue(online.waitForExistence(timeout: 8))
+        XCTAssertGreaterThanOrEqual(online.frame.minX, app.frame.minX)
+        XCTAssertLessThanOrEqual(online.frame.maxX, app.frame.maxX)
+        XCTAssertTrue(app.staticTexts["6 Org."].exists)
+        attachScreenshot(named: "user-management-detail-six-organizations", from: app)
+
+        for action in ["warningIssued", "suspended", "banned", "deactivated"] {
+            let button = app.buttons["user.detail.accountAction.\(action)"]
+            scrollToElement(button, in: app, maxSwipes: 20)
+            XCTAssertTrue(button.isHittable, "Account action is not reachable: \(action)")
+            button.tap()
+            let cancel = app.buttons["user.action.cancel"]
+            XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+            if action == "suspended" { XCTAssertTrue(app.buttons["7 Tg."].exists) }
+            cancel.tap()
+            XCTAssertTrue(button.waitForExistence(timeout: 5))
+        }
+    }
+
+    @MainActor
+    func testOwnerDetailHidesImpossibleManagementActions() throws {
+        let app = launchUserRefreshApp(failing: false)
+        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        let users = element("profile.userManagement", in: app)
+        scrollToElement(users, in: app, maxSwipes: 12)
+        users.tap()
+        let owner = element("userManagement.user.owner-1", in: app)
+        XCTAssertTrue(owner.waitForExistence(timeout: 8))
+        owner.tap()
+
+        XCTAssertTrue(element("user.detail.platformRole.protected", in: app).waitForExistence(timeout: 8))
+        let unavailable = element("user.detail.accountActions.unavailable", in: app)
+        scrollToElement(unavailable, in: app, maxSwipes: 20)
+        XCTAssertTrue(unavailable.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "user.detail.accountAction.")).count, 0)
+        attachScreenshot(named: "user-management-owner-protected-actions", from: app)
+    }
+
+    @MainActor
     func testUserDetailFailedPullKeepsScreenAndRetryWorks() throws {
         let app = launchUserRefreshApp(failing: true)
         openRefreshTestUser(in: app)

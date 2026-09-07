@@ -262,7 +262,7 @@ struct UserDetailView: View {
     private var profileCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                HStack(spacing: 12) {
+                HStack(alignment: .top, spacing: 12) {
                     UserManagementAvatar(user: user, size: 64)
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -279,28 +279,21 @@ struct UserDetailView: View {
                         UserManagementBadgeFlowLayout(spacing: 6) {
                             UserManagementStatusBadge(title: user.blockState.title, tint: statusTint)
                             UserManagementStatusBadge(title: user.globalRole.title, tint: PermissionService.hasOwnerRoleForDisplay(user: user) ? AppTheme.accentSupportForeground : AppTheme.textSecondary)
-                        }
-
-                        if !organizationRoles.isEmpty {
-                            UserManagementBadgeFlowLayout(spacing: 6) {
-                                ForEach(organizationRoles.prefix(3)) { item in
-                                    UserManagementStatusBadge(title: roleTitle(item.role), tint: AppTheme.accentPrimaryForeground)
-                                }
-                                if organizationRoles.count > 3 {
-                                    UserManagementStatusBadge(
-                                        title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count - 3),
-                                        tint: AppTheme.accentPrimaryForeground
-                                    )
-                                }
+                            if !organizationRoles.isEmpty {
+                                UserManagementStatusBadge(
+                                    title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count),
+                                    tint: AppTheme.accentPrimaryForeground
+                                )
                             }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 Divider()
 
                 UserManagementMetadataRow(systemImage: "number", title: AppStrings.UserManagement.uid, value: user.id)
-                UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: user.telegramUsername ?? AppStrings.Common.notAvailable)
+                UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: telegramDisplayText)
                 UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
                 UserManagementMetadataRow(systemImage: "calendar", title: AppStrings.UserManagement.joined, value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
                 ManagedUserPresenceView(userID: userID, actor: actor,
@@ -376,22 +369,27 @@ struct UserDetailView: View {
 
                             Spacer(minLength: 0)
 
-                            Button {
-                                pendingRoleRemoval = organization
-                            } label: {
-                                Image(systemName: "minus.circle")
-                                    .foregroundStyle(AppTheme.accentDestructiveForeground)
-                                    .frame(
-                                        width: AppTheme.minimumInteractiveTarget,
-                                        height: AppTheme.minimumInteractiveTarget
-                                    )
+                            if item.role == .communityOwner {
+                                Image(systemName: "lock.fill")
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                                    .accessibilityLabel(AppStrings.UserManagement.ownerTransferOnly)
+                            } else if let actor, viewModel.canManageOrganizationRoles(in: organization, actor: actor) {
+                                Button {
+                                    pendingRoleRemoval = organization
+                                } label: {
+                                    Image(systemName: "minus.circle")
+                                        .foregroundStyle(AppTheme.accentDestructiveForeground)
+                                        .frame(
+                                            width: AppTheme.minimumInteractiveTarget,
+                                            height: AppTheme.minimumInteractiveTarget
+                                        )
+                                }
+                                .accessibilityLabel(AppStrings.UserManagement.removeOrganizationRoleButton)
+                                .accessibilityIdentifier("user.detail.organizationRole.remove.\(organization.id)")
+                                .disabled(isUpdating)
                             }
-                            .accessibilityLabel(AppStrings.UserManagement.removeOrganizationRoleButton)
-                            .disabled(
-                                actor.map { !viewModel.canManageOrganizationRoles(in: organization, actor: $0) } ?? true
-                                    || item.role == .communityOwner
-                                    || isUpdating
-                            )
                         }
                     }
                 }
@@ -423,16 +421,18 @@ struct UserDetailView: View {
                     Text(AppStrings.UserManagement.ownerRoleImmutableNotice)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
+                        .accessibilityIdentifier("user.detail.platformRole.protected")
                 } else if actor?.id == user.id {
                     Text(AppStrings.UserManagement.selfRoleChangeNotice)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
 
-                VStack(spacing: 8) {
-                    if canShowAppAdminRoleControls {
-                        roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
+                if canShowAppAdminRoleControls, canChangePlatformRoles {
+                    if user.globalRole.authorizationRole == .admin {
                         roleActionButton(.removeAppAdmin, isEnabled: canRemoveAppAdmin)
+                    } else {
+                        roleActionButton(.assignAppAdmin, isEnabled: canAssignAppAdmin)
                     }
                 }
 
@@ -572,11 +572,20 @@ struct UserDetailView: View {
                     subtitle: AppStrings.UserManagement.accountActionsSubtitle
                 )
 
-                ForEach(availableAccountActions) { action in
-                    Button { pendingAction = action } label: {
-                        actionLabel(action, tint: accountActionTint(action))
+                if canManage {
+                    ForEach(availableAccountActions) { action in
+                        Button { pendingAction = action } label: {
+                            actionLabel(action, tint: accountActionTint(action))
+                        }
+                        .accessibilityIdentifier("user.detail.accountAction.\(action.rawValue)")
+                        .disabled(isUpdating)
                     }
-                    .disabled(!canManage || isUpdating)
+                } else {
+                    Label(accountActionsUnavailableMessage, systemImage: "lock.fill")
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("user.detail.accountActions.unavailable")
                 }
             }
             .buttonStyle(.plain)
@@ -585,11 +594,28 @@ struct UserDetailView: View {
 
     private var locationText: String {
         let region = user.selectedFederalState?.displayName
+        let city = user.city.trimmingCharacters(in: .whitespacesAndNewlines)
+        if city.contains(" · ") || city.contains(" / ") {
+            return city
+        }
         let locationParts: [String] = [user.city, region].compactMap { value in
             guard let value, !value.isEmpty else { return nil }
             return value
         }
         return locationParts.isEmpty ? AppStrings.Common.notAvailable : locationParts.joined(separator: " · ")
+    }
+
+    private var telegramDisplayText: String {
+        guard var username = user.telegramUsername?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !username.isEmpty else {
+            return AppStrings.Common.notAvailable
+        }
+        for prefix in ["https://t.me/", "http://t.me/", "t.me/"] where username.lowercased().hasPrefix(prefix) {
+            username.removeFirst(prefix.count)
+            break
+        }
+        username = username.trimmingCharacters(in: CharacterSet(charactersIn: "@/"))
+        return username.isEmpty ? AppStrings.Common.notAvailable : "@\(username)"
     }
 
     private var statusTint: Color {
@@ -601,6 +627,16 @@ struct UserDetailView: View {
         case .suspendedUntil, .blocked, .bannedPermanent, .deactivated:
             AppTheme.accentDestructiveForeground
         }
+    }
+
+    private var accountActionsUnavailableMessage: String {
+        if PermissionService.hasOwnerRoleForDisplay(user: user) {
+            return AppStrings.UserManagement.ownerAccountImmutableNotice
+        }
+        if actor?.id == user.id {
+            return AppStrings.UserManagement.selfAccountChangeNotice
+        }
+        return AppStrings.UserManagement.statusPermissionDenied
     }
 
     private var platformRoleIcon: String {
@@ -691,6 +727,7 @@ struct UserDetailView: View {
                     in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
                 )
         }
+        .accessibilityIdentifier("user.detail.platformRole.\(action.id)")
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .overlay(alignment: .trailing) {

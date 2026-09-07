@@ -39,6 +39,14 @@ struct UserManagementMetadataRow: View {
     let systemImage: String
     let title: String
     let value: String
+    var tint: Color?
+
+    init(systemImage: String, title: String, value: String, tint: Color? = nil) {
+        self.systemImage = systemImage
+        self.title = title
+        self.value = value
+        self.tint = tint
+    }
 
     var body: some View {
         ViewThatFits(in: .horizontal) {
@@ -64,7 +72,7 @@ struct UserManagementMetadataRow: View {
         } icon: {
             Image(systemName: systemImage)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
+                .foregroundStyle(tint ?? AppTheme.accentPrimaryForeground)
                 .frame(width: 18)
         }
     }
@@ -72,7 +80,7 @@ struct UserManagementMetadataRow: View {
     private var valueText: some View {
         Text(value)
             .font(.caption.weight(.medium))
-            .foregroundStyle(AppTheme.textPrimary)
+            .foregroundStyle(tint ?? AppTheme.textPrimary)
             .textSelection(.enabled)
             .fixedSize(horizontal: false, vertical: true)
     }

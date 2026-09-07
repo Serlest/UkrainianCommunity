@@ -44666,6 +44666,40 @@
         }
       }
     },
+    "user_management.account.owner_immutable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Kontostatus des App Owners kann auf diesem Bildschirm nicht geändert werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус акаунта App Owner не змінюється в цьому екрані."
+          }
+        }
+      }
+    },
+    "user_management.account.self_change_blocked" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Status des eigenen Kontos kann auf diesem Bildschirm nicht geändert werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус власного акаунта не можна змінити в цьому екрані."
+          }
+        }
+      }
+    },
     "user_management.action.audit_notice" : {
       "extractionState" : "manual",
       "localizations" : {
