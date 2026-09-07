@@ -1,4 +1,4 @@
-# Google Play submission draft — Android 1.0.2
+# Google Play submission draft — Android 1.0.3 build 72
 
 Status: **draft only, not approved for submission**. This file prepares Play Console
 copy and declarations from the repository state on 2026-09-07. It does not prove a
@@ -7,7 +7,9 @@ approval, or publication.
 
 Application ID: `at.serlest.ukrainiancommunity`
 
-Planned first Play version: `versionCode 1`, `versionName 1.0.2`
+Planned first Play version: `versionCode 72`, `versionName 1.0.3`
+
+Source candidate: commit `2e0ee59` on `codex/android-build72-20260907`.
 
 Default listing language: German (`de-DE`)
 
@@ -39,6 +41,9 @@ Additional listing language: Ukrainian (`uk`)
 > Kommentare und Feedback senden sowie eigene Profil- und Organisationsfunktionen
 > nutzen. Benachrichtigungen sind freiwillig und können in der App und im
 > Betriebssystem verwaltet werden.
+>
+> Wichtige Mitteilungen erscheinen in einem eigenen Verlauf. Je nach Mitteilung
+> kann eine Bestätigung oder Rückmeldung möglich sein.
 >
 > Community-Sicherheit gehört dazu: Inhalte und Konten können gemeldet oder
 > blockiert werden. Veröffentlichungen und Verwaltungsfunktionen sind
@@ -74,6 +79,9 @@ Additional listing language: Ukrainian (`uk`)
 > та керування організаціями. Сповіщення добровільні; їх можна вимкнути в
 > застосунку й налаштуваннях системи.
 >
+> Важливі повідомлення доступні в окремій історії. Залежно від повідомлення його
+> можна підтвердити або надіслати відгук.
+>
 > Безпека спільноти є частиною сервісу: на матеріали та облікові записи можна
 > поскаржитися або заблокувати їх. Публікація та керування залежать від ролі й
 > можуть проходити модерацію.
@@ -92,9 +100,9 @@ from the release scope.
 
 | Field | Proposed URL | Status before submission |
 | --- | --- | --- |
-| Privacy policy | `https://ukrainiancommunity-dbd5f.web.app/privacy` | **BLOCKED:** current published wording is iOS-specific and presence timing does not match the Android/shared implementation. Publish and read back an approved bilingual revision first. |
-| Account deletion | `https://ukrainiancommunity-dbd5f.web.app/delete-account` | Repository page exists; **not yet deployment/read-back proof**. Verify public HTTP 200, mobile layout, both languages, links and mail action after an authorized Hosting deployment. |
-| Support | `https://ukrainiancommunity-dbd5f.web.app/support` | Existing page; verify the deployed page contains the Android wording and deletion-page link. |
+| Privacy policy | `https://ukrainiancommunity-dbd5f.web.app/privacy` | **BLOCKED:** HTTP 200 read back on 2026-09-07, but published 2026.13 explicitly scopes itself to iOS. Publish and read back an approved bilingual cross-platform revision first. |
+| Account deletion | `https://ukrainiancommunity-dbd5f.web.app/delete-account` | **BLOCKED:** repository page exists and covers iOS/Android, but public read-back returned HTTP 404 on 2026-09-07. |
+| Support | `https://ukrainiancommunity-dbd5f.web.app/support` | HTTP 200 on 2026-09-07, but the live page still names only iOS settings/device details. The repository source is already cross-platform; deploy/read back only with the approved legal/Hosting release. |
 | Website | `https://ukrainiancommunity-dbd5f.web.app/` | Existing site; verify availability immediately before submission. |
 | Illegal-content reporting | `https://ukrainiancommunity-dbd5f.web.app/report-illegal-content` | Relevant to UGC/DSA review; verify availability and submission behavior separately. |
 
@@ -163,11 +171,11 @@ after the user requests a feature that needs it.
 | Personal info — Other info | Yes | Yes | Mixed | App functionality; Account management; Fraud prevention, security and compliance; Analytics | Profile biography/Telegram/contact links, role/status, age/legal confirmations and region. Confirm whether some fields belong only under other categories. |
 | Messages — Other in-app messages | Yes | Yes | Optional | App functionality; Developer communications; Fraud prevention, security and compliance | Support/feedback conversations and replies. Confirm whether content reports should also be mapped here or only as other UGC. |
 | Photos and videos — Photos | Yes | Yes | Optional | App functionality | Avatar and user/publisher-uploaded content images. Current Android selection is images, not user video upload. |
-| App activity — App interactions | Yes | Yes | Mixed | App functionality; Analytics | Likes, saves, follows, registrations, views/deduplication, blocking and optional consented analytics signals. |
+| App activity — App interactions | Yes | Yes | Mixed | App functionality; Analytics; Developer communications | Likes, saves, follows, registrations, views/deduplication, blocking, announcement presentation/acknowledgement/action receipts and optional consented analytics signals. |
 | App activity — Other user-generated content | Yes | Yes | Optional | App functionality; Fraud prevention, security and compliance | Bios, posts, events, organizations, comments, feedback and content reports. |
 | App activity — In-app search history | No, based on current implementation | — | — | — | Search/filter input is not intended to be stored as history. Recheck server logging and final client queries. |
 | App info and performance — Diagnostics | Yes | Mixed / conservatively Yes | Automatic for necessary SDK transport; optional first-party analytics is separate | App functionality; Analytics; Fraud prevention, security and compliance | Firebase SDK transport/device/app-version diagnostics and protected system/audit diagnostics. Do not label Firebase diagnostics as Firebase Analytics. |
-| Device or other IDs | Yes | Yes after account registration | Optional push; necessary App Check/service identifiers may be automatic | App functionality; Developer communications; Fraud prevention, security and compliance | Firebase Installation ID, FCM registration identifiers and App Check/Play Integrity technical identifiers. |
+| Device or other IDs | Yes | Yes after account registration | Optional push; necessary App Check/service identifiers may be automatic | App functionality; Developer communications; Fraud prevention, security and compliance | Firebase Installation ID, FCM registration identifiers, announcement installation challenge/registration records and App Check/Play Integrity technical identifiers. |
 
 No current repository evidence supports declaring collection of contacts, financial
 or payment information, health/fitness, calendar, audio files, browser history,
@@ -268,8 +276,8 @@ Required/prepared state:
 
 | Asset | Play requirement | Current evidence | Action |
 | --- | --- | --- | --- |
-| Store icon | 512 × 512 PNG, Play asset separate from the launcher resource | Android source has a 1024 × 1024 app image, but no reviewed 512 × 512 Play export | Export and visually verify a dedicated store icon. |
-| Feature graphic | 1024 × 500, JPEG or 24-bit PNG without alpha | Missing | Create DE-neutral or separately localized approved artwork. |
+| Store icon | 512 × 512 PNG, Play asset separate from the launcher resource | `Android/release/play/store-icon-512.png`, 512 × 512, no alpha, visually checked; derived without redesign from the current 1024 × 1024 app icon | Reconfirm against the signed AAB and approve for upload. |
+| Feature graphic | 1024 × 500, JPEG or 24-bit PNG without alpha | `Android/release/play/feature-graphic-build72.png`, 1024 × 500, no alpha, text-free and visually checked | Brand-owner approval remains required before upload. |
 | Phone screenshots | At least two are needed for a publishable store listing; use current Play constraints and accurate in-app imagery | Four audit captures exist at 1080 × 2424, but they show development/audit state and are not a signed-release store set | Capture clean final-AAB guest and signed-in screens; provide separate DE/UK images wherever text is visible. |
 | Tablet/other form factors | Required only when distributing/optimizing for the applicable form factor, subject to the current Console prompts | No release tablet screenshot proof | Decide supported devices after Play device-catalog review; do not imply optimized tablet UX without testing. |
 | Promo video | Optional | Missing | Omit for first release unless a final localized video is prepared. |

@@ -55,6 +55,9 @@ Donation and legal-document editors do not currently exist on Android, so build 
 | Stable-screen visual inspection | PASS for the tested home composition; initial API 26 cold-start capture was an animation/frame artifact and disappeared after stabilization | manual local inspection |
 | Backend TypeScript build/lint and App Check validator | PASS; 65 callable sites, 0 audit vulnerabilities | local/static |
 | Android lint | PASS with no new build-72 warning in the touched announcement/translation/Main paths | local/static |
+| Production release/R8/lintVital compile | PASS with a quarantined throwaway signing certificate; package/version verified | local build engineering only |
+| Native 16 KiB ELF alignment | PASS for all 8 packaged ABI/library combinations | local AAB inspection |
+| Staging cold start | PASS on API 37; no fatal/Firebase/App Check error observed in the captured startup log | separate test-cloud package, unauthenticated |
 
 The APK evidence is local-emulator evidence only. It does not prove physical-device FCM delivery, Play Integrity/App Check acceptance, OEM background behavior, or production deployment.
 
@@ -62,7 +65,7 @@ The APK evidence is local-emulator evidence only. It does not prove physical-dev
 
 1. **Production backend deployment:** Android-aware Functions are only in this branch. Production remains untouched.
 2. **Rollout flag:** the last recorded production configuration has `androidEnabled=false`. It must remain false until the deployed backend and a signed build pass staging/physical-device acceptance.
-3. **Signed AAB:** the upload keystore exists locally, but the four required `UAC_PRODUCTION_*` signing variables are absent from this shell. No fresh signed build 72 AAB can be produced or verified without those secrets.
+3. **Signed AAB:** a production-flavor AAB compiles, shrinks and passes lintVital, but it is deliberately signed by a quarantined throwaway certificate. The upload keystore exists locally while the four required `UAC_PRODUCTION_*` signing variables remain absent; no uploadable build 72 AAB can be produced or verified without those inputs.
 4. **Cloud/device acceptance:** run signed staging/production-flavor checks for App Check/Play Integrity, authenticated callables, FCM challenge, foreground/background/killed-process delivery, notification permission and tap routing on at least one physical Android device.
 5. **Android legal text:** the bundled terms are version 2026.10 and still scope themselves to the “iOS-App”. Legal approval and a versioned Android/cross-platform replacement are required; an automatic wording change would not be a valid legal approval.
 6. **Google Play release data:** complete/read back Data safety, content rating, privacy/support links, testers/tracks and store-listing assets before upload/promotion.
@@ -70,6 +73,6 @@ The APK evidence is local-emulator evidence only. It does not prove physical-dev
 ## Readiness estimate against iOS build 72 = 100%
 
 - **Implemented product/function parity: 95%.** The build 72 announcement and translation additions are present where equivalent Android screens exist; absent donation/legal editors and physical/cloud-only behavior account for the remaining gap.
-- **Release readiness: 80%.** Local code, unit, backend-emulator and affected UI evidence is green, but signing, legal, Play Console, production deployment/read-back and physical-device gates are not complete.
+- **Release readiness: 84%.** Local code, unit, backend-emulator, affected UI, production-flavor compilation, 16 KiB alignment, staging startup and Play graphics evidence is green, but upload signing, authenticated cloud/device acceptance, legal approval, Play Console and production deployment/read-back remain incomplete.
 
 This branch is a verified local build 72 candidate, not yet a production-ready Google Play release.
