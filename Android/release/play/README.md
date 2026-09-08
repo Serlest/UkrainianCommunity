@@ -1,12 +1,16 @@
-# Google Play graphics — build 72 candidate
+# Google Play graphics — build 79 candidate
 
 These files are prepared assets, not proof of Play Console upload or brand-owner
 approval.
 
+Capture source: final signed production APK SHA-256
+`99b7da9de8702e0e3df9872ebce1f136e84131c2c1ffcd6a6dfdd436c128176b`,
+package `at.serlest.ukrainiancommunity`, version `1.0.3 (79)`.
+
 | File | Required size | Verified | SHA-256 |
 | --- | --- | --- | --- |
 | `store-icon-512.png` | 512 × 512 | PNG, no alpha, visually inspected | `c8faca0cfc977c2b00df54a80f019e7591a60b4bf1bef2889ee3f3165c4ce6af` |
-| `feature-graphic-build72.png` | 1024 × 500 | PNG, no alpha, text-free, visually inspected | `11604396e34dcf6e4b77903a0e89074b58a37bebeb8be9abf3f80dae56f0fa73` |
+| `feature-graphic-build79.png` | 1024 × 500 | PNG, no alpha, text-free, visually inspected | `11604396e34dcf6e4b77903a0e89074b58a37bebeb8be9abf3f80dae56f0fa73` |
 
 The store icon is a deterministic downscale of the current 1024 × 1024 Android
 app image. The feature graphic was produced with the built-in image generator and
@@ -28,9 +32,9 @@ against the exact signed release candidate.
 ## Phone screenshot candidates
 
 The localized candidates under `screenshots/de-DE/` and `screenshots/uk/` were
-captured from the upload-key-signed, R8-minified production release on the API 37
-Play AVD at 1080 x 1920. They are RGB JPEG files without test labels, synthetic
-accounts, private identifiers or debug overlays.
+refreshed on 2026-09-08 from the exact upload-key-signed, R8-minified build-79
+production APK on the API 37 Play AVD at 1080 x 1920. They are RGB JPEG files
+without test labels, synthetic accounts, private identifiers or debug overlays.
 
 Each locale contains the same four-screen story:
 

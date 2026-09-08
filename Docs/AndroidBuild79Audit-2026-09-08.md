@@ -120,6 +120,9 @@ Fresh checks confirm:
 - analytics and user-management build-79 layouts are covered at normal and 200% font.
 - on API 26 at 200% text, the final production navigation uses a readable two-by-two
   arrangement with complete labels instead of splitting `Organisationen` mid-word.
+- the Play phone set was refreshed from the final signed production APK at normal
+  text: four clean 1080 × 1920 captures in each of DE and UK. Third-party image
+  marketing rights still require owner confirmation before upload.
 
 Evidence is stored in `outputs/android-build79-audit/` (including
 `production-home-api26-font200.png` and `api37-font200-navigation-grid.png`) and

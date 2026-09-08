@@ -1,4 +1,4 @@
-# Google Play submission draft — Android 1.0.3 build 72
+# Google Play submission draft — Android 1.0.3 build 79
 
 Status: **draft only, not approved for submission**. This file prepares Play Console
 copy and declarations from the repository state on 2026-09-07. It does not prove a
@@ -7,9 +7,11 @@ approval, or publication.
 
 Application ID: `at.serlest.ukrainiancommunity`
 
-Planned first Play version: `versionCode 72`, `versionName 1.0.3`
+Planned first Play version: `versionCode 79`, `versionName 1.0.3`
 
-Source candidate: commit `2e0ee59` on `codex/android-build72-20260907`.
+Source candidate: build-79 audit/hardening commit `a02a65f` on
+`codex/android-build72-20260907`, plus the subsequently refreshed store assets in
+this submission packet.
 
 Default listing language: German (`de-DE`)
 
@@ -100,11 +102,11 @@ from the release scope.
 
 | Field | Proposed URL | Status before submission |
 | --- | --- | --- |
-| Privacy policy | `https://ukrainiancommunity-dbd5f.web.app/privacy` | **BLOCKED:** HTTP 200 read back on 2026-09-07, but published 2026.13 explicitly scopes itself to iOS. Publish and read back an approved bilingual cross-platform revision first. |
-| Account deletion | `https://ukrainiancommunity-dbd5f.web.app/delete-account` | **BLOCKED:** repository page exists and covers iOS/Android, but public read-back returned HTTP 404 on 2026-09-07. |
-| Support | `https://ukrainiancommunity-dbd5f.web.app/support` | HTTP 200 on 2026-09-07, but the live page still names only iOS settings/device details. The repository source is already cross-platform; deploy/read back only with the approved legal/Hosting release. |
-| Website | `https://ukrainiancommunity-dbd5f.web.app/` | Existing site; verify availability immediately before submission. |
-| Illegal-content reporting | `https://ukrainiancommunity-dbd5f.web.app/report-illegal-content` | Relevant to UGC/DSA review; verify availability and submission behavior separately. |
+| Privacy policy | `https://ukrainiancommunity-dbd5f.web.app/privacy` | **BLOCKED:** HTTP 200 read back on 2026-09-08, but the live page names iOS and FCM while still lacking the prepared Android/Play Integrity scope. Publish and read back an approved bilingual cross-platform revision first. |
+| Account deletion | `https://ukrainiancommunity-dbd5f.web.app/delete-account` | **BLOCKED:** repository page exists and covers iOS/Android, but public read-back still returns HTTP 404 on 2026-09-08. |
+| Support | `https://ukrainiancommunity-dbd5f.web.app/support` | HTTP 200 on 2026-09-08, but the live page still names only iOS settings/device details. The repository source is already cross-platform; deploy/read back only with the approved legal/Hosting release. |
+| Website | `https://ukrainiancommunity-dbd5f.web.app/` | HTTP 200 on 2026-09-08; verify again immediately before submission. |
+| Illegal-content reporting | `https://ukrainiancommunity-dbd5f.web.app/report-illegal-content` | HTTP 200 on 2026-09-08; form submission and operational response remain separate checks. |
 
 ### Account-deletion page audit
 
@@ -277,8 +279,8 @@ Required/prepared state:
 | Asset | Play requirement | Current evidence | Action |
 | --- | --- | --- | --- |
 | Store icon | 512 × 512 PNG, Play asset separate from the launcher resource | `Android/release/play/store-icon-512.png`, 512 × 512, no alpha, visually checked; derived without redesign from the current 1024 × 1024 app icon | Reconfirm against the signed AAB and approve for upload. |
-| Feature graphic | 1024 × 500, JPEG or 24-bit PNG without alpha | `Android/release/play/feature-graphic-build72.png`, 1024 × 500, no alpha, text-free and visually checked | Brand-owner approval remains required before upload. |
-| Phone screenshots | At least two are needed for a publishable store listing; use current Play constraints and accurate in-app imagery | Four audit captures exist at 1080 × 2424, but they show development/audit state and are not a signed-release store set | Capture clean final-AAB guest and signed-in screens; provide separate DE/UK images wherever text is visible. |
+| Feature graphic | 1024 × 500, JPEG or 24-bit PNG without alpha | `Android/release/play/feature-graphic-build79.png`, 1024 × 500, no alpha, text-free and visually checked | Brand-owner approval remains required before upload. |
+| Phone screenshots | At least two are needed for a publishable store listing; use current Play constraints and accurate in-app imagery | Four DE and four UK guest captures were refreshed from the exact upload-signed, R8-minified build-79 production APK at 1080 × 1920 and visually checked | Confirm marketing rights for every visible public-content photo; replace uncertain images with owner-controlled content before upload. |
 | Tablet/other form factors | Required only when distributing/optimizing for the applicable form factor, subject to the current Console prompts | No release tablet screenshot proof | Decide supported devices after Play device-catalog review; do not imply optimized tablet UX without testing. |
 | Promo video | Optional | Missing | Omit for first release unless a final localized video is prepared. |
 
