@@ -48,6 +48,15 @@ Date: 2026-09-08 (Europe/Vienna)
 - The Keychain-backed release script now builds both the upload-key-signed AAB and a
   matching minified APK, so the install smoke tests the same source/version as the
   upload artifact.
+- A direct staging Gradle build now fails fast when its Firebase identifiers are
+  absent and points to the configuration-fetching script instead of producing an APK
+  that crashes later with `CLOUD_APPLICATION_ID_MISSING`.
+- The staging-only App Check CI helper is installed only while registered test
+  instrumentation is active. A manually launched staging APK now remains alive for
+  visual QA; its cloud calls remain fail-closed without the transient test secret.
+- At large accessibility text, bottom navigation switches to its two-by-two native
+  layout as soon as any label would wrap. This keeps the German `Organisationen`
+  label intact; normal-text four-column navigation is unchanged.
 
 ## Verification receipts
 
@@ -57,11 +66,16 @@ Date: 2026-09-08 (Europe/Vienna)
 | Android compile/assemble/lint | **PASS** | local build/static |
 | Affected UI, normal font | **16/16 PASS** on API 37 | local emulator |
 | Affected UI, 200% font | **14/14 PASS** on API 37 | local emulator |
+| Build-79 browse/filter regression, normal + 200% font | **6/6 + 6/6 PASS** on API 26 | exact local app/test APKs |
+| Final large-text navigation/browse regression | **6/6 PASS** on API 37 at 200% | exact final local app/test APKs |
+| Build-79 news filter fix at 200% font | **PASS** on API 26; full affected set remains **16/16** by 15 prior unchanged passes plus exact fixed-test rerun | exact local app/test APKs |
 | Functions unit suite | **476 tests, 0 failures** (400 pass, 76 emulator/opt-in skips) | local Node |
 | Announcement concurrency integration | **6/6 PASS**, including both new Android races | isolated Firestore emulator |
 | Firestore index validator | **PASS**, 74 unique composite indexes | local/static |
 | Current iOS build-79 configuration/localization | **PASS**, 2804 localization entries checked | read-only current iOS worktree |
 | Signed production APK smoke | install/update and cold start **PASS** in 451 ms; process alive; current public content rendered; no UAC fatal/App Check/Firebase exception in captured log | API 37, production backend, guest |
+| Final signed production APK compatibility smoke | install and cold start **PASS** in 493 ms; process alive; `1.0.3 (79)` read back; 200% navigation visually inspected | API 26, production backend, guest |
+| Final staging standalone smoke | install and cold start **PASS** in 539 ms; process alive; `1.0.3-staging (79)` read back; former instrumentation-argument crash absent | API 26, staging, unauthenticated/fail-closed cloud |
 | Upload-key-signed AAB | **PASS**, R8 + lintVital + signature | local release artifact |
 | Native libraries | all 8 ABI/library combinations use `2**14` (16 KiB) LOAD alignment | local AAB inspection |
 
@@ -75,11 +89,15 @@ Signed release identity read-back:
 - AAB:
   `outputs/android-build79/app-production-release-build79-UPLOAD-SIGNED.aab`
 - AAB SHA-256:
-  `a75c2d902b0dbd74132ea47ab51da2aad7fc6d9f3ed1aa31c81f83f153a8eeff`
+  `5835e55e6c719146e1e3ff3b3787feeb0a1b72854fe4db69aceba8c1cfc5d998`
 - APK:
   `outputs/android-build79/app-production-release-build79-UPLOAD-SIGNED.apk`
 - APK SHA-256:
-  `29fc19e49fb79aae1fc1dc981bb9d8c79b5d8e1583592201080b52aba4a0fcea`
+  `99b7da9de8702e0e3df9872ebce1f136e84131c2c1ffcd6a6dfdd436c128176b`
+- staging APK:
+  `outputs/android-build79/app-staging-debug-build79.apk`
+- staging APK SHA-256:
+  `dec9cdc032f59cc6f239588b42156786c4000c4c155159a503c2cdff8d394435`
 
 ## Visual audit against iOS build 79
 
@@ -100,8 +118,11 @@ Fresh checks confirm:
 - card hierarchy, spacing and bottom navigation are coherent with iOS while retaining
   Android touch targets and typography;
 - analytics and user-management build-79 layouts are covered at normal and 200% font.
+- on API 26 at 200% text, the final production navigation uses a readable two-by-two
+  arrangement with complete labels instead of splitting `Organisationen` mid-word.
 
-Evidence is stored in `outputs/android-build79-audit/` and
+Evidence is stored in `outputs/android-build79-audit/` (including
+`production-home-api26-font200.png` and `api37-font200-navigation-grid.png`) and
 `outputs/android-build79/production-home-api37.png`. This does not replace a physical
 OEM/TalkBack/contrast matrix.
 

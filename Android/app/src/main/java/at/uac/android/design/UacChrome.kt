@@ -344,7 +344,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                                         labels[tab.ordinal],
                                         labelStyle,
                                         selected == tab,
-                                        true,
+                                        false,
                                         onSelect,
                                         Modifier.weight(1f).fillMaxHeight(),
                                     )

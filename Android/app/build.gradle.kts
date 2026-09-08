@@ -197,9 +197,28 @@ val verifyProductionReleaseConfiguration by tasks.registering {
     }
 }
 
+val verifyStagingDebugConfiguration by tasks.registering {
+    doLast {
+        val required =
+            mapOf(
+                "UAC_STAGING_FIREBASE_PROJECT_ID" to providers.environmentVariable("UAC_STAGING_FIREBASE_PROJECT_ID").orElse(providers.gradleProperty("uac.staging.firebase.projectId")).orNull,
+                "UAC_STAGING_FIREBASE_APPLICATION_ID" to providers.environmentVariable("UAC_STAGING_FIREBASE_APPLICATION_ID").orElse(providers.gradleProperty("uac.staging.firebase.applicationId")).orNull,
+                "UAC_STAGING_FIREBASE_API_KEY" to providers.environmentVariable("UAC_STAGING_FIREBASE_API_KEY").orElse(providers.gradleProperty("uac.staging.firebase.apiKey")).orNull,
+                "UAC_STAGING_FIREBASE_BUCKET" to providers.environmentVariable("UAC_STAGING_FIREBASE_BUCKET").orElse(providers.gradleProperty("uac.staging.firebase.bucket")).orNull,
+            )
+        val missing = required.filterValues { it.isNullOrBlank() }.keys
+        check(missing.isEmpty()) {
+            "Staging debug configuration missing: ${missing.joinToString()}. Use scripts/build-staging-apk.mjs."
+        }
+    }
+}
+
 tasks.named("preBuild") { dependsOn(verifyLocalOnly) }
 tasks.matching { it.name == "preProductionReleaseBuild" }.configureEach {
     dependsOn(verifyProductionReleaseConfiguration)
+}
+tasks.matching { it.name == "preStagingDebugBuild" }.configureEach {
+    dependsOn(verifyStagingDebugConfiguration)
 }
 
 dependencies {

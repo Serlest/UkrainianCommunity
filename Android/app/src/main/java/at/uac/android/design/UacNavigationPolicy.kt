@@ -7,9 +7,7 @@ internal fun useLargeTextNavigationGrid(
 ): Boolean {
     if (!fontScale.isFinite() || fontScale <= 1.3f) return false
     if (fourColumnLineCounts.size != 4 || fourColumnLineCounts.any { it < 1 }) return true
-    // The long organization name may occupy two lines; short tab names must remain whole.
-    return fourColumnLineCounts[0] > 1 ||
-        fourColumnLineCounts[1] > 1 ||
-        fourColumnLineCounts[2] > 2 ||
-        fourColumnLineCounts[3] > 1
+    // Material navigation labels should not split inside a word. At large text, move to the
+    // existing two-by-two presentation as soon as any four-column label needs another line.
+    return fourColumnLineCounts.any { it > 1 }
 }

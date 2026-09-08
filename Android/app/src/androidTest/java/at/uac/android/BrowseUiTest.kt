@@ -245,9 +245,9 @@ class BrowseUiTest {
         tab("news")
         scrollPrimary("news-filters")
         compose.onNodeWithTag("news-filters").performClick()
-        compose.onNodeWithTag("news-period-SEVEN_DAYS").performClick()
-        compose.onNodeWithTag("news-order-OLDEST").performClick()
-        compose.onNodeWithTag("news-filter-apply").performClick()
+        compose.onNodeWithTag("news-period-SEVEN_DAYS").performScrollTo().performClick()
+        compose.onNodeWithTag("news-order-OLDEST").performScrollTo().performClick()
+        compose.onNodeWithTag("news-filter-apply").performScrollTo().performClick()
         ready()
         compose.runOnIdle {
             val state = ViewModelProvider(compose.activity)[BrowseViewModel::class.java].state.value
@@ -257,8 +257,8 @@ class BrowseUiTest {
 
         scrollPrimary("news-filters")
         compose.onNodeWithTag("news-filters").performClick()
-        compose.onNodeWithTag("news-period-ALL").performClick()
-        compose.onNodeWithText("Abbrechen").performClick()
+        compose.onNodeWithTag("news-period-ALL").performScrollTo().performClick()
+        compose.onNodeWithText("Abbrechen").performScrollTo().performClick()
         compose.runOnIdle {
             val state = ViewModelProvider(compose.activity)[BrowseViewModel::class.java].state.value
             org.junit.Assert.assertEquals(NewsPeriod.SEVEN_DAYS, state.newsPeriod)
