@@ -44,6 +44,8 @@ import at.uac.android.design.UacTheme
 import at.uac.android.design.isCompactAuthHeaderRoute
 import java.net.URI
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -481,6 +483,19 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                     )
                 }
                 if (state.kind == ContentKind.NEWS) {
+                    item("news-filters") {
+                        FilterChip(
+                            selected =
+                                state.newsPeriod != NewsPeriod.ALL ||
+                                    state.newsOrder != NewsOrder.NEWEST ||
+                                    state.newsSource != NewsSource.ALL,
+                            onClick = { sheet = "news" },
+                            label = { Text(tr(language, "Filter", "Фільтри")) },
+                            modifier =
+                                Modifier.heightIn(min = UacDesign.minimumTouch)
+                                    .testTag("news-filters"),
+                        )
+                    }
                     item("saved") {
                         FilterChip(
                             selected = false,
@@ -550,6 +565,13 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                     }
                 }
             }
+            if (state.kind == ContentKind.NEWS)
+                Text(
+                    newsFilterSummary(state, language),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().testTag("news-filter-summary"),
+                )
             if (searchVisible || state.search.isNotEmpty())
                 OutlinedTextField(
                     state.search,
@@ -595,7 +617,22 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
             }
         }
     }
-    if (sheet != null)
+    if (sheet == "news")
+        NewsFilterSheet(
+            state = state,
+            onDismiss = { sheet = null },
+            onApply = { period, order, source, start, end ->
+                model.filters(
+                    newsPeriod = period,
+                    newsOrder = order,
+                    newsSource = source,
+                    customStart = start,
+                    customEnd = end,
+                )
+                sheet = null
+            },
+        )
+    else if (sheet != null)
         ModalBottomSheet(
             onDismissRequest = { sheet = null },
             modifier = Modifier.testTag("browse-filter-sheet"),
@@ -639,6 +676,163 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
             }
         }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NewsFilterSheet(
+    state: BrowseState,
+    onDismiss: () -> Unit,
+    onApply: (NewsPeriod, NewsOrder, NewsSource, LocalDate?, LocalDate?) -> Unit,
+) {
+    val language = state.language
+    var period by rememberSaveable { mutableStateOf(state.newsPeriod) }
+    var order by rememberSaveable { mutableStateOf(state.newsOrder) }
+    var source by rememberSaveable { mutableStateOf(state.newsSource) }
+    var start by rememberSaveable { mutableStateOf(state.customStart) }
+    var end by rememberSaveable { mutableStateOf(state.customEnd) }
+    var datesVisible by rememberSaveable { mutableStateOf(false) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("news-filter-sheet"),
+    ) {
+        Column(
+            Modifier.fillMaxWidth()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Heading(tr(language, "Nachrichten filtern", "Фільтри новин"))
+            Text(tr(language, "Zeitraum", "Період"), style = MaterialTheme.typography.titleMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NewsPeriod.entries.forEach { value ->
+                    FilterChip(
+                        selected = period == value,
+                        onClick = {
+                            period = value
+                            if (value == NewsPeriod.CUSTOM) datesVisible = true
+                        },
+                        label = { Text(newsPeriodLabel(value, language)) },
+                        modifier = Modifier.testTag("news-period-${value.name}"),
+                    )
+                }
+            }
+            if (period == NewsPeriod.CUSTOM && start != null && end != null)
+                Text("${start.toString()} – ${end.toString()}")
+            Text(
+                tr(language, "Reihenfolge", "Порядок"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NewsOrder.entries.forEach { value ->
+                    FilterChip(
+                        selected = order == value,
+                        onClick = { order = value },
+                        label = { Text(newsOrderLabel(value, language)) },
+                        modifier = Modifier.testTag("news-order-${value.name}"),
+                    )
+                }
+            }
+            Text(tr(language, "Quelle", "Джерело"), style = MaterialTheme.typography.titleMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NewsSource.entries.forEach { value ->
+                    FilterChip(
+                        selected = source == value,
+                        onClick = { source = value },
+                        enabled = value == NewsSource.ALL || state.accountAvailable,
+                        label = { Text(newsSourceLabel(value, language)) },
+                        modifier = Modifier.testTag("news-source-${value.name}"),
+                    )
+                }
+            }
+            if (!state.accountAvailable)
+                Text(
+                    tr(
+                        language,
+                        "Gespeicherte Inhalte und Abos sind nach der Anmeldung verfügbar.",
+                        "Збережене та підписки доступні після входу.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onDismiss, Modifier.weight(1f)) {
+                    Text(tr(language, "Abbrechen", "Скасувати"))
+                }
+                Button(
+                    onClick = { onApply(period, order, source, start, end) },
+                    enabled = period != NewsPeriod.CUSTOM || start != null && end != null,
+                    modifier = Modifier.weight(1f).testTag("news-filter-apply"),
+                ) {
+                    Text(tr(language, "Anwenden", "Застосувати"))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+    if (datesVisible) {
+        val picker =
+            rememberDateRangePickerState(
+                initialSelectedStartDateMillis =
+                    start?.atStartOfDay()?.toInstant(ZoneOffset.UTC)?.toEpochMilli(),
+                initialSelectedEndDateMillis =
+                    end?.atStartOfDay()?.toInstant(ZoneOffset.UTC)?.toEpochMilli(),
+            )
+        DatePickerDialog(
+            onDismissRequest = { datesVisible = false },
+            confirmButton = {
+                TextButton({
+                    start =
+                        picker.selectedStartDateMillis?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+                        }
+                    end =
+                        picker.selectedEndDateMillis?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+                        }
+                    datesVisible = false
+                }) {
+                    Text(tr(language, "Übernehmen", "Готово"))
+                }
+            },
+            dismissButton = {
+                TextButton({ datesVisible = false }) {
+                    Text(tr(language, "Abbrechen", "Скасувати"))
+                }
+            },
+        ) {
+            DateRangePicker(picker, modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp))
+        }
+    }
+}
+
+private fun newsFilterSummary(state: BrowseState, language: String): String =
+    listOf(
+            newsPeriodLabel(state.newsPeriod, language),
+            newsOrderLabel(state.newsOrder, language),
+            newsSourceLabel(state.newsSource, language),
+        )
+        .joinToString(" · ")
+
+private fun newsPeriodLabel(value: NewsPeriod, language: String) =
+    when (value) {
+        NewsPeriod.ALL -> tr(language, "Alle Zeiten", "Увесь час")
+        NewsPeriod.TODAY -> tr(language, "Heute", "Сьогодні")
+        NewsPeriod.SEVEN_DAYS -> tr(language, "7 Tage", "7 днів")
+        NewsPeriod.THIRTY_DAYS -> tr(language, "30 Tage", "30 днів")
+        NewsPeriod.CUSTOM -> tr(language, "Zeitraum", "Власний період")
+    }
+
+private fun newsOrderLabel(value: NewsOrder, language: String) =
+    if (value == NewsOrder.NEWEST) tr(language, "Neueste zuerst", "Спочатку нові")
+    else tr(language, "Älteste zuerst", "Спочатку старі")
+
+private fun newsSourceLabel(value: NewsSource, language: String) =
+    when (value) {
+        NewsSource.ALL -> tr(language, "Alle Quellen", "Усі джерела")
+        NewsSource.SAVED -> tr(language, "Gespeichert", "Збережені")
+        NewsSource.SUBSCRIBED -> tr(language, "Meine Abos", "Мої підписки")
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

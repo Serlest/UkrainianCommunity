@@ -3,6 +3,7 @@ package at.uac.android.feature.browse
 import java.net.URI
 import java.text.Normalizer
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -37,6 +38,54 @@ enum class ReadFailure {
     MISSING,
     INDEX,
     UNKNOWN,
+}
+
+enum class NewsPeriod {
+    ALL,
+    TODAY,
+    SEVEN_DAYS,
+    THIRTY_DAYS,
+    CUSTOM,
+}
+
+enum class NewsOrder {
+    NEWEST,
+    OLDEST,
+}
+
+enum class NewsSource {
+    ALL,
+    SAVED,
+    SUBSCRIBED,
+}
+
+data class NewsDateRange(val startInclusive: Instant?, val endExclusive: Instant?)
+
+fun newsDateRange(
+    period: NewsPeriod,
+    now: Instant,
+    zone: ZoneId = ZoneId.of("Europe/Vienna"),
+    customStart: LocalDate? = null,
+    customEnd: LocalDate? = null,
+): NewsDateRange {
+    val today = now.atZone(zone).toLocalDate()
+    val dates =
+        when (period) {
+            NewsPeriod.ALL -> return NewsDateRange(null, null)
+            NewsPeriod.TODAY -> today to today
+            NewsPeriod.SEVEN_DAYS -> today.minusDays(6) to today
+            NewsPeriod.THIRTY_DAYS -> today.minusDays(29) to today
+            NewsPeriod.CUSTOM -> {
+                val start = requireNotNull(customStart)
+                val end = requireNotNull(customEnd)
+                require(!end.isBefore(start))
+                start to end
+            }
+        }
+    return NewsDateRange(
+        dates.first.atStartOfDay(zone).toInstant(),
+        dates.second.plusDays(1).atStartOfDay(zone).toInstant(),
+    )
 }
 
 class ReadException(val reason: ReadFailure, cause: Throwable? = null) :
@@ -104,6 +153,11 @@ data class Content(val kind: ContentKind, val id: String, val fields: Fields) {
                             summary(query.language),
                             body(query.language),
                             fields.string("city"),
+                            fields.string("authorDisplayName"),
+                            fields.string("authorName"),
+                            fields.string("organizationName"),
+                            fields.string("publisherName"),
+                            kind.label(query.language),
                             fields.strings("tags").joinToString(" "),
                         )
                         .joinToString(" ")
@@ -158,9 +212,21 @@ data class ContentQuery(
     val now: Instant = Instant.now(),
     val audience: String = "",
     val recommendations: Boolean = false,
+    val newsPeriod: NewsPeriod = NewsPeriod.ALL,
+    val newsOrder: NewsOrder = NewsOrder.NEWEST,
+    val newsSource: NewsSource = NewsSource.ALL,
+    val customStart: LocalDate? = null,
+    val customEnd: LocalDate? = null,
+    val allowedNewsIds: Set<String>? = null,
+    val allowedOrganizationIds: Set<String>? = null,
 ) {
+    val newsDates: NewsDateRange
+        get() = newsDateRange(newsPeriod, now, customStart = customStart, customEnd = customEnd)
+
     val ascending
-        get() = kind == ContentKind.EVENTS && !past && !recommendations
+        get() =
+            if (kind == ContentKind.NEWS && !recommendations) newsOrder == NewsOrder.OLDEST
+            else kind == ContentKind.EVENTS && !past && !recommendations
 
     val orderField
         get() = if (recommendations && kind == ContentKind.EVENTS) "createdAt" else kind.order
@@ -186,6 +252,15 @@ data class ContentQuery(
                 (organizationId.isEmpty() || string("organizationId") == organizationId) &&
                 (!recommendations || string("category") == category) &&
                 time(orderField) != null &&
+                (kind != ContentKind.NEWS ||
+                    (newsDates.startInclusive?.let { time("publishedAt")!! >= it } ?: true) &&
+                        (newsDates.endExclusive?.let { time("publishedAt")!! < it } ?: true) &&
+                        when (newsSource) {
+                            NewsSource.ALL -> true
+                            NewsSource.SAVED -> allowedNewsIds?.contains(doc.id) == true
+                            NewsSource.SUBSCRIBED ->
+                                allowedOrganizationIds?.contains(string("organizationId")) == true
+                        }) &&
                 (kind != ContentKind.EVENTS ||
                     recommendations ||
                     if (past) time("endDate")!! < now else time("endDate")!! >= now)

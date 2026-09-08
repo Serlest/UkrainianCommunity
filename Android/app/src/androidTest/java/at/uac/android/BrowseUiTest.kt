@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import at.uac.android.feature.browse.BrowseViewModel
+import at.uac.android.feature.browse.NewsOrder
+import at.uac.android.feature.browse.NewsPeriod
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -236,5 +238,31 @@ class BrowseUiTest {
             .onNodeWithTag("primary-filter-row")
             .performScrollToNode(hasTestTag("quick-subscriptions"))
         compose.onNodeWithTag("quick-subscriptions").assertIsDisplayed()
+    }
+
+    @Test
+    fun newsPeriodAndOrderApplyTogetherWhileCancelKeepsSelection() {
+        tab("news")
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("news-period-SEVEN_DAYS").performClick()
+        compose.onNodeWithTag("news-order-OLDEST").performClick()
+        compose.onNodeWithTag("news-filter-apply").performClick()
+        ready()
+        compose.runOnIdle {
+            val state = ViewModelProvider(compose.activity)[BrowseViewModel::class.java].state.value
+            org.junit.Assert.assertEquals(NewsPeriod.SEVEN_DAYS, state.newsPeriod)
+            org.junit.Assert.assertEquals(NewsOrder.OLDEST, state.newsOrder)
+        }
+
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("news-period-ALL").performClick()
+        compose.onNodeWithText("Abbrechen").performClick()
+        compose.runOnIdle {
+            val state = ViewModelProvider(compose.activity)[BrowseViewModel::class.java].state.value
+            org.junit.Assert.assertEquals(NewsPeriod.SEVEN_DAYS, state.newsPeriod)
+            org.junit.Assert.assertEquals(NewsOrder.OLDEST, state.newsOrder)
+        }
     }
 }

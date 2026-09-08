@@ -8,6 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.feature.browse.tr
@@ -267,22 +269,38 @@ private fun Periods(
 
 @Composable
 private fun MetricGrid(values: Map<String, Int>, previous: Map<String, Int>, language: String) {
+    val fontScale = LocalDensity.current.fontScale
+    val columns = if (fontScale >= 1.3f || LocalConfiguration.current.screenWidthDp < 360) 1 else 2
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         values
             .filterValues { it > 0 }
             .entries
-            .chunked(2)
+            .chunked(columns)
             .forEach { row ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     row.forEach { (key, value) ->
-                        ElevatedCard(Modifier.weight(1f).testTag("owner-analytics-metric-$key")) {
-                            Column(Modifier.padding(12.dp)) {
+                        ElevatedCard(
+                            Modifier.weight(1f)
+                                .fillMaxHeight()
+                                .testTag("owner-analytics-metric-$key")
+                        ) {
+                            Column(
+                                Modifier.fillMaxHeight().padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                            ) {
                                 Text(value.toString(), style = MaterialTheme.typography.titleLarge)
                                 Text(
                                     metricName(key, language),
                                     style = MaterialTheme.typography.bodySmall,
                                 )
                                 previous[key]?.let {
+                                    Text(
+                                        metricDelta(value, it),
+                                        style = MaterialTheme.typography.labelLarge,
+                                    )
                                     Text(
                                         "${tr(language, "zuvor", "раніше")}: $it",
                                         style = MaterialTheme.typography.labelSmall,
@@ -291,11 +309,27 @@ private fun MetricGrid(values: Map<String, Int>, previous: Map<String, Int>, lan
                             }
                         }
                     }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                    if (row.size < columns)
+                        repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
     }
 }
+
+internal fun metricDelta(current: Int, previous: Int): String =
+    when {
+        previous == 0 && current == 0 -> "0%"
+        previous == 0 -> "+100%"
+        else -> {
+            val percent = (current - previous) * 100.0 / previous
+            val rounded =
+                java.math
+                    .BigDecimal(percent)
+                    .setScale(1, java.math.RoundingMode.HALF_UP)
+                    .stripTrailingZeros()
+            (if (percent > 0) "+" else "") + rounded.toPlainString() + "%"
+        }
+    }
 
 @Composable
 private fun Trend(snapshot: OwnerAnalyticsSnapshot, language: String) {

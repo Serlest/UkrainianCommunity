@@ -1,5 +1,9 @@
 # Android release readiness — 2026-09-07
 
+> Superseded for the current `1.0.3 (79)` candidate by
+> [AndroidBuild79Audit-2026-09-08.md](AndroidBuild79Audit-2026-09-08.md). The
+> build-68 figures below are retained as historical evidence.
+
 Эталон продукта — iOS TestFlight **1.0.2 (build 68) = 100%**. Здесь разделены две оценки, чтобы зелёные локальные тесты не выдавать за готовность Google Play.
 
 ## Итоговая оценка

@@ -37,6 +37,23 @@ REQUIRED_COMPOSITE_INDEXES = {
     ): "expired planning publication recovery",
 }
 
+# Every disjunction branch must support both publication-date directions.
+for topic in (None, "category", "additionalCategories"):
+    for region in (None, "federalState", "regionScope"):
+        for direction in ("ASCENDING", "DESCENDING"):
+            fields = [("moderationStatus", "ASCENDING", None, None),
+                      ("sourceType", "ASCENDING", None, None)]
+            if topic:
+                fields.append((topic, None, "CONTAINS", None) if topic == "additionalCategories"
+                              else (topic, "ASCENDING", None, None))
+            if region:
+                fields.append((region, "ASCENDING", None, None))
+            fields.sort(key=lambda field: field[0])
+            fields.append(("publishedAt", direction, None, None))
+            REQUIRED_COMPOSITE_INDEXES[("news", "COLLECTION", tuple(fields))] = (
+                f"news browse topic={topic} region={region} order={direction}"
+            )
+
 REQUIRED_COLLECTION_GROUP_FIELDS = {
     ("contentPlanningDrafts", "publishedContentId"): "planning link lookup",
 }

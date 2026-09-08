@@ -1,11 +1,12 @@
 package at.uac.android.feature.browse
 
-import at.uac.android.BuildConfig
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import at.uac.android.BuildConfig
 import java.security.MessageDigest
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,12 @@ data class BrowseState(
     val category: String = "",
     val audience: String = "",
     val past: Boolean = false,
+    val newsPeriod: NewsPeriod = NewsPeriod.ALL,
+    val newsOrder: NewsOrder = NewsOrder.NEWEST,
+    val newsSource: NewsSource = NewsSource.ALL,
+    val accountAvailable: Boolean = false,
+    val customStart: LocalDate? = null,
+    val customEnd: LocalDate? = null,
     val data: BrowseData = BrowseData(),
     val canBack: Boolean = false,
     val selectedTab: PrimaryTab = PrimaryTab.HOME,
@@ -85,6 +92,10 @@ class BrowseViewModel(
     initialRegion: String,
     initialTheme: String,
     private val savePreference: (String, String) -> Unit,
+    private val newsPersonalScope: NewsPersonalScopeSource = NewsPersonalScopeSource { source ->
+        if (source == NewsSource.ALL) NewsPersonalScope()
+        else throw ReadException(ReadFailure.DENIED)
+    },
 ) : ViewModel() {
     private val availableModes =
         if (BuildConfig.USE_LOCAL_BACKEND) setOf("synthetic", "emulator") else setOf("emulator")
@@ -141,8 +152,20 @@ class BrowseViewModel(
 
     private fun repository() = if (mutable.value.mode == "synthetic") synthetic else emulator
 
-    private fun key(s: BrowseState = mutable.value) =
-        "${s.mode}|${s.language}|${s.region}|${s.route}|${s.search}|${s.category}|${s.audience}|${s.past}"
+    private fun key(s: BrowseState = mutable.value): String {
+        val legacy =
+            "${s.mode}|${s.language}|${s.region}|${s.route}|${s.search}|${s.category}|${s.audience}|${s.past}"
+        return if (
+            s.newsPeriod == NewsPeriod.ALL &&
+                s.newsOrder == NewsOrder.NEWEST &&
+                s.newsSource == NewsSource.ALL &&
+                s.customStart == null &&
+                s.customEnd == null
+        )
+            legacy
+        else
+            "$legacy|${s.newsPeriod}|${s.newsOrder}|${s.newsSource}|${s.customStart}|${s.customEnd}"
+    }
 
     init {
         saved["language"] = mutable.value.language
@@ -169,11 +192,17 @@ class BrowseViewModel(
     fun bindAccount(account: NavigationAccount) {
         if (account.resolving && account.uid == null) return
         val nextHash = account.uid?.let(::identityHash)
-        if (accountBound && nextHash == accountHash) return
+        if (accountBound && nextHash == accountHash) {
+            mutable.value = mutable.value.copy(accountAvailable = nextHash != null)
+            return
+        }
         val changed = nextHash != accountHash || !accountBound && accountHash == null
         val restoringGuest = !accountBound && nextHash == null && accountHash == null
         accountBound = true
         if (changed) {
+            saved.keys()
+                .filter { it.startsWith("news-source:") }
+                .forEach { saved[it] = NewsSource.ALL.name }
             val keepReceipt =
                 nextHash == null &&
                     deletionAccountHash != null &&
@@ -188,7 +217,11 @@ class BrowseViewModel(
                 mutable.value.copy(
                     navigationEpoch = mutable.value.navigationEpoch + 1,
                     deletionCompleted = deletionAccountHash != null,
+                    newsSource = NewsSource.ALL,
+                    accountAvailable = nextHash != null,
                 )
+        } else {
+            mutable.value = mutable.value.copy(accountAvailable = nextHash != null)
         }
         accountHash = nextHash
         saved["navigation-account"] = nextHash
@@ -244,6 +277,20 @@ class BrowseViewModel(
                         }
                         .orEmpty(),
                 past = saved.get<Any?>("past:${s.route}") as? Boolean ?: false,
+                newsPeriod =
+                    savedString("news-period:${s.route}")?.let {
+                        runCatching { NewsPeriod.valueOf(it) }.getOrNull()
+                    } ?: NewsPeriod.ALL,
+                newsOrder =
+                    savedString("news-order:${s.route}")?.let {
+                        runCatching { NewsOrder.valueOf(it) }.getOrNull()
+                    } ?: NewsOrder.NEWEST,
+                newsSource =
+                    savedString("news-source:${s.route}")?.let {
+                        runCatching { NewsSource.valueOf(it) }.getOrNull()
+                    } ?: NewsSource.ALL,
+                customStart = savedString("news-start:${s.route}")?.let(::safeLocalDate),
+                customEnd = savedString("news-end:${s.route}")?.let(::safeLocalDate),
             )
     }
 
@@ -305,7 +352,18 @@ class BrowseViewModel(
 
     private fun trimRouteState() {
         val live = navigation.stacks.values.flatten().toSet()
-        val prefixes = listOf("search:", "category:", "audience:", "past:")
+        val prefixes =
+            listOf(
+                "search:",
+                "category:",
+                "audience:",
+                "past:",
+                "news-period:",
+                "news-order:",
+                "news-source:",
+                "news-start:",
+                "news-end:",
+            )
         saved.keys().toList().forEach { key ->
             val prefix = prefixes.firstOrNull(key::startsWith)
             if (prefix != null) {
@@ -346,6 +404,24 @@ class BrowseViewModel(
                                     }
                                     .orEmpty()
                         "past:" -> saved[key] = saved.get<Any?>(key) as? Boolean ?: false
+                        "news-period:" ->
+                            saved[key] =
+                                savedString(key)?.takeIf {
+                                    runCatching { NewsPeriod.valueOf(it) }.isSuccess
+                                } ?: NewsPeriod.ALL.name
+                        "news-order:" ->
+                            saved[key] =
+                                savedString(key)?.takeIf {
+                                    runCatching { NewsOrder.valueOf(it) }.isSuccess
+                                } ?: NewsOrder.NEWEST.name
+                        "news-source:" ->
+                            saved[key] =
+                                savedString(key)?.takeIf {
+                                    runCatching { NewsSource.valueOf(it) }.isSuccess
+                                } ?: NewsSource.ALL.name
+                        "news-start:",
+                        "news-end:" ->
+                            saved[key] = savedString(key)?.let(::safeLocalDate)?.toString()
                     }
             }
         }
@@ -405,6 +481,11 @@ class BrowseViewModel(
         category: String = mutable.value.category,
         audience: String = mutable.value.audience,
         past: Boolean = mutable.value.past,
+        newsPeriod: NewsPeriod = mutable.value.newsPeriod,
+        newsOrder: NewsOrder = mutable.value.newsOrder,
+        newsSource: NewsSource = mutable.value.newsSource,
+        customStart: LocalDate? = mutable.value.customStart,
+        customEnd: LocalDate? = mutable.value.customEnd,
     ) {
         val s = mutable.value
         val boundedSearch = search.take(160)
@@ -412,8 +493,23 @@ class BrowseViewModel(
         saved["category:${s.route}"] = category
         saved["audience:${s.route}"] = audience
         saved["past:${s.route}"] = past
+        saved["news-period:${s.route}"] = newsPeriod.name
+        saved["news-order:${s.route}"] = newsOrder.name
+        saved["news-source:${s.route}"] = newsSource.name
+        saved["news-start:${s.route}"] = customStart?.toString()
+        saved["news-end:${s.route}"] = customEnd?.toString()
         mutable.value =
-            s.copy(search = boundedSearch, category = category, audience = audience, past = past)
+            s.copy(
+                search = boundedSearch,
+                category = category,
+                audience = audience,
+                past = past,
+                newsPeriod = newsPeriod,
+                newsOrder = newsOrder,
+                newsSource = newsSource,
+                customStart = customStart,
+                customEnd = customEnd,
+            )
         load(reset = true, debounce = boundedSearch != s.search)
     }
 
@@ -523,6 +619,9 @@ class BrowseViewModel(
                             )
                     }
                 } else if (s.kind != null) {
+                    val personalScope =
+                        if (s.kind == ContentKind.NEWS) newsPersonalScope.load(s.newsSource)
+                        else NewsPersonalScope()
                     val query =
                         ContentQuery(
                             s.kind!!,
@@ -534,6 +633,13 @@ class BrowseViewModel(
                             s.organizationId,
                             now,
                             s.audience,
+                            newsPeriod = s.newsPeriod,
+                            newsOrder = s.newsOrder,
+                            newsSource = s.newsSource,
+                            customStart = s.customStart,
+                            customEnd = s.customEnd,
+                            allowedNewsIds = personalScope.newsIds,
+                            allowedOrganizationIds = personalScope.organizationIds,
                         )
                     var page = repository.page(query, if (append) s.data.next else null)
                     var items = if (append) s.data.items + page.value.items else page.value.items
@@ -596,9 +702,10 @@ class BrowseViewModel(
                         )
                     // Donation is an optional app configuration document. Its absence means that
                     // no support card is configured, not that public content failed to load.
-                    val donation = optional("donation", missingIsEmpty = true) {
-                        repository.donation()
-                    }
+                    val donation =
+                        optional("donation", missingIsEmpty = true) {
+                            repository.donation()
+                        }
                     result = result.copy(donation = donation)
                 }
                 if (
@@ -626,4 +733,9 @@ class BrowseViewModel(
             }
         }
     }
+
+    private fun safeLocalDate(value: String): LocalDate? = runCatching {
+        LocalDate.parse(value)
+    }
+        .getOrNull()
 }

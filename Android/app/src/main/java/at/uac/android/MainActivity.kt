@@ -462,6 +462,16 @@ class MainActivity : FragmentActivity() {
                         )
                             as T
                     }
+                    if (modelClass == ManagedUserPresenceViewModel::class.java) {
+                        return ManagedUserPresenceViewModel(
+                            ManagedUserPresenceRepository(
+                                localUserPresenceSource(applicationContext),
+                                { auth.state.value.moderationScope() },
+                                AuthModerationDecisionGate(auth),
+                            )
+                        )
+                            as T
+                    }
                     if (modelClass == ModerationViewModel::class.java) {
                         return ModerationViewModel(
                                 localModerationSource(applicationContext),
@@ -703,6 +713,10 @@ class MainActivity : FragmentActivity() {
                             preferences.getString("region", "").orEmpty(),
                             preferences.getString("theme", "system")!!,
                             { key, selected -> preferences.edit { putString(key, selected) } },
+                            FirestoreNewsPersonalScopeSource(
+                                AppBackend.firestore(applicationContext),
+                                AppBackend.auth(applicationContext),
+                            ),
                         )
                         .also { navigation ->
                             navigation.observeAccounts(
@@ -732,6 +746,7 @@ class MainActivity : FragmentActivity() {
             val managedUsers: ManagedUsersViewModel = viewModel(factory = factory)
             val userStatuses: UserStatusViewModel = viewModel(factory = factory)
             val platformRoles: PlatformRoleViewModel = viewModel(factory = factory)
+            val managedPresence: ManagedUserPresenceViewModel = viewModel(factory = factory)
             val featuredBanners: FeaturedManagementViewModel = viewModel(factory = factory)
             val contentPlanning: ContentPlanningViewModel = viewModel(factory = factory)
             val planningBridge =
@@ -1468,6 +1483,7 @@ class MainActivity : FragmentActivity() {
                                     interactive = interactive,
                                     statuses = userStatuses,
                                     roles = platformRoles,
+                                    presence = managedPresence,
                                     onLegalEvidence = { id ->
                                         if (
                                             auth.state.value.moderationScope()?.let {

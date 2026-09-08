@@ -50,12 +50,19 @@ const env = {
 for (const key of Object.keys(env).filter((key) => key.startsWith("UAC_PRODUCTION_FIREBASE_"))) {
   if (!env[key]) throw new Error(`Missing production configuration: ${key}`);
 }
-const result = spawnSync("./gradlew", [":app:bundleProductionRelease", "--no-daemon"], {
+const result = spawnSync(
+  "./gradlew",
+  [":app:assembleProductionRelease", ":app:bundleProductionRelease", "--no-daemon"],
+  {
   cwd: new URL("..", import.meta.url),
   env,
   stdio: "inherit",
-});
+  },
+);
 if (result.status !== 0) process.exit(result.status ?? 1);
 const artifact = new URL("../app/build/outputs/bundle/productionRelease/app-production-release.aab", import.meta.url);
+const apk = new URL("../app/build/outputs/apk/production/release/app-production-release.apk", import.meta.url);
 const digest = createHash("sha256").update(readFileSync(artifact)).digest("hex");
+const apkDigest = createHash("sha256").update(readFileSync(apk)).digest("hex");
 console.log(`Production AAB SHA-256: ${digest}`);
+console.log(`Production APK SHA-256: ${apkDigest}`);
