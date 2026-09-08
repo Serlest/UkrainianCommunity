@@ -161,3 +161,34 @@ Open release gates:
 
 The Android `1.0.3 (79)` code and signed artifacts are ready for the next controlled
 staging/Play-internal gate. They are not yet evidence of a public Google Play release.
+
+## Post-audit Google Play internal-test execution
+
+Executed on 2026-09-08 after explicit owner approval. This section records a later
+external distribution step and does not rewrite the earlier audit snapshot above.
+
+- Google Play app `UkrainianCommunity` was created for package
+  `at.serlest.ukrainiancommunity`; default listing language is German, the app is
+  free, and Play App Signing is enabled.
+- The exact signed AAB recorded above was accepted by Google Play as `1.0.3 (79)`
+  with min SDK 26 and target SDK 36.
+- Release `1.0.3 (79) – Internal` is active only on the Internal testing track.
+  Google Play reports it as available to internal testers and unreviewed. Production,
+  open testing and closed testing were not started.
+- Tester list `UAC Internal Test` contains the owner's Google account, which joined
+  the program successfully. The internal opt-in URL is
+  `https://play.google.com/apps/internaltest/4701365572505552935`.
+- Play's app-signing SHA-256 certificate fingerprint
+  `53:90:B5:6A:03:3C:A3:AC:83:63:E3:2F:56:EF:FB:D1:CC:4E:F5:71:0C:19:79:F2:36:21:7C:94:88:77:5C:A9`
+  was added to Firebase Android app
+  `1:919042658790:android:c3e9447ac6f2a120ac4627`. Read-back now returns both
+  the permanent upload certificate and the Play app-signing certificate. The
+  existing Firebase App Check Play Integrity configuration also read back with a
+  one-hour token TTL.
+- Google Play offered the signed test build for the account's Android devices. The
+  remote install request for the selected Samsung device passed Google's account
+  re-authentication and returned a successful acquisition result. The later physical
+  download, managed-device policy decision, launch and runtime are not yet claimed as
+  passed.
+- Google emitted one non-blocking warning: native code is present but native debug
+  symbols were not uploaded. No blocking release error was reported.
