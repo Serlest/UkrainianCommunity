@@ -1,6 +1,9 @@
 package at.uac.android
 
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import at.uac.android.design.UacTheme
@@ -35,19 +38,23 @@ class DonationSettingsUiTest {
         var writes = 0
         compose.setContent {
             UacTheme("dark") {
-                DonationSettingsContent(
-                    state.value,
-                    "uk",
-                    { state.value = state.value.copy(draft = it) },
-                    {
-                        writes++
-                        state.value = state.value.copy(saving = true)
-                    },
-                    {},
-                    {},
-                    {},
-                    {},
-                )
+                at.uac.android.design.UacPageBackground(
+                    Modifier.fillMaxSize().safeDrawingPadding()
+                ) {
+                    DonationSettingsContent(
+                        state.value,
+                        "uk",
+                        { state.value = state.value.copy(draft = it) },
+                        {
+                            writes++
+                            state.value = state.value.copy(saving = true)
+                        },
+                        {},
+                        {},
+                        {},
+                        {},
+                    )
+                }
             }
         }
         capture("uk-dark-top")
@@ -69,22 +76,26 @@ class DonationSettingsUiTest {
         val snapshot = DonationSnapshot(DonationDraft(), null, false)
         compose.setContent {
             UacTheme("light") {
-                DonationSettingsContent(
-                    DonationSettingsState(
-                        session = owner,
-                        baseline = snapshot,
-                        draft = DonationDraft(url = "https://example.org"),
-                        needsReadback = true,
-                        problem = DonationProblem.UNCONFIRMED,
-                    ),
-                    "de",
-                    {},
-                    {},
-                    {},
-                    {},
-                    {},
-                    {},
-                )
+                at.uac.android.design.UacPageBackground(
+                    Modifier.fillMaxSize().safeDrawingPadding()
+                ) {
+                    DonationSettingsContent(
+                        DonationSettingsState(
+                            session = owner,
+                            baseline = snapshot,
+                            draft = DonationDraft(url = "https://example.org"),
+                            needsReadback = true,
+                            problem = DonationProblem.UNCONFIRMED,
+                        ),
+                        "de",
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                        {},
+                    )
+                }
             }
         }
         compose.onNodeWithTag("donation-error").assertIsDisplayed()

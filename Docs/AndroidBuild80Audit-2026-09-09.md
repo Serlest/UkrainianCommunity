@@ -14,7 +14,7 @@ This is a source-wide audit with implemented fixes, not full parity or release a
 - Local Android Auth/Firestore SDK + demo-only Android callable gateway to actual iOS80 handlers: 6/6 PASS on API37; registration/verification/restore, feedback transaction/replay, exact read acknowledgement, legal integrity/tampering, moderation receipt/replay/payload conflict/stale revision/server marker.
 - App TOTP protection remained active: no-TOTP privileged source authorization was rejected. The lower-level fixture transport test is not a positive owner/admin UI authorization test.
 - On API26, Auth/Feedback 4/4 and earlier transport/legal 2/2 passed. Reinstall of the last candidate hung in the AVD package installer; no final API26 SDK result is claimed. Owned AVD was stopped and subsequent verification moved to API37.
-- Follow-up production source / local APK: API37 font 200%, 307/307 PASS (299 component UI + 6 SDK/transport + 2 MainActivity journeys), build80-owner-final-api37.log. Earlier exact-artifact 34/34 receipt is retained for commit 50275b8.
+- Final Android source / local APK: API37 font 200%, 307/307 PASS (299 component UI + 6 SDK/transport + 2 MainActivity journeys), build80-owner-final-api37.log. Earlier exact-artifact 34/34 receipt is retained for commit 50275b8.
 - Owner workflow build/lint PASS, 1932 JVM tests with zero failures/errors/skips. Lint remains 0 errors, 77 existing warnings, 1 hint.
 - Physical device, TalkBack, positive real TOTP, production Firebase Functions SDK, cloud journeys and Play-installed candidate: NOT VERIFIED.
 - First-pass screenshots and 1919-test receipts are retained in the output directory as historical evidence; newer files use build80/full-audit names. Only screenshots actually refreshed by the new runner are counted.
@@ -135,6 +135,16 @@ Source comparison covers all supplied handoffs (9 and 11 have no separate handof
 - Empty public support labels use the existing iOS default wording; the owner-configured message still appears once.
 - Fixed cached owner analytics surviving session changes. Tests cover account revision changes and clearing cached private data.
 - No support configuration or legal document was written to production. No new public legal text was authored.
+
+## Final artifacts
+
+Output: `/Users/serlest/Documents/Codex/2026-09-09/80-80`.
+
+- `artifacts/app-local-debug-build80-audit.apk`: latest local/demo APK, not a Play release.
+- `full-audit-verification.json`: exact installed/application hashes, test counts and boundaries.
+- `full-audit-source-manifest.json`: tracked Android source hashes and commit.
+- `screenshots/build80-final-api37`: 22 refreshed synthetic screen captures. Donation images are component-host captures; system chrome is not production-window evidence for that editor.
+- `build80-owner-final-api37.log`: 307/307 PASS. Screenshot-only fixture follow-up: `build80-donation-captures-api37.log`, 2/2 PASS.
 
 ## Next work
 
