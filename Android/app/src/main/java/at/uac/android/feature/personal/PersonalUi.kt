@@ -618,11 +618,5 @@ fun PersonalSubscriptionsScreen(
 
 @Composable
 private fun PersonalContentCard(item: Content, language: String, onOpen: (Content) -> Unit) {
-    Card(onClick = { onOpen(item) }, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(item.kind.label(language), style = MaterialTheme.typography.labelMedium)
-            Text(item.title(language), style = MaterialTheme.typography.titleMedium)
-            Text(item.summary(language), style = MaterialTheme.typography.bodyMedium, maxLines = 3)
-        }
-    }
+    at.uac.android.feature.browse.ContentCard(item, language) { onOpen(item) }
 }

@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -36,6 +38,7 @@ fun PublicImage(
     language: String,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    adaptiveBackdrop: Boolean = false,
     fallback: UacIcon = UacIcon.NEWS,
     presentation: PublicImagePresentation = PublicImagePresentation.STANDARD,
 ) {
@@ -80,6 +83,14 @@ fun PublicImage(
             val scale =
                 if (presentation == PublicImagePresentation.VIEWPORT_FIT) ContentScale.Fit
                 else ContentScale.Crop
+            if (adaptiveBackdrop && bitmap != null) {
+                Image(
+                    bitmap!!,
+                    null,
+                    Modifier.fillMaxSize().blur(24.dp).alpha(.45f),
+                    contentScale = ContentScale.Crop,
+                )
+            }
             when {
                 url == "https://example.invalid/media/community.png" ->
                     Image(
@@ -146,8 +157,8 @@ fun PublicImage(
                 Text(
                     tr(
                         language,
-                        "Bild nicht verfügbar (lokale Testversion). ",
-                        "Зображення недоступне (локальна версія). ",
+                        "Bild nicht verfügbar. ",
+                        "Зображення недоступне. ",
                     ) + description,
                     modifier,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

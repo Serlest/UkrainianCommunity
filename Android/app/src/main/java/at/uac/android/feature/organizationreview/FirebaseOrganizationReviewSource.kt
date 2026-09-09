@@ -109,12 +109,23 @@ class FirebaseOrganizationReviewSource(
                     OrganizationReviewContract.hash(text) != entry.textHash
             )
                 OrganizationReviewContract.fail(OrganizationReviewFailure.INVALID)
-            val payload =
-                OrganizationReviewContract.payload(entry.version.organizationId, entry.action, text)
-            if (read(session, entry.version.organizationId).version != entry.version)
+            val snapshot = read(session, entry.version.organizationId)
+            if (snapshot.version != entry.version)
                 OrganizationReviewContract.fail(OrganizationReviewFailure.STALE)
-            // Latest local preflight only. The server does NOT support compare-and-set of this
-            // version.
+            val revision =
+                snapshot.expectedRevision
+                    ?: OrganizationReviewContract.fail(OrganizationReviewFailure.STALE)
+            val payload =
+                OrganizationReviewContract.payload(
+                    entry.version.organizationId,
+                    entry.action,
+                    text,
+                ) +
+                    mapOf(
+                        "operationId" to entry.operationId,
+                        "expectedRevision" to revision,
+                    )
+            // Build 80 checks this exact revision inside the server transaction.
             val task =
                 withContext(Dispatchers.Main.immediate) {
                     // Presentation leases are main-confined. No suspension between the final veto

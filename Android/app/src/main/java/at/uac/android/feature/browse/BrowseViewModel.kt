@@ -200,7 +200,8 @@ class BrowseViewModel(
         val restoringGuest = !accountBound && nextHash == null && accountHash == null
         accountBound = true
         if (changed) {
-            saved.keys()
+            saved
+                .keys()
                 .filter { it.startsWith("news-source:") }
                 .forEach { saved[it] = NewsSource.ALL.name }
             val keepReceipt =
@@ -714,7 +715,11 @@ class BrowseViewModel(
                 ) {
                     val banners =
                         optional("banners") {
-                            repository.banners(s.route.substringBefore(':'), s.region)
+                            repository.banners(
+                                s.route.substringBefore(':'),
+                                s.region,
+                                includeScheduled = true,
+                            )
                         }
                     result = result.copy(banners = banners.orEmpty())
                 }

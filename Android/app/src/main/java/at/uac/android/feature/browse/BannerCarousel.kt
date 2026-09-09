@@ -30,6 +30,8 @@ import at.uac.android.design.LocalUacDark
 import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSymbol
+import java.time.Duration
+import java.time.Instant
 import kotlinx.coroutines.delay
 
 /**
@@ -50,12 +52,43 @@ fun bannerRoute(action: String, target: String): String? {
 
 @Composable
 fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
-    val banners = state.data.banners
+    val candidates = state.data.banners
+    if (candidates.isEmpty()) return
+    var now by remember(candidates) { mutableStateOf(Instant.now()) }
+    var resumed by remember { mutableStateOf(false) }
+    LifecycleResumeEffect(Unit) {
+        resumed = true
+        now = Instant.now()
+        onPauseOrDispose { resumed = false }
+    }
+    LaunchedEffect(candidates, resumed) {
+        if (!resumed) return@LaunchedEffect
+        while (true) {
+            now = Instant.now()
+            val boundary =
+                candidates
+                    .flatMap {
+                        listOfNotNull(
+                            it.fields.time("startsAt"),
+                            it.fields.time("endsAt")?.plusNanos(1),
+                        )
+                    }
+                    .filter { it > now }
+                    .minOrNull() ?: break
+            delay(Duration.between(now, boundary).toMillis().coerceAtLeast(1))
+        }
+    }
+    val banners =
+        visibleBanners(
+            candidates.map { RawDocument(it.id, it.fields) },
+            state.route.substringBefore(':'),
+            state.region,
+            now,
+        )
     if (banners.isEmpty()) return
     var index by rememberSaveable { mutableIntStateOf(0) }
     val selected = index.coerceIn(0, banners.lastIndex)
     val banner = banners[selected]
-    var resumed by remember { mutableStateOf(false) }
     val accessibility =
         LocalContext.current.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
     var spoken by remember { mutableStateOf(accessibility.isTouchExplorationEnabled) }
@@ -63,10 +96,6 @@ fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
         val listener = AccessibilityManager.TouchExplorationStateChangeListener { spoken = it }
         accessibility.addTouchExplorationStateChangeListener(listener)
         onDispose { accessibility.removeTouchExplorationStateChangeListener(listener) }
-    }
-    LifecycleResumeEffect(Unit) {
-        resumed = true
-        onPauseOrDispose { resumed = false }
     }
     LaunchedEffect(resumed, spoken, banner.id, banners.size) {
         if (resumed && !spoken && banners.size > 1) {
@@ -87,7 +116,7 @@ fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
         Modifier.widthIn(max = UacDesign.readableWidth)
             .fillMaxWidth()
             .testTag("banner-carousel")
-            .pointerInput(banners.size) {
+            .pointerInput(banners.size, selected) {
                 val threshold = 48.dp.toPx()
                 detectHorizontalDragGestures(
                     onDragStart = { horizontalDrag = 0f },
@@ -176,13 +205,15 @@ fun BannerHero(
             .background(Brush.linearGradient(fallback))
             .testTag("banner-hero")
     ) {
-        PublicImage(
-            banner.fields.string("imageURL"),
-            "",
-            language,
-            Modifier.matchParentSize(),
-            compact = true,
-        )
+        if (banner.fields.string("imageURL").isNotBlank())
+            PublicImage(
+                banner.fields.string("imageURL"),
+                "",
+                language,
+                Modifier.matchParentSize(),
+                presentation = PublicImagePresentation.VIEWPORT_FIT,
+                adaptiveBackdrop = true,
+            )
         Box(
             Modifier.matchParentSize()
                 .background(
@@ -196,66 +227,72 @@ fun BannerHero(
             verticalArrangement = Arrangement.Bottom,
         ) {
             Spacer(Modifier.height(if (largeText) 36.dp else 52.dp))
-            Surface(
-                color = UacDesign.bannerScrim,
-                contentColor = Color.White,
-                shape = RoundedCornerShape(14.dp),
-            ) {
-                Column(
-                    Modifier.fillMaxWidth().padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+            if (
+                title.isNotBlank() ||
+                    subtitle.isNotBlank() ||
+                    route != null ||
+                    action == "externalURL"
+            )
+                Surface(
+                    color = UacDesign.bannerScrim.copy(alpha = .88f),
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(14.dp),
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    Column(
+                        Modifier.fillMaxWidth().padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Column(
-                            Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        Row(
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            if (title.isNotBlank())
-                                Text(
-                                    title,
-                                    Modifier.testTag("banner-title").semantics { heading() },
-                                    style = MaterialTheme.typography.titleSmall,
-                                    maxLines = if (largeText) Int.MAX_VALUE else 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            if (subtitle.isNotBlank())
-                                Text(
-                                    subtitle,
-                                    Modifier.testTag("banner-text"),
-                                    color = UacDesign.bannerSubtitle,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    maxLines = if (largeText) Int.MAX_VALUE else 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                        }
-                        if (route != null)
-                            FilledIconButton(
-                                { onNavigate(route) },
-                                Modifier.size(48.dp).testTag("banner-open"),
-                                colors =
-                                    IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = UacDesign.blue,
-                                        contentColor = Color.White,
-                                    ),
+                            Column(
+                                Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp),
                             ) {
-                                UacSymbol(
-                                    UacIcon.OPEN_ARROW,
-                                    tr(language, "Ansehen", "Переглянути"),
-                                )
+                                if (title.isNotBlank())
+                                    Text(
+                                        title,
+                                        Modifier.testTag("banner-title").semantics { heading() },
+                                        style = MaterialTheme.typography.titleSmall,
+                                        maxLines = if (largeText) Int.MAX_VALUE else 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
+                                if (subtitle.isNotBlank())
+                                    Text(
+                                        subtitle,
+                                        Modifier.testTag("banner-text"),
+                                        color = UacDesign.bannerSubtitle,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = if (largeText) Int.MAX_VALUE else 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
                             }
+                            if (route != null)
+                                FilledIconButton(
+                                    { onNavigate(route) },
+                                    Modifier.size(48.dp).testTag("banner-open"),
+                                    colors =
+                                        IconButtonDefaults.filledIconButtonColors(
+                                            containerColor = UacDesign.blue,
+                                            contentColor = Color.White,
+                                        ),
+                                ) {
+                                    UacSymbol(
+                                        UacIcon.OPEN_ARROW,
+                                        tr(language, "Ansehen", "Переглянути"),
+                                    )
+                                }
+                        }
+                        if (action == "externalURL")
+                            SafeLink(
+                                tr(language, "Ansehen", "Переглянути"),
+                                banner.fields.string("externalURL"),
+                                language,
+                                buttonColor = Color.White,
+                            )
                     }
-                    if (action == "externalURL")
-                        SafeLink(
-                            tr(language, "Ansehen", "Переглянути"),
-                            banner.fields.string("externalURL"),
-                            language,
-                            buttonColor = Color.White,
-                        )
                 }
-            }
         }
     }
 }

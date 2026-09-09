@@ -350,12 +350,7 @@ fun Heading(text: String) {
 
 @Composable
 fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.widthIn(max = 760.dp).fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Heading(title)
-            content()
-        }
-    }
+    at.uac.android.design.UacSectionCard(title = title, content = content)
 }
 
 @Composable
