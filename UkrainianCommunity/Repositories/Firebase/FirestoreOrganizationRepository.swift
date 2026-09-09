@@ -1,6 +1,8 @@
+import CryptoKit
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
+import FirebaseFunctions
 
 struct FirestoreOrganizationRepository: OrganizationRepository {
     private let collection = Firestore.firestore().collection("organizations")
@@ -42,7 +44,24 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func fetchBookmarkedOrganizations() async throws -> [Organization] {
-        let bookmarkedIDs = try await fetchBookmarkedOrganizationIDs()
+        try await fetchSavedOrganizations().compactMap(\.content)
+    }
+
+    func fetchSavedOrganizations() async throws -> [SavedContentRecord<Organization>] {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        let markerSnapshot = try await Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .collection("organizationBookmarks")
+            .getDocuments()
+        let markers = markerSnapshot.documents.map { document in
+            (
+                id: document.documentID,
+                savedAt: (document.data()["createdAt"] as? Timestamp)?.dateValue()
+            )
+        }
+        let bookmarkedIDs = Set(markers.map { $0.id })
+        await sessionDataCache.storeBookmarkedOrganizationIDs(bookmarkedIDs, for: uid)
         guard !bookmarkedIDs.isEmpty else { return [] }
         let bookmarkedIDList = Array(bookmarkedIDs)
         async let liked = fetchLikedOrganizationIDs(for: bookmarkedIDList)
@@ -67,14 +86,23 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             organizations.append(contentsOf: resolved)
         }
 
-        return organizations.sorted {
-            let result = LocalizationStore.compareForSorting($0.localizedName, $1.localizedName)
-            return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+        let organizationsByID = Dictionary(uniqueKeysWithValues: organizations.map { ($0.id, $0) })
+        return markers.map { marker in
+            SavedContentRecord(
+                id: marker.id,
+                savedAt: marker.savedAt,
+                content: organizationsByID[marker.id]
+            )
         }
     }
 
     func fetchSubscribedOrganizations() async throws -> [Organization] {
-        let subscribedIDs = try await fetchSubscribedOrganizationIDs()
+        try await fetchOrganizationSubscriptions(forceRefresh: false).compactMap(\.content)
+    }
+
+    func fetchOrganizationSubscriptions(forceRefresh: Bool) async throws -> [SavedContentRecord<Organization>] {
+        let markers = try await fetchOrganizationSubscriptionMarkers(forceRefresh: forceRefresh)
+        let subscribedIDs = Set(markers.map { $0.id })
         guard !subscribedIDs.isEmpty else { return [] }
         let subscribedIDList = Array(subscribedIDs)
         async let liked = fetchLikedOrganizationIDs(for: subscribedIDList)
@@ -83,10 +111,15 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         var organizations: [Organization] = []
 
         for chunk in subscribedIDList.chunked(into: 10) {
-            let snapshot = try await collection
+            let query = collection
                 .whereField(FieldPath.documentID(), in: Array(chunk))
                 .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-                .getDocuments()
+            let snapshot: QuerySnapshot
+            if forceRefresh {
+                snapshot = try await query.getDocuments(source: .server)
+            } else {
+                snapshot = try await query.getDocuments()
+            }
             let resolved = try snapshot.documents.map { document in
                 try Organization(dto: makeOrganizationDTO(
                     from: document,
@@ -98,9 +131,14 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             organizations.append(contentsOf: resolved)
         }
 
-        return organizations.sorted {
-            let result = LocalizationStore.compareForSorting($0.localizedName, $1.localizedName)
-            return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
+        let organizationsByID = Dictionary(uniqueKeysWithValues: organizations.map { ($0.id, $0) })
+        return markers.map { marker in
+            let organization = organizationsByID[marker.id]
+            return SavedContentRecord(
+                id: marker.id,
+                savedAt: organization?.createdAt ?? marker.createdAt,
+                content: organization
+            )
         }
     }
 
@@ -188,7 +226,6 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let snapshot = try await collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
             .order(by: "createdAt", descending: true)
-            .limit(to: 100)
             .getDocuments()
 
         let documentIDs = snapshot.documents.map(\.documentID)
@@ -551,33 +588,8 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             throw AppError.permissionDenied
         }
 
-        let organizationReference = collection.document(id)
         let subscriptionReference = likesCollection.document(subscriptionDocumentID(organizationID: id, userID: uid))
-
-        do {
-            _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
-                do {
-                    let organizationSnapshot = try transaction.getDocument(organizationReference)
-                    guard organizationSnapshot.exists else {
-                        errorPointer?.pointee = AppError.notFound.asNSError
-                        return nil
-                    }
-
-                    let subscriptionSnapshot = try transaction.getDocument(subscriptionReference)
-                    guard subscriptionSnapshot.exists else {
-                        return nil
-                    }
-
-                    transaction.deleteDocument(subscriptionReference)
-                } catch {
-                    errorPointer?.pointee = error as NSError
-                }
-
-                return nil
-            }
-        } catch {
-            throw error
-        }
+        try await subscriptionReference.delete()
         await sessionDataCache.updateSubscribedOrganizationID(id, isSubscribed: false, for: uid)
     }
 
@@ -751,9 +763,28 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func approveOrganizationRequest(id: String, reviewerID: String) async throws {
-        _ = try await CloudFunctionsClient.shared.approveOrganization(
-            OrganizationReviewFunctionRequest(organizationId: id)
+        let operation = try await prepareReviewOperation(
+            organizationID: id,
+            reviewerID: reviewerID,
+            action: "approve",
+            text: nil
         )
+        do {
+            _ = try await CloudFunctionsClient.shared.approveOrganization(
+                OrganizationReviewFunctionRequest(
+                    organizationId: id,
+                    operationId: operation.id,
+                    expectedRevision: operation.expectedRevision
+                )
+            )
+            await OrganizationReviewOperationJournal.shared.complete(operation.key)
+        } catch {
+            let appError = Self.organizationReviewError(from: error)
+            if appError != .network {
+                await OrganizationReviewOperationJournal.shared.complete(operation.key)
+            }
+            throw appError
+        }
 
         await SystemModerationLoggingService.shared.logSuccess(
             SystemModerationLogContext(
@@ -773,18 +804,58 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         let trimmedMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedMessage.isEmpty else { throw AppError.validationFailed }
 
-        _ = try await CloudFunctionsClient.shared.requestOrganizationRevision(
-            OrganizationReviewFunctionRequest(organizationId: id, message: trimmedMessage)
+        let operation = try await prepareReviewOperation(
+            organizationID: id,
+            reviewerID: reviewerID,
+            action: "requestRevision",
+            text: trimmedMessage
         )
+        do {
+            _ = try await CloudFunctionsClient.shared.requestOrganizationRevision(
+                OrganizationReviewFunctionRequest(
+                    organizationId: id,
+                    message: trimmedMessage,
+                    operationId: operation.id,
+                    expectedRevision: operation.expectedRevision
+                )
+            )
+            await OrganizationReviewOperationJournal.shared.complete(operation.key)
+        } catch {
+            let appError = Self.organizationReviewError(from: error)
+            if appError != .network {
+                await OrganizationReviewOperationJournal.shared.complete(operation.key)
+            }
+            throw appError
+        }
     }
 
     func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
         let trimmedReason = reason.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedReason.isEmpty else { throw AppError.validationFailed }
 
-        _ = try await CloudFunctionsClient.shared.rejectOrganization(
-            OrganizationReviewFunctionRequest(organizationId: id, reason: trimmedReason)
+        let operation = try await prepareReviewOperation(
+            organizationID: id,
+            reviewerID: reviewerID,
+            action: "reject",
+            text: trimmedReason
         )
+        do {
+            _ = try await CloudFunctionsClient.shared.rejectOrganization(
+                OrganizationReviewFunctionRequest(
+                    organizationId: id,
+                    reason: trimmedReason,
+                    operationId: operation.id,
+                    expectedRevision: operation.expectedRevision
+                )
+            )
+            await OrganizationReviewOperationJournal.shared.complete(operation.key)
+        } catch {
+            let appError = Self.organizationReviewError(from: error)
+            if appError != .network {
+                await OrganizationReviewOperationJournal.shared.complete(operation.key)
+            }
+            throw appError
+        }
 
         await SystemModerationLoggingService.shared.logSuccess(
             SystemModerationLogContext(
@@ -813,20 +884,32 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         return result
     }
 
-    private func fetchSubscribedOrganizationIDs() async throws -> Set<String> {
+    private func fetchOrganizationSubscriptionMarkers(
+        forceRefresh: Bool
+    ) async throws -> [(id: String, createdAt: Date?)] {
         guard let uid = Auth.auth().currentUser?.uid else {
             return []
         }
-        if let cached = await sessionDataCache.cachedSubscribedOrganizationIDs(for: uid) {
-            return cached
+        if !forceRefresh,
+           let cached = await sessionDataCache.cachedSubscribedOrganizationIDs(for: uid) {
+            return cached.sorted().map { (id: $0, createdAt: nil) }
         }
 
-        let snapshot = try await likesCollection
-            .whereField("userId", isEqualTo: uid)
-            .getDocuments()
-        let ids = Set(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
+        let query = likesCollection.whereField("userId", isEqualTo: uid)
+        let snapshot: QuerySnapshot
+        if forceRefresh {
+            snapshot = try await query.getDocuments(source: .server)
+        } else {
+            snapshot = try await query.getDocuments()
+        }
+        let markers = snapshot.documents.compactMap { document -> (id: String, createdAt: Date?)? in
+            guard let id = document.data()["subscribedOrganizationId"] as? String else { return nil }
+            let createdAt = (document.data()["createdAt"] as? Timestamp)?.dateValue()
+            return (id: id, createdAt: createdAt)
+        }
+        let ids = Set(markers.map { $0.id })
         await sessionDataCache.storeSubscribedOrganizationIDs(ids, for: uid)
-        return ids
+        return markers.sorted { $0.id < $1.id }
     }
 
     private func fetchSubscribedOrganizationIDs(for organizationIDs: [String]) async throws -> Set<String> {
@@ -1344,7 +1427,6 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
         let registration = collection
             .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
             .order(by: "createdAt", descending: true)
-            .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 handleOrganizationRequestSnapshot(
                     snapshot,
@@ -1413,6 +1495,59 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
         return .network
     }
 
+    private static func reviewOperationKey(organizationID: String, action: String, text: String?) -> String {
+        let value = [organizationID, action, text ?? ""].joined(separator: "\u{0}")
+        return SHA256.hash(data: Data(value.utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func prepareReviewOperation(
+        organizationID: String,
+        reviewerID: String,
+        action: String,
+        text: String?
+    ) async throws -> (key: String, id: String, expectedRevision: String?) {
+        do {
+            let snapshot = try await collection.document(organizationID).getDocument(source: .server)
+            guard snapshot.exists else { throw AppError.notFound }
+            let data = snapshot.data() ?? [:]
+            let timestamp = data["updatedAt"] as? Timestamp
+            let revision = timestamp.map { "\($0.seconds):\($0.nanoseconds)" }
+            let isPending = data["moderationStatus"] as? String == ModerationStatus.pendingReview.rawValue
+            let key = Self.reviewOperationKey(
+                organizationID: organizationID,
+                action: action,
+                text: [reviewerID, text ?? ""].joined(separator: "\u{0}")
+            )
+            let entry = await OrganizationReviewOperationJournal.shared.operation(
+                for: key,
+                currentRevision: revision,
+                isPending: isPending
+            )
+            return (key, entry.id, entry.expectedRevision)
+        } catch {
+            throw Self.organizationReviewError(from: error)
+        }
+    }
+
+    private static func organizationReviewError(from error: Error) -> AppError {
+        if let appError = error as? AppError { return appError }
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain { return .network }
+
+        switch FunctionsErrorCode(rawValue: nsError.code) {
+        case .permissionDenied, .unauthenticated:
+            return .permissionDenied
+        case .notFound:
+            return .notFound
+        case .invalidArgument, .alreadyExists, .failedPrecondition, .aborted, .outOfRange:
+            return .validationFailed
+        case .cancelled, .deadlineExceeded, .resourceExhausted, .unavailable:
+            return .network
+        default:
+            return .unknown
+        }
+    }
+
     private static func logListenerFailure(
         _ error: Error,
         listenerName: String,
@@ -1436,6 +1571,47 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
                 )
             )
         }
+    }
+}
+
+private actor OrganizationReviewOperationJournal {
+    static let shared = OrganizationReviewOperationJournal()
+
+    private let defaultsKey = "organizationReviewPendingOperations.v1"
+    private struct Entry: Codable {
+        let id: String
+        let expectedRevision: String?
+        let createdAt: Date
+    }
+    private var entries: [String: Entry]
+
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: defaultsKey),
+           let saved = try? JSONDecoder().decode([String: Entry].self, from: data) {
+            let cutoff = Date().addingTimeInterval(-30 * 24 * 60 * 60)
+            entries = saved.filter { $0.value.createdAt >= cutoff }
+        } else {
+            entries = [:]
+        }
+    }
+
+    func operation(for key: String, currentRevision: String?, isPending: Bool) -> (id: String, expectedRevision: String?) {
+        if let existing = entries[key], !isPending || existing.expectedRevision == currentRevision {
+            return (existing.id, existing.expectedRevision)
+        }
+        let entry = Entry(id: UUID().uuidString, expectedRevision: currentRevision, createdAt: Date())
+        entries[key] = entry
+        persist()
+        return (entry.id, entry.expectedRevision)
+    }
+
+    func complete(_ key: String) {
+        entries.removeValue(forKey: key)
+        persist()
+    }
+
+    private func persist() {
+        UserDefaults.standard.set(try? JSONEncoder().encode(entries), forKey: defaultsKey)
     }
 }
 

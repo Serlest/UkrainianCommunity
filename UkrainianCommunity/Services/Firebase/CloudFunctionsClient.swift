@@ -41,6 +41,7 @@ enum CloudFunctionName: String, CaseIterable {
     case submitDsaAppeal
     case decideDsaAppeal
     case getMyDsaStatement
+    case reviewContentModeration
     case setUserBlocked
     case getBlockedOrganizations
     case setOrganizationBlocked
@@ -50,6 +51,23 @@ enum CloudFunctionName: String, CaseIterable {
     case deleteNotificationPushRegistration
     case sendTestPushNotification
     case activatePrivilegedMFAProtection
+}
+
+nonisolated struct ContentModerationFunctionRequest: Codable, Equatable {
+    let contentType: String
+    let contentId: String
+    let decision: String
+    let operationId: String
+    let expectedRevision: String
+}
+
+nonisolated struct ContentModerationFunctionResponse: Codable, Equatable {
+    let contentType: String
+    let contentId: String
+    let moderationStatus: String
+    let operationId: String
+    let updatedAt: String
+    let replayed: Bool
 }
 
 nonisolated struct DsaDecisionFunctionRequest: Codable, Equatable {
@@ -62,6 +80,27 @@ nonisolated struct DsaDecisionFunctionRequest: Codable, Equatable {
     let duration: String
     let redressInformation: String
     let humanReviewConfirmed: Bool
+    let operationId: String?
+    let expectedRevision: String?
+
+    init(
+        reportId: String, outcome: String, factsAndCircumstances: String,
+        legalBasis: String?, termsBasis: String?, territorialScope: String,
+        duration: String, redressInformation: String, humanReviewConfirmed: Bool,
+        operationId: String? = nil, expectedRevision: String? = nil
+    ) {
+        self.reportId = reportId
+        self.outcome = outcome
+        self.factsAndCircumstances = factsAndCircumstances
+        self.legalBasis = legalBasis
+        self.termsBasis = termsBasis
+        self.territorialScope = territorialScope
+        self.duration = duration
+        self.redressInformation = redressInformation
+        self.humanReviewConfirmed = humanReviewConfirmed
+        self.operationId = operationId
+        self.expectedRevision = expectedRevision
+    }
 }
 
 nonisolated struct DsaDecisionFunctionResponse: Codable, Equatable {
@@ -77,11 +116,34 @@ nonisolated struct DsaAppealDecisionFunctionRequest: Codable, Equatable {
     let outcome: String
     let reason: String
     let humanReviewConfirmed: Bool
+    let operationId: String?
+    let expectedRevision: String?
+
+    init(
+        reportId: String, outcome: String, reason: String, humanReviewConfirmed: Bool,
+        operationId: String? = nil, expectedRevision: String? = nil
+    ) {
+        self.reportId = reportId
+        self.outcome = outcome
+        self.reason = reason
+        self.humanReviewConfirmed = humanReviewConfirmed
+        self.operationId = operationId
+        self.expectedRevision = expectedRevision
+    }
 }
 
 nonisolated struct DsaAppealSubmissionFunctionRequest: Codable, Equatable {
     let reportId: String
     let reason: String
+    let operationId: String?
+    let expectedRevision: String?
+
+    init(reportId: String, reason: String, operationId: String? = nil, expectedRevision: String? = nil) {
+        self.reportId = reportId
+        self.reason = reason
+        self.operationId = operationId
+        self.expectedRevision = expectedRevision
+    }
 }
 
 nonisolated struct DsaAppealSubmissionFunctionResponse: Codable, Equatable {
@@ -337,17 +399,33 @@ struct LegalEvidenceFunctionEvent: Codable, Equatable {
     let contentHash: String?
     let organizationId: String?
     let organizationName: String?
+    let sourceRecordId: String?
+    let acceptedFromPlatform: String?
+    let consentId: String?
+    let purposeVersion: String?
+    let disclosureVersion: String?
+    let disclosureText: String?
 }
 
 struct OrganizationReviewFunctionRequest: Codable, Equatable {
     let organizationId: String
     let message: String?
     let reason: String?
+    let operationId: String?
+    let expectedRevision: String?
 
-    init(organizationId: String, message: String? = nil, reason: String? = nil) {
+    init(
+        organizationId: String,
+        message: String? = nil,
+        reason: String? = nil,
+        operationId: String? = nil,
+        expectedRevision: String? = nil
+    ) {
         self.organizationId = organizationId
         self.message = message
         self.reason = reason
+        self.operationId = operationId
+        self.expectedRevision = expectedRevision
     }
 }
 
@@ -797,6 +875,10 @@ final class CloudFunctionsClient {
         try await call(.decideDsaCase, request: request)
     }
 
+    func reviewContentModeration(_ request: ContentModerationFunctionRequest) async throws -> ContentModerationFunctionResponse {
+        try await call(.reviewContentModeration, request: request)
+    }
+
     func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest) async throws -> DsaAppealDecisionFunctionResponse {
         try await call(.decideDsaAppeal, request: request)
     }
@@ -842,7 +924,12 @@ final class CloudFunctionsClient {
         _ functionName: CloudFunctionName,
         request: Request
     ) async throws -> Response {
-        let callable: Callable<Request, Response> = functions.httpsCallable(functionName.rawValue)
+        var callable: Callable<Request, Response> = functions.httpsCallable(functionName.rawValue)
+        if functionName == .deleteOwnAccount {
+            // Account deletion has a 300-second server deadline and may remove Auth last.
+            // Keep the client connected long enough to receive that final confirmation.
+            callable.timeoutInterval = 330
+        }
         let startedAt = ProcessInfo.processInfo.systemUptime
         do {
             let response = try await callable.call(request)
@@ -939,6 +1026,7 @@ final class CloudFunctionsClient {
              .deleteFeaturedBanner:
             return .systemConfiguration
         case .submitContentReport,
+             .reviewContentModeration,
              .decideDsaCase,
              .submitDsaAppeal,
              .decideDsaAppeal,
@@ -988,6 +1076,7 @@ final class CloudFunctionsClient {
              .registerForEvent,
              .unregisterFromEvent,
              .submitContentReport,
+             .reviewContentModeration,
              .setUserBlocked,
              .getBlockedOrganizations,
              .setOrganizationBlocked,
@@ -1056,6 +1145,7 @@ final class CloudFunctionsClient {
              .setFeaturedBannerActive,
              .deleteFeaturedBanner,
              .submitContentReport,
+             .reviewContentModeration,
              .decideDsaCase,
              .submitDsaAppeal,
              .decideDsaAppeal,

@@ -136,7 +136,7 @@ struct OrganizationEditorView: View {
                 await loadSelectedPhoto(item: newItem)
             }
         }
-        .task {
+        .task(id: authState.user?.id) {
             await loadRecoverableDraftIfNeeded()
             await loadOrganizationRulesIfNeeded()
         }
@@ -309,7 +309,7 @@ struct OrganizationEditorView: View {
     }
 
     func loadRecoverableDraftIfNeeded() async {
-        await viewModel.loadRecoverableDraftIfNeeded()
+        await viewModel.loadRecoverableDraftIfNeeded(userID: authState.user?.id)
         isShowingDraftRecoveryDialog = viewModel.hasPendingRecoveryDraft
     }
 

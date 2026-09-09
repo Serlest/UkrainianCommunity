@@ -5,6 +5,9 @@ struct OwnerContentPlanningView: View {
     @StateObject private var viewModel: OwnerContentPlanningViewModel
     @State private var selectedSection: OwnerContentPlanningSection = .drafts
     @State private var selectedDraft: OwnerContentDraft?
+    @State private var selectedInspectionDraft: OwnerContentDraft?
+    @State private var pendingEventStartDateDraft: OwnerContentDraft?
+    @State private var resolvedEventDraft: OwnerContentDraft?
     @State private var selectedReceipt: OwnerContentDraft?
     @State private var pendingArchiveDraft: OwnerContentDraft?
     @State private var pendingDeleteDraft: OwnerContentDraft?
@@ -64,6 +67,15 @@ struct OwnerContentPlanningView: View {
         .fullScreenCover(item: $selectedDraft) { draft in
             editor(for: draft)
                 .environmentObject(authState)
+        }
+        .sheet(item: $selectedInspectionDraft) { draft in
+            OwnerContentPlanningDraftDetailView(draft: draft)
+        }
+        .sheet(item: $pendingEventStartDateDraft, onDismiss: openResolvedEventDraft) { draft in
+            OwnerContentMissingEventStartDateView(draft: draft) { resolvedDraft in
+                self.resolvedEventDraft = resolvedDraft
+                pendingEventStartDateDraft = nil
+            }
         }
         .sheet(item: $selectedReceipt) { draft in
             OwnerContentHistoryReceiptView(
@@ -296,20 +308,34 @@ struct OwnerContentPlanningView: View {
         viewModel.reveal(draft)
         selectedSection = draft.planningSection
         onDraftOpened(draft)
-        if draft.isEditableInPlanning {
-            selectedDraft = draft
-        } else {
-            selectedReceipt = draft
-        }
+        present(draft)
     }
 
     private func openDraft(_ draft: OwnerContentDraft) {
-        guard draft.isEditableInPlanning else {
-            selectedReceipt = draft
-            return
-        }
         onDraftOpened(draft)
-        selectedDraft = draft
+        present(draft)
+    }
+
+    private func present(_ draft: OwnerContentDraft) {
+        if draft.isEditableInPlanning,
+           draft.requiresExplicitEventStartDate,
+           draft.eventDraft != nil {
+            pendingEventStartDateDraft = draft
+        } else if draft.isEditableInPlanning {
+            selectedDraft = draft
+        } else if draft.canInspectInPlanning {
+            selectedInspectionDraft = draft
+        } else if draft.isHistory {
+            selectedReceipt = draft
+        } else {
+            selectedInspectionDraft = draft
+        }
+    }
+
+    private func openResolvedEventDraft() {
+        guard let resolvedEventDraft else { return }
+        self.resolvedEventDraft = nil
+        selectedDraft = resolvedEventDraft
     }
 
     private func openPublishedContent(_ kind: OwnerContentDraftKind, _ contentID: String) {
@@ -389,12 +415,7 @@ private struct OwnerContentDraftCard: View {
                 if draft.requiresAttention {
                     ContentPlanningAttentionCard(messages: draft.attentionMessages, compact: true)
                 }
-                if let source = draft.sourceReferences.first {
-                    Label(source.title ?? source.url, systemImage: "link")
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-                }
+                OwnerContentEditorialMetadataView(draft: draft, compact: true)
                 if draft.isEditableInPlanning {
                     Button(action: openAction) {
                         Label(AppStrings.ContentPlanning.review, systemImage: "square.and.pencil")
@@ -406,6 +427,12 @@ private struct OwnerContentDraftCard: View {
                     Label(AppStrings.ContentPlanning.publishingInProgress, systemImage: "arrow.triangle.2.circlepath")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(AppTheme.textSecondary)
+                } else if draft.canInspectInPlanning {
+                    Button(action: openAction) {
+                        Label(AppStrings.Action.open, systemImage: "eye")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .appActionButtonStyle(.secondary)
                 }
             }
         }
@@ -457,6 +484,264 @@ private struct OwnerContentDraftCard: View {
                         .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
                 }
                 .accessibilityLabel(AppStrings.ContentPlanning.moreActions)
+            }
+        }
+    }
+}
+
+private struct OwnerContentEditorialMetadataView: View {
+    let draft: OwnerContentDraft
+    var compact = false
+
+    var body: some View {
+        if !draft.sourceReferences.isEmpty || !draft.verificationNotes.isEmpty {
+            VStack(alignment: .leading, spacing: compact ? 8 : 12) {
+                ForEach(Array(orderedSources.enumerated()), id: \.offset) { _, source in
+                    sourceLink(source)
+                }
+                ForEach(Array(verificationNotes.enumerated()), id: \.offset) { _, note in
+                    Label(note, systemImage: "checkmark.shield")
+                        .font(compact ? .caption : .footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var orderedSources: [OwnerContentSourceReference] {
+        draft.sourceReferences.enumerated()
+            .sorted { lhs, rhs in
+                if lhs.element.isPrimary != rhs.element.isPrimary {
+                    return lhs.element.isPrimary
+                }
+                return lhs.offset < rhs.offset
+            }
+            .map(\.element)
+    }
+
+    private var verificationNotes: [String] {
+        draft.verificationNotes
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+
+    @ViewBuilder
+    private func sourceLink(_ source: OwnerContentSourceReference) -> some View {
+        if let url = safeURL(source.url) {
+            Link(destination: url) {
+                sourceLabel(source)
+            }
+            .buttonStyle(.plain)
+        } else {
+            sourceLabel(source)
+        }
+    }
+
+    private func sourceLabel(_ source: OwnerContentSourceReference) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: source.isPrimary ? "star.fill" : "link")
+                .foregroundStyle(source.isPrimary ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(sourceTitle(source))
+                    .font(compact ? Font.caption.weight(.semibold) : Font.footnote.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if sourceTitle(source) != source.url {
+                    Text(source.url)
+                        .font(.caption2)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(compact ? 2 : nil)
+                }
+                if let checkedAt = source.checkedAt {
+                    Label(
+                        checkedAt.formatted(date: .abbreviated, time: .shortened),
+                        systemImage: "checkmark.circle"
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func sourceTitle(_ source: OwnerContentSourceReference) -> String {
+        let title = source.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !title.isEmpty { return title }
+        return safeURL(source.url)?.host ?? source.url
+    }
+
+    private func safeURL(_ value: String) -> URL? {
+        guard let url = URL(string: value),
+              let scheme = url.scheme?.lowercased(),
+              ["http", "https"].contains(scheme),
+              url.host?.isEmpty == false else { return nil }
+        return url
+    }
+}
+
+private struct OwnerContentPlanningDraftDetailView: View {
+    @Environment(\.dismiss) private var dismiss
+    let draft: OwnerContentDraft
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
+                    if let generatedImage = draft.generatedImage {
+                        RemoteImageView(
+                            imageURL: generatedImage.url,
+                            height: 220,
+                            cornerRadius: AppTheme.imageRadius,
+                            source: "OwnerContentPlanningDraftDetailView",
+                            placeholderStyle: .glassSkeleton
+                        )
+                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                        .clipped()
+                        .accessibilityLabel(generatedImage.alternativeText ?? draft.title)
+                    }
+
+                    AppEditorSectionCard {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Label(
+                                draft.kind == .news ? AppStrings.ContentPlanning.news : AppStrings.ContentPlanning.event,
+                                systemImage: draft.kind == .news ? "newspaper.fill" : "calendar"
+                            )
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
+                            Text(draft.title)
+                                .font(AppTheme.cardTitleFont)
+                                .foregroundStyle(AppTheme.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            if let scheduledAt = draft.scheduledAt {
+                                Label(
+                                    scheduledAt.formatted(date: .long, time: .shortened),
+                                    systemImage: "calendar.badge.clock"
+                                )
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(AppTheme.textSecondary)
+                            }
+                            if draft.kind == .event,
+                               !draft.requiresExplicitEventStartDate,
+                               let eventDraft = draft.eventDraft {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(AppStrings.Events.fieldStartDate)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(AppTheme.textSecondary)
+                                    Text(eventDraft.startDate.formatted(date: .long, time: .shortened))
+                                        .font(.body)
+                                        .foregroundStyle(AppTheme.textPrimary)
+                                }
+                            }
+                            ForEach(Array(contentBlocks.enumerated()), id: \.offset) { _, text in
+                                Text(text)
+                                    .font(.body)
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+
+                    if draft.requiresAttention {
+                        ContentPlanningAttentionCard(messages: draft.attentionMessages)
+                    }
+
+                    if !draft.sourceReferences.isEmpty || !draft.verificationNotes.isEmpty {
+                        AppEditorSectionCard {
+                            OwnerContentEditorialMetadataView(draft: draft)
+                        }
+                    }
+                }
+                .padding()
+            }
+            .background(AppTheme.groupedBackground.ignoresSafeArea())
+            .navigationTitle(draft.state == .scheduled ? AppStrings.ContentPlanning.scheduled : AppStrings.ContentPlanning.title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(AppStrings.Common.done) { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var contentBlocks: [String] {
+        let values: [String]
+        switch draft.kind {
+        case .news:
+            values = [
+                draft.newsDraft?.summary ?? "",
+                draft.newsDraft?.body ?? "",
+                draft.newsDraft?.germanTitle ?? "",
+                draft.newsDraft?.germanSummary ?? "",
+                draft.newsDraft?.germanBody ?? ""
+            ]
+        case .event:
+            values = [
+                draft.eventDraft?.summary ?? "",
+                draft.eventDraft?.details ?? "",
+                draft.eventDraft?.germanTitle ?? "",
+                draft.eventDraft?.germanSummary ?? "",
+                draft.eventDraft?.germanDetails ?? "",
+                draft.eventDraft?.venue ?? "",
+                draft.eventDraft?.address ?? "",
+                draft.eventDraft?.city ?? ""
+            ]
+        }
+        return values
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+    }
+}
+
+private struct OwnerContentMissingEventStartDateView: View {
+    @Environment(\.dismiss) private var dismiss
+    let draft: OwnerContentDraft
+    let onContinue: (OwnerContentDraft) -> Void
+    @State private var startDate: Date
+    @State private var didChooseStartDate = false
+
+    init(draft: OwnerContentDraft, onContinue: @escaping (OwnerContentDraft) -> Void) {
+        self.draft = draft
+        self.onContinue = onContinue
+        let proposedDate = Calendar.current.date(byAdding: .hour, value: 1, to: Date()) ?? Date()
+        _startDate = State(initialValue: proposedDate)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(AppStrings.ContentPlanning.missingStartDateMessage)
+                    ContentPlanningAttentionCard(messages: draft.attentionMessages)
+                }
+                Section {
+                    DatePicker(
+                        AppStrings.Events.fieldStartDate,
+                        selection: $startDate,
+                        in: Date()...,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .onChange(of: startDate) { _, _ in
+                        didChooseStartDate = true
+                    }
+                }
+                Section {
+                    Button(AppStrings.ContentPlanning.missingStartDateConfirm) {
+                        guard let resolvedDraft = draft.resolvingEventStartDate(startDate) else { return }
+                        onContinue(resolvedDraft)
+                    }
+                    .disabled(!didChooseStartDate)
+                }
+            }
+            .navigationTitle(AppStrings.ContentPlanning.missingStartDateTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(AppStrings.Common.cancel) { dismiss() }
+                }
             }
         }
     }
@@ -547,6 +832,7 @@ private struct OwnerContentHistoryReceiptView: View {
                         Text(draft.title)
                             .font(AppTheme.cardTitleFont)
                             .foregroundStyle(AppTheme.textPrimary)
+                        OwnerContentEditorialMetadataView(draft: draft)
                         receiptRow(AppStrings.ContentPlanning.receiptDate, draft.historyDate.formatted(date: .long, time: .shortened))
                         receiptRow(
                             AppStrings.ContentPlanning.receiptKind,

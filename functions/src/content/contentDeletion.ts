@@ -95,6 +95,7 @@ export const deleteOrganization = onCall(
       await deleteStoragePrefix(organizationStoragePrefix(organizationId));
       await db.recursiveDelete(organizationReference);
     }
+    await deleteOrganizationHistoryReferences(organizationId);
     const deletedAt = new Date().toISOString();
     logger.info("Organization deletion completed.", {
       organizationId,
@@ -235,6 +236,19 @@ async function deleteOrganizationContent(
   ));
   await deleteStoragePrefix(organizationStoragePrefix(organizationId));
   await db.recursiveDelete(organizationReference);
+}
+
+async function deleteOrganizationHistoryReferences(
+  organizationId: string
+): Promise<void> {
+  await deletePolicyQuery(
+    db.collectionGroup("recentViews").where("itemId", "==", organizationId),
+    (document) => document.get("itemType") === "organization"
+  );
+  await deletePolicyQuery(
+    db.collectionGroup("activityLog").where("targetId", "==", organizationId),
+    (document) => document.get("targetType") === "organization"
+  );
 }
 
 async function deleteOrganizationContentDocuments(

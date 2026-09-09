@@ -14,10 +14,9 @@ protocol FeaturedBannerRepository {
 }
 
 extension Array where Element == FeaturedBanner {
-    func activeFeaturedBanners(
+    func eligibleFeaturedBanners(
         for section: FeaturedBannerVisibleSection,
-        federalState: AustrianFederalState?,
-        now: Date = Date()
+        federalState: AustrianFederalState?
     ) -> [FeaturedBanner] {
         filter { banner in
             banner.isActive
@@ -25,11 +24,23 @@ extension Array where Element == FeaturedBanner {
                 && !banner.requiresDataRepair
                 && section.isSupported
                 && banner.supportedVisibleSections.contains(section)
-                && banner.isVisible(on: now)
                 && banner.matchesRegion(federalState)
         }
+        .sortedByFeaturedBannerPriority()
+    }
+
+    func activeFeaturedBanners(
+        for section: FeaturedBannerVisibleSection,
+        federalState: AustrianFederalState?,
+        now: Date = Date()
+    ) -> [FeaturedBanner] {
+        eligibleFeaturedBanners(for: section, federalState: federalState)
+            .filter { $0.isVisible(on: now) }
+    }
+
+    private func sortedByFeaturedBannerPriority() -> [FeaturedBanner] {
         // Higher priority numbers appear first. updatedAt breaks ties so recent edits win within the same priority.
-        .sorted { lhs, rhs in
+        sorted { lhs, rhs in
             if lhs.priority != rhs.priority {
                 return lhs.priority > rhs.priority
             }

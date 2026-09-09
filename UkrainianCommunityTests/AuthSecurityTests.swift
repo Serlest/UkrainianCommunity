@@ -31,9 +31,12 @@ struct AuthSecurityTests {
     @Test
     func totpCodesAreNormalizedAndRequireExactlySixDigits() {
         #expect(AuthMultiFactorService.normalizedCode("12 34-56") == "123456")
+        #expect(AuthMultiFactorService.normalizedCode("１２٣456") == "456")
         #expect(AuthMultiFactorService.isValidCode("123456"))
         #expect(!AuthMultiFactorService.isValidCode("12345"))
         #expect(!AuthMultiFactorService.isValidCode("12345a"))
+        #expect(!AuthMultiFactorService.isValidCode("１２３４５６"))
+        #expect(!AuthMultiFactorService.isValidCode("١٢٣٤٥٦"))
     }
 
     @Test

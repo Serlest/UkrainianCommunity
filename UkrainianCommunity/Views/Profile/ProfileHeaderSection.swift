@@ -13,6 +13,7 @@ struct GuestPlatformHeroCard: View {
                         .foregroundStyle(AppTheme.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("profile.guest.card")
 
                     Text(AppStrings.Profile.guestWelcomeSubtitle)
                         .font(.subheadline)
@@ -36,7 +37,6 @@ struct GuestPlatformHeroCard: View {
                 }
             }
         }
-        .accessibilityIdentifier("profile.guest.card")
     }
 }
 struct ProfileHeroCard: View {
@@ -164,13 +164,14 @@ struct ProfileMetadataRow: View {
 struct ProfileBadge: View {
     let title: String
     let systemImage: String
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         Label(title, systemImage: systemImage)
             .font(.caption.weight(.semibold))
             .foregroundStyle(AppTheme.accentPrimaryForeground)
             .multilineTextAlignment(.leading)
-            .lineLimit(2)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)

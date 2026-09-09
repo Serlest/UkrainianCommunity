@@ -1,0 +1,44 @@
+{
+  "firestore": {
+    "rules": "Firebase/firestore.rules",
+    "indexes": "Firebase/firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "Firebase/storage.rules"
+  },
+  "functions": {
+    "source": "functions",
+    "runtime": "nodejs22",
+    "predeploy": [
+      "npm --prefix \"$RESOURCE_DIR\" run lint",
+      "npm --prefix \"$RESOURCE_DIR\" run build"
+    ],
+    "ignore": [
+      "node_modules",
+      "content-planning",
+      "scripts",
+      "smoke-tests",
+      ".git",
+      "firebase-debug.log",
+      "firebase-debug.*.log",
+      "*.local"
+    ]
+  },
+  "emulators": {
+    "auth": {
+      "port": 19099
+    },
+    "firestore": {
+      "port": 28080
+    },
+    "storage": {
+      "port": 29199
+    },
+    "functions": {
+      "port": 15001
+    },
+    "ui": {
+      "enabled": false
+    }
+  }
+}

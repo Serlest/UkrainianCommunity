@@ -115,9 +115,15 @@ struct NotificationInboxView: View {
                 message: emptyMessage
             )
         } else {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+            LazyVStack(spacing: AppTheme.eventsMetadataSpacing) {
                 if let error = viewModel.error {
                     InlineMessageCard(style: .error, message: error.localizedDescription)
+
+                    Button(AppStrings.Action.retry) {
+                        Task { await viewModel.refresh() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("notificationInbox.retry")
                 }
 
                 ForEach(viewModel.filteredNotifications) { notification in
@@ -139,6 +145,16 @@ struct NotificationInboxView: View {
                             Task { await viewModel.delete(notification) }
                         }
                     )
+                    .task {
+                        await viewModel.loadMoreIfNeeded(currentNotification: notification)
+                    }
+                }
+
+                if viewModel.isLoadingMore {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, AppTheme.eventsMetadataSpacing)
+                        .accessibilityLabel(AppStrings.Common.loading)
                 }
             }
         }
@@ -260,14 +276,13 @@ private struct NotificationInboxRow: View {
 
     private var textContent: some View {
         VStack(alignment: .leading, spacing: 7) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(title)
-                    .font(.headline.weight(notification.isRead ? .regular : .semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .multilineTextAlignment(.leading)
+            Text(title)
+                .font(.headline.weight(notification.isRead ? .regular : .semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
 
-                severityLabel
-            }
+            severityLabel
 
             Text(bodyText)
                 .font(.subheadline)

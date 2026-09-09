@@ -146,6 +146,35 @@ actor MockRepositoryStore {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    func acknowledgeFeedbackRead(id: String, userID: String?, byOwner: Bool) throws {
+        guard let index = feedbackItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        let item = feedbackItems[index]
+        if let userID, item.userId != userID { throw AppError.permissionDenied }
+        feedbackItems[index] = FeedbackItem(
+            id: item.id,
+            type: item.type,
+            subject: item.subject,
+            message: item.message,
+            status: item.status,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+            userId: item.userId,
+            userDisplayName: item.userDisplayName,
+            ownerReply: item.ownerReply,
+            repliedAt: item.repliedAt,
+            repliedByUserId: item.repliedByUserId,
+            lastMessageText: item.lastMessageText,
+            lastMessageAt: item.lastMessageAt,
+            lastMessageByUserId: item.lastMessageByUserId,
+            lastMessageByRole: item.lastMessageByRole,
+            unreadForOwner: byOwner ? false : item.unreadForOwner,
+            unreadForUser: byOwner ? item.unreadForUser : false,
+            reportContext: item.reportContext,
+            occurrenceCount: item.occurrenceCount,
+            dsaCase: item.dsaCase
+        )
+    }
+
     func updateFeedbackStatus(id: String, status: FeedbackStatus) throws {
         guard let index = feedbackItems.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         let item = feedbackItems[index]
@@ -212,50 +241,74 @@ actor MockRepositoryStore {
     }
 
     func clearFeedback() {
-        feedbackItems = []
-        feedbackMessages = [:]
+        let protectedIDs = Set(feedbackItems.compactMap { $0.dsaCase == nil ? nil : $0.id })
+        feedbackItems.removeAll { !protectedIDs.contains($0.id) }
+        feedbackMessages = feedbackMessages.filter { protectedIDs.contains($0.key) }
     }
 
-    func deleteFeedback(id: String) {
+    func deleteFeedback(id: String) throws {
+        guard feedbackItems.first(where: { $0.id == id })?.dsaCase == nil else {
+            throw AppError.validationFailed
+        }
         feedbackItems.removeAll { $0.id == id }
         feedbackMessages[id] = nil
     }
 
-    func addFeedbackMessage(feedback item: FeedbackItem, text: String, sender: AppUser, senderRole: FeedbackSenderRole) throws {
-        guard let index = feedbackItems.firstIndex(where: { $0.id == item.id }) else { throw AppError.notFound }
-        let now = Date()
-        let message = FeedbackMessage(
-            id: UUID().uuidString,
-            feedbackId: item.id,
-            senderId: sender.id,
-            senderDisplayName: sender.displayName,
-            senderRole: senderRole,
-            text: text,
-            createdAt: now,
-            isSystem: false
-        )
-        feedbackMessages[item.id, default: []].append(message)
+    func performFeedbackOperation(_ operation: FeedbackOperationAttempt) throws {
+        if let existing = feedbackMessages[operation.feedbackID]?.first(where: { $0.id == operation.id }) {
+            guard existing.feedbackId == operation.feedbackID,
+                  existing.senderId == operation.actorID,
+                  existing.senderDisplayName == operation.actorDisplayName,
+                  existing.senderRole == operation.senderRole,
+                  existing.text == operation.text,
+                  existing.isSystem == operation.isSystem,
+                  abs(existing.createdAt.timeIntervalSince(operation.createdAt)) < 0.001 else {
+                throw AppError.validationFailed
+            }
+            return
+        }
 
+        guard let index = feedbackItems.firstIndex(where: { $0.id == operation.feedbackID }) else {
+            throw AppError.notFound
+        }
         let existing = feedbackItems[index]
+        guard !existing.status.isClosed else { throw AppError.validationFailed }
+        if operation.kind == .close, existing.dsaCase != nil { throw AppError.validationFailed }
+
+        let message = FeedbackMessage(
+            id: operation.id,
+            feedbackId: operation.feedbackID,
+            senderId: operation.actorID,
+            senderDisplayName: operation.actorDisplayName,
+            senderRole: operation.senderRole,
+            text: operation.text,
+            createdAt: operation.createdAt,
+            isSystem: operation.isSystem
+        )
+        feedbackMessages[operation.feedbackID, default: []].append(message)
+
         feedbackItems[index] = FeedbackItem(
             id: existing.id,
             type: existing.type,
             subject: existing.subject,
             message: existing.message,
-            status: senderRole == .owner ? .answered : .open,
+            status: operation.resultingStatus,
             createdAt: existing.createdAt,
-            updatedAt: now,
+            updatedAt: operation.createdAt,
             userId: existing.userId,
             userDisplayName: existing.userDisplayName,
-            ownerReply: senderRole == .owner ? text : existing.ownerReply,
-            repliedAt: senderRole == .owner ? now : existing.repliedAt,
-            repliedByUserId: senderRole == .owner ? sender.id : existing.repliedByUserId,
-            lastMessageText: text,
-            lastMessageAt: now,
-            lastMessageByUserId: sender.id,
-            lastMessageByRole: senderRole,
-            unreadForOwner: senderRole == .user,
-            unreadForUser: senderRole == .owner
+            ownerReply: operation.kind == .ownerReply ? operation.text : existing.ownerReply,
+            repliedAt: operation.kind == .ownerReply ? operation.createdAt : existing.repliedAt,
+            repliedByUserId: operation.kind == .ownerReply ? operation.actorID : existing.repliedByUserId,
+            lastMessageText: operation.text,
+            lastMessageAt: operation.createdAt,
+            lastMessageByUserId: operation.actorID,
+            lastMessageByRole: operation.senderRole,
+            unreadForOwner: operation.kind == .userMessage,
+            unreadForUser: operation.kind != .userMessage,
+            reportContext: existing.reportContext,
+            occurrenceCount: existing.occurrenceCount,
+            dsaCase: existing.dsaCase
         )
     }
 

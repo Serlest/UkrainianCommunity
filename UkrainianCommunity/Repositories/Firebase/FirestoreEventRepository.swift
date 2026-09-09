@@ -25,7 +25,24 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func fetchBookmarkedEvents() async throws -> [Event] {
-        let bookmarkedIDs = try await fetchBookmarkedEventIDs()
+        try await fetchSavedEvents().compactMap(\.content)
+    }
+
+    func fetchSavedEvents() async throws -> [SavedContentRecord<Event>] {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        let markerSnapshot = try await Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .collection("eventBookmarks")
+            .getDocuments()
+        let markers = markerSnapshot.documents.map { document in
+            (
+                id: document.documentID,
+                savedAt: (document.data()["createdAt"] as? Timestamp)?.dateValue()
+            )
+        }
+        let bookmarkedIDs = Set(markers.map { $0.id })
+        await sessionDataCache.storeBookmarkedEventIDs(bookmarkedIDs, for: uid)
         guard !bookmarkedIDs.isEmpty else { return [] }
         let bookmarkedIDList = Array(bookmarkedIDs)
         async let liked = fetchLikedEventIDs(for: bookmarkedIDList)
@@ -50,7 +67,10 @@ struct FirestoreEventRepository: EventRepository {
             events.append(contentsOf: resolved)
         }
 
-        return events.sorted { $0.startDate < $1.startDate }
+        let eventsByID = Dictionary(uniqueKeysWithValues: events.map { ($0.id, $0) })
+        return markers.map { marker in
+            SavedContentRecord(id: marker.id, savedAt: marker.savedAt, content: eventsByID[marker.id])
+        }
     }
 
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
@@ -985,6 +1005,17 @@ struct FirestoreEventRepository: EventRepository {
         ])
 
         await logModerationStatusChange(id: id, newStatus: newStatus)
+    }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus, expectedRevision: String, operationID: String) async throws {
+        let request = ContentModerationFunctionRequest(
+            contentType: "event", contentId: id, decision: newStatus.rawValue,
+            operationId: operationID, expectedRevision: expectedRevision
+        )
+        let response = try await CloudFunctionsClient.shared.reviewContentModeration(request)
+        guard response.contentId == id, response.contentType == "event",
+              response.moderationStatus == newStatus.rawValue,
+              response.operationId == operationID else { throw AppError.validationFailed }
     }
 
     private func logModerationStatusChange(id: String, newStatus: ModerationStatus) async {

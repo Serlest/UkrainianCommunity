@@ -22,10 +22,16 @@ struct LegalComplianceView: View {
                         }
 
                         PrimaryActionButton(
-                            title: AppStrings.LegalCompliance.acceptAll,
-                            loadingTitle: AppStrings.LegalCompliance.accepting,
+                            title: requirement.verificationUnavailable
+                                ? AppStrings.Action.retry
+                                : AppStrings.LegalCompliance.acceptAll,
+                            loadingTitle: requirement.verificationUnavailable
+                                ? AppStrings.Action.retry
+                                : AppStrings.LegalCompliance.accepting,
                             isLoading: isAccepting,
-                            systemImage: "checkmark.circle.fill",
+                            systemImage: requirement.verificationUnavailable
+                                ? "arrow.clockwise"
+                                : "checkmark.circle.fill",
                             action: accept
                         )
 
@@ -132,7 +138,7 @@ private struct LegalComplianceDocumentRow: View {
     }
 }
 
-private struct LegalMarkdownDocumentView: View {
+struct LegalMarkdownDocumentView: View {
     let document: LegalDocument
 
     private var content: LegalDocumentLocaleContent {

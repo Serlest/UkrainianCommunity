@@ -20,6 +20,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
     private var loadingQueries = Set<FeaturedBannerCache.Key>()
     private var currentQuery: FeaturedBannerCache.Key?
     private var contentChangeCancellable: AnyCancellable?
+    private var boundaryRefreshTask: Task<Void, Never>?
 
     init(repository: FeaturedBannerRepository, cache: FeaturedBannerCache) {
         self.repository = repository
@@ -32,6 +33,10 @@ final class FeaturedBannerListViewModel: ObservableObject {
                     await self?.refreshCurrentQuery()
                 }
             }
+    }
+
+    deinit {
+        boundaryRefreshTask?.cancel()
     }
 
     func loadIfNeeded(
@@ -147,6 +152,8 @@ final class FeaturedBannerListViewModel: ObservableObject {
 
     private func selectQuery(_ query: FeaturedBannerCache.Key) {
         guard currentQuery != query else { return }
+        boundaryRefreshTask?.cancel()
+        boundaryRefreshTask = nil
         currentQuery = query
         banners = []
         error = nil
@@ -154,7 +161,48 @@ final class FeaturedBannerListViewModel: ObservableObject {
 
     private func applyCachedBanners(_ cached: FeaturedBannerCache.Entry, for query: FeaturedBannerCache.Key) {
         guard currentQuery == query else { return }
-        banners = cached.banners
+        let now = Date()
+        banners = cached.banners.activeFeaturedBanners(
+            for: query.section,
+            federalState: query.federalState,
+            now: now
+        )
+        scheduleBoundaryRefresh(for: cached, query: query, now: now)
+    }
+
+    private func scheduleBoundaryRefresh(
+        for cached: FeaturedBannerCache.Entry,
+        query: FeaturedBannerCache.Key,
+        now: Date
+    ) {
+        boundaryRefreshTask?.cancel()
+
+        let nextBoundary = cached.banners.flatMap { banner in
+            [banner.startsAt, banner.endsAt].compactMap { $0 }
+        }
+        .filter { $0 > now }
+        .min()
+
+        guard let nextBoundary else {
+            boundaryRefreshTask = nil
+            return
+        }
+
+        let nanoseconds = UInt64(max(0, nextBoundary.timeIntervalSince(now) + 0.05) * 1_000_000_000)
+        boundaryRefreshTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: nanoseconds)
+            } catch {
+                return
+            }
+            guard let self, !Task.isCancelled, self.currentQuery == query else { return }
+
+            if let current = self.cache.entry(for: query, maxAge: featuredBannerRefreshStaleInterval) {
+                self.applyCachedBanners(current, for: query)
+            } else {
+                await self.startLoad(for: query, force: false)
+            }
+        }
     }
 
     private func updateLoadingState() {

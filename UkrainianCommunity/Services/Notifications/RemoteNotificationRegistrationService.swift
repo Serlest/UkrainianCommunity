@@ -88,16 +88,16 @@ final class RemoteNotificationRegistrationService: NSObject {
         }
     }
 
-    func requestAuthorizationAndRegister() async throws -> Bool {
+    func requestAuthorization() async throws -> Bool {
         let generation = userConfigurationGeneration
         let userID = registrationOwnership.currentUserID
-        return try await requestAuthorizationAndRegister(
+        return try await requestAuthorization(
             generation: generation,
             userID: userID
         )
     }
 
-    private func requestAuthorizationAndRegister(
+    private func requestAuthorization(
         generation: Int,
         userID: String?
     ) async throws -> Bool {
@@ -107,11 +107,7 @@ final class RemoteNotificationRegistrationService: NSObject {
         let granted = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
         guard isCurrentUserConfiguration(generation: generation, userID: userID) else { return false }
         debugLog("requestAuthorization result: granted=\(granted)")
-        registrationOwnership.setNotificationsEnabled(granted)
-        guard granted else { return false }
-
-        registerForRemoteNotificationsIfNeeded()
-        return true
+        return granted
     }
 
     func removeCurrentRegistration() async {
@@ -197,10 +193,14 @@ final class RemoteNotificationRegistrationService: NSObject {
 
         lastAuthorizationRequestUserID = userID
         do {
-            _ = try await requestAuthorizationAndRegister(
+            let granted = try await requestAuthorization(
                 generation: generation,
                 userID: userID
             )
+            guard granted,
+                  isCurrentUserConfiguration(generation: generation, userID: userID) else { return }
+            registrationOwnership.setNotificationsEnabled(true)
+            registerForRemoteNotificationsIfNeeded()
         } catch {
             debugLog("requestAuthorization failed: \(error)")
         }

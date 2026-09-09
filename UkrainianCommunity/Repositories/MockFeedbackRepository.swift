@@ -15,16 +15,27 @@ struct MockFeedbackRepository: FeedbackRepository {
         await store.feedback(userID: userID)
     }
 
+    func fetchFeedback(id: String) async throws -> FeedbackItem {
+        guard let item = (await store.feedback()).first(where: { $0.id == id }) else {
+            throw AppError.notFound
+        }
+        return item
+    }
+
     func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
         await store.feedbackMessages(for: feedback)
     }
 
-    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws {
-        try await store.addFeedbackMessage(feedback: feedback, text: text, sender: user, senderRole: .user)
+    func acknowledgeFeedbackReadByUser(id: String, userID: String) async throws {
+        try await store.acknowledgeFeedbackRead(id: id, userID: userID, byOwner: false)
     }
 
-    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws {
-        try await store.addFeedbackMessage(feedback: feedback, text: text, sender: owner, senderRole: .owner)
+    func acknowledgeFeedbackReadByOwner(id: String) async throws {
+        try await store.acknowledgeFeedbackRead(id: id, userID: nil, byOwner: true)
+    }
+
+    func performFeedbackOperation(_ operation: FeedbackOperationAttempt) async throws {
+        try await store.performFeedbackOperation(operation)
     }
 
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {
@@ -35,12 +46,8 @@ struct MockFeedbackRepository: FeedbackRepository {
         try await store.replyToFeedback(id: id, reply: reply, repliedByUserID: repliedByUserID)
     }
 
-    func closeFeedback(id: String) async throws {
-        try await store.updateFeedbackStatus(id: id, status: .closed)
-    }
-
     func deleteFeedback(id: String) async throws {
-        await store.deleteFeedback(id: id)
+        try await store.deleteFeedback(id: id)
     }
 
     func clearFeedbackInbox() async throws {

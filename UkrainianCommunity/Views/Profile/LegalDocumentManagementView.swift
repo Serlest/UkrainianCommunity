@@ -8,25 +8,34 @@ final class LegalDocumentManagementViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let repository: LegalDocumentRepository
+    private var loadGeneration = 0
 
     init(repository: LegalDocumentRepository) {
         self.repository = repository
     }
 
     func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
 
         do {
             async let termsState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .terms) }
             async let privacyState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .privacy) }
             async let organizationRulesState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .organizationRules) }
             let loadedStates = try await [termsState, privacyState, organizationRulesState]
+            guard generation == loadGeneration else { return }
             states = Dictionary(uniqueKeysWithValues: loadedStates.map { ($0.type, $0) })
         } catch {
+            guard generation == loadGeneration else { return }
+            // A management snapshot must be authoritative as a unit. Keeping
+            // old cards editable after any failed component read can publish
+            // from a stale active version.
+            states = [:]
             errorMessage = AppStrings.LegalManagement.loadFailed
         }
+        if generation == loadGeneration { isLoading = false }
     }
 }
 
@@ -80,6 +89,7 @@ struct LegalDocumentManagementView: View {
                         )
                     }
                 }
+                .allowsHitTesting(!viewModel.isLoading)
             }
         }
         .task {
@@ -183,6 +193,7 @@ private struct LegalDocumentEditorView: View {
 
     @State private var draft: LegalDocumentDraft
     @State private var lastSavedDraft: LegalDocumentDraft
+    @State private var hasPersistedDraft: Bool
     @State private var selectedLocale = AppLanguage.german.rawValue
     @State private var isSaving = false
     @State private var isPublishing = false
@@ -203,18 +214,25 @@ private struct LegalDocumentEditorView: View {
         self.repository = repository
         self.onSaved = onSaved
         let activeDocument = state?.activeDocument ?? LegalDocument.hardcodedFallback(type: type)
-        let existingDraft = state?.draftDocument.map { LegalDocumentDraft(document: $0) }
+        var existingDraft = state?.draftDocument.map { LegalDocumentDraft(document: $0) }
+        if existingDraft?.supersedesVersion == nil {
+            existingDraft?.supersedesVersion = activeDocument.version
+        }
         let initialDraft = existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument)
         _draft = State(initialValue: initialDraft)
         _lastSavedDraft = State(initialValue: initialDraft)
+        _hasPersistedDraft = State(initialValue: existingDraft != nil)
     }
 
     var body: some View {
-        ProfileDestinationLayout(
+        PushedScreenShell(
             title: AppStrings.LegalManagement.editorTitle(type.title),
-            introSubtitle: AppStrings.LegalManagement.editorIntro
+            subtitle: AppStrings.LegalManagement.editorIntro,
+            backAction: handleBack
         ) {
-            editorContent
+            AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
+                editorContent
+            }
         }
         .confirmationDialog(
             AppStrings.LegalManagement.publishConfirmTitle,
@@ -297,11 +315,11 @@ private struct LegalDocumentEditorView: View {
                     PrimaryActionButton(
                         title: AppStrings.LegalManagement.saveDraft,
                         loadingTitle: AppStrings.LegalManagement.saving,
-                        isEnabled: hasUnsavedChanges && !isPublishing,
+                        isEnabled: (!hasPersistedDraft || hasUnsavedChanges) && !isPublishing,
                         isLoading: isSaving,
                         systemImage: "tray.and.arrow.down.fill"
                     ) {
-                        Task { await saveDraft() }
+                        Task { _ = await saveDraft() }
                     }
 
                     Button {
@@ -389,25 +407,30 @@ private struct LegalDocumentEditorView: View {
         )
     }
 
-    private func saveDraft() async {
-        guard let userID = authState.user?.id else { return }
-        guard !isSaving, !isPublishing, hasUnsavedChanges else { return }
+    private func saveDraft() async -> Bool {
+        guard let userID = authState.user?.id else { return false }
+        guard !isSaving, !isPublishing else { return false }
+        guard !hasPersistedDraft || hasUnsavedChanges else { return true }
         isSaving = true
         statusMessage = nil
         validationErrors = []
         defer { isSaving = false }
 
         do {
-            let finalDraft = normalizedDraft
+            var finalDraft = normalizedDraft
             try await repository.saveDraft(finalDraft, updatedBy: userID)
+            finalDraft.sourceContentHash = finalDraft.normalizedContentHash
             draft = finalDraft
             lastSavedDraft = finalDraft
+            hasPersistedDraft = true
             await onSaved()
             statusStyle = .success
             statusMessage = AppStrings.LegalManagement.draftSaved
+            return true
         } catch {
             statusStyle = .error
             statusMessage = AppStrings.LegalManagement.saveFailed
+            return false
         }
     }
 
@@ -419,20 +442,32 @@ private struct LegalDocumentEditorView: View {
             return
         }
 
-        isPublishing = true
         statusMessage = nil
         validationErrors = []
+
+        if (!hasPersistedDraft || hasUnsavedChanges), !(await saveDraft()) { return }
+        isPublishing = true
         defer { isPublishing = false }
 
         do {
             let finalDraft = normalizedDraft
-            try await repository.saveDraft(finalDraft, updatedBy: userID)
             try await repository.publishDraft(finalDraft, publishedBy: userID)
             await onSaved()
             dismiss()
         } catch {
             statusStyle = .error
             statusMessage = AppStrings.LegalManagement.publishFailed
+        }
+    }
+
+    private func handleBack() {
+        guard !isSaving, !isPublishing else { return }
+        guard hasUnsavedChanges else {
+            dismiss()
+            return
+        }
+        Task {
+            if await saveDraft() { dismiss() }
         }
     }
 
@@ -543,14 +578,9 @@ private extension LegalDocumentDraft {
             locales: document.locales,
             requiresAcceptance: document.requiresAcceptance,
             changeSummary: document.changeSummary,
-            supersedesVersion: document.supersedesVersionForDraft
+            supersedesVersion: document.supersedesVersion,
+            sourceContentHash: document.status == .draft ? document.contentHash : nil
         )
-    }
-}
-
-private extension LegalDocument {
-    var supersedesVersionForDraft: String? {
-        status == .draft ? nil : version
     }
 }
 

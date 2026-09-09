@@ -7,7 +7,7 @@ protocol NotificationPermissionServiceProtocol {
 
 struct NotificationPermissionService: NotificationPermissionServiceProtocol {
     func requestNotificationAuthorization() async throws -> Bool {
-        try await RemoteNotificationRegistrationService.shared.requestAuthorizationAndRegister()
+        try await RemoteNotificationRegistrationService.shared.requestAuthorization()
     }
 }
 

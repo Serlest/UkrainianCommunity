@@ -33,10 +33,18 @@ struct CloudUserBlockingRepository: UserBlockingRepository {
                 .collection("users")
                 .document(userID)
                 .collection("blockedUsers")
-                .order(by: "blockedAt", descending: true)
-                .getDocuments()
+                .getDocuments(source: .server)
 
-            return snapshot.documents.compactMap(Self.blockedUser)
+            return snapshot.documents
+                .map(Self.blockedUser)
+                .sorted { lhs, rhs in
+                    if lhs.blockedAt == rhs.blockedAt {
+                        return lhs.targetUserId < rhs.targetUserId
+                    }
+                    return lhs.blockedAt > rhs.blockedAt
+                }
+        } catch let error as UserBlockingError {
+            throw error
         } catch {
             throw Self.blockingError(from: error)
         }
@@ -68,14 +76,19 @@ struct CloudUserBlockingRepository: UserBlockingRepository {
         }
     }
 
-    private static func blockedUser(from document: QueryDocumentSnapshot) -> BlockedUser? {
+    private static func blockedUser(from document: QueryDocumentSnapshot) -> BlockedUser {
         let data = document.data()
-        guard let targetUserId = data["targetUserId"] as? String,
-              let displayName = data["displayName"] as? String,
-              let blockedAt = (data["blockedAt"] as? Timestamp)?.dateValue(),
-              let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() else {
-            return nil
-        }
+        // The document path is the authoritative relationship identity. Optional
+        // denormalized fields may be missing or corrupt, but must never make an
+        // existing block disappear from the visibility policy.
+        let targetUserId = document.documentID
+        let rawDisplayName = (data["displayName"] as? String)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayName = rawDisplayName.flatMap { $0.isEmpty ? nil : $0 } ?? targetUserId
+        let blockedAt = (data["blockedAt"] as? Timestamp)?.dateValue()
+            ?? (data["updatedAt"] as? Timestamp)?.dateValue()
+            ?? .distantPast
+        let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? blockedAt
         let avatarURL = (data["avatarURL"] as? String).flatMap(URL.init(string:))
         return BlockedUser(
             targetUserId: targetUserId,
@@ -90,6 +103,17 @@ struct CloudUserBlockingRepository: UserBlockingRepository {
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {
             return .network
+        }
+        if nsError.domain == FirestoreErrorDomain,
+           let code = FirestoreErrorCode.Code(rawValue: nsError.code) {
+            switch code {
+            case .permissionDenied, .unauthenticated:
+                return .permissionDenied
+            case .cancelled, .deadlineExceeded, .resourceExhausted, .unavailable:
+                return .network
+            default:
+                return .unknown
+            }
         }
         guard let code = FunctionsErrorCode(rawValue: nsError.code) else {
             return .unknown

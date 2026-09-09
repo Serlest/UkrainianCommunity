@@ -99,6 +99,14 @@ final class MyRegistrationsViewModel: ObservableObject {
         events = events.deduplicatedEventsByID()
     }
 
+    func removeRegistrationEvent(id: String) {
+        cancellationTasks[id]?.cancel()
+        cancellationTasks[id] = nil
+        cancellationOperationIDs[id] = nil
+        pendingCancellationIDs.remove(id)
+        events.removeAll { $0.id == id }
+    }
+
     func cancelRegistration(for eventID: String) async {
         guard let index = events.firstIndex(where: { $0.id == eventID }) else { return }
         guard !pendingCancellationIDs.contains(eventID) else { return }

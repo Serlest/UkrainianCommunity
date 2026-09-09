@@ -40,11 +40,11 @@ struct MyRegistrationsView: View {
     init(
         viewModel: MyRegistrationsViewModel,
         eventRepository: EventRepository,
-        eventsViewModel: EventsViewModel? = nil
+        eventsViewModel: EventsViewModel
     ) {
         self.viewModel = viewModel
         self.eventRepository = eventRepository
-        self.eventsViewModel = eventsViewModel ?? EventsViewModel(repository: eventRepository)
+        self.eventsViewModel = eventsViewModel
     }
 
     private var calendar: Calendar { .current }
@@ -177,9 +177,10 @@ struct MyRegistrationsView: View {
         NavigationLink {
             RegisteredEventDetailContainer(
                 event: event,
-                repository: eventRepository,
                 eventsViewModel: eventsViewModel
-            )
+            ) { @MainActor @Sendable in
+                viewModel.removeRegistrationEvent(id: event.id)
+            }
         } label: {
             RegistrationEventRow(
                 event: event,
@@ -216,26 +217,30 @@ struct MyRegistrationsView: View {
 
 private struct RegisteredEventDetailContainer: View {
     let event: Event
-    @StateObject private var detailViewModel: EventsViewModel
+    @ObservedObject private var eventsViewModel: EventsViewModel
+    let onEventDeleted: @MainActor @Sendable () -> Void
 
     init(
         event: Event,
-        repository: EventRepository,
-        eventsViewModel: EventsViewModel? = nil
+        eventsViewModel: EventsViewModel,
+        onEventDeleted: @escaping @MainActor @Sendable () -> Void
     ) {
         self.event = event
-        let resolvedViewModel = eventsViewModel ?? EventsViewModel(repository: repository)
-        resolvedViewModel.cacheEvent(event)
-        _detailViewModel = StateObject(wrappedValue: resolvedViewModel)
+        self.eventsViewModel = eventsViewModel
+        self.onEventDeleted = onEventDeleted
     }
 
     var body: some View {
         EventDetailView(
-            viewModel: detailViewModel,
+            viewModel: eventsViewModel,
             eventID: event.id,
-            onEventDeleted: {}
+            onEventDeleted: onEventDeleted
         )
         .environment(\.eventPresentationMode, .public)
+        .task(id: event.id) { @MainActor in
+            guard eventsViewModel.event(for: event.id) == nil else { return }
+            eventsViewModel.cacheEvent(event)
+        }
     }
 }
 

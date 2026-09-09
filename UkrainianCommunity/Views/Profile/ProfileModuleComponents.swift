@@ -49,6 +49,7 @@ struct ProfileModuleRow: View {
     let status: ProfileModuleStatus
     let accessory: AppNavigationRowAccessory
     let countBadge: Int?
+    let countState: OwnerVisibilityCountState?
 
     init(
         title: String,
@@ -57,7 +58,8 @@ struct ProfileModuleRow: View {
         tint: Color? = nil,
         status: ProfileModuleStatus = .available,
         accessory: AppNavigationRowAccessory = .chevron,
-        countBadge: Int? = nil
+        countBadge: Int? = nil,
+        countState: OwnerVisibilityCountState? = nil
     ) {
         self.title = title
         self.subtitle = subtitle
@@ -66,6 +68,7 @@ struct ProfileModuleRow: View {
         self.status = status
         self.accessory = accessory
         self.countBadge = countBadge
+        self.countState = countState
     }
 
     var body: some View {
@@ -78,7 +81,9 @@ struct ProfileModuleRow: View {
                 accessory: status.title == nil && !status.isDisabled ? accessory : .none
             )
 
-            if let countBadge, countBadge > 0 {
+            if let countState {
+                OwnerVisibilityCountStateBadge(state: countState, tint: tint ?? status.tint)
+            } else if let countBadge, countBadge > 0 {
                 OwnerVisibilityCountBadge(count: countBadge, tint: tint ?? status.tint)
             }
 
@@ -99,6 +104,36 @@ struct ProfileModuleRow: View {
         .opacity(status.isDisabled ? 0.72 : 1)
         .allowsHitTesting(!status.isDisabled)
         .accessibilityHint(status.isDisabled ? AppStrings.Action.comingSoon : "")
+    }
+}
+
+
+struct OwnerVisibilityCountStateBadge: View {
+    let state: OwnerVisibilityCountState
+    let tint: Color
+
+    @ViewBuilder
+    var body: some View {
+        switch state {
+        case .idle:
+            EmptyView()
+        case .loading:
+            ProgressView()
+                .controlSize(.small)
+                .tint(tint)
+                .accessibilityLabel(AppStrings.Common.loading)
+        case let .loaded(count):
+            if count > 0 {
+                OwnerVisibilityCountBadge(count: count, tint: tint)
+            }
+        case .failed:
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(AppTheme.accentDestructiveForeground)
+                .padding(7)
+                .background(AppTheme.accentDestructiveForeground.opacity(0.10), in: Circle())
+                .accessibilityLabel(AppStrings.Common.notAvailable)
+        }
     }
 }
 

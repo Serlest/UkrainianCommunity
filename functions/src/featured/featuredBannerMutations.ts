@@ -1,4 +1,4 @@
-import { Timestamp, type DocumentData } from "firebase-admin/firestore";
+import { Timestamp, type DocumentData, type Transaction } from "firebase-admin/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
 
 import { requireVerifiedActiveUser } from "../auth/context";
@@ -93,6 +93,11 @@ const visibleSections = new Set<FeaturedBannerVisibleSection>([
   "organizations",
 ]);
 const featuredBannerLanguages = new Set<FeaturedBannerLanguage>(["uk", "de"]);
+const actionTargetCollections: Partial<Record<FeaturedBannerActionType, string>> = {
+  news: "news",
+  event: "events",
+  organization: "organizations",
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -256,6 +261,9 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
   if (targetActionTypes.has(actionType) && !actionTargetID) {
     throw new HttpsError("invalid-argument", "actionTargetID is required for this actionType.");
   }
+  if (actionTargetID?.includes("/")) {
+    throw new HttpsError("invalid-argument", "actionTargetID contains unsupported characters.");
+  }
   if (actionType === "externalURL" && !externalURL) {
     throw new HttpsError("invalid-argument", "externalURL is required for externalURL actions.");
   }
@@ -384,6 +392,29 @@ function storedDraft(id: string, data: DocumentData): Record<string, unknown> {
   };
 }
 
+async function assertPublishableActionTarget(
+  transaction: Transaction,
+  banner: FeaturedBannerDraft
+): Promise<void> {
+  const collection = actionTargetCollections[banner.actionType];
+  if (!collection) {
+    return;
+  }
+
+  const targetID = banner.actionTargetID;
+  if (!targetID) {
+    throw new HttpsError("invalid-argument", "actionTargetID is required for this actionType.");
+  }
+
+  const target = await transaction.get(db.collection(collection).doc(targetID));
+  if (!target.exists || target.get("moderationStatus") !== "approved") {
+    throw new HttpsError(
+      "failed-precondition",
+      "The featured banner target is unavailable or is not approved."
+    );
+  }
+}
+
 async function requireVerifiedOwner(request: CallableRequest): Promise<string> {
   const auth = await requireVerifiedActiveUser(request);
   assertOwner(auth.permissions);
@@ -406,6 +437,8 @@ export const saveFeaturedBanner = onCall(
       if (input.mode === "update" && !snapshot.exists) {
         throw new HttpsError("not-found", "Featured banner does not exist.");
       }
+
+      await assertPublishableActionTarget(transaction, input.banner);
 
       transaction.set(
         reference,
@@ -436,7 +469,10 @@ export const setFeaturedBannerActive = onCall(
 
       if (input.isActive) {
         try {
-          parseFeaturedBannerDraft(storedDraft(input.id, snapshot.data() ?? {}));
+          const storedBanner = parseFeaturedBannerDraft(
+            storedDraft(input.id, snapshot.data() ?? {})
+          );
+          await assertPublishableActionTarget(transaction, storedBanner);
         } catch (error) {
           if (error instanceof HttpsError && error.code === "invalid-argument") {
             throw new HttpsError(

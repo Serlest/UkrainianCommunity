@@ -16,7 +16,7 @@ struct RegistrationBiometricLockView: View {
                 .font(.footnote)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
-            if choice.biometry == .unavailable {
+            if !choice.canAuthenticate {
                 Text(AppStrings.AppLock.unavailable)
                     .font(.footnote).foregroundStyle(AppTheme.textSecondary)
             }
@@ -39,7 +39,7 @@ struct RegistrationBiometricLockView: View {
             get: { choice.isEnabled },
             set: { enabled in Task { await choice.setEnabled(enabled) } }
         )) { title }
-        .disabled(choice.isAuthenticating || (choice.biometry == .unavailable && !choice.isEnabled))
+        .disabled(choice.isAuthenticating || (!choice.canAuthenticate && !choice.isEnabled))
         .accessibilityLabel(AppStrings.AppLock.registrationTitle)
         .accessibilityIdentifier("auth.register.appLock")
     }
@@ -63,7 +63,7 @@ struct BiometricLockSettingsSection: View {
                     .font(.subheadline)
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
-                if lock.biometry == .unavailable && !lock.isEnabled {
+                if !lock.canAuthenticate && !lock.isEnabled {
                     Text(AppStrings.AppLock.unavailable)
                         .font(.footnote)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -94,7 +94,7 @@ struct BiometricLockSettingsSection: View {
             get: { lock.isEnabled },
             set: { enabled in Task { await lock.setEnabled(enabled) } }
         ))
-        .disabled(lock.isAuthenticating || (lock.biometry == .unavailable && !lock.isEnabled))
+        .disabled(lock.isAuthenticating || (!lock.canAuthenticate && !lock.isEnabled))
         .accessibilityLabel(AppStrings.AppLock.toggleTitle)
         .accessibilityIdentifier("profile.settings.appLock")
     }

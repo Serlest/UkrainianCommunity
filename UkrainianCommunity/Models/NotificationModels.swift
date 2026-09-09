@@ -127,6 +127,7 @@ struct RemoteNotificationRoute: Equatable, Sendable {
     let actionType: AppNotificationActionType
     let actionTargetId: String?
     let destination: RemoteNotificationRouteDestination
+    let resolvedTargetID: String?
 
     init?(
         notificationId: String?,
@@ -167,6 +168,7 @@ struct RemoteNotificationRoute: Equatable, Sendable {
         self.actionType = actionType
         self.actionTargetId = actionTargetId
         self.destination = destination
+        self.resolvedTargetID = resolvedTargetId
     }
 
     init?(userInfo: [AnyHashable: Any]) {

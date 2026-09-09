@@ -301,11 +301,19 @@ final class AuthMultiFactorService {
     }
 
     static func normalizedCode(_ code: String) -> String {
-        code.filter(\.isNumber)
+        code.filter(isASCIIDigit)
     }
 
     static func isValidCode(_ code: String) -> Bool {
-        code.count == 6 && code.allSatisfy(\.isNumber)
+        code.count == 6 && code.allSatisfy(isASCIIDigit)
+    }
+
+    private static func isASCIIDigit(_ character: Character) -> Bool {
+        guard character.unicodeScalars.count == 1,
+              let scalar = character.unicodeScalars.first else {
+            return false
+        }
+        return (48...57).contains(scalar.value)
     }
 
     private func currentVerifiedUser() throws -> User {

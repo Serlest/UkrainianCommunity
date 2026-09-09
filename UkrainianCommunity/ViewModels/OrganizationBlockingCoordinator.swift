@@ -2,17 +2,27 @@ import Combine
 import FirebaseFunctions
 import Foundation
 
+enum OrganizationBlockVerificationState: Equatable {
+    case pending
+    case cached
+    case confirmed
+    case unavailable
+    case notRequired
+}
+
 @MainActor
 final class OrganizationBlockingCoordinator: ObservableObject {
     @Published private(set) var blockedOrganizations: [BlockedOrganization] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isMutating = false
+    @Published private(set) var verificationState: OrganizationBlockVerificationState = .pending
     @Published var pendingTarget: OrganizationBlockTarget?
     @Published private(set) var errorMessage: String?
 
     private let repository: OrganizationBlockingRepository
     private let cache: UserDefaults?
     private var userID: String?
+    private var hasConfigured = false
     private var generation = 0
 
     init(repository: OrganizationBlockingRepository, cache: UserDefaults? = .standard) {
@@ -21,17 +31,40 @@ final class OrganizationBlockingCoordinator: ObservableObject {
     }
 
     var blockedOrganizationIDs: Set<String> { Set(blockedOrganizations.map(\.organizationID)) }
+    var visibilityPolicy: ContentVisibilityPolicy {
+        ContentVisibilityPolicy(
+            blockedOrganizationIDs: blockedOrganizationIDs,
+            allowsOrganizationContent: verificationState != .pending && verificationState != .unavailable
+        )
+    }
+    var requiresVisibilityGate: Bool {
+        verificationState == .pending || verificationState == .unavailable
+    }
 
     func configure(userID: String?) async {
-        guard self.userID != userID else { return }
+        guard !hasConfigured || self.userID != userID else { return }
+        let previousUserID = self.userID
+        hasConfigured = true
         self.userID = userID
         generation += 1
         pendingTarget = nil
         errorMessage = nil
         isLoading = false
         isMutating = false
-        blockedOrganizations = userID.flatMap { cache?.data(forKey: cacheKey($0)) }
-            .flatMap { try? JSONDecoder().decode([BlockedOrganization].self, from: $0) } ?? []
+        verificationState = userID == nil ? .notRequired : .pending
+        if let previousUserID, previousUserID != userID {
+            cache?.removeObject(forKey: cacheKey(previousUserID))
+        }
+        guard let userID else {
+            blockedOrganizations = []
+            return
+        }
+        if let cachedBlocks = loadCache(for: userID) {
+            blockedOrganizations = Self.sorted(cachedBlocks)
+            verificationState = .cached
+        } else {
+            blockedOrganizations = []
+        }
         await reload()
     }
 
@@ -40,15 +73,23 @@ final class OrganizationBlockingCoordinator: ObservableObject {
         generation += 1
         let requestGeneration = generation
         isLoading = true
+        if verificationState == .unavailable {
+            verificationState = .pending
+        }
+        errorMessage = nil
         defer { if generation == requestGeneration { isLoading = false } }
         do {
             let blocks = try await repository.fetchBlockedOrganizations()
             guard generation == requestGeneration, self.userID == userID else { return }
-            blockedOrganizations = blocks
+            blockedOrganizations = Self.sorted(blocks)
             saveCache(for: userID)
+            verificationState = .confirmed
             errorMessage = nil
         } catch {
             guard generation == requestGeneration else { return }
+            if verificationState == .pending {
+                verificationState = .unavailable
+            }
             errorMessage = Self.failureMessage(error)
         }
     }
@@ -76,11 +117,22 @@ final class OrganizationBlockingCoordinator: ObservableObject {
             }
             blockedOrganizations.removeAll { $0.organizationID == organizationID }
             if let block { blockedOrganizations.append(block) }
+            blockedOrganizations = Self.sorted(blockedOrganizations)
             saveCache(for: userID)
             pendingTarget = nil
             return true
         } catch {
             guard generation == requestGeneration else { return false }
+            if Self.requiresMutationReadBack(error),
+               await reconcileMutation(
+                organizationID: organizationID,
+                isBlocked: isBlocked,
+                userID: userID,
+                generation: requestGeneration
+               ) {
+                return true
+            }
+            guard generation == requestGeneration, self.userID == userID else { return false }
             errorMessage = Self.failureMessage(error)
             return false
         }
@@ -106,8 +158,58 @@ final class OrganizationBlockingCoordinator: ObservableObject {
 
     private func cacheKey(_ userID: String) -> String { "uac.blockedOrganizations.v1.\(userID)" }
 
+    private func loadCache(for userID: String) -> [BlockedOrganization]? {
+        guard let data = cache?.data(forKey: cacheKey(userID)),
+              let blocks = try? JSONDecoder().decode([BlockedOrganization].self, from: data) else {
+            return nil
+        }
+        return blocks
+    }
+
     private func saveCache(for userID: String) {
         guard let data = try? JSONEncoder().encode(blockedOrganizations) else { return }
         cache?.set(data, forKey: cacheKey(userID))
+    }
+
+    private func reconcileMutation(
+        organizationID: String,
+        isBlocked: Bool,
+        userID: String,
+        generation requestGeneration: Int
+    ) async -> Bool {
+        do {
+            let blocks = try await repository.fetchBlockedOrganizations()
+            guard generation == requestGeneration, self.userID == userID else { return false }
+            blockedOrganizations = Self.sorted(blocks)
+            saveCache(for: userID)
+            verificationState = .confirmed
+            let actualState = blockedOrganizationIDs.contains(organizationID)
+            guard actualState == isBlocked else { return false }
+            pendingTarget = nil
+            errorMessage = nil
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private static func requiresMutationReadBack(_ error: Error) -> Bool {
+        guard !Task.isCancelled else { return false }
+        let error = error as NSError
+        if error.domain == NSURLErrorDomain {
+            return true
+        }
+        guard error.domain == FunctionsErrorDomain,
+              let code = FunctionsErrorCode(rawValue: error.code) else {
+            return false
+        }
+        return code == .deadlineExceeded || code == .unavailable || code == .aborted
+    }
+
+    private static func sorted(_ blocks: [BlockedOrganization]) -> [BlockedOrganization] {
+        blocks.sorted {
+            if $0.blockedAt != $1.blockedAt { return $0.blockedAt > $1.blockedAt }
+            return $0.organizationID < $1.organizationID
+        }
     }
 }

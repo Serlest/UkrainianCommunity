@@ -54,13 +54,13 @@ enum AppStrings {
         static var delayTitle: String { text("app_lock.delay_title", "Блокувати після згортання") }
         static var delayImmediately: String { text("app_lock.delay_immediately", "Одразу") }
         static var delayMinute: String { text("app_lock.delay_minute", "Через хвилину") }
-        static var registrationTitle: String { text("app_lock.registration_title", "Увімкнути Face ID / Touch ID") }
+        static var registrationTitle: String { text("app_lock.registration_title", "Enable account protection") }
         static var registrationHelp: String { text("app_lock.registration_help", "Необов’язково. Підтвердьте захист через Face ID, Touch ID або код пристрою. Він увімкнеться для цього акаунта на цьому пристрої після успішної реєстрації. Згодом його можна ввімкнути або вимкнути в налаштуваннях профілю. Звичайний вхід з email і паролем залишається доступним.") }
         static var registrationFailed: String { text("app_lock.registration_failed", "Захист не ввімкнено. Спробуйте ще раз або продовжуйте реєстрацію без нього.") }
         static var settingsTitle: String { text("app_lock.settings_title", "Захист доступу") }
-        static var toggleTitle: String { text("app_lock.toggle_title", "Захист через Face ID / Touch ID") }
+        static var toggleTitle: String { text("app_lock.toggle_title", "Protect this account") }
         static var settingsHelp: String { text("app_lock.settings_help", "Після згортання застосунку захист цього акаунту вмикається через вибраний інтервал. Після перезапуску потрібен Face ID, Touch ID або код пристрою. Після виходу з акаунту потрібно знову ввести email і пароль.") }
-        static var unavailable: String { text("app_lock.unavailable", "Налаштуйте Face ID або Touch ID в параметрах пристрою та дозвольте доступ для застосунку.") }
+        static var unavailable: String { text("app_lock.unavailable", "Set a device passcode or Face ID / Touch ID in Settings, then allow access for the app.") }
         static var lockedTitle: String { text("app_lock.locked_title", "Доступ заблоковано") }
         static var lockedHelp: String { text("app_lock.locked_help", "Натисніть «Розблокувати», щоб підтвердити доступ через Face ID, Touch ID або код пристрою.") }
         static var unlock: String { text("app_lock.unlock", "Розблокувати") }
@@ -870,6 +870,7 @@ enum AppStrings {
     }
 
     enum Organizations {
+        static var deleteCascadeMessage: String { text("organizations.delete.cascade_message", "The organization and its related content will be permanently deleted.") }
         static var editConflict: String { text("organization.edit_conflict", "Організацію вже змінено в іншому сеансі. Відкрийте її ще раз і перевірте свої зміни перед збереженням.") }
 
         static var title: String { text("organizations.title", "Organizations") }
@@ -1170,6 +1171,10 @@ enum AppStrings {
     }
 
     enum ContentPlanning {
+        static var missingStartDateTitle: String { text("content_planning.missing_start_date.title", "Set the event date") }
+        static var missingStartDateMessage: String { text("content_planning.missing_start_date.message", "Choose the date and time before opening the editor.") }
+        static var missingStartDateConfirm: String { text("content_planning.missing_start_date.confirm", "Confirm date and open editor") }
+
         static var title: String { text("content_planning.title", "Планування контенту") }
         static var subtitle: String { text("content_planning.subtitle", "Приватні чернетки, підготовлені з перевірених посилань. Ви обираєте організацію та публікуєте лише після перегляду.") }
         static var profileSubtitle: String { text("content_planning.profile_subtitle", "Переглянути підготовлені новини та події") }
@@ -1441,6 +1446,11 @@ enum AppStrings {
     }
 
     enum Profile {
+        static var unavailableSubscriptionTitle: String { text("profile.organization_subscriptions.unavailable.title", "Organization unavailable") }
+        static var unavailableSubscriptionMessage: String { text("profile.organization_subscriptions.unavailable.message", "You can still remove this subscription.") }
+        static var removeUnavailableSubscription: String { text("profile.organization_subscriptions.unavailable.remove", "Remove subscription") }
+        static var analyticsConsentRejected: String { text("profile.analytics_consent.rejected", "Consent to optional analytics could not be confirmed. Collection remains off. Check your account and try again.") }
+        static var activityHistoryLimitNotice: String { text("profile.activity_history.limit_notice", "Showing your latest 100 activities.") }
         static var title: String { text("profile.title", "Profile") }
         static var guestOverline: String { text("profile.guest.overline", "Guest Access") }
         static var guestTitle: String { text("profile.guest.title", "Use more with an account") }
@@ -1805,6 +1815,8 @@ enum AppStrings {
         static var reminderLeadTime: String { text("profile.notifications.reminder_lead_time", "Час нагадування") }
         static var reminderLeadTimeSubtitle: String { text("profile.notifications.reminder_lead_time.subtitle", "Коли нагадувати перед початком події.") }
         static var notificationPermissionDenied: String { text("profile.notifications.permission_denied", "Дозвіл на сповіщення не надано. Увімкніть його в налаштуваннях iOS.") }
+        static var notificationPreferencesSyncFailed: String { text("profile.notifications.sync_failed", "Notification settings were saved, but event reminders could not be updated. Try again.") }
+        static var notificationPreferencesLoading: String { text("profile.notifications.loading", "Loading notification settings…") }
         static var notificationPreferencesLoadFailed: String { text("profile.notifications.load_failed", "Не вдалося завантажити налаштування сповіщень.") }
         static var notificationPreferencesSaveFailed: String { text("profile.notifications.save_failed", "Не вдалося зберегти налаштування сповіщень.") }
         static var notificationPreferencesSaved: String { text("profile.notifications.saved", "Налаштування сповіщень збережено.") }
@@ -1850,7 +1862,9 @@ enum AppStrings {
         static var deleteAccountConfirmationKeyword: String { text("profile.settings.delete_account.keyword", "ВИДАЛИТИ") }
         static var deleteAccountFinalAction: String { text("profile.settings.delete_account.final_action", "Видалити акаунт") }
         static var deleteAccountInProgress: String { text("profile.settings.delete_account.in_progress", "Видаляємо акаунт…") }
-        static var deleteAccountFailed: String { text("profile.settings.delete_account.failed", "Не вдалося видалити акаунт. Спробуйте ще раз.") }
+        static var deleteAccountLocalCleanupPending: String { text("profile.settings.delete_account.local_cleanup_pending", "Your account was deleted. Restart the app to finish signing out.") }
+        static var deleteAccountCompleted: String { text("profile.settings.delete_account.completed", "Your account has been deleted.") }
+        static var deleteAccountFailed: String { text("profile.settings.delete_account.failed", "Не вдалося підтвердити результат видалення. Увійдіть знову та повторіть спробу.") }
         static var deleteAccountCleanupFailed: String { text("profile.settings.delete_account.cleanup_failed", "Не вдалося очистити дані акаунта. Акаунт не видалено. Спробуйте ще раз.") }
         static var deleteAccountPermissionFailed: String { text("profile.settings.delete_account.permission_failed", "Немає доступу для завершення видалення акаунта. Акаунт не видалено. Спробуйте вийти й увійти знову.") }
         static var deleteAccountRequiresRecentLogin: String { text("profile.settings.delete_account.requires_recent_login", "Для видалення акаунта потрібно повторно увійти.") }
@@ -1935,7 +1949,7 @@ enum AppStrings {
 
     enum Feedback {
         static var title: String { text("feedback.title", "Feedback") }
-        static var subtitle: String { text("feedback.subtitle", "Send a short note to the team.") }
+        static var subtitle: String { text("feedback.subtitle", "Send feedback or questions directly to the developer.") }
         static var fieldType: String { text("feedback.field.type", "Type") }
         static var fieldMessage: String { text("feedback.field.message", "Message") }
         static var submit: String { text("feedback.submit", "Send Feedback") }
@@ -1950,12 +1964,13 @@ enum AppStrings {
         static var clearMyFeedback: String { text("feedback.my.clear", "Видалити всі звернення") }
         static var clearMyFeedbackConfirmationTitle: String { text("feedback.my.clear.confirm.title", "Видалити всі звернення?") }
         static var clearMyFeedbackConfirmationMessage: String { text("feedback.my.clear.confirm.message", "Усі ваші звернення та повідомлення в них буде видалено без можливості відновлення.") }
+        static var retentionProtected: String { text("feedback.delete.retention_protected", "This DSA case is retained until its retention period expires.") }
         static var deleteOne: String { text("feedback.delete.one", "Видалити звернення") }
         static var deleteOneConfirmationTitle: String { text("feedback.delete.one.confirm.title", "Видалити це звернення?") }
         static var deleteOneConfirmationMessage: String { text("feedback.delete.one.confirm.message", "Звернення та вся переписка в ньому будуть видалені без можливості відновлення.") }
         static var clearInbox: String { text("feedback.inbox.clear", "Видалити всі відгуки та скарги") }
         static var clearInboxConfirmationTitle: String { text("feedback.inbox.clear.confirm.title", "Видалити всі відгуки та скарги?") }
-        static var clearInboxConfirmationMessage: String { text("feedback.inbox.clear.confirm.message", "Усі звернення та пов’язані повідомлення будуть видалені без можливості відновлення.") }
+        static var clearInboxConfirmationMessage: String { text("feedback.inbox.clear.confirm.message", "Звичайні звернення та їхні повідомлення буде видалено безповоротно. Справи DSA залишаться до завершення строку зберігання.") }
         static var yourFeedback: String { text("feedback.your_feedback", "Ваше звернення") }
         static var ownerReply: String { text("feedback.owner_reply", "Відповідь власника") }
         static var sendReply: String { text("feedback.action.send_reply", "Надіслати відповідь") }
@@ -2009,6 +2024,10 @@ enum AppStrings {
     }
 
     enum Safety {
+        static var verifyingOrganizationContent: String { text("safety.organization_block.verifying_content.title", "Checking hidden content") }
+        static var organizationVisibilityUnavailableTitle: String { text("safety.organization_block.visibility_unavailable.title", "Hidden content could not be checked") }
+        static var organizationVisibilityUnavailableMessage: String { text("safety.organization_block.visibility_unavailable.message", "Organization content remains hidden until the block list is confirmed. Check your connection and retry.") }
+
         static var blockOrganizationAction: String { text("safety.organization_block.action", "Заблокувати організацію") }
         static var organizationBlockMFARequired: String { text("safety.organization_block.mfa_required", "Для цього облікового запису потрібна двофакторна перевірка. Вийдіть і увійдіть знову з кодом автентифікатора.") }
         static var organizationBlockTLSFailed: String { text("safety.organization_block.tls_failed", "Не вдалося встановити захищене з’єднання. Перевірте мережу та повторіть спробу.") }
@@ -2518,6 +2537,14 @@ enum AppStrings {
     }
 
     enum LegalEvidence {
+        static var accountSearchScopeNotice: String { text("legal_evidence.accounts.search.scope_notice", "Search covers current account profiles only. Retained evidence for accounts no longer present in the directory is not discoverable from this list.") }
+        static var currentIdentityNotice: String { text("legal_evidence.identity.current_notice", "Name and email are current account details when this history is loaded. Historical confirmations identify the subject by UID and do not prove which name or email was used at that time.") }
+        static var sourceRecordIDLabel: String { text("legal_evidence.provenance.source_record_id", "Source record ID") }
+        static var platformLabel: String { text("legal_evidence.provenance.platform", "Confirmation platform") }
+        static var consentIDLabel: String { text("legal_evidence.provenance.consent_id", "Consent ID") }
+        static var purposeVersionLabel: String { text("legal_evidence.provenance.purpose_version", "Purpose version") }
+        static var disclosureVersionLabel: String { text("legal_evidence.provenance.disclosure_version", "Disclosure version") }
+        static var disclosureTextLabel: String { text("legal_evidence.provenance.disclosure_text", "Disclosure text") }
         static var exportHistory: String { text("legal_evidence.export_history", "Експортувати повну історію") }
         static var title: String { text("legal_evidence.title", "Consents and legal evidence") }
         static var subtitle: String { text("legal_evidence.subtitle", "Owner-only immutable history of Terms, Privacy, age, organization rules, and analytics consent.") }

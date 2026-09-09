@@ -4,20 +4,29 @@ import UIKit
 
 struct SystemLogDetailView: View {
     let log: SystemLogEntry
+    let isRefreshing: Bool
+    let refreshErrorMessage: String?
     let isMarkingReviewed: Bool
     let reviewErrorMessage: String?
+    let onRetryRefresh: () async -> Void
     let onMarkReviewed: () async -> Void
     @State private var didCopyDetails = false
 
     init(
         log: SystemLogEntry,
+        isRefreshing: Bool = false,
+        refreshErrorMessage: String? = nil,
         isMarkingReviewed: Bool = false,
         reviewErrorMessage: String? = nil,
+        onRetryRefresh: @escaping () async -> Void = {},
         onMarkReviewed: @escaping () async -> Void = {}
     ) {
         self.log = log
+        self.isRefreshing = isRefreshing
+        self.refreshErrorMessage = refreshErrorMessage
         self.isMarkingReviewed = isMarkingReviewed
         self.reviewErrorMessage = reviewErrorMessage
+        self.onRetryRefresh = onRetryRefresh
         self.onMarkReviewed = onMarkReviewed
     }
 
@@ -38,6 +47,20 @@ struct SystemLogDetailView: View {
                 }
             }
         } content: {
+            if isRefreshing {
+                ProgressView()
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+
+            if let refreshErrorMessage {
+                InlineMessageCard(style: .error, message: refreshErrorMessage)
+                Button(AppStrings.Action.retry) {
+                    Task { await onRetryRefresh() }
+                }
+                .buttonStyle(.bordered)
+                .tint(AppTheme.accentPrimary)
+            }
+
             if didCopyDetails {
                 InlineMessageCard(style: .success, message: AppStrings.SystemLogs.detailsCopied)
             }

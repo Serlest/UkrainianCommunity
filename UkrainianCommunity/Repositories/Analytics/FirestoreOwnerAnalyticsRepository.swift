@@ -11,6 +11,7 @@ private struct AnalyticsTimestampedValue<Value> {
 private struct AnalyticsDailyStatsLoad {
     let stats: [AnalyticsDailyStats]
     let updatedAtByDocumentID: [String: Date]
+    let completeDocumentIDs: Set<String>
 }
 
 private struct AnalyticsDetailLoad {
@@ -328,12 +329,16 @@ enum AnalyticsFirestorePayloadResolver {
     static func unavailableSources(
         totalViews: Int,
         activeRegionCount: Int,
+        areDailyStatsAvailable: Bool = true,
         isTopContentAvailable: Bool,
         areContentRegionsAvailable: Bool,
         areUsersAvailable: Bool
     ) -> Set<OwnerAnalyticsDataSource> {
         var sources = Set<OwnerAnalyticsDataSource>()
 
+        if !areDailyStatsAvailable {
+            sources.insert(.dailyStats)
+        }
         if totalViews > 0, !isTopContentAvailable {
             sources.insert(.topContent)
         }
@@ -441,14 +446,20 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             let totalViews = summaryValue(for: .totalViews, in: dailyStats)
             let activeRegionCount = summaryValue(for: .activeRegions, in: dailyStats)
             let currentDailyDocumentIDs = Set(currentDates.map(documentID))
+            let previousDailyDocumentIDs = Set(previousDates.map(documentID))
+            let areDailyStatsAvailable = currentDailyDocumentIDs
+                .union(previousDailyDocumentIDs)
+                .isSubset(of: dailyLoad.completeDocumentIDs)
             let isTopContentAvailable = topContent.isAvailable
                 && (totalViews == 0 || !topContent.value.isEmpty)
             let areContentRegionsAvailable = regionStats.isAvailable
                 && (activeRegionCount == 0 || !regionStats.value.isEmpty)
-            let dailyUpdatedAt = dailyLoad.updatedAtByDocumentID
-                .filter { currentDailyDocumentIDs.contains($0.key) }
-                .values
-                .max()
+            let dailyUpdatedAt = areDailyStatsAvailable
+                ? dailyLoad.updatedAtByDocumentID
+                    .filter { currentDailyDocumentIDs.contains($0.key) }
+                    .values
+                    .min()
+                : nil
             let generatedAt = AnalyticsFirestorePayloadResolver.oldestAvailableUpdate(
                 dailyUpdatedAt: dailyUpdatedAt,
                 sources: [
@@ -470,6 +481,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
                 unavailableSources: AnalyticsFirestorePayloadResolver.unavailableSources(
                     totalViews: totalViews,
                     activeRegionCount: activeRegionCount,
+                    areDailyStatsAvailable: areDailyStatsAvailable,
                     isTopContentAvailable: isTopContentAvailable,
                     areContentRegionsAvailable: areContentRegionsAvailable,
                     areUsersAvailable: userStats.isAvailable
@@ -596,7 +608,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             .document(childDocumentID)
 
         guard period != .today else {
-            let childSnapshot = try await childReference.getDocument()
+            let childSnapshot = try await childReference.getDocument(source: .server)
             return AnalyticsDetailLoad(
                 data: childSnapshot.exists ? childSnapshot.data() : nil,
                 coverage: .complete
@@ -606,7 +618,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         // Read the completion marker first. A later child read can then either
         // match this immutable generation or fail closed while the next rollup
         // is replacing documents. This prevents mixed-period detail metrics.
-        let rootSnapshot = try await rootReference.getDocument()
+        let rootSnapshot = try await rootReference.getDocument(source: .server)
         guard rootSnapshot.exists,
               let rootData = rootSnapshot.data(),
               let completedGeneration = AnalyticsFirestorePayloadResolver
@@ -621,13 +633,13 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             throw OwnerAnalyticsRepositoryReadError.rollupRefreshing
         }
 
-        let childSnapshot = try await childReference.getDocument()
+        let childSnapshot = try await childReference.getDocument(source: .server)
         guard childSnapshot.exists, let childData = childSnapshot.data() else {
             // A newer rollup may have removed the old child between the two
             // reads. Re-check the parent before treating the item as genuinely
             // absent, otherwise a transient generation swap is cached as an
             // empty result.
-            let verificationSnapshot = try await rootReference.getDocument()
+            let verificationSnapshot = try await rootReference.getDocument(source: .server)
             guard verificationSnapshot.exists,
                   let verificationData = verificationSnapshot.data(),
                   AnalyticsFirestorePayloadResolver.didDetailRollupRemainCompleted(
@@ -696,26 +708,37 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         let documentIDs = dateByDocumentID.keys.sorted()
         guard let firstDocumentID = documentIDs.first,
               let lastDocumentID = documentIDs.last else {
-            return AnalyticsDailyStatsLoad(stats: [], updatedAtByDocumentID: [:])
+            return AnalyticsDailyStatsLoad(
+                stats: [],
+                updatedAtByDocumentID: [:],
+                completeDocumentIDs: []
+            )
         }
 
         let snapshot = try await database
             .collection(AnalyticsFirestoreSchema.Collection.dailyStats)
             .whereField(FieldPath.documentID(), isGreaterThanOrEqualTo: firstDocumentID)
             .whereField(FieldPath.documentID(), isLessThanOrEqualTo: lastDocumentID)
-            .getDocuments()
+            .getDocuments(source: .server)
         var updateDatesByDocumentID: [String: Date] = [:]
+        var completeDocumentIDs = Set<String>()
         let stats = snapshot.documents.compactMap { document -> AnalyticsDailyStats? in
             guard let defaultDate = dateByDocumentID[document.documentID] else { return nil }
-            if let updatedAt = timestampDate(document.data()[AnalyticsFirestoreSchema.DetailStatsField.updatedAt]) {
-                updateDatesByDocumentID[document.documentID] = updatedAt
+            guard let updatedAt = timestampDate(
+                document.data()[AnalyticsFirestoreSchema.DetailStatsField.updatedAt]
+            ),
+            let stats = makeDailyStats(defaultDate: defaultDate, data: document.data()) else {
+                return nil
             }
-            return makeDailyStats(defaultDate: defaultDate, data: document.data())
+            updateDatesByDocumentID[document.documentID] = updatedAt
+            completeDocumentIDs.insert(document.documentID)
+            return stats
         }
 
         return AnalyticsDailyStatsLoad(
             stats: stats.sorted { $0.date < $1.date },
-            updatedAtByDocumentID: updateDatesByDocumentID
+            updatedAtByDocumentID: updateDatesByDocumentID,
+            completeDocumentIDs: completeDocumentIDs
         )
     }
 
@@ -726,7 +749,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         let snapshot = try await database
             .collection(AnalyticsFirestoreSchema.Collection.topContent)
             .document(periodDocumentID(for: period, anchoredAt: anchor))
-            .getDocument()
+            .getDocument(source: .server)
 
         guard snapshot.exists,
               let data = snapshot.data() else {
@@ -797,7 +820,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         let snapshot = try await database
             .collection(AnalyticsFirestoreSchema.Collection.regionStats)
             .document(periodDocumentID(for: period, anchoredAt: anchor))
-            .getDocument()
+            .getDocument(source: .server)
 
         guard snapshot.exists,
               let data = snapshot.data() else {
@@ -847,7 +870,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         let snapshot = try await database
             .collection(AnalyticsFirestoreSchema.Collection.userStats)
             .document(documentID)
-            .getDocument()
+            .getDocument(source: .server)
 
         guard snapshot.exists,
               let data = snapshot.data() else {

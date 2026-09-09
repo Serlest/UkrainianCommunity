@@ -61,12 +61,12 @@ export function userBlockDocumentPath(actorUserId: string, targetUserId: string)
   return `users/${actorUserId}/blockedUsers/${targetUserId}`;
 }
 
-function normalizedDisplayName(value: unknown): string {
+function normalizedDisplayName(value: unknown, fallback: string): string {
   if (typeof value !== "string") {
-    return "Community member";
+    return fallback;
   }
   const normalized = value.replace(/\s+/g, " ").trim();
-  return normalized.length > 0 ? normalized.slice(0, 120) : "Community member";
+  return normalized.length > 0 ? normalized.slice(0, 120) : fallback;
 }
 
 function optionalAvatarURL(value: unknown): string | undefined {
@@ -86,6 +86,36 @@ export const setUserBlocked = onCall(
       throw new HttpsError("failed-precondition", "You cannot block your own account.");
     }
 
+    const reference = db.doc(userBlockDocumentPath(actor.uid, input.targetUserId));
+    const updatedAt = Timestamp.now();
+
+    // Unblocking only deletes the actor-owned relationship. Requiring the target
+    // account to remain present makes a deleted or deactivated user impossible
+    // to remove from the private block list.
+    if (!input.isBlocked) {
+      let existingData: Record<string, unknown> = {};
+      await db.runTransaction(async (transaction) => {
+        const existing = await transaction.get(reference);
+        existingData = existing.data() ?? {};
+        if (existing.exists) {
+          transaction.delete(reference);
+        }
+      });
+
+      const displayName = normalizedDisplayName(
+        existingData.displayName,
+        input.targetUserId
+      );
+      const avatarURL = optionalAvatarURL(existingData.avatarURL);
+      return {
+        targetUserId: input.targetUserId,
+        isBlocked: false,
+        displayName,
+        avatarURL,
+        updatedAt: updatedAt.toDate().toISOString(),
+      };
+    }
+
     const [targetSnapshot, publicProfileSnapshot] = await Promise.all([
       db.collection("users").doc(input.targetUserId).get(),
       db.collection("publicProfiles").doc(input.targetUserId).get(),
@@ -103,21 +133,13 @@ export const setUserBlocked = onCall(
     }
 
     const displayName = normalizedDisplayName(
-      publicProfile.displayName ?? target.displayName ?? target.fullName
+      publicProfile.displayName ?? target.displayName ?? target.fullName,
+      input.targetUserId
     );
     const avatarURL = optionalAvatarURL(publicProfile.avatarURL ?? target.avatarURL);
-    const reference = db.doc(userBlockDocumentPath(actor.uid, input.targetUserId));
-    const updatedAt = Timestamp.now();
 
     await db.runTransaction(async (transaction) => {
       const existing = await transaction.get(reference);
-      if (!input.isBlocked) {
-        if (existing.exists) {
-          transaction.delete(reference);
-        }
-        return;
-      }
-
       transaction.set(reference, {
         id: input.targetUserId,
         targetUserId: input.targetUserId,
@@ -130,7 +152,7 @@ export const setUserBlocked = onCall(
 
     return {
       targetUserId: input.targetUserId,
-      isBlocked: input.isBlocked,
+      isBlocked: true,
       displayName,
       avatarURL,
       updatedAt: updatedAt.toDate().toISOString(),

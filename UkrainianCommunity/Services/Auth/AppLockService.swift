@@ -6,32 +6,74 @@ import LocalAuthentication
 enum AppBiometry: Equatable {
     case faceID, touchID, unavailable
 
-    var symbol: String { self == .touchID ? "touchid" : "faceid" }
+    var symbol: String {
+        switch self {
+        case .faceID: return "faceid"
+        case .touchID: return "touchid"
+        case .unavailable: return "lock.shield"
+        }
+    }
+}
+
+struct AppLockAuthenticationAvailability: Equatable {
+    let canAuthenticate: Bool
+    let biometry: AppBiometry
 }
 
 @MainActor
 protocol LocalAuthenticationProviding: AnyObject {
     var biometry: AppBiometry { get }
+    var appLockAvailability: AppLockAuthenticationAvailability { get }
     func authenticate(reason: String) async throws -> Bool
     func cancel()
+}
+
+extension LocalAuthenticationProviding {
+    var appLockAvailability: AppLockAuthenticationAvailability {
+        AppLockAuthenticationAvailability(
+            canAuthenticate: biometry != .unavailable,
+            biometry: biometry
+        )
+    }
 }
 
 @MainActor
 final class DeviceLocalAuthentication: LocalAuthenticationProviding {
     private var context: LAContext?
 
-    var biometry: AppBiometry {
-        let probe = LAContext()
-        var error: NSError?
-        let available = probe.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error)
+    var appLockAvailability: AppLockAuthenticationAvailability {
+        let authenticationProbe = LAContext()
+        var authenticationError: NSError?
+        let canAuthenticate = authenticationProbe.canEvaluatePolicy(
+            .deviceOwnerAuthentication,
+            error: &authenticationError
+        )
+
+        let biometryProbe = LAContext()
+        var biometryError: NSError?
+        let biometricsAvailable = biometryProbe.canEvaluatePolicy(
+            .deviceOwnerAuthenticationWithBiometrics,
+            error: &biometryError
+        )
         // A temporary biometric lockout still permits device-passcode recovery.
-        guard available || (error as? LAError)?.code == .biometryLockout else { return .unavailable }
-        switch probe.biometryType {
-        case .faceID: return .faceID
-        case .touchID: return .touchID
-        default: return .unavailable
+        let hasKnownBiometry = biometricsAvailable || (biometryError as? LAError)?.code == .biometryLockout
+        let biometry: AppBiometry
+        if hasKnownBiometry {
+            switch biometryProbe.biometryType {
+            case .faceID: biometry = .faceID
+            case .touchID: biometry = .touchID
+            default: biometry = .unavailable
+            }
+        } else {
+            biometry = .unavailable
         }
+        return AppLockAuthenticationAvailability(
+            canAuthenticate: canAuthenticate,
+            biometry: biometry
+        )
     }
+
+    var biometry: AppBiometry { appLockAvailability.biometry }
 
     func authenticate(reason: String) async throws -> Bool {
         cancel()
@@ -62,6 +104,7 @@ final class AppLockService: ObservableObject {
     @Published private(set) var isAuthenticating = false
     @Published private(set) var errorMessage: String?
     @Published private(set) var biometry: AppBiometry = .unavailable
+    @Published private(set) var canAuthenticate = false
     @Published private(set) var gracePeriod: TimeInterval = 0
 
     // Emitted synchronously AFTER mutations, so a window shield can be installed
@@ -112,7 +155,11 @@ final class AppLockService: ObservableObject {
         protectionChanges.send()
     }
 
-    func refreshAvailability() { biometry = authentication.biometry }
+    func refreshAvailability() {
+        let availability = authentication.appLockAvailability
+        biometry = availability.biometry
+        canAuthenticate = availability.canAuthenticate
+    }
 
     func enterBackground() {
         isInBackground = true
@@ -143,6 +190,18 @@ final class AppLockService: ObservableObject {
         defaults.set(seconds, forKey: preferenceKey(userID) + ".grace")
     }
 
+    func removeAccountPreference(userID: String) {
+        let key = preferenceKey(userID)
+        defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: key + ".grace")
+        guard self.userID == userID else { return }
+        isEnabled = false
+        isUnlocked = false
+        gracePeriod = 0
+        errorMessage = nil
+        protectionChanges.send()
+    }
+
     func cancelAuthentication() {
         generation &+= 1
         authentication.cancel()
@@ -159,7 +218,7 @@ final class AppLockService: ObservableObject {
     func setEnabled(_ enabled: Bool) async {
         guard userID != nil, !isAuthenticating, enabled != isEnabled else { return }
         refreshAvailability()
-        if enabled && biometry == .unavailable {
+        if enabled && !canAuthenticate {
             errorMessage = AppStrings.AppLock.unavailable
             return
         }
@@ -231,6 +290,7 @@ final class RegistrationAppLockChoice: ObservableObject {
     @Published private(set) var authorization: RegistrationAppLockAuthorization?
     @Published private(set) var isAuthenticating = false
     @Published private(set) var biometry: AppBiometry = .unavailable
+    @Published private(set) var canAuthenticate = false
     @Published private(set) var gracePeriod: TimeInterval = 0
     @Published private(set) var errorMessage: String?
     private let authentication: any LocalAuthenticationProviding
@@ -248,7 +308,11 @@ final class RegistrationAppLockChoice: ObservableObject {
     }
 
     var isEnabled: Bool { authorization != nil }
-    func refreshAvailability() { biometry = authentication.biometry }
+    func refreshAvailability() {
+        let availability = authentication.appLockAvailability
+        biometry = availability.biometry
+        canAuthenticate = availability.canAuthenticate
+    }
 
     func cancelPendingAuthentication() {
         generation &+= 1
@@ -263,7 +327,7 @@ final class RegistrationAppLockChoice: ObservableObject {
         errorMessage = nil
         guard enabled else { return }
         refreshAvailability()
-        guard biometry != .unavailable else {
+        guard canAuthenticate else {
             errorMessage = AppStrings.AppLock.unavailable
             return
         }
@@ -292,7 +356,15 @@ private final class ScriptedLocalAuthentication: LocalAuthenticationProviding {
     let scenario: String
     private var attempts = 0
     init(scenario: String) { self.scenario = scenario }
-    var biometry: AppBiometry { scenario == "unavailable" ? .unavailable : .faceID }
+    var biometry: AppBiometry {
+        scenario == "unavailable" || scenario == "passcodeOnly" ? .unavailable : .faceID
+    }
+    var appLockAvailability: AppLockAuthenticationAvailability {
+        AppLockAuthenticationAvailability(
+            canAuthenticate: scenario != "unavailable",
+            biometry: biometry
+        )
+    }
     func authenticate(reason: String) async throws -> Bool {
         attempts += 1
         try await Task.sleep(for: .milliseconds(200))

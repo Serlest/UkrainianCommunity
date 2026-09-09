@@ -45,7 +45,24 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func fetchBookmarkedNews() async throws -> [NewsPost] {
-        let bookmarkedIDs = try await fetchBookmarkedNewsIDs()
+        try await fetchSavedNews().compactMap(\.content)
+    }
+
+    func fetchSavedNews() async throws -> [SavedContentRecord<NewsPost>] {
+        guard let uid = Auth.auth().currentUser?.uid else { return [] }
+        let markerSnapshot = try await Firestore.firestore()
+            .collection("users")
+            .document(uid)
+            .collection("newsBookmarks")
+            .getDocuments()
+        let markers = markerSnapshot.documents.map { document in
+            (
+                id: document.documentID,
+                savedAt: (document.data()["createdAt"] as? Timestamp)?.dateValue()
+            )
+        }
+        let bookmarkedIDs = Set(markers.map { $0.id })
+        await sessionDataCache.storeBookmarkedNewsIDs(bookmarkedIDs, for: uid)
         guard !bookmarkedIDs.isEmpty else { return [] }
         let bookmarkedIDList = Array(bookmarkedIDs)
         let likedIDs = try await fetchLikedNewsIDs(for: bookmarkedIDList)
@@ -67,7 +84,10 @@ struct FirestoreNewsRepository: NewsRepository {
             posts.append(contentsOf: resolved)
         }
 
-        return posts.sorted { $0.publishedAt > $1.publishedAt }
+        let postsByID = Dictionary(uniqueKeysWithValues: posts.map { ($0.id, $0) })
+        return markers.map { marker in
+            SavedContentRecord(id: marker.id, savedAt: marker.savedAt, content: postsByID[marker.id])
+        }
     }
 
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
@@ -582,6 +602,17 @@ struct FirestoreNewsRepository: NewsRepository {
         ])
 
         await logModerationStatusChange(id: id, newStatus: newStatus)
+    }
+
+    func updateModerationStatus(id: String, newStatus: ModerationStatus, expectedRevision: String, operationID: String) async throws {
+        let request = ContentModerationFunctionRequest(
+            contentType: "news", contentId: id, decision: newStatus.rawValue,
+            operationId: operationID, expectedRevision: expectedRevision
+        )
+        let response = try await CloudFunctionsClient.shared.reviewContentModeration(request)
+        guard response.contentId == id, response.contentType == "news",
+              response.moderationStatus == newStatus.rawValue,
+              response.operationId == operationID else { throw AppError.validationFailed }
     }
 
     private func logModerationStatusChange(id: String, newStatus: ModerationStatus) async {

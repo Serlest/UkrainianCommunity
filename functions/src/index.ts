@@ -36,6 +36,7 @@ export * from "./organizations/organizationPhotoMutations";
 export * from "./organizations/roleManagement";
 export * from "./retention/dataRetention";
 export * from "./safety/contentReports";
+export * from "./safety/contentModeration";
 export * from "./safety/commentModeration";
 export * from "./safety/dsaCases";
 export * from "./safety/userBlocks";

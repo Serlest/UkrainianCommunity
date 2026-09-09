@@ -1,4 +1,5 @@
 import Combine
+import FirebaseFirestore
 import SwiftUI
 
 extension Notification.Name {
@@ -33,6 +34,7 @@ struct ModerationQueueItem: Identifiable {
     let title: String
     let summary: String
     let createdAt: Date
+    let expectedRevision: String
     let submittedBy: String?
     let organization: Organization?
 
@@ -42,7 +44,7 @@ struct ModerationQueueItem: Identifiable {
 
     var canReview: Bool {
         guard let organization else { return true }
-        return [.pendingReview, .needsRevision, .rejected].contains(organization.moderationStatus)
+        return organization.moderationStatus == .pendingReview
     }
 }
 
@@ -63,6 +65,7 @@ final class ModerationQueueViewModel: ObservableObject {
     private var loadTask: Task<Void, Never>?
     private var hasLoaded = false
     private var allowedSections: Set<AppSection> = []
+    private var pendingContentOperationIDs: [String: String] = [:]
 
     init(
         newsRepository: NewsRepository,
@@ -117,9 +120,23 @@ final class ModerationQueueViewModel: ObservableObject {
         do {
             switch item.type {
             case .news:
-                try await newsRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
+                let operationKey = "\(item.id):\(newStatus.rawValue)"
+                let operationID = pendingContentOperationIDs[operationKey] ?? UUID().uuidString
+                pendingContentOperationIDs[operationKey] = operationID
+                try await newsRepository.updateModerationStatus(
+                    id: item.contentID, newStatus: newStatus,
+                    expectedRevision: item.expectedRevision, operationID: operationID
+                )
+                pendingContentOperationIDs[operationKey] = nil
             case .event:
-                try await eventRepository.updateModerationStatus(id: item.contentID, newStatus: newStatus)
+                let operationKey = "\(item.id):\(newStatus.rawValue)"
+                let operationID = pendingContentOperationIDs[operationKey] ?? UUID().uuidString
+                pendingContentOperationIDs[operationKey] = operationID
+                try await eventRepository.updateModerationStatus(
+                    id: item.contentID, newStatus: newStatus,
+                    expectedRevision: item.expectedRevision, operationID: operationID
+                )
+                pendingContentOperationIDs[operationKey] = nil
             case .organization:
                 guard newStatus == .approved, let reviewerID else { throw AppError.permissionDenied }
                 try await organizationRepository.approveOrganizationRequest(id: item.contentID, reviewerID: reviewerID)
@@ -289,6 +306,7 @@ final class ModerationQueueViewModel: ObservableObject {
                 title: $0.title,
                 summary: $0.subtitle,
                 createdAt: $0.createdAt,
+                expectedRevision: revision($0.updatedAt),
                 submittedBy: nil,
                 organization: nil
             )
@@ -303,6 +321,7 @@ final class ModerationQueueViewModel: ObservableObject {
                 title: $0.title,
                 summary: $0.summary,
                 createdAt: $0.createdAt,
+                expectedRevision: revision($0.updatedAt),
                 submittedBy: nil,
                 organization: nil
             )
@@ -317,10 +336,16 @@ final class ModerationQueueViewModel: ObservableObject {
                 title: $0.name,
                 summary: $0.description,
                 createdAt: $0.createdAt,
+                expectedRevision: revision($0.updatedAt),
                 submittedBy: $0.submittedByDisplayName ?? $0.submittedByUserId,
                 organization: $0
             )
         }
+    }
+
+    private func revision(_ date: Date) -> String {
+        let timestamp = Timestamp(date: date)
+        return "\(timestamp.seconds):\(timestamp.nanoseconds)"
     }
 
 }
@@ -537,9 +562,7 @@ struct ModerationToolsView: View {
                     InlineMessageCard(style: .error, message: actionErrorMessage(for: actionError))
                 }
 
-                if scope == .all {
-                    moderationFilters
-                }
+                moderationFilters
 
                 if visibleItems.isEmpty {
                     UnifiedEmptyStateCard(
@@ -732,7 +755,7 @@ private struct ModerationItemRow: View {
                         .foregroundStyle(AppTheme.textSecondary)
                 }
 
-                if dynamicTypeSize.isAccessibilitySize {
+                if dynamicTypeSize.isAccessibilitySize || detailsAction != nil {
                     VStack(spacing: 12) {
                         actionButtons
                     }

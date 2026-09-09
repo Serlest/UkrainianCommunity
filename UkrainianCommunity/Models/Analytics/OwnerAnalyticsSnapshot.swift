@@ -1,6 +1,7 @@
 import Foundation
 
 enum OwnerAnalyticsDataSource: String, Codable, CaseIterable, Hashable {
+    case dailyStats
     case topContent
     case contentRegions
     case users

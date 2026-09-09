@@ -26,6 +26,11 @@ enum AuthFlowDestination: String, Identifiable {
     var id: String { rawValue }
 }
 
+enum EmailVerificationNotice: Equatable {
+    case pending
+    case emailSent
+}
+
 final class AuthState: ObservableObject {
     typealias UserProfileLoader = (String) async throws -> AppUser
 
@@ -33,6 +38,7 @@ final class AuthState: ObservableObject {
     @Published private(set) var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published private(set) var pendingVerificationEmail: String?
+    @Published private(set) var emailVerificationNotice: EmailVerificationNotice?
     @Published private(set) var pendingSessionUserID: String?
     @Published private(set) var sessionState: AuthSessionState = .restoring
     @Published var presentedAuthFlow: AuthFlowDestination?
@@ -85,6 +91,7 @@ final class AuthState: ObservableObject {
         invalidateUserLoad()
         user = nil
         pendingVerificationEmail = nil
+        emailVerificationNotice = nil
         pendingSessionUserID = nil
         sessionState = .restoring
         errorMessage = nil
@@ -95,6 +102,7 @@ final class AuthState: ObservableObject {
         invalidateUserLoad()
         user = nil
         pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        emailVerificationNotice = nil
         pendingSessionUserID = userID
         sessionState = .authenticating
         errorMessage = nil
@@ -108,6 +116,7 @@ final class AuthState: ObservableObject {
         invalidateUserLoad()
         user = nil
         pendingVerificationEmail = nil
+        emailVerificationNotice = nil
         pendingSessionUserID = nil
         sessionState = .guest
         errorMessage = nil
@@ -121,6 +130,7 @@ final class AuthState: ObservableObject {
         invalidateUserLoad()
         self.user = user
         pendingVerificationEmail = nil
+        emailVerificationNotice = nil
         pendingSessionUserID = user.id
         sessionState = .authenticated
         errorMessage = nil
@@ -140,7 +150,11 @@ final class AuthState: ObservableObject {
     }
 
     @MainActor
-    func setVerificationPendingSession(userID: String, email: String?) {
+    func setVerificationPendingSession(
+        userID: String,
+        email: String?,
+        notice: EmailVerificationNotice = .pending
+    ) {
         OrganizationAccessStore.shared.transition(to: userID)
         LocalReminderSession.shared.transition(to: userID)
         appLock.updateSession(userID: userID)
@@ -148,8 +162,18 @@ final class AuthState: ObservableObject {
         user = nil
         pendingSessionUserID = userID
         pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        emailVerificationNotice = notice
         sessionState = .verificationPending
         errorMessage = nil
+    }
+
+    @MainActor
+    func markVerificationEmailSent(userID: String) {
+        guard sessionState == .verificationPending,
+              pendingSessionUserID == userID else {
+            return
+        }
+        emailVerificationNotice = .emailSent
     }
 
     @MainActor
@@ -165,6 +189,7 @@ final class AuthState: ObservableObject {
         user = nil
         pendingSessionUserID = userID
         pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
+        emailVerificationNotice = nil
         sessionState = .sessionUnavailable
         self.errorMessage = errorMessage
     }

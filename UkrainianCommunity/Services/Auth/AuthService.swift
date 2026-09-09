@@ -7,6 +7,7 @@ enum AuthVerificationError: Error {
     case emailNotVerified
     case checkFailed
     case tooManyRequests
+    case accountDeletionCompleted
     case unknown
 }
 
@@ -19,6 +20,8 @@ struct RegistrationProfileDraft {
     let acceptedPrivacyAt: Date
     let termsVersion: String
     let privacyVersion: String
+    var termsContentHash: String? = nil
+    var privacyContentHash: String? = nil
     let minimumAgeConfirmedAt: Date
     let minimumAgeVersion: String
     var analyticsConsentEnabled = false
@@ -73,6 +76,13 @@ protocol AuthProfileProviding: AnyObject {
     func createRegisteredUserDocument(for uid: String, draft: RegistrationProfileDraft) async throws
     func fetchExistingUserProfile(uid: String) async throws -> AppUser
     func ensurePublicProfile(for user: AppUser) async throws
+    func resumePendingAccountDeletionIfNeeded(userID: String) async throws -> Bool
+    func completePendingAccountDeletion(userID: String)
+}
+
+extension AuthProfileProviding {
+    func resumePendingAccountDeletionIfNeeded(userID: String) async throws -> Bool { false }
+    func completePendingAccountDeletion(userID: String) {}
 }
 
 @MainActor
@@ -235,6 +245,15 @@ final class AuthService {
         }
 
         do {
+            if try await profileProvider.resumePendingAccountDeletionIfNeeded(userID: sessionUser.uid) {
+                purgeLocalAccountState(userID: sessionUser.uid)
+                let didSignOut = await completeAccountDeletionSignOut()
+                if didSignOut {
+                    profileProvider.completePendingAccountDeletion(userID: sessionUser.uid)
+                }
+                return
+            }
+
             let isEmailVerified = try await isCurrentUserEmailVerified(
                 sessionUser,
                 transition: transition
@@ -378,12 +397,28 @@ final class AuthService {
         } catch {
             guard isCurrentTransition(transition) else { return false }
             notificationRegistration.completeSignOut()
-            reconcileAfterFailedSignOut(error, transition: transition)
+            if let currentUser = backend.currentSessionUser, !currentUser.isAnonymous {
+                authState.setSessionUnavailable(
+                    userID: currentUser.uid,
+                    email: currentUser.email,
+                    errorMessage: AppStrings.Profile.deleteAccountLocalCleanupPending
+                )
+            } else {
+                authState.setGuestSession()
+                authState.dismissAuthFlow()
+                return true
+            }
             #if DEBUG
             print("Post-deletion sign out error: \(error.localizedDescription)")
             #endif
             return false
         }
+    }
+
+    @MainActor
+    func purgeLocalAccountState(userID: String) {
+        analyticsConsent.setAnalyticsEnabled(false, for: userID)
+        authState.appLock.removeAccountPreference(userID: userID)
     }
 
     @MainActor
@@ -588,6 +623,14 @@ final class AuthService {
                 throw AuthVerificationError.emailNotVerified
             }
 
+            if try await profileProvider.resumePendingAccountDeletionIfNeeded(userID: sessionUser.uid) {
+                purgeLocalAccountState(userID: sessionUser.uid)
+                let didSignOut = await completeAccountDeletionSignOut()
+                guard didSignOut else { throw AuthSessionTransitionError.signOutFailed }
+                profileProvider.completePendingAccountDeletion(userID: sessionUser.uid)
+                throw AuthVerificationError.accountDeletionCompleted
+            }
+
             let user = try await loadExistingUserProfile(uid: sessionUser.uid)
             try validateAuthenticatedProfile(
                 user,
@@ -598,6 +641,8 @@ final class AuthService {
             return user
         } catch AuthVerificationError.emailNotVerified {
             throw AuthVerificationError.emailNotVerified
+        } catch AuthVerificationError.accountDeletionCompleted {
+            throw AuthVerificationError.accountDeletionCompleted
         } catch {
             guard isCurrentTransition(transition) else { throw error }
             _ = await rollbackSessionToGuest(
@@ -742,6 +787,8 @@ final class AuthService {
             try await performSynchronizedBackendSessionOperation(transition: transition) {
                 try await sessionUser.sendVerificationEmail()
             }
+            try ensureCurrentTransition(transition)
+            authState.markVerificationEmailSent(userID: sessionUser.uid)
         } catch let error as AuthVerificationError {
             throw error
         } catch {
@@ -1229,7 +1276,7 @@ final class AuthService {
                 AppStrings.Auth.emailVerificationCheckFailed
             case .tooManyRequests:
                 AppStrings.Auth.emailVerificationTooManyRequests
-            case .noCurrentUser, .unknown:
+            case .accountDeletionCompleted, .noCurrentUser, .unknown:
                 AppStrings.Auth.emailVerificationResendFailed
             }
         }

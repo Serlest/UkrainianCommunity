@@ -156,6 +156,7 @@ private extension FeaturedBanner {
         FeaturedBanner(
             id: id,
             internalName: internalName,
+            localizations: localizations,
             title: title,
             subtitle: subtitle,
             imageURL: imageURL,

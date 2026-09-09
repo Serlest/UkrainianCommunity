@@ -11,6 +11,7 @@ final class NotificationPopupCoordinatorService: ObservableObject {
     private var queuedNotifications: [AppNotification] = []
     private var hasReceivedInitialSnapshot = false
     private var seenNotificationIDs: Set<String> = []
+    private var isWritingReceipt = false
 
     init(repository: NotificationInboxRepository) {
         self.repository = repository
@@ -25,6 +26,7 @@ final class NotificationPopupCoordinatorService: ObservableObject {
         errorMessage = nil
         hasReceivedInitialSnapshot = false
         seenNotificationIDs = []
+        isWritingReceipt = false
     }
 
     func receiveInboxSnapshot(_ notifications: [AppNotification], userID: String) {
@@ -34,6 +36,10 @@ final class NotificationPopupCoordinatorService: ObservableObject {
         guard hasReceivedInitialSnapshot else {
             seenNotificationIDs = notificationIDs
             hasReceivedInitialSnapshot = true
+            queuedNotifications = notifications
+                .filter(isEligibleForPopup)
+                .sorted { $0.createdAt < $1.createdAt }
+            presentNextIfPossible()
             return
         }
 
@@ -51,22 +57,31 @@ final class NotificationPopupCoordinatorService: ObservableObject {
         presentNextIfPossible()
     }
 
-    func dismissActiveNotification(markRead: Bool) async {
-        guard let userID = currentUserID, let notification = activeNotification else { return }
-        activeNotification = nil
-        queuedNotifications.removeAll { $0.id == notification.id }
+    @discardableResult
+    func dismissActiveNotification(markRead: Bool) async -> Bool {
+        guard !isWritingReceipt,
+              let userID = currentUserID,
+              let notification = activeNotification else { return false }
+        isWritingReceipt = true
+        defer { isWritingReceipt = false }
 
         do {
-            try await repository.markNotificationPopupPresented(userID: userID, notificationID: notification.id)
             if markRead {
                 try await repository.markNotificationRead(userID: userID, notificationID: notification.id)
             }
+            try await repository.markNotificationPopupPresented(userID: userID, notificationID: notification.id)
+            guard currentUserID == userID, activeNotification?.id == notification.id else { return false }
+            activeNotification = nil
+            queuedNotifications.removeAll { $0.id == notification.id }
             errorMessage = nil
         } catch {
+            guard currentUserID == userID, activeNotification?.id == notification.id else { return false }
             errorMessage = AppStrings.NotificationPopup.updateFailed
+            return false
         }
 
         presentNextIfPossible()
+        return true
     }
 
     private func presentNextIfPossible() {
@@ -76,6 +91,12 @@ final class NotificationPopupCoordinatorService: ObservableObject {
 
     private func reconcileActiveNotification(with notifications: [AppNotification]) {
         guard let activeNotification else { return }
+        if isWritingReceipt {
+            if let updatedNotification = notifications.first(where: { $0.id == activeNotification.id }) {
+                self.activeNotification = updatedNotification
+            }
+            return
+        }
         guard let updatedNotification = notifications.first(where: { $0.id == activeNotification.id }),
               isEligibleForPopup(updatedNotification) else {
             self.activeNotification = nil

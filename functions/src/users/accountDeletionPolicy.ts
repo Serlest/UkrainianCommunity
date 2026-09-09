@@ -10,15 +10,23 @@ export type AccountDeletionPatch =
   | "commentAuthor"
   | "contentAuthor"
   | "dsaReporter"
+  | "dsaDecisionActor"
+  | "dsaAppealDecisionActor"
+  | "dsaPreviousAppealDecisionActor"
+  | "dsaPreviousDecisionActor"
   | "dsaTargetAuthor"
+  | "feedbackDsaDecisionActor"
+  | "feedbackLastMessageActor"
   | "feedbackMessageAuthor"
+  | "feedbackReplyActor"
   | "legalAcceptance"
   | "organizationPhotoUploader"
   | "organizationReviewer"
   | "organizationSubmitter"
   | "systemLogActor"
   | "systemLogReviewer"
-  | "systemLogTarget";
+  | "systemLogTarget"
+  | "userStatusUpdater";
 
 export interface AccountDeletionFilter {
   field: string;
@@ -140,6 +148,78 @@ export const accountDeletionReferencePolicies = [
     patch: "dsaTargetAuthor",
   },
   {
+    name: "DSA decision actors",
+    scope: "collection",
+    collection: "dsaCases",
+    field: "decision.decidedByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "dsaDecisionActor",
+  },
+  {
+    name: "DSA appeal decision actors",
+    scope: "collection",
+    collection: "dsaCases",
+    field: "appeal.decidedByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "dsaAppealDecisionActor",
+  },
+  {
+    name: "DSA previous decision actors",
+    scope: "collection",
+    collection: "dsaCases",
+    field: "previousDecision.decidedByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "dsaPreviousDecisionActor",
+  },
+  {
+    name: "DSA previous appeal decision actors",
+    scope: "collection",
+    collection: "dsaCases",
+    field: "previousAppeal.decidedByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "dsaPreviousAppealDecisionActor",
+  },
+  {
+    name: "feedback DSA decision actors",
+    scope: "collection",
+    collection: "feedback",
+    field: "dsaCase.decision.decidedByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "feedbackDsaDecisionActor",
+  },
+  {
+    name: "DSA statement decision actors",
+    scope: "collectionGroup",
+    collection: "dsaStatements",
+    field: "decision.decidedByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "dsaDecisionActor",
+  },
+  {
+    name: "feedback reply actors",
+    scope: "collection",
+    collection: "feedback",
+    field: "repliedByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "feedbackReplyActor",
+  },
+  {
+    name: "feedback latest message actors",
+    scope: "collection",
+    collection: "feedback",
+    field: "lastMessageByUserId",
+    operator: "==",
+    action: "anonymize",
+    patch: "feedbackLastMessageActor",
+  },
+  {
     name: "feedback messages written as a manager",
     scope: "collectionGroup",
     collection: "messages",
@@ -155,6 +235,15 @@ export const accountDeletionReferencePolicies = [
     field: "actorUserId",
     operator: "==",
     action: "delete",
+  },
+  {
+    name: "user status update actors",
+    scope: "collection",
+    collection: "users",
+    field: "statusUpdatedBy",
+    operator: "==",
+    action: "anonymize",
+    patch: "userStatusUpdater",
   },
   {
     name: "legal acceptance records",
@@ -258,7 +347,7 @@ export function redactPersonalReferences(
   ]));
 }
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
+export function isPlainRecord(value: unknown): value is Record<string, unknown> {
   if (typeof value !== "object" || value === null) {
     return false;
   }

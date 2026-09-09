@@ -1,5 +1,27 @@
 import SwiftUI
 
+struct OrganizationContentVisibilityGate: View {
+    let isLoading: Bool
+    let errorMessage: String?
+    let retry: () -> Void
+
+    var body: some View {
+        Group {
+            if isLoading {
+                LoadingStateCard(title: AppStrings.Safety.verifyingOrganizationContent)
+            } else {
+                ErrorStateCard(
+                    title: AppStrings.Safety.organizationVisibilityUnavailableTitle,
+                    message: AppStrings.Safety.organizationVisibilityUnavailableMessage,
+                    retryTitle: AppStrings.Action.retry,
+                    retryAction: retry
+                )
+            }
+        }
+        .accessibilityIdentifier("organization.block.visibilityGate")
+    }
+}
+
 struct BlockedOrganizationsView: View {
     @EnvironmentObject private var coordinator: OrganizationBlockingCoordinator
 

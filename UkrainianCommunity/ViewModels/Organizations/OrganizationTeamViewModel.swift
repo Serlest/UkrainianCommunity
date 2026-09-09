@@ -9,6 +9,7 @@ final class OrganizationTeamViewModel: ObservableObject {
     @Published private(set) var isLoadingCandidates = false
     @Published private(set) var updatingUserIDs = Set<String>()
     @Published var errorMessage: String?
+    @Published private(set) var candidateErrorMessage: String?
     @Published var statusMessage: String?
 
     private let organizationRepository: OrganizationRepository
@@ -45,7 +46,6 @@ final class OrganizationTeamViewModel: ObservableObject {
             )
             statusMessage = nil
         } catch {
-            members = []
             errorMessage = AppStrings.Profile.organizationTeamLoadFailed
         }
     }
@@ -73,15 +73,20 @@ final class OrganizationTeamViewModel: ObservableObject {
         allowsExistingTeamMembers: Bool = false
     ) async {
         isLoadingCandidates = true
+        candidateErrorMessage = nil
         defer { isLoadingCandidates = false }
 
         guard PermissionService.canManageOrganizationRoles(organization, user: actor) else {
             candidateMembers = []
+            candidateErrorMessage = AppStrings.Profile.organizationTeamPermissionDenied
             return
         }
 
-        if members.isEmpty {
-            await load(organization: organization, actor: actor)
+        await load(organization: organization, actor: actor)
+        guard errorMessage == nil else {
+            candidateMembers = []
+            candidateErrorMessage = AppStrings.Profile.organizationTeamUserSearchFailed
+            return
         }
 
         let excludedIDs: Set<String>

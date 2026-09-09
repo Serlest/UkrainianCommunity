@@ -64,12 +64,12 @@ extension EventDetailView {
         func primaryActionsCard(for event: Event) -> some View {
             detailGlassCard(padding: 9) {
                 VStack(spacing: 8) {
-                    if event.participationMode == .none {
+                    if event.participationMode == .none && event.registrationState != .registered {
                         registrationNotRequiredLine
                     }
 
                     HStack(spacing: 12) {
-                        if event.participationMode == .inAppRegistration {
+                        if event.registrationState == .registered || event.participationMode == .inAppRegistration {
                             registrationButton(for: event)
                                 .frame(maxWidth: .infinity)
                         } else if event.participationMode.requiresExternalURL,

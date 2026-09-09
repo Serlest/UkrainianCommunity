@@ -12,7 +12,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
         for section: FeaturedBannerVisibleSection,
         federalState: AustrianFederalState?
     ) async throws -> [FeaturedBanner] {
-        banners.activeFeaturedBanners(for: section, federalState: federalState)
+        banners.eligibleFeaturedBanners(for: section, federalState: federalState)
     }
 
     func fetchAllBannersForOwner() async throws -> [FeaturedBanner] {

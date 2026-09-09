@@ -51,6 +51,7 @@ struct AuthSessionConsistencyTests {
         #expect(state.pendingSessionUserID == "user-a")
         #expect(state.pendingVerificationEmail == "a@example.com")
         #expect(state.presentedAuthFlow == .emailVerification)
+        #expect(state.emailVerificationNotice == .pending)
         #expect(state.user == nil)
     }
 
@@ -654,7 +655,64 @@ struct AuthSessionConsistencyTests {
         #expect(state.sessionState == .verificationPending)
         #expect(state.pendingSessionUserID == firebaseUser.uid)
         #expect(state.presentedAuthFlow == .emailVerification)
+        #expect(state.emailVerificationNotice == .pending)
         #expect(state.errorMessage == AppStrings.Auth.emailVerificationResendFailed)
+    }
+
+    @Test
+    func successfulRegistrationVerificationEmailRecordsSentNotice() async throws {
+        let state = AuthState()
+        state.setGuestSession()
+        let firebaseUser = FakeAuthSessionUser(
+            uid: "new-user",
+            email: "new@example.com",
+            isEmailVerified: false
+        )
+        let backend = FakeAuthBackend()
+        backend.createUserResult = firebaseUser
+        let service = makeService(
+            state: state,
+            backend: backend,
+            profiles: FakeAuthProfileProvider()
+        )
+
+        try await service.register(draft: makeDraft(), password: "password")
+
+        #expect(firebaseUser.sentVerificationEmailCount == 1)
+        #expect(state.sessionState == .verificationPending)
+        #expect(state.emailVerificationNotice == .emailSent)
+        #expect(state.errorMessage == nil)
+    }
+
+    @Test
+    func successfulVerificationResendRecordsSentNoticeForPendingUser() async throws {
+        let state = AuthState()
+        state.setVerificationPendingSession(userID: "user-a", email: "a@example.com")
+        let firebaseUser = FakeAuthSessionUser(
+            uid: "user-a",
+            email: "a@example.com",
+            isEmailVerified: false
+        )
+        let service = makeService(
+            state: state,
+            backend: FakeAuthBackend(currentUser: firebaseUser),
+            profiles: FakeAuthProfileProvider()
+        )
+
+        try await service.sendEmailVerification()
+
+        #expect(firebaseUser.sentVerificationEmailCount == 1)
+        #expect(state.emailVerificationNotice == .emailSent)
+    }
+
+    @Test
+    func verificationSentNoticeIgnoresAStaleUser() {
+        let state = AuthState()
+        state.setVerificationPendingSession(userID: "user-b", email: "b@example.com")
+
+        state.markVerificationEmailSent(userID: "user-a")
+
+        #expect(state.emailVerificationNotice == .pending)
     }
 
     @Test(arguments: [false, true])

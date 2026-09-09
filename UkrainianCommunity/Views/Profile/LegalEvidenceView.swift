@@ -83,6 +83,11 @@ struct LegalEvidenceView: View {
                     .foregroundStyle(AppTheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
+                Text(AppStrings.LegalEvidence.accountSearchScopeNotice)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
                 Text(AppStrings.LegalEvidence.immutableNotice)
                     .font(.footnote)
                     .foregroundStyle(AppTheme.textSecondary)
@@ -220,6 +225,7 @@ private struct LegalEvidenceAccountRow: View {
 
 private struct LegalEvidenceUserDetailView: View {
     @StateObject private var viewModel: LegalEvidenceUserViewModel
+    @FocusState private var isHistorySearchFocused: Bool
 
     init(account: LegalEvidenceAccount, repository: LegalEvidenceRepository) {
         _viewModel = StateObject(
@@ -234,6 +240,7 @@ private struct LegalEvidenceUserDetailView: View {
             contentSpacing: AppTheme.feedRowSpacing
         ) {
             accountCard
+            historySearchField
             filterCard
             if let export = viewModel.exportText {
                 ShareLink(item: export) {
@@ -275,7 +282,37 @@ private struct LegalEvidenceUserDetailView: View {
                         systemImage: "calendar"
                     )
                 }
+
+                Text(AppStrings.LegalEvidence.currentIdentityNotice)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private var historySearchField: some View {
+        AppGlassCard(padding: 12, spacing: 8, shadowRadius: 8, shadowY: 4) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .accessibilityHidden(true)
+
+                TextField(AppStrings.LegalEvidence.searchPlaceholder, text: $viewModel.searchText)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(.subheadline)
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .focused($isHistorySearchFocused)
+                    .submitLabel(.search)
+                    .onSubmit { isHistorySearchFocused = false }
+                    .accessibilityIdentifier("legalEvidence.historySearch")
+
+                if !viewModel.searchText.isEmpty {
+                    AppSearchClearButton { viewModel.searchText = "" }
+                }
+            }
+            .frame(minHeight: AppTheme.searchControlHeight)
         }
     }
 
@@ -384,6 +421,8 @@ private struct LegalEvidenceEventCard: View {
                                 .textSelection(.enabled)
                         }
                     }
+
+                    provenanceDetails
                 }
 
                 Spacer(minLength: 0)
@@ -391,6 +430,41 @@ private struct LegalEvidenceEventCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("legalEvidence.event.\(event.id)")
+    }
+
+    @ViewBuilder
+    private var provenanceDetails: some View {
+        if let sourceRecordID = event.sourceRecordID {
+            evidenceDetail(AppStrings.LegalEvidence.sourceRecordIDLabel, value: sourceRecordID, monospaced: true)
+        }
+        if let platform = event.acceptedFromPlatform {
+            evidenceDetail(AppStrings.LegalEvidence.platformLabel, value: platform)
+        }
+        if let consentID = event.consentID {
+            evidenceDetail(AppStrings.LegalEvidence.consentIDLabel, value: consentID, monospaced: true)
+        }
+        if let purposeVersion = event.purposeVersion {
+            evidenceDetail(AppStrings.LegalEvidence.purposeVersionLabel, value: purposeVersion)
+        }
+        if let disclosureVersion = event.disclosureVersion {
+            evidenceDetail(AppStrings.LegalEvidence.disclosureVersionLabel, value: disclosureVersion)
+        }
+        if let disclosureText = event.disclosureText {
+            evidenceDetail(AppStrings.LegalEvidence.disclosureTextLabel, value: disclosureText)
+        }
+    }
+
+    private func evidenceDetail(_ label: String, value: String, monospaced: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(AppTheme.textSecondary)
+            Text(value)
+                .font(monospaced ? .caption2.monospaced() : .caption2)
+                .foregroundStyle(AppTheme.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
+        }
     }
 
     @ViewBuilder

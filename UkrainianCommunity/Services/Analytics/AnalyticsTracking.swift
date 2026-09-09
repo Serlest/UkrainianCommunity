@@ -14,6 +14,10 @@ protocol AnalyticsTracking {
     /// Includes an initial signal and later authorization changes. A visible
     /// detail can retry after consent sync without collecting before consent.
     func collectionChanges() -> AsyncStream<Void>
+    /// Emits only when the consent API permanently rejects the current local
+    /// opt-in. Auth changes, external opt-out and transient failures stay silent.
+    func consentFailures() -> AsyncStream<AnalyticsConsentFailure>
+    func isCurrentConsentFailure(_ failure: AnalyticsConsentFailure) -> Bool
     func actionCapture(for event: AppAnalyticsEvent) -> AnalyticsActionCapture?
     func track(_ event: AppAnalyticsEvent)
     func track(_ event: AppAnalyticsEvent, actionCapture: AnalyticsActionCapture?)
@@ -28,6 +32,12 @@ extension AnalyticsTracking {
         }
     }
 
+    func consentFailures() -> AsyncStream<AnalyticsConsentFailure> {
+        AsyncStream { $0.finish() }
+    }
+
+    func isCurrentConsentFailure(_ failure: AnalyticsConsentFailure) -> Bool { false }
+
     func observeVisibleView(_ track: () -> Void) async {
         for await _ in collectionChanges() {
             guard !Task.isCancelled else { return }
@@ -38,6 +48,16 @@ extension AnalyticsTracking {
     func track(_ event: AppAnalyticsEvent) {
         track(event, actionCapture: nil)
     }
+}
+
+struct AnalyticsConsentFailure: Sendable, Equatable {
+    enum Kind: Sendable, Equatable {
+        case permanentRejection
+    }
+
+    let kind: Kind
+    let principalBinding: String
+    let consentID: String
 }
 
 @MainActor
@@ -57,6 +77,25 @@ final class AnalyticsCollectionChanges {
 
     func notify() {
         for observer in observers.values { observer.yield(()) }
+    }
+}
+
+@MainActor
+final class AnalyticsConsentFailures {
+    private var observers: [UUID: AsyncStream<AnalyticsConsentFailure>.Continuation] = [:]
+
+    func stream() -> AsyncStream<AnalyticsConsentFailure> {
+        let id = UUID()
+        return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
+            observers[id] = continuation
+            continuation.onTermination = { [weak self] _ in
+                Task { @MainActor [weak self] in self?.observers.removeValue(forKey: id) }
+            }
+        }
+    }
+
+    func notify(_ failure: AnalyticsConsentFailure) {
+        for observer in observers.values { observer.yield(failure) }
     }
 }
 

@@ -4,6 +4,7 @@ import SwiftUI
 enum LegalDocumentKind: String, Identifiable {
     case terms
     case privacy
+    case organizationRules
 
     var id: String { rawValue }
 
@@ -13,6 +14,8 @@ enum LegalDocumentKind: String, Identifiable {
             .terms
         case .privacy:
             .privacy
+        case .organizationRules:
+            .organizationRules
         }
     }
 
@@ -22,6 +25,8 @@ enum LegalDocumentKind: String, Identifiable {
             AppStrings.Settings.terms
         case .privacy:
             AppStrings.Settings.privacyPolicy
+        case .organizationRules:
+            AppStrings.OrganizationRules.title
         }
     }
 
@@ -31,6 +36,8 @@ enum LegalDocumentKind: String, Identifiable {
             "legal.terms.screen"
         case .privacy:
             "legal.privacy.screen"
+        case .organizationRules:
+            "legal.organizationRules.screen"
         }
     }
 }

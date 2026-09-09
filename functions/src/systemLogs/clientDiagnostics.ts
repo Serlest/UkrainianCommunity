@@ -24,11 +24,18 @@ const allowedSeverities = new Set([
   "debug", "info", "notice", "warning", "error", "critical",
 ]);
 
+const redactedValue = "[redacted]";
+const blockedMetadataKeyFragments = [
+  "password", "passcode", "token", "authorization", "authheader",
+  "secret", "apikey", "email", "privatemessage", "messagebody",
+  "rawcontent", "fulladdress", "streetaddress",
+];
+
 export const writeClientDiagnostic = onCall(
   callableOptions,
   async (request): Promise<{id: string; createdAt: string}> => {
     const actor = await requireVerifiedActiveUser(request);
-    const input = parseDiagnostic(request.data);
+    const input = redactDiagnostic(parseDiagnostic(request.data));
     const createdAt = Timestamp.now();
     const reference = db.collection("systemLogs").doc();
     const actorRole = normalizedActorRole(actor.permissions.globalRole);
@@ -128,6 +135,43 @@ export function parseDiagnostic(value: unknown): DiagnosticInput {
     metadata: stringMap(value.metadata),
     correlationId: optionalString(value.correlationId, "correlationId", 200),
   };
+}
+
+export function redactDiagnostic(input: DiagnosticInput): DiagnosticInput {
+  const metadata = Object.fromEntries(Object.entries(input.metadata).map(([key, value]) => [
+    key,
+    shouldRedactMetadata(key, value) ? redactedValue : value,
+  ]));
+
+  return {
+    ...input,
+    technicalMessage: input.technicalMessage && looksSensitiveValue(input.technicalMessage) ?
+      redactedValue : input.technicalMessage,
+    metadata,
+  };
+}
+
+function shouldRedactMetadata(key: string, value: string): boolean {
+  const normalizedKey = key.replace(/[_\-\s]/g, "").toLowerCase();
+  return blockedMetadataKeyFragments.some((fragment) => normalizedKey.includes(fragment)) ||
+    looksSensitiveValue(value);
+}
+
+function looksSensitiveValue(value: string): boolean {
+  const trimmed = value.trim();
+  const normalized = trimmed.toLowerCase();
+  if (/^(bearer|basic)\s+/.test(normalized) || normalized.startsWith("eyj") ||
+      normalized.startsWith("sk_")) {
+    return true;
+  }
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+    return true;
+  }
+  const tokenParts = trimmed.split(".");
+  if (tokenParts.length === 3 && tokenParts.every((part) => part.length >= 10)) {
+    return true;
+  }
+  return trimmed.length >= 48 && !/\s/.test(trimmed);
 }
 
 function optionalFields(input: DiagnosticInput): Record<string, string> {

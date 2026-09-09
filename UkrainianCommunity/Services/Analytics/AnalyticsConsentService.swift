@@ -67,7 +67,11 @@ final class AnalyticsConsentService: AnalyticsConsentProviding {
             storedVersions.removeValue(forKey: identifier)
         }
 
-        userDefaults.set(storedVersions, forKey: versionStorageKey)
+        if storedVersions.isEmpty {
+            userDefaults.removeObject(forKey: versionStorageKey)
+        } else {
+            userDefaults.set(storedVersions, forKey: versionStorageKey)
+        }
         if storedValues.isEmpty {
             userDefaults.removeObject(forKey: storageKey)
         } else {

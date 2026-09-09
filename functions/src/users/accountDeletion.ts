@@ -1,4 +1,5 @@
-import {FieldValue, type DocumentData, type Query} from "firebase-admin/firestore";
+import {createHash} from "node:crypto";
+import {FieldValue, Timestamp, type DocumentData, type Query} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {requireAuth} from "../auth/context";
@@ -8,6 +9,7 @@ import {
   deletedUserDisplayName,
   deletedUserID,
   personalReferenceValues,
+  isPlainRecord,
   redactPersonalReferences,
   type AccountDeletionPatch,
   type AccountDeletionReferencePolicy,
@@ -29,6 +31,16 @@ const callableOptions = {
 const recentAuthenticationWindowSeconds = 5 * 60;
 const deletionBatchSize = 400;
 const feedbackDeletionBatchSize = 100;
+export const accountDeletionOperationCollection = "accountDeletionOperations";
+export const accountDeletionOperationRetentionDays = 7;
+
+type AccountDeletionOperationStage =
+  | "started"
+  | "privateData"
+  | "references"
+  | "userRoot"
+  | "authIdentity"
+  | "completed";
 
 function stringField(data: DocumentData | undefined, field: string): string | undefined {
   const value = data?.[field];
@@ -75,7 +87,8 @@ async function deleteFeedback(uid: string): Promise<void> {
     }
 
     await Promise.all(snapshot.docs.map(async (document) => {
-      if (document.get("dsaCase")) {
+      const canonicalDsaCase = await db.collection("dsaCases").doc(document.id).get();
+      if (document.get("dsaCase") || canonicalDsaCase.exists) {
         await document.ref.update({
           userId: deletedUserID,
           userDisplayName: deletedUserDisplayName,
@@ -94,7 +107,7 @@ async function deleteFeedback(uid: string): Promise<void> {
 }
 
 async function markDeletionInProgress(uid: string): Promise<void> {
-  await db.collection("users").doc(uid).set({
+  await db.collection("users").doc(uid).update({
     accountStatus: "deactivated",
     blockState: "deactivated",
     isBlocked: true,
@@ -103,7 +116,7 @@ async function markDeletionInProgress(uid: string): Promise<void> {
     deletionState: "inProgress",
     deletionStartedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
-  }, {merge: true});
+  });
 }
 
 async function applyReferencePolicy(
@@ -203,12 +216,50 @@ function referenceAnonymizationUpdate(
         senderId: deletedUserID,
         senderDisplayName: deletedUserDisplayName,
       };
+    case "feedbackReplyActor":
+      return retainedLogUpdate(data, personalReferences, {
+        repliedByUserId: deletedUserID,
+      });
+    case "feedbackLastMessageActor":
+      return retainedLogUpdate(data, personalReferences, {
+        lastMessageByUserId: deletedUserID,
+      });
     case "dsaReporter":
       return retainedLogUpdate(data, personalReferences, {
         reporterUserId: deletedUserID,
         reporterName: deletedUserDisplayName,
         reporterEmail: FieldValue.delete(),
       });
+    case "dsaDecisionActor": {
+      const decision = redactPersonalReferences(data.decision, personalReferences);
+      return {
+        decision: isPlainRecord(decision) ? {
+          ...decision,
+          decidedByUserId: deletedUserID,
+        } : decision,
+        updatedAt,
+      };
+    }
+    case "dsaAppealDecisionActor":
+      return nestedDecisionActorUpdate("appeal", data, personalReferences, updatedAt);
+    case "dsaPreviousDecisionActor":
+      return nestedDecisionActorUpdate("previousDecision", data, personalReferences, updatedAt);
+    case "dsaPreviousAppealDecisionActor":
+      return nestedDecisionActorUpdate("previousAppeal", data, personalReferences, updatedAt);
+    case "feedbackDsaDecisionActor": {
+      const dsaCase = redactPersonalReferences(data.dsaCase, personalReferences);
+      if (!isPlainRecord(dsaCase)) return {updatedAt};
+      const decision = dsaCase.decision;
+      return {
+        dsaCase: {
+          ...dsaCase,
+          ...(isPlainRecord(decision) ? {
+            decision: {...decision, decidedByUserId: deletedUserID},
+          } : {}),
+        },
+        updatedAt,
+      };
+    }
     case "dsaTargetAuthor":
       return retainedLogUpdate(data, personalReferences, {
         targetAuthorId: deletedUserID,
@@ -241,7 +292,28 @@ function referenceAnonymizationUpdate(
         targetId: deletedUserID,
         targetTitle: deletedUserDisplayName,
       });
+    case "userStatusUpdater":
+      return {
+        statusUpdatedBy: deletedUserID,
+        updatedAt,
+      };
   }
+}
+
+function nestedDecisionActorUpdate(
+  field: "appeal" | "previousAppeal" | "previousDecision",
+  data: DocumentData,
+  personalReferences: readonly string[],
+  updatedAt: FirebaseFirestore.FieldValue
+): DocumentData {
+  const value = redactPersonalReferences(data[field], personalReferences);
+  return {
+    [field]: isPlainRecord(value) ? {
+      ...value,
+      decidedByUserId: deletedUserID,
+    } : value,
+    updatedAt,
+  };
 }
 
 function retainedLogUpdate(
@@ -251,9 +323,11 @@ function retainedLogUpdate(
 ): DocumentData {
   const update = {...directUpdate};
   const redactableFields = [
+    "lastMessageText",
     "metadata",
     "newValue",
     "note",
+    "ownerReply",
     "previousValue",
     "reason",
     "summary",
@@ -269,6 +343,34 @@ function retainedLogUpdate(
   return update;
 }
 
+function deletionOperationReference(uid: string): FirebaseFirestore.DocumentReference {
+  const operationID = createHash("sha256")
+    .update(`account-deletion:${uid}`, "utf8")
+    .digest("hex");
+  return db.collection(accountDeletionOperationCollection).doc(operationID);
+}
+
+function operationExpiry(): Timestamp {
+  return Timestamp.fromMillis(
+    Date.now() + accountDeletionOperationRetentionDays * 24 * 60 * 60 * 1_000
+  );
+}
+
+async function recordDeletionStage(
+  operation: FirebaseFirestore.DocumentReference,
+  stage: AccountDeletionOperationStage,
+  status: "inProgress" | "partial" | "completed",
+  extra: DocumentData = {}
+): Promise<void> {
+  await operation.set({
+    stage,
+    status,
+    updatedAt: FieldValue.serverTimestamp(),
+    expiresAt: operationExpiry(),
+    ...extra,
+  }, {merge: true});
+}
+
 async function deleteProfileImages(uid: string): Promise<void> {
   await adminStorage.bucket().deleteFiles({
     prefix: `profileImages/${uid}/`,
@@ -281,6 +383,7 @@ async function deleteOwnedPrivateData(uid: string): Promise<void> {
     deleteQuery(db.collection("likes").where("userId", "==", uid)),
     deleteQuery(db.collection("registrations").where("userId", "==", uid)),
     deleteFeedback(uid),
+    db.collection("analyticsConsentStates").doc(uid).delete(),
   ]);
 }
 
@@ -295,12 +398,14 @@ export const deleteOwnAccount = onCall(
     assertRecentlyAuthenticated(auth.token as Record<string, unknown>);
 
     const userReference = db.collection("users").doc(auth.uid);
-    const [userSnapshot, ownedOrganizationSnapshot] = await Promise.all([
+    const operationReference = deletionOperationReference(auth.uid);
+    const [userSnapshot, ownedOrganizationSnapshot, operationSnapshot] = await Promise.all([
       userReference.get(),
       db.collection("organizations")
         .where("ownerId", "==", auth.uid)
         .limit(1)
         .get(),
+      operationReference.get(),
     ]);
 
     // Keep the deployed v1 authentication contract: recent sign-in is
@@ -308,13 +413,27 @@ export const deleteOwnAccount = onCall(
     // of extending receipt cleanup (verified against deployed source 2e7ae13).
 
 
-    if (stringField(userSnapshot.data(), "globalRole") === "owner") {
+    if (operationSnapshot.get("status") === "completed") {
+      const completedAt = operationSnapshot.get("completedAt");
+      return {
+        status: "deleted",
+        completedAt: completedAt instanceof Timestamp ?
+          completedAt.toDate().toISOString() : new Date().toISOString(),
+      };
+    }
+
+    const isResuming = operationSnapshot.exists;
+    if (!userSnapshot.exists && !isResuming) {
+      throw new HttpsError("failed-precondition", "Account deletion was not started for this identity.");
+    }
+
+    if (!isResuming && stringField(userSnapshot.data(), "globalRole") === "owner") {
       throw new HttpsError(
         "permission-denied",
         "Platform owner account cannot be deleted from the app."
       );
     }
-    if (!ownedOrganizationSnapshot.empty) {
+    if (!isResuming && !ownedOrganizationSnapshot.empty) {
       throw new HttpsError(
         "failed-precondition",
         "Organization ownership must be transferred before account deletion."
@@ -322,25 +441,82 @@ export const deleteOwnAccount = onCall(
     }
 
     const personalReferences = personalReferenceValues(auth.uid, userSnapshot.data());
-    await markDeletionInProgress(auth.uid);
-    // Remove feedback owned by this user before scanning feedback messages.
-    // Otherwise a recursive delete can race an anonymizing update in the same batch.
-    await deleteOwnedPrivateData(auth.uid);
 
-    await Promise.all([
-      deleteProfileImages(auth.uid),
-      db.collection("publicProfiles").doc(auth.uid).delete(),
-      ...accountDeletionReferencePolicies.map((policy) =>
-        applyReferencePolicy(policy, auth.uid, personalReferences)
-      ),
-    ]);
+    if (!operationSnapshot.exists) {
+      await operationReference.set({
+        status: "inProgress",
+        stage: "started",
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        expiresAt: operationExpiry(),
+      }, {merge: true});
+    } else {
+      await recordDeletionStage(operationReference, "started", "inProgress");
+    }
 
-    await deleteUserRoot(auth.uid);
-    await adminAuth.deleteUser(auth.uid);
+    const runStage = async (
+      stage: AccountDeletionOperationStage,
+      work: () => Promise<void>
+    ): Promise<void> => {
+      await recordDeletionStage(operationReference, stage, "inProgress", {
+        lastError: FieldValue.delete(),
+      });
+      try {
+        await work();
+      } catch (error) {
+        const errorCode = (error as {code?: unknown})?.code;
+        try {
+          await recordDeletionStage(operationReference, stage, "partial", {
+            lastError: typeof errorCode === "string" ? errorCode : "unknown",
+          });
+        } catch (journalError) {
+          console.error("Failed to record partial account deletion state.", journalError);
+        }
+        throw error;
+      }
+    };
+
+    await runStage("privateData", async () => {
+      if (userSnapshot.exists) await markDeletionInProgress(auth.uid);
+      // Remove feedback owned by this user before scanning feedback messages.
+      // Otherwise a recursive delete can race an anonymizing update in the same batch.
+      await deleteOwnedPrivateData(auth.uid);
+    });
+
+    await runStage("references", async () => {
+      await Promise.all([
+        deleteProfileImages(auth.uid),
+        db.collection("publicProfiles").doc(auth.uid).delete(),
+        ...accountDeletionReferencePolicies.map((policy) =>
+          applyReferencePolicy(policy, auth.uid, personalReferences)
+        ),
+      ]);
+    });
+
+    await runStage("userRoot", () => deleteUserRoot(auth.uid));
+    await runStage("authIdentity", async () => {
+      try {
+        await adminAuth.deleteUser(auth.uid);
+      } catch (error) {
+        if ((error as {code?: unknown})?.code !== "auth/user-not-found") throw error;
+      }
+    });
+
+    const completedAt = new Date();
+    try {
+      await recordDeletionStage(operationReference, "completed", "completed", {
+        completedAt: Timestamp.fromDate(completedAt),
+        lastError: FieldValue.delete(),
+      });
+    } catch (error) {
+      // Auth is already gone. Do not turn a completed destructive operation
+      // into a client-visible failure that invites an impossible retry.
+      console.error("Failed to finalize the account deletion operation receipt.", error);
+    }
 
     return {
       status: "deleted",
-      completedAt: new Date().toISOString(),
+      completedAt: completedAt.toISOString(),
     };
   }
 );

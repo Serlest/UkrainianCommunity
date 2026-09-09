@@ -2,41 +2,45 @@ import SwiftUI
 
 struct DonationSettingsView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @ObservedObject var viewModel: DonationConfigViewModel
     @State private var draft: DonationConfig = .defaults
-    @State private var validationMessage: String?
+    @State private var showsDiscardConfirmation = false
 
     var body: some View {
-        ProfileDestinationLayout(
+        PushedScreenShell(
             title: DonationLocalization.settingsTitle(for: language),
-            introSubtitle: DonationLocalization.settingsSubtitle(for: language)
+            subtitle: DonationLocalization.settingsSubtitle(for: language),
+            backAction: attemptDismiss
         ) {
-            if !PermissionService.isAppOwner(user: authState.user) {
-                ErrorStateCard(
-                    systemImage: "lock.fill",
-                    title: DonationLocalization.ownerOnlyTitle(for: language),
-                    message: DonationLocalization.ownerOnlyMessage(for: language)
-                )
-            } else if viewModel.isLoading && !viewModel.hasLoadedData {
-                LoadingStateCard(title: nil)
-                    .frame(maxWidth: .infinity, minHeight: 120)
-            } else if !viewModel.hasLoadedData {
-                ErrorStateCard(
-                    systemImage: "heart.slash",
-                    title: DonationLocalization.settingsTitle(for: language),
-                    message: DonationLocalization.loadFailed(for: language),
-                    retryTitle: AppStrings.Action.retry
-                ) {
-                    Task {
-                        await viewModel.load()
-                        if viewModel.hasLoadedData {
-                            draft = viewModel.config
+            AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
+                if !PermissionService.isAppOwner(user: authState.user) {
+                    ErrorStateCard(
+                        systemImage: "lock.fill",
+                        title: DonationLocalization.ownerOnlyTitle(for: language),
+                        message: DonationLocalization.ownerOnlyMessage(for: language)
+                    )
+                } else if viewModel.isLoading && !viewModel.hasLoadedData {
+                    LoadingStateCard(title: nil)
+                        .frame(maxWidth: .infinity, minHeight: 120)
+                } else if !viewModel.hasLoadedData {
+                    ErrorStateCard(
+                        systemImage: "heart.slash",
+                        title: DonationLocalization.settingsTitle(for: language),
+                        message: DonationLocalization.loadFailed(for: language),
+                        retryTitle: AppStrings.Action.retry
+                    ) {
+                        Task {
+                            await viewModel.load()
+                            if viewModel.hasLoadedData {
+                                draft = viewModel.config
+                            }
                         }
                     }
+                } else {
+                    content
                 }
-            } else {
-                content
             }
         }
         .task {
@@ -49,6 +53,18 @@ struct DonationSettingsView: View {
         .onChange(of: viewModel.config) { previousConfig, newConfig in
             if draft == previousConfig { draft = newConfig }
         }
+        .confirmationDialog(
+            DonationLocalization.discardTitle(for: language),
+            isPresented: $showsDiscardConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(DonationLocalization.discardAction(for: language), role: .destructive) {
+                dismiss()
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: {
+            Text(DonationLocalization.discardMessage(for: language))
+        }
     }
 
     private var language: AppLanguage {
@@ -57,7 +73,7 @@ struct DonationSettingsView: View {
 
     private var content: some View {
         VStack(alignment: .leading, spacing: AppTheme.feedRowSpacing) {
-            if let validationMessage {
+            if let validationMessage = validationError(for: draft.normalizedForSaving()) {
                 InlineMessageCard(style: .error, message: validationMessage)
             }
 
@@ -163,10 +179,19 @@ struct DonationSettingsView: View {
 
     private func save() async {
         let normalizedDraft = draft.normalizedForSaving()
-        validationMessage = validationError(for: normalizedDraft)
-        guard validationMessage == nil else { return }
+        guard validationError(for: normalizedDraft) == nil else { return }
         draft = normalizedDraft
-        _ = await viewModel.save(normalizedDraft, updatedBy: authState.user?.id)
+        if await viewModel.save(normalizedDraft, updatedBy: authState.user?.id) {
+            draft = viewModel.config
+        }
+    }
+
+    private func attemptDismiss() {
+        if draft.normalizedForSaving() == viewModel.config.normalizedForSaving() {
+            dismiss()
+        } else {
+            showsDiscardConfirmation = true
+        }
     }
 
     private func validationError(for config: DonationConfig) -> String? {
@@ -336,6 +361,38 @@ enum DonationLocalization {
         localized(
             uk: "Налаштування підтримки збережено.",
             de: "Die Unterstützungseinstellungen wurden gespeichert.",
+            language: language
+        )
+    }
+
+    static func saveSucceededRefreshFailed(for language: AppLanguage = LocalizationStore.language) -> String {
+        localized(
+            uk: "Зміни збережено, але оновити дані не вдалося. Спробуйте ще раз пізніше.",
+            de: "Die Änderungen wurden gespeichert, aber die Daten konnten nicht aktualisiert werden. Versuchen Sie es später erneut.",
+            language: language
+        )
+    }
+
+    static func discardTitle(for language: AppLanguage = LocalizationStore.language) -> String {
+        localized(
+            uk: "Відхилити незбережені зміни?",
+            de: "Ungespeicherte Änderungen verwerfen?",
+            language: language
+        )
+    }
+
+    static func discardMessage(for language: AppLanguage = LocalizationStore.language) -> String {
+        localized(
+            uk: "Зміни налаштувань підтримки буде втрачено.",
+            de: "Die Änderungen an den Unterstützungseinstellungen gehen verloren.",
+            language: language
+        )
+    }
+
+    static func discardAction(for language: AppLanguage = LocalizationStore.language) -> String {
+        localized(
+            uk: "Відхилити зміни",
+            de: "Änderungen verwerfen",
             language: language
         )
     }

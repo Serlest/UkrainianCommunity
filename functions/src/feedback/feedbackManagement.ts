@@ -1,3 +1,4 @@
+import {FieldPath} from "firebase-admin/firestore";
 import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
@@ -45,9 +46,15 @@ export const deleteFeedback = onCall(
       return {deletedCount: 0};
     }
 
-    await deleteFeedbackRecords([feedbackDocument]);
+    const deletion = await deleteFeedbackRecords([feedbackDocument]);
+    if (deletion.protectedCount > 0) {
+      throw new HttpsError(
+        "failed-precondition",
+        "DSA records cannot be deleted before their regulatory retention expires."
+      );
+    }
     await recordOwnerDeletionAudit("feedbackDeleted", actor.uid, {feedbackId});
-    return {deletedCount: 1};
+    return {deletedCount: deletion.deletedCount};
   }
 );
 
@@ -72,26 +79,38 @@ export const clearFeedbackInbox = onCall(
 
     const actor = await requireVerifiedActiveUser(request);
     assertOwner(actor.permissions);
-    const deletedFeedbackIds: string[] = [];
+    let deletedCount = 0;
+    let cursor: FirebaseFirestore.QueryDocumentSnapshot | undefined;
 
-    while (deletedFeedbackIds.length < maximumDeletedFeedback) {
-      const snapshot = await db.collection("feedback").limit(feedbackBatchSize).get();
+    while (deletedCount < maximumDeletedFeedback) {
+      const pageLimit = Math.min(feedbackBatchSize, maximumDeletedFeedback - deletedCount);
+      let query = db.collection("feedback")
+        .orderBy(FieldPath.documentId())
+        .limit(pageLimit);
+      if (cursor) query = query.startAfter(cursor);
+      const snapshot = await query.get();
       if (snapshot.empty) break;
-      await deleteFeedbackRecords(snapshot.docs.map((document) => document.ref));
-      deletedFeedbackIds.push(...snapshot.docs.map((document) => document.id));
+      const deletion = await deleteFeedbackRecords(snapshot.docs.map((document) => document.ref));
+      deletedCount += deletion.deletedCount;
+      cursor = snapshot.docs[snapshot.docs.length - 1];
+      if (snapshot.size < pageLimit) break;
     }
 
-    if (deletedFeedbackIds.length >= maximumDeletedFeedback) {
-      const remaining = await db.collection("feedback").limit(1).get();
+    if (deletedCount >= maximumDeletedFeedback) {
+      let remainingQuery = db.collection("feedback")
+        .orderBy(FieldPath.documentId())
+        .limit(1);
+      if (cursor) remainingQuery = remainingQuery.startAfter(cursor);
+      const remaining = await remainingQuery.get();
       if (!remaining.empty) {
         throw new HttpsError("resource-exhausted", "Too many feedback records. Run the operation again to continue.");
       }
     }
 
     await recordOwnerDeletionAudit("feedbackInboxCleared", actor.uid, {
-      deletedCount: deletedFeedbackIds.length,
+      deletedCount,
     });
-    return {deletedCount: deletedFeedbackIds.length};
+    return {deletedCount};
   }
 );
 
@@ -112,12 +131,40 @@ async function deleteFeedbackDocuments(
   await parentWriter.close();
 }
 
+export interface DeleteFeedbackRecordsResult {
+  deletedCount: number;
+  protectedCount: number;
+}
+
 export async function deleteFeedbackRecords(
-  feedbackDocuments: FirebaseFirestore.DocumentReference[]
-): Promise<void> {
-  if (feedbackDocuments.length === 0) return;
-  await deleteFeedbackNotifications(feedbackDocuments.map(document => document.id));
-  await deleteFeedbackDocuments(feedbackDocuments);
+  feedbackDocuments: FirebaseFirestore.DocumentReference[],
+  options: {allowDsaDeletion?: boolean} = {}
+): Promise<DeleteFeedbackRecordsResult> {
+  if (feedbackDocuments.length === 0) return {deletedCount: 0, protectedCount: 0};
+
+  const snapshots = await Promise.all(feedbackDocuments.map(document => document.get()));
+  const existing = snapshots.filter(snapshot => snapshot.exists);
+  const canonicalDsaCases = options.allowDsaDeletion || existing.length === 0 ? [] :
+    await db.getAll(...existing.map(snapshot => db.collection("dsaCases").doc(snapshot.id)));
+  const protectedDocuments = options.allowDsaDeletion ? [] : existing.filter((snapshot, index) => {
+    const dsaCase = snapshot.get("dsaCase");
+    return (typeof dsaCase === "object" && dsaCase !== null)
+      || canonicalDsaCases[index]?.exists === true;
+  });
+  const protectedPaths = new Set(protectedDocuments.map(snapshot => snapshot.ref.path));
+  const deletable = existing
+    .filter(snapshot => !protectedPaths.has(snapshot.ref.path))
+    .map(snapshot => snapshot.ref);
+
+  if (deletable.length > 0) {
+    await deleteFeedbackNotifications(deletable.map(document => document.id));
+    await deleteFeedbackDocuments(deletable);
+  }
+
+  return {
+    deletedCount: deletable.length,
+    protectedCount: protectedDocuments.length,
+  };
 }
 
 async function deleteFeedbackNotifications(feedbackIds: string[]): Promise<void> {

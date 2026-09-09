@@ -4,6 +4,21 @@ import Foundation
 
 @MainActor
 final class ProfileViewModel: ObservableObject {
+    private struct FeedbackSubmissionAttempt {
+        let item: FeedbackItem
+        let type: FeedbackType
+        let subject: String?
+        let message: String
+        let userID: String
+
+        func matches(type: FeedbackType, subject: String?, message: String, userID: String) -> Bool {
+            self.type == type
+                && self.subject == subject
+                && self.message == message
+                && self.userID == userID
+        }
+    }
+
     @Published private(set) var user: AppUser
     @Published var settings: UserSettings
     @Published private(set) var error: AppError?
@@ -15,6 +30,7 @@ final class ProfileViewModel: ObservableObject {
     @Published private(set) var isLoadingNotificationPreferences = false
     @Published private(set) var isSavingNotificationPreferences = false
     @Published private(set) var isSendingTestNotification = false
+    @Published private(set) var hasNotificationPreferencesLoadError = false
     @Published var notificationPreferencesMessage: String?
     @Published var profileMessage: String?
     @Published var feedbackMessage: String?
@@ -29,6 +45,10 @@ final class ProfileViewModel: ObservableObject {
     private var hasLoaded = false
     private var lastLoadedAt: Date?
     private var loadedNotificationPreferencesUserID: String?
+    private var notificationPreferencesSessionUserID: String?
+    private var notificationPreferencesSessionGeneration = 0
+    private var feedbackSubmissionGeneration = 0
+    private var pendingFeedbackAttempt: FeedbackSubmissionAttempt?
 
     init(
         repository: UserRepository,
@@ -64,6 +84,10 @@ final class ProfileViewModel: ObservableObject {
     }
 
     func resetForAuthChange() {
+        notificationPreferencesSessionGeneration &+= 1
+        notificationPreferencesSessionUserID = nil
+        feedbackSubmissionGeneration &+= 1
+        pendingFeedbackAttempt = nil
         loadTask?.cancel()
         loadTask = nil
         cancelFeedbackSuccessDismiss()
@@ -77,6 +101,7 @@ final class ProfileViewModel: ObservableObject {
         isLoadingNotificationPreferences = false
         isSavingNotificationPreferences = false
         isSendingTestNotification = false
+        hasNotificationPreferencesLoadError = false
         notificationPreferencesMessage = nil
         loadedNotificationPreferencesUserID = nil
         profileMessage = nil
@@ -99,8 +124,15 @@ final class ProfileViewModel: ObservableObject {
         await loadNotificationPreferences(userID: userID)
     }
 
+    func hasLoadedNotificationPreferences(for userID: String?) -> Bool {
+        guard let userID else { return false }
+        return notificationPreferencesSessionUserID == userID
+            && loadedNotificationPreferencesUserID == userID
+    }
+
     func setNotificationsEnabled(_ isEnabled: Bool, userID: String) async {
-        guard !isSavingNotificationPreferences else { return }
+        guard !isSavingNotificationPreferences,
+              canInteractWithNotificationPreferences(userID: userID) else { return }
 
         var updatedPreferences = notificationPreferences
         updatedPreferences.notificationsEnabled = isEnabled
@@ -108,27 +140,36 @@ final class ProfileViewModel: ObservableObject {
     }
 
     func setEventRemindersEnabled(_ isEnabled: Bool, userID: String) async {
-        guard !isSavingNotificationPreferences else { return }
+        guard !isSavingNotificationPreferences,
+              canInteractWithNotificationPreferences(userID: userID) else { return }
         var updatedPreferences = notificationPreferences
         updatedPreferences.eventRemindersEnabled = isEnabled
         await saveNotificationPreferences(updatedPreferences, userID: userID)
     }
 
     func setReminderLeadMinutes(_ minutes: Int, userID: String) async {
-        guard !isSavingNotificationPreferences else { return }
+        guard !isSavingNotificationPreferences,
+              canInteractWithNotificationPreferences(userID: userID) else { return }
         var updatedPreferences = notificationPreferences
         updatedPreferences.reminderLeadMinutes = max(0, min(minutes, 10_080))
         await saveNotificationPreferences(updatedPreferences, userID: userID)
     }
 
     func sendTestNotification(userID: String) async {
-        guard !isSendingTestNotification else { return }
+        guard !isSendingTestNotification,
+              canInteractWithNotificationPreferences(userID: userID) else { return }
+        let generation = notificationPreferencesSessionGeneration
         isSendingTestNotification = true
         notificationPreferencesMessage = nil
-        defer { isSendingTestNotification = false }
+        defer {
+            if isCurrentNotificationPreferencesSession(generation: generation, userID: userID) {
+                isSendingTestNotification = false
+            }
+        }
 
         do {
             let response = try await CloudFunctionsClient.shared.sendTestPushNotification()
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             guard response.successCount > 0 else {
                 throw AppError.unknown
             }
@@ -136,67 +177,158 @@ final class ProfileViewModel: ObservableObject {
                 ? AppStrings.Profile.notificationTestPartial
                 : AppStrings.Profile.notificationTestSent
         } catch {
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             notificationPreferencesMessage = AppStrings.Profile.notificationTestFailed
         }
     }
 
     private func loadNotificationPreferences(userID: String) async {
+        let generation = prepareNotificationPreferencesSession(for: userID)
+        guard !isLoadingNotificationPreferences else { return }
         isLoadingNotificationPreferences = true
-        defer { isLoadingNotificationPreferences = false }
+        hasNotificationPreferencesLoadError = false
+        notificationPreferencesMessage = nil
+        defer {
+            if isCurrentNotificationPreferencesSession(generation: generation, userID: userID) {
+                isLoadingNotificationPreferences = false
+            }
+        }
 
         do {
-            notificationPreferences = try await RefreshRequest.run { [self] in try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID) }
+            let fetchedPreferences = try await RefreshRequest.run { [self] in
+                try await notificationPreferencesRepository.fetchNotificationPreferences(userID: userID)
+            }
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+            notificationPreferences = fetchedPreferences
             notificationPreferencesMessage = nil
             loadedNotificationPreferencesUserID = userID
+            hasNotificationPreferencesLoadError = false
         } catch let appError as AppError {
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             error = appError
+            hasNotificationPreferencesLoadError = true
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesLoadFailed
         } catch {
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             self.error = .unknown
+            hasNotificationPreferencesLoadError = true
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesLoadFailed
         }
     }
 
     private func saveNotificationPreferences(_ updatedPreferences: NotificationPreferences, userID: String) async {
+        let generation = notificationPreferencesSessionGeneration
         let previousPreferences = notificationPreferences
         notificationPreferences = updatedPreferences
         isSavingNotificationPreferences = true
+        hasNotificationPreferencesLoadError = false
         notificationPreferencesMessage = nil
-        defer { isSavingNotificationPreferences = false }
+        defer {
+            if isCurrentNotificationPreferencesSession(generation: generation, userID: userID) {
+                isSavingNotificationPreferences = false
+            }
+        }
 
         do {
-            if updatedPreferences.notificationsEnabled {
+            if updatedPreferences.notificationsEnabled && !previousPreferences.notificationsEnabled {
                 let granted = try await notificationPermissionService.requestNotificationAuthorization()
+                guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
                 guard granted else {
                     notificationPreferences = previousPreferences
-                    notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaveFailed
+                    notificationPreferencesMessage = AppStrings.Profile.notificationPermissionDenied
                     return
                 }
             }
 
             try await notificationPreferencesRepository.saveNotificationPreferences(updatedPreferences, userID: userID)
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+            loadedNotificationPreferencesUserID = userID
+            RemoteNotificationRegistrationService.shared.configureUser(
+                userID,
+                notificationsEnabled: updatedPreferences.notificationsEnabled
+            )
+
             if let eventRepository {
-                let registeredEvents = try await eventRepository.fetchRegisteredEvents()
-                try await localEventReminderService.reconcileEventReminders(
-                    events: registeredEvents,
-                    userID: userID,
-                    preferences: updatedPreferences
-                )
-            }
-            if !updatedPreferences.notificationsEnabled {
-                await RemoteNotificationRegistrationService.shared.removeCurrentRegistration()
+                do {
+                    let registeredEvents = try await eventRepository.fetchRegisteredEvents()
+                    guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+                    try await localEventReminderService.reconcileEventReminders(
+                        events: registeredEvents,
+                        userID: userID,
+                        preferences: updatedPreferences
+                    )
+                } catch {
+                    guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+                    await readBackNotificationPreferencesAfterSyncFailure(
+                        userID: userID,
+                        generation: generation,
+                        fallback: updatedPreferences
+                    )
+                    guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+                    self.error = (error as? AppError) ?? .unknown
+                    notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSyncFailed
+                    return
+                }
             }
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaved
-            loadedNotificationPreferencesUserID = userID
         } catch let appError as AppError {
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             notificationPreferences = previousPreferences
             error = appError
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaveFailed
         } catch {
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             notificationPreferences = previousPreferences
             self.error = .unknown
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaveFailed
         }
+    }
+
+    private func readBackNotificationPreferencesAfterSyncFailure(
+        userID: String,
+        generation: Int,
+        fallback: NotificationPreferences
+    ) async {
+        do {
+            let persistedPreferences = try await notificationPreferencesRepository
+                .fetchNotificationPreferences(userID: userID)
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+            notificationPreferences = persistedPreferences
+            loadedNotificationPreferencesUserID = userID
+            RemoteNotificationRegistrationService.shared.configureUser(
+                userID,
+                notificationsEnabled: persistedPreferences.notificationsEnabled
+            )
+        } catch {
+            guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+            notificationPreferences = fallback
+        }
+    }
+
+    private func prepareNotificationPreferencesSession(for userID: String) -> Int {
+        if notificationPreferencesSessionUserID != userID {
+            notificationPreferencesSessionGeneration &+= 1
+            notificationPreferencesSessionUserID = userID
+            loadedNotificationPreferencesUserID = nil
+            notificationPreferences = .default
+            isLoadingNotificationPreferences = false
+            isSavingNotificationPreferences = false
+            isSendingTestNotification = false
+            hasNotificationPreferencesLoadError = false
+            notificationPreferencesMessage = nil
+        }
+        return notificationPreferencesSessionGeneration
+    }
+
+    private func isCurrentNotificationPreferencesSession(generation: Int, userID: String) -> Bool {
+        notificationPreferencesSessionGeneration == generation
+            && notificationPreferencesSessionUserID == userID
+    }
+
+    private func canInteractWithNotificationPreferences(userID: String) -> Bool {
+        notificationPreferencesSessionUserID == userID
+            && loadedNotificationPreferencesUserID == userID
+            && !hasNotificationPreferencesLoadError
     }
 
     func saveProfile(_ profile: EditableUserProfileDraft, avatarImageData: Data? = nil) async -> AppUser? {
@@ -267,41 +399,72 @@ final class ProfileViewModel: ObservableObject {
             return false
         }
 
+        let trimmedSubject = subject?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedSubject = trimmedSubject?.isEmpty == false ? trimmedSubject : nil
+        let attempt: FeedbackSubmissionAttempt
+        if let pendingFeedbackAttempt,
+           pendingFeedbackAttempt.matches(
+               type: type,
+               subject: normalizedSubject,
+               message: trimmedMessage,
+               userID: user.id
+           ) {
+            attempt = pendingFeedbackAttempt
+        } else {
+            let now = Date()
+            attempt = FeedbackSubmissionAttempt(
+                item: FeedbackItem(
+                    id: UUID().uuidString,
+                    type: type,
+                    subject: normalizedSubject,
+                    message: trimmedMessage,
+                    status: .open,
+                    createdAt: now,
+                    updatedAt: now,
+                    userId: user.id,
+                    userDisplayName: user.preferredDisplayName,
+                    ownerReply: nil,
+                    repliedAt: nil,
+                    repliedByUserId: nil,
+                    lastMessageText: trimmedMessage,
+                    lastMessageAt: now,
+                    lastMessageByUserId: user.id,
+                    lastMessageByRole: .user,
+                    unreadForOwner: true,
+                    unreadForUser: false
+                ),
+                type: type,
+                subject: normalizedSubject,
+                message: trimmedMessage,
+                userID: user.id
+            )
+            pendingFeedbackAttempt = attempt
+        }
+
+        let submissionGeneration = feedbackSubmissionGeneration
         isSubmittingFeedback = true
         feedbackMessage = nil
-        defer { isSubmittingFeedback = false }
+        defer {
+            if feedbackSubmissionGeneration == submissionGeneration {
+                isSubmittingFeedback = false
+            }
+        }
 
         do {
-            let now = Date()
-            try await feedbackRepository.submitFeedback(FeedbackItem(
-                id: UUID().uuidString,
-                type: type,
-                subject: subject,
-                message: trimmedMessage,
-                status: .open,
-                createdAt: now,
-                updatedAt: now,
-                userId: user.id,
-                userDisplayName: user.preferredDisplayName,
-                ownerReply: nil,
-                repliedAt: nil,
-                repliedByUserId: nil,
-                lastMessageText: trimmedMessage,
-                lastMessageAt: now,
-                lastMessageByUserId: user.id,
-                lastMessageByRole: .user,
-                unreadForOwner: true,
-                unreadForUser: false
-            ))
+            try await feedbackRepository.submitFeedback(attempt.item)
+            guard feedbackSubmissionGeneration == submissionGeneration else { return false }
+            pendingFeedbackAttempt = nil
             error = nil
             feedbackMessage = AppStrings.Feedback.submitted
             scheduleFeedbackSuccessDismiss()
             return true
         } catch let appError as AppError {
+            guard feedbackSubmissionGeneration == submissionGeneration else { return false }
             error = appError
             feedbackMessage = AppStrings.Feedback.submitFailed
             return false
         } catch {
+            guard feedbackSubmissionGeneration == submissionGeneration else { return false }
             self.error = .unknown
             feedbackMessage = AppStrings.Feedback.submitFailed
             return false
@@ -333,14 +496,19 @@ final class ProfileViewModel: ObservableObject {
     }
 
     func deleteAccount(currentUser: AppUser) async -> String? {
-        guard !isDeletingAccount else { return nil }
+        guard !isDeletingAccount else { return AppStrings.Profile.deleteAccountFailed }
 
         isDeletingAccount = true
         defer { isDeletingAccount = false }
 
         do {
             try await repository.deleteAccount(currentUser: currentUser)
-            _ = await AuthService.shared.completeAccountDeletionSignOut()
+            AuthService.shared.purgeLocalAccountState(userID: currentUser.id)
+            let didSignOut = await AuthService.shared.completeAccountDeletionSignOut()
+            guard didSignOut else {
+                return AppStrings.Profile.deleteAccountLocalCleanupPending
+            }
+            UserProfileService.shared.completePendingAccountDeletion(userID: currentUser.id)
             resetForAuthChange()
             return nil
         } catch let deletionError as AccountDeletionError {
@@ -358,7 +526,7 @@ final class ProfileViewModel: ObservableObject {
 
                 switch stage {
                 case .serverDeletion:
-                    return AppStrings.Profile.deleteAccountCleanupFailed
+                    return AppStrings.Profile.deleteAccountFailed
                 }
             }
         } catch let appError as AppError {

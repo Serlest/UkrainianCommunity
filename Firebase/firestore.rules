@@ -324,8 +324,9 @@ service cloud.firestore {
     }
 
     function canCreateDiagnosticsLog(logId) {
-      return isOwnerOrAppAdmin()
-        && isSafeDiagnosticsCreate(logId);
+      // Released clients send diagnostics through writeClientDiagnostic,
+      // which validates and redacts before its Admin SDK write.
+      return false;
     }
 
     function canCreateAuditLog(logId) {
@@ -607,6 +608,7 @@ service cloud.firestore {
         'canonicalLocale',
         'locales',
         'contentHash',
+        'baseContentHash',
         'changeSummary',
         'createdAt',
         'createdBy',
@@ -618,15 +620,52 @@ service cloud.firestore {
       ];
     }
 
+    function isSha256(value) {
+      return value is string && value.matches('^[0-9a-f]{64}$');
+    }
+
+    function legalDocumentPointerPath(documentType) {
+      return /databases/$(database)/documents/legalDocuments/$(documentType);
+    }
+
+    function legalDocumentVersionPath(documentType, version) {
+      return /databases/$(database)/documents/legalDocuments/$(documentType)/versions/$(version);
+    }
+
+    function legalAcceptanceLogPath(uid, documentType, version) {
+      let logId = uid + '_' + documentType + '_' + version;
+      return /databases/$(database)/documents/legalAcceptanceLogs/$(logId);
+    }
+
+    function hasInitialLegalAcceptancePair(uid, userAfter) {
+      let termsPath = legalAcceptanceLogPath(uid, 'terms', userAfter.acceptedTermsVersion);
+      let privacyPath = legalAcceptanceLogPath(uid, 'privacy', userAfter.acceptedPrivacyVersion);
+      let termsAfter = getAfter(termsPath).data;
+      let privacyAfter = getAfter(privacyPath).data;
+      return existsAfter(termsPath)
+        && existsAfter(privacyPath)
+        && termsAfter.userId == uid
+        && termsAfter.documentType == 'terms'
+        && termsAfter.version == userAfter.acceptedTermsVersion
+        && termsAfter.acceptedAt == request.time
+        && privacyAfter.userId == uid
+        && privacyAfter.documentType == 'privacy'
+        && privacyAfter.version == userAfter.acceptedPrivacyVersion
+        && privacyAfter.acceptedAt == request.time;
+    }
+
     function validLegalDocumentPointer(documentType) {
       return isLegalDocumentType(documentType)
         && request.resource.data.keys().hasOnly(legalDocumentPointerFields())
         && request.resource.data.documentType == documentType
         && request.resource.data.activeVersion is string
+        && request.resource.data.activeVersion.matches('^[0-9]{4}[.][1-9][0-9]?$')
         && request.resource.data.versionNumber is int
-        && request.resource.data.status in ['draft', 'published']
+        && request.resource.data.versionNumber > 0
+        && request.resource.data.status == 'published'
         && request.resource.data.requiresAcceptance is bool
         && request.resource.data.defaultLocale is string
+        && request.resource.data.defaultLocale in ['de', 'uk']
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.updatedBy == request.auth.uid
         && (!('publishedAt' in request.resource.data)
@@ -640,19 +679,51 @@ service cloud.firestore {
           || request.resource.data.changeSummary is string);
     }
 
+    function validLegalDocumentPointerTarget(documentType) {
+      let targetPath = legalDocumentVersionPath(
+        documentType,
+        request.resource.data.activeVersion
+      );
+      let target = getAfter(targetPath).data;
+      return existsAfter(targetPath)
+        && target.documentType == documentType
+        && target.version == request.resource.data.activeVersion
+        && target.versionNumber == request.resource.data.versionNumber
+        && target.status == 'published'
+        && target.requiresAcceptance == request.resource.data.requiresAcceptance
+        && target.defaultLocale == request.resource.data.defaultLocale
+        && target.updatedBy == request.resource.data.updatedBy
+        && target.publishedAt == request.resource.data.publishedAt
+        && target.publishedBy == request.resource.data.publishedBy
+        && target.changeSummary == request.resource.data.changeSummary;
+    }
+
+    function validLegalDocumentPointerAdvance(documentType) {
+      let target = getAfter(legalDocumentVersionPath(
+        documentType,
+        request.resource.data.activeVersion
+      )).data;
+      return request.resource.data.versionNumber == resource.data.versionNumber + 1
+        && target.supersedesVersion == resource.data.activeVersion;
+    }
+
     function validLegalDocumentVersion(documentType, version) {
       return isLegalDocumentType(documentType)
         && request.resource.data.keys().hasOnly(legalDocumentVersionFields())
         && request.resource.data.documentType == documentType
         && request.resource.data.version == version
         && request.resource.data.version is string
+        && request.resource.data.version.matches('^[0-9]{4}[.][1-9][0-9]?$')
         && request.resource.data.versionNumber is int
+        && request.resource.data.versionNumber > 0
         && request.resource.data.status in ['draft', 'published', 'archived']
         && request.resource.data.requiresAcceptance is bool
         && request.resource.data.defaultLocale is string
+        && request.resource.data.defaultLocale in ['de', 'uk']
         && request.resource.data.canonicalLocale is string
+        && request.resource.data.canonicalLocale in ['de', 'uk']
         && request.resource.data.locales is map
-        && request.resource.data.locales.keys().size() > 0
+        && request.resource.data.locales.keys().hasAll(['de', 'uk'])
         && request.resource.data.locales[request.resource.data.defaultLocale] is map
         && request.resource.data.locales[request.resource.data.defaultLocale].title is string
         && request.resource.data.locales[request.resource.data.defaultLocale].contentMarkdown is string
@@ -671,7 +742,12 @@ service cloud.firestore {
         && (!('contentHash' in request.resource.data.locales[request.resource.data.canonicalLocale])
           || request.resource.data.locales[request.resource.data.canonicalLocale].contentHash == null
           || request.resource.data.locales[request.resource.data.canonicalLocale].contentHash is string)
-        && request.resource.data.contentHash is string
+        && isSha256(request.resource.data.locales['de'].contentHash)
+        && isSha256(request.resource.data.locales['uk'].contentHash)
+        && isSha256(request.resource.data.contentHash)
+        && (!('baseContentHash' in request.resource.data)
+          || request.resource.data.baseContentHash == null
+          || isSha256(request.resource.data.baseContentHash))
         && request.resource.data.createdAt is timestamp
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.updatedAt is timestamp
@@ -690,8 +766,116 @@ service cloud.firestore {
           || request.resource.data.supersedesVersion is string);
     }
 
+    function validInitialLegalAcceptanceLog(logId) {
+      let data = request.resource.data;
+      let uid = request.auth.uid;
+      let userPath = /databases/$(database)/documents/users/$(uid);
+      let userAfter = getAfter(userPath).data;
+      let pointerPath = legalDocumentPointerPath(data.documentType);
+      let versionPath = legalDocumentVersionPath(data.documentType, data.version);
+      let pointer = get(pointerPath).data;
+      let version = get(versionPath).data;
+      return isSignedIn()
+        // Initial receipts may only be committed atomically with the account's
+        // first user document. A later client write can never recreate them.
+        && !exists(userPath)
+        && existsAfter(userPath)
+        && data.keys().hasOnly([
+          'userId',
+          'documentType',
+          'version',
+          'acceptedAt',
+          'appVersion',
+          'locale',
+          'contentHash',
+          'acceptedFromPlatform'
+        ])
+        && data.keys().hasAll([
+          'userId',
+          'documentType',
+          'version',
+          'acceptedAt',
+          'appVersion',
+          'locale',
+          'contentHash',
+          'acceptedFromPlatform'
+        ])
+        && data.userId == uid
+        && data.documentType in ['terms', 'privacy']
+        && data.version is string
+        && data.version.matches('^[0-9]{4}[.][1-9][0-9]?$')
+        && logId == uid + '_' + data.documentType + '_' + data.version
+        && data.acceptedAt == request.time
+        && data.acceptedFromPlatform == 'ios'
+        && (data.appVersion == null || data.appVersion is string)
+        && data.locale in ['de', 'uk']
+        && isSha256(data.contentHash)
+        && userAfter.id == uid
+        && userAfter.createdAt == request.time
+        && hasInitialLegalAcceptancePair(uid, userAfter)
+        && (
+          (data.documentType == 'terms'
+            && userAfter.acceptedTermsAt == request.time
+            && userAfter.acceptedTermsVersion == data.version
+            && userAfter.termsVersion == data.version)
+          || (data.documentType == 'privacy'
+            && userAfter.acceptedPrivacyAt == request.time
+            && userAfter.acceptedPrivacyVersion == data.version
+            && userAfter.privacyVersion == data.version)
+        )
+        && exists(pointerPath)
+        && pointer.activeVersion == data.version
+        && pointer.status == 'published'
+        && exists(versionPath)
+        && version.documentType == data.documentType
+        && version.version == data.version
+        && version.versionNumber == pointer.versionNumber
+        && version.status == 'published'
+        && version.requiresAcceptance == pointer.requiresAcceptance
+        && ('contentHash' in version)
+        && isSha256(version.contentHash)
+        && data.contentHash == version.contentHash;
+    }
+
+    function validNewLegalDraft(documentType) {
+      let pointerPath = legalDocumentPointerPath(documentType);
+      let pointer = get(pointerPath).data;
+      return exists(pointerPath)
+        && request.resource.data.status == 'draft'
+        && request.resource.data.baseContentHash == null
+        && request.resource.data.supersedesVersion == pointer.activeVersion
+        && request.resource.data.versionNumber == pointer.versionNumber + 1
+        && request.resource.data.publishedAt == null
+        && request.resource.data.publishedBy == null;
+    }
+
+    function validLegalDraftUpdate(documentType, version) {
+      let pointer = get(legalDocumentPointerPath(documentType)).data;
+      return request.resource.data.status == 'draft'
+        && request.resource.data.baseContentHash == resource.data.contentHash
+        && request.resource.data.supersedesVersion == pointer.activeVersion
+        && request.resource.data.versionNumber == pointer.versionNumber + 1
+        && request.resource.data.publishedAt == null
+        && request.resource.data.publishedBy == null;
+    }
+
+    function validLegalPublishTransition(documentType, version) {
+      let pointerPath = legalDocumentPointerPath(documentType);
+      let previousPointer = get(pointerPath).data;
+      let nextPointer = getAfter(pointerPath).data;
+      return request.resource.data.status == 'published'
+        && request.resource.data.baseContentHash == resource.data.contentHash
+        && request.resource.data.supersedesVersion == previousPointer.activeVersion
+        && request.resource.data.versionNumber == previousPointer.versionNumber + 1
+        && request.resource.data.publishedAt is timestamp
+        && request.resource.data.publishedBy == request.auth.uid
+        && nextPointer.activeVersion == version
+        && nextPointer.versionNumber == request.resource.data.versionNumber
+        && nextPointer.status == 'published';
+    }
+
     function recentViewFields() {
-      return ['itemId', 'itemType', 'title', 'subtitle', 'imageURL', 'viewedAt'];
+      return ['itemId', 'itemType', 'title', 'subtitle', 'imageURL', 'organizationID', 'viewedAt'];
     }
 
     function activityLogFields() {
@@ -830,6 +1014,14 @@ service cloud.firestore {
         && (!feedbackChangedKeys().hasAny(['repliedByUserId']) || request.resource.data.repliedByUserId == request.auth.uid);
     }
 
+    function safeFeedbackUserReadAcknowledgement() {
+      return isVerifiedActiveUser()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['unreadForUser'])
+        && resource.data.unreadForUser == true
+        && request.resource.data.unreadForUser == false;
+    }
+
     function safeFeedbackUserReplyUpdate() {
       return isVerifiedActiveUser()
         && resource.data.userId == request.auth.uid
@@ -915,6 +1107,7 @@ service cloud.firestore {
         && request.resource.data.title is string
         && (!('subtitle' in request.resource.data) || request.resource.data.subtitle is string || request.resource.data.subtitle == null)
         && (!('imageURL' in request.resource.data) || request.resource.data.imageURL is string || request.resource.data.imageURL == null)
+        && (!('organizationID' in request.resource.data) || request.resource.data.organizationID is string || request.resource.data.organizationID == null)
         && request.resource.data.viewedAt is timestamp
         && recentViewId == request.resource.data.itemType + '_' + request.resource.data.itemId;
     }
@@ -2168,8 +2361,14 @@ service cloud.firestore {
     match /legalDocuments/{documentType} {
       allow read: if isLegalDocumentType(documentType);
 
-      allow create, update: if isOwner()
-        && validLegalDocumentPointer(documentType);
+      allow create: if isOwner()
+        && validLegalDocumentPointer(documentType)
+        && validLegalDocumentPointerTarget(documentType);
+
+      allow update: if isOwner()
+        && validLegalDocumentPointer(documentType)
+        && validLegalDocumentPointerTarget(documentType)
+        && validLegalDocumentPointerAdvance(documentType);
 
       allow delete: if false;
 
@@ -2181,7 +2380,8 @@ service cloud.firestore {
               .data.activeVersion == version);
 
         allow create: if isOwner()
-          && validLegalDocumentVersion(documentType, version);
+          && validLegalDocumentVersion(documentType, version)
+          && validNewLegalDraft(documentType);
 
         allow update: if isOwner()
           && resource.data.status != 'published'
@@ -2189,7 +2389,11 @@ service cloud.firestore {
           && request.resource.data.version == resource.data.version
           && request.resource.data.createdAt == resource.data.createdAt
           && request.resource.data.createdBy == resource.data.createdBy
-          && validLegalDocumentVersion(documentType, version);
+          && validLegalDocumentVersion(documentType, version)
+          && (
+            validLegalDraftUpdate(documentType, version)
+            || validLegalPublishTransition(documentType, version)
+          );
 
         allow delete: if false;
       }
@@ -2197,7 +2401,8 @@ service cloud.firestore {
 
     match /legalAcceptanceLogs/{logId} {
       allow read: if isOwner() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow create, update, delete: if false;
+      allow create: if validInitialLegalAcceptanceLog(logId);
+      allow update, delete: if false;
     }
 
     match /organizationCreationProofs/{organizationId} {
@@ -2575,7 +2780,8 @@ service cloud.firestore {
       allow create: if safeFeedbackCreate(feedbackId);
 
       allow update: if safeFeedbackOwnerUpdate()
-        || safeFeedbackUserReplyUpdate();
+        || safeFeedbackUserReplyUpdate()
+        || safeFeedbackUserReadAcknowledgement();
 
       // Cascading deletion of messages and linked notifications is server-owned.
       allow delete: if false;

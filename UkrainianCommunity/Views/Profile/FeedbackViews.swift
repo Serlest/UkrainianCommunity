@@ -201,11 +201,19 @@ struct MyFeedbackView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: MyFeedbackViewModel
     let currentUserID: String
+    let initialFeedbackID: String?
     @State private var selectedFeedback: FeedbackItem?
+    @State private var handledInitialFeedbackID: String?
     @State private var selectedFilter: MyFeedbackFilter = .all
     @State private var sortOption: AppListSortOption = .newest
     @State private var searchText = ""
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    init(viewModel: MyFeedbackViewModel, currentUserID: String, initialFeedbackID: String? = nil) {
+        self.viewModel = viewModel
+        self.currentUserID = currentUserID
+        self.initialFeedbackID = initialFeedbackID
+    }
 
     private var filteredItems: [FeedbackItem] {
         return viewModel.items.filter { item in
@@ -231,8 +239,15 @@ struct MyFeedbackView: View {
         .navigationTitle(AppStrings.Feedback.myFeedbackTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: currentUserID) {
+        .task(id: "\(currentUserID):\(initialFeedbackID ?? "")") {
             await viewModel.loadIfNeeded(userID: currentUserID)
+            guard let initialFeedbackID else { return }
+            let initialKey = "\(currentUserID):\(initialFeedbackID)"
+            guard handledInitialFeedbackID != initialKey else { return }
+            if let item = await viewModel.feedback(id: initialFeedbackID, userID: currentUserID) {
+                handledInitialFeedbackID = initialKey
+                open(item)
+            }
         }
         .appRefreshable {
             await viewModel.refresh(userID: currentUserID)
@@ -244,10 +259,19 @@ struct MyFeedbackView: View {
                 messages: viewModel.messages(for: currentItem),
                 isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
                 isSending: viewModel.sendingMessageFeedbackIDs.contains(currentItem.id),
+                messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
+                hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
+                isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
                 actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
                 allowsClose: false,
                 onLoad: {
                     Task { await viewModel.loadMessages(for: currentItem) }
+                },
+                onRetryMessages: {
+                    Task { await viewModel.loadMessages(for: currentItem) }
+                },
+                onLoadMoreMessages: {
+                    Task { await viewModel.loadMoreMessages(for: currentItem) }
                 },
                 onSend: { text in
                     guard let user = authState.user else { return false }
@@ -367,7 +391,16 @@ struct MyFeedbackView: View {
                 systemImage: "line.3.horizontal.decrease.circle",
                 title: AppStrings.Search.noResultsTitle,
                 message: AppStrings.Search.noResultsMessage
-            )
+            ) {
+                if viewModel.hasMore {
+                    PrimaryActionButton(
+                        title: AppStrings.Search.loadMoreContent,
+                        isEnabled: !viewModel.isLoadingMore,
+                        isLoading: viewModel.isLoadingMore,
+                        systemImage: "arrow.down.circle"
+                    ) { Task { await viewModel.loadMore(userID: currentUserID) } }
+                }
+            }
         } else {
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 if let actionError = viewModel.actionError {
@@ -380,11 +413,20 @@ struct MyFeedbackView: View {
 
                 ForEach(filteredItems) { item in
                     Button {
-                        selectedFeedback = item
+                        open(item)
                     } label: {
                         FeedbackUserRequestCard(item: item)
                     }
                     .buttonStyle(.plain)
+                }
+
+                if viewModel.hasMore {
+                    PrimaryActionButton(
+                        title: AppStrings.Search.loadMoreContent,
+                        isEnabled: !viewModel.isLoadingMore,
+                        isLoading: viewModel.isLoadingMore,
+                        systemImage: "arrow.down.circle"
+                    ) { Task { await viewModel.loadMore(userID: currentUserID) } }
                 }
             }
         }
@@ -415,6 +457,11 @@ struct MyFeedbackView: View {
     private func currentFeedbackItem(for item: FeedbackItem) -> FeedbackItem {
         viewModel.items.first { $0.id == item.id } ?? item
     }
+
+    private func open(_ item: FeedbackItem) {
+        selectedFeedback = item
+        Task { await viewModel.acknowledgeRead(item, userID: currentUserID) }
+    }
 }
 
 private struct FeedbackUserRequestCard: View {
@@ -444,6 +491,15 @@ private struct FeedbackUserRequestCard: View {
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(1)
+                        .overlay(alignment: .topTrailing) {
+                            if item.unreadForUser {
+                                Circle()
+                                    .fill(AppTheme.accentDestructive)
+                                    .frame(width: 10, height: 10)
+                                    .offset(x: 12, y: -4)
+                                    .accessibilityLabel(AppStrings.Feedback.unread)
+                            }
+                        }
 
                     Spacer(minLength: 0)
 
@@ -498,7 +554,9 @@ private enum FeedbackInboxFilter: String, CaseIterable, Identifiable {
 struct FeedbackInboxView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: FeedbackInboxViewModel
+    let initialFeedbackID: String?
     @State private var selectedFeedback: FeedbackItem?
+    @State private var handledInitialFeedbackID: String?
     @State private var dsaDecisionItem: FeedbackItem?
     @State private var selectedFilter: FeedbackInboxFilter = .open
     @State private var sortOption: AppListSortOption = .newest
@@ -519,8 +577,10 @@ struct FeedbackInboxView: View {
 
     init(
         repository: FeedbackRepository,
-        notificationInboxRepository: NotificationInboxRepository? = nil
+        notificationInboxRepository: NotificationInboxRepository? = nil,
+        initialFeedbackID: String? = nil
     ) {
+        self.initialFeedbackID = initialFeedbackID
         _viewModel = StateObject(wrappedValue: FeedbackInboxViewModel(
             repository: repository,
             notificationInboxRepository: notificationInboxRepository
@@ -564,11 +624,20 @@ struct FeedbackInboxView: View {
         .navigationTitle(AppStrings.Feedback.inboxTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .task {
-            await viewModel.loadIfNeeded()
+        .task(id: "\(authState.user?.id ?? ""):\(initialFeedbackID ?? "")") {
+            guard let actorID = authState.user?.id else { viewModel.reset(); return }
+            await viewModel.loadIfNeeded(actorID: actorID)
+            guard let initialFeedbackID else { return }
+            let initialKey = "\(actorID):\(initialFeedbackID)"
+            guard handledInitialFeedbackID != initialKey else { return }
+            if let item = await viewModel.feedback(id: initialFeedbackID, actorID: actorID) {
+                handledInitialFeedbackID = initialKey
+                open(item, actorID: actorID)
+            }
         }
         .appRefreshable {
-            await viewModel.refresh()
+            guard let actorID = authState.user?.id else { return }
+            await viewModel.refresh(actorID: actorID)
         }
         .confirmationDialog(
             AppStrings.Feedback.clearInboxConfirmationTitle,
@@ -609,9 +678,18 @@ struct FeedbackInboxView: View {
                 messages: viewModel.messages(for: currentItem),
                 isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
                 isUpdating: viewModel.updatingFeedbackIDs.contains(currentItem.id),
+                messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
+                hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
+                isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
                 actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
                 onLoad: {
                     Task { await viewModel.loadMessages(for: currentItem) }
+                },
+                onRetryMessages: {
+                    Task { await viewModel.loadMessages(for: currentItem) }
+                },
+                onLoadMoreMessages: {
+                    Task { await viewModel.loadMoreMessages(for: currentItem) }
                 },
                 onSendReply: { reply in
                     guard let owner = authState.user else { return false }
@@ -625,23 +703,14 @@ struct FeedbackInboxView: View {
                 onStop: {
                     viewModel.stopListeningMessages(for: currentItem.id)
                 },
-                onClose: {
-                    let latest = currentFeedbackItem(for: currentItem)
-                    if latest.dsaCase != nil {
-                        selectedFeedback = nil
-                        dsaDecisionItem = latest
-                    } else {
-                        Task {
-                            let closed = await viewModel.close(latest)
-                            if closed { selectedFeedback = nil }
-                        }
-                    }
-                }
+                onClose: closeAction(for: currentItem)
             )
             .presentationDetents([.medium, .large])
         }
         .sheet(item: $dsaDecisionItem) { item in
-            if item.dsaCase?.status == "appealed" {
+            if !PermissionService.isAppOwner(user: authState.user) {
+                EmptyView().onAppear { dsaDecisionItem = nil }
+            } else if item.dsaCase?.status == "appealed" {
                 DsaAppealDecisionSheet(item: item) { request in
                     let succeeded = await viewModel.decideDsaAppeal(request, item: item)
                     if succeeded { dsaDecisionItem = nil }
@@ -670,7 +739,8 @@ struct FeedbackInboxView: View {
                 message: feedbackErrorMessage(error)
             ) {
                 PrimaryActionButton(title: AppStrings.Moderation.retry, systemImage: "arrow.clockwise") {
-                    Task { await viewModel.refresh() }
+                    guard let actorID = authState.user?.id else { return }
+                    Task { await viewModel.refresh(actorID: actorID) }
                 }
             }
         } else if viewModel.items.isEmpty {
@@ -684,7 +754,19 @@ struct FeedbackInboxView: View {
                 systemImage: "line.3.horizontal.decrease.circle",
                 title: selectedFilter.title,
                 message: AppStrings.Feedback.inboxFilterEmpty
-            )
+            ) {
+                if viewModel.hasMore {
+                    PrimaryActionButton(
+                        title: AppStrings.Search.loadMoreContent,
+                        isEnabled: !viewModel.isLoadingMore,
+                        isLoading: viewModel.isLoadingMore,
+                        systemImage: "arrow.down.circle"
+                    ) {
+                        guard let actorID = authState.user?.id else { return }
+                        Task { await viewModel.loadMore(actorID: actorID) }
+                    }
+                }
+            }
         } else {
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 if let error = viewModel.error {
@@ -694,7 +776,8 @@ struct FeedbackInboxView: View {
                 ForEach(filteredItems) { item in
                     HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
                         Button {
-                            selectedFeedback = item
+                            guard let actorID = authState.user?.id else { return }
+                            open(item, actorID: actorID)
                         } label: {
                             FeedbackInboxRow(item: item)
                         }
@@ -705,6 +788,9 @@ struct FeedbackInboxView: View {
                                 ProgressView()
                                     .controlSize(.small)
                                     .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                            } else if item.dsaCase != nil {
+                                Image(systemName: "lock.shield")
+                                    .accessibilityLabel(AppStrings.Feedback.retentionProtected)
                             } else {
                                 AppGlassIconButton(
                                     systemImage: "trash",
@@ -716,6 +802,18 @@ struct FeedbackInboxView: View {
                                 .accessibilityIdentifier("feedbackInbox.delete.\(item.id)")
                             }
                         }
+                    }
+                }
+
+                if viewModel.hasMore {
+                    PrimaryActionButton(
+                        title: AppStrings.Search.loadMoreContent,
+                        isEnabled: !viewModel.isLoadingMore,
+                        isLoading: viewModel.isLoadingMore,
+                        systemImage: "arrow.down.circle"
+                    ) {
+                        guard let actorID = authState.user?.id else { return }
+                        Task { await viewModel.loadMore(actorID: actorID) }
                     }
                 }
             }
@@ -812,6 +910,28 @@ struct FeedbackInboxView: View {
     private func currentFeedbackItem(for item: FeedbackItem) -> FeedbackItem {
         viewModel.items.first { $0.id == item.id } ?? item
     }
+
+    private func closeAction(for item: FeedbackItem) -> (() -> Void)? {
+        if item.dsaCase != nil, !PermissionService.isAppOwner(user: authState.user) { return nil }
+        return {
+            let latest = currentFeedbackItem(for: item)
+            if latest.dsaCase != nil {
+                selectedFeedback = nil
+                dsaDecisionItem = latest
+            } else {
+                Task {
+                    guard let owner = authState.user else { return }
+                    let closed = await viewModel.close(latest, owner: owner)
+                    if closed { selectedFeedback = nil }
+                }
+            }
+        }
+    }
+
+    private func open(_ item: FeedbackItem, actorID: String) {
+        selectedFeedback = item
+        Task { await viewModel.acknowledgeRead(item, actorID: actorID) }
+    }
 }
 
 private struct FeedbackInboxRow: View {
@@ -907,11 +1027,16 @@ private struct FeedbackDetailSheet: View {
     let messages: [FeedbackMessage]
     let isLoadingMessages: Bool
     let isUpdating: Bool
+    let messageErrorMessage: String?
+    let hasMoreMessages: Bool
+    let isLoadingMoreMessages: Bool
     let actionErrorMessage: String?
     let onLoad: () -> Void
+    let onRetryMessages: () -> Void
+    let onLoadMoreMessages: () -> Void
     let onSendReply: (String) async -> Bool
     let onStop: () -> Void
-    let onClose: () -> Void
+    let onClose: (() -> Void)?
 
     var body: some View {
         FeedbackConversationSheet(
@@ -919,9 +1044,14 @@ private struct FeedbackDetailSheet: View {
             messages: messages,
             isLoadingMessages: isLoadingMessages,
             isSending: isUpdating,
+            messageErrorMessage: messageErrorMessage,
+            hasMoreMessages: hasMoreMessages,
+            isLoadingMoreMessages: isLoadingMoreMessages,
             actionErrorMessage: actionErrorMessage,
             allowsClose: true,
             onLoad: onLoad,
+            onRetryMessages: onRetryMessages,
+            onLoadMoreMessages: onLoadMoreMessages,
             onSend: onSendReply,
             onStop: onStop,
             onClose: onClose,
@@ -935,9 +1065,14 @@ private struct FeedbackConversationSheet: View {
     let messages: [FeedbackMessage]
     let isLoadingMessages: Bool
     let isSending: Bool
+    let messageErrorMessage: String?
+    let hasMoreMessages: Bool
+    let isLoadingMoreMessages: Bool
     let actionErrorMessage: String?
     let allowsClose: Bool
     let onLoad: () -> Void
+    let onRetryMessages: () -> Void
+    let onLoadMoreMessages: () -> Void
     let onSend: (String) async -> Bool
     let onStop: () -> Void
     let onClose: (() -> Void)?
@@ -983,6 +1118,14 @@ private struct FeedbackConversationSheet: View {
                                 DsaCaseContextCard(dsaCase: dsaCase)
                             }
 
+                            if let messageErrorMessage {
+                                InlineMessageCard(style: .error, message: messageErrorMessage)
+                                PrimaryActionButton(
+                                    title: AppStrings.Moderation.retry,
+                                    systemImage: "arrow.clockwise"
+                                ) { onRetryMessages() }
+                            }
+
                             if isLoadingMessages && messages.isEmpty {
                                 LoadingStateCard(title: AppStrings.Feedback.messagesTitle)
                             } else if messages.isEmpty {
@@ -993,6 +1136,14 @@ private struct FeedbackConversationSheet: View {
                                 )
                             } else {
                                 VStack(spacing: 10) {
+                                    if hasMoreMessages {
+                                        PrimaryActionButton(
+                                            title: AppStrings.Search.loadMoreContent,
+                                            isEnabled: !isLoadingMoreMessages,
+                                            isLoading: isLoadingMoreMessages,
+                                            systemImage: "arrow.up.circle"
+                                        ) { onLoadMoreMessages() }
+                                    }
                                     ForEach(messages) { message in
                                         FeedbackMessageBubble(message: message)
                                             .id(message.id)
@@ -1412,7 +1563,6 @@ private struct DsaDecisionSheet: View {
             VStack(alignment: .leading, spacing: 16) {
                 Picker(AppStrings.Safety.dsaOutcomeTitle, selection: $outcome) {
                     Text(AppStrings.Safety.dsaOutcomeNoAction).tag("noAction")
-                    Text(AppStrings.Safety.dsaOutcomeRestricted).tag("restricted")
                     Text(AppStrings.Safety.dsaOutcomeRemoved).tag("removed")
                 }
                 .pickerStyle(.menu)
@@ -1678,7 +1828,7 @@ struct FeedbackComposerCard: View {
 
                     TextEditor(text: $feedbackMessage)
                         .scrollContentBackground(.hidden)
-                        .frame(minHeight: 92)
+                        .frame(height: dynamicTypeSize.isAccessibilitySize ? 140 : 104)
                         .padding(8)
                         .background(Color.clear)
                 }

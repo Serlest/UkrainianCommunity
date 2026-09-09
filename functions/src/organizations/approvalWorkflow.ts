@@ -1,18 +1,18 @@
-import {randomUUID} from "node:crypto";
-import { FieldValue, type DocumentData } from "firebase-admin/firestore";
-import { HttpsError, onCall } from "firebase-functions/v2/https";
+import {createHash, randomUUID} from "node:crypto";
+import {FieldValue, Timestamp, type DocumentData} from "firebase-admin/firestore";
+import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
-import { requireVerifiedActiveUser } from "../auth/context";
-import { db } from "../firebase/admin";
+import {type AuditActionType, auditLogRef, buildAuditLog} from "../audit/auditLog";
+import {requireVerifiedActiveUser} from "../auth/context";
+import {db} from "../firebase/admin";
 import {
   buildUserNotificationDocument,
   notificationRecipientEligibility,
   type NotificationType,
   userNotificationRef,
 } from "../notifications/notificationPayloads";
-import { canManageOrganizationRequests } from "../permissions/userPermissions";
-import { type OrganizationModerationStatus } from "./types";
+import {canManageOrganizationRequests} from "../permissions/userPermissions";
+import {type OrganizationModerationStatus} from "./types";
 
 export type ReviewAction = "approve" | "requestRevision" | "reject";
 
@@ -20,6 +20,8 @@ export interface OrganizationReviewRequest {
   organizationId: string;
   message?: string;
   reason?: string;
+  operationId?: string;
+  expectedRevision?: string | null;
 }
 
 interface OrganizationReviewResponse {
@@ -53,6 +55,7 @@ interface OrganizationReviewNotificationTarget {
 interface OrganizationReviewCommitResult {
   notificationTarget: OrganizationReviewNotificationTarget;
   notificationId: string;
+  updatedAt: string;
 }
 
 const callableOptions = {
@@ -70,6 +73,8 @@ export function parseReviewRequest(data: unknown): OrganizationReviewRequest {
     organizationId: normalizedRequiredString(data.organizationId, "organizationId"),
     message: optionalTrimmedString(data.message, "message"),
     reason: optionalTrimmedString(data.reason, "reason"),
+    operationId: optionalIdentifier(data.operationId, "operationId"),
+    expectedRevision: optionalNullableString(data.expectedRevision, "expectedRevision"),
   };
 }
 
@@ -103,6 +108,24 @@ function optionalTrimmedString(value: unknown, field: string): string | undefine
   return trimmedValue.length > 0 ? trimmedValue : undefined;
 }
 
+function optionalIdentifier(value: unknown, field: string): string | undefined {
+  const normalized = optionalTrimmedString(value, field);
+  if (normalized !== undefined && (normalized.length > 200 || normalized.includes("/"))) {
+    throw new HttpsError("invalid-argument", `${field} is invalid.`);
+  }
+  return normalized;
+}
+
+function optionalNullableString(value: unknown, field: string): string | null | undefined {
+  if (value === null) return null;
+  return optionalTrimmedString(value, field);
+}
+
+function organizationRevision(data: DocumentData | undefined): string | null {
+  const updatedAt = data?.updatedAt;
+  return updatedAt instanceof Timestamp ? `${updatedAt.seconds}:${updatedAt.nanoseconds}` : null;
+}
+
 function reviewSnapshotFromData(
   organizationId: string,
   data: DocumentData | undefined
@@ -111,13 +134,13 @@ function reviewSnapshotFromData(
   const submittedByUserId = typeof data?.submittedByUserId === "string"
     ? data.submittedByUserId.trim()
     : "";
-  const previousStatus = typeof data?.moderationStatus === "string"
-    ? data.moderationStatus as OrganizationModerationStatus
-    : "pendingReview";
-
   if (submittedByUserId.length === 0) {
     throw new HttpsError("failed-precondition", "Organization request submitter is missing.");
   }
+  if (typeof data?.moderationStatus !== "string") {
+    throw new HttpsError("failed-precondition", "Organization request status is missing.");
+  }
+  const previousStatus = data.moderationStatus as OrganizationModerationStatus;
 
   return {
     organizationId,
@@ -128,7 +151,7 @@ function reviewSnapshotFromData(
 }
 
 export function assertReviewableStatus(status: OrganizationModerationStatus): void {
-  if (!["pendingReview", "needsRevision", "rejected"].includes(status)) {
+  if (status !== "pendingReview") {
     throw new HttpsError("failed-precondition", "Organization request is not reviewable.");
   }
 }
@@ -237,18 +260,50 @@ export async function commitOrganizationReview(
   text?: string
 ): Promise<OrganizationReviewCommitResult> {
   const organizationReference = db.collection("organizations").doc(reviewRequest.organizationId);
-
-  const reviewId = randomUUID();
+  const operationId = reviewRequest.operationId;
+  const receiptReference = operationId
+    ? db.collection("organizationMutationReceipts").doc(createHash("sha256")
+      .update(`review\0${actorUid}\0${reviewRequest.organizationId}\0${operationId}`)
+      .digest("hex"))
+    : null;
+  const fingerprint = createHash("sha256").update(JSON.stringify({
+    action: workflow.action,
+    organizationId: reviewRequest.organizationId,
+    expectedRevision: reviewRequest.expectedRevision,
+    text: text ?? null,
+  })).digest("hex");
+  const reviewId = receiptReference?.id ?? randomUUID();
   return db.runTransaction(async (transaction): Promise<OrganizationReviewCommitResult> => {
-    const organizationDocument = await transaction.get(organizationReference);
+    const [organizationDocument, receiptDocument] = receiptReference
+      ? await transaction.getAll(organizationReference, receiptReference)
+      : [await transaction.get(organizationReference), null];
     if (!organizationDocument.exists) {
       throw new HttpsError("not-found", "Organization does not exist.");
+    }
+
+    if (receiptDocument?.exists) {
+      if (receiptDocument.get("fingerprint") !== fingerprint) {
+        throw new HttpsError("already-exists", "Operation ID was reused.");
+      }
+      return {
+        notificationTarget: {
+          organizationId: reviewRequest.organizationId,
+          submittedByUserId: receiptDocument.get("submittedByUserId"),
+          name: receiptDocument.get("organizationName"),
+        },
+        notificationId: receiptDocument.get("notificationId"),
+        updatedAt: receiptDocument.get("updatedAt"),
+      };
     }
 
     const organization = reviewSnapshotFromData(
       reviewRequest.organizationId,
       organizationDocument.data()
     );
+    if (reviewRequest.expectedRevision !== undefined &&
+        organizationRevision(organizationDocument.data()) !== reviewRequest.expectedRevision) {
+      throw new HttpsError("aborted", "Organization request changed. Reload before reviewing.");
+    }
     assertReviewableStatus(organization.previousStatus);
 
     const submitterReference = db.collection("users").doc(organization.submittedByUserId);
@@ -277,6 +332,8 @@ export async function commitOrganizationReview(
       organization.organizationId,
       organization.submittedByUserId,
     ].join("_");
+    const now = Timestamp.now();
+    const updatedAt = now.toDate().toISOString();
 
     transaction.update(
       organizationReference,
@@ -324,7 +381,21 @@ export async function commitOrganizationReview(
       );
     }
 
-    return {notificationTarget, notificationId};
+    if (receiptReference) {
+      transaction.create(receiptReference, {
+        userId: actorUid,
+        organizationId: organization.organizationId,
+        submittedByUserId: organization.submittedByUserId,
+        organizationName: organization.name,
+        fingerprint,
+        notificationId,
+        updatedAt,
+        completedAt: now,
+        expiresAt: Timestamp.fromMillis(now.toMillis() + 30 * 24 * 60 * 60 * 1000),
+      });
+    }
+
+    return {notificationTarget, notificationId, updatedAt};
   });
 }
 
@@ -341,14 +412,13 @@ function createReviewCallable(workflow: ReviewWorkflow) {
     const text = workflow.requiredTextField
       ? requiredReviewText(reviewRequest, workflow.requiredTextField)
       : undefined;
-    const committedAt = new Date().toISOString();
     const committed = await commitOrganizationReview(auth.uid, reviewRequest, workflow, text);
 
     return {
       organizationId: reviewRequest.organizationId,
       moderationStatus: workflow.moderationStatus,
       notificationId: committed.notificationId,
-      updatedAt: committedAt,
+      updatedAt: committed.updatedAt,
     };
   });
 }

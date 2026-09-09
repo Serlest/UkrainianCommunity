@@ -39,7 +39,26 @@ struct RecentViewItem: Identifiable, Equatable {
     let title: String
     let subtitle: String?
     let imageURL: String?
+    let organizationID: String?
     let viewedAt: Date
+
+    init(
+        itemId: String,
+        itemType: RecentViewItemType,
+        title: String,
+        subtitle: String?,
+        imageURL: String?,
+        organizationID: String? = nil,
+        viewedAt: Date
+    ) {
+        self.itemId = itemId
+        self.itemType = itemType
+        self.title = title
+        self.subtitle = subtitle
+        self.imageURL = imageURL
+        self.organizationID = organizationID
+        self.viewedAt = viewedAt
+    }
 
     var id: String { Self.documentID(itemId: itemId, itemType: itemType) }
 
@@ -86,6 +105,7 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
             "title": item.title,
             "subtitle": item.subtitle as Any,
             "imageURL": item.imageURL as Any,
+            "organizationID": item.organizationID as Any,
             "viewedAt": Timestamp(date: item.viewedAt)
         ], merge: true)
 
@@ -146,6 +166,7 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
             title: title,
             subtitle: data["subtitle"] as? String,
             imageURL: data["imageURL"] as? String,
+            organizationID: data["organizationID"] as? String,
             viewedAt: viewedAt
         )
     }
@@ -162,12 +183,16 @@ final class RecentViewsViewModel: ObservableObject {
     private let repository: RecentViewsRepository
     private var hasLoaded = false
     private var loadedUserID: String?
+    private var refreshGeneration: UInt = 0
 
     init(repository: RecentViewsRepository) {
         self.repository = repository
     }
 
     func loadIfNeeded() async {
+        if loadedUserID == nil {
+            loadedUserID = Auth.auth().currentUser?.uid
+        }
         guard !hasLoaded else { return }
         await refresh()
     }
@@ -179,49 +204,91 @@ final class RecentViewsViewModel: ObservableObject {
         }
         guard !hasLoaded else { return }
         await refresh()
-        loadedUserID = userID
+    }
+
+    func refresh(userID: String) async {
+        if loadedUserID != userID {
+            resetForAuthChange()
+            loadedUserID = userID
+        }
+        await refresh()
     }
 
     func resetForAuthChange() {
+        refreshGeneration &+= 1
         items = []
         isLoading = false
         error = nil
+        isClearing = false
+        deletingIDs = []
         hasLoaded = false
         loadedUserID = nil
     }
 
     func refresh() async {
+        refreshGeneration &+= 1
+        let generation = refreshGeneration
+        let requestedUserID = loadedUserID ?? Auth.auth().currentUser?.uid
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if generation == refreshGeneration {
+                isLoading = false
+            }
+        }
 
         do {
-            items = try await RefreshRequest.run { [self] in try await repository.fetchRecentViews(limit: 30) }
+            let refreshedItems = try await RefreshRequest.run { [self] in
+                try await repository.fetchRecentViews(limit: 30)
+            }
                 .sorted { $0.viewedAt > $1.viewedAt }
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return }
+            items = refreshedItems
             error = nil
             hasLoaded = true
-            loadedUserID = Auth.auth().currentUser?.uid
         } catch let appError as AppError {
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return }
             error = appError
             hasLoaded = true
         } catch {
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return }
             self.error = .unknown
             hasLoaded = true
         }
     }
 
+    func applyRecordedView(_ item: RecentViewItem, userID: String) {
+        guard loadedUserID == userID else { return }
+        items.removeAll { $0.id == item.id }
+        items.append(item)
+        items.sort {
+            $0.viewedAt == $1.viewedAt ? $0.id < $1.id : $0.viewedAt > $1.viewedAt
+        }
+        error = nil
+        hasLoaded = true
+    }
+
     @discardableResult
     func clearHistory() async -> Bool {
         guard !isClearing else { return false }
+        let generation = refreshGeneration
+        let requestedUserID = loadedUserID
         isClearing = true
-        defer { isClearing = false }
+        defer {
+            if generation == refreshGeneration, requestedUserID == loadedUserID {
+                isClearing = false
+            }
+        }
         do {
             try await repository.clearRecentViews()
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
             items = []
             error = nil
             return true
         } catch let appError as AppError {
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
             error = appError
         } catch {
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
             self.error = .unknown
         }
         return false
@@ -230,24 +297,40 @@ final class RecentViewsViewModel: ObservableObject {
     @discardableResult
     func delete(_ item: RecentViewItem) async -> Bool {
         guard !deletingIDs.contains(item.id) else { return false }
+        let generation = refreshGeneration
+        let requestedUserID = loadedUserID
         deletingIDs.insert(item.id)
-        defer { deletingIDs.remove(item.id) }
+        defer {
+            if generation == refreshGeneration, requestedUserID == loadedUserID {
+                deletingIDs.remove(item.id)
+            }
+        }
         do {
             try await repository.deleteRecentView(id: item.id)
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
             items.removeAll { $0.id == item.id }
             error = nil
             return true
         } catch let appError as AppError {
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
             error = appError
         } catch {
+            guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
             self.error = .unknown
         }
         return false
     }
 }
 
+struct RecentViewRecordingEvent {
+    let item: RecentViewItem
+    let userID: String
+}
+
+@MainActor
 enum RecentViewRecorder {
     private static let repository: RecentViewsRepository = FirestoreRecentViewsRepository()
+    static let didRecord = PassthroughSubject<RecentViewRecordingEvent, Never>()
 
     static func recordNews(_ post: NewsPost) {
         record(RecentViewItem(
@@ -256,6 +339,7 @@ enum RecentViewRecorder {
             title: post.title,
             subtitle: post.subtitle.isEmpty ? nil : post.subtitle,
             imageURL: post.imageURL,
+            organizationID: post.source.organizationId,
             viewedAt: Date()
         ))
     }
@@ -267,6 +351,7 @@ enum RecentViewRecorder {
             title: event.title,
             subtitle: event.summary.isEmpty ? eventScheduleSubtitle(for: event) : event.summary,
             imageURL: event.imageURL,
+            organizationID: event.source.organizationId,
             viewedAt: Date()
         ))
     }
@@ -278,13 +363,22 @@ enum RecentViewRecorder {
             title: organization.localizedName,
             subtitle: organization.localizedShortDescription.isEmpty ? organization.city : organization.localizedShortDescription,
             imageURL: organization.logoURL ?? organization.imageURL ?? organization.coverURL,
+            organizationID: organization.id,
             viewedAt: Date()
         ))
     }
 
     private static func record(_ item: RecentViewItem) {
+        guard let userID = Auth.auth().currentUser?.uid else { return }
         Task {
-            try? await repository.recordRecentView(item)
+            guard Auth.auth().currentUser?.uid == userID else { return }
+            do {
+                try await repository.recordRecentView(item)
+                guard Auth.auth().currentUser?.uid == userID else { return }
+                didRecord.send(RecentViewRecordingEvent(item: item, userID: userID))
+            } catch {
+                // Recent views remain best-effort and must not interrupt detail navigation.
+            }
         }
     }
 

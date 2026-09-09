@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 enum LegalDocumentType: String, CaseIterable, Codable, Identifiable {
@@ -48,6 +49,7 @@ struct LegalDocument: Identifiable, Codable, Equatable {
     let updatedBy: String?
     let publishedAt: Date?
     let publishedBy: String?
+    var supersedesVersion: String? = nil
 
     func content(preferredLocale: String? = nil) -> LegalDocumentLocaleContent? {
         let normalizedPreferredLocale = preferredLocale?.lowercased()
@@ -170,9 +172,12 @@ struct LegalDocumentDraft: Equatable {
     var requiresAcceptance: Bool
     var changeSummary: String?
     var supersedesVersion: String?
+    /// Hash observed when this mutable draft was loaded. Saves persist it as
+    /// the base hash and compare it with the current server document.
+    var sourceContentHash: String? = nil
 
     static func from(activeDocument: LegalDocument) -> LegalDocumentDraft {
-        let nextVersion = Self.nextVersion(after: activeDocument.version)
+        let nextVersion = Self.nextVersion(after: activeDocument)
         return LegalDocumentDraft(
             type: activeDocument.type,
             version: nextVersion.identifier,
@@ -182,12 +187,61 @@ struct LegalDocumentDraft: Equatable {
             locales: activeDocument.locales,
             requiresAcceptance: activeDocument.requiresAcceptance,
             changeSummary: nil,
-            supersedesVersion: activeDocument.version
+            supersedesVersion: activeDocument.version,
+            sourceContentHash: nil
         )
     }
 
-    private static func nextVersion(after currentVersion: String) -> (identifier: String, number: Int) {
-        let parts = currentVersion.split(separator: ".")
+    var hasConsistentVersionIdentifier: Bool {
+        Self.hasConsistentVersionIdentifier(version, versionNumber: versionNumber)
+    }
+
+    static func hasConsistentVersionIdentifier(_ version: String, versionNumber: Int) -> Bool {
+        let parts = version.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 2,
+              let year = Int(parts[0]),
+              let minor = Int(parts[1]),
+              year > 0,
+              minor > 0,
+              minor < 100
+        else { return false }
+        return versionNumber == year * 100 + minor
+    }
+
+    var normalizedContentHash: String {
+        let normalizedLocales = locales.reduce(into: [String: LegalDocumentLocaleContent]()) { result, entry in
+            result[entry.key.lowercased()] = entry.value
+        }
+        let canonical = normalizedLocales.keys.sorted().map { locale in
+            let content = normalizedLocales[locale]
+            let markdown = (content?.contentMarkdown ?? "")
+                .replacingOccurrences(of: "\r\n", with: "\n")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            return [
+                locale,
+                (content?.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
+                markdown,
+                Self.sha256(markdown)
+            ].joined(separator: "\n")
+        }
+        .joined(separator: "\n---\n")
+        return Self.sha256(canonical)
+    }
+
+    private static func sha256(_ value: String) -> String {
+        let digest = SHA256.hash(data: Data(value.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func nextVersion(after activeDocument: LegalDocument) -> (identifier: String, number: Int) {
+        let numericYear = activeDocument.versionNumber / 100
+        let numericMinorVersion = activeDocument.versionNumber % 100
+        if numericYear > 0, numericMinorVersion > 0, numericMinorVersion < 99 {
+            let nextMinorVersion = numericMinorVersion + 1
+            return ("\(numericYear).\(nextMinorVersion)", activeDocument.versionNumber + 1)
+        }
+
+        let parts = activeDocument.version.split(separator: ".")
         guard
             parts.count >= 2,
             let year = parts.first.flatMap({ Int($0) }),

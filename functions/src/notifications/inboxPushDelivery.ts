@@ -40,6 +40,34 @@ interface TestPushResponse {
   failureCount: number;
 }
 
+type TestPushLanguage = "de" | "en" | "uk";
+
+function testPushLanguage(data?: FirebaseFirestore.DocumentData): TestPushLanguage {
+  const locale = [
+    data?.language,
+    data?.appLanguage,
+    data?.locale,
+    data?.preferredLocale,
+    data?.preferredLanguage,
+  ].find((value) => typeof value === "string" && value.trim().length > 0);
+  const normalizedLocale = typeof locale === "string" ? locale.toLowerCase() : "";
+
+  if (normalizedLocale.startsWith("uk")) return "uk";
+  if (normalizedLocale.startsWith("de")) return "de";
+  return "en";
+}
+
+function testPushBody(language: TestPushLanguage): string {
+  switch (language) {
+    case "uk":
+      return "Тестове сповіщення успішно доставлено.";
+    case "de":
+      return "Die Testbenachrichtigung wurde erfolgreich zugestellt.";
+    case "en":
+      return "Test notification delivered successfully.";
+  }
+}
+
 export const sendTestPushNotification = onCall(
   callableOptions,
   async (request): Promise<TestPushResponse> => {
@@ -53,10 +81,13 @@ export const sendTestPushNotification = onCall(
       );
     }
 
-    const registrations = await db.collection("users")
-      .doc(auth.uid)
-      .collection("notificationPushTokens")
-      .get();
+    const userReference = db.collection("users").doc(auth.uid);
+    const [userSnapshot, registrations] = await Promise.all([
+      userReference.get(),
+      userReference
+        .collection("notificationPushTokens")
+        .get(),
+    ]);
     if (registrations.empty) {
       throw new HttpsError(
         "failed-precondition",
@@ -69,7 +100,7 @@ export const sendTestPushNotification = onCall(
     const delivery = await sendPushToRegistrationDocuments(registrations.docs, {
       notification: {
         title: "Ukrainian Community",
-        body: "Test notification delivered successfully.",
+        body: testPushBody(testPushLanguage(userSnapshot.data())),
       },
       data: buildNotificationDataPayload({
         notificationId: `pushTest_${auth.uid}_${Date.now()}`,

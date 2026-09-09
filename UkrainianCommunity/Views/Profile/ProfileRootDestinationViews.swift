@@ -9,6 +9,7 @@ struct ProfilePreferencesView: View {
     @Binding var isAnalyticsCollectionEnabled: Bool
     let currentUser: AppUser?
     @State private var accountDeletionCandidate: AppUser?
+    @State private var analyticsConsentWasRejected = false
 
     var body: some View {
         PushedScreenShell(
@@ -56,6 +57,7 @@ struct ProfilePreferencesView: View {
                         isOn: Binding(
                             get: { isAnalyticsCollectionEnabled },
                             set: { isEnabled in
+                                analyticsConsentWasRejected = false
                                 isAnalyticsCollectionEnabled = isEnabled
                                 analyticsService.setCollectionEnabled(isEnabled)
                             }
@@ -63,6 +65,24 @@ struct ProfilePreferencesView: View {
                     )
                     .disabled(!analyticsService.isCollectionAvailable)
                     .accessibilityIdentifier("profile.settings.analyticsConsent")
+
+                    if analyticsConsentWasRejected {
+                        InlineMessageCard(
+                            style: .error,
+                            message: AppStrings.Profile.analyticsConsentRejected
+                        )
+                        .accessibilityIdentifier("profile.settings.analyticsConsent.error")
+
+                        Button {
+                            analyticsConsentWasRejected = false
+                            isAnalyticsCollectionEnabled = true
+                            analyticsService.setCollectionEnabled(true)
+                        } label: {
+                            Label(AppStrings.Action.retry, systemImage: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("profile.settings.analyticsConsent.retry")
+                    }
                 }
             }
 
@@ -182,6 +202,23 @@ struct ProfilePreferencesView: View {
         .task(id: currentUser?.id) {
             guard let userID = currentUser?.id else { return }
             await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)
+        }
+        .task(id: currentUser?.id) {
+            for await _ in analyticsService.collectionChanges() {
+                guard !Task.isCancelled else { return }
+                isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
+            }
+        }
+        .task(id: currentUser?.id) {
+            analyticsConsentWasRejected = false
+            for await failure in analyticsService.consentFailures() {
+                guard !Task.isCancelled else { return }
+                if failure.kind == .permanentRejection,
+                   analyticsService.isCurrentConsentFailure(failure) {
+                    analyticsConsentWasRejected = true
+                    isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
+                }
+            }
         }
         .sheet(item: $accountDeletionCandidate) { user in
             AccountDeletionConfirmationSheet(
@@ -330,7 +367,7 @@ struct ProfileProjectSupportView: View {
     var body: some View {
         PushedScreenShell(
             title: DonationLocalization.publicSectionTitle(for: language),
-            subtitle: config.message(for: language)
+            subtitle: DonationLocalization.publicSectionSubtitle(for: language)
         ) {
             ProfileDonationSupportCard(config: config, language: language)
         }

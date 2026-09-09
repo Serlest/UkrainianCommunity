@@ -39,6 +39,8 @@ struct LegalMarkdownRenderer: View {
             listRow(marker: "•", text: block.text, numbered: false)
         case .ordered(let marker):
             listRow(marker: marker, text: block.text, numbered: true)
+        case .table(let table):
+            LegalMarkdownTableView(table: table)
         }
     }
 
@@ -130,7 +132,7 @@ struct LegalMarkdownRenderer: View {
         switch block.kind {
         case .heading(let level):
             return level == 1 ? 22 : 18
-        case .paragraph:
+        case .paragraph, .table:
             return 12
         case .bullet, .ordered:
             return 10
@@ -148,6 +150,102 @@ private struct LegalMarkdownBlock: Identifiable {
         case paragraph
         case bullet
         case ordered(marker: String)
+        case table(LegalMarkdownTable)
+    }
+}
+
+private struct LegalMarkdownTable: Equatable {
+    let headers: [String]
+    let rows: [[String]]
+}
+
+private struct LegalMarkdownTableView: View {
+    let table: LegalMarkdownTable
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            compactTable
+                .fixedSize(horizontal: true, vertical: false)
+            stackedTable
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var compactTable: some View {
+        Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+            GridRow {
+                ForEach(Array(table.headers.enumerated()), id: \.offset) { _, header in
+                    inlineText(header)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+
+            Divider()
+                .gridCellUnsizedAxes(.horizontal)
+
+            ForEach(Array(table.rows.enumerated()), id: \.offset) { _, row in
+                GridRow(alignment: .top) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { _, cell in
+                        inlineText(cell)
+                            .font(.body)
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineSpacing(4)
+                    }
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(rowAccessibilityLabel(row))
+            }
+        }
+        .padding(12)
+        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var stackedTable: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(table.rows.enumerated()), id: \.offset) { rowIndex, row in
+                VStack(alignment: .leading, spacing: 10) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { columnIndex, cell in
+                        VStack(alignment: .leading, spacing: 3) {
+                            inlineText(table.headers[columnIndex])
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(AppTheme.textSecondary)
+
+                            inlineText(cell)
+                                .font(.body)
+                                .foregroundStyle(AppTheme.textPrimary)
+                                .lineSpacing(4)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding(.vertical, 12)
+                .accessibilityElement(children: .contain)
+
+                if rowIndex < table.rows.count - 1 {
+                    Divider()
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private func inlineText(_ value: String) -> Text {
+        let options = AttributedString.MarkdownParsingOptions(
+            interpretedSyntax: .inlineOnlyPreservingWhitespace
+        )
+        if let attributed = try? AttributedString(markdown: value, options: options) {
+            return Text(attributed)
+        }
+        return Text(value)
+    }
+
+    private func rowAccessibilityLabel(_ row: [String]) -> String {
+        table.headers.indices.map { index in
+            "\(table.headers[index]): \(row[index])"
+        }
+        .joined(separator: ". ")
     }
 }
 
@@ -170,23 +268,36 @@ private enum LegalMarkdownParser {
             paragraphLines.removeAll()
         }
 
-        for rawLine in source.components(separatedBy: "\n") {
+        let lines = source.components(separatedBy: "\n")
+        var lineIndex = 0
+        while lineIndex < lines.count {
+            let rawLine = lines[lineIndex]
             let line = rawLine.trimmingCharacters(in: .whitespaces)
+
+            if let table = table(from: lines, startingAt: lineIndex) {
+                flushParagraph()
+                blocks.append(LegalMarkdownBlock(kind: .table(table.value), text: ""))
+                lineIndex += table.consumedLineCount
+                continue
+            }
 
             if line.isEmpty {
                 flushParagraph()
+                lineIndex += 1
                 continue
             }
 
             if let heading = heading(from: line) {
                 flushParagraph()
                 blocks.append(LegalMarkdownBlock(kind: .heading(level: heading.level), text: heading.text))
+                lineIndex += 1
                 continue
             }
 
             if let bulletText = bulletText(from: line) {
                 flushParagraph()
                 blocks.append(LegalMarkdownBlock(kind: .bullet, text: bulletText))
+                lineIndex += 1
                 continue
             }
 
@@ -198,10 +309,12 @@ private enum LegalMarkdownParser {
                         text: orderedItem.text
                     )
                 )
+                lineIndex += 1
                 continue
             }
 
             paragraphLines.append(line)
+            lineIndex += 1
         }
 
         flushParagraph()
@@ -267,5 +380,63 @@ private enum LegalMarkdownParser {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
         return ("\(number).", text)
+    }
+
+    private static func table(
+        from lines: [String],
+        startingAt startIndex: Int
+    ) -> (value: LegalMarkdownTable, consumedLineCount: Int)? {
+        guard startIndex + 1 < lines.count,
+              let headers = tableCells(from: lines[startIndex]),
+              headers.count >= 2,
+              let separatorCells = tableCells(from: lines[startIndex + 1]),
+              separatorCells.count == headers.count,
+              separatorCells.allSatisfy({ isTableSeparator($0) })
+        else { return nil }
+
+        var rows: [[String]] = []
+        var nextIndex = startIndex + 2
+        while nextIndex < lines.count,
+              let cells = tableCells(from: lines[nextIndex]),
+              cells.count == headers.count {
+            rows.append(cells)
+            nextIndex += 1
+        }
+
+        guard !rows.isEmpty else { return nil }
+        return (
+            LegalMarkdownTable(headers: headers, rows: rows),
+            nextIndex - startIndex
+        )
+    }
+
+    private static func tableCells(from rawLine: String) -> [String]? {
+        let line = rawLine.trimmingCharacters(in: .whitespaces)
+        guard line.contains("|") else { return nil }
+
+        var source = line
+        if source.first == "|" { source.removeFirst() }
+        if source.last == "|" { source.removeLast() }
+
+        var cells: [String] = []
+        var current = ""
+        var isEscaped = false
+        for character in source {
+            if character == "|", !isEscaped {
+                cells.append(current.trimmingCharacters(in: .whitespaces))
+                current = ""
+            } else {
+                current.append(character)
+            }
+            isEscaped = character == "\\" && !isEscaped
+            if character != "\\" { isEscaped = false }
+        }
+        cells.append(current.trimmingCharacters(in: .whitespaces))
+        return cells
+    }
+
+    private static func isTableSeparator(_ value: String) -> Bool {
+        let core = value.trimmingCharacters(in: CharacterSet(charactersIn: ":"))
+        return core.count >= 3 && core.allSatisfy { $0 == "-" }
     }
 }

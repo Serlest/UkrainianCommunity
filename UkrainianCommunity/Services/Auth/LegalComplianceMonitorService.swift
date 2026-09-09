@@ -63,8 +63,8 @@ final class LegalComplianceMonitorService: ObservableObject {
 
         do {
             try Task.checkCancellation()
-            async let termsDocument = legalDocumentRepository.fetchActiveDocument(type: .terms)
-            async let privacyDocument = legalDocumentRepository.fetchActiveDocument(type: .privacy)
+            async let termsDocument = legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .terms)
+            async let privacyDocument = legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .privacy)
             let documents = try await [termsDocument, privacyDocument]
             try Task.checkCancellation()
             guard isCurrentConfiguration(generation: generation, userID: userID, key: key) else {
@@ -100,7 +100,12 @@ final class LegalComplianceMonitorService: ObservableObject {
             guard isCurrentConfiguration(generation: generation, userID: userID, key: key) else {
                 return
             }
-            activeRequirement = nil
+            evaluatedKey = nil
+            activeRequirement = LegalComplianceRequirement(
+                userID: userID,
+                requiredDocuments: [],
+                verificationUnavailable: true
+            )
             errorMessage = AppStrings.LegalCompliance.loadFailed
         }
     }
@@ -111,6 +116,15 @@ final class LegalComplianceMonitorService: ObservableObject {
               configuredUserID == requirement.userID,
               authState.isAuthenticated,
               authState.user?.id == requirement.userID else {
+            return
+        }
+
+        if requirement.verificationUnavailable {
+            isAccepting = true
+            acceptingUserID = nil
+            evaluatedKey = nil
+            await configure(user: authState.user)
+            isAccepting = false
             return
         }
 
@@ -374,9 +388,11 @@ final class LegalComplianceMonitorService: ObservableObject {
 struct LegalComplianceRequirement: Identifiable, Equatable {
     let userID: String
     let requiredDocuments: [LegalDocument]
+    var verificationUnavailable = false
 
     var id: String {
-        ([userID] + requiredDocuments.map { "\($0.type.rawValue):\($0.version)" })
+        ([userID, verificationUnavailable ? "unavailable" : "ready"]
+            + requiredDocuments.map { "\($0.type.rawValue):\($0.version)" })
             .joined(separator: "|")
     }
 

@@ -48,10 +48,16 @@ struct UserBlockTarget: Identifiable, Equatable {
 struct ContentVisibilityPolicy: Equatable {
     let blockedUserIDs: Set<String>
     let blockedOrganizationIDs: Set<String>
+    let allowsOrganizationContent: Bool
 
-    init(blockedUserIDs: Set<String> = [], blockedOrganizationIDs: Set<String> = []) {
+    init(
+        blockedUserIDs: Set<String> = [],
+        blockedOrganizationIDs: Set<String> = [],
+        allowsOrganizationContent: Bool = true
+    ) {
         self.blockedUserIDs = blockedUserIDs
         self.blockedOrganizationIDs = blockedOrganizationIDs
+        self.allowsOrganizationContent = allowsOrganizationContent
     }
 
     func allows(authorID: String?) -> Bool {
@@ -88,7 +94,8 @@ struct ContentVisibilityPolicy: Equatable {
     }
 
     func allows(organizationID: String?) -> Bool {
-        organizationID.map { !blockedOrganizationIDs.contains($0) } ?? true
+        guard let organizationID else { return true }
+        return allowsOrganizationContent && !blockedOrganizationIDs.contains(organizationID)
     }
 }
 

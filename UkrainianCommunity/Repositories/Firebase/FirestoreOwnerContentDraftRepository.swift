@@ -192,8 +192,15 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
 
         let ownerUserID = document.reference.parent.parent?.documentID ?? string(data["ownerUserId"])
         let sources = (data["sources"] as? [[String: Any]] ?? []).compactMap(makeSource)
-        let newsDraft = kind == .news ? makeNewsDraft(payload, updatedAt: date(data["updatedAt"]) ?? .now) : nil
-        let eventDraft = kind == .event ? makeEventDraft(payload, updatedAt: date(data["updatedAt"]) ?? .now) : nil
+        let updatedAt = date(data["updatedAt"]) ?? .now
+        let newsDraft = kind == .news ? makeNewsDraft(payload, updatedAt: updatedAt) : nil
+        let eventDraft = kind == .event ? makeEventDraft(payload, updatedAt: updatedAt) : nil
+        var missingFields = stringArray(data["missingFields"])
+        if kind == .event,
+           date(payload["startDate"]) == nil,
+           !missingFields.contains(where: { Self.isStartDateField($0) }) {
+            missingFields.append("startDate")
+        }
         return OwnerContentDraft(
             id: document.documentID,
             schemaVersion: integer(data["schemaVersion"]) ?? 1,
@@ -203,11 +210,11 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             title: optionalString(data["title"]) ?? string(payload["title"]),
             sourceReferences: sources,
             verificationNotes: stringArray(data["verificationNotes"]),
-            missingFields: stringArray(data["missingFields"]),
+            missingFields: missingFields,
             newsDraft: newsDraft,
             eventDraft: eventDraft,
             createdAt: date(data["createdAt"]) ?? .now,
-            updatedAt: date(data["updatedAt"]) ?? .now,
+            updatedAt: updatedAt,
             scheduledAt: date(data["scheduledAt"]),
             completedAt: date(data["completedAt"]),
             archivedAt: date(data["archivedAt"]),
@@ -280,9 +287,13 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
     private func makeEventDraft(_ payload: [String: Any], updatedAt: Date) -> EventCreateDraft? {
         let title = string(payload["title"])
         guard !title.isEmpty,
-              let startDate = date(payload["startDate"]),
               let federalStateRaw = optionalString(payload["federalState"]),
               let federalState = AustrianFederalState(rawValue: federalStateRaw) else { return nil }
+        // EventCreateDraft uses concrete dates. For an incomplete planning record,
+        // updatedAt is only a transport placeholder; OwnerContentDraft marks the
+        // missing field and the planning flow requires an explicit user choice
+        // before it opens the editor.
+        let startDate = date(payload["startDate"]) ?? updatedAt
         let explicitEndDate = date(payload["endDate"])
         let endDate = explicitEndDate ?? startDate
 
@@ -352,6 +363,13 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
             publicationMode: optionalString(payload["publicationMode"]).flatMap(ContentPublicationMode.init(rawValue:)),
             scheduledAt: date(payload["scheduledAt"])
         )
+    }
+
+    private static func isStartDateField(_ field: String) -> Bool {
+        field
+            .split(separator: ".")
+            .last?
+            .lowercased() == "startdate"
     }
 
     private static func appError(from error: Error) -> AppError {

@@ -32,6 +32,8 @@ enum ProfileNavigationRoute: Hashable {
     case ownerAnalytics
     case donationSettings
     case feedbackInbox
+    case feedbackDetail(feedbackID: String)
+    case myFeedbackDetail(userID: String, feedbackID: String)
     case systemLogs(SystemLogsAccessMode)
     case notifications
     case myFeedback(userID: String)
@@ -399,10 +401,8 @@ struct ProfileView: View {
             registrationsViewModel.resetForAuthChange()
             myFeedbackViewModel.reset()
             ownerVisibilityViewModel.reset()
-            if newUserID == nil {
-                feedbackMessage = ""
-                selectedFeedbackType = .question
-            }
+            feedbackMessage = ""
+            selectedFeedbackType = .question
         }
         .onChange(of: eventsViewModel.contentVersion) { _, _ in
             guard authState.isAuthenticated else { return }
@@ -500,7 +500,10 @@ struct ProfileView: View {
             SavedContentView(
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
-                organizationsViewModel: organizationsViewModel
+                organizationsViewModel: organizationsViewModel,
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationRepository
             )
         case .followedOrganizations:
             FollowedOrganizationsView(
@@ -643,6 +646,18 @@ struct ProfileView: View {
             FeedbackInboxView(
                 repository: feedbackRepository,
                 notificationInboxRepository: notificationInboxRepository
+            )
+        case let .feedbackDetail(feedbackID):
+            FeedbackInboxView(
+                repository: feedbackRepository,
+                notificationInboxRepository: notificationInboxRepository,
+                initialFeedbackID: feedbackID
+            )
+        case let .myFeedbackDetail(userID, feedbackID):
+            MyFeedbackView(
+                viewModel: myFeedbackViewModel,
+                currentUserID: userID,
+                initialFeedbackID: feedbackID
             )
         case let .systemLogs(accessMode):
             switch accessMode {
@@ -1095,7 +1110,7 @@ struct ProfileView: View {
                                 subtitle: AppStrings.Profile.organizationRequestsReviewSubtitle,
                                 systemImage: "clock.badge.exclamationmark",
                                 status: .available,
-                                countBadge: ownerVisibilityViewModel.pendingOrganizationRequestCount
+                                countState: ownerVisibilityViewModel.organizationRequestCountState
                             )
                         }
                         .buttonStyle(.plain)
@@ -1120,10 +1135,23 @@ struct ProfileView: View {
                                 subtitle: AppStrings.Feedback.inboxSubtitle,
                                 systemImage: "bubble.left.and.bubble.right",
                                 status: .available,
-                                countBadge: ownerVisibilityViewModel.unreadFeedbackCount
+                                countState: ownerVisibilityViewModel.feedbackCountState
                             )
                         }
                         .buttonStyle(.plain)
+                    }
+
+                    if ownerVisibilityViewModel.hasCountLoadFailure {
+                        Button {
+                            Task {
+                                await refreshOwnerVisibilityIfAllowed()
+                            }
+                        } label: {
+                            Label(AppStrings.Action.retry, systemImage: "arrow.clockwise")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .appActionButtonStyle(.secondary)
+                        .accessibilityIdentifier("profile.ownerVisibility.retry")
                     }
                 }
             }

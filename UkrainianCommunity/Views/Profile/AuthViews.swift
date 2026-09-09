@@ -1,3 +1,4 @@
+import Combine
 import FirebaseAuth
 import SwiftUI
 
@@ -217,6 +218,8 @@ struct LoginView: View {
                         switch verificationError {
                         case .emailNotVerified:
                             errorMessage = nil
+                        case .accountDeletionCompleted:
+                            errorMessage = AppStrings.Profile.deleteAccountCompleted
                         default:
                             errorMessage = readableAuthErrorMessage(error, fallback: AppStrings.Auth.signInFailed)
                         }
@@ -248,6 +251,7 @@ struct LoginView: View {
 struct RegisterView: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var appLockChoice = RegistrationAppLockChoice()
+    @StateObject private var legalDocuments = RegistrationLegalDocumentsViewModel()
     @State private var email: String
     @State private var password = ""
     @State private var repeatedPassword = ""
@@ -301,7 +305,14 @@ struct RegisterView: View {
                 TermsPrivacyConsentView(
                     acceptedTerms: $acceptedTerms,
                     acceptedPrivacy: $acceptedPrivacy,
-                    confirmedMinimumAge: $confirmedMinimumAge
+                    confirmedMinimumAge: $confirmedMinimumAge,
+                    termsDocument: legalDocuments.terms,
+                    privacyDocument: legalDocuments.privacy,
+                    isLoadingDocuments: legalDocuments.isLoading,
+                    documentErrorMessage: legalDocuments.errorMessage,
+                    retryDocuments: {
+                        Task { await legalDocuments.load() }
+                    }
                 )
             }
 
@@ -346,6 +357,13 @@ struct RegisterView: View {
             if phase == .background { appLockChoice.cancelPendingAuthentication() }
             if phase == .active { appLockChoice.refreshAvailability() }
         }
+        .onChange(of: legalDocuments.versionKey) { _, _ in
+            acceptedTerms = false
+            acceptedPrivacy = false
+        }
+        .task {
+            await legalDocuments.load()
+        }
         .navigationTitle(AppStrings.Auth.registerTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.register.screen")
@@ -354,8 +372,14 @@ struct RegisterView: View {
     private func submit() {
         let errors = validationErrors
 
-        guard errors.isEmpty, let selectedFederalState else {
+        guard errors.isEmpty,
+              let selectedFederalState,
+              let termsDocument = legalDocuments.terms,
+              let privacyDocument = legalDocuments.privacy else {
             errorMessage = errors.first ?? AppStrings.Validation.authFederalStateRequired
+            if legalDocuments.terms == nil || legalDocuments.privacy == nil {
+                errorMessage = AppStrings.LegalCompliance.loadFailed
+            }
             return
         }
 
@@ -369,8 +393,10 @@ struct RegisterView: View {
             selectedFederalState: selectedFederalState,
             acceptedTermsAt: now,
             acceptedPrivacyAt: now,
-            termsVersion: AuthService.currentTermsVersion,
-            privacyVersion: AuthService.currentPrivacyVersion,
+            termsVersion: termsDocument.version,
+            privacyVersion: privacyDocument.version,
+            termsContentHash: termsDocument.contentHash,
+            privacyContentHash: privacyDocument.contentHash,
             minimumAgeConfirmedAt: now,
             minimumAgeVersion: AuthService.currentMinimumAgeVersion,
             analyticsConsentEnabled: analyticsConsentEnabled,
@@ -402,7 +428,7 @@ struct RegisterView: View {
     }
 
     private var canSubmit: Bool {
-        validationErrors.isEmpty
+        validationErrors.isEmpty && legalDocuments.isReady
     }
 
     private var validationHint: String? {
@@ -475,9 +501,19 @@ struct EmailVerificationView: View {
         isResending || isChecking || isSigningOut
     }
 
-    private var messageStyle: InlineMessageStyle {
-        guard let message else { return .success }
+    private var emailWasSent: Bool {
+        authState.emailVerificationNotice == .emailSent
+    }
 
+    private var displayedMessage: String {
+        if let message { return message }
+        if let authError = authState.errorMessage { return authError }
+        return emailWasSent
+            ? AppStrings.Auth.emailVerificationSent
+            : AppStrings.Auth.emailVerificationStillPending
+    }
+
+    private var messageStyle: InlineMessageStyle {
         let successMessages = [
             AppStrings.Auth.emailVerificationSent,
             AppStrings.Auth.emailVerificationResent,
@@ -485,11 +521,11 @@ struct EmailVerificationView: View {
             AppStrings.Auth.emailVerificationAlreadyVerified
         ]
 
-        if successMessages.contains(message) {
+        if successMessages.contains(displayedMessage) {
             return .success
         }
 
-        if message == AppStrings.Auth.emailVerificationStillPending {
+        if displayedMessage == AppStrings.Auth.emailVerificationStillPending {
             return .info
         }
 
@@ -500,30 +536,30 @@ struct EmailVerificationView: View {
         AuthScreenScaffold {
             AuthHeaderView(
                 title: AppStrings.Auth.emailVerificationTitle,
-                subtitle: AppStrings.Auth.emailVerificationDescription
+                subtitle: emailWasSent
+                    ? AppStrings.Auth.emailVerificationDescription
+                    : AppStrings.Auth.emailVerificationStillPending
             )
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    if let message {
-                        InlineMessageCard(style: messageStyle, message: message)
-                    } else if let authError = authState.errorMessage {
-                        InlineMessageCard(style: .error, message: authError)
-                    } else {
-                        InlineMessageCard(style: .success, message: AppStrings.Auth.emailVerificationSent)
-                    }
+                    InlineMessageCard(style: messageStyle, message: displayedMessage)
 
                     if !pendingEmail.isEmpty {
-                        Text(AppStrings.Auth.emailVerificationSentTo)
-                            .font(.footnote)
-                            .foregroundStyle(AppTheme.textSecondary)
+                        if emailWasSent {
+                            Text(AppStrings.Auth.emailVerificationSentTo)
+                                .font(.footnote)
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
 
                         Text(pendingEmail)
                             .font(.footnote.weight(.medium))
                             .foregroundStyle(AppTheme.textPrimary)
                     }
 
-                    InlineMessageCard(style: .info, message: AppStrings.Auth.emailVerificationSpamHint)
+                    if emailWasSent {
+                        InlineMessageCard(style: .info, message: AppStrings.Auth.emailVerificationSpamHint)
+                    }
 
                     PrimaryActionButton(
                         title: AppStrings.Auth.emailVerificationCheck,
@@ -554,15 +590,6 @@ struct EmailVerificationView: View {
                     .frame(minHeight: AppTheme.iconButtonSize)
                     .disabled(isBusy)
                     .frame(maxWidth: .infinity)
-                }
-            }
-        }
-        .onAppear {
-            if message == nil {
-                if let authError = authState.errorMessage {
-                    message = authError
-                } else {
-                    message = AppStrings.Auth.emailVerificationSent
                 }
             }
         }
@@ -795,6 +822,11 @@ struct TermsPrivacyConsentView: View {
     @Binding var acceptedTerms: Bool
     @Binding var acceptedPrivacy: Bool
     @Binding var confirmedMinimumAge: Bool
+    let termsDocument: LegalDocument?
+    let privacyDocument: LegalDocument?
+    let isLoadingDocuments: Bool
+    let documentErrorMessage: String?
+    let retryDocuments: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -807,38 +839,104 @@ struct TermsPrivacyConsentView: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            if isLoadingDocuments {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+            } else if let documentErrorMessage {
+                InlineMessageCard(style: .error, message: documentErrorMessage)
+                Button(action: retryDocuments) {
+                    Label(AppStrings.Action.retry, systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+            }
+
             Toggle(AppStrings.Auth.acceptTerms, isOn: $acceptedTerms)
                 .accessibilityLabel(AppStrings.Auth.acceptTerms)
+                .disabled(termsDocument == nil)
 
             Toggle(AppStrings.Auth.acceptPrivacy, isOn: $acceptedPrivacy)
                 .accessibilityLabel(AppStrings.Auth.acceptPrivacy)
+                .disabled(privacyDocument == nil)
 
             Toggle(AppStrings.Auth.confirmMinimumAge, isOn: $confirmedMinimumAge)
                 .accessibilityLabel(AppStrings.Auth.confirmMinimumAge)
 
             VStack(alignment: .leading, spacing: 8) {
-                NavigationLink {
-                    LegalDocumentView(document: .terms)
-                } label: {
-                    Label(AppStrings.Auth.reviewTerms, systemImage: "doc.text")
-                        .font(.subheadline.weight(.medium))
+                if let termsDocument {
+                    NavigationLink {
+                        LegalMarkdownDocumentView(document: termsDocument)
+                    } label: {
+                        Label(AppStrings.Auth.reviewTerms, systemImage: "doc.text")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .accessibilityIdentifier("auth.consent.termsLink")
                 }
-                .accessibilityIdentifier("auth.consent.termsLink")
 
-                NavigationLink {
-                    LegalDocumentView(document: .privacy)
-                } label: {
-                    Label(AppStrings.Auth.reviewPrivacy, systemImage: "lock.doc")
-                        .font(.subheadline.weight(.medium))
+                if let privacyDocument {
+                    NavigationLink {
+                        LegalMarkdownDocumentView(document: privacyDocument)
+                    } label: {
+                        Label(AppStrings.Auth.reviewPrivacy, systemImage: "lock.doc")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .accessibilityIdentifier("auth.consent.privacyLink")
                 }
-                .accessibilityIdentifier("auth.consent.privacyLink")
             }
 
-            Text("\(AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion)) · \(AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion))")
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
+            if let termsDocument, let privacyDocument {
+                Text("\(AppStrings.authCurrentTermsVersion(termsDocument.version)) · \(AppStrings.authCurrentPrivacyVersion(privacyDocument.version))")
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
         }
         .padding(.vertical, 2)
+    }
+}
+
+@MainActor
+private final class RegistrationLegalDocumentsViewModel: ObservableObject {
+    @Published private(set) var terms: LegalDocument?
+    @Published private(set) var privacy: LegalDocument?
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
+
+    private let repository: LegalDocumentRepository
+
+    init(repository: LegalDocumentRepository? = nil) {
+        self.repository = repository ?? FirestoreLegalDocumentRepository()
+    }
+
+    var isReady: Bool { terms != nil && privacy != nil }
+
+    var versionKey: String {
+        [terms?.version ?? "", privacy?.version ?? ""].joined(separator: "|")
+    }
+
+    func load() async {
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            async let termsDocument = repository.fetchAuthoritativeActiveDocument(type: .terms)
+            async let privacyDocument = repository.fetchAuthoritativeActiveDocument(type: .privacy)
+            let documents = try await (termsDocument, privacyDocument)
+            guard documents.0.type == .terms,
+                  documents.1.type == .privacy,
+                  documents.0.contentHash != nil,
+                  documents.1.contentHash != nil else {
+                throw AppError.validationFailed
+            }
+            terms = documents.0
+            privacy = documents.1
+        } catch {
+            terms = nil
+            privacy = nil
+            errorMessage = AppStrings.LegalCompliance.loadFailed
+        }
+
+        isLoading = false
     }
 }
 
@@ -853,6 +951,8 @@ private func readableAuthErrorMessage(_ error: Error, fallback: String) -> Strin
             return AppStrings.Auth.emailVerificationCheckFailed
         case .tooManyRequests:
             return AppStrings.Auth.emailVerificationTooManyRequests
+        case .accountDeletionCompleted:
+            return AppStrings.Profile.deleteAccountCompleted
         case .noCurrentUser, .unknown:
             return fallback
         }

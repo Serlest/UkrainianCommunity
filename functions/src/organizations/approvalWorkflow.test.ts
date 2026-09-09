@@ -18,11 +18,15 @@ test("organization moderation input is normalized and required review text is en
   const revision = parseReviewRequest({
     organizationId: " org-1 ",
     message: " Add a public phone number ",
+    operationId: " operation-1 ",
+    expectedRevision: " 10:20 ",
   });
   assert.deepEqual(revision, {
     organizationId: "org-1",
     message: "Add a public phone number",
     reason: undefined,
+    operationId: "operation-1",
+    expectedRevision: "10:20",
   });
   assert.equal(requiredReviewText(revision, "message"), "Add a public phone number");
   assert.throws(
@@ -31,11 +35,11 @@ test("organization moderation input is normalized and required review text is en
   );
 });
 
-test("only unpublished organization request states are reviewable", () => {
-  for (const status of ["pendingReview", "needsRevision", "rejected"] as const) {
-    assert.doesNotThrow(() => assertReviewableStatus(status));
+test("only a currently pending organization submission is reviewable", () => {
+  assert.doesNotThrow(() => assertReviewableStatus("pendingReview"));
+  for (const status of ["needsRevision", "rejected", "approved"] as const) {
+    assert.throws(() => assertReviewableStatus(status), isHttpsError("failed-precondition"));
   }
-  assert.throws(() => assertReviewableStatus("approved"), isHttpsError("failed-precondition"));
 });
 
 test("approve, revision, and rejection notifications carry actionable organization context", () => {

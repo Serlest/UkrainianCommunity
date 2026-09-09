@@ -6,7 +6,7 @@ protocol LegalEvidenceRepository {
         limit: Int,
         cursor: LegalEvidenceAccountCursor?
     ) async throws -> LegalEvidenceAccountPage
-    func fetchEvidence(userID: String) async throws -> [LegalEvidenceEvent]
+    func fetchEvidence(userID: String) async throws -> LegalEvidenceHistory
 }
 
 enum LegalEvidenceRepositories {
@@ -55,13 +55,19 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
         )
     }
 
-    func fetchEvidence(userID: String) async throws -> [LegalEvidenceEvent] {
+    func fetchEvidence(userID: String) async throws -> LegalEvidenceHistory {
         var cursor: String?
         var seen = Set<String>()
         var events: [String: LegalEvidenceEvent] = [:]
+        var account: LegalEvidenceAccount?
+        var generatedAt: Date?
         repeat {
             try Task.checkCancellation()
             let response = try await functionsClient.getLegalEvidencePage(userID: userID, cursor: cursor)
+            if account == nil { account = Self.decode(response.account) }
+            if generatedAt == nil {
+                generatedAt = ISO8601DateFormatter.legalEvidence.date(from: response.generatedAt)
+            }
             for raw in response.events {
                 guard let event = Self.decode(raw) else { throw AppError.unknown }
                 events[event.id] = event
@@ -69,9 +75,11 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
             cursor = response.nextCursor
             if let cursor, !seen.insert(cursor).inserted { throw AppError.unknown }
         } while cursor != nil
-        return events.values.sorted {
+        let sortedEvents = events.values.sorted {
             $0.occurredAt == $1.occurredAt ? $0.id < $1.id : $0.occurredAt > $1.occurredAt
         }
+        guard let account, let generatedAt else { throw AppError.unknown }
+        return LegalEvidenceHistory(account: account, events: sortedEvents, generatedAt: generatedAt)
     }
 
     private static func decode(_ account: LegalEvidenceAccountFunctionValue) -> LegalEvidenceAccount {
@@ -93,8 +101,9 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
         return LegalEvidenceEvent(
             id: event.id,
             userID: event.userId,
-            displayName: event.displayName,
-            email: event.email,
+            // Identity returned by older endpoints is a current account join, not a receipt snapshot.
+            displayName: nil,
+            email: nil,
             eventType: eventType,
             occurredAt: occurredAt,
             version: event.version,
@@ -103,7 +112,13 @@ struct CloudLegalEvidenceRepository: LegalEvidenceRepository {
             source: event.source,
             contentHash: event.contentHash,
             organizationID: event.organizationId,
-            organizationName: event.organizationName
+            organizationName: event.organizationName,
+            sourceRecordID: event.sourceRecordId,
+            acceptedFromPlatform: event.acceptedFromPlatform,
+            consentID: event.consentId,
+            purposeVersion: event.purposeVersion,
+            disclosureVersion: event.disclosureVersion,
+            disclosureText: event.disclosureText
         )
     }
 }

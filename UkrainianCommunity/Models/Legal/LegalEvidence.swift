@@ -31,6 +31,12 @@ struct LegalEvidenceAccountPage: Equatable {
     let totalMatches: Int?
 }
 
+struct LegalEvidenceHistory: Equatable {
+    let account: LegalEvidenceAccount
+    let events: [LegalEvidenceEvent]
+    let generatedAt: Date
+}
+
 enum LegalEvidenceEventType: String, CaseIterable, Codable, Identifiable {
     case termsAccepted
     case privacyAcknowledged
@@ -78,6 +84,34 @@ struct LegalEvidenceEvent: Identifiable, Equatable, Codable {
     let contentHash: String?
     let organizationID: String?
     let organizationName: String?
+    let sourceRecordID: String?
+    let acceptedFromPlatform: String?
+    let consentID: String?
+    let purposeVersion: String?
+    let disclosureVersion: String?
+    let disclosureText: String?
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case userID = "userId"
+        case displayName
+        case email
+        case eventType
+        case occurredAt
+        case version
+        case locale
+        case appVersion
+        case source
+        case contentHash
+        case organizationID = "organizationId"
+        case organizationName
+        case sourceRecordID = "sourceRecordId"
+        case acceptedFromPlatform
+        case consentID = "consentId"
+        case purposeVersion
+        case disclosureVersion
+        case disclosureText
+    }
 
     var userTitle: String {
         if let displayName = normalized(displayName) { return displayName }
@@ -96,8 +130,17 @@ struct LegalEvidenceEvent: Identifiable, Equatable, Codable {
             email ?? "",
             version ?? "",
             eventType.title,
+            source,
+            locale ?? "",
+            appVersion ?? "",
             organizationID ?? "",
             organizationName ?? "",
+            sourceRecordID ?? "",
+            acceptedFromPlatform ?? "",
+            consentID ?? "",
+            purposeVersion ?? "",
+            disclosureVersion ?? "",
+            disclosureText ?? "",
         ]
         .joined(separator: " ")
         .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
@@ -107,6 +150,42 @@ struct LegalEvidenceEvent: Identifiable, Equatable, Codable {
     private func normalized(_ value: String?) -> String? {
         let normalized = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return normalized.isEmpty ? nil : normalized
+    }
+}
+
+struct LegalEvidenceExportEnvelope: Codable, Equatable {
+    let schemaVersion: Int
+    let generatedAt: Date
+    let subject: Subject
+    let events: [LegalEvidenceEvent]
+
+    struct Subject: Codable, Equatable {
+        let userID: String
+        let currentDisplayName: String?
+        let currentEmail: String?
+        let accountCreatedAt: Date?
+        let identityContext: String
+
+        private enum CodingKeys: String, CodingKey {
+            case userID = "userId"
+            case currentDisplayName
+            case currentEmail
+            case accountCreatedAt
+            case identityContext
+        }
+    }
+
+    init(history: LegalEvidenceHistory) {
+        schemaVersion = 1
+        generatedAt = history.generatedAt
+        subject = Subject(
+            userID: history.account.userID,
+            currentDisplayName: history.account.displayName,
+            currentEmail: history.account.email,
+            accountCreatedAt: history.account.createdAt,
+            identityContext: "currentAccountIdentityAtExport"
+        )
+        events = history.events
     }
 }
 

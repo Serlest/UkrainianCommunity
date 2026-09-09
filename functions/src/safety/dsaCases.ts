@@ -36,6 +36,7 @@ export interface DsaNoticeInput {
 }
 
 interface CreateDsaCaseInput extends DsaNoticeInput {
+  deduplicationKey?: string;
   reporterUserId?: string;
   targetType?: string;
   targetId?: string;
@@ -55,6 +56,7 @@ interface DsaCaseReceipt {
   status: "submitted";
   submittedAt: string;
   acknowledgementAt: string;
+  wasDuplicate: boolean;
 }
 
 const callableOptions = {
@@ -157,11 +159,14 @@ function publicReportMessage(input: DsaNoticeInput): string {
 
 export async function createDsaCase(input: CreateDsaCaseInput): Promise<DsaCaseReceipt> {
   const now = Timestamp.now();
-  const reportId = db.collection("feedback").doc().id;
-  const number = caseNumber(now.toDate());
+  let reportId = db.collection("feedback").doc().id;
+  let number = caseNumber(now.toDate());
+  let wasDuplicate = false;
   const accessToken = randomBytes(24).toString("base64url");
-  const caseReference = db.collection("dsaCases").doc(reportId);
-  const feedbackReference = db.collection("feedback").doc(reportId);
+  let caseReference = db.collection("dsaCases").doc(reportId);
+  let feedbackReference = db.collection("feedback").doc(reportId);
+  const deduplicationReference = input.deduplicationKey ?
+    db.collection("contentReportDeduplication").doc(input.deduplicationKey) : undefined;
   const slaHours = input.isUrgent === true ? 24 : 72;
   const slaDueAt = Timestamp.fromMillis(now.toMillis() + slaHours * 60 * 60 * 1_000);
   const reporterLabel = input.reporterName ?? "Protected reporter";
@@ -217,11 +222,52 @@ export async function createDsaCase(input: CreateDsaCaseInput): Promise<DsaCaseR
     parentId: input.parentId ?? null,
     targetAuthorId: input.targetAuthorId ?? null,
     automationUsedForSubmission: false,
+    occurrenceCount: 1,
     expiresAt: Timestamp.fromMillis(now.toMillis() + caseRetentionMilliseconds),
     evidenceExpiresAt: Timestamp.fromMillis(now.toMillis() + evidenceRetentionMilliseconds),
   };
 
   await db.runTransaction(async (transaction) => {
+    if (deduplicationReference) {
+      const deduplicationSnapshot = await transaction.get(deduplicationReference);
+      const existingReportId = deduplicationSnapshot.get("reportId");
+      if (typeof existingReportId === "string" && existingReportId.length > 0) {
+        const existingCaseReference = db.collection("dsaCases").doc(existingReportId);
+        const existingFeedbackReference = db.collection("feedback").doc(existingReportId);
+        const [existingCase, existingFeedback] = await Promise.all([
+          transaction.get(existingCaseReference),
+          transaction.get(existingFeedbackReference),
+        ]);
+        const existingStatus = String(existingCase.get("status") ?? "");
+        if (existingCase.exists && existingFeedback.exists &&
+            ["submitted", "underReview", "appealed"].includes(existingStatus)) {
+          reportId = existingReportId;
+          number = String(existingCase.get("caseNumber") ?? existingReportId);
+          caseReference = existingCaseReference;
+          feedbackReference = existingFeedbackReference;
+          wasDuplicate = true;
+          transaction.update(caseReference, {
+            accessTokenHash: tokenHash(accessToken),
+            occurrenceCount: FieldValue.increment(1),
+            latestOccurrenceAt: now,
+            updatedAt: now,
+            expiresAt: Timestamp.fromMillis(now.toMillis() + caseRetentionMilliseconds),
+          });
+          transaction.update(feedbackReference, {
+            occurrenceCount: FieldValue.increment(1),
+            updatedAt: now,
+            unreadForOwner: true,
+          });
+          transaction.set(deduplicationReference, {
+            reportId,
+            updatedAt: now,
+            expiresAt: Timestamp.fromMillis(now.toMillis() + caseRetentionMilliseconds),
+          }, {merge: true});
+          return;
+        }
+      }
+    }
+
     transaction.create(caseReference, canonicalCase);
     transaction.create(feedbackReference, {
       id: reportId,
@@ -243,6 +289,14 @@ export async function createDsaCase(input: CreateDsaCaseInput): Promise<DsaCaseR
       occurrenceCount: 1,
       dsaCase: dsaSummary,
     });
+    if (deduplicationReference) {
+      transaction.set(deduplicationReference, {
+        reportId,
+        createdAt: now,
+        updatedAt: now,
+        expiresAt: Timestamp.fromMillis(now.toMillis() + caseRetentionMilliseconds),
+      });
+    }
   });
 
   return {
@@ -252,6 +306,7 @@ export async function createDsaCase(input: CreateDsaCaseInput): Promise<DsaCaseR
     status: "submitted",
     submittedAt: now.toDate().toISOString(),
     acknowledgementAt: now.toDate().toISOString(),
+    wasDuplicate,
   };
 }
 
@@ -446,6 +501,8 @@ interface DsaDecisionRequest {
   duration: string;
   redressInformation: string;
   humanReviewConfirmed: true;
+  operationId?: string;
+  expectedRevision?: string;
 }
 
 export function parseDsaDecision(value: unknown): DsaDecisionRequest {
@@ -458,6 +515,12 @@ export function parseDsaDecision(value: unknown): DsaDecisionRequest {
   if (value.humanReviewConfirmed !== true) {
     throw new HttpsError("failed-precondition", "Human review must be confirmed.");
   }
+  const operationId = optionalString(value.operationId, "operationId", 200);
+  if (operationId?.includes("/")) throw new HttpsError("invalid-argument", "operationId is invalid.");
+  const expectedRevision = optionalString(value.expectedRevision, "expectedRevision", 80);
+  if (expectedRevision && !/^\d+:\d+$/.test(expectedRevision)) {
+    throw new HttpsError("invalid-argument", "expectedRevision is invalid.");
+  }
   return {
     reportId: requiredString(value.reportId, "reportId", 200),
     outcome: enumValue(value.outcome, "outcome", decisionOutcomes),
@@ -468,14 +531,16 @@ export function parseDsaDecision(value: unknown): DsaDecisionRequest {
     duration: requiredString(value.duration, "duration", 500),
     redressInformation: requiredString(value.redressInformation, "redressInformation", 2_000),
     humanReviewConfirmed: true,
+    operationId,
+    expectedRevision,
   };
 }
 
-async function verifyModerationAction(
+function moderationTargetReference(
   caseData: FirebaseFirestore.DocumentData,
   outcome: DsaDecisionOutcome
-): Promise<void> {
-  if (outcome === "noAction") return;
+): FirebaseFirestore.DocumentReference | undefined {
+  if (outcome === "noAction") return undefined;
   const targetType = typeof caseData.targetType === "string" ? caseData.targetType : undefined;
   const targetId = typeof caseData.targetId === "string" ? caseData.targetId : undefined;
   if (!targetType || !targetId || targetType === "external") {
@@ -484,7 +549,6 @@ async function verifyModerationAction(
       "A restrictive decision requires a linked in-app target and a completed moderation action."
     );
   }
-  let snapshot: FirebaseFirestore.DocumentSnapshot;
   if (targetType === "comment") {
     const parentType = typeof caseData.parentType === "string" ? caseData.parentType : undefined;
     const parentId = typeof caseData.parentId === "string" ? caseData.parentId : undefined;
@@ -492,12 +556,19 @@ async function verifyModerationAction(
     if (!parentType || !parentId || !parentCollections[parentType]) {
       throw new HttpsError("failed-precondition", "The linked comment location is incomplete.");
     }
-    snapshot = await db.collection(parentCollections[parentType]).doc(parentId).collection("comments").doc(targetId).get();
-  } else {
-    const collections: Record<string, string> = {news: "news", event: "events", organization: "organizations"};
-    if (!collections[targetType]) throw new HttpsError("failed-precondition", "The linked target is unsupported.");
-    snapshot = await db.collection(collections[targetType]).doc(targetId).get();
+    return db.collection(parentCollections[parentType]).doc(parentId).collection("comments").doc(targetId);
   }
+  const collections: Record<string, string> = {news: "news", event: "events", organization: "organizations"};
+  if (!collections[targetType]) throw new HttpsError("failed-precondition", "The linked target is unsupported.");
+  return db.collection(collections[targetType]).doc(targetId);
+}
+
+function verifyModerationActionSnapshot(
+  snapshot: FirebaseFirestore.DocumentSnapshot | undefined,
+  outcome: DsaDecisionOutcome
+): void {
+  if (outcome === "noAction") return;
+  if (!snapshot) throw new HttpsError("failed-precondition", "The linked moderation target is unavailable.");
   if (outcome === "removed" && snapshot.exists) {
     const data = snapshot.data() ?? {};
     if (data.isDeleted !== true && !data.deletedAt && data.moderationStatus !== "archived") {
@@ -512,6 +583,10 @@ async function verifyModerationAction(
   }
 }
 
+function timestampRevision(value: unknown): string | undefined {
+  return value instanceof Timestamp ? `${value.seconds}:${value.nanoseconds}` : undefined;
+}
+
 export const decideDsaCase = onCall(
   callableOptions,
   async (request) => {
@@ -522,9 +597,6 @@ export const decideDsaCase = onCall(
     const feedbackReference = db.collection("feedback").doc(decisionInput.reportId);
     const now = Timestamp.now();
     const appealDeadline = Timestamp.fromMillis(now.toMillis() + appealWindowMilliseconds);
-    const preflightCaseSnapshot = await caseReference.get();
-    if (!preflightCaseSnapshot.exists) throw new HttpsError("not-found", "DSA case was not found.");
-    await verifyModerationAction(preflightCaseSnapshot.data() ?? {}, decisionInput.outcome);
     const decision = {
       outcome: decisionInput.outcome,
       factsAndCircumstances: decisionInput.factsAndCircumstances,
@@ -549,12 +621,39 @@ export const decideDsaCase = onCall(
         throw new HttpsError("not-found", "DSA case was not found.");
       }
       const data = caseSnapshot.data() ?? {};
+      if (decisionInput.operationId && data.decisionOperationId === decisionInput.operationId &&
+          data.status === "decided" && isRecord(data.decision)) {
+        const storedDecision = data.decision;
+        const sameDecision = storedDecision.outcome === decisionInput.outcome &&
+          storedDecision.factsAndCircumstances === decisionInput.factsAndCircumstances &&
+          (storedDecision.legalBasis ?? null) === (decisionInput.legalBasis ?? null) &&
+          (storedDecision.termsBasis ?? null) === (decisionInput.termsBasis ?? null) &&
+          storedDecision.territorialScope === decisionInput.territorialScope &&
+          storedDecision.duration === decisionInput.duration &&
+          storedDecision.redressInformation === decisionInput.redressInformation;
+        if (!sameDecision) throw new HttpsError("already-exists", "The operation ID was already used for another decision.");
+        return {
+          reporterUserId: typeof data.reporterUserId === "string" ? data.reporterUserId : undefined,
+          targetAuthorId: typeof data.targetAuthorId === "string" ? data.targetAuthorId : undefined,
+          caseNumber: String(data.caseNumber), replayed: true,
+          decidedAt: storedDecision.decidedAt as Timestamp,
+          appealDeadline: storedDecision.appealDeadline as Timestamp,
+        };
+      }
+      if (decisionInput.expectedRevision &&
+          timestampRevision(feedbackSnapshot.get("updatedAt")) !== decisionInput.expectedRevision) {
+        throw new HttpsError("aborted", "The DSA case changed after this decision screen was loaded.");
+      }
       if (!['submitted', 'underReview'].includes(String(data.status))) {
         throw new HttpsError("failed-precondition", "Only an undecided case can be decided.");
       }
+      const targetReference = moderationTargetReference(data, decisionInput.outcome);
+      const targetSnapshot = targetReference ? await transaction.get(targetReference) : undefined;
+      verifyModerationActionSnapshot(targetSnapshot, decisionInput.outcome);
       transaction.update(caseReference, {
         status: "decided",
         decision,
+        ...(decisionInput.operationId ? {decisionOperationId: decisionInput.operationId} : {}),
         ...(data.appeal ? {previousAppeal: data.appeal, appeal: FieldValue.delete()} : {}),
         updatedAt: now,
         expiresAt: Timestamp.fromMillis(now.toMillis() + caseRetentionMilliseconds),
@@ -596,11 +695,14 @@ export const decideDsaCase = onCall(
         reporterUserId: typeof data.reporterUserId === "string" ? data.reporterUserId : undefined,
         targetAuthorId,
         caseNumber: String(data.caseNumber),
+        replayed: false,
+        decidedAt: now,
+        appealDeadline,
       };
     });
 
     const notifications: Promise<unknown>[] = [];
-    if (result.reporterUserId) notifications.push(writeUserNotification({
+    if (!result.replayed && result.reporterUserId) notifications.push(writeUserNotification({
       notificationId: `dsaDecision_${decisionInput.reportId}_${result.reporterUserId}`,
       targetUserId: result.reporterUserId,
       type: "reportReviewed",
@@ -614,7 +716,7 @@ export const decideDsaCase = onCall(
       metadata: {reportId: decisionInput.reportId, caseNumber: result.caseNumber},
       dedupeKey: `dsaDecision:${decisionInput.reportId}:${result.reporterUserId}`,
     }));
-    if (result.targetAuthorId && result.targetAuthorId !== result.reporterUserId) {
+    if (!result.replayed && result.targetAuthorId && result.targetAuthorId !== result.reporterUserId) {
       notifications.push(writeUserNotification({
         notificationId: `dsaStatement_${decisionInput.reportId}_${result.targetAuthorId}`,
         targetUserId: result.targetAuthorId,
@@ -630,10 +732,15 @@ export const decideDsaCase = onCall(
         dedupeKey: `dsaStatement:${decisionInput.reportId}:${result.targetAuthorId}`,
       }));
     }
-    await Promise.all(notifications);
+    const notificationResults = await Promise.allSettled(notifications);
+    notificationResults.forEach(notificationResult => {
+      if (notificationResult.status === "rejected") {
+        console.error("Committed DSA decision notification failed.", notificationResult.reason);
+      }
+    });
 
     const logReference = db.collection("systemLogs").doc();
-    await logReference.set({
+    if (!result.replayed) try { await logReference.set({
       id: logReference.id,
       createdAt: now,
       category: "moderation",
@@ -652,14 +759,16 @@ export const decideDsaCase = onCall(
       metadata: {caseNumber: result.caseNumber, outcome: decisionInput.outcome, automationUsed: false},
       retentionPolicy: "moderationDispute",
       isAppAdminReadable: false,
-    });
+    }); } catch (error) {
+      console.error("Committed DSA decision diagnostic log failed.", error);
+    }
 
     return {
       reportId: decisionInput.reportId,
       caseNumber: result.caseNumber,
       status: "decided",
-      decidedAt: now.toDate().toISOString(),
-      appealDeadline: appealDeadline.toDate().toISOString(),
+      decidedAt: result.decidedAt.toDate().toISOString(),
+      appealDeadline: result.appealDeadline.toDate().toISOString(),
     };
   }
 );
@@ -671,30 +780,53 @@ export const submitDsaAppeal = onCall(
     if (!isRecord(request.data)) throw new HttpsError("invalid-argument", "Appeal data is required.");
     const reportId = requiredString(request.data.reportId, "reportId", 200);
     const reason = requiredString(request.data.reason, "reason", 5_000);
+    const operationId = optionalString(request.data.operationId, "operationId", 200);
+    if (operationId?.includes("/")) throw new HttpsError("invalid-argument", "operationId is invalid.");
+    const expectedRevision = optionalString(request.data.expectedRevision, "expectedRevision", 80);
+    if (expectedRevision && !/^\d+:\d+$/.test(expectedRevision)) {
+      throw new HttpsError("invalid-argument", "expectedRevision is invalid.");
+    }
     const reference = db.collection("dsaCases").doc(reportId);
     const feedbackReference = db.collection("feedback").doc(reportId);
-    const messageReference = feedbackReference.collection("messages").doc();
+    const messageReference = operationId ? feedbackReference.collection("messages").doc(
+      createHash("sha256").update(`dsa-appeal\0${actor.uid}\0${reportId}\0${operationId}`).digest("hex")
+    ) : feedbackReference.collection("messages").doc();
     const now = Timestamp.now();
-    let number = "";
-    await db.runTransaction(async (transaction) => {
-      const snapshot = await transaction.get(reference);
+    const result = await db.runTransaction(async (transaction) => {
+      const [snapshot, feedbackSnapshot] = await Promise.all([
+        transaction.get(reference), transaction.get(feedbackReference),
+      ]);
       const data = snapshot.data() ?? {};
-      if (!snapshot.exists || data.reporterUserId !== actor.uid) {
+      if (!snapshot.exists || !feedbackSnapshot.exists || data.reporterUserId !== actor.uid) {
         throw new HttpsError("permission-denied", "Only the reporter can appeal this case.");
+      }
+      const appeal = isRecord(data.appeal) ? data.appeal : {};
+      if (operationId && data.appealSubmissionOperationId === operationId && appeal.status === "pending") {
+        if (appeal.reason !== reason) {
+          throw new HttpsError("already-exists", "The operation ID was already used for another appeal.");
+        }
+        return {
+          caseNumber: String(data.caseNumber),
+          submittedAt: appeal.submittedAt as Timestamp,
+          replayed: true,
+        };
+      }
+      if (expectedRevision && timestampRevision(feedbackSnapshot.get("updatedAt")) !== expectedRevision) {
+        throw new HttpsError("aborted", "The DSA case changed after this appeal screen was loaded.");
       }
       const decision = isRecord(data.decision) ? data.decision : {};
       const deadline = decision.appealDeadline as Timestamp | undefined;
       if (!deadline || deadline.toMillis() < now.toMillis()) {
         throw new HttpsError("failed-precondition", "The appeal period is unavailable or has expired.");
       }
-      if (isRecord(data.appeal) && data.appeal.status === "pending") {
+      if (appeal.status === "pending") {
         throw new HttpsError("already-exists", "An appeal is already pending.");
       }
-      number = String(data.caseNumber);
       transaction.update(reference, {
         status: "appealed",
         appeal: {status: "pending", reason, submittedAt: now, humanReviewRequired: true},
         updatedAt: now,
+        ...(operationId ? {appealSubmissionOperationId: operationId} : {}),
         expiresAt: Timestamp.fromMillis(now.toMillis() + caseRetentionMilliseconds),
       });
       transaction.set(messageReference, {
@@ -719,8 +851,15 @@ export const submitDsaAppeal = onCall(
         "dsaCase.status": "appealed",
         "dsaCase.appeal": {status: "pending", reason, submittedAt: now},
       });
+      return {caseNumber: String(data.caseNumber), submittedAt: now, replayed: false};
     });
-    return {reportId, caseNumber: number, status: "appealed", submittedAt: now.toDate().toISOString()};
+    return {
+      reportId,
+      caseNumber: result.caseNumber,
+      status: "appealed",
+      submittedAt: result.submittedAt.toDate().toISOString(),
+      replayed: result.replayed,
+    };
   }
 );
 
@@ -771,16 +910,40 @@ export const decideDsaAppeal = onCall(
     const reportId = requiredString(request.data.reportId, "reportId", 200);
     const outcome = enumValue(request.data.outcome, "outcome", new Set(["upheld", "changed"] as const));
     const reason = requiredString(request.data.reason, "reason", 5_000);
+    const operationId = optionalString(request.data.operationId, "operationId", 200);
+    if (operationId?.includes("/")) throw new HttpsError("invalid-argument", "operationId is invalid.");
+    const expectedRevision = optionalString(request.data.expectedRevision, "expectedRevision", 80);
+    if (expectedRevision && !/^\d+:\d+$/.test(expectedRevision)) {
+      throw new HttpsError("invalid-argument", "expectedRevision is invalid.");
+    }
     if (request.data.humanReviewConfirmed !== true) {
       throw new HttpsError("failed-precondition", "Human review must be confirmed.");
     }
     const reference = db.collection("dsaCases").doc(reportId);
+    const feedbackReference = db.collection("feedback").doc(reportId);
     const now = Timestamp.now();
     const result = await db.runTransaction(async (transaction) => {
-      const snapshot = await transaction.get(reference);
+      const [snapshot, feedbackSnapshot] = await Promise.all([
+        transaction.get(reference), transaction.get(feedbackReference),
+      ]);
       const data = snapshot.data() ?? {};
       const appeal = isRecord(data.appeal) ? data.appeal : {};
-      if (!snapshot.exists || appeal.status !== "pending") {
+      if (operationId && data.appealDecisionOperationId === operationId && appeal.status === "decided") {
+        if (appeal.outcome !== outcome || appeal.decisionReason !== reason) {
+          throw new HttpsError("already-exists", "The operation ID was already used for another appeal decision.");
+        }
+        return {
+          caseNumber: String(data.caseNumber),
+          reporterUserId: typeof data.reporterUserId === "string" ? data.reporterUserId : undefined,
+          targetAuthorId: typeof data.targetAuthorId === "string" ? data.targetAuthorId : undefined,
+          replayed: true,
+          decidedAt: appeal.decidedAt as Timestamp,
+        };
+      }
+      if (expectedRevision && timestampRevision(feedbackSnapshot.get("updatedAt")) !== expectedRevision) {
+        throw new HttpsError("aborted", "The DSA case changed after this appeal screen was loaded.");
+      }
+      if (!snapshot.exists || !feedbackSnapshot.exists || appeal.status !== "pending") {
         throw new HttpsError("failed-precondition", "No pending appeal was found.");
       }
       const reopened = outcome === "changed";
@@ -797,13 +960,14 @@ export const decideDsaAppeal = onCall(
           humanReviewConfirmed: true,
         },
         updatedAt: now,
+        ...(operationId ? {appealDecisionOperationId: operationId} : {}),
         expiresAt: Timestamp.fromMillis(now.toMillis() + caseRetentionMilliseconds),
         ...(reopened ? {
           previousDecision: data.decision ?? null,
           decision: FieldValue.delete(),
         } : {}),
       });
-      transaction.update(db.collection("feedback").doc(reportId), {
+      transaction.update(feedbackReference, {
         status: reopened ? "open" : "closed",
         updatedAt: now,
         lastMessageText: `Appeal ${outcome}: ${reason}`.slice(0, 2_000),
@@ -844,10 +1008,12 @@ export const decideDsaAppeal = onCall(
         caseNumber: String(data.caseNumber),
         reporterUserId: typeof data.reporterUserId === "string" ? data.reporterUserId : undefined,
         targetAuthorId,
+        replayed: false,
+        decidedAt: now,
       };
     });
     const notifications: Promise<unknown>[] = [];
-    if (result.reporterUserId) notifications.push(writeUserNotification({
+    if (!result.replayed && result.reporterUserId) notifications.push(writeUserNotification({
       notificationId: `dsaAppealDecision_${reportId}_${result.reporterUserId}`,
       targetUserId: result.reporterUserId,
       type: "reportReviewed",
@@ -861,7 +1027,7 @@ export const decideDsaAppeal = onCall(
       metadata: {reportId, caseNumber: result.caseNumber},
       dedupeKey: `dsaAppealDecision:${reportId}:${result.reporterUserId}`,
     }));
-    if (result.targetAuthorId && result.targetAuthorId !== result.reporterUserId) {
+    if (!result.replayed && result.targetAuthorId && result.targetAuthorId !== result.reporterUserId) {
       notifications.push(writeUserNotification({
         notificationId: `dsaAppealStatement_${reportId}_${result.targetAuthorId}`,
         targetUserId: result.targetAuthorId,
@@ -877,9 +1043,14 @@ export const decideDsaAppeal = onCall(
         dedupeKey: `dsaAppealStatement:${reportId}:${result.targetAuthorId}`,
       }));
     }
-    await Promise.all(notifications);
+    const notificationResults = await Promise.allSettled(notifications);
+    notificationResults.forEach(notificationResult => {
+      if (notificationResult.status === "rejected") {
+        console.error("Committed DSA appeal decision notification failed.", notificationResult.reason);
+      }
+    });
     const logReference = db.collection("systemLogs").doc();
-    await logReference.set({
+    if (!result.replayed) try { await logReference.set({
       id: logReference.id,
       createdAt: now,
       category: "moderation",
@@ -898,12 +1069,14 @@ export const decideDsaAppeal = onCall(
       metadata: {caseNumber: result.caseNumber, outcome, automationUsed: false},
       retentionPolicy: "moderationDispute",
       isAppAdminReadable: false,
-    });
+    }); } catch (error) {
+      console.error("Committed DSA appeal decision diagnostic log failed.", error);
+    }
     return {
       reportId,
       caseNumber: result.caseNumber,
       status: outcome === "changed" ? "submitted" : "appealDecided",
-      decidedAt: now.toDate().toISOString(),
+      decidedAt: result.decidedAt.toDate().toISOString(),
     };
   }
 );

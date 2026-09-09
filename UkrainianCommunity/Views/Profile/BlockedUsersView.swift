@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BlockedUsersView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ObservedObject var coordinator: UserBlockingCoordinator
     @State private var searchText = ""
     @State private var userPendingUnblock: BlockedUser?
@@ -42,6 +43,7 @@ struct BlockedUsersView: View {
         } message: { user in
             Text(AppStrings.Safety.unblockConfirmationMessage(user.displayName))
         }
+        .refreshable { await coordinator.reload() }
     }
 
     @ViewBuilder
@@ -110,34 +112,58 @@ struct BlockedUsersView: View {
     }
 
     private func blockedUserRow(_ user: BlockedUser) -> some View {
-        HStack(spacing: 12) {
-            AsyncImage(url: user.avatarURL) { phase in
-                if case let .success(image) = phase {
-                    image.resizable().scaledToFill()
-                } else {
-                    Image(systemName: "person.fill")
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
+                        blockedUserAvatar(user)
+                        blockedUserName(user)
+                    }
+                    unblockButton(user)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                HStack(spacing: 12) {
+                    blockedUserAvatar(user)
+                    blockedUserName(user)
+                    Spacer(minLength: 8)
+                    unblockButton(user)
                 }
             }
-            .frame(width: 44, height: 44)
-            .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
-            .clipShape(Circle())
-
-            Text(user.displayName)
-                .font(AppTheme.cardTitleFont)
-                .foregroundStyle(AppTheme.textPrimary)
-                .lineLimit(2)
-
-            Spacer(minLength: 8)
-
-            Button(AppStrings.Safety.unblockAction) {
-                userPendingUnblock = user
-            }
-            .font(AppTheme.metadataStrongFont)
-            .buttonStyle(.bordered)
-            .disabled(coordinator.mutatingUserIDs.contains(user.targetUserId))
         }
         .padding(.vertical, 10)
         .accessibilityElement(children: .contain)
+    }
+
+    private func blockedUserAvatar(_ user: BlockedUser) -> some View {
+        AsyncImage(url: user.avatarURL) { phase in
+            if case let .success(image) = phase {
+                image.resizable().scaledToFill()
+            } else {
+                Image(systemName: "person.fill")
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+            }
+        }
+        .frame(width: 44, height: 44)
+        .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
+        .clipShape(Circle())
+        .accessibilityHidden(true)
+    }
+
+    private func blockedUserName(_ user: BlockedUser) -> some View {
+        Text(user.displayName)
+            .font(AppTheme.cardTitleFont)
+            .foregroundStyle(AppTheme.textPrimary)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func unblockButton(_ user: BlockedUser) -> some View {
+        Button(AppStrings.Safety.unblockAction) {
+            userPendingUnblock = user
+        }
+        .font(AppTheme.metadataStrongFont)
+        .buttonStyle(.bordered)
+        .disabled(!coordinator.mutatingUserIDs.isEmpty)
     }
 }

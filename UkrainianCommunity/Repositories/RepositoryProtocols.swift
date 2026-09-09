@@ -10,6 +10,7 @@ protocol UserRepository {
 protocol LegalDocumentRepository {
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument
     func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument
+    func fetchAuthoritativeActiveDocument(type: LegalDocumentType) async throws -> LegalDocument
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws
     func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) async throws
@@ -25,6 +26,10 @@ protocol LegalDocumentRepository {
 extension LegalDocumentRepository {
     func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument {
         try await fetchActiveDocument(type: type)
+    }
+
+    func fetchAuthoritativeActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
+        try await fetchActiveDocumentForReader(type: type)
     }
 }
 
@@ -106,16 +111,156 @@ protocol OwnerContentDraftRepository {
     func delete(userID: String, draftID: String) async throws
 }
 
+struct FeedbackPageCursor: Equatable {
+    let createdAt: Date
+    let id: String
+}
+
+struct FeedbackPage {
+    let items: [FeedbackItem]
+    let nextCursor: FeedbackPageCursor?
+    let hasMore: Bool
+}
+
+struct FeedbackMessagePage {
+    let items: [FeedbackMessage]
+    let nextCursor: FeedbackPageCursor?
+    let hasMore: Bool
+}
+
+enum FeedbackOperationKind: String, Equatable {
+    case userMessage
+    case ownerReply
+    case close
+}
+
+struct FeedbackOperationAttempt: Equatable {
+    let id: String
+    let feedbackID: String
+    let kind: FeedbackOperationKind
+    let text: String
+    let actorID: String
+    let actorDisplayName: String
+    let createdAt: Date
+
+    init(
+        id: String = UUID().uuidString,
+        feedbackID: String,
+        kind: FeedbackOperationKind,
+        text: String,
+        actorID: String,
+        actorDisplayName: String,
+        createdAt: Date = .now
+    ) {
+        self.id = id
+        self.feedbackID = feedbackID
+        self.kind = kind
+        self.text = text
+        self.actorID = actorID
+        self.actorDisplayName = actorDisplayName
+        self.createdAt = createdAt
+    }
+
+    func matches(
+        feedbackID: String,
+        kind: FeedbackOperationKind,
+        text: String,
+        actorID: String,
+        actorDisplayName: String
+    ) -> Bool {
+        self.feedbackID == feedbackID
+            && self.kind == kind
+            && self.text == text
+            && self.actorID == actorID
+            && self.actorDisplayName == actorDisplayName
+    }
+
+    var senderRole: FeedbackSenderRole {
+        kind == .userMessage ? .user : .owner
+    }
+
+    var isSystem: Bool {
+        kind == .close
+    }
+
+    var resultingStatus: FeedbackStatus {
+        switch kind {
+        case .userMessage:
+            .open
+        case .ownerReply:
+            .answered
+        case .close:
+            .closed
+        }
+    }
+}
+
+struct PendingFeedbackOperationBuffer {
+    private static let maximumCount = 8
+    private var attemptsByKey: [String: FeedbackOperationAttempt] = [:]
+    private var keyOrder: [String] = []
+
+    mutating func attempt(
+        feedbackID: String,
+        kind: FeedbackOperationKind,
+        text: String,
+        actorID: String,
+        actorDisplayName: String
+    ) -> FeedbackOperationAttempt {
+        let key = "\(kind.rawValue):\(feedbackID)"
+        if let existing = attemptsByKey[key],
+           existing.matches(
+               feedbackID: feedbackID,
+               kind: kind,
+               text: text,
+               actorID: actorID,
+               actorDisplayName: actorDisplayName
+           ) {
+            return existing
+        }
+
+        let attempt = FeedbackOperationAttempt(
+            feedbackID: feedbackID,
+            kind: kind,
+            text: text,
+            actorID: actorID,
+            actorDisplayName: actorDisplayName
+        )
+        attemptsByKey[key] = attempt
+        keyOrder.removeAll { $0 == key }
+        keyOrder.append(key)
+        while keyOrder.count > Self.maximumCount {
+            attemptsByKey[keyOrder.removeFirst()] = nil
+        }
+        return attempt
+    }
+
+    mutating func complete(_ attempt: FeedbackOperationAttempt) {
+        let key = "\(attempt.kind.rawValue):\(attempt.feedbackID)"
+        guard attemptsByKey[key]?.id == attempt.id else { return }
+        attemptsByKey[key] = nil
+        keyOrder.removeAll { $0 == key }
+    }
+
+    mutating func removeAll() {
+        attemptsByKey = [:]
+        keyOrder = []
+    }
+}
+
 protocol FeedbackRepository {
     func submitFeedback(_ feedback: FeedbackItem) async throws
     func fetchFeedback() async throws -> [FeedbackItem]
     func fetchFeedback(userID: String) async throws -> [FeedbackItem]
+    func fetchFeedbackPage(userID: String?, after cursor: FeedbackPageCursor?, limit: Int) async throws -> FeedbackPage
+    func fetchFeedback(id: String) async throws -> FeedbackItem
     func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage]
-    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws
-    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws
+    func fetchFeedbackMessagesPage(feedback: FeedbackItem, after cursor: FeedbackPageCursor?, limit: Int) async throws -> FeedbackMessagePage
+    func acknowledgeFeedbackReadByUser(id: String, userID: String) async throws
+    func acknowledgeFeedbackReadByOwner(id: String) async throws
+    func performFeedbackOperation(_ operation: FeedbackOperationAttempt) async throws
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws
     func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws
-    func closeFeedback(id: String) async throws
     func deleteFeedback(id: String) async throws
     func clearFeedbackInbox() async throws
     func decideDsaCase(_ request: DsaDecisionFunctionRequest) async throws
@@ -129,22 +274,69 @@ extension FeedbackRepository {
         return items.filter { $0.userId == userID }
     }
 
+    func fetchFeedbackPage(userID: String?, after cursor: FeedbackPageCursor?, limit: Int) async throws -> FeedbackPage {
+        let allItems: [FeedbackItem]
+        if let userID {
+            allItems = try await fetchFeedback(userID: userID)
+        } else {
+            allItems = try await fetchFeedback()
+        }
+        let sortedItems = allItems.sorted {
+            $0.createdAt == $1.createdAt ? $0.id > $1.id : $0.createdAt > $1.createdAt
+        }
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = sortedItems.firstIndex(where: { $0.id == cursor.id }) {
+            startIndex = sortedItems.index(after: cursorIndex)
+        } else {
+            startIndex = 0
+        }
+        let pageItems = Array(sortedItems.dropFirst(startIndex).prefix(max(1, limit)))
+        return FeedbackPage(
+            items: pageItems,
+            nextCursor: pageItems.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id) },
+            hasMore: sortedItems.count > startIndex + pageItems.count
+        )
+    }
+
+    func fetchFeedback(id: String) async throws -> FeedbackItem {
+        guard let item = try await fetchFeedback().first(where: { $0.id == id }) else {
+            throw AppError.notFound
+        }
+        return item
+    }
+
     func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
         feedback.legacyMessages
     }
 
-    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws {}
+    func fetchFeedbackMessagesPage(feedback: FeedbackItem, after cursor: FeedbackPageCursor?, limit: Int) async throws -> FeedbackMessagePage {
+        let allItems = try await fetchFeedbackMessages(feedback: feedback)
+            .sorted { $0.createdAt == $1.createdAt ? $0.id > $1.id : $0.createdAt > $1.createdAt }
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = allItems.firstIndex(where: { $0.id == cursor.id }) {
+            startIndex = allItems.index(after: cursorIndex)
+        } else {
+            startIndex = 0
+        }
+        let pageItems = Array(allItems.dropFirst(startIndex).prefix(max(1, limit)))
+        return FeedbackMessagePage(
+            items: pageItems.sorted { $0.createdAt < $1.createdAt },
+            nextCursor: pageItems.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id) },
+            hasMore: allItems.count > startIndex + pageItems.count
+        )
+    }
 
-    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws {
-        try await replyToFeedback(id: feedback.id, reply: text, repliedByUserID: owner.id)
+    func acknowledgeFeedbackReadByUser(id: String, userID: String) async throws {}
+    func acknowledgeFeedbackReadByOwner(id: String) async throws {}
+
+    func performFeedbackOperation(_ operation: FeedbackOperationAttempt) async throws {
+        throw AppError.validationFailed
     }
 
     func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws {
         try await updateFeedbackStatus(id: id, status: .answered)
-    }
-
-    func closeFeedback(id: String) async throws {
-        try await updateFeedbackStatus(id: id, status: .closed)
     }
 
     func deleteFeedback(id: String) async throws {}
@@ -238,6 +430,14 @@ struct EventRegistrationMutationResult: Equatable {
     let didChange: Bool
 }
 
+/// A private bookmark marker joined only with content that remains publicly readable.
+/// `content == nil` carries no fields from a deleted or hidden target.
+struct SavedContentRecord<Content> {
+    let id: String
+    let savedAt: Date?
+    let content: Content?
+}
+
 enum EventRegistrationMutationError: Error, Equatable {
     case full
     case registrationNotRequired
@@ -299,6 +499,7 @@ protocol NewsRepository {
     func fetchNews() async throws -> [NewsPost]
     func fetchNews(id: String) async throws -> NewsPost
     func fetchBookmarkedNews() async throws -> [NewsPost]
+    func fetchSavedNews() async throws -> [SavedContentRecord<NewsPost>]
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage
     func fetchNewsPage(
         limit: Int,
@@ -325,11 +526,13 @@ protocol NewsRepository {
     func bookmarkNews(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unbookmarkNews(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
+    func updateModerationStatus(id: String, newStatus: ModerationStatus, expectedRevision: String, operationID: String) async throws
 }
 
 protocol EventRepository: EventRegistrationMutating {
     func fetchEvents() async throws -> [Event]
     func fetchBookmarkedEvents() async throws -> [Event]
+    func fetchSavedEvents() async throws -> [SavedContentRecord<Event>]
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage
     func fetchEventsPage(
         limit: Int,
@@ -363,15 +566,24 @@ protocol EventRepository: EventRegistrationMutating {
     func bookmarkEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func unbookmarkEvent(id: String) async throws
     func updateModerationStatus(id: String, newStatus: ModerationStatus) async throws
+    func updateModerationStatus(id: String, newStatus: ModerationStatus, expectedRevision: String, operationID: String) async throws
 }
 
 extension NewsRepository {
+    func updateModerationStatus(id: String, newStatus: ModerationStatus, expectedRevision: String, operationID: String) async throws {
+        try await updateModerationStatus(id: id, newStatus: newStatus)
+    }
+
     func updateExistingPlanningNews(_ news: NewsPost) async throws {
         try await updateNews(news)
     }
 }
 
 extension EventRepository {
+    func updateModerationStatus(id: String, newStatus: ModerationStatus, expectedRevision: String, operationID: String) async throws {
+        try await updateModerationStatus(id: id, newStatus: newStatus)
+    }
+
     func updateExistingPlanningEvent(_ event: Event) async throws {
         try await updateEvent(event)
     }
@@ -381,7 +593,9 @@ protocol OrganizationRepository {
     func fetchOrganizations() async throws -> [Organization]
     func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization]
     func fetchBookmarkedOrganizations() async throws -> [Organization]
+    func fetchSavedOrganizations() async throws -> [SavedContentRecord<Organization>]
     func fetchSubscribedOrganizations() async throws -> [Organization]
+    func fetchOrganizationSubscriptions(forceRefresh: Bool) async throws -> [SavedContentRecord<Organization>]
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage
     func fetchOrganizationsPage(
         limit: Int,
@@ -444,6 +658,12 @@ extension NewsRepository {
 
     func fetchBookmarkedNews() async throws -> [NewsPost] {
         try await fetchNews().filter(\.isBookmarked)
+    }
+
+    func fetchSavedNews() async throws -> [SavedContentRecord<NewsPost>] {
+        try await fetchBookmarkedNews().map {
+            SavedContentRecord(id: $0.id, savedAt: nil, content: $0)
+        }
     }
 
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage {
@@ -516,6 +736,12 @@ extension NewsRepository {
 extension EventRepository {
     func fetchBookmarkedEvents() async throws -> [Event] {
         try await fetchEvents().filter(\.isBookmarked)
+    }
+
+    func fetchSavedEvents() async throws -> [SavedContentRecord<Event>] {
+        try await fetchBookmarkedEvents().map {
+            SavedContentRecord(id: $0.id, savedAt: nil, content: $0)
+        }
     }
 
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {
@@ -658,8 +884,20 @@ extension OrganizationRepository {
         try await fetchOrganizations().filter(\.isBookmarked)
     }
 
+    func fetchSavedOrganizations() async throws -> [SavedContentRecord<Organization>] {
+        try await fetchBookmarkedOrganizations().map {
+            SavedContentRecord(id: $0.id, savedAt: nil, content: $0)
+        }
+    }
+
     func fetchSubscribedOrganizations() async throws -> [Organization] {
         try await fetchOrganizations().filter(\.isSubscribed)
+    }
+
+    func fetchOrganizationSubscriptions(forceRefresh _: Bool) async throws -> [SavedContentRecord<Organization>] {
+        try await fetchSubscribedOrganizations().map { organization in
+            SavedContentRecord(id: organization.id, savedAt: organization.createdAt, content: organization)
+        }
     }
 
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage {

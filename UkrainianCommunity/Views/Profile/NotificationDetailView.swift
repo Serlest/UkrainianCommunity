@@ -5,6 +5,7 @@ struct NotificationDetailView: View {
     @ObservedObject var viewModel: NotificationInboxViewModel
     let openDestination: (AppNotification) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isShowingDeleteConfirmation = false
     @State private var isDeleting = false
 
@@ -15,6 +16,7 @@ struct NotificationDetailView: View {
     var body: some View {
         PushedScreenShell(
             title: AppStrings.NotificationInbox.detailTitle,
+            pinsHeaderAtAccessibilitySizes: true,
             showsBackButton: false
         ) {
             AppGlassIconButton(systemImage: "xmark", accessibilityLabel: AppStrings.NotificationInbox.closeDetails) {
@@ -75,11 +77,25 @@ struct NotificationDetailView: View {
     private var messageCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                Label(currentNotification.localizedDetailContent.title, systemImage: "bell.badge")
-                    .font(.title3.weight(.semibold))
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                        Image(systemName: "bell.badge")
+                            .font(.title2.weight(.semibold))
+                            .accessibilityHidden(true)
+                        Text(currentNotification.localizedDetailContent.title)
+                            .font(.title3.weight(.semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     .foregroundStyle(AppTheme.textPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("notificationDetail.title")
+                } else {
+                    Label(currentNotification.localizedDetailContent.title, systemImage: "bell.badge")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("notificationDetail.title")
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     Label(

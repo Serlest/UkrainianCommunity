@@ -362,12 +362,12 @@ describe("systemLogs normal user access", () => {
 });
 
 describe("systemLogs client create restrictions", () => {
-  test("owner and admin can create diagnostics, audit, and constrained moderation logs only", async () => {
+  test("diagnostics require the redacting callable while audit and constrained moderation remain authorized", async () => {
     const ownerDb = auth("owner");
     const adminDb = auth("admin");
 
-    await assertSucceeds(setDoc(doc(ownerDb, "systemLogs", "owner-created-diagnostics"), diagnosticsCreate("owner-created-diagnostics")));
-    await assertSucceeds(setDoc(doc(adminDb, "systemLogs", "admin-created-diagnostics"), diagnosticsCreate("admin-created-diagnostics")));
+    await assertFails(setDoc(doc(ownerDb, "systemLogs", "owner-created-diagnostics"), diagnosticsCreate("owner-created-diagnostics")));
+    await assertFails(setDoc(doc(adminDb, "systemLogs", "admin-created-diagnostics"), diagnosticsCreate("admin-created-diagnostics")));
     await assertSucceeds(setDoc(doc(ownerDb, "systemLogs", "owner-created-audit"), auditCreate({
       id: "owner-created-audit",
       actorUserId: "owner",

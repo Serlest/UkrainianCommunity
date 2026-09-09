@@ -484,6 +484,8 @@ final class OwnerAnalyticsViewModel: ObservableObject {
 private extension OwnerAnalyticsDataSource {
     var analyticsTitle: String {
         switch self {
+        case .dailyStats:
+            AppStrings.OwnerAnalytics.views
         case .topContent:
             AppStrings.OwnerAnalytics.sourceTopContent
         case .contentRegions:

@@ -192,6 +192,17 @@ export function contentReportDocumentId(
   return `report_${createHash("sha256").update(identity).digest("hex").slice(0, 40)}`;
 }
 
+function contentReportDeduplicationKey(reporterId: string, report: ContentReportRequest): string {
+  const identity = [
+    contentReportDocumentId(reporterId, report),
+    report.reason,
+    report.illegalExplanation,
+    report.legalBasis ?? "-",
+    report.evidence ?? "-",
+  ].join("|");
+  return `active_${createHash("sha256").update(identity).digest("hex")}`;
+}
+
 function normalizedText(value: unknown, fallback: string, maximumLength: number): string {
   if (typeof value !== "string") {
     return fallback;
@@ -334,13 +345,14 @@ export const submitContentReport = onCall(
       targetExcerpt: target.excerpt,
       reason: report.reason,
       isUrgent: urgentReasons.has(report.reason),
+      deduplicationKey: contentReportDeduplicationKey(actor.uid, report),
     });
 
     return {
       reportId: receipt.reportId,
       status: "open",
       submittedAt: receipt.submittedAt,
-      wasDuplicate: false,
+      wasDuplicate: receipt.wasDuplicate,
       caseNumber: receipt.caseNumber,
       accessToken: receipt.accessToken,
       acknowledgementAt: receipt.acknowledgementAt,

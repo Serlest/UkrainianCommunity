@@ -25,6 +25,8 @@ final class SystemLogsViewModel: ObservableObject {
     @Published private(set) var isClearingLogs = false
     @Published private(set) var deletingLogIDs = Set<String>()
     @Published private(set) var clearLogsErrorMessage: String?
+    @Published private(set) var refreshingDetailLogIDs = Set<String>()
+    @Published private(set) var detailRefreshErrorMessages: [String: String] = [:]
 
     private let repository: SystemLogRepositoryProtocol
     let accessMode: SystemLogsAccessMode
@@ -193,6 +195,28 @@ final class SystemLogsViewModel: ObservableObject {
         logs.first { $0.id == id }
     }
 
+    func refreshLogDetail(id: String) async {
+        guard !refreshingDetailLogIDs.contains(id) else { return }
+        refreshingDetailLogIDs.insert(id)
+        detailRefreshErrorMessages[id] = nil
+        defer { refreshingDetailLogIDs.remove(id) }
+
+        do {
+            guard let refreshedLog = try await repository.fetchLog(id: id) else {
+                detailRefreshErrorMessages[id] = LocalizationStore.localizedString(
+                    "system_logs.detail.not_found",
+                    defaultValue: "Запис журналу більше не доступний."
+                )
+                return
+            }
+            if let index = logs.firstIndex(where: { $0.id == id }) {
+                logs[index] = refreshedLog
+            }
+        } catch {
+            detailRefreshErrorMessages[id] = readableErrorMessage(for: error)
+        }
+    }
+
     private func applyReviewedState(logID: String, reviewedByUserId: String, reviewedAt: Date) {
         guard let index = logs.firstIndex(where: { $0.id == logID }) else { return }
         logs[index] = logs[index].markedReviewed(at: reviewedAt, reviewedByUserId: reviewedByUserId)
@@ -288,6 +312,15 @@ final class SystemLogsViewModel: ObservableObject {
             for log in candidates {
                 applyReviewedState(logID: log.id, reviewedByUserId: reviewerUserId, reviewedAt: reviewedAt)
             }
+        } catch let partialError as SystemLogBulkReviewPartialError {
+            let reviewedAt = nowProvider()
+            for logID in partialError.committedLogIDs {
+                applyReviewedState(logID: logID, reviewedByUserId: reviewerUserId, reviewedAt: reviewedAt)
+            }
+            bulkReviewErrorMessage = LocalizationStore.localizedString(
+                "system_logs.review.partial_failure",
+                defaultValue: "Частину записів позначено як переглянуті. Не вдалося завершити всю операцію. Оновіть журнал і повторіть спробу."
+            )
         } catch {
             bulkReviewErrorMessage = readableReviewErrorMessage(for: error)
         }

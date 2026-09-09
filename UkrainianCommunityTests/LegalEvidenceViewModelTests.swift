@@ -26,10 +26,14 @@ private final class LegalEvidenceRepositoryStub: LegalEvidenceRepository {
         return pages.isEmpty ? LegalEvidenceAccountPage(accounts: [], nextCursor: nil, totalMatches: nil) : pages.removeFirst()
     }
 
-    func fetchEvidence(userID: String) async throws -> [LegalEvidenceEvent] {
+    func fetchEvidence(userID: String) async throws -> LegalEvidenceHistory {
         requestedUserIDs.append(userID)
         if let evidenceError { throw evidenceError }
-        return events
+        return LegalEvidenceHistory(
+            account: LegalEvidenceAccount(userID: userID, displayName: "Philipp", email: "philipp@example.com", createdAt: nil),
+            events: events,
+            generatedAt: Date(timeIntervalSince1970: 30)
+        )
     }
 }
 
@@ -139,7 +143,13 @@ struct LegalEvidenceViewModelTests {
             source: "legalDocument",
             contentHash: "hash",
             organizationID: nil,
-            organizationName: nil
+            organizationName: nil,
+            sourceRecordID: "receipt-1",
+            acceptedFromPlatform: "ios",
+            consentID: nil,
+            purposeVersion: nil,
+            disclosureVersion: nil,
+            disclosureText: nil
         )
     }
 }

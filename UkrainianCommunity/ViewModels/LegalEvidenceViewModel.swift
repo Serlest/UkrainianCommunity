@@ -87,15 +87,17 @@ final class LegalEvidenceViewModel: ObservableObject {
 
 @MainActor
 final class LegalEvidenceUserViewModel: ObservableObject {
+    @Published private(set) var account: LegalEvidenceAccount
     @Published private(set) var events: [LegalEvidenceEvent] = []
     @Published private(set) var isLoading = false
     @Published private(set) var hasLoaded = false
     @Published private(set) var errorMessage: String?
     @Published var filter: LegalEvidenceFilter = .all
+    @Published var searchText = ""
 
     private var requestRevision: UInt = 0
+    private var history: LegalEvidenceHistory?
     private let repository: LegalEvidenceRepository
-    let account: LegalEvidenceAccount
 
     init(account: LegalEvidenceAccount, repository: LegalEvidenceRepository) {
         self.account = account
@@ -103,15 +105,18 @@ final class LegalEvidenceUserViewModel: ObservableObject {
     }
 
     var exportText: String? {
-        guard hasLoaded, !isLoading, errorMessage == nil else { return nil }
+        guard hasLoaded, !isLoading, errorMessage == nil, let history else { return nil }
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return (try? encoder.encode(events)).flatMap { String(data: $0, encoding: .utf8) }
+        return (try? encoder.encode(LegalEvidenceExportEnvelope(history: history)))
+            .flatMap { String(data: $0, encoding: .utf8) }
     }
 
     var filteredEvents: [LegalEvidenceEvent] {
-        events.filter { filter.includes($0.eventType) }
+        events.filter { event in
+            filter.includes(event.eventType) && matchesSearch(event)
+        }
     }
 
     func load() async {
@@ -125,7 +130,9 @@ final class LegalEvidenceUserViewModel: ObservableObject {
         do {
             let loaded = try await RefreshRequest.run(timeout: .seconds(120)) { [self] in try await repository.fetchEvidence(userID: account.userID) }
             guard revision == requestRevision else { return }
-            events = loaded
+            history = loaded
+            account = loaded.account
+            events = loaded.events
             hasLoaded = true
         } catch is CancellationError {
             return
@@ -134,6 +141,20 @@ final class LegalEvidenceUserViewModel: ObservableObject {
             hasLoaded = true
             errorMessage = legalEvidenceErrorMessage(for: error, userDetail: true)
         }
+    }
+
+    private func matchesSearch(_ event: LegalEvidenceEvent) -> Bool {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return true }
+        if event.matches(query) { return true }
+
+        let tokens = query
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .split(whereSeparator: \.isWhitespace)
+        let accountIdentity = [account.displayName ?? "", account.email ?? "", account.userID]
+            .joined(separator: " ")
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+        return tokens.allSatisfy { accountIdentity.contains($0) }
     }
 }
 

@@ -16,99 +16,115 @@ struct NotificationSettingsSectionView: View {
             subtitle: AppStrings.Profile.notificationsSectionSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ProfileSettingsToggleRow(
-                    title: AppStrings.Profile.notificationsEnabled,
-                    subtitle: AppStrings.Profile.notificationsEnabledSubtitle,
-                    systemImage: "bell",
-                    isOn: Binding(
-                        get: { viewModel.notificationPreferences.notificationsEnabled },
-                        set: { newValue in
-                            guard let userID else { return }
-                            Task {
-                                await viewModel.setNotificationsEnabled(newValue, userID: userID)
-                            }
-                        }
-                    )
-                )
-                .disabled(viewModel.isSavingNotificationPreferences || viewModel.isLoadingNotificationPreferences)
-
-                if systemNotificationsDenied || systemBadgesDisabled {
-                    InlineMessageCard(style: .error, message: systemNotificationsDenied
-                        ? AppStrings.Profile.systemNotificationsDenied : AppStrings.Profile.systemBadgesDisabled)
-                    Button(AppStrings.Profile.openSystemNotificationSettings) {
-                        if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                if !viewModel.hasLoadedNotificationPreferences(for: userID)
+                    && !viewModel.hasNotificationPreferencesLoadError {
+                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        ProgressView()
+                        Text(AppStrings.Profile.notificationPreferencesLoading)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
-                    .buttonStyle(.bordered)
-                }
-
-                ProfileSettingsToggleRow(
-                    title: AppStrings.Profile.eventRemindersEnabled,
-                    subtitle: AppStrings.Profile.eventRemindersEnabledSubtitle,
-                    systemImage: "calendar.badge.clock",
-                    isOn: Binding(
-                        get: { viewModel.notificationPreferences.eventRemindersEnabled },
-                        set: { newValue in
-                            guard let userID else { return }
-                            Task {
-                                await viewModel.setEventRemindersEnabled(newValue, userID: userID)
-                            }
-                        }
-                    )
-                )
-                .disabled(
-                    !viewModel.notificationPreferences.notificationsEnabled
-                        || viewModel.isSavingNotificationPreferences
-                        || viewModel.isLoadingNotificationPreferences
-                )
-
-                ProfileSettingsPickerRow(
-                    title: AppStrings.Profile.reminderLeadTime,
-                    subtitle: AppStrings.Profile.reminderLeadTimeSubtitle,
-                    systemImage: "clock"
-                ) {
-                    Picker(
-                        AppStrings.Profile.reminderLeadTime,
-                        selection: Binding(
-                            get: { viewModel.notificationPreferences.reminderLeadMinutes },
-                            set: { minutes in
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("notifications.loading")
+                } else if !viewModel.hasNotificationPreferencesLoadError {
+                    ProfileSettingsToggleRow(
+                        title: AppStrings.Profile.notificationsEnabled,
+                        subtitle: AppStrings.Profile.notificationsEnabledSubtitle,
+                        systemImage: "bell",
+                        isOn: Binding(
+                            get: { viewModel.notificationPreferences.notificationsEnabled },
+                            set: { newValue in
                                 guard let userID else { return }
                                 Task {
-                                    await viewModel.setReminderLeadMinutes(minutes, userID: userID)
+                                    await viewModel.setNotificationsEnabled(newValue, userID: userID)
                                 }
                             }
                         )
-                    ) {
-                        ForEach([15, 30, 60, 120, 1_440], id: \.self) { minutes in
-                            Text(reminderLeadTimeTitle(minutes)).tag(minutes)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
-                .disabled(
-                    !viewModel.notificationPreferences.notificationsEnabled
-                        || !viewModel.notificationPreferences.eventRemindersEnabled
-                        || viewModel.isSavingNotificationPreferences
-                        || viewModel.isLoadingNotificationPreferences
-                )
+                    )
+                    .disabled(viewModel.isSavingNotificationPreferences || viewModel.isLoadingNotificationPreferences)
 
-                if canSendTestNotification,
-                   let userID,
-                   viewModel.notificationPreferences.notificationsEnabled {
-                    Button {
-                        Task { await viewModel.sendTestNotification(userID: userID) }
-                    } label: {
-                        Label(
-                            AppStrings.Profile.notificationTestButton,
-                            systemImage: "bell.badge"
-                        )
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                    if viewModel.notificationPreferences.notificationsEnabled,
+                       (systemNotificationsDenied || systemBadgesDisabled) {
+                        InlineMessageCard(style: .error, message: systemNotificationsDenied
+                            ? AppStrings.Profile.systemNotificationsDenied : AppStrings.Profile.systemBadgesDisabled)
+                        Button(AppStrings.Profile.openSystemNotificationSettings) {
+                            if let url = URL(string: UIApplication.openNotificationSettingsURLString) { openURL(url) }
+                        }
+                        .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.isSendingTestNotification)
-                    .accessibilityIdentifier("notifications.sendTest")
+
+                    ProfileSettingsToggleRow(
+                        title: AppStrings.Profile.eventRemindersEnabled,
+                        subtitle: AppStrings.Profile.eventRemindersEnabledSubtitle,
+                        systemImage: "calendar.badge.clock",
+                        isOn: Binding(
+                            get: { viewModel.notificationPreferences.eventRemindersEnabled },
+                            set: { newValue in
+                                guard let userID else { return }
+                                Task {
+                                    await viewModel.setEventRemindersEnabled(newValue, userID: userID)
+                                }
+                            }
+                        )
+                    )
+                    .disabled(
+                        !viewModel.notificationPreferences.notificationsEnabled
+                            || viewModel.isSavingNotificationPreferences
+                            || viewModel.isLoadingNotificationPreferences
+                    )
+
+                    ProfileSettingsPickerRow(
+                        title: AppStrings.Profile.reminderLeadTime,
+                        subtitle: AppStrings.Profile.reminderLeadTimeSubtitle,
+                        systemImage: "clock"
+                    ) {
+                        Picker(
+                            AppStrings.Profile.reminderLeadTime,
+                            selection: Binding(
+                                get: { viewModel.notificationPreferences.reminderLeadMinutes },
+                                set: { minutes in
+                                    guard let userID else { return }
+                                    Task {
+                                        await viewModel.setReminderLeadMinutes(minutes, userID: userID)
+                                    }
+                                }
+                            )
+                        ) {
+                            ForEach([15, 30, 60, 120, 1_440], id: \.self) { minutes in
+                                Text(reminderLeadTimeTitle(minutes)).tag(minutes)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .disabled(
+                        !viewModel.notificationPreferences.notificationsEnabled
+                            || !viewModel.notificationPreferences.eventRemindersEnabled
+                            || viewModel.isSavingNotificationPreferences
+                            || viewModel.isLoadingNotificationPreferences
+                    )
+
+                    if canSendTestNotification,
+                       let userID,
+                       viewModel.notificationPreferences.notificationsEnabled {
+                        Button {
+                            Task { await viewModel.sendTestNotification(userID: userID) }
+                        } label: {
+                            Label(
+                                AppStrings.Profile.notificationTestButton,
+                                systemImage: "bell.badge"
+                            )
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(
+                            viewModel.isSendingTestNotification
+                                || viewModel.isSavingNotificationPreferences
+                        )
+                        .accessibilityIdentifier("notifications.sendTest")
+                    }
                 }
 
                 if let message = viewModel.notificationPreferencesMessage {
@@ -116,6 +132,20 @@ struct NotificationSettingsSectionView: View {
                         style: notificationPreferencesMessageStyle(for: message),
                         message: message
                     )
+                }
+
+                if viewModel.hasNotificationPreferencesLoadError,
+                   let userID {
+                    Button {
+                        Task { await viewModel.refreshNotificationPreferences(userID: userID) }
+                    } label: {
+                        Label(AppStrings.Action.retry, systemImage: "arrow.clockwise")
+                            .frame(maxWidth: .infinity)
+                            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.isLoadingNotificationPreferences)
+                    .accessibilityIdentifier("notifications.retry")
                 }
             }
         }

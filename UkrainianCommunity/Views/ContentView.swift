@@ -137,14 +137,29 @@ struct ContentView: View {
     }
 
     private var baseContent: some View {
-        TabView(selection: tabSelection) {
-            rootTabs
-        }
-        .background {
-            ActiveTabReselectionObserver {
-                handleActiveTabReselection()
+        ZStack(alignment: .top) {
+            TabView(selection: tabSelection) {
+                rootTabs
             }
-            .frame(width: 0, height: 0)
+            .background {
+                ActiveTabReselectionObserver {
+                    handleActiveTabReselection()
+                }
+                .frame(width: 0, height: 0)
+            }
+
+            if selectedTab != .profile, organizationBlockingCoordinator.requiresVisibilityGate {
+                OrganizationContentVisibilityGate(
+                    isLoading: organizationBlockingCoordinator.verificationState == .pending,
+                    errorMessage: organizationBlockingCoordinator.errorMessage
+                ) {
+                    Task { await organizationBlockingCoordinator.reload() }
+                }
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.sectionSpacing)
+                .transition(.opacity)
+                .zIndex(1)
+            }
         }
         .tint(AppTheme.primaryBlue)
         .preferredColorScheme(selectedAppearance.colorScheme)
@@ -155,18 +170,27 @@ struct ContentView: View {
 
     private var lifecycleContent: some View {
         baseContent
-        .onAppear { updateAppLockIsLocked = authState.appLock.isLocked }
+        .onAppear {
+            updateAppLockIsLocked = authState.appLock.isLocked
+            applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
+        }
         .task(id: notificationInboxUserID) {
+            applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
             await organizationBlockingCoordinator.configure(userID: notificationInboxUserID)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            Task { await organizationBlockingCoordinator.reload() }
+            Task {
+                await organizationBlockingCoordinator.reload()
+                await userBlockingCoordinator.reload()
+            }
         }
-        .onChange(of: organizationBlockingCoordinator.blockedOrganizationIDs) { oldIDs, newIDs in
+        .onChange(of: organizationBlockingCoordinator.visibilityPolicy) { oldPolicy, newPolicy in
             applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
-            if !oldIDs.subtracting(newIDs).isEmpty {
+            if (!oldPolicy.allowsOrganizationContent && newPolicy.allowsOrganizationContent)
+                || !oldPolicy.blockedOrganizationIDs.subtracting(newPolicy.blockedOrganizationIDs).isEmpty {
                 Task { await refreshPublicContentAfterUnblock() }
             }
+            Task { await reconcileEventRemindersAfterOrganizationVisibilityChange() }
         }
         .task(id: authoringIdentityKey) {
             await authoringOrganizations.prepareForQuickCreation(for: authState.isAuthenticated ? authState.user : nil)
@@ -392,8 +416,9 @@ struct ContentView: View {
                 },
                 performAction: {
                     Task {
-                        await notificationPopupCoordinator.dismissActiveNotification(markRead: true)
-                        handleNotificationTap(notification)
+                        if await notificationPopupCoordinator.dismissActiveNotification(markRead: true) {
+                            handleNotificationTap(notification)
+                        }
                     }
                 }
             )
@@ -657,7 +682,8 @@ struct ContentView: View {
     private func applyContentVisibility(blockedUserIDs: Set<String>) {
         let policy = ContentVisibilityPolicy(
             blockedUserIDs: blockedUserIDs,
-            blockedOrganizationIDs: organizationBlockingCoordinator.blockedOrganizationIDs
+            blockedOrganizationIDs: organizationBlockingCoordinator.blockedOrganizationIDs,
+            allowsOrganizationContent: organizationBlockingCoordinator.visibilityPolicy.allowsOrganizationContent
         )
         newsViewModel.applyContentVisibility(policy)
         eventsViewModel.applyContentVisibility(policy)
@@ -819,14 +845,29 @@ struct ContentView: View {
         do {
             let registeredEvents = try await container.eventRepository.fetchRegisteredEvents()
             guard authState.isAuthenticated, authState.user?.id == userID else { return }
+            let visibleEvents = organizationBlockingCoordinator.visibilityPolicy.visibleEvents(registeredEvents)
             try await container.localEventReminderService.reconcileEventReminders(
-                events: registeredEvents,
+                events: visibleEvents,
                 userID: userID,
                 preferences: preferences
             )
         } catch {
             #if DEBUG
             print("[Notifications] Failed to reconcile event reminders: \(error)")
+            #endif
+        }
+    }
+
+    private func reconcileEventRemindersAfterOrganizationVisibilityChange() async {
+        guard let userID = notificationInboxUserID else { return }
+        do {
+            let preferences = try await container.notificationPreferencesRepository
+                .fetchNotificationPreferences(userID: userID)
+            guard authState.isAuthenticated, authState.user?.id == userID else { return }
+            await reconcileEventReminders(for: userID, preferences: preferences)
+        } catch {
+            #if DEBUG
+            print("[Notifications] Failed to load preferences after organization visibility change: \(error)")
             #endif
         }
     }
@@ -855,7 +896,10 @@ struct ContentView: View {
             eventsNavigationPath = [EventNavigationRoute(eventID: id)]
         case let .openOrganization(id):
             Task {
-                guard let organization = await organizationsViewModel.resolveOrganization(id: id) else { return }
+                guard let organization = await organizationsViewModel.resolveOrganization(id: id) else {
+                    showNotificationRouteUnavailable()
+                    return
+                }
                 selectTabIfNeeded(.organizations)
                 organizationsNavigationPath = [OrganizationNavigationRoute(organizationID: organization.id)]
             }
@@ -886,8 +930,7 @@ struct ContentView: View {
         case .openEvent:
             routeToEvent(notification)
         case .openLegalDocuments:
-            selectTabIfNeeded(.profile)
-            profileNavigationPath = [.legal(.terms)]
+            routeToLegalDocument(targetID: notificationTargetID(notification))
         case .openProfile:
             selectTabIfNeeded(.profile)
             if !profileNavigationPath.isEmpty {
@@ -901,18 +944,44 @@ struct ContentView: View {
         }
     }
 
+    private func routeToLegalDocument(targetID: String?) {
+        let normalized = targetID?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let document: LegalDocumentKind
+        if let normalized, !normalized.isEmpty {
+            guard let resolved = LegalDocumentKind(rawValue: normalized) else {
+                showNotificationRouteUnavailable()
+                return
+            }
+            document = resolved
+        } else {
+            // Legacy notifications did not include a document identifier.
+            document = .terms
+        }
+        selectTabIfNeeded(.profile)
+        profileNavigationPath = [.legal(document)]
+    }
+
     private func routeToFeedback(_ notification: AppNotification) {
         routeToFeedback(feedbackID: notificationTargetID(notification))
     }
 
     private func routeToFeedback(feedbackID: String?) {
+        guard let userID = authState.user?.id else {
+            showNotificationRouteUnavailable()
+            return
+        }
+        let targetID = feedbackID?.trimmingCharacters(in: .whitespacesAndNewlines)
         selectTabIfNeeded(.profile)
         if PermissionService.canManageFeedback(user: authState.user) {
-            profileNavigationPath = [.feedbackInbox]
-        } else if let userID = authState.user?.id {
-            profileNavigationPath = [.myFeedback(userID: userID)]
+            if let targetID, !targetID.isEmpty {
+                profileNavigationPath = [.feedbackDetail(feedbackID: targetID)]
+            } else {
+                profileNavigationPath = [.feedbackInbox]
+            }
+        } else if let targetID, !targetID.isEmpty {
+            profileNavigationPath = [.myFeedbackDetail(userID: userID, feedbackID: targetID)]
         } else {
-            profileNavigationPath = [.feedbackInbox]
+            profileNavigationPath = [.myFeedback(userID: userID)]
         }
     }
 
@@ -1043,8 +1112,7 @@ struct ContentView: View {
         case .openDsaStatement(let statementId):
             routeToDsaStatement(statementID: statementId)
         case .openLegalDocuments:
-            selectTabIfNeeded(.profile)
-            profileNavigationPath = [.legal(.terms)]
+            routeToLegalDocument(targetID: route.resolvedTargetID)
         case .openProfile:
             selectTabIfNeeded(.profile)
             if !profileNavigationPath.isEmpty {

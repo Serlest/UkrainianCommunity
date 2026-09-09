@@ -2,6 +2,7 @@ import SwiftUI
 
 private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
     case all
+    case news
     case events
     case organizations
     case saved
@@ -12,6 +13,8 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
         switch self {
         case .all:
             return AppStrings.Home.filterAll
+        case .news:
+            return AppStrings.News.title
         case .events:
             return AppStrings.Events.title
         case .organizations:
@@ -25,6 +28,8 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
         switch self {
         case .all:
             return "square.grid.2x2"
+        case .news:
+            return ActivityLogTargetType.news.systemImage
         case .events:
             return ActivityLogTargetType.event.systemImage
         case .organizations:
@@ -38,6 +43,8 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
         switch self {
         case .all:
             return true
+        case .news:
+            return item.targetType == .news
         case .events:
             return item.targetType == .event
         case .organizations:
@@ -116,6 +123,13 @@ struct ActivityHistoryView: View {
                 )
             }
 
+            if activityLogViewModel.items.count == 100 {
+                InlineMessageCard(
+                    style: .info,
+                    message: AppStrings.Profile.activityHistoryLimitNotice
+                )
+            }
+
             activityHistoryContent
         }
         .task(id: authState.user?.id) {
@@ -187,7 +201,7 @@ struct ActivityHistoryView: View {
                         } else {
                             AppGlassIconButton(
                                 systemImage: "trash",
-                                accessibilityLabel: AppStrings.Action.delete,
+                                accessibilityLabel: "\(AppStrings.Action.delete): \(item.title)",
                                 role: .destructive
                             ) { itemPendingDeletion = item }
                             .accessibilityIdentifier("activityHistory.delete.\(item.id)")
@@ -203,7 +217,11 @@ struct ActivityHistoryView: View {
     }
 
     private func refreshActivityHistory() async {
-        await activityLogViewModel.refresh()
+        guard let userID = authState.user?.id, authState.isAuthenticated else {
+            activityLogViewModel.resetForAuthChange()
+            return
+        }
+        await activityLogViewModel.loadIfNeeded(userID: userID)
     }
 
     private func activityHistoryErrorMessage(_ error: AppError) -> String {

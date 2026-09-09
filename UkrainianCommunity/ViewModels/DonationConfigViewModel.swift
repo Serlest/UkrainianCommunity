@@ -46,11 +46,27 @@ final class DonationConfigViewModel: ObservableObject {
 
         do {
             try await repository.saveDonationConfig(config, updatedBy: userID)
-            self.config = try await RefreshRequest.run { [repository] in try await repository.fetchDonationConfig() } ?? config
+            let savedConfig = config.normalizedForSaving()
+            self.config = savedConfig
             hasLoaded = true
             hasLoadedData = true
-            statusStyle = .success
-            statusMessage = DonationLocalization.saveSucceeded()
+
+            do {
+                let refreshedConfig = try await RefreshRequest.run { [repository] in
+                    try await repository.fetchDonationConfig()
+                }
+                if let refreshedConfig {
+                    self.config = refreshedConfig
+                    statusStyle = .success
+                    statusMessage = DonationLocalization.saveSucceeded()
+                } else {
+                    statusStyle = .info
+                    statusMessage = DonationLocalization.saveSucceededRefreshFailed()
+                }
+            } catch {
+                statusStyle = .info
+                statusMessage = DonationLocalization.saveSucceededRefreshFailed()
+            }
             return true
         } catch {
             statusStyle = .error

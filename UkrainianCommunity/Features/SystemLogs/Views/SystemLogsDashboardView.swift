@@ -329,12 +329,21 @@ private struct SystemLogDetailRoute: View {
         let currentLog = viewModel.log(id: logID) ?? fallbackLog
         SystemLogDetailView(
             log: currentLog,
+            isRefreshing: viewModel.refreshingDetailLogIDs.contains(logID),
+            refreshErrorMessage: viewModel.detailRefreshErrorMessages[logID],
             isMarkingReviewed: viewModel.reviewingLogIDs.contains(logID),
             reviewErrorMessage: viewModel.reviewErrorMessage(for: logID),
+            onRetryRefresh: {
+                await viewModel.refreshLogDetail(id: logID)
+            },
             onMarkReviewed: {
                 await viewModel.markReviewed(logID: logID)
+                await viewModel.refreshLogDetail(id: logID)
             }
         )
+        .task {
+            await viewModel.refreshLogDetail(id: logID)
+        }
     }
 }
 

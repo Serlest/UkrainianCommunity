@@ -54,7 +54,7 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
     }
 
     func fetchLog(id: String) async throws -> SystemLogEntry? {
-        let snapshot = try await collection.document(id).getDocument()
+        let snapshot = try await collection.document(id).getDocument(source: .server)
         guard snapshot.exists, let data = snapshot.data() else { return nil }
         return FirestoreSystemLogDTO(id: snapshot.documentID, data: data).entry
     }
@@ -92,20 +92,32 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
     func markReviewed(logIDs: [String], reviewedByUserId: String) async throws {
         let field = SystemLogFirestoreContract.Field.self
         let trimmedReviewerID = reviewedByUserId.trimmingCharacters(in: .whitespacesAndNewlines)
-        let uniqueIDs = Array(Set(logIDs.filter { !$0.isEmpty }))
+        var seenIDs = Set<String>()
+        let uniqueIDs = logIDs.filter { !$0.isEmpty && seenIDs.insert($0).inserted }
         guard !trimmedReviewerID.isEmpty, !uniqueIDs.isEmpty else { return }
 
+        var committedLogIDs: [String] = []
         for chunkStart in stride(from: 0, to: uniqueIDs.count, by: 400) {
             let chunkEnd = min(chunkStart + 400, uniqueIDs.count)
+            let chunkIDs = Array(uniqueIDs[chunkStart..<chunkEnd])
             let batch = database.batch()
-            for logID in uniqueIDs[chunkStart..<chunkEnd] {
+            for logID in chunkIDs {
                 batch.updateData([
                     field.isReviewed.rawValue: true,
                     field.reviewedAt.rawValue: FieldValue.serverTimestamp(),
                     field.reviewedByUserId.rawValue: trimmedReviewerID
                 ], forDocument: collection.document(logID))
             }
-            try await batch.commit()
+            do {
+                try await batch.commit()
+                committedLogIDs.append(contentsOf: chunkIDs)
+            } catch {
+                guard !committedLogIDs.isEmpty else { throw error }
+                throw SystemLogBulkReviewPartialError(
+                    committedLogIDs: committedLogIDs,
+                    underlyingError: error
+                )
+            }
         }
     }
 
@@ -138,7 +150,7 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
             query = query.start(afterDocument: cursor)
         }
 
-        let snapshot = try await query.getDocuments()
+        let snapshot = try await query.getDocuments(source: .server)
         lastDocument = snapshot.documents.last
 
         return snapshot.documents.map { document in
@@ -235,6 +247,15 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
             createdAt: createdAt,
             draft: draft
         )
+    }
+}
+
+struct SystemLogBulkReviewPartialError: LocalizedError {
+    let committedLogIDs: [String]
+    let underlyingError: Error
+
+    var errorDescription: String? {
+        underlyingError.localizedDescription
     }
 }
 

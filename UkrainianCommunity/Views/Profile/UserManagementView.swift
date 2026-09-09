@@ -381,10 +381,27 @@ struct UserManagementView: View {
                 if normalizedSearch.count < 2 {
                     loadMoreButton
                 } else if normalizedSearch.count >= 2 {
-                    Text(AppStrings.UserManagement.searchResultSummary(shown: filteredUsers.count, found: viewModel.searchTotalMatches))
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
+                    VStack(spacing: 6) {
+                        Text(AppStrings.UserManagement.searchResultSummary(shown: filteredUsers.count, found: viewModel.searchTotalMatches))
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+
+                        if viewModel.searchTotalMatches > viewModel.searchResults.count {
+                            Label(
+                                LocalizationStore.localizedFormat(
+                                    "user_management.search.result_limit_notice",
+                                    defaultValue: "Показано перші %lld із %lld збігів. Уточніть пошук.",
+                                    arguments: [viewModel.searchResults.count, viewModel.searchTotalMatches]
+                                ),
+                                systemImage: "info.circle"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("userManagement.searchLimitNotice")
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
             }
         }

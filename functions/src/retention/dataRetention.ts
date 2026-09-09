@@ -21,6 +21,7 @@ import {
 import {deleteEventContent, deleteNewsContent} from "../content/contentDeletion";
 import {deleteFeedbackRecords} from "../feedback/feedbackManagement";
 import { db } from "../firebase/admin";
+import {accountDeletionOperationCollection} from "../users/accountDeletion";
 
 const maxContentDocumentsPerRun = 200;
 const maxLogDocumentsPerPolicy = 400;
@@ -63,6 +64,9 @@ type CleanupSummary = {
   dsaPortalRateLimits: number;
   organizationMutationReceipts: number;
   eventCancellationOperations: number;
+  accountDeletionOperations: number;
+  contentModerationOperations: number;
+  contentReportDeduplication: number;
 };
 
 export const cleanupExpiredData = onSchedule(
@@ -109,6 +113,12 @@ export const cleanupExpiredData = onSchedule(
         db.collection("organizationMutationReceipts").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
       eventCancellationOperations: await deleteLimitedQuery(
         db.collection("eventCancellationOperations").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
+      accountDeletionOperations: await deleteLimitedQuery(
+        db.collection(accountDeletionOperationCollection).where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
+      contentModerationOperations: await deleteLimitedQuery(
+        db.collection("contentModerationOperations").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
+      contentReportDeduplication: await deleteLimitedQuery(
+        db.collection("contentReportDeduplication").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
       dsaPortalRateLimits: await deleteLimitedQuery(
         db.collection("dsaPortalRateLimits").where("expiresAt", "<=", Timestamp.fromDate(now)),
         maxLogDocumentsPerPolicy,
@@ -151,7 +161,10 @@ async function cleanupExpiredDsaCases(now: Date): Promise<number> {
     .limit(maxFeedbackDocumentsPerRun)
     .get();
   for (const document of snapshot.docs) {
-    await deleteFeedbackRecords([db.collection("feedback").doc(document.id)]);
+    await deleteFeedbackRecords(
+      [db.collection("feedback").doc(document.id)],
+      {allowDsaDeletion: true}
+    );
     const targetAuthorId = document.get("targetAuthorId");
     if (typeof targetAuthorId === "string" && targetAuthorId.length > 0) {
       await db.collection("users").doc(targetAuthorId)
@@ -251,8 +264,8 @@ async function cleanupExpiredClosedFeedback(now: Date): Promise<number> {
     .where("updatedAt", "<=", Timestamp.fromDate(cutoff))
     .limit(maxFeedbackDocumentsPerRun)
     .get();
-  await deleteFeedbackRecords(snapshot.docs.map((document) => document.ref));
-  return snapshot.size;
+  const deletion = await deleteFeedbackRecords(snapshot.docs.map((document) => document.ref));
+  return deletion.deletedCount;
 }
 
 async function cleanupExpiredAuditLogs(now: Date): Promise<number> {

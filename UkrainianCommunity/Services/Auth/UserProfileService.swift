@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import FirebaseAuth
 import FirebaseFirestore
@@ -12,6 +13,58 @@ enum AccountDeletionError: Error, Equatable {
     case ownsOrganization
     case requiresRecentLogin
     case stageFailed(AccountDeletionStage, permissionDenied: Bool)
+}
+
+private enum AccountDeletionLocalState: String {
+    case pending
+    case serverConfirmed
+}
+
+private enum AccountDeletionLocalJournal {
+    private static let storageKey = "accountDeletion.operations.v1"
+
+    static func hasPendingOperation(for userID: String) -> Bool {
+        state(for: userID) != nil
+    }
+
+    static func requiresServerResume(for userID: String) -> Bool {
+        state(for: userID) == .pending
+    }
+
+    static func markPending(for userID: String) {
+        set(.pending, for: userID)
+    }
+
+    static func markServerConfirmed(for userID: String) {
+        set(.serverConfirmed, for: userID)
+    }
+
+    static func clear(for userID: String) {
+        var operations = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: String] ?? [:]
+        operations.removeValue(forKey: operationID(for: userID))
+        if operations.isEmpty {
+            UserDefaults.standard.removeObject(forKey: storageKey)
+        } else {
+            UserDefaults.standard.set(operations, forKey: storageKey)
+        }
+    }
+
+    private static func state(for userID: String) -> AccountDeletionLocalState? {
+        let operations = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: String]
+        return operations?[operationID(for: userID)].flatMap(AccountDeletionLocalState.init(rawValue:))
+    }
+
+    private static func set(_ state: AccountDeletionLocalState, for userID: String) {
+        var operations = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: String] ?? [:]
+        operations[operationID(for: userID)] = state.rawValue
+        UserDefaults.standard.set(operations, forKey: storageKey)
+    }
+
+    private static func operationID(for userID: String) -> String {
+        SHA256.hash(data: Data("account-deletion:\(userID)".utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+    }
 }
 
 struct RegisteredUserDocumentData: Equatable {
@@ -75,12 +128,39 @@ final class UserProfileService {
     private init() {}
 
     func createRegisteredUserDocument(for uid: String, draft: RegistrationProfileDraft) async throws {
-        let document = Firestore.firestore().collection("users").document(uid)
+        let database = Firestore.firestore()
+        let document = database.collection("users").document(uid)
         let payload = Self.makeRegisteredUserDocumentData(uid: uid, draft: draft)
+        let batch = database.batch()
+        batch.setData(payload.firestoreData, forDocument: document)
+
+        for acceptance in Self.initialLegalAcceptances(from: draft) {
+            let logID = Self.initialLegalAcceptanceLogID(
+                uid: uid,
+                type: acceptance.type,
+                version: acceptance.version
+            )
+            let log = database.collection("legalAcceptanceLogs").document(logID)
+            let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+            batch.setData([
+                "userId": uid,
+                "documentType": acceptance.type.rawValue,
+                "version": acceptance.version,
+                "acceptedAt": FieldValue.serverTimestamp(),
+                "appVersion": appVersion.map { $0 as Any } ?? NSNull(),
+                "locale": AppLanguage.stored.rawValue,
+                "contentHash": acceptance.contentHash.map { $0 as Any } ?? NSNull(),
+                "acceptedFromPlatform": "ios"
+            ], forDocument: log)
+        }
 
         do {
-            try await document.setData(payload.firestoreData)
+            try await batch.commit()
         } catch {
+            // A batch can commit while its response is lost. Only an exact
+            // server read-back of the profile and both receipts counts as success.
+            if await registrationWriteIsComplete(uid: uid, draft: draft) { return }
+
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
                 context: SystemTechnicalErrorContext(
@@ -104,6 +184,88 @@ final class UserProfileService {
 
             throw error
         }
+    }
+
+    private static func initialLegalAcceptances(
+        from draft: RegistrationProfileDraft
+    ) -> [(type: LegalDocumentType, version: String, contentHash: String?)] {
+        [
+            (.terms, draft.termsVersion, draft.termsContentHash),
+            (.privacy, draft.privacyVersion, draft.privacyContentHash)
+        ]
+    }
+
+    private static func initialLegalAcceptanceLogID(
+        uid: String,
+        type: LegalDocumentType,
+        version: String
+    ) -> String {
+        "\(uid)_\(type.rawValue)_\(version)"
+    }
+
+    private func registrationWriteIsComplete(
+        uid: String,
+        draft: RegistrationProfileDraft
+    ) async -> Bool {
+        do {
+            let database = Firestore.firestore()
+            async let userSnapshot = database.collection("users")
+                .document(uid)
+                .getDocument(source: .server)
+            async let termsSnapshot = database.collection("legalAcceptanceLogs")
+                .document(Self.initialLegalAcceptanceLogID(
+                    uid: uid,
+                    type: .terms,
+                    version: draft.termsVersion
+                ))
+                .getDocument(source: .server)
+            async let privacySnapshot = database.collection("legalAcceptanceLogs")
+                .document(Self.initialLegalAcceptanceLogID(
+                    uid: uid,
+                    type: .privacy,
+                    version: draft.privacyVersion
+                ))
+                .getDocument(source: .server)
+            let snapshots = try await (userSnapshot, termsSnapshot, privacySnapshot)
+            guard let user = snapshots.0.data(),
+                  let terms = snapshots.1.data(),
+                  let privacy = snapshots.2.data(),
+                  user["acceptedTermsVersion"] as? String == draft.termsVersion,
+                  user["acceptedPrivacyVersion"] as? String == draft.privacyVersion,
+                  Self.initialReceipt(
+                    terms,
+                    matches: .terms,
+                    version: draft.termsVersion,
+                    contentHash: draft.termsContentHash,
+                    uid: uid
+                  ),
+                  Self.initialReceipt(
+                    privacy,
+                    matches: .privacy,
+                    version: draft.privacyVersion,
+                    contentHash: draft.privacyContentHash,
+                    uid: uid
+                  )
+            else { return false }
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private static func initialReceipt(
+        _ data: [String: Any],
+        matches type: LegalDocumentType,
+        version: String,
+        contentHash: String?,
+        uid: String
+    ) -> Bool {
+        data["userId"] as? String == uid
+            && data["documentType"] as? String == type.rawValue
+            && data["version"] as? String == version
+            && data["contentHash"] as? String == contentHash
+            && data["acceptedFromPlatform"] as? String == "ios"
+            && data["acceptedAt"] is Timestamp
     }
 
     func fetchExistingUserProfile(uid: String) async throws -> AppUser {
@@ -290,6 +452,19 @@ private extension String {
 }
 
 extension UserProfileService {
+    func resumePendingAccountDeletionIfNeeded(userID: String) async throws -> Bool {
+        guard AccountDeletionLocalJournal.hasPendingOperation(for: userID) else { return false }
+        if AccountDeletionLocalJournal.requiresServerResume(for: userID) {
+            _ = try await CloudFunctionsClient.shared.deleteOwnAccount()
+            AccountDeletionLocalJournal.markServerConfirmed(for: userID)
+        }
+        return true
+    }
+
+    func completePendingAccountDeletion(userID: String) {
+        AccountDeletionLocalJournal.clear(for: userID)
+    }
+
     static func makeRegisteredUserDocumentData(uid: String, draft: RegistrationProfileDraft) -> RegisteredUserDocumentData {
         RegisteredUserDocumentData(
             id: uid,
@@ -394,20 +569,25 @@ struct FirestoreUserRepository: UserRepository {
             throw AccountDeletionError.ownsOrganization
         }
 
+        AccountDeletionLocalJournal.markPending(for: currentUser.id)
         do {
             _ = try await CloudFunctionsClient.shared.deleteOwnAccount()
+            AccountDeletionLocalJournal.markServerConfirmed(for: currentUser.id)
         } catch {
             let functionError = error as NSError
             if functionError.domain == FunctionsErrorDomain,
                FunctionsErrorCode(rawValue: functionError.code) == .unauthenticated {
+                AccountDeletionLocalJournal.clear(for: currentUser.id)
                 throw AccountDeletionError.requiresRecentLogin
             }
             if functionError.domain == FunctionsErrorDomain,
                FunctionsErrorCode(rawValue: functionError.code) == .failedPrecondition {
+                AccountDeletionLocalJournal.clear(for: currentUser.id)
                 throw AccountDeletionError.ownsOrganization
             }
             if functionError.domain == FunctionsErrorDomain,
                FunctionsErrorCode(rawValue: functionError.code) == .permissionDenied {
+                AccountDeletionLocalJournal.clear(for: currentUser.id)
                 throw AccountDeletionError.platformOwner
             }
             throw accountDeletionStageFailure(.serverDeletion, error: error)
@@ -465,26 +645,40 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     }
 
     func fetchFeedback() async throws -> [FeedbackItem] {
-        let snapshot = try await collection
-            .order(by: "createdAt", descending: true)
-            .limit(to: 100)
-            .getDocuments()
-
-        return snapshot.documents.map { document in
-            makeFeedbackItem(from: document)
-        }
+        try await fetchFeedbackPage(userID: nil, after: nil, limit: 100).items
     }
 
     func fetchFeedback(userID: String) async throws -> [FeedbackItem] {
-        let snapshot = try await collection
-            .whereField("userId", isEqualTo: userID)
-            .order(by: "createdAt", descending: true)
-            .limit(to: 50)
-            .getDocuments()
+        try await fetchFeedbackPage(userID: userID, after: nil, limit: 50).items
+    }
 
-        return snapshot.documents
-            .map { document in makeFeedbackItem(from: document) }
-            .sorted { lhs, rhs in lhs.createdAt > rhs.createdAt }
+    func fetchFeedbackPage(userID: String?, after cursor: FeedbackPageCursor?, limit: Int) async throws -> FeedbackPage {
+        let pageSize = max(1, min(limit, 100))
+        var query: Query = collection
+        if let userID {
+            query = query.whereField("userId", isEqualTo: userID)
+        }
+        query = query
+            .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+        if let cursor {
+            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.id])
+        }
+
+        let snapshot = try await query.limit(to: pageSize + 1).getDocuments()
+        let pageDocuments = Array(snapshot.documents.prefix(pageSize))
+        let items = pageDocuments.map { makeFeedbackItem(from: $0) }
+        return FeedbackPage(
+            items: items,
+            nextCursor: items.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id) },
+            hasMore: snapshot.documents.count > pageSize
+        )
+    }
+
+    func fetchFeedback(id: String) async throws -> FeedbackItem {
+        let document = try await collection.document(id).getDocument()
+        guard document.exists else { throw AppError.notFound }
+        return makeFeedbackItem(from: document)
     }
 
     func updateFeedbackStatus(id: String, status: FeedbackStatus) async throws {
@@ -495,46 +689,97 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     }
 
     func fetchFeedbackMessages(feedback: FeedbackItem) async throws -> [FeedbackMessage] {
-        let snapshot = try await collection.document(feedback.id)
+        let page = try await fetchFeedbackMessagesPage(feedback: feedback, after: nil, limit: 100)
+        return mergedFeedbackMessages(storedMessages: page.items, feedback: feedback)
+    }
+
+    func fetchFeedbackMessagesPage(
+        feedback: FeedbackItem,
+        after cursor: FeedbackPageCursor?,
+        limit: Int
+    ) async throws -> FeedbackMessagePage {
+        let pageSize = max(1, min(limit, 100))
+        var query: Query = collection.document(feedback.id)
             .collection("messages")
             .order(by: "createdAt", descending: true)
-            .limit(to: 100)
-            .getDocuments()
-
-        let storedMessages = snapshot.documents.reversed().map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) }
-        return mergedFeedbackMessages(storedMessages: storedMessages, feedback: feedback)
-    }
-
-    func sendUserFeedbackMessage(feedback: FeedbackItem, text: String, user: AppUser) async throws {
-        guard !feedback.status.isClosed else {
-            throw AppError.validationFailed
+            .order(by: FieldPath.documentID(), descending: true)
+        if let cursor {
+            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.id])
         }
-        try await sendFeedbackMessage(
-            feedbackID: feedback.id,
-            text: text,
-            senderID: user.id,
-            senderDisplayName: user.preferredDisplayName,
-            senderRole: .user,
-            status: .open,
-            unreadForOwner: true,
-            unreadForUser: false
+        let snapshot = try await query.limit(to: pageSize + 1).getDocuments()
+        let pageDocuments = Array(snapshot.documents.prefix(pageSize))
+        let descendingItems = pageDocuments.map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) }
+        return FeedbackMessagePage(
+            items: Array(descendingItems.reversed()),
+            nextCursor: descendingItems.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id) },
+            hasMore: snapshot.documents.count > pageSize
         )
     }
 
-    func sendOwnerFeedbackReply(feedback: FeedbackItem, text: String, owner: AppUser) async throws {
-        guard !feedback.status.isClosed else {
+    func acknowledgeFeedbackReadByUser(id: String, userID: String) async throws {
+        guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        try await collection.document(id).updateData(["unreadForUser": false])
+    }
+
+    func acknowledgeFeedbackReadByOwner(id: String) async throws {
+        try await collection.document(id).updateData(["unreadForOwner": false])
+    }
+
+    func performFeedbackOperation(_ operation: FeedbackOperationAttempt) async throws {
+        let trimmedText = operation.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard Auth.auth().currentUser?.uid == operation.actorID else {
+            throw AppError.permissionDenied
+        }
+        guard trimmedText == operation.text,
+              !trimmedText.isEmpty,
+              trimmedText.count <= 2000 else {
             throw AppError.validationFailed
         }
-        try await sendFeedbackMessage(
-            feedbackID: feedback.id,
-            text: text,
-            senderID: owner.id,
-            senderDisplayName: owner.preferredDisplayName,
-            senderRole: .owner,
-            status: .answered,
-            unreadForOwner: false,
-            unreadForUser: true
-        )
+
+        let feedbackReference = collection.document(operation.feedbackID)
+        let messageReference = feedbackReference.collection("messages").document(operation.id)
+        let createdAt = Timestamp(date: operation.createdAt)
+        let messageData: [String: Any] = [
+            "id": operation.id,
+            "feedbackId": operation.feedbackID,
+            "senderId": operation.actorID,
+            "senderDisplayName": operation.actorDisplayName,
+            "senderRole": operation.senderRole.rawValue,
+            "text": operation.text,
+            "createdAt": createdAt,
+            "isSystem": operation.isSystem
+        ]
+
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                let messageSnapshot = try transaction.getDocument(messageReference)
+                if messageSnapshot.exists {
+                    guard Self.feedbackMessage(messageSnapshot, matches: operation) else {
+                        errorPointer?.pointee = AppError.validationFailed.asNSError
+                        return nil
+                    }
+                    return nil
+                }
+
+                let feedbackSnapshot = try transaction.getDocument(feedbackReference)
+                guard feedbackSnapshot.exists else {
+                    errorPointer?.pointee = AppError.notFound.asNSError
+                    return nil
+                }
+                let feedbackData = feedbackSnapshot.data() ?? [:]
+                guard FeedbackStatus(rawValue: feedbackData["status"] as? String ?? "")?.isClosed != true,
+                      operation.kind != .close || feedbackData["dsaCase"] == nil else {
+                    errorPointer?.pointee = AppError.validationFailed.asNSError
+                    return nil
+                }
+
+                transaction.setData(messageData, forDocument: messageReference)
+                transaction.updateData(Self.feedbackSummaryUpdate(for: operation, createdAt: createdAt), forDocument: feedbackReference)
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+            return nil
+        }
     }
 
     func replyToFeedback(id: String, reply: String, repliedByUserID: String) async throws {
@@ -545,34 +790,6 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             "status": FeedbackStatus.answered.rawValue,
             "updatedAt": FieldValue.serverTimestamp()
         ])
-    }
-
-    func closeFeedback(id: String) async throws {
-        let feedbackReference = collection.document(id)
-        let messageReference = feedbackReference.collection("messages").document()
-        let now = Timestamp(date: Date())
-        let batch = Firestore.firestore().batch()
-        batch.setData([
-            "id": messageReference.documentID,
-            "feedbackId": id,
-            "senderId": Auth.auth().currentUser?.uid ?? "",
-            "senderDisplayName": AppStrings.Feedback.ownerSender,
-            "senderRole": FeedbackSenderRole.owner.rawValue,
-            "text": AppStrings.Feedback.closedSystemMessage,
-            "createdAt": now,
-            "isSystem": true
-        ], forDocument: messageReference)
-        batch.updateData([
-            "status": FeedbackStatus.closed.rawValue,
-            "updatedAt": now,
-            "lastMessageText": AppStrings.Feedback.closedSystemMessage,
-            "lastMessageAt": now,
-            "lastMessageByUserId": Auth.auth().currentUser?.uid ?? "",
-            "lastMessageByRole": FeedbackSenderRole.owner.rawValue,
-            "unreadForOwner": false,
-            "unreadForUser": true
-        ], forDocument: feedbackReference)
-        try await batch.commit()
     }
 
     func deleteFeedback(id: String) async throws {
@@ -595,8 +812,8 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         _ = try await CloudFunctionsClient.shared.submitDsaAppeal(request)
     }
 
-    private func makeFeedbackItem(from document: QueryDocumentSnapshot) -> FeedbackItem {
-        let data = document.data()
+    private func makeFeedbackItem(from document: DocumentSnapshot) -> FeedbackItem {
+        let data = document.data() ?? [:]
         let createdAt = (data["createdAt"] as? Timestamp)?.dateValue() ?? Date()
         let updatedAt = (data["updatedAt"] as? Timestamp)?.dateValue() ?? createdAt
 
@@ -711,55 +928,42 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         )
     }
 
-    private func sendFeedbackMessage(
-        feedbackID: String,
-        text: String,
-        senderID: String,
-        senderDisplayName: String,
-        senderRole: FeedbackSenderRole,
-        status: FeedbackStatus,
-        unreadForOwner: Bool,
-        unreadForUser: Bool
-    ) async throws {
-        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedText.isEmpty, trimmedText.count <= 2000 else {
-            throw AppError.validationFailed
-        }
-
-        let feedbackReference = collection.document(feedbackID)
-        let messageReference = feedbackReference.collection("messages").document()
-        let now = Timestamp(date: Date())
-        let batch = Firestore.firestore().batch()
-        batch.setData([
-            "id": messageReference.documentID,
-            "feedbackId": feedbackID,
-            "senderId": senderID,
-            "senderDisplayName": senderDisplayName,
-            "senderRole": senderRole.rawValue,
-            "text": trimmedText,
-            "createdAt": now,
-            "isSystem": false
-        ], forDocument: messageReference)
-
-        var summaryUpdate: [String: Any] = [
-            "status": status.rawValue,
-            "updatedAt": now,
-            "lastMessageText": trimmedText,
-            "lastMessageAt": now,
-            "lastMessageByUserId": senderID,
-            "lastMessageByRole": senderRole.rawValue,
-            "unreadForOwner": unreadForOwner,
-            "unreadForUser": unreadForUser
+    private static func feedbackSummaryUpdate(
+        for operation: FeedbackOperationAttempt,
+        createdAt: Timestamp
+    ) -> [String: Any] {
+        var update: [String: Any] = [
+            "status": operation.resultingStatus.rawValue,
+            "updatedAt": createdAt,
+            "lastMessageText": operation.text,
+            "lastMessageAt": createdAt,
+            "lastMessageByUserId": operation.actorID,
+            "lastMessageByRole": operation.senderRole.rawValue,
+            "unreadForOwner": operation.kind == .userMessage,
+            "unreadForUser": operation.kind != .userMessage
         ]
-
-        if senderRole == .owner {
-            summaryUpdate["ownerReply"] = trimmedText
-            summaryUpdate["repliedAt"] = now
-            summaryUpdate["repliedByUserId"] = senderID
+        if operation.kind == .ownerReply {
+            update["ownerReply"] = operation.text
+            update["repliedAt"] = createdAt
+            update["repliedByUserId"] = operation.actorID
         }
+        return update
+    }
 
-        batch.updateData(summaryUpdate, forDocument: feedbackReference)
-        try await batch.commit()
+    private static func feedbackMessage(
+        _ snapshot: DocumentSnapshot,
+        matches operation: FeedbackOperationAttempt
+    ) -> Bool {
+        let data = snapshot.data() ?? [:]
+        guard let storedCreatedAt = (data["createdAt"] as? Timestamp)?.dateValue() else { return false }
+        return data["id"] as? String == operation.id
+            && data["feedbackId"] as? String == operation.feedbackID
+            && data["senderId"] as? String == operation.actorID
+            && data["senderDisplayName"] as? String == operation.actorDisplayName
+            && data["senderRole"] as? String == operation.senderRole.rawValue
+            && data["text"] as? String == operation.text
+            && data["isSystem"] as? Bool == operation.isSystem
+            && abs(storedCreatedAt.timeIntervalSince(operation.createdAt)) < 0.001
     }
 
     private func makeFeedbackMessage(from document: QueryDocumentSnapshot, feedbackID: String) -> FeedbackMessage {
@@ -824,6 +1028,7 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
         let registration = collection
             .whereField("userId", isEqualTo: userID)
             .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
             .limit(to: 50)
             .addSnapshotListener { snapshot, error in
                 if let error {
@@ -852,6 +1057,7 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
     ) -> AppRealtimeListener {
         let registration = collection
             .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
             .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 if let error {
@@ -880,6 +1086,7 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
         let registration = collection.document(feedback.id)
             .collection("messages")
             .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
             .limit(to: 100)
             .addSnapshotListener { snapshot, error in
                 if let error {

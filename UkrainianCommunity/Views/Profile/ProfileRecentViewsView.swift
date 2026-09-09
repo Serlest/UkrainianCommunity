@@ -76,8 +76,13 @@ struct RecentViewsView: View {
         self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
     }
 
-    private var filteredItems: [RecentViewItem] {
+    private var visibleItems: [RecentViewItem] {
         recentViewsViewModel.items
+            .filter(isVisibleRecentView)
+    }
+
+    private var filteredItems: [RecentViewItem] {
+        visibleItems
             .filter { selectedSegment.matches($0) }
             .sorted(by: recentViewSort)
     }
@@ -102,7 +107,7 @@ struct RecentViewsView: View {
                         selectedSegment = segment
                     } label: {
                         AppFilterChip(
-                            title: "\(segment.title): \(recentViewsViewModel.items.filter { segment.matches($0) }.count)",
+                            title: "\(segment.title): \(visibleItems.filter { segment.matches($0) }.count)",
                             systemImage: segment.systemImage,
                             isSelected: selectedSegment == segment
                         )
@@ -123,7 +128,11 @@ struct RecentViewsView: View {
                 recentViewsViewModel.resetForAuthChange()
                 return
             }
-            await loadRecentViewsIfNeeded(userID: userID)
+            await loadRecentViewsOnAppearance(userID: userID)
+        }
+        .onReceive(RecentViewRecorder.didRecord) { event in
+            guard authState.isAuthenticated, authState.user?.id == event.userID else { return }
+            recentViewsViewModel.applyRecordedView(event.item, userID: event.userID)
         }
         .appRefreshable {
             await refreshRecentViews()
@@ -198,12 +207,27 @@ struct RecentViewsView: View {
         }
     }
 
-    private func loadRecentViewsIfNeeded(userID: String) async {
-        async let recentViewsLoad: Void = recentViewsViewModel.loadIfNeeded(userID: userID)
+    private func loadRecentViewsOnAppearance(userID: String) async {
+        async let recentViewsLoad: Void = recentViewsViewModel.refresh(userID: userID)
         async let newsLoad: Void = newsViewModel.loadIfNeeded()
         async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
         async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
         _ = await (recentViewsLoad, newsLoad, eventsLoad, organizationsLoad)
+    }
+
+    private func isVisibleRecentView(_ item: RecentViewItem) -> Bool {
+        let policy = organizationsViewModel.visibilityPolicy
+        switch item.itemType {
+        case .organization:
+            return policy.allows(organizationID: item.itemId)
+        case .news, .event:
+            guard let organizationID = item.organizationID else {
+                // Legacy snapshots predate organizationID. Preserve their private
+                // historical metadata; detail resolution still enforces visibility.
+                return true
+            }
+            return policy.allows(organizationID: organizationID)
+        }
     }
 
     private func refreshRecentViews() async {
@@ -294,6 +318,7 @@ struct RecentViewsView: View {
 
 private struct RecentViewRow: View {
     let item: RecentViewItem
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var subtitle: String {
         let trimmedSubtitle = item.subtitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -306,42 +331,82 @@ private struct RecentViewRow: View {
 
     var body: some View {
         AppEditorSectionCard {
-            HStack(alignment: .center, spacing: 12) {
-                AppFeedThumbnail(
-                    imageURL: item.imageURL,
-                    fallbackSystemImage: item.itemType.systemImage,
-                    tint: AppTheme.accentPrimaryForeground,
-                    fill: AppTheme.accentPrimary.opacity(0.10),
-                    size: 58,
-                    cornerRadius: 12,
-                    source: "RecentViewRow"
-                )
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(item.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
-
-                    Label(viewedAtText, systemImage: "clock")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-                }
-
-                Spacer(minLength: 0)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
+            if dynamicTypeSize.isAccessibilitySize {
+                accessibilityLayout
+            } else {
+                compactLayout
             }
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var compactLayout: some View {
+        HStack(alignment: .center, spacing: 12) {
+            thumbnail
+
+            VStack(alignment: .leading, spacing: 6) {
+                title
+                subtitleText
+                viewedAtLabel
+            }
+
+            Spacer(minLength: 0)
+            chevron
+        }
+    }
+
+    private var accessibilityLayout: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                thumbnail
+                title
+                Spacer(minLength: 0)
+                chevron
+            }
+            subtitleText
+            viewedAtLabel
+        }
+    }
+
+    private var thumbnail: some View {
+        AppFeedThumbnail(
+            imageURL: item.imageURL,
+            fallbackSystemImage: item.itemType.systemImage,
+            tint: AppTheme.accentPrimaryForeground,
+            fill: AppTheme.accentPrimary.opacity(0.10),
+            size: 58,
+            cornerRadius: 12,
+            source: "RecentViewRow"
+        )
+    }
+
+    private var title: some View {
+        Text(item.title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(AppTheme.textPrimary)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var subtitleText: some View {
+        Text(subtitle)
+            .font(.caption)
+            .foregroundStyle(AppTheme.textSecondary)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var viewedAtLabel: some View {
+        Label(viewedAtText, systemImage: "clock")
+            .font(.caption2.weight(.medium))
+            .foregroundStyle(AppTheme.textSecondary)
+            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private var chevron: some View {
+        Image(systemName: "chevron.right")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(AppTheme.textSecondary)
     }
 }

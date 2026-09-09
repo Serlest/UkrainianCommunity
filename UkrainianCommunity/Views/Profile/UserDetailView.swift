@@ -143,16 +143,23 @@ struct UserDetailView: View {
     }
 
     private var availableAccountActions: [UserAdminAction] {
+        let regularActions: [UserAdminAction]
         switch user.blockState {
         case .active:
-            [.warningIssued, .suspended, .banned, .deactivated]
+            regularActions = [.warningIssued, .suspended, .banned, .deactivated]
         case .warned:
-            [.suspended, .banned, .deactivated]
+            regularActions = [.suspended, .banned, .deactivated]
         case .suspendedUntil, .blocked:
-            [.unblocked, .banned, .deactivated]
+            regularActions = [.unblocked, .banned, .deactivated]
         case .bannedPermanent, .deactivated:
-            [.unblocked]
+            regularActions = [.unblocked]
         }
+
+        guard let retryAction = viewModel.sessionRevocationRetryAction(for: userID),
+              !regularActions.contains(retryAction) else {
+            return regularActions
+        }
+        return [retryAction] + regularActions
     }
 
     var body: some View {
@@ -299,6 +306,30 @@ struct UserDetailView: View {
                 ManagedUserPresenceView(userID: userID, actor: actor,
                     refreshToken: "\(viewModel.mutationRevision)", model: presenceModel)
                 if let securityMetadata {
+                    UserManagementMetadataRow(
+                        systemImage: securityMetadata.authDisabled ? "lock.fill" : "lock.open.fill",
+                        title: LocalizationStore.localizedString(
+                            "user_management.security.auth_status",
+                            defaultValue: "Статус входу"
+                        ),
+                        value: LocalizationStore.localizedString(
+                            securityMetadata.authDisabled
+                                ? "user_management.security.auth_disabled"
+                                : "user_management.security.auth_enabled",
+                            defaultValue: securityMetadata.authDisabled ? "Вхід вимкнено" : "Вхід дозволено"
+                        ),
+                        tint: securityMetadata.authDisabled ? AppTheme.accentDestructiveForeground : nil
+                    )
+                    UserManagementMetadataRow(
+                        systemImage: "person.badge.clock",
+                        title: LocalizationStore.localizedString(
+                            "user_management.security.auth_created_at",
+                            defaultValue: "Створено в Auth"
+                        ),
+                        value: securityMetadata.creationTime.map {
+                            LocalizationStore.dateString(from: $0, dateStyle: .medium, timeStyle: .short)
+                        } ?? AppStrings.Common.notAvailable
+                    )
                     UserManagementMetadataRow(
                         systemImage: securityMetadata.emailVerified ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
                         title: AppStrings.UserManagement.emailVerification,

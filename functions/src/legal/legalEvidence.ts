@@ -28,6 +28,12 @@ interface LegalEvidenceEvent {
   contentHash: string | null;
   organizationId: string | null;
   organizationName: string | null;
+  sourceRecordId: string | null;
+  acceptedFromPlatform: string | null;
+  consentId: string | null;
+  purposeVersion: string | null;
+  disclosureVersion: string | null;
+  disclosureText: string | null;
 }
 
 interface ListLegalEvidenceResponse {
@@ -209,18 +215,13 @@ export const getLegalEvidenceForUser = onCall(
     if (!user.exists && legalLogs.empty && analyticsReceipts.empty) {
       throw new HttpsError("not-found", "The account and its legal evidence were not found.");
     }
-    const identity = user.data() ?? {};
     const events = [
       ...(user.exists ? registrationEvents(user) : []),
       ...legalLogs.docs.flatMap(legalAcceptanceEvents),
       ...analyticsReceipts.docs.flatMap(analyticsConsentEvents),
     ]
-      .map((event) => ({
-        ...event,
-        displayName: nullableString(identity.displayName) ?? nullableString(identity.fullName),
-        email: nullableString(identity.email),
-      }))
       .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt));
+    const identity = user.data() ?? {};
     return {
       account: {
         userId,
@@ -277,9 +278,7 @@ export const getLegalEvidencePage = onCall(callableOptions, async (request) => {
   return {
     account: {userId, displayName: nullableString(identity.displayName) ?? nullableString(identity.fullName),
       email: nullableString(identity.email), createdAt: timestampISO(identity.createdAt)},
-    events: events.map(event => ({...event,
-      displayName: nullableString(identity.displayName) ?? nullableString(identity.fullName),
-      email: nullableString(identity.email)})),
+    events,
     nextCursor: next ? Buffer.from(JSON.stringify(next)).toString("base64url") : null,
     generatedAt: new Date().toISOString(),
   };
@@ -303,23 +302,8 @@ export const listLegalEvidence = onCall(
       ...legalLogs.docs.flatMap(legalAcceptanceEvents),
       ...analyticsReceipts.docs.flatMap(analyticsConsentEvents),
     ];
-    const userIds = [...new Set(events.map((event) => event.userId))];
-    const userSnapshots = userIds.length === 0 ?
-      [] :
-      await db.getAll(...userIds.map((userId) => db.collection("users").doc(userId)));
-    const identities = new Map(
-      userSnapshots.map((snapshot) => {
-        const data = snapshot.data() ?? {};
-        return [snapshot.id, {
-          displayName: nullableString(data.displayName) ?? nullableString(data.fullName),
-          email: nullableString(data.email),
-        }] as const;
-      })
-    );
-
     return {
       events: events
-        .map((event) => ({...event, ...(identities.get(event.userId) ?? {})}))
         .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt))
         .slice(0, limit),
       generatedAt: new Date().toISOString(),
@@ -331,14 +315,20 @@ function registrationEvents(document: DocumentSnapshot): LegalEvidenceEvent[] {
   const data = document.data() ?? {};
   const base = {
     userId: document.id,
-    displayName: nullableString(data.displayName) ?? nullableString(data.fullName),
-    email: nullableString(data.email),
+    displayName: null,
+    email: null,
     locale: null,
     appVersion: null,
     source: "registration" as const,
     contentHash: null,
     organizationId: null,
     organizationName: null,
+    sourceRecordId: document.id,
+    acceptedFromPlatform: null,
+    consentId: null,
+    purposeVersion: null,
+    disclosureVersion: null,
+    disclosureText: null,
   };
   return [
     eventFromTimestamp(
@@ -390,6 +380,12 @@ function legalAcceptanceEvents(document: QueryDocumentSnapshot): LegalEvidenceEv
       contentHash: nullableString(data.contentHash),
       organizationId: nullableString(data.organizationId),
       organizationName: nullableString(data.organizationName),
+      sourceRecordId: document.id,
+      acceptedFromPlatform: nullableString(data.acceptedFromPlatform),
+      consentId: null,
+      purposeVersion: null,
+      disclosureVersion: null,
+      disclosureText: null,
     }
   );
   return event?.userId ? [event] : [];
@@ -409,6 +405,12 @@ function analyticsConsentEvents(document: QueryDocumentSnapshot): LegalEvidenceE
     contentHash: null,
     organizationId: null,
     organizationName: null,
+    sourceRecordId: document.id,
+    acceptedFromPlatform: null,
+    consentId: nullableString(data.consentID),
+    purposeVersion: nullableString(data.purposeVersion),
+    disclosureVersion: nullableString(data.disclosureVersion),
+    disclosureText: nullableString(data.disclosureText),
   };
   return [
     eventFromTimestamp(

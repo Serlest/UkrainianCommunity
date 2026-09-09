@@ -170,7 +170,9 @@ extension PushedScreenHeader where TrailingContent == EmptyView {
 /// optional tab-bar visibility. It does not load data, push routes, or change
 /// navigation behavior. Migrate screens individually.
 struct PushedScreenShell<Content: View, TrailingContent: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
+    let pinsHeaderAtAccessibilitySizes: Bool
     let subtitle: String?
     let showsBackButton: Bool
     let tabBarHidden: Bool
@@ -183,6 +185,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
 
     init(
         title: String,
+        pinsHeaderAtAccessibilitySizes: Bool = false,
         subtitle: String? = nil,
         showsBackButton: Bool = true,
         tabBarHidden: Bool = false,
@@ -194,6 +197,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         @ViewBuilder content: () -> Content
     ) {
         self.title = title
+        self.pinsHeaderAtAccessibilitySizes = pinsHeaderAtAccessibilitySizes
         self.subtitle = subtitle
         self.showsBackButton = showsBackButton
         self.tabBarHidden = tabBarHidden
@@ -211,31 +215,33 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
                 .allowsHitTesting(false)
 
             VStack(spacing: 0) {
-                PushedScreenHeader(
-                    title: title,
-                    subtitle: subtitle,
-                    showsBackButton: showsBackButton,
-                    backAction: backAction
-                ) {
-                    trailingContent
+                if !dynamicTypeSize.isAccessibilitySize || pinsHeaderAtAccessibilitySizes {
+                    paddedPushedHeader
                 }
-                .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
-                .padding(.top, topPadding)
-                .padding(.bottom, contentSpacing)
-                .appCenteredContent()
 
                 ScrollView(.vertical, showsIndicators: true) {
-                    content
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
-                        .padding(.bottom, bottomPadding)
-                        // Give descendants the viewport's exact width. A flexible
-                        // maximum alone lets wide controls grow the vertical scroll
-                        // content beyond the device and makes it draggable sideways.
-                        .containerRelativeFrame(.horizontal, alignment: .center) { length, _ in
-                            min(length, AppTheme.readableContentMaxWidth)
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Accessibility titles and subtitles can be several screens
+                        // tall. Keeping that header outside the scroll view leaves
+                        // lists and primary actions with a zero-height viewport.
+                        if dynamicTypeSize.isAccessibilitySize && !pinsHeaderAtAccessibilitySizes {
+                            paddedPushedHeader
                         }
+
+                        content
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
+                            .padding(.bottom, bottomPadding)
+                            // Give descendants the viewport's exact width. A flexible
+                            // maximum alone lets wide controls grow the vertical scroll
+                            // content beyond the device and makes it draggable sideways.
+                            .containerRelativeFrame(.horizontal, alignment: .center) { length, _ in
+                                min(length, AppTheme.readableContentMaxWidth)
+                            }
+                    }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .layoutPriority(1)
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -246,6 +252,21 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
         .toolbar(tabBarHidden ? .hidden : .visible, for: .tabBar)
         .scrollDismissesKeyboard(.interactively)
         .observesKeyboardDismissTaps()
+    }
+
+    private var paddedPushedHeader: some View {
+        PushedScreenHeader(
+            title: title,
+            subtitle: subtitle,
+            showsBackButton: showsBackButton,
+            backAction: backAction
+        ) {
+            trailingContent
+        }
+        .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
+        .padding(.top, topPadding)
+        .padding(.bottom, contentSpacing)
+        .appCenteredContent()
     }
 }
 
@@ -837,7 +858,7 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
+        ZStack {
             AppBackgroundView()
                 .allowsHitTesting(false)
 
@@ -862,12 +883,20 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                         .appCenteredContent()
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .layoutPriority(1)
             }
-
-            bottomActionContent
-                .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
-                .padding(.bottom, AppTheme.editorScreenBottomActionPadding)
-                .appCenteredContent()
+        }
+        // Reserve real viewport space for persistent editor actions. An overlay
+        // covers fields and error text at large Dynamic Type sizes and does not
+        // follow the keyboard safe area reliably.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if BottomActionContent.self != EmptyView.self {
+                bottomActionContent
+                    .padding(.horizontal, AppTheme.editorScreenHorizontalPadding)
+                    .padding(.bottom, AppTheme.editorScreenBottomActionPadding)
+                    .appCenteredContent()
+            }
         }
         .tint(AppTheme.accentPrimary)
         .navigationTitle(title)

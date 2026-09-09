@@ -9,6 +9,78 @@ import UIKit
 
 @MainActor
 final class FirebaseEmulatorJourneyTests: XCTestCase {
+    func testBuild80PublishedLegalDocumentsPassStrictSDKHashValidation() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires locally mirrored public documents.")
+        }
+        guard FirebaseApp.app()?.options.projectID == "demo-uac-release-audit" else {
+            XCTFail("Refusing a non-emulator project")
+            return
+        }
+        try? Auth.auth().signOut()
+        let repository = FirestoreLegalDocumentRepository()
+        for kind in LegalDocumentType.allCases {
+            let document = try await repository.fetchAuthoritativeActiveDocument(type: kind)
+            XCTAssertEqual(document.status, .published)
+            XCTAssertFalse(document.contentHash?.isEmpty ?? true)
+            XCTAssertFalse(document.content(preferredLocale: "de")?.contentMarkdown.isEmpty ?? true)
+            XCTAssertFalse(document.content(preferredLocale: "uk")?.contentMarkdown.isEmpty ?? true)
+        }
+    }
+
+    func testBuild80ModerationReplayAndDeletedUserUnblockThroughRealSDK() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires the isolated Build80 emulator fixture.")
+        }
+        guard FirebaseApp.app()?.options.projectID == "demo-uac-release-audit" else {
+            XCTFail("Refusing a non-emulator project")
+            return
+        }
+        let auth = Auth.auth()
+        try? auth.signOut()
+        let signedIn = try await auth.signIn(withEmail: "fix80-owner@uac.test", password: "Emulator-Only-2026!")
+        XCTAssertEqual(signedIn.user.uid, "fix80-sdk-owner")
+        let database = Firestore.firestore()
+        let functions = Functions.functions(region: "europe-west3")
+        let target = database.collection("news").document("fix80-sdk-news")
+        let before = try await target.getDocument(source: .server)
+        let revision = try XCTUnwrap(before.get("updatedAt") as? Timestamp)
+        let input: [String: Any] = ["contentType": "news", "contentId": target.documentID,
+            "expectedRevision": "\(revision.seconds):\(revision.nanoseconds)",
+            "operationId": UUID().uuidString, "decision": "approved"]
+        let first = try await functions.httpsCallable("reviewContentModeration").call(input)
+        XCTAssertEqual((first.data as? [String: Any])?["replayed"] as? Bool, false)
+        let second = try await functions.httpsCallable("reviewContentModeration").call(input)
+        XCTAssertEqual((second.data as? [String: Any])?["replayed"] as? Bool, true)
+        let approved = try await target.getDocument(source: .server)
+        XCTAssertEqual(approved.get("moderationStatus") as? String, "approved")
+        var stale = input
+        stale["operationId"] = UUID().uuidString
+        stale["decision"] = "rejected"
+        do {
+            _ = try await functions.httpsCallable("reviewContentModeration").call(stale)
+            XCTFail("Stale decision must be rejected")
+        } catch {
+            XCTAssertEqual((error as NSError).code, FunctionsErrorCode.aborted.rawValue)
+        }
+        let blocks = CloudUserBlockingRepository()
+        let initialBlocks = try await blocks.fetchBlockedUsers(userID: signedIn.user.uid)
+        XCTAssertTrue(initialBlocks.contains { $0.targetUserId == "fix80-sdk-deleted" })
+        let receipt = try await blocks.setBlocked(targetUserID: "fix80-sdk-deleted", isBlocked: false)
+        XCTAssertFalse(receipt.isBlocked)
+        let after = try await blocks.fetchBlockedUsers(userID: signedIn.user.uid)
+        XCTAssertFalse(after.contains { $0.targetUserId == "fix80-sdk-deleted" })
+        try auth.signOut()
+        _ = try await auth.signIn(withEmail: "fix80-user@uac.test", password: "Emulator-Only-2026!")
+        do {
+            _ = try await functions.httpsCallable("reviewContentModeration").call(input)
+            XCTFail("Another account must not inherit moderation permissions")
+        } catch {
+            XCTAssertEqual((error as NSError).code, FunctionsErrorCode.permissionDenied.rawValue)
+        }
+        try auth.signOut()
+    }
+
     func testActualSDKPermissionsPhotoLifecycleConsentAndAccountSwitch() async throws {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
             throw XCTSkip("Run separately against the local Firebase Emulator fixture.")

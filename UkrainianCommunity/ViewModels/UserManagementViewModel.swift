@@ -1,4 +1,5 @@
 import Combine
+import FirebaseFunctions
 import FirebaseFirestore
 import Foundation
 
@@ -194,6 +195,7 @@ final class UserManagementViewModel: ObservableObject {
     @Published private(set) var error: AppError?
     @Published var statusMessage: String?
     @Published private(set) var updatingUserIDs = Set<String>()
+    @Published private(set) var sessionRevocationRetryActions: [String: UserAdminAction] = [:]
     @Published private(set) var mutationRevision = 0
 
     private lazy var db = Firestore.firestore()
@@ -395,7 +397,12 @@ final class UserManagementViewModel: ObservableObject {
             return
         }
 
-        await updateUser(target, actor: actor, failureMessage: accountStatusFailureMessage(from:)) {
+        await updateUser(
+            target,
+            actor: actor,
+            failureMessage: accountStatusFailureMessage(from:),
+            sessionRevocationAction: action
+        ) {
             switch action {
             case .warningIssued:
                 _ = try await CloudFunctionsClient.shared.warnUser(userId: target.id, reason: trimmedReason)
@@ -555,6 +562,10 @@ final class UserManagementViewModel: ObservableObject {
         }
     }
 
+    func sessionRevocationRetryAction(for userID: String) -> UserAdminAction? {
+        sessionRevocationRetryActions[userID]
+    }
+
     private func updateUser(_ target: AppUser, actor: AppUser, operation: () async throws -> Void) async {
         await updateUser(target, actor: actor, failureMessage: nil, operation: operation)
     }
@@ -563,6 +574,7 @@ final class UserManagementViewModel: ObservableObject {
         _ target: AppUser,
         actor: AppUser,
         failureMessage: ((Error) -> String?)?,
+        sessionRevocationAction: UserAdminAction? = nil,
         operation: () async throws -> Void
     ) async {
         guard !updatingUserIDs.contains(target.id) else { return }
@@ -574,13 +586,46 @@ final class UserManagementViewModel: ObservableObject {
         do {
             try await operation()
             guard session == sessionRevision else { return }
+            if sessionRevocationAction != nil {
+                sessionRevocationRetryActions.removeValue(forKey: target.id)
+            }
             statusMessage = AppStrings.UserManagement.changesSaved
             mutationRevision &+= 1
             await reloadUser(id: target.id, actor: actor)
         } catch {
             guard session == sessionRevision else { return }
-            statusMessage = failureMessage?(error) ?? AppStrings.UserManagement.changesFailed
+            if Self.isCommittedSessionRevocationFailure(error) {
+                if let sessionRevocationAction {
+                    sessionRevocationRetryActions[target.id] = sessionRevocationAction
+                }
+                mutationRevision &+= 1
+                await reloadUser(id: target.id, actor: actor, afterMutation: false)
+                statusMessage = LocalizationStore.localizedString(
+                    "user_management.account_status.session_revocation_failed",
+                    defaultValue: "Обмеження збережено, але активні сесії не вдалося відкликати. Спробуйте дію ще раз."
+                )
+            } else {
+                statusMessage = failureMessage?(error) ?? AppStrings.UserManagement.changesFailed
+            }
         }
+    }
+
+    private static func isCommittedSessionRevocationFailure(_ error: Error) -> Bool {
+        let failure = error as NSError
+        if let details = failure.userInfo[FunctionsErrorDetailsKey] as? [String: Any],
+           details["reason"] as? String == "session-revocation-failed",
+           details["accountStatusCommitted"] as? Bool == true {
+            return true
+        }
+        if let details = failure.userInfo[FunctionsErrorDetailsKey] as? NSDictionary,
+           details["reason"] as? String == "session-revocation-failed",
+           details["accountStatusCommitted"] as? Bool == true {
+            return true
+        }
+
+        let message = failure.localizedDescription.lowercased()
+        return message.contains("account restriction was saved")
+            && message.contains("sessions could not be revoked")
     }
 
     private func reloadUser(id: String, actor: AppUser, afterMutation: Bool = true) async {
@@ -818,6 +863,7 @@ final class UserManagementViewModel: ObservableObject {
         metadataRevisions = [:]
         statusMessage = nil
         updatingUserIDs = []
+        sessionRevocationRetryActions = [:]
         users = []
         organizations = []
         organizationsLoaded = false

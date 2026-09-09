@@ -282,6 +282,7 @@ final class OrganizationEditorViewModel: ObservableObject {
     private let validationService = OrganizationValidationService()
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
+    private var createDraftOwnerID: String?
     private var isApplyingRecoveredDraft = false
     private var isSubmittingCreate = false
     private var hasMeaningfulCreateDraftMetadata = false
@@ -468,11 +469,33 @@ final class OrganizationEditorViewModel: ObservableObject {
         isProcessingImage = isProcessing
     }
 
-    func loadRecoverableDraftIfNeeded() async {
+    func loadRecoverableDraftIfNeeded(userID: String?) async {
+        let normalizedUserID = userID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+        if createDraftOwnerID != normalizedUserID {
+            let previousOwnerID = createDraftOwnerID
+            draftAutosaveTask?.cancel()
+            pendingRecoveryDraft = nil
+            hasCheckedCreateDraftRecovery = false
+            createDraftOwnerID = normalizedUserID
+            if previousOwnerID != nil {
+                isApplyingRecoveredDraft = true
+                resetForm()
+                isApplyingRecoveredDraft = false
+                hasMeaningfulCreateDraftMetadata = false
+            }
+        }
+
         guard isCreateMode, !hasCheckedCreateDraftRecovery else { return }
         hasCheckedCreateDraftRecovery = true
+        guard let createDraftStorageKey else {
+            pendingRecoveryDraft = nil
+            return
+        }
 
         do {
+            // The legacy key was shared by every signed-in account and has no
+            // ownership metadata, so it cannot be recovered without exposing it.
+            try? await draftRecoveryService.deleteOrganizationCreateDraft(key: "organization-create")
             guard let draft = try await draftRecoveryService.loadOrganizationCreateDraft(key: createDraftStorageKey),
                   draft.hasMeaningfulContent else {
                 pendingRecoveryDraft = nil
@@ -493,12 +516,14 @@ final class OrganizationEditorViewModel: ObservableObject {
     func createNewInsteadOfRecoveredDraft() async {
         pendingRecoveryDraft = nil
         hasMeaningfulCreateDraftMetadata = false
+        guard let createDraftStorageKey else { return }
         try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
     }
 
     func deleteRecoveredDraft() async {
         pendingRecoveryDraft = nil
         hasMeaningfulCreateDraftMetadata = false
+        guard let createDraftStorageKey else { return }
         try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
     }
 
@@ -510,6 +535,7 @@ final class OrganizationEditorViewModel: ObservableObject {
         draftAutosaveTask?.cancel()
         pendingRecoveryDraft = nil
         hasMeaningfulCreateDraftMetadata = false
+        guard let createDraftStorageKey else { return }
         try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
     }
 
@@ -670,7 +696,9 @@ final class OrganizationEditorViewModel: ObservableObject {
                     ? AppStrings.Organizations.publishedSuccessfully
                     : AppStrings.Organizations.requestSubmittedSuccessfully
                 draftAutosaveTask?.cancel()
-                try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
+                if let createDraftStorageKey {
+                    try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
+                }
                 hasMeaningfulCreateDraftMetadata = false
                 resetForm()
             case .edit:
@@ -873,8 +901,8 @@ final class OrganizationEditorViewModel: ObservableObject {
         return false
     }
 
-    private var createDraftStorageKey: String {
-        "organization-create"
+    private var createDraftStorageKey: String? {
+        createDraftOwnerID.map { "organization-create-user-\($0)" }
     }
 
     private func scheduleCreateDraftAutosave() {
@@ -899,6 +927,7 @@ final class OrganizationEditorViewModel: ObservableObject {
     private func saveCurrentCreateDraftIfNeeded() async {
         guard isCreateMode else { return }
         guard !isSubmittingCreate, !isProcessingImage else { return }
+        guard let createDraftStorageKey else { return }
 
         let draft = currentOrganizationCreateDraft()
         do {

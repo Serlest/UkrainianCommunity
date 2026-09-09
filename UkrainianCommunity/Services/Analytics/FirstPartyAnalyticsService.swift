@@ -48,7 +48,9 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
 
     private let consentService: AnalyticsConsentProviding
     private let collectionChangeNotifications = AnalyticsCollectionChanges()
+    private let consentFailureNotifications = AnalyticsConsentFailures()
     private var authContext: AuthContext
+    private var currentConsentAttempt: (principalBinding: String, consentID: String)?
     private let pendingWithdrawalStorageKey = "analyticsPendingConsentWithdrawal.v1"
     private static let isDebugLoggingEnabled = false
 
@@ -68,6 +70,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
 
     init(consentService: AnalyticsConsentProviding = AnalyticsConsentService()) {
         self.consentService = consentService
+        self.currentConsentAttempt = nil
 
         #if canImport(FirebaseAuth)
         let initialAuthContext = Self.currentAuthContext()
@@ -193,6 +196,19 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         collectionChangeNotifications.stream()
     }
 
+    func consentFailures() -> AsyncStream<AnalyticsConsentFailure> {
+        consentFailureNotifications.stream()
+    }
+
+    func isCurrentConsentFailure(_ failure: AnalyticsConsentFailure) -> Bool {
+        refreshAuthContextIfNeeded()
+        guard let principalID = authContext.principalID,
+              let currentConsentAttempt else { return false }
+        return failure.principalBinding == Self.principalBinding(principalID)
+            && failure.principalBinding == currentConsentAttempt.principalBinding
+            && failure.consentID == currentConsentAttempt.consentID
+    }
+
     func actionCapture(for event: AppAnalyticsEvent) -> AnalyticsActionCapture? {
         refreshAuthContextIfNeeded()
         #if canImport(FirebaseFunctions)
@@ -241,8 +257,11 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         if let analyticsConsentID {
             synchronizeConsent(enabled: true, consentID: analyticsConsentID)
         } else if let previousConsentID, let principalID {
+            currentConsentAttempt = nil
             persistPendingWithdrawal(principalID: principalID, consentID: previousConsentID)
             synchronizeConsent(enabled: false, consentID: previousConsentID)
+        } else {
+            currentConsentAttempt = nil
         }
     }
 
@@ -252,6 +271,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         guard latestContext != authContext else { return }
 
         authContext = latestContext
+        currentConsentAttempt = nil
         // Always close the delivery fence across auth changes. The new
         // principal's local opt-in is revalidated with the server below.
         transitionAggregateDelivery(analyticsConsentID: nil)
@@ -335,6 +355,9 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         #if canImport(FirebaseFunctions)
         guard let principalID = authContext.principalID else { return }
         let principalBinding = Self.principalBinding(principalID)
+        if enabled {
+            currentConsentAttempt = (principalBinding, consentID)
+        }
         // Registration consent may be synchronized only after email verification.
         // Record the language of the original disclosure, not a later UI language.
         let locale = consentService.analyticsConsentLocale(for: principalID)
@@ -391,6 +414,13 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
                       [.failedPrecondition, .invalidArgument, .permissionDenied].contains(FunctionsErrorCode(rawValue: failure.code)) else { return }
                 self.consentService.setAnalyticsEnabled(false, for: self.authContext.principalID)
                 self.transitionAggregateDelivery(analyticsConsentID: nil)
+                self.consentFailureNotifications.notify(
+                    AnalyticsConsentFailure(
+                        kind: .permanentRejection,
+                        principalBinding: principalBinding,
+                        consentID: consentID
+                    )
+                )
             }
         }
         #endif

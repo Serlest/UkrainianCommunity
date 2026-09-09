@@ -66,7 +66,10 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             if banners.isEmpty, malformedDocumentCount > 0 {
                 throw AppError.validationFailed
             }
-            return banners.activeFeaturedBanners(for: section, federalState: federalState)
+            // Keep scheduled and recently expired active documents in memory so
+            // the presentation layer can re-evaluate time boundaries without a
+            // network request.
+            return banners.eligibleFeaturedBanners(for: section, federalState: federalState)
         } catch {
             throw appError(from: error)
         }

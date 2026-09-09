@@ -168,6 +168,16 @@ struct OwnerContentDraft: Identifiable, Equatable {
             ?? sourceReferences.first?.url
     }
 
+    var requiresExplicitEventStartDate: Bool {
+        guard kind == .event else { return false }
+        return missingFields.contains { field in
+            field
+                .split(separator: ".")
+                .last?
+                .lowercased() == "startdate"
+        }
+    }
+
     var isEditableInPlanning: Bool {
         let hasExpiredPublicationLease = state == .publishing
             && (publicationLeaseExpiresAt?.timeIntervalSinceNow ?? -1) <= 0
@@ -189,6 +199,10 @@ struct OwnerContentDraft: Identifiable, Equatable {
         [.readyForReview, .needsAttention, .failed].contains(state)
     }
 
+    var canInspectInPlanning: Bool {
+        state == .scheduled
+    }
+
     var isHistory: Bool {
         [.completed, .archived].contains(state)
     }
@@ -208,5 +222,100 @@ struct OwnerContentDraft: Identifiable, Equatable {
         case .completed, .archived:
             .history
         }
+    }
+
+    func resolvingEventStartDate(_ startDate: Date) -> OwnerContentDraft? {
+        guard kind == .event, requiresExplicitEventStartDate, let eventDraft else { return nil }
+        let hasEndDate = eventDraft.hasExplicitEndDate ?? (eventDraft.endDate > eventDraft.startDate)
+        let endDate: Date
+        if hasEndDate {
+            endDate = eventDraft.endDate > startDate
+                ? eventDraft.endDate
+                : startDate.addingTimeInterval(60 * 60)
+        } else {
+            endDate = startDate
+        }
+        let resolvedEventDraft = EventCreateDraft(
+            version: eventDraft.version,
+            hasMeaningfulMetadata: eventDraft.hasMeaningfulMetadata,
+            updatedAt: Date(),
+            organizationId: eventDraft.organizationId,
+            organizationName: eventDraft.organizationName,
+            organizationImageURL: eventDraft.organizationImageURL,
+            organizationFederalState: eventDraft.organizationFederalState,
+            title: eventDraft.title,
+            summary: eventDraft.summary,
+            details: eventDraft.details,
+            city: eventDraft.city,
+            venue: eventDraft.venue,
+            address: eventDraft.address,
+            locationNote: eventDraft.locationNote,
+            latitude: eventDraft.latitude,
+            longitude: eventDraft.longitude,
+            eventOrganizerName: eventDraft.eventOrganizerName,
+            organizerURL: eventDraft.organizerURL,
+            contactPhone: eventDraft.contactPhone,
+            contactEmail: eventDraft.contactEmail,
+            contactURL: eventDraft.contactURL,
+            selectedFederalState: eventDraft.selectedFederalState,
+            startDate: startDate,
+            endDate: endDate,
+            hasExplicitEndDate: hasEndDate,
+            isAllDay: eventDraft.isAllDay,
+            selectedCategory: eventDraft.selectedCategory,
+            additionalCategories: eventDraft.additionalCategories,
+            selectedAudience: eventDraft.selectedAudience,
+            minimumAgeText: eventDraft.minimumAgeText,
+            maximumAgeText: eventDraft.maximumAgeText,
+            tags: eventDraft.tags,
+            tagInput: eventDraft.tagInput,
+            requiresRegistration: eventDraft.requiresRegistration,
+            priceText: eventDraft.priceText,
+            capacityText: eventDraft.capacityText,
+            germanTitle: eventDraft.germanTitle,
+            germanSummary: eventDraft.germanSummary,
+            germanDetails: eventDraft.germanDetails,
+            imageCaption: eventDraft.imageCaption,
+            imageAlternativeText: eventDraft.imageAlternativeText,
+            imageCredit: eventDraft.imageCredit,
+            additionalOccurrences: eventDraft.additionalOccurrences,
+            participationMode: eventDraft.participationMode,
+            externalActionTitle: eventDraft.externalActionTitle,
+            externalActionURL: eventDraft.externalActionURL,
+            priceKind: eventDraft.priceKind,
+            maximumPriceText: eventDraft.maximumPriceText,
+            priceNote: eventDraft.priceNote,
+            generatedImageURL: eventDraft.generatedImageURL,
+            publicationMode: eventDraft.publicationMode,
+            scheduledAt: eventDraft.scheduledAt
+        )
+        return OwnerContentDraft(
+            id: id,
+            schemaVersion: schemaVersion,
+            ownerUserID: ownerUserID,
+            kind: kind,
+            state: state,
+            title: title,
+            sourceReferences: sourceReferences,
+            verificationNotes: verificationNotes,
+            missingFields: missingFields.filter { field in
+                field.split(separator: ".").last?.lowercased() != "startdate"
+            },
+            newsDraft: newsDraft,
+            eventDraft: resolvedEventDraft,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            scheduledAt: scheduledAt,
+            completedAt: completedAt,
+            archivedAt: archivedAt,
+            failureMessage: failureMessage,
+            publicationLeaseExpiresAt: publicationLeaseExpiresAt,
+            generatedImage: generatedImage,
+            publishedContentID: publishedContentID,
+            publishedContentKind: publishedContentKind,
+            publishedOrganizationID: publishedOrganizationID,
+            publishedOrganizationName: publishedOrganizationName,
+            publicationOutcome: publicationOutcome
+        )
     }
 }

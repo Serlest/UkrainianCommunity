@@ -283,6 +283,9 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
 
       const reason = notificationReason;
       const next = mutation.apply(target, statusRequest);
+      const repeatsExistingRestriction = isBlockedStatus(next.accountStatus)
+        && target.accountStatus === next.accountStatus
+        && target.blockState === next.blockState;
       const nextWarningCount = next.warningCount ? target.warningCount + 1 : target.warningCount;
       const nextBanTimestamp = next.banExpiresAt instanceof Timestamp ? next.banExpiresAt : null;
 
@@ -291,7 +294,16 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
       newAccountStatus = next.accountStatus;
       newBlockState = next.blockState;
       warningCount = nextWarningCount;
-      banExpiresAt = timestampToISO(nextBanTimestamp);
+      banExpiresAt = repeatsExistingRestriction
+        ? timestampToISO(target.banExpiresAt)
+        : timestampToISO(nextBanTimestamp);
+
+      // A retry after a partial revoke failure must not duplicate the status
+      // mutation, audit entry or notification. It still reaches the revoke call
+      // below, so an already-restricted account can retry the missing side effect.
+      if (repeatsExistingRestriction) {
+        return;
+      }
 
       transaction.update(targetReference, {
         accountStatus: next.accountStatus,
@@ -364,6 +376,17 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
           newAccountStatus,
           error,
         });
+        throw new HttpsError(
+          "internal",
+          "Account restriction was saved, but active sessions could not be revoked.",
+          {
+            reason: "session-revocation-failed",
+            accountStatusCommitted: true,
+            sessionRevocationSucceeded: false,
+            targetUserId: statusRequest.targetUserId,
+            newAccountStatus,
+          }
+        );
       }
     }
 

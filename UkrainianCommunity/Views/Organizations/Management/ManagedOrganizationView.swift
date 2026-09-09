@@ -95,7 +95,7 @@ struct ManagedOrganizationView: View {
                 guard isShowingDeleteConfirmation else { return nil }
                 return AppDestructiveActionDialog(
                     title: AppStrings.Organizations.deleteConfirmation,
-                    message: "",
+                    message: deleteOrganizationCascadeMessage,
                     destructiveActionTitle: AppStrings.Organizations.delete,
                     cancelTitle: AppStrings.Organizations.cancel
                 ) {
@@ -135,11 +135,7 @@ struct ManagedOrganizationView: View {
                     }
             }
             .task(id: isChangingOwner) {
-                await teamViewModel.loadCandidateUsers(
-                    excluding: currentOrganization,
-                    actor: authState.user,
-                    allowsExistingTeamMembers: isChangingOwner
-                )
+                await reloadTeamCandidates()
             }
         }
         .confirmationDialog(
@@ -356,6 +352,9 @@ struct ManagedOrganizationView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.vertical, AppTheme.dashboardSpacing)
+                } else if let errorMessage = teamViewModel.errorMessage,
+                          teamViewModel.members.isEmpty {
+                    teamLoadFailureState(message: errorMessage)
                 } else if teamViewModel.members.isEmpty {
                     compactTeamEmptyState
                 } else {
@@ -384,10 +383,9 @@ struct ManagedOrganizationView: View {
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
                 }
 
-                if let errorMessage = teamViewModel.errorMessage {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle")
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(AppTheme.accentDestructiveForeground)
+                if let errorMessage = teamViewModel.errorMessage,
+                   !teamViewModel.members.isEmpty {
+                    teamLoadFailureState(message: errorMessage)
                 }
             }
         }
@@ -402,6 +400,27 @@ struct ManagedOrganizationView: View {
             Text(AppStrings.Profile.organizationTeamEmptyMessage)
                 .font(.footnote)
                 .foregroundStyle(AppTheme.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
+    }
+
+    private func teamLoadFailureState(message: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(message, systemImage: "exclamationmark.triangle")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppTheme.accentDestructiveForeground)
+
+            Button(AppStrings.Organizations.retry) {
+                Task {
+                    await teamViewModel.load(
+                        organization: currentOrganization,
+                        actor: authState.user
+                    )
+                }
+            }
+            .font(.caption.weight(.semibold))
+            .disabled(teamViewModel.isLoading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
@@ -430,6 +449,18 @@ struct ManagedOrganizationView: View {
 
                 if teamViewModel.isLoadingCandidates {
                     ProgressView()
+                } else if let candidateErrorMessage = teamViewModel.candidateErrorMessage {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(candidateErrorMessage, systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(AppTheme.accentDestructiveForeground)
+
+                        Button(AppStrings.Organizations.retry) {
+                            Task {
+                                await reloadTeamCandidates()
+                            }
+                        }
+                        .disabled(teamViewModel.isLoadingCandidates)
+                    }
                 } else if filteredTeamCandidateMembers.isEmpty {
                     Text(AppStrings.Profile.organizationTeamNoUsers)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -468,6 +499,19 @@ struct ManagedOrganizationView: View {
                 values: [member.displayName, member.userID, member.locationText]
             )
         }
+    }
+
+    @MainActor
+    private func reloadTeamCandidates() async {
+        await teamViewModel.loadCandidateUsers(
+            excluding: currentOrganization,
+            actor: authState.user,
+            allowsExistingTeamMembers: isChangingOwner
+        )
+    }
+
+    private var deleteOrganizationCascadeMessage: String {
+        AppStrings.Organizations.deleteCascadeMessage
     }
 
     private var availableAssignableRoles: [OrganizationTeamRole] {

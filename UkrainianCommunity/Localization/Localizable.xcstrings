@@ -1,6 +1,743 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "system_logs.review.partial_failure" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some entries were marked as reviewed, but the operation did not finish. Refresh the log and try again."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Частину записів позначено як переглянуті. Не вдалося завершити всю операцію. Оновіть журнал і повторіть спробу."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einige Einträge wurden als geprüft markiert. Der Vorgang konnte nicht vollständig abgeschlossen werden. Aktualisieren Sie das Protokoll und versuchen Sie es erneut."
+          }
+        }
+      }
+    },
+    "system_logs.detail.not_found" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This log entry is no longer available."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запис журналу більше не доступний."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Protokolleintrag ist nicht mehr verfügbar."
+          }
+        }
+      }
+    },
+    "profile.analytics_consent.rejected" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consent to optional analytics could not be confirmed. Collection remains off. Check your account and try again."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося підтвердити згоду на необов’язкову аналітику. Збір залишається вимкненим. Перевірте обліковий запис і спробуйте ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Einwilligung zur optionalen Analyse konnte nicht bestätigt werden. Die Erfassung bleibt deaktiviert. Prüfen Sie Ihr Konto und versuchen Sie es erneut."
+          }
+        }
+      }
+    },
+    "profile.organization_subscriptions.unavailable.remove" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove subscription"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалити підписку"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonnement entfernen"
+          }
+        }
+      }
+    },
+    "profile.organization_subscriptions.unavailable.message" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can still remove this subscription."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ви можете видалити цю підписку."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Abonnement kann weiterhin entfernt werden."
+          }
+        }
+      }
+    },
+    "profile.organization_subscriptions.unavailable.title" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organization unavailable"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Організація недоступна"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organisation nicht verfügbar"
+          }
+        }
+      }
+    },
+    "profile.activity_history.limit_notice" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing your latest 100 activities."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показано 100 останніх дій."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die letzten 100 Aktivitäten werden angezeigt."
+          }
+        }
+      }
+    },
+    "legal_evidence.provenance.disclosure_text" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disclosure text"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текст повідомлення про згоду"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einwilligungshinweis"
+          }
+        }
+      }
+    },
+    "legal_evidence.provenance.disclosure_version" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disclosure version"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Версія повідомлення про згоду"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version des Einwilligungshinweises"
+          }
+        }
+      }
+    },
+    "legal_evidence.provenance.purpose_version" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Purpose version"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Версія мети"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zweckversion"
+          }
+        }
+      }
+    },
+    "legal_evidence.provenance.consent_id" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consent ID"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID згоди"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einwilligungs-ID"
+          }
+        }
+      }
+    },
+    "legal_evidence.provenance.platform" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirmation platform"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Платформа підтвердження"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plattform der Bestätigung"
+          }
+        }
+      }
+    },
+    "legal_evidence.provenance.source_record_id" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Source record ID"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID вихідного запису"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID des Quelldatensatzes"
+          }
+        }
+      }
+    },
+    "legal_evidence.identity.current_notice" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name and email are current account details when this history is loaded. Historical confirmations identify the subject by UID and do not prove which name or email was used at that time."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ім’я та електронна адреса — це актуальні дані облікового запису на момент завантаження історії. Історичні підтвердження пов’язують суб’єкта за UID і не доводять, яке ім’я чи адресу було використано тоді."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Name und E-Mail sind die aktuellen Kontodaten zum Zeitpunkt des Ladens. Historische Bestätigungen ordnen die Person über die UID zu und belegen nicht, welcher Name oder welche E-Mail damals verwendet wurde."
+          }
+        }
+      }
+    },
+    "legal_evidence.accounts.search.scope_notice" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search covers current account profiles only. Retained evidence for accounts no longer present in the directory is not discoverable from this list."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук охоплює лише актуальні профілі в каталозі облікових записів. Збережені підтвердження для облікових записів, яких більше немає в каталозі, неможливо знайти в цьому списку."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Suche umfasst nur aktuell im Kontoverzeichnis vorhandene Profile. Aufbewahrte Nachweise zu nicht mehr vorhandenen Konten sind in dieser Liste nicht auffindbar."
+          }
+        }
+      }
+    },
+    "content_planning.missing_start_date.confirm" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Confirm date and open editor"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтвердити дату й відкрити редактор"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum bestätigen und Editor öffnen"
+          }
+        }
+      }
+    },
+    "content_planning.missing_start_date.message" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the date and time before opening the editor."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оберіть дату й час перед відкриттям редактора."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datum und Uhrzeit vor dem Öffnen des Editors auswählen."
+          }
+        }
+      }
+    },
+    "content_planning.missing_start_date.title" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set the event date"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Укажіть дату події"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Veranstaltungsdatum angeben"
+          }
+        }
+      }
+    },
+    "profile.notifications.loading" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Loading notification settings…"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантаження налаштувань сповіщень…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Benachrichtigungseinstellungen werden geladen …"
+          }
+        }
+      }
+    },
+    "profile.notifications.sync_failed" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Notification settings were saved, but event reminders could not be updated. Try again."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштування сповіщень збережено, але нагадування про події не вдалося оновити. Спробуйте ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Benachrichtigungseinstellungen wurden gespeichert, aber die Veranstaltungserinnerungen konnten nicht aktualisiert werden. Versuchen Sie es erneut."
+          }
+        }
+      }
+    },
+    "safety.organization_block.visibility_unavailable.message" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organization content will remain hidden until the block list is confirmed. Check your connection and try again."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Організаційний вміст залишатиметься прихованим, доки список блокувань не буде підтверджено. Перевірте з’єднання та повторіть спробу."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhalte von Organisationen bleiben ausgeblendet, bis die Blockierungsliste bestätigt wurde. Prüfen Sie die Verbindung und versuchen Sie es erneut."
+          }
+        }
+      }
+    },
+    "safety.organization_block.visibility_unavailable.title" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hidden content could not be checked"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося перевірити прихований вміст"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeblendete Inhalte konnten nicht geprüft werden"
+          }
+        }
+      }
+    },
+    "safety.organization_block.verifying_content.title" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking hidden content"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевіряємо прихований вміст"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeblendete Inhalte werden geprüft"
+          }
+        }
+      }
+    },
+    "user_management.account_status.session_revocation_failed" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The restriction was saved, but active sessions could not be revoked. Retry the action."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обмеження збережено, але активні сесії не вдалося відкликати. Спробуйте дію ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Einschränkung wurde gespeichert, aktive Sitzungen konnten jedoch nicht widerrufen werden. Aktion erneut versuchen."
+          }
+        }
+      }
+    },
+    "user_management.search.result_limit_notice" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Showing the first %lld of %lld matches. Refine your search."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показано перші %lld із %lld збігів. Уточніть пошук."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die ersten %lld von %lld Treffern werden angezeigt. Suche verfeinern."
+          }
+        }
+      }
+    },
+    "user_management.security.auth_created_at" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Account created"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Акаунт створено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Konto erstellt"
+          }
+        }
+      }
+    },
+    "user_management.security.auth_disabled" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-in disabled"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вхід вимкнено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldung deaktiviert"
+          }
+        }
+      }
+    },
+    "user_management.security.auth_enabled" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-in enabled"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вхід дозволено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldung aktiviert"
+          }
+        }
+      }
+    },
+    "user_management.security.auth_status" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-in status"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статус входу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldestatus"
+          }
+        }
+      }
+    },
+    "feedback.delete.retention_protected" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This DSA case is retained until its retention period expires."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ця справа DSA зберігається до завершення строку зберігання."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser DSA-Fall bleibt bis zum Ablauf seiner Aufbewahrungsfrist erhalten."
+          }
+        }
+      }
+    },
+    "profile.settings.delete_account.completed" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account has been deleted."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваш акаунт видалено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihr Konto wurde gelöscht."
+          }
+        }
+      }
+    },
+    "profile.settings.delete_account.local_cleanup_pending" : {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account was deleted. Local sign-out could not be completed. Restart the app to finish."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваш акаунт видалено. Не вдалося завершити локальний вихід. Перезапустіть застосунок, щоб завершити його."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihr Konto wurde gelöscht. Die lokale Abmeldung konnte nicht abgeschlossen werden. Starten Sie die App neu, um sie abzuschließen."
+          }
+        }
+      }
+    },
+    "organizations.delete.cascade_message": {"extractionState": "manual", "localizations": {"uk": {"stringUnit": {"state": "translated", "value": "Організацію, її новини, події, фото, вподобання, підписки та закладки буде видалено назавжди. Якщо є активні події, спочатку завершіть або скасуйте їх."}}, "de": {"stringUnit": {"state": "translated", "value": "Die Organisation sowie ihre Nachrichten, Veranstaltungen, Fotos, Likes, Follows und Lesezeichen werden dauerhaft gelöscht. Wenn aktive Veranstaltungen vorhanden sind, müssen sie zuerst beendet oder abgesagt werden."}}, "en": {"stringUnit": {"state": "translated", "value": "The organization and its news, events, photos, likes, follows, and bookmarks will be permanently deleted. If there are active events, finish or cancel them first."}}}},
   "user_management.email_password_provider": {"extractionState":"manual","localizations":{"uk":{"stringUnit":{"state":"translated","value":"Email і пароль"}},"de":{"stringUnit":{"state":"translated","value":"E-Mail und Passwort"}}}},
   "user_management.loaded_scope": {
   "extractionState": "manual",
@@ -4349,18 +5086,24 @@
       }
     },
     "app_lock.registration_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Face ID / Touch ID aktivieren"
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enable account protection"
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Увімкнути Face ID / Touch ID"
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнути захист акаунта"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kontoschutz aktivieren"
           }
         }
       }
@@ -4417,35 +5160,47 @@
       }
     },
     "app_lock.toggle_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mit Face ID / Touch ID schützen"
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protect this account"
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Захист через Face ID / Touch ID"
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Захистити цей акаунт"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Konto schützen"
           }
         }
       }
     },
     "app_lock.unavailable" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Richten Sie Face ID oder Touch ID in den Geräteeinstellungen ein und erlauben Sie den Zugriff für die App."
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set a device passcode or Face ID / Touch ID in Settings, then allow access for the app."
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Налаштуйте Face ID або Touch ID в параметрах пристрою та дозвольте доступ для застосунку."
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштуйте в параметрах пристрою код пристрою або Face ID / Touch ID, а потім дозвольте доступ для застосунку."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Richten Sie in den Einstellungen einen Gerätecode oder Face ID / Touch ID ein und erlauben Sie anschließend den Zugriff für die App."
           }
         }
       }
@@ -14558,18 +15313,24 @@
       }
     },
     "feedback.inbox.clear.confirm.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Anfragen und zugehörigen Nachrichten werden unwiderruflich gelöscht."
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordinary feedback and its messages will be permanently deleted. DSA cases remain until their retention period expires."
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Усі звернення та пов’язані повідомлення будуть видалені без можливості відновлення."
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Звичайні звернення та їхні повідомлення буде видалено безповоротно. Справи DSA залишаться до завершення строку зберігання."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allgemeine Rückmeldungen und ihre Nachrichten werden unwiderruflich gelöscht. DSA-Fälle bleiben bis zum Ablauf ihrer Aufbewahrungsfrist erhalten."
           }
         }
       }
@@ -15192,13 +15953,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Senden Sie dem Team eine kurze Nachricht."
+            "value" : "Sende Feedback oder Fragen direkt an den Entwickler."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Надішліть команді коротке повідомлення."
+            "value" : "Надішліть відгук або запитання безпосередньо розробнику."
           }
         }
       }
@@ -32764,18 +33525,72 @@
       }
     },
     "profile.notifications.reminder.days" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Tage"
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Tag"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld Tage"
+                }
+              }
+            }
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld дн."
+        "uk": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld день"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дні"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld днів"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld днів"
+                }
+              }
+            }
+          }
+        },
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days"
+                }
+              }
+            }
           }
         }
       }
@@ -37458,18 +38273,24 @@
       }
     },
     "profile.settings.delete_account.failed" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Account konnte nicht gelöscht werden. Bitte versuchen Sie es erneut."
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The deletion result could not be confirmed. Sign in again and retry to finish the pending operation."
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Не вдалося видалити акаунт. Спробуйте ще раз."
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося підтвердити результат видалення. Увійдіть знову та повторіть спробу, щоб завершити операцію."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Ergebnis der Löschung konnte nicht bestätigt werden. Melden Sie sich erneut an und versuchen Sie es noch einmal, um den Vorgang abzuschließen."
           }
         }
       }
