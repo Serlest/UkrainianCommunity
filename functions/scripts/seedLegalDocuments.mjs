@@ -32,15 +32,18 @@ function readCanonicalDocument(type, locale) {
   }
   const source = readFileSync(`${repositoryRoot}/${relativePath}`, "utf8");
   const lines = source.replaceAll("\r\n", "\n").split("\n");
-  const titleLine = lines.find((line) => line.startsWith("# "));
-  if (!titleLine) {
+  const titleIndex = lines.findIndex((line) => line.startsWith("# "));
+  if (titleIndex < 0) {
     throw new Error(`Missing document title in ${relativePath}.`);
   }
+  const titleLine = lines[titleIndex];
   const firstSection = lines.findIndex((line) => line.startsWith("## "));
   if (firstSection < 0) {
     throw new Error(`Missing sections in ${relativePath}.`);
   }
-  const contentMarkdown = [titleLine, "", ...lines.slice(firstSection)]
+  // Keep the version/publication/effective-date line from the controlled
+  // source visible in every reader and covered by the locale content hash.
+  const contentMarkdown = lines.slice(titleIndex)
     .join("\n")
     .trim();
   return {
@@ -87,7 +90,6 @@ function buildPayload(document) {
           locale,
           content.title,
           content.contentMarkdown,
-          content.contentText,
           content.contentHash,
         ].join("\n");
       })

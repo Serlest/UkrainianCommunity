@@ -1,8 +1,44 @@
 {
   "project": "ukrainiancommunity-dbd5f",
   "base": "fd58131",
-  "scope": "Changed handler modules and transitive import dependencies; index trigger bodies unchanged",
+  "scope": "Changed callable handlers plus shared helpers actually reached by deployed handlers. Module-only import candidates were narrowed by function-body review.",
   "functions": [
+    "approveOrganization",
+    "banUser",
+    "cleanupExpiredData",
+    "clearFeedbackInbox",
+    "deactivateUser",
+    "decideDsaAppeal",
+    "decideDsaCase",
+    "deleteFeedback",
+    "deleteOrganization",
+    "deleteOwnAccount",
+    "dsaCasePortal",
+    "getLegalEvidenceForUser",
+    "getLegalEvidencePage",
+    "listLegalEvidence",
+    "listLegalEvidenceAccounts",
+    "rejectOrganization",
+    "requestOrganizationRevision",
+    "restoreUser",
+    "reviewContentModeration",
+    "saveFeaturedBanner",
+    "sendTestPushNotification",
+    "setFeaturedBannerActive",
+    "setUserBlocked",
+    "submitContentReport",
+    "submitDsaAppeal",
+    "suspendUser",
+    "warnUser",
+    "writeClientDiagnostic"
+  ],
+  "firestoreRules": true,
+  "hosting": false,
+  "storageRules": false,
+  "excludedUndeployedDependencies": {
+    "cleanupUnverifiedAccounts": "Present in base79 source but absent from the live project; introducing an unrelated scheduled account-deletion job is outside this fix rollout."
+  },
+  "moduleDependencyCandidates": [
     "approveOrganization",
     "banUser",
     "cancelEvent",
@@ -52,10 +88,5 @@
     "warnUser",
     "writeClientDiagnostic"
   ],
-  "firestoreRules": true,
-  "hosting": false,
-  "storageRules": false,
-  "excludedUndeployedDependencies": {
-    "cleanupUnverifiedAccounts": "Present in base79 source but absent from the live project; introducing an unrelated scheduled account-deletion job is outside this fix rollout."
-  }
+  "excludedUnchangedTriggers": "The storage cleanup, notification and unrelated retention handlers do not call modified behavior; their deployed configuration is preserved."
 }
