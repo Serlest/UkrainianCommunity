@@ -147,11 +147,21 @@ class ContentRepository(
         return ReadResult(item, read.cachedAt)
     }
 
-    suspend fun banners(section: String, region: String): ReadResult<List<Banner>> {
+    suspend fun banners(
+        section: String,
+        region: String,
+        includeScheduled: Boolean = false,
+    ): ReadResult<List<Banner>> {
         val read = read("banners:$section") { source.auxiliary("featuredBanners", section) }
         if (read.value.isNotEmpty() && read.value.none { Banner(it.id, it.fields).valid() })
             throw ReadException(ReadFailure.INVALID)
-        return ReadResult(visibleBanners(read.value, section, region, clock()), read.cachedAt)
+        val banners =
+            if (includeScheduled)
+                read.value
+                    .map { Banner(it.id, it.fields) }
+                    .filter { it.visible(section, region, it.fields.time("startsAt") ?: clock()) }
+            else visibleBanners(read.value, section, region, clock())
+        return ReadResult(banners, read.cachedAt)
     }
 
     suspend fun donation(): ReadResult<Donation> {

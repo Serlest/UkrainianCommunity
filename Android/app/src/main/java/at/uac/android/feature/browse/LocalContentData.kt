@@ -204,6 +204,23 @@ class FirestoreContentSource(private val db: FirebaseFirestore) : ContentSource 
         if (query.organizationId.isNotEmpty())
             ref = ref.whereEqualTo("organizationId", query.organizationId)
         if (query.recommendations) ref = ref.whereEqualTo("category", query.category)
+        else if (query.kind == ContentKind.NEWS && query.category.isNotEmpty())
+            ref =
+                ref.where(
+                    Filter.or(
+                        Filter.equalTo("category", query.category),
+                        Filter.arrayContains("additionalCategories", query.category),
+                    )
+                )
+        if (query.kind == ContentKind.NEWS) {
+            query.newsDates.startInclusive?.let {
+                ref =
+                    ref.whereGreaterThanOrEqualTo("publishedAt", Timestamp(it.epochSecond, it.nano))
+            }
+            query.newsDates.endExclusive?.let {
+                ref = ref.whereLessThan("publishedAt", Timestamp(it.epochSecond, it.nano))
+            }
+        }
         if (query.kind == ContentKind.EVENTS && !query.recommendations) {
             val time = Timestamp(query.now.epochSecond, query.now.nano)
             ref =

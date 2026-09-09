@@ -1,5 +1,7 @@
 # Android ↔ текущий backend: аудит пакета 1
 
+> Текущее состояние cloud variants, Firebase Android identity и незакрытые cloud/device gates: [AndroidReleaseReadiness-2026-09-07.md](AndroidReleaseReadiness-2026-09-07.md). Подробные записи ниже — исторические receipts; они не отменяют необходимость нового signed/cloud E2E.
+
 ## ALL FINAL LOCAL CHECKS PASS — 2026-09-03 21:52 UTC / 23:52 Vienna
 
 User-requested regression repair completed. **Unit1821/1821,94XML,0fail/error/skip; target16/16each; componentUI243/243each; Main38/38each.** All final native runners exited0 and per-AVD locks released. API26:target16.687s,UI195.321s,Main203.852s. API37:target185.713s,UI377.645s,Main358.327s. Machine audit outputs/final98-audit.json validates exactJUnit counts/no failures/skips,0 cleanup reconciliation warnings in final logs,550source hashes,512protected iOS/Rules/server hashes and bothAPK hashes. Lint0errors/33existingwarnings, format/diffchecksPASS. Actual installed hashes independently verified both apps/both AVDs.

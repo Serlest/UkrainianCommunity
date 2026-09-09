@@ -1,5 +1,6 @@
 package at.uac.android.feature.auth
 
+import at.uac.android.BuildConfig
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -102,14 +103,16 @@ fun AccountScreen(
                 Modifier.semantics { heading() },
                 style = MaterialTheme.typography.headlineSmall,
             )
-        Text(
-            authText(
-                language,
-                "Lokaler Kontotest · nur erfundene .invalid-Adressen",
-                "Локальна перевірка акаунта · лише вигадані адреси .invalid",
-            ),
-            style = MaterialTheme.typography.labelMedium,
-        )
+        if (BuildConfig.USE_LOCAL_BACKEND) {
+            Text(
+                authText(
+                    language,
+                    "Lokaler Kontotest · nur erfundene .invalid-Adressen",
+                    "Локальна перевірка акаунта · лише вигадані адреси .invalid",
+                ),
+                style = MaterialTheme.typography.labelMedium,
+            )
+        }
         if (session.busy) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("auth-loading"))
         session.error?.let { problem ->
             Text(

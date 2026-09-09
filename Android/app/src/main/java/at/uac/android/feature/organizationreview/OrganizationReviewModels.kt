@@ -63,6 +63,7 @@ data class OrganizationReviewSnapshot(
     val name: String,
     val status: String,
     val submitterId: String,
+    val expectedRevision: String? = null,
 ) {
     override fun toString() = "OrganizationReviewSnapshot([redacted])"
 }
@@ -265,6 +266,7 @@ object OrganizationReviewContract {
             name,
             status,
             submitter,
+            instant(fields["updatedAt"])!!.let { "${it.epochSecond}:${it.nano}" },
         )
     }
 

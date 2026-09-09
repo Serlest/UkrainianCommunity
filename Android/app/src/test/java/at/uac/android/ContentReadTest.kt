@@ -45,6 +45,22 @@ class ContentReadTest {
     }
 
     @Test
+    fun organizationArtworkMatchesIosFallbackOrder() {
+        val onlyCover = mapOf<String, Any?>("coverURL" to "https://example.test/cover.jpg")
+        assertEquals("https://example.test/cover.jpg", organizationImageUrl(onlyCover, false))
+        assertEquals("https://example.test/cover.jpg", organizationImageUrl(onlyCover, true))
+
+        val complete =
+            mapOf<String, Any?>(
+                "logoURL" to "https://example.test/logo.jpg",
+                "imageURL" to "https://example.test/image.jpg",
+                "coverURL" to "https://example.test/cover.jpg",
+            )
+        assertEquals("https://example.test/logo.jpg", organizationImageUrl(complete, false))
+        assertEquals("https://example.test/cover.jpg", organizationImageUrl(complete, true))
+    }
+
+    @Test
     fun nestedNewsSubtitleAndLocaleFallback() {
         val item =
             decodeContent(
@@ -330,6 +346,24 @@ class ContentReadTest {
                 "visibleSections" to listOf("home"),
             ) + extra,
         )
+
+    @Test
+    fun scheduledCandidatesRemainAvailableAcrossLocalTimeBoundaries() = runTest {
+        val future =
+            banner(
+                "future",
+                mapOf("startsAt" to now.plusSeconds(10), "endsAt" to now.plusSeconds(20)),
+            )
+        val source = SyntheticContentSource(mapOf("featuredBanners/future" to future))
+        val repository = ContentRepository(source, MemoryContentCache()) { now }
+        assertTrue(repository.banners("home", "").value.isEmpty())
+        val candidates = repository.banners("home", "", includeScheduled = true).value
+        assertEquals(listOf("future"), candidates.map { it.id })
+        val rows = candidates.map { RawDocument(it.id, it.fields) }
+        assertEquals(1, visibleBanners(rows, "home", "", now.plusSeconds(10)).size)
+        assertEquals(1, visibleBanners(rows, "home", "", now.plusSeconds(20)).size)
+        assertTrue(visibleBanners(rows, "home", "", now.plusSeconds(20).plusNanos(1)).isEmpty())
+    }
 
     @Test
     fun bannerWindowsAreInclusiveRegionAndUnsupportedAreFiltered() {

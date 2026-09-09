@@ -78,8 +78,8 @@ fun DsaAppealReviewScreen(
             Text(
                 tr(
                     language,
-                    "Nur Ansicht. Das Einreichen einer Beschwerde ist in dieser lokalen Android-Version noch nicht verfügbar. Es wird nichts gesendet.",
-                    "Лише перегляд. Подання скарги в цій локальній версії Android ще недоступне. Нічого не надсилається.",
+                    "Nur Ansicht. Das Einreichen einer Beschwerde ist in dieser Android-Version noch nicht verfügbar. Es wird nichts gesendet.",
+                    "Лише перегляд. Подання скарги в цій версії Android ще недоступне. Нічого не надсилається.",
                 ),
                 Modifier.testTag("dsa-review-readonly"),
             )

@@ -1,5 +1,7 @@
 package at.uac.android.feature.gallery
 
+import at.uac.android.BuildConfig
+import at.uac.android.core.backend.CompiledBackend
 import at.uac.android.core.LocalImagePolicy
 import at.uac.android.core.LocalImagePreparation
 import at.uac.android.feature.browse.Content
@@ -92,6 +94,7 @@ data class GallerySnapshot(
     val photos: List<GalleryPhoto>,
     val overflow: Boolean,
     val counter: Int?,
+    val photoRoute: GalleryPhotoRoute = GalleryPhotoRoute.LEGACY,
 ) {
     val organizationId
         get() = organization.id
@@ -102,6 +105,12 @@ data class GallerySnapshot(
     override fun toString() = "GallerySnapshot(loaded=${photos.size}, overflow=$overflow)"
 }
 
+enum class GalleryPhotoRoute {
+    LEGACY,
+    COMMAND,
+    DENIED,
+}
+
 /**
  * The UUID, caption and prepared bytes form one immutable request; retry never invents another
  * UUID.
@@ -110,19 +119,30 @@ data class GalleryUploadIntent(
     val target: GalleryTarget,
     val caption: String?,
     val photo: PreparedGalleryPhoto,
+    val replacing: GalleryPhoto? = null,
+    val operationId: String = UUID.randomUUID().toString(),
 ) {
     init {
         require(caption == GalleryContract.caption(caption.orEmpty()))
+        require(replacing == null || replacing.target == target)
+        require(Regex("[A-Za-z0-9_-]{1,200}").matches(operationId))
     }
 
     override fun toString() = "GalleryUploadIntent(redacted)"
 
     companion object {
-        fun create(organizationId: String, caption: String, photo: PreparedGalleryPhoto) =
+        fun create(
+            organizationId: String,
+            caption: String,
+            photo: PreparedGalleryPhoto,
+            replacing: GalleryPhoto? = null,
+        ) =
             GalleryUploadIntent(
-                GalleryTarget(organizationId, UUID.randomUUID().toString()),
+                replacing?.target ?: GalleryTarget(organizationId, UUID.randomUUID().toString()),
                 GalleryContract.caption(caption),
                 photo,
+                replacing,
+                UUID.randomUUID().toString(),
             )
     }
 }
@@ -165,7 +185,8 @@ data class GalleryRecoveryResult(
 
 object GalleryContract {
     const val MAX_PHOTOS = 30
-    private const val BUCKET = "demo-uac-android.appspot.com"
+    private val bucket
+        get() = CompiledBackend.STORAGE_BUCKET
     private val tokenPattern = Regex("[A-Za-z0-9_-]{1,256}")
 
     fun hash(bytes: ByteArray): String =
@@ -251,17 +272,25 @@ object GalleryContract {
         return GalleryPhoto(target, image, text, owner, created, updated)
     }
 
-    fun token(url: String, target: GalleryTarget): String? = runCatching {
+    fun storagePath(url: String, target: GalleryTarget): String? = runCatching {
         if (url.length !in 1..2048 || url.any(Char::isISOControl)) return null
         val uri = URI(url)
-        val local = uri.scheme == "http" && uri.host == "10.0.2.2" && uri.port == 9198
+        val local =
+            BuildConfig.USE_LOCAL_BACKEND &&
+                uri.scheme == "http" &&
+                uri.host == "10.0.2.2" &&
+                uri.port == 9198
         val alias =
             uri.scheme == "https" && uri.host == "firebasestorage.googleapis.com" && uri.port == -1
+        val prefix = "/v0/b/$bucket/o/"
+        val decodedPath = URLDecoder.decode(uri.rawPath, "UTF-8")
+        val objectPath = decodedPath.takeIf { it.startsWith(prefix) }?.removePrefix(prefix)
         if (
             (!local && !alias) ||
                 uri.userInfo != null ||
                 uri.fragment != null ||
-                URLDecoder.decode(uri.rawPath, "UTF-8") != "/v0/b/$BUCKET/o/${target.path}"
+                objectPath == null ||
+                !validStoragePath(objectPath, target)
         )
             return null
         val pairs =
@@ -273,12 +302,50 @@ object GalleryContract {
         if (pairs.size != 2 || pairs.map { it.first }.toSet() != setOf("alt", "token")) return null
         val query = pairs.toMap()
         query["token"]?.takeIf { query["alt"] == "media" && tokenPattern.matches(it) }
+            ?: return null
+        objectPath
     }
         .getOrNull()
 
+    fun token(url: String, target: GalleryTarget): String? {
+        if (storagePath(url, target) == null) return null
+        return runCatching {
+                URI(url).rawQuery
+                    ?.split('&')
+                    ?.associate { part ->
+                        val pieces = part.split('=', limit = 2)
+                        require(pieces.size == 2)
+                        URLDecoder.decode(pieces[0], "UTF-8") to
+                            URLDecoder.decode(pieces[1], "UTF-8")
+                    }
+                    ?.get("token")
+                    ?.takeIf(tokenPattern::matches)
+            }
+            .getOrNull()
+    }
+
+    private fun validStoragePath(path: String, target: GalleryTarget): Boolean =
+        path == target.path ||
+            Regex(
+                    "organizations/${Regex.escape(target.organizationId)}/photoVersions/[a-f0-9]{64}\\.jpg"
+                )
+                .matches(path)
+
     fun alias(target: GalleryTarget, token: String): String {
         if (!tokenPattern.matches(token)) fail(GalleryFailure.INVALID)
-        return "https://firebasestorage.googleapis.com/v0/b/$BUCKET/o/${URLEncoder.encode(target.path, "UTF-8")}?alt=media&token=$token"
+        return "https://firebasestorage.googleapis.com/v0/b/$bucket/o/${URLEncoder.encode(target.path, "UTF-8")}?alt=media&token=$token"
+    }
+
+    fun commandAlias(
+        target: GalleryTarget,
+        principalId: String,
+        operationId: String,
+        token: String,
+    ): String {
+        if (!tokenPattern.matches(token)) fail(GalleryFailure.INVALID)
+        val storageId = hashText(principalId + "\u0000" + operationId)
+        val path = "organizations/${target.organizationId}/photoVersions/$storageId.jpg"
+        return "https://firebasestorage.googleapis.com/v0/b/$bucket/o/${URLEncoder.encode(path, "UTF-8")}?alt=media&token=$token"
     }
 
     fun receipt(value: Any?, target: GalleryTarget, create: Boolean): GalleryReceipt {
@@ -302,6 +369,21 @@ object GalleryContract {
             hashText(photo.caption.orEmpty()) == entry.captionHash &&
             accountHash(photo.uploadedBy) == entry.uploaderHash &&
             token(photo.imageUrl, photo.target) == entry.token
+
+    fun matchesCommand(
+        photo: GalleryPhoto,
+        entry: GalleryJournalEntry,
+        principalId: String,
+        operationId: String,
+    ): Boolean {
+        val storageId = hashText(principalId + "\u0000" + operationId)
+        val path = storagePath(photo.imageUrl, photo.target) ?: return false
+        return photo.target == entry.target &&
+            entry.operationId == operationId &&
+            path == "organizations/${photo.target.organizationId}/photoVersions/$storageId.jpg" &&
+            hashText(photo.caption.orEmpty()) == entry.captionHash &&
+            accountHash(photo.uploadedBy) == entry.uploaderHash
+    }
 
     fun verifyCount(snapshot: GallerySnapshot, receipt: GalleryReceipt) {
         if (

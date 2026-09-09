@@ -30,6 +30,58 @@ class FeedbackTest {
     private val admin = FeedbackSession("admin", 3, true, true, "Synthetic Admin")
     private val draft = FeedbackDraft(FeedbackType.QUESTION, "A synthetic question")
 
+    @Test
+    fun conversationPagesReachEveryMessageWithEqualTimestampAndNoDuplicates() = runTest {
+        val source = Fake()
+        source.rows["thread"] = row()
+        source.messages["thread"] =
+            (1..205)
+                .associate { index ->
+                    val id = "message-%03d".format(index)
+                    id to message(id = id, at = time.plusSeconds(1))
+                }
+                .toMutableMap()
+        val repository = FeedbackRepository(source, { alice })
+        var cursor: FeedbackCursor? = null
+        val ids = mutableListOf<String>()
+        var pages = 0
+        do {
+            val page = repository.conversation("thread", FeedbackAudience.OWN, cursor)
+            ids += page.messages.filterNot { it.legacy }.map { it.id }
+            cursor = page.next
+            pages++
+        } while (page.limited)
+        assertEquals(3, pages)
+        assertEquals(205, ids.size)
+        assertEquals(205, ids.toSet().size)
+    }
+
+    @Test
+    fun listenerReconnectsAfterTransientErrorAndStopsAfterAccountChange() = runTest {
+        val source = Fake().apply { watchFailures = 1 }
+        var actor = alice
+        val model =
+            FeedbackViewModel(source, { actor }, DirectFeedbackMutationGate, backgroundScope)
+        model.bind(actor)
+        model.show(FeedbackAudience.OWN, null)
+        runCurrent()
+        assertEquals(1, source.watchStarts)
+        advanceTimeBy(1000)
+        runCurrent()
+        assertEquals(2, source.watchStarts)
+        source.watchFailures = 100
+        model.show(FeedbackAudience.OWN, "thread")
+        runCurrent()
+        actor = bob
+        model.bind(actor)
+        model.hide(FeedbackAudience.OWN, null)
+        runCurrent()
+        val stopped = source.watchStarts
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertEquals(stopped, source.watchStarts)
+    }
+
     @Before
     fun setup() {
         Dispatchers.setMain(StandardTestDispatcher())
@@ -72,6 +124,8 @@ class FeedbackTest {
     private inner class Fake : FeedbackSource {
         val rows = mutableMapOf<String, RawDocument>()
         val messages = mutableMapOf<String, MutableMap<String, RawDocument>>()
+        var watchStarts = 0
+        var watchFailures = 0
         var writes = 0
         var fail: FeedbackFailure? = null
         var writeDelay = 0L
@@ -184,7 +238,12 @@ class FeedbackTest {
             if (uncertainAfterCommit) throw FeedbackException(FeedbackFailure.UNCONFIRMED)
         }
 
-        override fun changes(uid: String?, id: String?) = emptyFlow<Unit>()
+        override fun changes(uid: String?, id: String?) =
+            kotlinx.coroutines.flow.flow<Unit> {
+                watchStarts++
+                if (watchStarts <= watchFailures) throw FeedbackException(FeedbackFailure.OFFLINE)
+                emit(Unit)
+            }
     }
 
     private suspend fun failure(expected: FeedbackFailure, action: suspend () -> Unit) {

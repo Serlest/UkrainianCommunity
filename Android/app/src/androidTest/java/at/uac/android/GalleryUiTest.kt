@@ -222,6 +222,30 @@ class GalleryUiTest {
     }
 
     @Test
+    fun replacementControlExistsOnlyForEnforcedPhotoCommand() {
+        val value = mutableStateOf(state())
+        var replacement: GalleryPhoto? = null
+        compose.setContent {
+            MaterialTheme {
+                GalleryContent(
+                    value.value,
+                    "uk",
+                    GalleryActions(replace = { replacement = it }),
+                )
+            }
+        }
+        scroll("gallery-photo-${target.photoId}")
+        compose.onNodeWithTag("gallery-replace-${target.photoId}").assertDoesNotExist()
+        compose.runOnIdle {
+            value.value =
+                value.value.copy(snapshot = snapshot.copy(photoRoute = GalleryPhotoRoute.COMMAND))
+        }
+        scroll("gallery-replace-${target.photoId}")
+        compose.onNodeWithTag("gallery-replace-${target.photoId}").assertIsEnabled().performClick()
+        compose.runOnIdle { assertEquals(photo, replacement) }
+    }
+
+    @Test
     fun accessUsesFreshHostRecordAndExactSystemRoleWithoutPhotoPrefetch() {
         val content = mutableStateOf(Content(ContentKind.ORGANIZATIONS, id, organization.fields))
         val current = mutableStateOf(session)

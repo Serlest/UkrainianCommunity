@@ -264,11 +264,18 @@ class FeedbackDeletionContractTest {
     }
 
     @Test
-    fun allDeletionEndpointsStayClosedUntilDurableSdkIntegrationIsVerified() {
-        assertTrue(LocalCallableProtocol.endpoint("assignAppAdmin").endsWith("/assignAppAdmin"))
+    fun onlyDurablyIntegratedSingleOwnerDeletionIsEnabled() {
+        assertTrue(
+            LocalCallableProtocol.endpoint(FeedbackDeletionContract.CALLABLE)
+                .endsWith("/deleteFeedback")
+        )
+        assertTrue(LocalCallableProtocol.nonIdempotent(FeedbackDeletionContract.CALLABLE))
+        assertEquals(
+            FeedbackDeletionContract.MAXIMUM_TIMEOUT_MILLIS,
+            LocalCallableProtocol.maximumTimeoutMillis(FeedbackDeletionContract.CALLABLE),
+        )
         for (name in
             listOf(
-                FeedbackDeletionContract.CALLABLE,
                 "clearFeedbackInbox",
                 "deleteMyFeedback",
                 "clearMyFeedback",

@@ -1,5 +1,6 @@
 package at.uac.android.feature.browse
 
+import at.uac.android.BuildConfig
 import at.uac.android.core.LocalStorage
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -10,14 +11,20 @@ import java.net.URLDecoder
 object PublicMediaPolicy {
     const val MAX_BYTES = 3_000_000
     private const val LOCAL = "http://10.0.2.2:9198"
-    private const val PREFIX = "/v0/b/${LocalStorage.BUCKET}/o/"
+    private val PREFIX = "/v0/b/${LocalStorage.BUCKET}/o/"
 
     fun address(value: String): String? = runCatching {
         if (value.length !in 1..5_000 || value.any(Char::isISOControl)) return null
         val uri = URI(value)
         val local = uri.scheme == "http" && uri.host == "10.0.2.2" && uri.port == 9198
+        // URLSession accepts canonical HTTPS URLs that spell out the default port. Older
+        // organization uploads in the shared production database use that exact `:443` form,
+        // while newer uploads omit the port. They are the same origin and must follow the same
+        // bucket/path validation below.
         val demoAlias =
-            uri.scheme == "https" && uri.host == "firebasestorage.googleapis.com" && uri.port == -1
+            uri.scheme == "https" &&
+                uri.host == "firebasestorage.googleapis.com" &&
+                uri.port in setOf(-1, 443)
         if ((!local && !demoAlias) || uri.rawUserInfo != null || uri.rawFragment != null)
             return null
         if (!uri.rawPath.startsWith(PREFIX)) return null
@@ -45,7 +52,7 @@ object PublicMediaPolicy {
             return null
         if (fields.toMap()["alt"] != "media") return null
         fields.toMap()["token"]?.let { if (!it.matches(Regex("[A-Za-z0-9_-]{1,512}"))) return null }
-        "$LOCAL${uri.rawPath}?$query"
+        if (BuildConfig.USE_LOCAL_BACKEND) "$LOCAL${uri.rawPath}?$query" else value
     }
         .getOrNull()
 

@@ -255,6 +255,7 @@ class BrowseNavigationTest {
             listOf(
                 "profile/moderation",
                 "profile/users",
+                "profile/legal-evidence/user-1",
                 "profile/organization-review",
                 "profile/organization-review/org-1",
             )) {
@@ -275,6 +276,9 @@ class BrowseNavigationTest {
                 "profile/moderation/item",
                 "profile/users/",
                 "profile/users/private-target",
+                "profile/legal-evidence/",
+                "profile/legal-evidence/..",
+                "profile/legal-evidence/user/extra",
                 "profile/organization-review/",
                 "profile/organization-review/..",
                 "profile/organization-review/org:1",

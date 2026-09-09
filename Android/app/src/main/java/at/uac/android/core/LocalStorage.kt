@@ -10,7 +10,7 @@ import java.net.URLDecoder
 
 /** Shared named demo SDK only. Each feature must validate its own UID/content path before use. */
 object LocalStorage {
-    const val BUCKET = CompiledBackend.STORAGE_BUCKET
+    val BUCKET = CompiledBackend.STORAGE_BUCKET
     private var configured: FirebaseStorage? = null
 
     @Synchronized

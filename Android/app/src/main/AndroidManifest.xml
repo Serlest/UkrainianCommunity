@@ -5,14 +5,24 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- CPU only, at most eight seconds for a privacy-checked local reminder. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <application android:label="UAC Local" android:allowBackup="false" android:fullBackupContent="@xml/full_backup_rules"
+    <application android:label="${appLabel}" android:allowBackup="false" android:fullBackupContent="@xml/full_backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules" android:icon="@mipmap/ic_launcher_uac"
         android:supportsRtl="true" android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:networkSecurityConfig="@xml/network_security_config">
-        <!-- Do not create a default FirebaseApp before the emulator guard runs. -->
-        <provider android:name="com.google.firebase.provider.FirebaseInitProvider"
-            android:authorities="${applicationId}.firebaseinitprovider" tools:node="remove" />
         <meta-data android:name="at.uac.android.REMINDER_ICON" android:resource="@drawable/ic_notification_uac" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="uac_updates" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification_uac" />
+        <meta-data android:name="firebase_messaging_notification_delegation_enabled"
+            android:value="false" />
+        <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
+        <service android:name="at.uac.android.feature.push.UacFirebaseMessagingService"
+            android:exported="false" android:enabled="${enableCloudMessaging}">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
         <receiver android:name=".feature.reminders.ReminderReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -27,6 +37,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="at.uac.android.PUSH_TAP" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
     </application>

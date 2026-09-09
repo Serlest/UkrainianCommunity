@@ -30,12 +30,12 @@ internal object FirebaseBackendGuard {
     }
 
     fun requireAuth(auth: FirebaseAuth) {
-        configuration.requireLocal(BackendService.AUTH)
+        requireService(BackendService.AUTH)
         requireApp(auth.app.applicationContext, auth.app)
     }
 
     fun requireFirestore(db: FirebaseFirestore) {
-        configuration.requireLocal(BackendService.FIRESTORE)
+        requireService(BackendService.FIRESTORE)
         requireApp(db.app.applicationContext, db.app)
     }
 
@@ -46,10 +46,15 @@ internal object FirebaseBackendGuard {
     }
 
     fun requireStorage(storage: FirebaseStorage, expectedApp: FirebaseApp) {
-        configuration.requireLocal(BackendService.STORAGE)
+        requireService(BackendService.STORAGE)
         requireApp(expectedApp.applicationContext, expectedApp)
         requireApp(storage.app.applicationContext, storage.app)
         require(storage.app === expectedApp) { "LOCAL_BACKEND_MIXED_APPS" }
         configuration.requireBucket(storage.reference.bucket)
+    }
+
+    private fun requireService(service: BackendService) {
+        if (configuration.identity.kind == BackendKind.LOCAL_EMULATOR) configuration.requireLocal(service)
+        else configuration.requireCloud(service)
     }
 }

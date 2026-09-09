@@ -455,6 +455,7 @@ fun PersonalSavedScreen(
     language: String,
     onLoad: (Boolean) -> Unit,
     onOpen: (Content) -> Unit,
+    onRemoveUnavailable: ((PersonalTarget) -> Unit)? = null,
 ) {
     var selected by remember(state.session?.uid) { mutableStateOf<ContentKind?>(null) }
     var sort by remember(state.session?.uid) { mutableStateOf(PersonalSort.NEWEST) }
@@ -545,6 +546,13 @@ fun PersonalSavedScreen(
                     )
             }
         }
+        if (onRemoveUnavailable != null)
+            items(
+                pages.flatMap { it.unavailableTargets }.distinct(),
+                key = { "unavailable:${it.key}" },
+            ) { target ->
+                UnavailablePersonalCard(target, state, language) { onRemoveUnavailable(target) }
+            }
         items(items, key = { "${it.kind}/${it.id}" }) { PersonalContentCard(it, language, onOpen) }
         item {
             if (state.saved.values.any { it.hasMore })
@@ -564,6 +572,7 @@ fun PersonalSubscriptionsScreen(
     language: String,
     onLoad: (Boolean) -> Unit,
     onOpen: (Content) -> Unit,
+    onRemoveUnavailable: ((PersonalTarget) -> Unit)? = null,
 ) {
     LaunchedEffect(state.session?.uid, state.session?.revision) { onLoad(false) }
     LazyColumn(
@@ -601,6 +610,13 @@ fun PersonalSubscriptionsScreen(
                     )
             }
         }
+        if (onRemoveUnavailable != null)
+            items(
+                state.subscriptions?.unavailableTargets.orEmpty(),
+                key = { "unavailable:${it.key}" },
+            ) { target ->
+                UnavailablePersonalCard(target, state, language) { onRemoveUnavailable(target) }
+            }
         items(state.subscriptions?.items.orEmpty(), key = { it.id }) {
             PersonalContentCard(it, language, onOpen)
         }
@@ -618,11 +634,33 @@ fun PersonalSubscriptionsScreen(
 
 @Composable
 private fun PersonalContentCard(item: Content, language: String, onOpen: (Content) -> Unit) {
-    Card(onClick = { onOpen(item) }, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(item.kind.label(language), style = MaterialTheme.typography.labelMedium)
-            Text(item.title(language), style = MaterialTheme.typography.titleMedium)
-            Text(item.summary(language), style = MaterialTheme.typography.bodyMedium, maxLines = 3)
+    at.uac.android.feature.browse.ContentCard(item, language) { onOpen(item) }
+}
+
+@Composable
+private fun UnavailablePersonalCard(
+    target: PersonalTarget,
+    state: PersonalState,
+    language: String,
+    onRemove: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth().testTag("unavailable:${target.key}")) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                tr(language, "Inhalt derzeit nicht verfügbar", "Матеріал зараз недоступний"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                tr(
+                    language,
+                    "Du kannst diesen Eintrag aus deiner Liste entfernen.",
+                    "Ви можете видалити цей запис зі свого списку.",
+                )
+            )
+            PersonalError(state.actionErrors[target], language, onRemove)
+            TextButton(onClick = onRemove, enabled = target !in state.actionsPending) {
+                Text(tr(language, "Aus der Liste entfernen", "Видалити зі списку"))
+            }
         }
     }
 }

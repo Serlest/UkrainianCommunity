@@ -59,7 +59,7 @@ class CallableGatewayDeviceTest {
             reference.withTimeout(60_001, TimeUnit.MILLISECONDS)
         }
         assertThrows(IllegalArgumentException::class.java) {
-            gateway.getHttpsCallable("trackAnalyticsEvent")
+            gateway.getHttpsCallable("exportAnalytics")
         }
         gateway
             .getHttpsCallable("uploadOrganizationContentCover")

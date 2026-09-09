@@ -24,7 +24,10 @@ import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.string
 import at.uac.android.feature.contentlifecycle.ContentLifecycleContract
+import at.uac.android.feature.contentplanning.ContentPlanningDraft
 import at.uac.android.feature.organization.OrganizationSession
+import at.uac.android.feature.translation.ContentTranslationButton
+import at.uac.android.feature.translation.TranslationField
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -70,14 +73,20 @@ fun AuthoringScreen(
     initialKind: ContentKind = ContentKind.NEWS,
     onCover: ((AuthoringItem) -> Unit)? = null,
     onLifecycle: ((AuthoringItem) -> Unit)? = null,
+    planningSource: ContentPlanningDraft? = null,
+    planningBridge: PlanningAuthoringBridge? = null,
 ) {
     val stored by model.state.collectAsStateWithLifecycle(minActiveState = Lifecycle.State.RESUMED)
     val state =
         if (stored.session == session && stored.organizationId == organizationId) stored
         else AuthoringState(session, organizationId, kind = initialKind)
-    LifecycleResumeEffect(session, organizationId, initialKind) {
-        model.show(organizationId, initialKind)
+    LifecycleResumeEffect(session, organizationId, initialKind, planningSource?.id) {
+        model.show(organizationId, initialKind, planningSource?.id)
         onPauseOrDispose { model.hide() }
+    }
+    LaunchedEffect(stored.fresh, planningSource, planningBridge) {
+        if (stored.fresh && planningSource != null && planningBridge != null)
+            model.importPlanning(planningSource, planningBridge)
     }
     AuthoringContent(
         state,
@@ -940,6 +949,43 @@ private fun AuthoringEditor(
                 true,
                 update { old, value -> old.copy(body = value) },
             )
+            ContentTranslationButton(
+                kind = if (d.kind == ContentKind.EVENTS) "event" else "news",
+                language = language,
+                fields =
+                    listOf(
+                        TranslationField(
+                            "title",
+                            at(language, "Titel", "Заголовок"),
+                            d.title,
+                            d.germanTitle,
+                            120,
+                        ),
+                        TranslationField(
+                            "summary",
+                            at(language, "Zusammenfassung", "Короткий опис"),
+                            d.summary,
+                            d.germanSummary,
+                            200,
+                        ),
+                        TranslationField(
+                            "body",
+                            at(language, "Text", "Текст"),
+                            d.body,
+                            d.germanBody,
+                            if (d.kind == ContentKind.EVENTS) 2_000 else 10_000,
+                        ),
+                    ),
+                enabled = enabled,
+            ) { translated ->
+                change {
+                    it.copy(
+                        germanTitle = translated["title"] ?: it.germanTitle,
+                        germanSummary = translated["summary"] ?: it.germanSummary,
+                        germanBody = translated["body"] ?: it.germanBody,
+                    )
+                }
+            }
             Text(
                 at(language, "Deutsch · optional", "Deutsch · необов’язково"),
                 style = MaterialTheme.typography.titleMedium,

@@ -1,6 +1,7 @@
 package at.uac.android.feature.accountdeletion
 
 import android.content.Context
+import at.uac.android.BuildConfig
 import at.uac.android.core.LocalCallableException
 import at.uac.android.core.LocalEnvironment
 import at.uac.android.core.backend.AppBackend
@@ -10,6 +11,7 @@ import at.uac.android.feature.auth.AuthException
 import at.uac.android.feature.auth.AuthMfaChallenge
 import at.uac.android.feature.auth.AuthMfaChallengeRequired
 import at.uac.android.feature.auth.AuthProblem
+import at.uac.android.feature.auth.emailAllowedForBackend
 import at.uac.android.feature.auth.firebaseAuthOperation
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
@@ -54,7 +56,7 @@ class FirebaseAccountDeletionSource(
             auth.currentUser ?: throw AccountDeletionException(AccountDeletionFailure.SIGN_IN)
         if (user.uid != uid || user.isAnonymous)
             throw AccountDeletionException(AccountDeletionFailure.SIGN_IN)
-        if (user.email?.endsWith(".invalid", ignoreCase = true) != true)
+        if (!emailAllowedForBackend(user.email.orEmpty(), BuildConfig.USE_LOCAL_BACKEND))
             throw AccountDeletionException(AccountDeletionFailure.LOCAL_ONLY)
         AccountDeletionSession(
             uid,

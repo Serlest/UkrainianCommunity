@@ -3,6 +3,8 @@ package at.uac.android.feature.gallery
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.organization.OrganizationMutationGate
 import at.uac.android.feature.organization.OrganizationSession
+import at.uac.android.feature.organizationaccess.OrganizationPhotoAttempt
+import at.uac.android.feature.organizationaccess.OrganizationPhotoReceipt
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -14,6 +16,20 @@ interface GallerySource {
     suspend fun photo(target: GalleryTarget, session: OrganizationSession): GalleryPhoto?
 
     suspend fun blob(target: GalleryTarget, session: OrganizationSession): GalleryBlob?
+
+    suspend fun blob(photo: GalleryPhoto, session: OrganizationSession): GalleryBlob? =
+        blob(photo.target, session)
+
+    suspend fun photoRoute(
+        organizationId: String,
+        legacyAllowed: Boolean,
+        session: OrganizationSession,
+    ): GalleryPhotoRoute = GalleryPhotoRoute.LEGACY
+
+    suspend fun savePhoto(
+        attempt: OrganizationPhotoAttempt,
+        session: OrganizationSession,
+    ): OrganizationPhotoReceipt = GalleryContract.fail(GalleryFailure.DENIED)
 
     suspend fun upload(
         target: GalleryTarget,
@@ -57,12 +73,16 @@ class GalleryRepository(
 
     private suspend fun fresh(id: String, session: OrganizationSession): GallerySnapshot {
         current(session)
-        return source.snapshot(id, session).also {
+        val snapshot = source.snapshot(id, session).also {
             current(session)
             GalleryContract.authorize(it.organization, session)
             if (it.organizationId != id || !visibleOrganization(it.content))
                 GalleryContract.fail(GalleryFailure.POLICY)
         }
+        val route = source.photoRoute(id, true, session)
+        current(session)
+        if (route == GalleryPhotoRoute.DENIED) GalleryContract.fail(GalleryFailure.DENIED)
+        return snapshot.copy(photoRoute = route)
     }
 
     private suspend fun photo(target: GalleryTarget, session: OrganizationSession) =
@@ -70,6 +90,9 @@ class GalleryRepository(
 
     private suspend fun blob(target: GalleryTarget, session: OrganizationSession) =
         source.blob(target, session).also { current(session) }
+
+    private suspend fun blob(photo: GalleryPhoto, session: OrganizationSession) =
+        source.blob(photo, session).also { current(session) }
 
     suspend fun load(id: String) = fresh(id, session())
 
@@ -83,7 +106,8 @@ class GalleryRepository(
         fresh(expected.target.organizationId, s)
         if (photo(expected.target, s) != expected) GalleryContract.fail(GalleryFailure.STALE)
         val image =
-            blob(expected.target, s) ?: GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
+            source.blob(expected, s).also { current(s) }
+                ?: GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
         if (GalleryContract.token(expected.imageUrl, expected.target) != image.token)
             GalleryContract.fail(GalleryFailure.CONFLICT)
         fresh(expected.target.organizationId, s)
@@ -125,6 +149,8 @@ class GalleryRepository(
                 GalleryFailure.MISSING,
                 GalleryFailure.INVALID,
                 GalleryFailure.LIMIT,
+                GalleryFailure.STALE,
+                GalleryFailure.CONFLICT,
             )
 
     suspend fun upload(intent: GalleryUploadIntent): GalleryMutationResult {
@@ -133,11 +159,18 @@ class GalleryRepository(
             val target = intent.target
             val initial = fresh(target.organizationId, s)
             writable(initial)
-            if (initial.photos.size >= GalleryContract.MAX_PHOTOS)
+            val replacing = intent.replacing
+            if (replacing == null && initial.photos.size >= GalleryContract.MAX_PHOTOS)
                 GalleryContract.fail(GalleryFailure.LIMIT)
             noPending(target.organizationId, s)
-            if (photo(target, s) != null || blob(target, s) != null)
-                GalleryContract.fail(GalleryFailure.CONFLICT)
+            val currentPhoto = photo(target, s)
+            if (currentPhoto != replacing) GalleryContract.fail(GalleryFailure.CONFLICT)
+            if (replacing == null && blob(target, s) != null) GalleryContract.fail(GalleryFailure.CONFLICT)
+            when (initial.photoRoute) {
+                GalleryPhotoRoute.COMMAND -> return@mutate saveCommand(intent, s)
+                GalleryPhotoRoute.DENIED -> GalleryContract.fail(GalleryFailure.DENIED)
+                GalleryPhotoRoute.LEGACY -> if (replacing != null) GalleryContract.fail(GalleryFailure.DENIED)
+            }
             var entry =
                 journal.put(
                     s.uid,
@@ -198,6 +231,67 @@ class GalleryRepository(
             journal.clear(s.uid, entry)
             GalleryMutationResult(final)
         }
+    }
+
+    private suspend fun saveCommand(
+        intent: GalleryUploadIntent,
+        session: OrganizationSession,
+    ): GalleryMutationResult {
+        val expected = intent.replacing
+        val operationId = intent.operationId
+        var entry =
+            journal.put(
+                session.uid,
+                GalleryJournalEntry(
+                    GalleryContract.accountHash(session.uid),
+                    intent.target,
+                    GalleryPhase.COMMAND_SUBMITTED,
+                    intent.photo.hash,
+                    GalleryContract.hashText(intent.caption.orEmpty()),
+                    GalleryContract.accountHash(session.uid),
+                    operationId = operationId,
+                ),
+            )
+        current(session)
+        val attempt =
+            OrganizationPhotoAttempt(
+                session.uid,
+                intent.target.organizationId,
+                intent.target.photoId,
+                operationId,
+                expected?.imageUrl,
+                intent.photo.bytes(),
+                intent.caption,
+            )
+        try {
+            source.savePhoto(attempt, session)
+        } catch (error: Exception) {
+            if (error is CancellationException) throw error
+            if (terminal(error))
+                entry = journal.put(session.uid, entry.copy(phase = GalleryPhase.COMMAND_REJECTED), entry)
+            throw error
+        }
+        current(session)
+        val saved = photo(intent.target, session) ?: GalleryContract.fail(GalleryFailure.UNCONFIRMED)
+        if (!GalleryContract.matchesCommand(saved, entry, session.uid, operationId))
+            GalleryContract.fail(GalleryFailure.UNCONFIRMED)
+        if (expected != null && saved.createdAt != expected.createdAt)
+            GalleryContract.fail(GalleryFailure.UNCONFIRMED)
+        val readImage = blob(saved, session) ?: GalleryContract.fail(GalleryFailure.UNCONFIRMED)
+        if (
+            readImage.hash != intent.photo.hash ||
+                GalleryContract.token(saved.imageUrl, saved.target) != readImage.token
+        )
+            GalleryContract.fail(GalleryFailure.UNCONFIRMED)
+        val final = fresh(intent.target.organizationId, session)
+        if (
+            final.photos.none { it == saved } ||
+                final.overflow ||
+                final.counter != final.photos.size
+        )
+            GalleryContract.fail(GalleryFailure.UNCONFIRMED)
+        journal.clear(session.uid, entry)
+        return GalleryMutationResult(final)
     }
 
     suspend fun remove(expected: GalleryPhoto): GalleryMutationResult {
@@ -261,15 +355,40 @@ class GalleryRepository(
             requirePending(expected, s)
             val snapshot = fresh(id, s)
             val saved = photo(expected.target, s)
-            val image = blob(expected.target, s)
+            if (expected.phase == GalleryPhase.COMMAND_REJECTED) {
+                // This phase is persisted only after a definitive callable rejection. It proves
+                // that this command did not commit; a later actor change must not pin our journal.
+                journal.clear(s.uid, expected)
+                return@mutate GalleryRecoveryResult(GalleryRecovery.UNCHANGED, snapshot, null)
+            }
+            val command =
+                expected.phase == GalleryPhase.COMMAND_SUBMITTED
+            val image = if (command && saved != null) blob(saved, s) else blob(expected.target, s)
             var entry = expected
             if (saved != null && !GalleryContract.matches(saved, entry))
-                GalleryContract.fail(GalleryFailure.CONFLICT)
+                if (entry.phase !in setOf(GalleryPhase.COMMAND_SUBMITTED, GalleryPhase.COMMAND_REJECTED))
+                    GalleryContract.fail(GalleryFailure.CONFLICT)
             if (
                 image != null &&
                     (image.hash != entry.jpegHash || entry.token?.let { it != image.token } == true)
             )
                 GalleryContract.fail(GalleryFailure.CONFLICT)
+            if (
+                saved != null &&
+                    entry.phase == GalleryPhase.COMMAND_SUBMITTED &&
+                    entry.operationId?.let {
+                        GalleryContract.matchesCommand(saved, entry, s.uid, it)
+                    } == true &&
+                    image != null &&
+                    image.hash == entry.jpegHash &&
+                    GalleryContract.token(saved.imageUrl, saved.target) == image.token &&
+                    snapshot.photos.any { it == saved } &&
+                    !snapshot.overflow &&
+                    snapshot.counter == snapshot.photos.size
+            ) {
+                journal.clear(s.uid, entry)
+                return@mutate GalleryRecoveryResult(GalleryRecovery.PUBLISHED, snapshot, null)
+            }
             if (
                 saved != null &&
                     entry.phase in

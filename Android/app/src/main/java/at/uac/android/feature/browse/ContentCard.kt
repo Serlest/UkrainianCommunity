@@ -52,7 +52,7 @@ fun ContentCard(item: Content, language: String, onClick: () -> Unit) {
     val media: @Composable () -> Unit = {
         val url =
             if (item.kind == ContentKind.ORGANIZATIONS)
-                item.fields.string("logoURL").ifEmpty { item.fields.string("imageURL") }
+                organizationImageUrl(item.fields, preferCover = false)
             else item.fields.string("imageURL")
         CompositionLocalProvider(LocalContentColor provides accent) {
             PublicImage(

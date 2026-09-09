@@ -295,7 +295,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
     Box(
         Modifier.fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
@@ -330,7 +330,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                         Modifier.selectableGroup()
                             .semantics { isTraversalGroup = true }
                             .testTag("uac-navigation-grid")
-                            .padding(6.dp),
+                            .padding(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         PrimaryTab.entries.chunked(2).forEach { tabs ->
@@ -344,7 +344,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                                         labels[tab.ordinal],
                                         labelStyle,
                                         selected == tab,
-                                        true,
+                                        false,
                                         onSelect,
                                         Modifier.weight(1f).fillMaxHeight(),
                                     )
@@ -358,7 +358,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                             .semantics { isTraversalGroup = true }
                             .testTag("uac-navigation-row")
                             .height(IntrinsicSize.Min)
-                            .padding(6.dp),
+                            .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         PrimaryTab.entries.forEach { tab ->
@@ -409,7 +409,7 @@ private fun UacNavigationTab(
         else MaterialTheme.colorScheme.onSurfaceVariant
     val touch =
         modifier
-            .heightIn(min = if (horizontal) 48.dp else 64.dp)
+            .heightIn(min = if (horizontal) 48.dp else 56.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(
                 if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
@@ -434,7 +434,7 @@ private fun UacNavigationTab(
             }
         } else {
             Column(
-                touch.padding(horizontal = 4.dp, vertical = 8.dp),
+                touch.padding(horizontal = 4.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {

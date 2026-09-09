@@ -8,6 +8,12 @@ import at.uac.android.feature.authoring.recovery.AuthoringRecoveryScope
 import at.uac.android.feature.authoring.recovery.AuthoringRecoveryStore
 import at.uac.android.feature.authoring.recovery.MemoryAuthoringRecoveryStore
 import at.uac.android.feature.browse.ContentKind
+import at.uac.android.feature.contentplanning.ContentPlanningDraft
+import at.uac.android.feature.contentplanning.ContentPlanningException
+import at.uac.android.feature.contentplanning.ContentPlanningFailure
+import at.uac.android.feature.contentplanning.ContentPlanningKind
+import at.uac.android.feature.contentplanning.ContentPlanningLease
+import at.uac.android.feature.contentplanning.ContentPlanningPublication
 import at.uac.android.feature.organization.OrganizationMutationGate
 import at.uac.android.feature.organization.OrganizationRecord
 import at.uac.android.feature.organization.OrganizationSession
@@ -53,6 +59,7 @@ data class AuthoringState(
     val unsavedExitCount: Int = 0,
     val exitSaveError: AuthoringRecoveryFailure? = null,
     val failedCurrentDraft: Boolean = false,
+    val planningDraftId: String? = null,
 ) {
     val actionable
         get() = session?.ready == true && fresh && !loading && !busy && hub != null
@@ -96,6 +103,14 @@ class AuthoringViewModel(
     private var routeKind: ContentKind? = null
     private var save: Job? = null
     private var saveVersion = 0L
+
+    private data class PlanningContext(
+        val source: ContentPlanningDraft,
+        val bridge: PlanningAuthoringBridge,
+        var lease: ContentPlanningLease? = null,
+    )
+
+    private var planningContext: PlanningContext? = null
     private val exitSaves = linkedSetOf<Job>()
 
     private data class FailedExit(
@@ -219,8 +234,13 @@ class AuthoringViewModel(
         }
     }
 
-    fun show(id: String, initialKind: ContentKind = ContentKind.NEWS) {
+    fun show(
+        id: String,
+        initialKind: ContentKind = ContentKind.NEWS,
+        planningDraftId: String? = null,
+    ) {
         if (initialKind !in AuthoringContract.kinds) return
+        if (planningContext?.source?.id != planningDraftId) planningContext = null
         if (mutable.value.organizationId != id || routeKind != initialKind)
             requestedKind = initialKind
         routeKind = initialKind
@@ -470,6 +490,48 @@ class AuthoringViewModel(
         scheduleSave()
     }
 
+    fun importPlanning(source: ContentPlanningDraft, bridge: PlanningAuthoringBridge) {
+        val value = mutable.value
+        val expectedKind =
+            if (source.kind == ContentPlanningKind.NEWS) ContentKind.NEWS else ContentKind.EVENTS
+        if (
+            !value.actionable ||
+                value.kind != expectedKind ||
+                value.session != currentSession() ||
+                value.draft != null && value.planningDraftId != source.id ||
+                value.base != null
+        )
+            return
+        if (value.planningDraftId == source.id && planningContext?.source == source) return
+        val organization = value.hub?.organization ?: return
+        val draft =
+            try {
+                AuthoringContract.planningDraft(source)
+            } catch (error: AuthoringException) {
+                mutable.value = value.copy(error = error.failure, invalidField = error.field)
+                return
+            }
+        planningContext = PlanningContext(source, bridge)
+        cancelSave()
+        mutable.value =
+            value.copy(
+                draft = draft,
+                draftOrganization = organization,
+                base = null,
+                editorFresh = true,
+                preview = false,
+                confirmation = null,
+                uncertain = null,
+                error = null,
+                confirmed = null,
+                invalidField = null,
+                recoveryLoaded = true,
+                recoveredDraft = null,
+                draftSaved = true,
+                planningDraftId = source.id,
+            )
+    }
+
     fun edit(id: String) {
         val value = mutable.value
         val session = value.session ?: return
@@ -545,6 +607,7 @@ class AuthoringViewModel(
         cancelSave()
         val value = mutable.value
         val draft = value.draft ?: return
+        if (value.planningDraftId != null) return
         val capturedScope = scope(value) ?: return
         if (
             value.base != null ||
@@ -761,6 +824,7 @@ class AuthoringViewModel(
         if (value.busy || value.uncertain != null) return
         cancelSave()
         val changedKind = value.kind != requestedKind
+        planningContext = null
         if (changedKind) {
             generation++
             cancelRead()
@@ -775,6 +839,7 @@ class AuthoringViewModel(
                 preview = false,
                 confirmation = null,
                 invalidField = null,
+                planningDraftId = null,
                 kind = requestedKind,
                 status = if (changedKind) AuthoringStatus.APPROVED else value.status,
                 hub = if (changedKind) null else value.hub,
@@ -834,13 +899,64 @@ class AuthoringViewModel(
         mutable.value =
             value.copy(busy = true, confirmation = null, error = null, recoveryChecked = false)
         viewModelScope.launch {
+            var acquiredLease: ContentPlanningLease? = planningContext?.lease
             try {
+                val planning = planningContext?.takeIf { it.source.id == value.planningDraftId }
+                if (planning != null) {
+                    val lease = acquiredLease ?: planning.bridge.begin(planning.source)
+                    acquiredLease = lease
+                    planning.lease = lease
+                    if (
+                        lease.contentId != intent.id ||
+                            (lease.kind == ContentPlanningKind.NEWS) !=
+                                (intent.kind == ContentKind.NEWS)
+                    )
+                        AuthoringContract.invalid()
+                }
                 val saved = repository.submit(intent)
+                if (planning != null) {
+                    val lease = requireNotNull(acquiredLease)
+                    planning.bridge.finalize(
+                        planning.source,
+                        lease,
+                        ContentPlanningPublication(
+                            lease.kind,
+                            saved.id,
+                            saved.fields["scheduledAt"] as? java.time.Instant,
+                        ),
+                    )
+                }
                 if (same(session, epoch)) confirmed(saved)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                val reason = authoringFailure(error)
+                var resolvedError = error
+                val planning = planningContext?.takeIf { it.source.id == value.planningDraftId }
+                val initialReason = authoringFailure(error)
+                if (
+                    planning != null &&
+                        acquiredLease != null &&
+                        initialReason in
+                            setOf(
+                                AuthoringFailure.INVALID,
+                                AuthoringFailure.MISSING,
+                                AuthoringFailure.STALE,
+                                AuthoringFailure.DENIED,
+                            )
+                ) {
+                    resolvedError =
+                        try {
+                            planning.bridge.fail(
+                                planning.source,
+                                requireNotNull(acquiredLease),
+                                "Android authoring failed before confirmed publication: ${initialReason.name}",
+                            )
+                            error
+                        } catch (failure: Exception) {
+                            failure
+                        }
+                }
+                val reason = authoringFailure(resolvedError)
                 if (same(session, epoch))
                     mutable.value =
                         mutable.value.copy(
@@ -850,7 +966,7 @@ class AuthoringViewModel(
                             uncertain =
                                 value.uncertain
                                     ?: intent.takeIf {
-                                        error !is AuthoringRecoveryException &&
+                                        resolvedError !is AuthoringRecoveryException &&
                                             reason in
                                                 setOf(
                                                     AuthoringFailure.UNCONFIRMED,
@@ -858,8 +974,8 @@ class AuthoringViewModel(
                                                 )
                                     },
                             editorFresh = false,
-                            invalidField = (error as? AuthoringException)?.field,
-                            recoveryError = (error as? AuthoringRecoveryException)?.reason,
+                            invalidField = (resolvedError as? AuthoringException)?.field,
+                            recoveryError = (resolvedError as? AuthoringRecoveryException)?.reason,
                         )
             } finally {
                 if (inFlight === intent) inFlight = null
@@ -903,8 +1019,10 @@ class AuthoringViewModel(
                     recoveredDraft = null,
                     draftSaved = false,
                     recoveryError = null,
+                    planningDraftId = null,
                 )
             )
+        planningContext = null
         watch()
     }
 
@@ -926,8 +1044,23 @@ class AuthoringViewModel(
             try {
                 val item = repository.recover(intent)
                 if (same(session, epoch)) {
-                    if (item != null && AuthoringContract.matches(intent, item)) confirmed(item)
-                    else
+                    if (item != null && AuthoringContract.matches(intent, item)) {
+                        val planning = planningContext
+                        if (planning != null) {
+                            val lease = planning.lease ?: planning.bridge.begin(planning.source)
+                            planning.lease = lease
+                            planning.bridge.finalize(
+                                planning.source,
+                                lease,
+                                ContentPlanningPublication(
+                                    lease.kind,
+                                    item.id,
+                                    item.fields["scheduledAt"] as? java.time.Instant,
+                                ),
+                            )
+                        }
+                        if (same(session, epoch)) confirmed(item)
+                    } else
                         mutable.value =
                             mutable.value.copy(
                                 busy = false,
@@ -978,6 +1111,10 @@ class AuthoringViewModel(
         val value = mutable.value
         if (value.busy || value.uncertain != null) return
         val draft = value.draft ?: return
+        if (value.planningDraftId != null) {
+            closeEditor()
+            return
+        }
         val capturedScope = scope(value) ?: return
         cancelSave()
         if (value.base != null) {

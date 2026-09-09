@@ -27,6 +27,8 @@ import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
 import at.uac.android.feature.auth.AuthLegalReader
 import at.uac.android.feature.auth.AuthValidation
+import at.uac.android.feature.translation.ContentTranslationButton
+import at.uac.android.feature.translation.TranslationField
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -675,6 +677,37 @@ internal fun OrganizationEditor(
     text(tr(language, "Adresse", "Адреса"), d.address, "organization-address") { old, value ->
         old.copy(address = value)
     }()
+    ContentTranslationButton(
+        kind = "organization",
+        language = language,
+        fields =
+            listOf(
+                TranslationField("name", tr(language, "Name", "Назва"), d.name, d.germanName, 180),
+                TranslationField(
+                    "summary",
+                    tr(language, "Kurzbeschreibung", "Короткий опис"),
+                    d.summary,
+                    d.germanSummary,
+                    160,
+                ),
+                TranslationField(
+                    "details",
+                    tr(language, "Beschreibung", "Опис"),
+                    d.details,
+                    d.germanDetails,
+                    1_200,
+                ),
+            ),
+        enabled = !busy,
+    ) { translated ->
+        change {
+            it.copy(
+                germanName = translated["name"] ?: it.germanName,
+                germanSummary = translated["summary"] ?: it.germanSummary,
+                germanDetails = translated["details"] ?: it.germanDetails,
+            )
+        }
+    }
     Text(
         tr(language, "Deutsche Übersetzung (optional)", "Переклад німецькою (необов’язково)"),
         style = MaterialTheme.typography.titleMedium,

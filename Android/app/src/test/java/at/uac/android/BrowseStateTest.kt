@@ -14,6 +14,16 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BrowseStateTest {
+
+    @Test
+    fun newlyLoadedBannerReturnsOnlyTheDisplacedNearTopListToItsHero() {
+        assertTrue(shouldRevealNewBanner(true, false, false, 1))
+        assertTrue(shouldRevealNewBanner(true, false, false, 0))
+        assertFalse(shouldRevealNewBanner(true, false, false, 2))
+        assertFalse(shouldRevealNewBanner(true, true, false, 1))
+        assertFalse(shouldRevealNewBanner(false, false, false, 1))
+        assertFalse(shouldRevealNewBanner(true, false, true, 1))
+    }
     @Before
     fun setup() {
         Dispatchers.setMain(StandardTestDispatcher())
@@ -54,6 +64,14 @@ class BrowseStateTest {
     ): BrowseViewModel {
         val repo = ContentRepository(source, MemoryContentCache())
         return BrowseViewModel(repo, repo, saved, "de", "", "system", save)
+    }
+
+    @Test
+    fun missingOptionalDonationDoesNotRenderAFeedWarning() = runTest {
+        val vm = model()
+        advanceUntilIdle()
+        assertNull(vm.state.value.data.donation)
+        assertTrue(vm.state.value.data.warnings.none { it.first == "donation" })
     }
 
     @Test

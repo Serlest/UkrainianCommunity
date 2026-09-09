@@ -38,6 +38,7 @@ data class GalleryState(
     val preparing: Boolean = false,
     val prepared: PreparedGalleryPhoto? = null,
     val caption: String = "",
+    val replacing: GalleryPhoto? = null,
     val confirmation: GalleryConfirmation? = null,
     val pending: List<GalleryJournalEntry> = emptyList(),
     val recovery: GalleryRecovery? = null,
@@ -66,9 +67,20 @@ data class GalleryState(
 
     val canUpload
         get() =
-            canChoose &&
+            actionable &&
+                pending.isEmpty() &&
+                confirmation == null &&
+                (replacing == null && snapshot!!.photos.size < GalleryContract.MAX_PHOTOS ||
+                    replacing != null && canReplace(replacing)) &&
                 prepared != null &&
                 runCatching { GalleryContract.caption(caption) }.isSuccess
+
+    fun canReplace(photo: GalleryPhoto): Boolean =
+        actionable &&
+            pending.isEmpty() &&
+            confirmation == null &&
+            snapshot?.photoRoute == GalleryPhotoRoute.COMMAND &&
+            photo in snapshot.photos
 
     fun forSession(current: OrganizationSession?, id: String) =
         if (session == current && organizationId == id) this else GalleryState(current, id)
@@ -109,6 +121,7 @@ class GalleryViewModel(
         val session: OrganizationSession,
         val organizationId: String,
         val lease: ExternalImagePickerLease,
+        val replacing: GalleryPhoto? = null,
     )
 
     private var picker: Picker? = null
@@ -158,6 +171,7 @@ class GalleryViewModel(
                 busy = operation?.isActive == true,
                 prepared = previous.prepared.takeIf { sameOwner },
                 caption = previous.caption.takeIf { sameOwner }.orEmpty(),
+                replacing = previous.replacing.takeIf { sameOwner },
             )
     }
 
@@ -329,11 +343,16 @@ class GalleryViewModel(
         }
     }
 
-    fun beginPicker(): Boolean {
+    fun beginPicker(replacing: GalleryPhoto? = null): Boolean {
         val state = mutable.value
         val session = state.session ?: return false
         val id = state.organizationId ?: return false
-        if (!state.canChoose || currentSession() != session || operation?.isActive == true)
+        if (
+            (replacing == null && !state.canChoose ||
+                replacing != null && !state.canReplace(replacing)) ||
+                currentSession() != session ||
+                operation?.isActive == true
+        )
             return false
         val lease =
             pickerAuthorization.begin(session.uid, session.revision)
@@ -341,8 +360,17 @@ class GalleryViewModel(
                     mutable.value = state.copy(error = GalleryFailure.NOT_READY)
                     return false
                 }
-        picker = Picker(session, id, lease)
-        mutable.value = state.copy(pickerOpen = true, confirmation = null, error = null)
+        picker = Picker(session, id, lease, replacing)
+        uploadIntent = null
+        mutable.value =
+            state.copy(
+                pickerOpen = true,
+                prepared = if (replacing == null) state.prepared else null,
+                caption = if (replacing == null) state.caption else replacing.caption.orEmpty(),
+                replacing = replacing,
+                confirmation = null,
+                error = null,
+            )
         return true
     }
 
@@ -389,7 +417,13 @@ class GalleryViewModel(
         if (state.locked || state.pending.isNotEmpty()) return
         uploadIntent = null
         mutable.value =
-            state.copy(prepared = null, caption = "", confirmation = null, confirmed = false)
+            state.copy(
+                prepared = null,
+                caption = "",
+                replacing = null,
+                confirmation = null,
+                confirmed = false,
+            )
     }
 
     fun requestUpload() {
@@ -401,6 +435,7 @@ class GalleryViewModel(
                         requireNotNull(state.organizationId),
                         state.caption,
                         requireNotNull(state.prepared),
+                        state.replacing,
                     )
                     .also { uploadIntent = it }
         mutable.value = state.copy(confirmation = GalleryConfirmation.Upload(intent), error = null)
@@ -487,6 +522,9 @@ class GalleryViewModel(
                                 caption =
                                     if (clearDraftOnSuccess && result.pending == null) ""
                                     else mutable.value.caption,
+                                replacing =
+                                    if (clearDraftOnSuccess && result.pending == null) null
+                                    else mutable.value.replacing,
                                 recovery = null,
                                 recoveryFor = null,
                             )

@@ -2,6 +2,7 @@ package at.uac.android
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -18,14 +19,17 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
@@ -33,6 +37,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import at.uac.android.core.AppInteractionViewModel
@@ -46,6 +51,9 @@ import at.uac.android.design.LocalUacDark
 import at.uac.android.design.UacTheme
 import at.uac.android.feature.accountdeletion.*
 import at.uac.android.feature.accountstatus.*
+import at.uac.android.feature.analyticsconsent.*
+import at.uac.android.feature.announcements.*
+import at.uac.android.feature.applinks.*
 import at.uac.android.feature.applock.*
 import at.uac.android.feature.attendees.*
 import at.uac.android.feature.auth.AuthImagePickerAuthorization
@@ -56,27 +64,37 @@ import at.uac.android.feature.browse.*
 import at.uac.android.feature.community.*
 import at.uac.android.feature.contentlifecycle.*
 import at.uac.android.feature.contentmedia.*
+import at.uac.android.feature.contentplanning.*
+import at.uac.android.feature.donationsettings.*
 import at.uac.android.feature.dsaappeal.*
 import at.uac.android.feature.dsastatement.*
+import at.uac.android.feature.featuredmanagement.*
 import at.uac.android.feature.feedback.*
 import at.uac.android.feature.gallery.*
 import at.uac.android.feature.history.*
 import at.uac.android.feature.inbox.*
+import at.uac.android.feature.legalevidence.*
 import at.uac.android.feature.moderation.*
 import at.uac.android.feature.organization.*
 import at.uac.android.feature.organizationreview.*
+import at.uac.android.feature.owneranalytics.*
 import at.uac.android.feature.personal.*
 import at.uac.android.feature.platformrolemanagement.*
+import at.uac.android.feature.presence.*
 import at.uac.android.feature.profilemedia.*
+import at.uac.android.feature.push.*
 import at.uac.android.feature.registrations.*
 import at.uac.android.feature.reminders.*
 import at.uac.android.feature.safety.*
 import at.uac.android.feature.startup.*
 import at.uac.android.feature.subscribers.*
+import at.uac.android.feature.systemlogs.*
 import at.uac.android.feature.usermanagement.*
 import at.uac.android.feature.userstatusmanagement.*
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     private var appLockHost: ActivityAppLockHost? = null
@@ -84,9 +102,18 @@ class MainActivity : FragmentActivity() {
     private var interactionHost: Long? = null
     private var reminders: LocalReminderRuntime? = null
     private var reminderNavigation: ReminderNavigationViewModel? = null
+    private var appLinkNavigation: AppLinkNavigationViewModel? = null
+    private var presence: UserPresenceService? = null
+    private var push: MainPushRuntime? = null
+    private var pushNavigation: PushNavigationViewModel? = null
+    private var announcementOpen: String? = null
+    private var announcementChallenge: String? = null
+    private var announcementIntentHandler: ((String) -> Unit)? = null
+    private var announcementChallengeHandler: ((String) -> Unit)? = null
     private val reminderPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
             reminders?.controller?.permissionReturned()
+            push?.permissionChanged()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +124,26 @@ class MainActivity : FragmentActivity() {
             preferences.getString("language", null)
                 ?: if (Locale.getDefault().language == "uk") "uk" else "de"
         val auth = LocalAuthSession.get(applicationContext)
+        val pushRoutes =
+            ViewModelProvider(this)[PushNavigationViewModel::class.java].also {
+                pushNavigation = it
+            }
+        if (!BuildConfig.USE_LOCAL_BACKEND) {
+            push = MainPushRuntime.get(applicationContext, auth)
+            acceptPushIntent(intent)
+            acceptAnnouncementIntent(intent)
+        }
+        val analyticsConsent =
+            AnalyticsConsentSettingsController(
+                analyticsConsentV2Source(applicationContext),
+                SharedPreferencesAnalyticsConsentStore(applicationContext),
+                { auth.state.value.analyticsConsentAuthority() },
+            )
+        val analyticsTracking =
+            firstPartyAnalytics(applicationContext) {
+                auth.state.value.analyticsConsentAuthority()
+            }
+        val legalEvidence = legalEvidencePageSource(applicationContext)
         val reminderRuntime =
             LocalReminders.get(applicationContext).also {
                 reminders = it
@@ -108,6 +155,22 @@ class MainActivity : FragmentActivity() {
                 reminderNavigation = it
             }
         acceptReminderIntent(intent)
+        val appLinkRoutes =
+            ViewModelProvider(this)[AppLinkNavigationViewModel::class.java].also {
+                appLinkNavigation = it
+            }
+        acceptAppLinkIntent(intent)
+        if (!BuildConfig.USE_LOCAL_BACKEND) {
+            presence =
+                UserPresenceService(
+                        localUserPresenceSource(applicationContext),
+                        { UserPresenceContract.eligibleUser(auth.state.value) },
+                        lifecycleScope,
+                    )
+                    .also { runtime ->
+                        runtime.bind(auth.state.map(UserPresenceContract::eligibleUser))
+                    }
+        }
         val lockHost = ActivityAppLockHost(this, auth).also { appLockHost = it }
         val lockModel = lockHost.model
         val interactionModel =
@@ -204,6 +267,13 @@ class MainActivity : FragmentActivity() {
                     modelClass: Class<T>,
                     extras: CreationExtras,
                 ): T {
+                    if (modelClass == AnnouncementViewModel::class.java) {
+                        return AnnouncementViewModel(
+                            announcementSource(applicationContext),
+                            AnnouncementInstallationStore(applicationContext),
+                        )
+                            as T
+                    }
                     if (modelClass == StartupViewModel::class.java) {
                         return StartupViewModel().also { startup ->
                             startup.observeSessions(
@@ -248,6 +318,19 @@ class MainActivity : FragmentActivity() {
                                 mutationGate = AuthPersonalMutationGate(auth),
                                 onConfirmedChange = {
                                     history.personalChanged(it, navigation.state.value.language)
+                                    if (it.enabled) {
+                                        val authority = auth.state.value.analyticsConsentAuthority()
+                                        val receipt = authority?.let(analyticsConsent::read)
+                                        if (authority != null && receipt?.enabled == true)
+                                            lifecycleScope.launch {
+                                                analyticsTracking.trackConfirmedAction(
+                                                    authority,
+                                                    receipt,
+                                                    it.target,
+                                                    it.action,
+                                                )
+                                            }
+                                    }
                                 },
                             )
                             .also { personal ->
@@ -341,6 +424,65 @@ class MainActivity : FragmentActivity() {
                                 )
                             } as T
                     }
+                    if (modelClass == FeaturedManagementViewModel::class.java) {
+                        return FeaturedManagementViewModel(
+                            FeaturedManagementRepository(
+                                localFeaturedManagementSource(applicationContext),
+                                authority = { auth.state.value.moderationScope() },
+                            ),
+                            localFeaturedImagePreparation(applicationContext),
+                        )
+                            as T
+                    }
+                    if (modelClass == ContentPlanningViewModel::class.java) {
+                        return ContentPlanningViewModel(
+                            contentPlanningRepository(applicationContext) {
+                                auth.state.value.moderationScope()
+                            }
+                        )
+                            as T
+                    }
+                    if (modelClass == SystemLogsViewModel::class.java) {
+                        return SystemLogsViewModel(
+                            SystemLogRepository(
+                                localSystemLogSource(applicationContext),
+                                authority = { auth.state.value.moderationScope() },
+                                journal =
+                                    SharedPreferencesSystemLogMutationJournal.get(
+                                        applicationContext
+                                    ),
+                            )
+                        )
+                            as T
+                    }
+                    if (modelClass == DonationSettingsViewModel::class.java) {
+                        return DonationSettingsViewModel(
+                            donationSettingsRepository(
+                                applicationContext,
+                                { auth.state.value.moderationScope() },
+                                AuthModerationDecisionGate(auth),
+                            )
+                        )
+                            as T
+                    }
+                    if (modelClass == OwnerAnalyticsViewModel::class.java) {
+                        return OwnerAnalyticsViewModel(
+                            ownerAnalyticsRepository(applicationContext) {
+                                auth.state.value.ownerAnalyticsScope()
+                            }
+                        )
+                            as T
+                    }
+                    if (modelClass == ManagedUserPresenceViewModel::class.java) {
+                        return ManagedUserPresenceViewModel(
+                            ManagedUserPresenceRepository(
+                                localUserPresenceSource(applicationContext),
+                                { auth.state.value.moderationScope() },
+                                AuthModerationDecisionGate(auth),
+                            )
+                        )
+                            as T
+                    }
                     if (modelClass == ModerationViewModel::class.java) {
                         return ModerationViewModel(
                                 localModerationSource(applicationContext),
@@ -403,9 +545,11 @@ class MainActivity : FragmentActivity() {
                                 localInboxSource(applicationContext),
                                 { auth.state.value.inboxScope() },
                                 AuthInboxMutationGate(auth),
-                                onPreferencesConfirmed = { session, _ ->
-                                    if (auth.state.value.inboxScope() == session)
+                                onPreferencesConfirmed = { session, preferences ->
+                                    if (auth.state.value.inboxScope() == session) {
                                         reminderRuntime.controller.preferencesChanged()
+                                        push?.preferencesChanged(session.uid, preferences)
+                                    }
                                 },
                             )
                             .also { inbox ->
@@ -434,6 +578,18 @@ class MainActivity : FragmentActivity() {
                                 onConfirmedRegistration = {
                                     history.registrationChanged(it, navigation.state.value.language)
                                     reminderRuntime.controller.registrationChanged(it.target.id)
+                                    if (it.participation.registered) {
+                                        val authority = auth.state.value.analyticsConsentAuthority()
+                                        val receipt = authority?.let(analyticsConsent::read)
+                                        if (authority != null && receipt?.enabled == true)
+                                            lifecycleScope.launch {
+                                                analyticsTracking.trackConfirmedEventRegistration(
+                                                    authority,
+                                                    receipt,
+                                                    it.target.id,
+                                                )
+                                            }
+                                    }
                                 },
                             )
                             .also { community ->
@@ -568,6 +724,10 @@ class MainActivity : FragmentActivity() {
                             preferences.getString("region", "").orEmpty(),
                             preferences.getString("theme", "system")!!,
                             { key, selected -> preferences.edit { putString(key, selected) } },
+                            FirestoreNewsPersonalScopeSource(
+                                AppBackend.firestore(applicationContext),
+                                AppBackend.auth(applicationContext),
+                            ),
                         )
                         .also { navigation ->
                             navigation.observeAccounts(
@@ -597,9 +757,38 @@ class MainActivity : FragmentActivity() {
             val managedUsers: ManagedUsersViewModel = viewModel(factory = factory)
             val userStatuses: UserStatusViewModel = viewModel(factory = factory)
             val platformRoles: PlatformRoleViewModel = viewModel(factory = factory)
+            val managedPresence: ManagedUserPresenceViewModel = viewModel(factory = factory)
+            val featuredBanners: FeaturedManagementViewModel = viewModel(factory = factory)
+            val contentPlanning: ContentPlanningViewModel = viewModel(factory = factory)
+            val planningBridge =
+                remember(contentPlanning) {
+                    object : PlanningAuthoringBridge {
+                        override suspend fun begin(draft: ContentPlanningDraft) =
+                            contentPlanning.beginForEditor(draft)
+
+                        override suspend fun finalize(
+                            draft: ContentPlanningDraft,
+                            lease: ContentPlanningLease,
+                            publication: ContentPlanningPublication,
+                        ) = contentPlanning.finalizeForEditor(draft, lease, publication)
+
+                        override suspend fun fail(
+                            draft: ContentPlanningDraft,
+                            lease: ContentPlanningLease,
+                            message: String,
+                        ) = contentPlanning.failForEditor(draft, lease, message)
+                    }
+                }
+            val systemLogs: SystemLogsViewModel = viewModel(factory = factory)
+            val ownerAnalytics: OwnerAnalyticsViewModel = viewModel(factory = factory)
+            val donationSettings: DonationSettingsViewModel = viewModel(factory = factory)
             val moderationDecisions: ModerationDecisionViewModel = viewModel(factory = factory)
             val organizationReviews: OrganizationReviewViewModel = viewModel(factory = factory)
             val inbox: InboxViewModel = viewModel(factory = factory)
+            DisposableEffect(inbox) {
+                val binding = push?.bindInboxRefresh { inbox.refresh() }
+                onDispose { binding?.close() }
+            }
             val popup: InboxPopupViewModel = viewModel(factory = factory)
             val community: CommunityViewModel = viewModel(factory = factory)
             val feedback: FeedbackViewModel = viewModel(factory = factory)
@@ -613,7 +802,14 @@ class MainActivity : FragmentActivity() {
             val contentLifecycle: ContentLifecycleViewModel = viewModel(factory = factory)
             val media: ProfileMediaViewModel = viewModel(factory = factory)
             val deletion: AccountDeletionViewModel = viewModel(factory = factory)
+            val announcements: AnnouncementViewModel = viewModel(factory = factory)
             val authSession by auth.state.collectAsStateWithLifecycle()
+            LaunchedEffect(authSession.moderationScope()) {
+                donationSettings.bind(authSession.moderationScope())
+            }
+            LaunchedEffect(authSession.ownerAnalyticsScope()) {
+                ownerAnalytics.bind(authSession.ownerAnalyticsScope())
+            }
             val lockSnapshot by lockHost.model.state.collectAsStateWithLifecycle()
             val lockState = lockSnapshot.forSession(authSession.appLockSession())
             SideEffect { lockHost.rendered(authSession.appLockSession()) }
@@ -644,6 +840,11 @@ class MainActivity : FragmentActivity() {
             val mediaState = mediaSnapshot.forSession(authSession.personalScope())
             val deletionSnapshot by deletion.state.collectAsStateWithLifecycle()
             val deletionState = deletionSnapshot.forSession(authSession.accountDeletionScope())
+            val announcementSession = authSession.announcementSession()
+            val announcementSnapshot by announcements.state.collectAsStateWithLifecycle()
+            val announcementState = announcementSnapshot.forSession(announcementSession)
+            val announcementOwnerState by announcements.ownerState.collectAsStateWithLifecycle()
+            val contentPlanningState by contentPlanning.state.collectAsStateWithLifecycle()
             val browseState by model.state.collectAsStateWithLifecycle()
             val startupState by startup.state.collectAsStateWithLifecycle()
             val hostInteractive by interactionModel.interactive.collectAsStateWithLifecycle()
@@ -651,12 +852,78 @@ class MainActivity : FragmentActivity() {
             val statusSnapshot by accountStatus.state.collectAsStateWithLifecycle()
             val statusSession = authSession.accountStatusScope()
             val securityRemediation = authSession.mfa.interactive || authSession.mfa.unconfirmed
+            LaunchedEffect(announcementSession, browseState.language, push) {
+                announcements.configure(announcementSession)
+                while (true) {
+                    announcements.refresh()
+                    if (push != null)
+                        announcements.syncPush(
+                            browseState.language,
+                            notificationsGranted(),
+                        )
+                    delay(60_000)
+                }
+            }
+            DisposableEffect(push, announcements) {
+                val binding = push?.bindAnnouncements(announcements::push, announcements::challenge)
+                val openIntent: (String) -> Unit = announcements::open
+                val confirmChallenge: (String) -> Unit = announcements::challenge
+                announcementIntentHandler = openIntent
+                announcementChallengeHandler = confirmChallenge
+                announcementOpen?.let {
+                    openIntent(it)
+                    announcementOpen = null
+                }
+                announcementChallenge?.let {
+                    confirmChallenge(it)
+                    announcementChallenge = null
+                }
+                AnnouncementPushInbox.takeId(applicationContext)?.let(announcements::push)
+                AnnouncementPushInbox.takeChallenge(applicationContext)
+                    ?.let(announcements::challenge)
+                onDispose {
+                    binding?.close()
+                    if (announcementIntentHandler === openIntent) announcementIntentHandler = null
+                    if (announcementChallengeHandler === confirmChallenge)
+                        announcementChallengeHandler = null
+                }
+            }
+            LaunchedEffect(
+                browseState.entryRevision,
+                browseState.data.detail,
+                browseState.data.loading,
+                authSession.revision,
+            ) {
+                val content = browseState.data.detail ?: return@LaunchedEffect
+                if (browseState.data.loading || browseState.mode != "emulator")
+                    return@LaunchedEffect
+                val authority = authSession.analyticsConsentAuthority() ?: return@LaunchedEffect
+                val receipt = analyticsConsent.read(authority)
+                analyticsTracking.trackView(authority, receipt, content)
+            }
             val statusCovered =
                 !remediationActive &&
                     !securityRemediation &&
                     statusSnapshot.coversContent(statusSession)
             val interactive =
                 hostInteractive && !remediationActive && !securityRemediation && !statusCovered
+            LaunchedEffect(
+                announcementState.items,
+                announcementState.serverNow,
+                announcementState.pendingPushId,
+                interactive,
+                startupState.covered,
+                lockState.canRoute,
+                popupState.active,
+            ) {
+                if (
+                    interactive &&
+                        !startupState.covered &&
+                        lockState.canRoute &&
+                        popupState.active == null
+                )
+                    announcements.presentIfPossible()
+            }
             val focusManager = LocalFocusManager.current
             val keyboardController = LocalSoftwareKeyboardController.current
             LaunchedEffect(statusCovered) {
@@ -668,10 +935,67 @@ class MainActivity : FragmentActivity() {
             val reminderSnapshot by reminderRuntime.controller.state.collectAsStateWithLifecycle()
             val reminderState = reminderSnapshot.forSession(authSession.reminderSession())
             val reminderRouteState by reminderRoutes.state.collectAsStateWithLifecycle()
+            val pendingAppLink by appLinkRoutes.pending.collectAsStateWithLifecycle()
+            val pendingPush by pushRoutes.pending.collectAsStateWithLifecycle()
             SideEffect {
                 interactionModel.rendered(host, !startupState.covered && lockState.canRoute)
             }
             SideEffect { reminderRuntime.controller.bindAuth(authSession) }
+            LaunchedEffect(
+                pendingAppLink?.revision,
+                authSession.stage,
+                authSession.readyForActions,
+                interactive,
+                startupState.covered,
+                lockState.canRoute,
+            ) {
+                val request = pendingAppLink ?: return@LaunchedEffect
+                val resolution =
+                    AppLinkContract.resolve(
+                        request.destination,
+                        authSession.readyForActions,
+                        authSession.stage == at.uac.android.feature.auth.AuthStage.GUEST,
+                        interactive && !startupState.covered && lockState.canRoute,
+                    )
+                when (resolution.action) {
+                    AppLinkAction.OPEN -> {
+                        model.navigate(checkNotNull(resolution.route), tab = true)
+                        appLinkRoutes.consume(request.revision)
+                    }
+                    AppLinkAction.PROMPT_LOGIN ->
+                        model.navigate(checkNotNull(resolution.route), tab = true)
+                    AppLinkAction.WAIT -> Unit
+                }
+            }
+            LaunchedEffect(
+                pendingPush?.revision,
+                authSession.stage,
+                authSession.readyForActions,
+                interactive,
+                startupState.covered,
+                lockState.canRoute,
+            ) {
+                val request = pendingPush ?: return@LaunchedEffect
+                val uid = authSession.identity?.takeUnless { it.anonymous }?.uid
+                if (authSession.stage == at.uac.android.feature.auth.AuthStage.GUEST) {
+                    pushRoutes.consume(request.revision)
+                    return@LaunchedEffect
+                }
+                if (uid != null && uid != request.ownerUid) {
+                    pushRoutes.consume(request.revision)
+                    return@LaunchedEffect
+                }
+                if (
+                    uid == request.ownerUid &&
+                        authSession.readyForActions &&
+                        interactive &&
+                        !startupState.covered &&
+                        lockState.canRoute
+                ) {
+                    model.navigate(request.decision.route, tab = true)
+                    pushRoutes.consume(request.revision)
+                }
+            }
             LaunchedEffect(safetyState.session, safetyState.visibility) {
                 personal.visibilityChanged()
                 history.visibilityChanged()
@@ -760,6 +1084,11 @@ class MainActivity : FragmentActivity() {
                     BrowseScreen(
                         browseState.visibleTo(safetyState.visibility),
                         model,
+                        navigationRequest = { action ->
+                            if (browseState.route == "profile/donation-settings")
+                                donationSettings.requestLeave(action)
+                            else action()
+                        },
                         diagnostics = {
                             startActivity(Intent(this, FoundationActivity::class.java))
                         },
@@ -786,6 +1115,28 @@ class MainActivity : FragmentActivity() {
                                 onVerification = { model.navigate("profile") },
                                 onMfa = { model.navigate("profile") },
                             )
+                            announcementState.active?.let { item ->
+                                AnnouncementPopup(
+                                    item,
+                                    browseState.language,
+                                    announcements::dismiss,
+                                    announcements::acknowledge,
+                                    {
+                                        announcements.action()
+                                        feedback.draft(
+                                            FeedbackDraft(
+                                                message =
+                                                    if (browseState.language == "uk")
+                                                        "Оповіщення «${item.title.uk}» (${item.id}): "
+                                                    else
+                                                        "Mitteilung „${item.title.de}“ (${item.id}): "
+                                            )
+                                        )
+                                        model.navigate("profile/feedback", tab = true)
+                                    },
+                                    item.active(announcementState.serverNow),
+                                )
+                            }
                         },
                         visibilityNotice = {
                             if (reminderRouteState.unavailable)
@@ -1068,6 +1419,90 @@ class MainActivity : FragmentActivity() {
                                         model.navigate("profile/organizations/manage/$it")
                                     },
                                 )
+                            } else if (route == "profile/featured-banners") {
+                                FeaturedManagementScreen(
+                                    featuredBanners,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route.startsWith("profile/content-planning/author/")) {
+                                val parts = route.split('/')
+                                val draft =
+                                    contentPlanningState.selected?.takeIf { it.id == parts[3] }
+                                if (draft == null) {
+                                    LaunchedEffect(route) {
+                                        model.navigate("profile/content-planning/${parts[3]}")
+                                    }
+                                } else {
+                                    AuthoringScreen(
+                                        authoring,
+                                        parts[4],
+                                        authSession.organizationScope(),
+                                        selectedLanguage,
+                                        model::back,
+                                        { model.navigate("profile") },
+                                        model::openPersonalContent,
+                                        initialKind =
+                                            if (draft.kind == ContentPlanningKind.EVENT)
+                                                ContentKind.EVENTS
+                                            else ContentKind.NEWS,
+                                        planningSource = draft,
+                                        planningBridge = planningBridge,
+                                    )
+                                }
+                            } else if (
+                                route == "profile/content-planning" ||
+                                    route.startsWith("profile/content-planning/")
+                            ) {
+                                ContentPlanningScreen(
+                                    contentPlanning,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                    onOpenPublished = { kind, id ->
+                                        model.preference("mode", "emulator")
+                                        model.navigate("${kind.collection}/$id")
+                                    },
+                                    initialDraftId =
+                                        route.removePrefix("profile/content-planning/").takeUnless {
+                                            route == "profile/content-planning"
+                                        },
+                                    onStartEditor = { draft, organizationId ->
+                                        model.navigate(
+                                            "profile/content-planning/author/${draft.id}/$organizationId"
+                                        )
+                                    },
+                                )
+                            } else if (route == "profile/system-logs") {
+                                SystemLogsScreen(
+                                    systemLogs,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route == "profile/donation-settings") {
+                                DonationSettingsScreen(
+                                    donationSettings,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route == "profile/analytics") {
+                                OwnerAnalyticsScreen(
+                                    ownerAnalytics,
+                                    authSession.ownerAnalyticsScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route.startsWith("profile/legal-evidence/")) {
+                                LegalEvidenceScreen(
+                                    route.removePrefix("profile/legal-evidence/"),
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    legalEvidence,
+                                    model::back,
+                                )
                             } else if (route == "profile/users") {
                                 ManagedUsersScreen(
                                     managedUsers,
@@ -1078,6 +1513,15 @@ class MainActivity : FragmentActivity() {
                                     interactive = interactive,
                                     statuses = userStatuses,
                                     roles = platformRoles,
+                                    presence = managedPresence,
+                                    onLegalEvidence = { id ->
+                                        if (
+                                            auth.state.value.moderationScope()?.let {
+                                                it.ready && it.role == "owner"
+                                            } == true
+                                        )
+                                            model.navigate("profile/legal-evidence/$id")
+                                    },
                                 )
                             } else if (
                                 route == "profile/moderation" ||
@@ -1180,6 +1624,48 @@ class MainActivity : FragmentActivity() {
                                         onAccount = { model.navigate("profile") },
                                     )
                                 }
+                            } else if (route == "profile/announcements") {
+                                AnnouncementHistoryScreen(
+                                    announcementState,
+                                    selectedLanguage,
+                                    push != null,
+                                    notificationsGranted(),
+                                    { announcements.refresh() },
+                                    announcements::open,
+                                    { enabled ->
+                                        if (
+                                            enabled &&
+                                                push != null &&
+                                                Build.VERSION.SDK_INT >= 33 &&
+                                                !notificationsGranted()
+                                        )
+                                            reminderPermission.launch(
+                                                Manifest.permission.POST_NOTIFICATIONS
+                                            )
+                                        announcements.guestPush(
+                                            enabled,
+                                            selectedLanguage,
+                                            push != null && notificationsGranted(),
+                                        )
+                                    },
+                                )
+                            } else if (route == "profile/announcements/manage") {
+                                AnnouncementOwnerScreen(
+                                    announcementOwnerState,
+                                    selectedLanguage,
+                                    announcements::loadOwner,
+                                    announcements::loadMoreOwner,
+                                    { announcements.edit() },
+                                    announcements::changeDraft,
+                                    announcements::saveDraft,
+                                    announcements::testDraft,
+                                    announcements::previewDraft,
+                                    announcements::loadUsers,
+                                    announcements::publishDraft,
+                                    announcements::edit,
+                                    announcements::statistics,
+                                    announcements::cancel,
+                                )
                             } else if (
                                 route in
                                     setOf(
@@ -1280,6 +1766,13 @@ class MainActivity : FragmentActivity() {
                                         if (auth.state.value.inboxScope() != null)
                                             model.navigate("profile/inbox")
                                     }
+                                    OutlinedButton(
+                                        { model.navigate("profile/announcements") },
+                                        Modifier.fillMaxWidth()
+                                            .testTag("account-open-announcements"),
+                                    ) {
+                                        Text(tr(selectedLanguage, "Mitteilungen", "Оповіщення"))
+                                    }
                                     if (lockState.session != null)
                                         AppLockSettingsSection(lockState, selectedLanguage) {
                                             enabled ->
@@ -1289,6 +1782,13 @@ class MainActivity : FragmentActivity() {
                                             )
                                                 lockHost.model.setEnabled(enabled, selectedLanguage)
                                         }
+                                    if (authSession.identity?.anonymous == false)
+                                        AnalyticsConsentSettings(
+                                            authSession.analyticsConsentAuthority(),
+                                            selectedLanguage,
+                                            BuildConfig.VERSION_NAME,
+                                            analyticsConsent,
+                                        )
                                     if (authSession.identity?.anonymous == false)
                                         OutlinedButton(
                                             { model.navigate("profile/blocked") },
@@ -1365,9 +1865,77 @@ class MainActivity : FragmentActivity() {
                                                 tr(selectedLanguage, "Meine Aktivitäten", "Мої дії")
                                             )
                                         }
+                                        if (authSession.ownerAnalyticsScope()?.ready == true) {
+                                            OutlinedButton(
+                                                {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            authSession.moderationScope()
+                                                    )
+                                                        model.navigate("profile/donation-settings")
+                                                },
+                                                Modifier.fillMaxWidth()
+                                                    .testTag("account-open-donation-settings"),
+                                            ) {
+                                                Text(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Projektunterstützung verwalten",
+                                                        "Керування підтримкою проєкту",
+                                                    )
+                                                )
+                                            }
+                                            OutlinedButton(
+                                                {
+                                                    val captured = authSession.ownerAnalyticsScope()
+                                                    if (
+                                                        captured?.ready == true &&
+                                                            auth.state.value
+                                                                .ownerAnalyticsScope() == captured
+                                                    )
+                                                        model.navigate("profile/analytics")
+                                                },
+                                                Modifier.fillMaxWidth()
+                                                    .testTag("account-open-owner-analytics"),
+                                            ) {
+                                                Text(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Analytics",
+                                                        "Аналітика",
+                                                    )
+                                                )
+                                            }
+                                        }
                                     }
                                     val moderationScope = authSession.moderationScope()
                                     if (moderationScope?.allowed == true) {
+                                        OutlinedButton(
+                                            {
+                                                if (
+                                                    auth.state.value.moderationScope() ==
+                                                        moderationScope
+                                                )
+                                                    model.navigate("profile/system-logs")
+                                            },
+                                            Modifier.fillMaxWidth()
+                                                .testTag("account-open-system-logs"),
+                                        ) {
+                                            Text(
+                                                if (moderationScope.role == "owner")
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Systemprotokoll",
+                                                        "Системний журнал",
+                                                    )
+                                                else
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Admin-Protokoll",
+                                                        "Журнал адміністратора",
+                                                    )
+                                            )
+                                        }
                                         OutlinedButton(
                                             {
                                                 if (
@@ -1421,6 +1989,65 @@ class MainActivity : FragmentActivity() {
                                                     selectedLanguage,
                                                     "Organisationsanträge prüfen",
                                                     "Перевірка заявок організацій",
+                                                )
+                                            )
+                                        }
+                                        OutlinedButton(
+                                            {
+                                                if (auth.state.value.announcementSession().owner)
+                                                    model.navigate("profile/announcements/manage")
+                                            },
+                                            Modifier.fillMaxWidth()
+                                                .testTag("account-open-announcement-owner"),
+                                        ) {
+                                            Text(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Nutzer-Mitteilungen verwalten",
+                                                    "Керувати оповіщеннями користувачів",
+                                                )
+                                            )
+                                        }
+                                    }
+                                    if (
+                                        moderationScope?.ready == true &&
+                                            moderationScope.role == "owner"
+                                    ) {
+                                        OutlinedButton(
+                                            {
+                                                if (
+                                                    auth.state.value.moderationScope() ==
+                                                        moderationScope
+                                                )
+                                                    model.navigate("profile/featured-banners")
+                                            },
+                                            Modifier.fillMaxWidth()
+                                                .testTag("account-open-featured"),
+                                        ) {
+                                            Text(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Empfohlene Banner verwalten",
+                                                    "Керувати рекомендованими банерами",
+                                                )
+                                            )
+                                        }
+                                        OutlinedButton(
+                                            {
+                                                if (
+                                                    auth.state.value.moderationScope() ==
+                                                        moderationScope
+                                                )
+                                                    model.navigate("profile/content-planning")
+                                            },
+                                            Modifier.fillMaxWidth()
+                                                .testTag("account-open-content-planning"),
+                                        ) {
+                                            Text(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Inhaltsplanung",
+                                                    "Планування контенту",
                                                 )
                                             )
                                         }
@@ -1623,12 +2250,20 @@ class MainActivity : FragmentActivity() {
         LocalAuthSession.get(applicationContext).onForeground()
         reminders?.controller?.bindAuth(LocalAuthSession.get(applicationContext).state.value)
         reminders?.controller?.permissionReturned()
+        push?.permissionChanged()
+        presence?.update(
+            UserPresenceContract.eligibleUser(LocalAuthSession.get(applicationContext).state.value),
+            true,
+        )
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         acceptReminderIntent(intent)
+        acceptAppLinkIntent(intent)
+        acceptPushIntent(intent)
+        acceptAnnouncementIntent(intent)
     }
 
     private fun acceptReminderIntent(intent: Intent?) {
@@ -1636,7 +2271,42 @@ class MainActivity : FragmentActivity() {
         ReminderIntents.request(intent)?.let { reminderNavigation?.offer(it) }
     }
 
+    private fun acceptAppLinkIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        appLinkNavigation?.offer(intent.dataString)
+    }
+
+    private fun acceptPushIntent(intent: Intent?) {
+        if (BuildConfig.USE_LOCAL_BACKEND) return
+        val uid =
+            AppBackend.auth(applicationContext).currentUser?.takeUnless { it.isAnonymous }?.uid
+        pushNavigation?.offer(intent, uid)
+    }
+
+    private fun acceptAnnouncementIntent(intent: Intent?) {
+        if (BuildConfig.USE_LOCAL_BACKEND || intent?.action != PushNavigationViewModel.ACTION_TAP)
+            return
+        intent.getStringExtra("announcementId")?.takeIf(AnnouncementContract::id)?.let { id ->
+            announcementIntentHandler?.invoke(id) ?: run { announcementOpen = id }
+        }
+        intent
+            .getStringExtra("announcementChallenge")
+            ?.takeIf { Regex("[a-f0-9]{64}").matches(it) }
+            ?.let { value ->
+                announcementChallengeHandler?.invoke(value) ?: run { announcementChallenge = value }
+            }
+    }
+
+    private fun notificationsGranted(): Boolean =
+        Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+
     override fun onPause() {
+        presence?.update(
+            UserPresenceContract.eligibleUser(LocalAuthSession.get(applicationContext).state.value),
+            false,
+        )
         interactionHost?.let { interaction?.pause(it) }
         appLockHost?.onPause()
         LocalAuthSession.get(applicationContext).onHostPause()
@@ -1654,6 +2324,10 @@ class MainActivity : FragmentActivity() {
         interaction = null
         reminders = null
         reminderNavigation = null
+        appLinkNavigation = null
+        pushNavigation = null
+        presence?.close()
+        presence = null
         appLockHost?.close()
         appLockHost = null
         super.onDestroy()

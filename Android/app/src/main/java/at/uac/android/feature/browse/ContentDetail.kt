@@ -7,20 +7,25 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacCard
+import at.uac.android.design.UacDesign
 import java.text.NumberFormat
 import java.time.Instant
 import java.util.Currency
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ContentDetail(
     content: Content,
@@ -33,30 +38,60 @@ fun ContentDetail(
     val f = content.fields
     val image =
         if (content.kind == ContentKind.ORGANIZATIONS)
-            f.string("coverURL").ifEmpty { f.string("imageURL") }
+            organizationImageUrl(f, preferCover = true)
         else f.string("imageURL")
     Column(
         Modifier.widthIn(max = 760.dp).fillMaxWidth().testTag("detail-content"),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        Heading(content.title(l))
-        Text(content.kind.label(l) + " · " + label(content.category, l))
-        PublicImage(
-            image,
-            f.map("mediaMetadata").string("alternativeText").ifEmpty { content.title(l) },
-            l,
-        )
-        for (field in listOf("caption", "credit")) f.map("mediaMetadata")
-            .string(field)
-            .takeIf(String::isNotBlank)
-            ?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
-        SelectionContainer {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(content.summary(l), style = MaterialTheme.typography.titleMedium)
-                Text(content.body(l))
+        UacCard {
+            Text(
+                content.kind.label(l) + " · " + label(content.category, l),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Heading(content.title(l))
+            Text(
+                displayTime(content.publishedAt, l),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (image.isNotBlank()) {
+                PublicImage(
+                    image,
+                    f.map("mediaMetadata").string("alternativeText").ifEmpty { content.title(l) },
+                    l,
+                    Modifier.fillMaxWidth()
+                        .height(240.dp)
+                        .clip(RoundedCornerShape(UacDesign.imageRadius)),
+                    presentation = PublicImagePresentation.VIEWPORT_FIT,
+                )
+            }
+            for (field in listOf("caption", "credit")) f.map("mediaMetadata")
+                .string(field)
+                .takeIf(String::isNotBlank)
+                ?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+        }
+        if (content.summary(l).isNotBlank() || content.body(l).isNotBlank()) {
+            UacCard {
+                SelectionContainer {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        content.summary(l).takeIf(String::isNotBlank)?.let {
+                            Text(it, style = MaterialTheme.typography.titleMedium)
+                        }
+                        content.body(l).takeIf(String::isNotBlank)?.let {
+                            Text(it, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
             }
         }
-        Text(displayTime(content.publishedAt, l))
         if (content.kind == ContentKind.EVENTS) EventInformation(content, l)
         if (content.kind == ContentKind.ORGANIZATIONS)
             OrganizationInformation(content, s, model, publicGallery)
@@ -76,20 +111,49 @@ fun ContentDetail(
         }
         if (content.kind == ContentKind.NEWS) {
             val source = f.string("sourceName")
-            if (source.isNotEmpty()) Text(tr(l, "Quelle: ", "Джерело: ") + source)
-            SafeLink(tr(l, "Originalquelle", "Першоджерело"), f.string("sourceURL"), l)
             val action = f.map("externalAction")
-            SafeLink(
-                action.string("title").ifEmpty {
-                    tr(l, "Weitere Informationen", "Дізнатися більше")
-                },
-                action.string("url"),
-                l,
-            )
+            if (
+                source.isNotBlank() ||
+                    f.string("sourceURL").isNotBlank() ||
+                    action.string("url").isNotBlank()
+            ) {
+                Section(tr(l, "Quelle und Links", "Джерело та посилання")) {
+                    if (source.isNotBlank())
+                        Text(source, style = MaterialTheme.typography.titleMedium)
+                    SafeLink(tr(l, "Originalquelle", "Першоджерело"), f.string("sourceURL"), l)
+                    SafeLink(
+                        action.string("title").ifEmpty {
+                            tr(l, "Weitere Informationen", "Дізнатися більше")
+                        },
+                        action.string("url"),
+                        l,
+                    )
+                }
+            }
         }
-        val tags = f.strings("tags")
-        if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" })
-        Section(tr(l, "Aktionen mit Konto", "Дії з акаунтом")) {
+        val tags = f.strings("tags").filter(String::isNotBlank)
+        if (tags.isNotEmpty())
+            UacCard {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    tags.forEach { tag ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(
+                                "#$tag",
+                                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                    }
+                }
+            }
+        Section(tr(l, "Aktionen", "Дії")) {
             if (personalActions != null) personalActions(content, s)
             else
                 TextButton({ model.navigate("profile") }) {
@@ -101,9 +165,6 @@ fun ContentDetail(
             s.data.related.forEach { item ->
                 ContentCard(item, l) { model.navigate("${item.kind.collection}/${item.id}") }
             }
-        }
-        TextButton(model::refresh, Modifier.testTag("detail-refresh")) {
-            Text(tr(l, "Aktualisieren", "Оновити"))
         }
     }
 }
@@ -241,7 +302,7 @@ private fun OrganizationInformation(
             directory.string(key).ifBlank { f.string(key) }
         }
     Section(tr(l, "Über die Organisation", "Про організацію")) {
-        PublicImage(f.string("logoURL"), content.title(l), l)
+        PublicImage(organizationImageUrl(f, preferCover = false), content.title(l), l)
         localized("missionStatement").takeIf(String::isNotBlank)?.let { Text(it) }
         Text(
             listOf(f.string("city"), f.strings("languages").joinToString(" / "))

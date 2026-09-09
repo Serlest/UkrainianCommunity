@@ -2,7 +2,8 @@ package at.uac.android.core.backend
 
 /** This build has one backend. These values are not user/session authorization. */
 enum class BackendKind {
-    LOCAL_EMULATOR
+    LOCAL_EMULATOR,
+    FIREBASE_CLOUD,
 }
 
 enum class BackendService {
@@ -31,6 +32,8 @@ sealed interface BackendServiceAccess {
 
     class Unavailable internal constructor(val reason: BackendUnavailableReason) :
         BackendServiceAccess
+
+    data object Cloud : BackendServiceAccess
 }
 
 /**
@@ -55,6 +58,10 @@ internal constructor(
     internal fun requireLocal(service: BackendService): BackendServiceAccess.LocalEndpoint =
         access(service) as? BackendServiceAccess.LocalEndpoint
             ?: throw IllegalArgumentException("LOCAL_BACKEND_SERVICE_UNAVAILABLE")
+
+    internal fun requireCloud(service: BackendService) {
+        require(access(service) is BackendServiceAccess.Cloud) { "CLOUD_BACKEND_SERVICE_UNAVAILABLE" }
+    }
 
     internal fun requireAndroidPackage(actual: String) {
         require(actual == identity.androidPackage) { "LOCAL_BACKEND_PACKAGE" }

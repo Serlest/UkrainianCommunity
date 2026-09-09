@@ -21,6 +21,7 @@ import at.uac.android.feature.browse.regions
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.moderation.ModerationSession
 import at.uac.android.feature.platformrolemanagement.*
+import at.uac.android.feature.presence.*
 import at.uac.android.feature.userstatusmanagement.*
 import java.time.Instant
 import java.time.ZoneId
@@ -36,6 +37,7 @@ data class ManagedUsersActions(
     val search: (String) -> Unit = {},
     val filter: (ManagedUsersFilter) -> Unit = {},
     val open: (String) -> Unit = {},
+    val legalEvidence: ((String) -> Unit)? = null,
 )
 
 @Composable
@@ -48,6 +50,8 @@ fun ManagedUsersScreen(
     interactive: Boolean = true,
     statuses: UserStatusViewModel? = null,
     roles: PlatformRoleViewModel? = null,
+    presence: ManagedUserPresenceViewModel? = null,
+    onLegalEvidence: ((String) -> Unit)? = null,
 ) {
     val stored by model.state.collectAsStateWithLifecycle(minActiveState = Lifecycle.State.RESUMED)
     val privacy = LocalWindowPrivacy.current
@@ -129,6 +133,12 @@ fun ManagedUsersScreen(
                 projected.error == null &&
                 projected.selectedId == it.id
         }
+    val presenceState =
+        presence
+            ?.state
+            ?.collectAsStateWithLifecycle(minActiveState = Lifecycle.State.RESUMED)
+            ?.value ?: ManagedUserPresenceState()
+    LaunchedEffect(session, reviewed?.id) { presence?.show(session, reviewed?.id) }
     SideEffect {
         statuses?.bindView(
             session,
@@ -199,6 +209,16 @@ fun ManagedUsersScreen(
             { value -> guarded { model.search(value) } },
             { value -> guarded { model.filter(value) } },
             { target -> guarded { model.open(target) } },
+            onLegalEvidence
+                ?.takeIf { session?.role == "owner" }
+                ?.let { open ->
+                    { target ->
+                        guarded {
+                            if (model.currentSession() == session && session?.ready == true)
+                                open(target)
+                        }
+                    }
+                },
         ),
         actionContent =
             if (statuses != null || roles != null) {
@@ -246,6 +266,8 @@ fun ManagedUsersScreen(
                         )
                 }
             } else null,
+        presenceState = presenceState,
+        refreshPresence = { presence?.refresh(session, reviewed?.id) },
     )
 }
 
@@ -255,6 +277,8 @@ fun ManagedUsersContent(
     language: String,
     actions: ManagedUsersActions,
     actionContent: (@Composable () -> Unit)? = null,
+    presenceState: ManagedUserPresenceState = ManagedUserPresenceState(),
+    refreshPresence: () -> Unit = {},
 ) {
     val privileged = state.visible && state.session?.allowed == true
     val confirmed = privileged && !state.loading && state.error == null
@@ -491,7 +515,13 @@ fun ManagedUsersContent(
                 state.detail
                     ?.takeIf { it.id == state.selectedId }
                     ?.let { user ->
-                        item("profile") { ManagedUserProfile(user, language) }
+                        item("profile") {
+                            ManagedUserProfile(
+                                user,
+                                language,
+                                actions.legalEvidence?.let { open -> { open(user.id) } },
+                            )
+                        }
                         item("security") {
                             Card(Modifier.fillMaxWidth().testTag("managed-user-security")) {
                                 Column(
@@ -561,13 +591,20 @@ fun ManagedUsersContent(
                                 }
                             }
                         }
+                        item("presence") {
+                            ManagedPresenceCard(presenceState, language, refreshPresence)
+                        }
                     }
         }
     }
 }
 
 @Composable
-private fun ManagedUserProfile(user: ManagedUser, language: String) {
+private fun ManagedUserProfile(
+    user: ManagedUser,
+    language: String,
+    onLegalEvidence: (() -> Unit)? = null,
+) {
     Card(Modifier.fillMaxWidth().testTag("managed-user-detail")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -580,7 +617,11 @@ private fun ManagedUserProfile(user: ManagedUser, language: String) {
                 user.fullName.ifBlank { unknown(language) },
             )
             Metadata("E-Mail", user.email.ifBlank { unknown(language) })
-            Metadata("Telegram", user.telegram.ifBlank { unknown(language) })
+            Metadata(
+                "Telegram",
+                user.telegram.trim().removePrefix("@").takeIf(String::isNotBlank)?.let { "@$it" }
+                    ?: unknown(language),
+            )
             val region =
                 regions
                     .firstOrNull { it.first == user.region }
@@ -591,6 +632,7 @@ private fun ManagedUserProfile(user: ManagedUser, language: String) {
                 tr(language, "Ort / Bundesland", "Місто / земля"),
                 listOf(user.city, region.orEmpty())
                     .filter { it.isNotBlank() }
+                    .distinctBy { it.trim().lowercase() }
                     .joinToString(" · ")
                     .ifBlank { unknown(language) },
             )
@@ -621,9 +663,85 @@ private fun ManagedUserProfile(user: ManagedUser, language: String) {
                 tr(language, "Profil erstellt", "Профіль створено"),
                 date(user.createdAt, language),
             )
+            if (onLegalEvidence != null)
+                OutlinedButton(
+                    onLegalEvidence,
+                    Modifier.fillMaxWidth().testTag("managed-user-legal-evidence"),
+                ) {
+                    Text(
+                        tr(
+                            language,
+                            "Rechtliche Nachweise öffnen",
+                            "Відкрити юридичні підтвердження",
+                        )
+                    )
+                }
         }
     }
 }
+
+@Composable
+private fun ManagedPresenceCard(
+    state: ManagedUserPresenceState,
+    language: String,
+    refresh: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth().testTag("managed-user-presence")) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                tr(language, "Präsenz", "Присутність"),
+                style = MaterialTheme.typography.titleLarge,
+            )
+            if (state.loading && state.value == null)
+                LinearProgressIndicator(Modifier.fillMaxWidth())
+            state.value?.let { value ->
+                Metadata(
+                    tr(language, "Aktueller Status", "Поточний стан"),
+                    if (value.isOnline()) tr(language, "Online", "Онлайн")
+                    else tr(language, "Offline", "Офлайн"),
+                )
+                Metadata(
+                    tr(language, "Zuletzt gesehen", "Востаннє в мережі"),
+                    date(value.lastSeenAt, language),
+                )
+            }
+            state.failure?.let {
+                Text(
+                    presenceFailureText(it, language),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("managed-user-presence-error"),
+                )
+            }
+            OutlinedButton(refresh, enabled = !state.loading, modifier = Modifier.fillMaxWidth()) {
+                Text(tr(language, "Präsenz aktualisieren", "Оновити присутність"))
+            }
+        }
+    }
+}
+
+private fun presenceFailureText(value: PresenceFailure, language: String) =
+    when (value) {
+        PresenceFailure.SIGN_IN -> tr(language, "Anmeldung erforderlich.", "Потрібно увійти.")
+        PresenceFailure.NOT_READY ->
+            tr(language, "Geschützter Zugang nicht bestätigt.", "Захищений доступ не підтверджено.")
+        PresenceFailure.DENIED ->
+            tr(language, "Kein Zugriff auf Präsenzdaten.", "Немає доступу до даних присутності.")
+        PresenceFailure.OFFLINE ->
+            tr(
+                language,
+                "Präsenz konnte nicht aktualisiert werden.",
+                "Не вдалося оновити присутність.",
+            )
+        PresenceFailure.MISSING ->
+            tr(language, "Keine Präsenzdaten vorhanden.", "Даних про присутність немає.")
+        PresenceFailure.INVALID,
+        PresenceFailure.UNKNOWN ->
+            tr(
+                language,
+                "Präsenzantwort konnte nicht bestätigt werden.",
+                "Не вдалося підтвердити дані присутності.",
+            )
+    }
 
 @Composable
 private fun Metadata(label: String, value: String) {

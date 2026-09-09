@@ -1164,10 +1164,10 @@ class AccountDeletionTest {
         assertEquals(1, source.passwords)
         assertEquals(1, source.deletes)
         assertEquals(AccountDeletionIdentityStatus.PRESENT, repository.reconcile().first)
-        now = time.plusSeconds(299)
+        now = time.plusSeconds(AccountDeletionContract.REQUEST_TIMEOUT_SECONDS - 1)
         failure(AccountDeletionFailure.UNCONFIRMED) { repository.start() }
         assertEquals(1, source.deletes)
-        now = time.plusSeconds(300)
+        now = time.plusSeconds(AccountDeletionContract.REQUEST_TIMEOUT_SECONDS)
         source.proof = source.proof.copy(authenticatedAt = now)
         source.deleteFailure = null
         assertTrue(repository.start() is AccountDeletionStep.Completed)
@@ -1179,7 +1179,7 @@ class AccountDeletionTest {
     fun elapsedTimeAloneDoesNotGrantRetryAndColdRepositoryMustReconcileAgain() = runTest {
         val journal = Journal().apply { record(alice.uid, time) }
         val source = Source()
-        val now = time.plusSeconds(301)
+        val now = time.plusSeconds(AccountDeletionContract.REQUEST_TIMEOUT_SECONDS + 1)
         source.proof = source.proof.copy(authenticatedAt = now)
         val first = repository(source, journal, clock = { now })
         failure(AccountDeletionFailure.UNCONFIRMED) { first.start() }

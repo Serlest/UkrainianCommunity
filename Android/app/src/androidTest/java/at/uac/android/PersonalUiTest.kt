@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import at.uac.android.feature.browse.ContentKind
@@ -38,6 +39,43 @@ class PersonalUiTest {
             ProfileDraft("Demo Person", "Demo", "Wien", "", "", "wien"),
             Instant.EPOCH,
         )
+
+    @Test
+    fun unavailableBookmarkCanBeRemovedExplicitlyAndPendingTapIsDisabled() {
+        val target = PersonalTarget(ContentKind.NEWS, "missing-synthetic-news")
+        val state =
+            mutableStateOf(
+                PersonalState(
+                    session = session,
+                    saved =
+                        mapOf(
+                            ContentKind.NEWS to
+                                PersonalListPage(emptyList(), null, false, 1, listOf(target))
+                        ),
+                )
+            )
+        var calls = 0
+        compose.setContent {
+            MaterialTheme {
+                PersonalSavedScreen(
+                    state.value,
+                    "uk",
+                    {},
+                    {},
+                    onRemoveUnavailable = {
+                        assertEquals(target, it)
+                        calls++
+                        state.value = state.value.copy(actionsPending = setOf(target))
+                    },
+                )
+            }
+        }
+        compose
+            .onNodeWithTag("personal-saved-list")
+            .performScrollToNode(androidx.compose.ui.test.hasText("Видалити зі списку"))
+        compose.onNodeWithText("Видалити зі списку").performClick().assertIsNotEnabled()
+        compose.runOnIdle { assertEquals(1, calls) }
+    }
 
     @Test
     fun profileFormValidatesAndSendsOnlyEditableDraft() {

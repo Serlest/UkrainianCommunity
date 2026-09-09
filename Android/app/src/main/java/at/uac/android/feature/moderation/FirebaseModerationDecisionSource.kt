@@ -2,25 +2,33 @@ package at.uac.android.feature.moderation
 
 import android.content.Context
 import at.uac.android.core.backend.AppBackend
+import at.uac.android.core.backend.CallableGateway
 import at.uac.android.core.backend.FirebaseBackendGuard
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
-import com.google.firebase.firestore.TransactionOptions
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 
 fun localModerationDecisionSource(context: Context): ModerationDecisionSource =
-    FirebaseModerationDecisionSource(AppBackend.firestore(context), AppBackend.auth(context))
+    FirebaseModerationDecisionSource(
+        AppBackend.firestore(context),
+        AppBackend.auth(context),
+        AppBackend.callables(context),
+    )
 
-class FirebaseModerationDecisionSource(private val db: FirebaseFirestore, auth: FirebaseAuth) :
-    ModerationDecisionSource {
+class FirebaseModerationDecisionSource(
+    private val db: FirebaseFirestore,
+    auth: FirebaseAuth,
+    private val gateway: CallableGateway,
+) : ModerationDecisionSource {
     private val access = ModerationAccess(db, auth)
 
     init {
         FirebaseBackendGuard.requireSameApp(auth, db)
+        gateway.requireBoundTo(auth)
     }
 
     override suspend fun authorize(session: ModerationSession) {
@@ -39,42 +47,28 @@ class FirebaseModerationDecisionSource(private val db: FirebaseFirestore, auth: 
         )
             ModerationDecisionContract.fail(ModerationDecisionFailure.INVALID)
         authorize(session)
-        val target =
+        val content =
             db.collection(pending.version.target.kind.collection)
                 .document(pending.version.target.id)
-        val profile = db.document("users/${session.uid}")
-        val log = db.collection("systemLogs").document(pending.operationId)
-        val receipt =
-            ModerationDecisionContract.receiptFields(pending, session.uid) +
-                mapOf("createdAt" to FieldValue.serverTimestamp(), "isReviewed" to false)
-        // Async profile/token reads above may outlive the screen or an Auth generation.
+                .get(Source.SERVER)
+                .await()
+        val actual = ModerationReviewVersion.from(pending.version.target, content.data.orEmpty())
+        if (
+            actual != pending.version ||
+                content.metadata.isFromCache ||
+                content.metadata.hasPendingWrites()
+        )
+            ModerationDecisionContract.fail(ModerationDecisionFailure.STALE)
+        access.identity(session)
         if (!canDispatch()) ModerationDecisionContract.fail(ModerationDecisionFailure.STALE)
-        // No timeout around this Task. The repository keeps actual settlement inside the Auth
-        // mutex.
-        db.runTransaction(TransactionOptions.Builder().setMaxAttempts(5).build()) { transaction ->
-                val actor = transaction.get(profile)
-                val content = transaction.get(target)
-                ModerationAccess.requireProfile(session, actor.data)
-                val actual = runCatching {
-                    ModerationReviewVersion.from(pending.version.target, content.data.orEmpty())
-                }
-                    .getOrNull()
-                if (actual != pending.version)
-                    ModerationDecisionContract.fail(ModerationDecisionFailure.STALE)
-                // Pure retried callback: all identity, UUID, journal and UI work happened outside
-                // it.
-                transaction.update(
-                    target,
-                    mapOf(
-                        "moderationStatus" to pending.decision.wire,
-                        "updatedAt" to FieldValue.serverTimestamp(),
-                    ),
-                )
-                // Existing UUID cannot be overwritten: unchanged Rules allow review-only updates.
-                transaction.set(log, receipt)
-                Unit
-            }
-            .await()
+        val response =
+            gateway
+                .getHttpsCallable("reviewContentModeration")
+                .withTimeout(60, TimeUnit.SECONDS)
+                .call(ModerationBuild80Contract.payload(pending))
+                .await()
+                .data
+        ModerationBuild80Contract.requireReceipt(pending, response)
         access.identity(session)
     }
 
@@ -87,6 +81,57 @@ class FirebaseModerationDecisionSource(private val db: FirebaseFirestore, auth: 
             access.privileged(session)
             if (pending.issuedRole == "owner" && session.role != "owner")
                 return@withTimeout ModerationObservation.AUTHORITY_LIMITED
+            if (pending.phase == ModerationDecisionPhase.ACKNOWLEDGED) {
+                // This durable phase is written only after validating the callable response.
+                val content =
+                    db.collection(pending.version.target.kind.collection)
+                        .document(pending.version.target.id)
+                        .get(Source.SERVER)
+                        .await()
+                access.identity(session)
+                if (!content.exists())
+                    return@withTimeout ModerationObservation.CONFIRMED_UNAVAILABLE
+                val fields = content.data.orEmpty()
+                return@withTimeout if (
+                    fields["moderationOperationId"] == pending.operationId &&
+                        fields["moderatedByUserId"] == session.uid &&
+                        fields["moderationStatus"] == pending.decision.wire &&
+                        runCatching {
+                            ModerationReviewVersion.hash(
+                                pending.version.target,
+                                fields.filterKeys {
+                                    it !in
+                                        setOf(
+                                            "moderationOperationId",
+                                            "moderatedByUserId",
+                                            "moderatedAt",
+                                        )
+                                },
+                                true,
+                            )
+                        }
+                            .getOrNull() == pending.version.preservedHash
+                )
+                    ModerationObservation.CONFIRMED_CURRENT
+                else ModerationObservation.CONFIRMED_CHANGED
+            }
+            // A lost response can be reconciled from the exact server-written operation marker.
+            // Matching status alone is never proof and this branch never resends a decision.
+            val currentContent =
+                db.collection(pending.version.target.kind.collection)
+                    .document(pending.version.target.id)
+                    .get(Source.SERVER)
+                    .await()
+            access.identity(session)
+            if (
+                ModerationBuild80Contract.confirmsCurrentOperation(
+                    pending,
+                    session.uid,
+                    currentContent.data.orEmpty(),
+                )
+            )
+                return@withTimeout ModerationObservation.CONFIRMED_CURRENT
+            // Older journals without a build80 marker retain the legacy read-only reconciliation.
             val log =
                 if (session.role == "owner")
                     db.collection("systemLogs")

@@ -40,6 +40,7 @@ data class GalleryActions(
     val upload: () -> Unit = {},
     val discard: () -> Unit = {},
     val remove: (GalleryPhoto) -> Unit = {},
+    val replace: (GalleryPhoto) -> Unit = {},
     val preview: (GalleryPhoto) -> Unit = {},
     val dismissPreview: () -> Unit = {},
     val reconcile: (GalleryJournalEntry) -> Unit = {},
@@ -99,6 +100,15 @@ fun GalleryScreen(
         focus.clearFocus()
         keyboard?.hide()
     }
+    fun launchPicker(replacing: GalleryPhoto? = null) {
+        dismissInput()
+        if (model.beginPicker(replacing))
+            try {
+                picker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+            } catch (_: Exception) {
+                model.pickerUnavailable()
+            }
+    }
     GalleryContent(
         state,
         language,
@@ -112,15 +122,7 @@ fun GalleryScreen(
                 onAccount()
             },
             refresh = model::refresh,
-            choose = {
-                dismissInput()
-                if (model.beginPicker())
-                    try {
-                        picker.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
-                    } catch (_: Exception) {
-                        model.pickerUnavailable()
-                    }
-            },
+            choose = { launchPicker() },
             caption = model::caption,
             upload = {
                 dismissInput()
@@ -131,6 +133,7 @@ fun GalleryScreen(
                 dismissInput()
                 model.requestRemove(it)
             },
+            replace = { launchPicker(it) },
             preview = model::preview,
             dismissPreview = model::dismissPreview,
             reconcile = model::reconcile,
@@ -371,7 +374,11 @@ fun GalleryContent(
                                     Modifier.testTag("gallery-upload"),
                                     enabled = state.canUpload,
                                 ) {
-                                    Text(tr(language, "Foto veröffentlichen", "Опублікувати фото"))
+                                    Text(
+                                        if (state.replacing == null)
+                                            tr(language, "Foto veröffentlichen", "Опублікувати фото")
+                                        else tr(language, "Foto ersetzen", "Замінити фото")
+                                    )
                                 }
                                 TextButton(
                                     actions.discard,
@@ -422,6 +429,14 @@ fun GalleryContent(
                                 ) {
                                     Text(tr(language, "Foto prüfen", "Переглянути фото"))
                                 }
+                                if (state.canReplace(photo))
+                                    OutlinedButton(
+                                        { actions.replace(photo) },
+                                        Modifier.testTag("gallery-replace-${photo.target.photoId}"),
+                                        enabled = state.actionable && state.pending.isEmpty(),
+                                    ) {
+                                        Text(tr(language, "Ersetzen", "Замінити"))
+                                    }
                                 OutlinedButton(
                                     { actions.remove(photo) },
                                     Modifier.testTag("gallery-remove-${photo.target.photoId}"),
@@ -443,7 +458,9 @@ fun GalleryContent(
                 Text(
                     when (state.confirmation) {
                         is GalleryConfirmation.Upload ->
-                            tr(language, "Foto veröffentlichen?", "Опублікувати фото?")
+                            if (state.confirmation.intent.replacing == null)
+                                tr(language, "Foto veröffentlichen?", "Опублікувати фото?")
+                            else tr(language, "Foto ersetzen?", "Замінити фото?")
                         is GalleryConfirmation.Remove ->
                             tr(language, "Foto dauerhaft löschen?", "Видалити фото назавжди?")
                         is GalleryConfirmation.Cleanup ->

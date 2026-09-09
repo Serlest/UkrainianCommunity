@@ -268,8 +268,7 @@ class BackendConfigurationTest {
         )
         denied { LocalCallableProtocol.endpoint("saveComment", port = 443) }
         denied { LocalCallableProtocol.endpoint("saveComment", region = "us-central1") }
-        denied { LocalCallableProtocol.endpoint("updateAnalyticsConsent") }
-        denied { LocalCallableProtocol.endpoint("trackAnalyticsEvent") }
+        denied { LocalCallableProtocol.endpoint("exportAnalytics") }
     }
 
     @Test

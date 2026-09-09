@@ -106,6 +106,13 @@ private constructor(
                 "profile/moderation",
                 "profile/users",
                 "profile/organization-review",
+                "profile/featured-banners",
+                "profile/content-planning",
+                "profile/system-logs",
+                "profile/analytics",
+                "profile/donation-settings",
+                "profile/announcements",
+                "profile/announcements/manage",
             )
 
         private fun validRoute(route: String): Boolean {
@@ -139,6 +146,13 @@ private constructor(
                     OrganizationContract.id(parts[2])
                 parts.size == 3 && parts.take(2) == listOf("profile", "organization-review") ->
                     OrganizationContract.id(parts[2])
+                parts.size == 3 && parts.take(2) == listOf("profile", "legal-evidence") ->
+                    validDocumentId(parts[2])
+                parts.size == 3 && parts.take(2) == listOf("profile", "content-planning") ->
+                    Regex("[a-f0-9]{40}").matches(parts[2])
+                parts.size == 5 &&
+                    parts.take(3) == listOf("profile", "content-planning", "author") ->
+                    Regex("[a-f0-9]{40}").matches(parts[3]) && OrganizationContract.id(parts[4])
                 parts.size == 3 && parts.take(2) == listOf("profile", "organizations") ->
                     OrganizationContract.id(parts[2])
                 parts.size == 4 &&

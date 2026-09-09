@@ -1,5 +1,7 @@
 # Реестр функционального паритета UAC
 
+> Актуальная оценка относительно iOS TestFlight 1.0.2 build 68 и список релизных gates: [AndroidReleaseReadiness-2026-09-07.md](AndroidReleaseReadiness-2026-09-07.md). Нижняя матрица сохраняет исторические статусы по snapshot и не заменяет текущий release audit.
+
 ## ALL FINAL LOCAL CHECKS PASS — 2026-09-03 21:52 UTC / 23:52 Vienna
 
 User-requested regression repair completed. **Unit1821/1821,94XML,0fail/error/skip; target16/16each; componentUI243/243each; Main38/38each.** All final native runners exited0 and per-AVD locks released. API26:target16.687s,UI195.321s,Main203.852s. API37:target185.713s,UI377.645s,Main358.327s. Machine audit outputs/final98-audit.json validates exactJUnit counts/no failures/skips,0 cleanup reconciliation warnings in final logs,550source hashes,512protected iOS/Rules/server hashes and bothAPK hashes. Lint0errors/33existingwarnings, format/diffchecksPASS. Actual installed hashes independently verified both apps/both AVDs.

@@ -6,6 +6,25 @@ import org.junit.Test
 
 class LegalTextFormattingTest {
     @Test
+    fun tablesKeepEveryCellPairedWithItsHeaderAtAnyScreenWidth() {
+        val blocks =
+            formatLegalText(
+                "| Data | Retention |\n| --- | :---: |\n| Email | **30 days** |\n| Name | Until deletion |"
+            )
+        assertEquals(
+            listOf("Data: Email\nRetention: 30 days", "Data: Name\nRetention: Until deletion"),
+            blocks.map { it.text },
+        )
+        assertTrue(blocks.first().runs.any { it.text == "30 days" && it.strong })
+    }
+
+    @Test
+    fun malformedTablesRetainTheOriginalText() {
+        val text = "| A | B |\n| --- | --- |\n| only one |"
+        assertEquals(text, formatLegalText(text).single().text)
+    }
+
+    @Test
     fun headingAndEmphasisKeepTheLegalWordsAndPunctuation() {
         val blocks =
             formatLegalText(
