@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.design.UacCard
 import at.uac.android.design.UacDesign
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSymbol
 import java.text.NumberFormat
 import java.time.Instant
 import java.util.Currency
@@ -76,7 +78,7 @@ fun ContentDetail(
                     )
                 }
                 Column(
-                    Modifier.padding(start = 18.dp, end = 18.dp, bottom = 18.dp),
+                    Modifier.padding(start = 18.dp, end = 18.dp, bottom = 18.dp, top = 6.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Surface(
@@ -110,6 +112,7 @@ fun ContentDetail(
                 }
             }
         }
+        if (content.kind == ContentKind.EVENTS) EventInformation(content, l)
         if (content.summary(l).isNotBlank() || content.body(l).isNotBlank()) {
             UacCard {
                 SelectionContainer {
@@ -124,7 +127,6 @@ fun ContentDetail(
                 }
             }
         }
-        if (content.kind == ContentKind.EVENTS) EventInformation(content, l)
         if (content.kind == ContentKind.ORGANIZATIONS)
             OrganizationInformation(content, s, model, publicGallery)
         else {
@@ -251,22 +253,23 @@ private fun EventInformation(content: Content, language: String) {
             DetailFact(
                 tr(language, "Wann", "Коли"),
                 displayTime(start, language, allDay) + " – " + displayTime(end, language, allDay),
+                UacIcon.CALENDAR,
             )
         val place =
             listOf("venue", "city", "locationNote")
                 .map(f::string)
                 .filter(String::isNotBlank)
                 .joinToString(" · ")
-        if (place.isNotBlank()) DetailFact(tr(language, "Wo", "Де"), place)
+        if (place.isNotBlank()) DetailFact(tr(language, "Wo", "Де"), place, UacIcon.LOCATION)
         DetailFact(tr(language, "Preis", "Вартість"), priceText(f, language))
         f.map("pricing").string("note").takeIf(String::isNotEmpty)?.let {
             Text(it, style = MaterialTheme.typography.bodySmall)
         }
         f.string("audience").takeIf(String::isNotEmpty)?.let {
-            DetailFact(tr(language, "Für wen", "Для кого"), label(it, language))
+            DetailFact(tr(language, "Für wen", "Для кого"), label(it, language), UacIcon.PROFILE)
         }
         f.string("organizerName").takeIf(String::isNotBlank)?.let {
-            DetailFact(tr(language, "Veranstalter", "Організатор"), it)
+            DetailFact(tr(language, "Veranstalter", "Організатор"), it, UacIcon.ORGANIZATIONS)
         }
         Text(
             tr(
@@ -361,15 +364,19 @@ private fun EventInformation(content: Content, language: String) {
 }
 
 @Composable
-private fun DetailFact(label: String, value: String) {
+private fun DetailFact(label: String, value: String, icon: UacIcon? = null) {
     if (value.isBlank()) return
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(
-            label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(value, style = MaterialTheme.typography.bodyMedium)
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (icon != null) UacSymbol(icon, modifier = Modifier.padding(top = 2.dp).size(20.dp))
+        else Spacer(Modifier.width(20.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(value, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
@@ -390,9 +397,16 @@ private fun OrganizationInformation(
     Section(tr(l, "Über die Organisation", "Про організацію")) {
         val logo = organizationImageUrl(f, preferCover = false)
         val hero = organizationImageUrl(f, preferCover = true)
-        if (logo.isNotBlank() && logo != hero) PublicImage(logo, content.title(l), l)
+        if (logo.isNotBlank() && logo != hero)
+            PublicImage(
+                logo,
+                content.title(l),
+                l,
+                Modifier.size(96.dp).clip(RoundedCornerShape(16.dp)),
+                presentation = PublicImagePresentation.VIEWPORT_FIT,
+            )
         localized("missionStatement").takeIf(String::isNotBlank)?.let { Text(it) }
-        DetailFact(tr(l, "Ort", "Місто"), f.string("city"))
+        DetailFact(tr(l, "Ort", "Місто"), f.string("city"), UacIcon.LOCATION)
         DetailFact(
             tr(l, "Sprachen", "Мови"),
             f.strings("languages").joinToString(" / "),

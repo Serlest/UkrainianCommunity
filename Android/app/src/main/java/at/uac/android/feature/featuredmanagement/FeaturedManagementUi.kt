@@ -11,6 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.moderation.ModerationSession
 import at.uac.android.feature.translation.ContentTranslationButton
 import at.uac.android.feature.translation.TranslationField
@@ -24,17 +27,18 @@ fun FeaturedManagementScreen(
 ) {
     val state by model.state.collectAsState()
     LaunchedEffect(session) { model.load(session) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().testTag("featured-management")) {
-        Row(
-            Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Column(Modifier.fillMaxSize().testTag("featured-management")) {
+        Column(
+            Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(onBack, Modifier.testTag("featured-back")) {
+            TextButton(onBack, Modifier.testTag("featured-back")) {
+                UacSymbol(UacIcon.BACK)
                 Text(if (language == "uk") "Назад" else "Zurück")
             }
-            Text(
+            UacSectionHeading(
                 if (language == "uk") "Рекомендовані банери" else "Empfohlene Banner",
-                style = MaterialTheme.typography.headlineSmall,
+                UacIcon.NEWS,
             )
         }
         if (state.editing != null) FeaturedEditor(model, session, state, language)
@@ -50,7 +54,7 @@ private fun FeaturedList(
     language: String,
 ) {
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("featured-list"),
+        Modifier.fillMaxSize().testTag("featured-list"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
@@ -106,7 +110,7 @@ private fun FeaturedList(
                             else "Vor Aktivierung reparieren",
                             color = MaterialTheme.colorScheme.error,
                         )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             { model.edit(banner) },
                             enabled = !state.saving,
@@ -131,7 +135,7 @@ private fun FeaturedList(
                     }
                     var confirmsDelete by remember { mutableStateOf(false) }
                     if (confirmsDelete) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(
                                 {
                                     confirmsDelete = false
@@ -180,7 +184,7 @@ private fun FeaturedEditor(
             it?.let { uri -> model.upload(session, uri.toString()) }
         }
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("featured-editor"),
+        Modifier.fillMaxSize().testTag("featured-editor"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
@@ -421,9 +425,9 @@ private fun FeaturedEditor(
         item {
             Text(
                 if (language == "uk")
-                    "Перед надсиланням дані перевіряються повторно. Сервіс банерів не підтримує атомарну версію; одночасна зміна буде виявлена, коли це можливо, і ніколи не повторюється автоматично."
+                    "Перед збереженням дані перевіряються повторно. Якщо банер змінився, оновіть його та перевірте свої зміни."
                 else
-                    "Vor dem Senden werden die Daten erneut geprüft. Der Banner-Dienst hat keine atomare Version; gleichzeitige Änderungen werden soweit möglich erkannt und nie automatisch wiederholt.",
+                    "Vor dem Speichern werden die Daten erneut geprüft. Wurde der Banner geändert, lade ihn erneut und prüfe deine Änderungen.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }

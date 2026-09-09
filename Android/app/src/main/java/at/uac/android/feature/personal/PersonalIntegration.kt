@@ -137,6 +137,10 @@ fun PersonalDestination(
                         }
                     },
                 )
+            } else if (
+                route == "profile/administration" && authSession.stage == AuthStage.AUTHENTICATED
+            ) {
+                supplementaryContent?.invoke()
             } else if (route == "profile/edit" && captured?.ready == true) {
                 Column(Modifier.widthIn(max = 760.dp).fillMaxWidth()) {
                     PersonalProfilePanel(
@@ -158,40 +162,45 @@ fun PersonalDestination(
                             it in setOf("login", "register", "reset")
                         } ?: "login",
                     onNavigateAuth = { page -> browse.navigate("profile/$page") },
+                    showAccountUtilities = route == "profile/security",
+                    showIdentity = route != "profile/security",
                 ) {
-                    UacSectionCard(tr(language, "Mein Bereich", "Мій простір")) {
-                        val destinations =
-                            listOf(
-                                Triple(
-                                    "edit",
-                                    tr(language, "Profil bearbeiten", "Редагувати профіль"),
-                                    UacIcon.PROFILE,
-                                ),
-                                Triple(
-                                    "saved",
-                                    tr(language, "Gespeicherte Inhalte", "Збережені матеріали"),
-                                    UacIcon.NEWS,
-                                ),
-                                Triple(
-                                    "subscriptions",
-                                    tr(language, "Meine Abonnements", "Мої підписки"),
-                                    UacIcon.ORGANIZATIONS,
-                                ),
-                            )
-                        destinations.forEachIndexed { index, (destination, title, icon) ->
-                            if (index > 0) UacRowDivider()
-                            UacNavigationRow(
-                                title = title,
-                                icon = icon,
-                                modifier = Modifier.testTag("account-open-$destination"),
-                            ) {
-                                if (auth.state.value.readyForActions)
-                                    browse.navigate("profile/$destination")
+                    if (route != "profile/security") {
+                        UacSectionCard(tr(language, "Mein Bereich", "Мій простір")) {
+                            val destinations =
+                                listOf(
+                                    Triple(
+                                        "edit",
+                                        tr(language, "Profil bearbeiten", "Редагувати профіль"),
+                                        UacIcon.EDIT,
+                                    ),
+                                    Triple(
+                                        "saved",
+                                        tr(language, "Gespeicherte Inhalte", "Збережені матеріали"),
+                                        UacIcon.BOOKMARK,
+                                    ),
+                                    Triple(
+                                        "subscriptions",
+                                        tr(language, "Meine Abonnements", "Мої підписки"),
+                                        UacIcon.NOTIFICATIONS,
+                                    ),
+                                )
+                            destinations.forEachIndexed { index, (destination, title, icon) ->
+                                if (index > 0) UacRowDivider()
+                                UacNavigationRow(
+                                    title = title,
+                                    icon = icon,
+                                    modifier = Modifier.testTag("account-open-$destination"),
+                                ) {
+                                    if (auth.state.value.readyForActions)
+                                        browse.navigate("profile/$destination")
+                                }
                             }
                         }
                     }
                 }
-                supplementaryContent?.invoke()
+                if (route != "profile/security" && authSession.stage == AuthStage.AUTHENTICATED)
+                    supplementaryContent?.invoke()
             }
         }
     }

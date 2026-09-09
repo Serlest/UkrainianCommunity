@@ -2,6 +2,7 @@ package at.uac.android.feature.inbox
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -24,10 +25,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.displayTime
 import at.uac.android.feature.browse.tr
 import java.time.Instant
@@ -48,14 +55,14 @@ fun InboxScreen(
     var clear by remember(state.session) { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize().testTag("inbox-list"),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
+                UacSectionHeading(
                     tr(language, "Mitteilungen", "Повідомлення"),
-                    style = MaterialTheme.typography.headlineMedium,
+                    UacIcon.NOTIFICATIONS,
                 )
                 Text(
                     tr(
@@ -65,7 +72,7 @@ fun InboxScreen(
                     ),
                     Modifier.testTag("inbox-unread-count"),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
                         !state.unreadOnly,
                         { onFilter(false) },
@@ -86,12 +93,12 @@ fun InboxScreen(
                 ) {
                     Text(tr(language, "Aktualisieren", "Оновити"))
                 }
-                TextButton(
-                    onSettings,
-                    modifier = Modifier.fillMaxWidth().testTag("inbox-settings"),
-                ) {
-                    Text(tr(language, "Mitteilungseinstellungen", "Налаштування повідомлень"))
-                }
+                UacNavigationRow(
+                    title = tr(language, "Mitteilungseinstellungen", "Налаштування повідомлень"),
+                    icon = UacIcon.SETTINGS,
+                    modifier = Modifier.testTag("inbox-settings"),
+                    onClick = onSettings,
+                )
                 if (state.unreadCount > 0)
                     OutlinedButton(
                         { onChangeAll(InboxMutation.READ) },
@@ -108,7 +115,10 @@ fun InboxScreen(
                         enabled = !state.mutating,
                         modifier = Modifier.fillMaxWidth().testTag("inbox-clear"),
                     ) {
-                        Text(tr(language, "Mitteilungen leeren", "Очистити повідомлення"))
+                        Text(
+                            tr(language, "Mitteilungen leeren", "Очистити повідомлення"),
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
             }
         }
@@ -216,7 +226,10 @@ fun InboxScreen(
                     },
                     modifier = Modifier.testTag("inbox-confirm-delete"),
                 ) {
-                    Text(tr(language, "Entfernen", "Видалити"))
+                    Text(
+                        tr(language, "Entfernen", "Видалити"),
+                        color = MaterialTheme.colorScheme.error,
+                    )
                 }
             },
             dismissButton = {
@@ -343,21 +356,21 @@ fun InboxPreferencesScreen(
     val preferences = state.preferences
     LazyColumn(
         Modifier.fillMaxSize().testTag("inbox-preferences"),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Text(
+            UacSectionHeading(
                 tr(language, "Mitteilungseinstellungen", "Налаштування повідомлень"),
-                style = MaterialTheme.typography.headlineMedium,
+                UacIcon.NOTIFICATIONS,
             )
         }
         item {
             Text(
                 tr(
                     language,
-                    "Diese Kontoeinstellung ersetzt nicht die Android-Systemerlaubnis unten. Dein Posteingang bleibt unabhängig davon verfügbar. Cloud-Push ist in dieser lokalen Version noch nicht aktiviert.",
-                    "Ця настройка акаунта не замінює системного дозволу Android нижче. Список повідомлень доступний незалежно від неї. Хмарний push у цій локальній версії ще не ввімкнено.",
+                    "Wähle, welche Mitteilungen du erhalten möchtest. Erlaube Benachrichtigungen auch in den Android-Einstellungen. Dein Posteingang bleibt jederzeit verfügbar.",
+                    "Оберіть, які повідомлення отримувати. Також дозвольте сповіщення в налаштуваннях Android. Список повідомлень доступний завжди.",
                 )
             )
         }
@@ -392,28 +405,36 @@ fun InboxPreferencesScreen(
                 Text(
                     tr(
                         language,
-                        "Erinnerung ${preferences.reminderLeadMinutes} Minuten vorher",
-                        "Нагадування за ${preferences.reminderLeadMinutes} хвилин",
+                        "Wann möchtest du erinnert werden?",
+                        "Коли нагадати про подію?",
                     )
                 )
             }
-            items(listOf(15, 30, 60, 120, 1_440)) { minutes ->
-                FilterChip(
-                    preferences.reminderLeadMinutes == minutes,
-                    { onSave(preferences.copy(reminderLeadMinutes = minutes)) },
-                    {
-                        Text(
-                            if (minutes == 0) tr(language, "Zum Beginn", "На початку")
-                            else tr(language, "$minutes Minuten vorher", "За $minutes хвилин")
+            item("reminder-times") {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(15, 30, 60, 120, 1_440).forEach { minutes ->
+                        FilterChip(
+                            preferences.reminderLeadMinutes == minutes,
+                            { onSave(preferences.copy(reminderLeadMinutes = minutes)) },
+                            {
+                                Text(
+                                    when (minutes) {
+                                        60 -> tr(language, "1 Stunde", "1 година")
+                                        120 -> tr(language, "2 Stunden", "2 години")
+                                        1_440 -> tr(language, "1 Tag", "1 день")
+                                        else -> tr(language, "$minutes Min.", "$minutes хв")
+                                    }
+                                )
+                            },
+                            enabled =
+                                state.session?.canEditPreferences == true &&
+                                    !state.mutating &&
+                                    preferences.notificationsEnabled &&
+                                    preferences.eventRemindersEnabled,
+                            modifier = Modifier.testTag("inbox-reminder-lead-$minutes"),
                         )
-                    },
-                    enabled =
-                        state.session?.canEditPreferences == true &&
-                            !state.mutating &&
-                            preferences.notificationsEnabled &&
-                            preferences.eventRemindersEnabled,
-                    modifier = Modifier.fillMaxWidth().testTag("inbox-reminder-lead-$minutes"),
-                )
+                    }
+                }
             }
         } else if (state.session != null && state.error == null)
             item { CircularProgressIndicator() }
@@ -454,9 +475,18 @@ private fun PreferenceToggle(
     tag: String,
     onChecked: (Boolean) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
-        Switch(checked, onChecked, enabled = enabled, modifier = Modifier.testTag(tag))
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(title, Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+        Switch(
+            checked,
+            onChecked,
+            enabled = enabled,
+            modifier = Modifier.testTag(tag).semantics { contentDescription = title },
+        )
     }
 }
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.displayTime
 import at.uac.android.feature.browse.tr
 
@@ -141,10 +144,10 @@ fun FeedbackList(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
-            Text(
+            UacSectionHeading(
                 if (manager) tr(language, "Support-Postfach", "Скринька підтримки")
                 else tr(language, "Meine Anfragen", "Мої звернення"),
-                style = MaterialTheme.typography.headlineSmall,
+                UacIcon.SUPPORT,
             )
             TextButton(
                 { onRefresh(false) },
@@ -166,9 +169,9 @@ fun FeedbackList(
                         Modifier.padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        Text(
+                        UacSectionHeading(
                             tr(language, "Neue Anfrage", "Нове звернення"),
-                            style = MaterialTheme.typography.titleMedium,
+                            UacIcon.EDIT,
                         )
                         if (state.session?.ready == true) {
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -302,10 +305,10 @@ fun FeedbackDetail(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item("header") {
-            Text(
+            UacSectionHeading(
                 item?.subject?.takeIf(String::isNotBlank)
                     ?: tr(language, "Verlauf der Anfrage", "Історія звернення"),
-                style = MaterialTheme.typography.headlineSmall,
+                UacIcon.SUPPORT,
             )
             item?.let {
                 Text(it.status.label(language))
@@ -348,7 +351,15 @@ fun FeedbackDetail(
                 }
             }
         items(conversation?.messages.orEmpty(), key = { "${it.legacy}:${it.id}" }) { message ->
-            Card(Modifier.fillMaxWidth().testTag("feedback-message-${message.id}")) {
+            Card(
+                Modifier.fillMaxWidth().testTag("feedback-message-${message.id}"),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor =
+                            if (message.owner) MaterialTheme.colorScheme.secondaryContainer
+                            else MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+            ) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
                         if (message.owner) tr(language, "Support", "Підтримка") else message.name,

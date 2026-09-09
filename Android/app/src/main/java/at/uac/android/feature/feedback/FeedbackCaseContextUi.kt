@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.WindowSecurity
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 
 @Composable
@@ -43,9 +45,9 @@ fun FeedbackCaseContextCard(state: FeedbackState, language: String) {
     val context = state.conversation?.item?.caseContext
     Card(Modifier.fillMaxWidth().testTag("feedback-case-context")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
+            UacSectionHeading(
                 tr(language, "Angaben zur Meldung", "Відомості про скаргу"),
-                style = MaterialTheme.typography.titleMedium,
+                UacIcon.SECURITY,
             )
             if (context == null) {
                 Text(

@@ -25,6 +25,9 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.auth.AuthLegalReader
 import at.uac.android.feature.auth.AuthValidation
 import at.uac.android.feature.translation.ContentTranslationButton
@@ -110,14 +113,18 @@ fun OrganizationContent(
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(bottom = 24.dp)
             .testTag("organization-hub"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(onBack) { Text(tr(language, "Zurück", "Назад")) }
+        TextButton(onBack) {
+            UacSymbol(UacIcon.BACK)
+            Spacer(Modifier.width(8.dp))
+            Text(tr(language, "Zurück", "Назад"))
+        }
         Text(
             tr(language, "Meine Organisationen", "Мої організації"),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
         )
         if (state.session?.ready != true) {
             Text(
@@ -237,20 +244,22 @@ fun OrganizationContent(
                                     ),
                                     style = MaterialTheme.typography.bodySmall,
                                 )
-                                TextButton({ onOpenOrganization(row.id) }) {
-                                    Text(tr(language, "Öffentliches Profil", "Публічний профіль"))
-                                }
+                                UacNavigationRow(
+                                    title =
+                                        tr(language, "Öffentliches Profil", "Публічний профіль"),
+                                    icon = UacIcon.ORGANIZATIONS,
+                                    onClick = { onOpenOrganization(row.id) },
+                                )
                                 onManageOrganization?.let { manage ->
-                                    TextButton(
-                                        { manage(row.id) },
+                                    UacNavigationRow(
+                                        title =
+                                            tr(language, "Verwaltung öffnen", "Відкрити керування"),
+                                        icon = UacIcon.SETTINGS,
+                                        onClick = { manage(row.id) },
                                         enabled = !state.loading && !state.busy,
                                         modifier =
                                             Modifier.testTag("organization-manage-${row.id}"),
-                                    ) {
-                                        Text(
-                                            tr(language, "Verwaltung öffnen", "Відкрити керування")
-                                        )
-                                    }
+                                    )
                                 }
                             }
                         }
@@ -275,8 +284,10 @@ fun OrganizationContent(
                 Button(
                     onCreate,
                     enabled = !state.busy && state.draft == null && hub.requests.size < 3,
-                    modifier = Modifier.testTag("organization-create"),
+                    modifier = Modifier.fillMaxWidth().testTag("organization-create"),
                 ) {
+                    UacSymbol(UacIcon.ORGANIZATIONS)
+                    Spacer(Modifier.width(8.dp))
                     Text(tr(language, "Organisation beantragen", "Подати заявку організації"))
                 }
                 if (hub.requests.size >= 3)
@@ -611,6 +622,10 @@ internal fun OrganizationEditor(
             maxLines = if (lines > 1) 8 else 2,
         )
     }
+    Text(
+        tr(language, "Über die Organisation", "Про організацію"),
+        style = MaterialTheme.typography.titleMedium,
+    )
     text(
         tr(language, "Name (Ukrainisch / Original)", "Назва (українською / оригінал)"),
         d.name,
@@ -638,6 +653,11 @@ internal fun OrganizationEditor(
     ) { old, value ->
         old.copy(details = value)
     }()
+    HorizontalDivider()
+    Text(
+        tr(language, "Standort und Profil", "Розташування та профіль"),
+        style = MaterialTheme.typography.titleMedium,
+    )
     Choice(
         tr(language, "Bundesland", "Федеральна земля"),
         d.region,
@@ -669,6 +689,8 @@ internal fun OrganizationEditor(
     ) { value ->
         change { it.copy(profileKind = value) }
     }
+    HorizontalDivider()
+    Text(tr(language, "Kontakt", "Контакти"), style = MaterialTheme.typography.titleMedium)
     text("E-Mail", d.email, "organization-email") { old, value -> old.copy(email = value) }()
     text(tr(language, "Telefon", "Телефон"), d.phone, "organization-phone") { old, value ->
         old.copy(phone = value)

@@ -147,6 +147,11 @@ class MainVisualParityJourneyUiTest {
                 )) {
                 configure("de", "light", route)
                 if (route != "profile") compose.onNodeWithTag("browse-list").performScrollToIndex(0)
+                if (route in setOf("events", "organizations")) {
+                    compose.onNodeWithTag("banner-hero").assertIsDisplayed()
+                } else if (route.contains('/')) {
+                    compose.onNodeWithTag("banner-hero").assertDoesNotExist()
+                }
                 chrome()
                 capture(name, "de", "light", expectedScale)
                 if (route == "profile") {

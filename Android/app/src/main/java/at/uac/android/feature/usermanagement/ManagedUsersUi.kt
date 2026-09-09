@@ -285,7 +285,7 @@ fun ManagedUsersContent(
     val focus = LocalFocusManager.current
     LazyColumn(
         Modifier.fillMaxSize().imePadding().testTag("managed-users-list"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
@@ -296,11 +296,12 @@ fun ManagedUsersContent(
                 },
                 Modifier.heightIn(min = 48.dp).testTag("managed-users-back"),
             ) {
+                at.uac.android.design.UacSymbol(at.uac.android.design.UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            at.uac.android.design.UacSectionHeading(
                 tr(language, "Nutzerverwaltung", "Керування користувачами"),
-                style = MaterialTheme.typography.headlineMedium,
+                icon = at.uac.android.design.UacIcon.PROFILE,
             )
             Text(
                 if (actionContent == null)

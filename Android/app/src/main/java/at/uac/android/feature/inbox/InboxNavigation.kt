@@ -23,6 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.auth.AuthLegalDocument
 import at.uac.android.feature.auth.AuthLegalReader
 import at.uac.android.feature.auth.AuthSession
@@ -80,17 +83,21 @@ fun InboxDestinationScreen(
             )
         "profile/legal" ->
             Column(
-                Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
+                Modifier.verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp)
+                    .testTag("profile-legal-documents"),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
+                UacSectionHeading(
                     tr(language, "Rechtliche Dokumente", "Правові документи"),
-                    style = MaterialTheme.typography.headlineMedium,
+                    UacIcon.SECURITY,
                 )
                 authSession.legalDocuments.forEach { document ->
-                    OutlinedButton({ if (current()) legal = document }, Modifier.fillMaxWidth()) {
-                        Text(document.title(language))
-                    }
+                    UacNavigationRow(
+                        title = document.title(language),
+                        icon = UacIcon.NEWS,
+                        onClick = { if (current()) legal = document },
+                    )
                 }
                 if (authSession.legalDocuments.isEmpty())
                     Text(

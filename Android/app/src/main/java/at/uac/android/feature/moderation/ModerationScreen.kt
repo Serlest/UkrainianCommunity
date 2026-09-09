@@ -204,14 +204,15 @@ fun ModerationContent(
     val accessible = state.visible && state.session?.allowed == true
     LazyColumn(
         Modifier.fillMaxSize().imePadding().testTag("moderation-list"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
             TextButton(actions.back, Modifier.testTag("moderation-back")) {
+                at.uac.android.design.UacSymbol(at.uac.android.design.UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            at.uac.android.design.UacSectionHeading(
                 tr(
                     language,
                     if (state.section == ModerationSection.CONTENT) "Inhalte prüfen"
@@ -219,7 +220,7 @@ fun ModerationContent(
                     if (state.section == ModerationSection.CONTENT) "Перевірка матеріалів"
                     else "Заявки організацій",
                 ),
-                style = MaterialTheme.typography.headlineMedium,
+                icon = at.uac.android.design.UacIcon.SECURITY,
             )
             Text(
                 tr(

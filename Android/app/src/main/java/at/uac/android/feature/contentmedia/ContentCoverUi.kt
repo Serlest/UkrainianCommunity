@@ -22,6 +22,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.organization.OrganizationSession
 
@@ -100,14 +103,18 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(bottom = 24.dp)
             .testTag("content-cover-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) { Text(tr(language, "Zurück", "Назад")) }
-        Text(
+        TextButton(back) {
+            UacSymbol(UacIcon.BACK)
+            Spacer(Modifier.width(8.dp))
+            Text(tr(language, "Zurück", "Назад"))
+        }
+        UacSectionHeading(
             tr(language, "Titelbild", "Обкладинка"),
-            style = MaterialTheme.typography.headlineMedium,
+            UacIcon.PHOTO,
         )
         if (state.session?.ready != true) {
             Text(

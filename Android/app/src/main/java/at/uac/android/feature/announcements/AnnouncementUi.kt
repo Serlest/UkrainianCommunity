@@ -7,32 +7,39 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacCard
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.translation.ContentTranslationButton
 import at.uac.android.feature.translation.TranslationField
-import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import java.text.DateFormat
 import java.util.Calendar
 import java.util.Date
@@ -95,18 +102,20 @@ fun AnnouncementHistoryScreen(
     onGuestPush: (Boolean) -> Unit,
 ) {
     Column(
-        Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState())
+        Modifier.fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp)
             .testTag("announcement-history"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(tr(language, "Mitteilungen", "Оповіщення"))
+        UacSectionHeading(tr(language, "Mitteilungen", "Оповіщення"), UacIcon.NOTIFICATIONS)
         if (state.session?.uid == null)
             Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(tr(language, "Push für Gäste", "Push для гостей"))
+                Text(tr(language, "Push für Gäste", "Push для гостей"), Modifier.weight(1f))
                 Switch(
                     checked = state.guestPushEnabled && notificationPermission,
                     onCheckedChange = onGuestPush,
@@ -119,17 +128,21 @@ fun AnnouncementHistoryScreen(
         OutlinedButton(onRefresh, Modifier.testTag("announcement-refresh")) {
             Text(tr(language, "Aktualisieren", "Оновити"))
         }
-        state.items.sortedByDescending { it.startsAt }.forEach { item ->
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(item.title.localized(language))
-                Text(item.body.localized(language), maxLines = 3)
-                Text(DateFormat.getDateTimeInstance().format(Date(item.startsAt)))
-                OutlinedButton({ onOpen(item.id) }) {
-                    Text(tr(language, "Öffnen", "Відкрити"))
+        state.items
+            .sortedByDescending { it.startsAt }
+            .forEach { item ->
+                UacCard {
+                    Text(
+                        item.title.localized(language),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(item.body.localized(language), maxLines = 3)
+                    Text(DateFormat.getDateTimeInstance().format(Date(item.startsAt)))
+                    OutlinedButton({ onOpen(item.id) }) {
+                        Text(tr(language, "Öffnen", "Відкрити"))
+                    }
                 }
             }
-            HorizontalDivider()
-        }
         if (!state.loading && state.items.isEmpty())
             Text(tr(language, "Keine Mitteilungen vorhanden.", "Оповіщень немає."))
     }
@@ -153,12 +166,17 @@ fun AnnouncementOwnerScreen(
     onCancel: (UserAnnouncement) -> Unit,
 ) {
     Column(
-        Modifier.fillMaxWidth().padding(16.dp).verticalScroll(rememberScrollState())
+        Modifier.fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 24.dp)
             .testTag("announcement-owner"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(tr(language, "Nutzer-Mitteilungen", "Оповіщення користувачів"))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        UacSectionHeading(
+            tr(language, "Nutzer-Mitteilungen", "Оповіщення користувачів"),
+            UacIcon.NOTIFICATIONS,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onLoad) { Text(tr(language, "Aktualisieren", "Оновити")) }
             Button(onNew, Modifier.testTag("announcement-new")) {
                 Text(tr(language, "Neu", "Нове"))
@@ -168,15 +186,18 @@ fun AnnouncementOwnerScreen(
         state.error?.let { Text(announcementFailureText(it, language)) }
         state.notice?.let { Text(tr(language, "Änderung gespeichert.", "Зміну збережено.")) }
         state.draft?.let { draft ->
-            var reviewed by remember(draft) {
-                mutableStateOf(false)
-            }
-            var confirmPublish by remember(draft.id) {
-                mutableStateOf(false)
-            }
-            var previewOpen by remember(draft.id) {
-                mutableStateOf(false)
-            }
+            var reviewed by
+                remember(draft) {
+                    mutableStateOf(false)
+                }
+            var confirmPublish by
+                remember(draft.id) {
+                    mutableStateOf(false)
+                }
+            var previewOpen by
+                remember(draft.id) {
+                    mutableStateOf(false)
+                }
             var userPicker by remember(draft.id) { mutableStateOf(false) }
             var userQuery by remember(draft.id) { mutableStateOf("") }
             Text(tr(language, "Ukrainisch", "Українська"))
@@ -196,10 +217,23 @@ fun AnnouncementOwnerScreen(
             ContentTranslationButton(
                 kind = "announcement",
                 language = language,
-                fields = listOf(
-                    TranslationField("title", tr(language, "Titel", "Заголовок"), draft.titleUk, draft.titleDe, 160),
-                    TranslationField("body", tr(language, "Text", "Текст"), draft.bodyUk, draft.bodyDe, 6_000),
-                ),
+                fields =
+                    listOf(
+                        TranslationField(
+                            "title",
+                            tr(language, "Titel", "Заголовок"),
+                            draft.titleUk,
+                            draft.titleDe,
+                            160,
+                        ),
+                        TranslationField(
+                            "body",
+                            tr(language, "Text", "Текст"),
+                            draft.bodyUk,
+                            draft.bodyDe,
+                            6_000,
+                        ),
+                    ),
                 enabled = !state.loading,
             ) { translated ->
                 onChange {
@@ -226,10 +260,23 @@ fun AnnouncementOwnerScreen(
             ContentTranslationButton(
                 kind = "announcement",
                 language = language,
-                fields = listOf(
-                    TranslationField("title", tr(language, "Titel", "Заголовок"), draft.titleDe, draft.titleUk, 160),
-                    TranslationField("body", tr(language, "Text", "Текст"), draft.bodyDe, draft.bodyUk, 6_000),
-                ),
+                fields =
+                    listOf(
+                        TranslationField(
+                            "title",
+                            tr(language, "Titel", "Заголовок"),
+                            draft.titleDe,
+                            draft.titleUk,
+                            160,
+                        ),
+                        TranslationField(
+                            "body",
+                            tr(language, "Text", "Текст"),
+                            draft.bodyDe,
+                            draft.bodyUk,
+                            6_000,
+                        ),
+                    ),
                 enabled = !state.loading,
                 sourceLanguage = "de",
             ) { translated ->
@@ -243,13 +290,26 @@ fun AnnouncementOwnerScreen(
             Text(tr(language, "Empfängergruppen", "Групи отримувачів"))
             AnnouncementContract.GROUPS.sorted().forEach { group ->
                 OptionRow(group, group in draft.groups) { selected ->
-                    onChange { it.copy(groups = if (selected) it.groups + group else it.groups - group) }
+                    onChange {
+                        it.copy(groups = if (selected) it.groups + group else it.groups - group)
+                    }
                 }
             }
             OutlinedButton(
-                { userPicker = true; onLoadUsers(false) },
+                {
+                    userPicker = true
+                    onLoadUsers(false)
+                },
                 modifier = Modifier.fillMaxWidth().testTag("announcement-users"),
-            ) { Text(tr(language, "Bestimmte Personen (${draft.userIds.size})", "Конкретні користувачі (${draft.userIds.size})")) }
+            ) {
+                Text(
+                    tr(
+                        language,
+                        "Bestimmte Personen (${draft.userIds.size})",
+                        "Конкретні користувачі (${draft.userIds.size})",
+                    )
+                )
+            }
             if (userPicker) {
                 AlertDialog(
                     onDismissRequest = { userPicker = false },
@@ -260,18 +320,33 @@ fun AnnouncementOwnerScreen(
                                 userQuery,
                                 { userQuery = it.take(100) },
                                 label = { Text(tr(language, "Suchen", "Пошук")) },
-                                modifier = Modifier.fillMaxWidth().testTag("announcement-user-search"),
+                                modifier =
+                                    Modifier.fillMaxWidth().testTag("announcement-user-search"),
                             )
-                            state.users.filter { userQuery.isBlank() || it.name.contains(userQuery, ignoreCase = true) }
+                            state.users
+                                .filter {
+                                    userQuery.isBlank() ||
+                                        it.name.contains(userQuery, ignoreCase = true)
+                                }
                                 .forEach { user ->
-                                    OptionRow("${user.name}${user.region?.let { " · $it" }.orEmpty()}", user.id in draft.userIds) { selected ->
+                                    OptionRow(
+                                        "${user.name}${user.region?.let { " · $it" }.orEmpty()}",
+                                        user.id in draft.userIds,
+                                    ) { selected ->
                                         onChange {
-                                            it.copy(userIds = if (selected && it.userIds.size < 100) it.userIds + user.id else it.userIds - user.id)
+                                            it.copy(
+                                                userIds =
+                                                    if (selected && it.userIds.size < 100)
+                                                        it.userIds + user.id
+                                                    else it.userIds - user.id
+                                            )
                                         }
                                     }
                                 }
                             if (state.usersCursor != null)
-                                OutlinedButton({ onLoadUsers(true) }) { Text(tr(language, "Mehr laden", "Завантажити ще")) }
+                                OutlinedButton({ onLoadUsers(true) }) {
+                                    Text(tr(language, "Mehr laden", "Завантажити ще"))
+                                }
                         }
                     },
                     confirmButton = {
@@ -279,10 +354,20 @@ fun AnnouncementOwnerScreen(
                     },
                 )
             }
-            Text(tr(language, "Regionen (leer = ganz Österreich)", "Регіони (порожньо = уся Австрія)"))
+            Text(
+                tr(
+                    language,
+                    "Regionen (leer = ganz Österreich)",
+                    "Регіони (порожньо = уся Австрія)",
+                )
+            )
             AnnouncementContract.REGIONS.sorted().forEach { region ->
                 OptionRow(region, region in draft.regions) { selected ->
-                    onChange { it.copy(regions = if (selected) it.regions + region else it.regions - region) }
+                    onChange {
+                        it.copy(
+                            regions = if (selected) it.regions + region else it.regions - region
+                        )
+                    }
                 }
             }
             AnnouncementDateTimeButton(tr(language, "Beginn", "Початок"), draft.startsAt) {
@@ -296,7 +381,10 @@ fun AnnouncementOwnerScreen(
                 "ios" in draft.targetPlatforms,
             ) { selected ->
                 onChange {
-                    it.copy(targetPlatforms = if (selected) it.targetPlatforms + "ios" else it.targetPlatforms - "ios")
+                    it.copy(
+                        targetPlatforms =
+                            if (selected) it.targetPlatforms + "ios" else it.targetPlatforms - "ios"
+                    )
                 }
             }
             OptionRow(
@@ -304,19 +392,30 @@ fun AnnouncementOwnerScreen(
                 "android" in draft.targetPlatforms,
             ) { selected ->
                 onChange {
-                    it.copy(targetPlatforms = if (selected) it.targetPlatforms + "android" else it.targetPlatforms - "android")
+                    it.copy(
+                        targetPlatforms =
+                            if (selected) it.targetPlatforms + "android"
+                            else it.targetPlatforms - "android"
+                    )
                 }
             }
-            OptionRow(tr(language, "Bestätigung erforderlich", "Потрібне підтвердження"), draft.mode == "acknowledge") {
-                selected -> onChange { it.copy(mode = if (selected) "acknowledge" else "once") }
+            OptionRow(
+                tr(language, "Bestätigung erforderlich", "Потрібне підтвердження"),
+                draft.mode == "acknowledge",
+            ) { selected ->
+                onChange { it.copy(mode = if (selected) "acknowledge" else "once") }
             }
             OptionRow(tr(language, "Feedback erlauben", "Дозволити звернення"), draft.feedback) {
-                selected -> onChange { it.copy(feedback = selected) }
+                selected ->
+                onChange { it.copy(feedback = selected) }
             }
-            OptionRow(tr(language, "Push senden", "Надіслати push"), draft.push) {
-                selected -> onChange { it.copy(push = selected) }
+            OptionRow(tr(language, "Push senden", "Надіслати push"), draft.push) { selected ->
+                onChange { it.copy(push = selected) }
             }
-            OptionRow(tr(language, "Inhalt und Zielgruppe geprüft", "Вміст і аудиторію перевірено"), reviewed) {
+            OptionRow(
+                tr(language, "Inhalt und Zielgruppe geprüft", "Вміст і аудиторію перевірено"),
+                reviewed,
+            ) {
                 reviewed = it
             }
             FlowRow(
@@ -330,35 +429,65 @@ fun AnnouncementOwnerScreen(
                     Text(tr(language, "Test an mich", "Тест собі"))
                 }
                 OutlinedButton(
-                    { previewOpen = true; onPreview() },
+                    {
+                        previewOpen = true
+                        onPreview()
+                    },
                     enabled = draft.groups.isNotEmpty() || draft.userIds.isNotEmpty(),
                     modifier = Modifier.testTag("announcement-preview"),
                 ) {
                     Text(tr(language, "Vorschau", "Попередній перегляд"))
                 }
-                Button({ confirmPublish = true }, enabled = draft.revision > 0 && draft.publishable() && reviewed, modifier = Modifier.testTag("announcement-publish")) {
+                Button(
+                    { confirmPublish = true },
+                    enabled = draft.revision > 0 && draft.publishable() && reviewed,
+                    modifier = Modifier.testTag("announcement-publish"),
+                ) {
                     Text(tr(language, "Veröffentlichen", "Опублікувати"))
                 }
             }
             if (confirmPublish) {
                 AlertDialog(
                     onDismissRequest = { confirmPublish = false },
-                    title = { Text(tr(language, "Mitteilung veröffentlichen?", "Опублікувати оповіщення?")) },
-                    text = { Text(tr(language, "Die ausgewählte Zielgruppe kann die Mitteilung sofort erhalten.", "Обрана аудиторія може отримати оповіщення одразу.")) },
+                    title = {
+                        Text(
+                            tr(language, "Mitteilung veröffentlichen?", "Опублікувати оповіщення?")
+                        )
+                    },
+                    text = {
+                        Text(
+                            tr(
+                                language,
+                                "Die ausgewählte Zielgruppe kann die Mitteilung sofort erhalten.",
+                                "Обрана аудиторія може отримати оповіщення одразу.",
+                            )
+                        )
+                    },
                     confirmButton = {
-                        Button({ confirmPublish = false; onPublish() }, Modifier.testTag("announcement-publish-confirm")) {
+                        Button(
+                            {
+                                confirmPublish = false
+                                onPublish()
+                            },
+                            Modifier.testTag("announcement-publish-confirm"),
+                        ) {
                             Text(tr(language, "Veröffentlichen", "Опублікувати"))
                         }
                     },
                     dismissButton = {
-                        OutlinedButton({ confirmPublish = false }) { Text(tr(language, "Abbrechen", "Скасувати")) }
+                        OutlinedButton({ confirmPublish = false }) {
+                            Text(tr(language, "Abbrechen", "Скасувати"))
+                        }
                     },
                 )
             }
             state.audience?.let {
                 Text(
-                    tr(language, "Konten: ${it.accounts}; Gäste: ${if (it.guests) "ja" else "nein"}",
-                        "Акаунти: ${it.accounts}; гості: ${if (it.guests) "так" else "ні"}")
+                    tr(
+                        language,
+                        "Konten: ${it.accounts}; Gäste: ${if (it.guests) "ja" else "nein"}",
+                        "Акаунти: ${it.accounts}; гості: ${if (it.guests) "так" else "ні"}",
+                    )
                 )
             }
             if (previewOpen) {
@@ -384,7 +513,9 @@ fun AnnouncementOwnerScreen(
                         }
                     },
                     confirmButton = {
-                        Button({ previewOpen = false }) { Text(tr(language, "Schließen", "Закрити")) }
+                        Button({ previewOpen = false }) {
+                            Text(tr(language, "Schließen", "Закрити"))
+                        }
                     },
                 )
             }
@@ -396,10 +527,14 @@ fun AnnouncementOwnerScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (item.status == "draft")
-                    OutlinedButton({ onEdit(item) }) { Text(tr(language, "Bearbeiten", "Редагувати")) }
+                    OutlinedButton({ onEdit(item) }) {
+                        Text(tr(language, "Bearbeiten", "Редагувати"))
+                    }
                 OutlinedButton({ onStats(item) }) { Text(tr(language, "Statistik", "Статистика")) }
                 if (item.status == "published")
-                    OutlinedButton({ onCancel(item) }) { Text(tr(language, "Stoppen", "Скасувати")) }
+                    OutlinedButton({ onCancel(item) }) {
+                        Text(tr(language, "Stoppen", "Скасувати"))
+                    }
             }
             state.statistics[item.id]?.let { stats ->
                 Text(
@@ -426,47 +561,71 @@ private fun AnnouncementDateTimeButton(label: String, value: Long, onChange: (Lo
         onClick = {
             val initial = Calendar.getInstance().apply { timeInMillis = value }
             DatePickerDialog(
-                context,
-                { _, year, month, day ->
-                    TimePickerDialog(
-                        context,
-                        { _, hour, minute ->
-                            val selected = Calendar.getInstance().apply {
-                                set(year, month, day, hour, minute, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            onChange(selected.timeInMillis)
-                        },
-                        initial.get(Calendar.HOUR_OF_DAY),
-                        initial.get(Calendar.MINUTE),
-                        true,
-                    ).show()
-                },
-                initial.get(Calendar.YEAR),
-                initial.get(Calendar.MONTH),
-                initial.get(Calendar.DAY_OF_MONTH),
-            ).show()
+                    context,
+                    { _, year, month, day ->
+                        TimePickerDialog(
+                                context,
+                                { _, hour, minute ->
+                                    val selected =
+                                        Calendar.getInstance().apply {
+                                            set(year, month, day, hour, minute, 0)
+                                            set(Calendar.MILLISECOND, 0)
+                                        }
+                                    onChange(selected.timeInMillis)
+                                },
+                                initial.get(Calendar.HOUR_OF_DAY),
+                                initial.get(Calendar.MINUTE),
+                                true,
+                            )
+                            .show()
+                    },
+                    initial.get(Calendar.YEAR),
+                    initial.get(Calendar.MONTH),
+                    initial.get(Calendar.DAY_OF_MONTH),
+                )
+                .show()
         },
         modifier = Modifier.fillMaxWidth(),
-    ) { Text("$label · ${DateFormat.getDateTimeInstance().format(Date(value))}") }
+    ) {
+        Text("$label · ${DateFormat.getDateTimeInstance().format(Date(value))}")
+    }
 }
 
 @Composable
 private fun OptionRow(label: String, selected: Boolean, onSelected: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Checkbox(selected, onSelected)
-        Text(label)
+    Row(
+        Modifier.fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = selected, role = Role.Checkbox, onValueChange = onSelected),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(selected, null)
+        Text(label, Modifier.weight(1f))
     }
 }
 
 fun announcementFailureText(failure: AnnouncementFailure, language: String) =
     when (failure) {
         AnnouncementFailure.SIGN_IN -> tr(language, "Bitte anmelden.", "Увійдіть в акаунт.")
-        AnnouncementFailure.NOT_READY -> tr(language, "Konto oder Funktion ist noch nicht bereit.", "Акаунт або функція ще не готові.")
+        AnnouncementFailure.NOT_READY ->
+            tr(
+                language,
+                "Konto oder Funktion ist noch nicht bereit.",
+                "Акаунт або функція ще не готові.",
+            )
         AnnouncementFailure.DENIED -> tr(language, "Zugriff nicht erlaubt.", "Доступ заборонено.")
-        AnnouncementFailure.OFFLINE -> tr(language, "Server nicht erreichbar.", "Сервер недоступний.")
-        AnnouncementFailure.INVALID -> tr(language, "Ungültige Mitteilungsdaten.", "Некоректні дані оповіщення.")
-        AnnouncementFailure.STALE -> tr(language, "Stand geändert. Bitte neu laden.", "Дані змінилися. Оновіть сторінку.")
-        AnnouncementFailure.LIMIT -> tr(language, "Limit erreicht; manuelle Eingabe bleibt möglich.", "Ліміт вичерпано; доступне ручне введення.")
-        AnnouncementFailure.UNKNOWN -> tr(language, "Vorgang fehlgeschlagen.", "Не вдалося виконати дію.")
+        AnnouncementFailure.OFFLINE ->
+            tr(language, "Server nicht erreichbar.", "Сервер недоступний.")
+        AnnouncementFailure.INVALID ->
+            tr(language, "Ungültige Mitteilungsdaten.", "Некоректні дані оповіщення.")
+        AnnouncementFailure.STALE ->
+            tr(language, "Stand geändert. Bitte neu laden.", "Дані змінилися. Оновіть сторінку.")
+        AnnouncementFailure.LIMIT ->
+            tr(
+                language,
+                "Limit erreicht; manuelle Eingabe bleibt möglich.",
+                "Ліміт вичерпано; доступне ручне введення.",
+            )
+        AnnouncementFailure.UNKNOWN ->
+            tr(language, "Vorgang fehlgeschlagen.", "Не вдалося виконати дію.")
     }

@@ -10,7 +10,9 @@ import androidx.compose.ui.unit.dp
 import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacRowDivider
 import at.uac.android.design.UacSectionCard
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 
 /** The same welcome/public-browsing hierarchy as build 65, without initializing an auth form. */
@@ -37,8 +39,12 @@ fun GuestProfileContent(
         ) {
             Button(
                 onLogin,
-                Modifier.heightIn(min = UacDesign.minimumTouch).testTag("guest-sign-in"),
+                Modifier.fillMaxWidth()
+                    .heightIn(min = UacDesign.minimumTouch)
+                    .testTag("guest-sign-in"),
             ) {
+                UacSymbol(UacIcon.PROFILE)
+                Spacer(Modifier.width(8.dp))
                 Text(tr(language, "Anmelden", "Увійти"))
             }
             FilledTonalButton(
@@ -76,6 +82,7 @@ fun GuestProfileContent(
         ) {
             onNavigate("home")
         }
+        UacRowDivider()
         ProfileNavigationRow(
             tr(language, "Veranstaltungen ansehen", "Перегляд подій"),
             tr(
@@ -88,6 +95,7 @@ fun GuestProfileContent(
         ) {
             onNavigate("events")
         }
+        UacRowDivider()
         ProfileNavigationRow(
             tr(language, "Organisationen ansehen", "Перегляд організацій"),
             tr(

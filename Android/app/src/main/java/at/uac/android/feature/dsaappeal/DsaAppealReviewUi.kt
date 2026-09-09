@@ -61,17 +61,17 @@ fun DsaAppealReviewScreen(
         else DsaAppealReviewState(session = snapshot.session, loading = ready)
     LazyColumn(
         Modifier.testTag("dsa-review-list"),
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(
+            at.uac.android.design.UacSectionHeading(
                 tr(
                     language,
                     "Entscheidung vor einer Beschwerde prüfen",
                     "Перевірка рішення перед скаргою",
                 ),
-                style = MaterialTheme.typography.headlineSmall,
+                icon = at.uac.android.design.UacIcon.SECURITY,
             )
         }
         item {

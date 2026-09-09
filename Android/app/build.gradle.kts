@@ -4,13 +4,21 @@ plugins {
 }
 
 val productionKeystorePath =
-    providers.environmentVariable("UAC_PRODUCTION_KEYSTORE").orElse(providers.gradleProperty("uac.production.keystore"))
+    providers
+        .environmentVariable("UAC_PRODUCTION_KEYSTORE")
+        .orElse(providers.gradleProperty("uac.production.keystore"))
 val productionKeystorePassword =
-    providers.environmentVariable("UAC_PRODUCTION_KEYSTORE_PASSWORD").orElse(providers.gradleProperty("uac.production.keystorePassword"))
+    providers
+        .environmentVariable("UAC_PRODUCTION_KEYSTORE_PASSWORD")
+        .orElse(providers.gradleProperty("uac.production.keystorePassword"))
 val productionKeyAlias =
-    providers.environmentVariable("UAC_PRODUCTION_KEY_ALIAS").orElse(providers.gradleProperty("uac.production.keyAlias"))
+    providers
+        .environmentVariable("UAC_PRODUCTION_KEY_ALIAS")
+        .orElse(providers.gradleProperty("uac.production.keyAlias"))
 val productionKeyPassword =
-    providers.environmentVariable("UAC_PRODUCTION_KEY_PASSWORD").orElse(providers.gradleProperty("uac.production.keyPassword"))
+    providers
+        .environmentVariable("UAC_PRODUCTION_KEY_PASSWORD")
+        .orElse(providers.gradleProperty("uac.production.keyPassword"))
 
 android {
     namespace = "at.uac.android"
@@ -19,7 +27,7 @@ android {
         minSdk = 26
         targetSdk = 36
         // Product/build identity follows the current iOS TestFlight baseline.
-        versionCode = 83
+        versionCode = 84
         versionName = "1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["appLabel"] = "UAC"
@@ -77,10 +85,42 @@ android {
                 "BACKEND_BUCKET",
                 "\"${providers.environmentVariable("UAC_STAGING_FIREBASE_BUCKET").orElse(providers.gradleProperty("uac.staging.firebase.bucket")).orElse("uac-android-test-20260903.firebasestorage.app").get()}\"",
             )
-            resValue("string", "google_app_id", providers.environmentVariable("UAC_STAGING_FIREBASE_APPLICATION_ID").orElse(providers.gradleProperty("uac.staging.firebase.applicationId")).orElse("").get())
-            resValue("string", "google_api_key", providers.environmentVariable("UAC_STAGING_FIREBASE_API_KEY").orElse(providers.gradleProperty("uac.staging.firebase.apiKey")).orElse("").get())
-            resValue("string", "project_id", providers.environmentVariable("UAC_STAGING_FIREBASE_PROJECT_ID").orElse(providers.gradleProperty("uac.staging.firebase.projectId")).orElse("uac-android-test-20260903").get())
-            resValue("string", "google_storage_bucket", providers.environmentVariable("UAC_STAGING_FIREBASE_BUCKET").orElse(providers.gradleProperty("uac.staging.firebase.bucket")).orElse("uac-android-test-20260903.firebasestorage.app").get())
+            resValue(
+                "string",
+                "google_app_id",
+                providers
+                    .environmentVariable("UAC_STAGING_FIREBASE_APPLICATION_ID")
+                    .orElse(providers.gradleProperty("uac.staging.firebase.applicationId"))
+                    .orElse("")
+                    .get(),
+            )
+            resValue(
+                "string",
+                "google_api_key",
+                providers
+                    .environmentVariable("UAC_STAGING_FIREBASE_API_KEY")
+                    .orElse(providers.gradleProperty("uac.staging.firebase.apiKey"))
+                    .orElse("")
+                    .get(),
+            )
+            resValue(
+                "string",
+                "project_id",
+                providers
+                    .environmentVariable("UAC_STAGING_FIREBASE_PROJECT_ID")
+                    .orElse(providers.gradleProperty("uac.staging.firebase.projectId"))
+                    .orElse("uac-android-test-20260903")
+                    .get(),
+            )
+            resValue(
+                "string",
+                "google_storage_bucket",
+                providers
+                    .environmentVariable("UAC_STAGING_FIREBASE_BUCKET")
+                    .orElse(providers.gradleProperty("uac.staging.firebase.bucket"))
+                    .orElse("uac-android-test-20260903.firebasestorage.app")
+                    .get(),
+            )
             resValue("string", "gcm_defaultSenderId", "966536981122")
         }
         create("production") {
@@ -111,10 +151,42 @@ android {
                 "BACKEND_BUCKET",
                 "\"${providers.environmentVariable("UAC_PRODUCTION_FIREBASE_BUCKET").orElse(providers.gradleProperty("uac.production.firebase.bucket")).orElse("").get()}\"",
             )
-            resValue("string", "google_app_id", providers.environmentVariable("UAC_PRODUCTION_FIREBASE_APPLICATION_ID").orElse(providers.gradleProperty("uac.production.firebase.applicationId")).orElse("").get())
-            resValue("string", "google_api_key", providers.environmentVariable("UAC_PRODUCTION_FIREBASE_API_KEY").orElse(providers.gradleProperty("uac.production.firebase.apiKey")).orElse("").get())
-            resValue("string", "project_id", providers.environmentVariable("UAC_PRODUCTION_FIREBASE_PROJECT_ID").orElse(providers.gradleProperty("uac.production.firebase.projectId")).orElse("").get())
-            resValue("string", "google_storage_bucket", providers.environmentVariable("UAC_PRODUCTION_FIREBASE_BUCKET").orElse(providers.gradleProperty("uac.production.firebase.bucket")).orElse("").get())
+            resValue(
+                "string",
+                "google_app_id",
+                providers
+                    .environmentVariable("UAC_PRODUCTION_FIREBASE_APPLICATION_ID")
+                    .orElse(providers.gradleProperty("uac.production.firebase.applicationId"))
+                    .orElse("")
+                    .get(),
+            )
+            resValue(
+                "string",
+                "google_api_key",
+                providers
+                    .environmentVariable("UAC_PRODUCTION_FIREBASE_API_KEY")
+                    .orElse(providers.gradleProperty("uac.production.firebase.apiKey"))
+                    .orElse("")
+                    .get(),
+            )
+            resValue(
+                "string",
+                "project_id",
+                providers
+                    .environmentVariable("UAC_PRODUCTION_FIREBASE_PROJECT_ID")
+                    .orElse(providers.gradleProperty("uac.production.firebase.projectId"))
+                    .orElse("")
+                    .get(),
+            )
+            resValue(
+                "string",
+                "google_storage_bucket",
+                providers
+                    .environmentVariable("UAC_PRODUCTION_FIREBASE_BUCKET")
+                    .orElse(providers.gradleProperty("uac.production.firebase.bucket"))
+                    .orElse("")
+                    .get(),
+            )
             resValue("string", "gcm_defaultSenderId", "919042658790")
         }
     }
@@ -125,19 +197,23 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             if (
                 productionKeystorePath.isPresent &&
                     productionKeystorePassword.isPresent &&
                     productionKeyAlias.isPresent &&
                     productionKeyPassword.isPresent
             ) {
-                signingConfig = signingConfigs.create("production") {
-                    storeFile = file(productionKeystorePath.get())
-                    storePassword = productionKeystorePassword.get()
-                    keyAlias = productionKeyAlias.get()
-                    keyPassword = productionKeyPassword.get()
-                }
+                signingConfig =
+                    signingConfigs.create("production") {
+                        storeFile = file(productionKeystorePath.get())
+                        storePassword = productionKeystorePassword.get()
+                        keyAlias = productionKeyAlias.get()
+                        keyPassword = productionKeyPassword.get()
+                    }
             }
         }
     }
@@ -182,17 +258,35 @@ val verifyProductionReleaseConfiguration by tasks.registering {
     doLast {
         val required =
             mapOf(
-                "UAC_PRODUCTION_FIREBASE_PROJECT_ID" to providers.environmentVariable("UAC_PRODUCTION_FIREBASE_PROJECT_ID").orElse(providers.gradleProperty("uac.production.firebase.projectId")).orNull,
-                "UAC_PRODUCTION_FIREBASE_APPLICATION_ID" to providers.environmentVariable("UAC_PRODUCTION_FIREBASE_APPLICATION_ID").orElse(providers.gradleProperty("uac.production.firebase.applicationId")).orNull,
-                "UAC_PRODUCTION_FIREBASE_API_KEY" to providers.environmentVariable("UAC_PRODUCTION_FIREBASE_API_KEY").orElse(providers.gradleProperty("uac.production.firebase.apiKey")).orNull,
-                "UAC_PRODUCTION_FIREBASE_BUCKET" to providers.environmentVariable("UAC_PRODUCTION_FIREBASE_BUCKET").orElse(providers.gradleProperty("uac.production.firebase.bucket")).orNull,
+                "UAC_PRODUCTION_FIREBASE_PROJECT_ID" to
+                    providers
+                        .environmentVariable("UAC_PRODUCTION_FIREBASE_PROJECT_ID")
+                        .orElse(providers.gradleProperty("uac.production.firebase.projectId"))
+                        .orNull,
+                "UAC_PRODUCTION_FIREBASE_APPLICATION_ID" to
+                    providers
+                        .environmentVariable("UAC_PRODUCTION_FIREBASE_APPLICATION_ID")
+                        .orElse(providers.gradleProperty("uac.production.firebase.applicationId"))
+                        .orNull,
+                "UAC_PRODUCTION_FIREBASE_API_KEY" to
+                    providers
+                        .environmentVariable("UAC_PRODUCTION_FIREBASE_API_KEY")
+                        .orElse(providers.gradleProperty("uac.production.firebase.apiKey"))
+                        .orNull,
+                "UAC_PRODUCTION_FIREBASE_BUCKET" to
+                    providers
+                        .environmentVariable("UAC_PRODUCTION_FIREBASE_BUCKET")
+                        .orElse(providers.gradleProperty("uac.production.firebase.bucket"))
+                        .orNull,
                 "UAC_PRODUCTION_KEYSTORE" to productionKeystorePath.orNull,
                 "UAC_PRODUCTION_KEYSTORE_PASSWORD" to productionKeystorePassword.orNull,
                 "UAC_PRODUCTION_KEY_ALIAS" to productionKeyAlias.orNull,
                 "UAC_PRODUCTION_KEY_PASSWORD" to productionKeyPassword.orNull,
             )
         val missing = required.filterValues { it.isNullOrBlank() }.keys
-        check(missing.isEmpty()) { "Production release configuration missing: ${missing.joinToString()}" }
+        check(missing.isEmpty()) {
+            "Production release configuration missing: ${missing.joinToString()}"
+        }
         check(file(productionKeystorePath.get()).isFile) { "Production keystore file is missing" }
     }
 }
@@ -201,10 +295,26 @@ val verifyStagingDebugConfiguration by tasks.registering {
     doLast {
         val required =
             mapOf(
-                "UAC_STAGING_FIREBASE_PROJECT_ID" to providers.environmentVariable("UAC_STAGING_FIREBASE_PROJECT_ID").orElse(providers.gradleProperty("uac.staging.firebase.projectId")).orNull,
-                "UAC_STAGING_FIREBASE_APPLICATION_ID" to providers.environmentVariable("UAC_STAGING_FIREBASE_APPLICATION_ID").orElse(providers.gradleProperty("uac.staging.firebase.applicationId")).orNull,
-                "UAC_STAGING_FIREBASE_API_KEY" to providers.environmentVariable("UAC_STAGING_FIREBASE_API_KEY").orElse(providers.gradleProperty("uac.staging.firebase.apiKey")).orNull,
-                "UAC_STAGING_FIREBASE_BUCKET" to providers.environmentVariable("UAC_STAGING_FIREBASE_BUCKET").orElse(providers.gradleProperty("uac.staging.firebase.bucket")).orNull,
+                "UAC_STAGING_FIREBASE_PROJECT_ID" to
+                    providers
+                        .environmentVariable("UAC_STAGING_FIREBASE_PROJECT_ID")
+                        .orElse(providers.gradleProperty("uac.staging.firebase.projectId"))
+                        .orNull,
+                "UAC_STAGING_FIREBASE_APPLICATION_ID" to
+                    providers
+                        .environmentVariable("UAC_STAGING_FIREBASE_APPLICATION_ID")
+                        .orElse(providers.gradleProperty("uac.staging.firebase.applicationId"))
+                        .orNull,
+                "UAC_STAGING_FIREBASE_API_KEY" to
+                    providers
+                        .environmentVariable("UAC_STAGING_FIREBASE_API_KEY")
+                        .orElse(providers.gradleProperty("uac.staging.firebase.apiKey"))
+                        .orNull,
+                "UAC_STAGING_FIREBASE_BUCKET" to
+                    providers
+                        .environmentVariable("UAC_STAGING_FIREBASE_BUCKET")
+                        .orElse(providers.gradleProperty("uac.staging.firebase.bucket"))
+                        .orNull,
             )
         val missing = required.filterValues { it.isNullOrBlank() }.keys
         check(missing.isEmpty()) {
@@ -214,12 +324,18 @@ val verifyStagingDebugConfiguration by tasks.registering {
 }
 
 tasks.named("preBuild") { dependsOn(verifyLocalOnly) }
-tasks.matching { it.name == "preProductionReleaseBuild" }.configureEach {
-    dependsOn(verifyProductionReleaseConfiguration)
-}
-tasks.matching { it.name == "preStagingDebugBuild" }.configureEach {
-    dependsOn(verifyStagingDebugConfiguration)
-}
+
+tasks
+    .matching { it.name == "preProductionReleaseBuild" }
+    .configureEach {
+        dependsOn(verifyProductionReleaseConfiguration)
+    }
+
+tasks
+    .matching { it.name == "preStagingDebugBuild" }
+    .configureEach {
+        dependsOn(verifyStagingDebugConfiguration)
+    }
 
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.03.01"))

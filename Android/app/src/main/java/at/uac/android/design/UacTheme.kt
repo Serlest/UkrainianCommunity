@@ -248,7 +248,15 @@ fun UacTheme(selected: String = "system", content: @Composable () -> Unit) {
  * The original bundled iPhone backdrop, with its original appearance-dependent readability overlay.
  */
 @Composable
-fun UacPageBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+fun UacPageBackground(
+    modifier: Modifier = Modifier,
+    plain: Boolean = false,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    if (plain) {
+        Box(modifier.background(MaterialTheme.colorScheme.background), content = content)
+        return
+    }
     val overlay =
         if (LocalUacDark.current)
             listOf(

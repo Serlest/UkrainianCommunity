@@ -31,6 +31,9 @@ import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.moderation.ModerationSession
 import java.time.ZoneId
@@ -114,16 +117,17 @@ fun ContentPlanningContent(
         val section = state.section()
         LazyColumn(
             Modifier.fillMaxSize().testTag("content-planning"),
-            contentPadding = PaddingValues(20.dp),
+            contentPadding = PaddingValues(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item("header") {
                 TextButton(onBack, Modifier.testTag("content-planning-back")) {
+                    UacSymbol(UacIcon.BACK)
                     Text(tr(language, "Zurück", "Назад"))
                 }
-                Text(
+                UacSectionHeading(
                     tr(language, "Inhaltsplanung", "Планування контенту"),
-                    style = MaterialTheme.typography.headlineMedium,
+                    UacIcon.EDIT,
                 )
                 Text(
                     tr(
@@ -298,14 +302,15 @@ private fun ContentPlanningDetail(
     var organizationId by remember(draft.id) { mutableStateOf<String?>(null) }
     LazyColumn(
         Modifier.fillMaxSize().testTag("content-planning-detail"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item("header") {
             TextButton(onClose, Modifier.testTag("content-planning-detail-back")) {
+                UacSymbol(UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(draft.title, style = MaterialTheme.typography.headlineSmall)
+            UacSectionHeading(draft.title, UacIcon.EDIT)
             Text("${kindLabel(draft.kind, language)} · ${stateLabel(draft.state, language)}")
         }
         if (draft.missingFields.isNotEmpty())

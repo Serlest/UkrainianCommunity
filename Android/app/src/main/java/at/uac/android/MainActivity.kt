@@ -10,9 +10,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -1202,7 +1202,41 @@ class MainActivity : FragmentActivity() {
                             }
                         },
                         accountContent = { route, selectedLanguage ->
-                            if (route == "profile/deleted") {
+                            if (route == "profile/preferences") {
+                                Column(
+                                    Modifier.fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(bottom = 32.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                ) {
+                                    at.uac.android.design.UacSectionHeading(
+                                        tr(
+                                            selectedLanguage,
+                                            "Datenschutz und App-Sperre",
+                                            "Приватність і блокування застосунку",
+                                        ),
+                                        UacIcon.SECURITY,
+                                    )
+                                    if (lockState.session != null)
+                                        AppLockSettingsSection(lockState, selectedLanguage) {
+                                            enabled ->
+                                            if (
+                                                lockHost.model.state.value.session ==
+                                                    auth.state.value.appLockSession()
+                                            )
+                                                lockHost.model.setEnabled(enabled, selectedLanguage)
+                                        }
+                                    if (authSession.identity?.anonymous == false)
+                                        at.uac.android.design.UacCard {
+                                            AnalyticsConsentSettings(
+                                                authSession.analyticsConsentAuthority(),
+                                                selectedLanguage,
+                                                BuildConfig.VERSION_NAME,
+                                                analyticsConsent,
+                                            )
+                                        }
+                                }
+                            } else if (route == "profile/deleted") {
                                 Column(
                                     Modifier.fillMaxSize()
                                         .verticalScroll(rememberScrollState())
@@ -1766,147 +1800,249 @@ class MainActivity : FragmentActivity() {
                                         )
                                     },
                                 ) {
-                                    UacSectionCard(
-                                        tr(selectedLanguage, "Kommunikation", "Спілкування")
-                                    ) {
-                                        InboxAccountLink(inboxState, selectedLanguage) {
-                                            if (auth.state.value.inboxScope() != null)
-                                                model.navigate("profile/inbox")
+                                    if (route != "profile/administration") {
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Kommunikation", "Спілкування")
+                                        ) {
+                                            InboxAccountLink(inboxState, selectedLanguage) {
+                                                if (auth.state.value.inboxScope() != null)
+                                                    model.navigate("profile/inbox")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
+                                                title =
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "App-Mitteilungen",
+                                                        "Оповіщення застосунку",
+                                                    ),
+                                                icon = UacIcon.NEWS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-announcements"),
+                                            ) {
+                                                model.navigate("profile/announcements")
+                                            }
                                         }
-                                        UacRowDivider()
-                                        UacNavigationRow(
-                                            title =
+                                        if (
+                                            authSession.identity?.anonymous == false ||
+                                                authSession.feedbackScope() != null ||
+                                                authSession.readyForActions
+                                        )
+                                            UacSectionCard(
+                                                tr(selectedLanguage, "Aktivität", "Активність")
+                                            ) {
+                                                if (authSession.readyForActions) {
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Organisationen und Anträge",
+                                                            "Мої організації та заявки",
+                                                        ),
+                                                        icon = UacIcon.ORGANIZATIONS,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-organizations"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/organizations")
+                                                    }
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Veranstaltungen",
+                                                            "Мої події",
+                                                        ),
+                                                        icon = UacIcon.CALENDAR,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-registrations"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/registrations")
+                                                    }
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Zuletzt angesehen",
+                                                            "Нещодавно переглянуте",
+                                                        ),
+                                                        icon = UacIcon.HISTORY,
+                                                        modifier =
+                                                            Modifier.testTag("account-open-recent"),
+                                                    ) {
+                                                        model.navigate("profile/recent")
+                                                    }
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Aktivitäten",
+                                                            "Мої дії",
+                                                        ),
+                                                        icon = UacIcon.HISTORY,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-history"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/history")
+                                                    }
+                                                }
+                                                if (authSession.feedbackScope() != null) {
+                                                    if (authSession.readyForActions) UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Anfragen und Support",
+                                                            "Мої звернення та підтримка",
+                                                        ),
+                                                        icon = UacIcon.SUPPORT,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-feedback"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/feedback")
+                                                    }
+                                                }
+                                                if (authSession.identity?.anonymous == false) {
+                                                    if (
+                                                        authSession.readyForActions ||
+                                                            authSession.feedbackScope() != null
+                                                    )
+                                                        UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Blockierte Konten und Organisationen",
+                                                            "Заблоковані користувачі й організації",
+                                                        ),
+                                                        icon = UacIcon.SETTINGS,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-blocked"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/blocked")
+                                                    }
+                                                }
+                                            }
+                                        UacSectionCard(
+                                            tr(
+                                                selectedLanguage,
+                                                "Einstellungen und Sicherheit",
+                                                "Налаштування й безпека",
+                                            )
+                                        ) {
+                                            UacNavigationRow(
                                                 tr(
                                                     selectedLanguage,
-                                                    "App-Mitteilungen",
-                                                    "Оповіщення застосунку",
+                                                    "Kontosicherheit",
+                                                    "Безпека акаунта",
                                                 ),
-                                            icon = UacIcon.NEWS,
-                                            modifier =
-                                                Modifier.testTag("account-open-announcements"),
-                                        ) {
-                                            model.navigate("profile/announcements")
+                                                icon = UacIcon.SECURITY,
+                                                modifier =
+                                                    Modifier.testTag("account-open-security"),
+                                            ) {
+                                                model.navigate("profile/security")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Datenschutz und App-Sperre",
+                                                    "Приватність і блокування застосунку",
+                                                ),
+                                                icon = UacIcon.SETTINGS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-preferences"),
+                                            ) {
+                                                model.navigate("profile/preferences")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Sprache und Darstellung",
+                                                    "Мова й оформлення",
+                                                ),
+                                                icon = UacIcon.SETTINGS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-appearance"),
+                                            ) {
+                                                model.navigate("settings")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Rechtliche Dokumente",
+                                                    "Правові документи",
+                                                ),
+                                                icon = UacIcon.NEWS,
+                                                modifier = Modifier.testTag("account-open-legal"),
+                                            ) {
+                                                model.navigate("profile/legal")
+                                            }
                                         }
                                     }
-                                    if (lockState.session != null)
-                                        AppLockSettingsSection(lockState, selectedLanguage) {
-                                            enabled ->
-                                            if (
-                                                lockHost.model.state.value.session ==
-                                                    auth.state.value.appLockSession()
-                                            )
-                                                lockHost.model.setEnabled(enabled, selectedLanguage)
-                                        }
-                                    if (authSession.identity?.anonymous == false)
-                                        AnalyticsConsentSettings(
-                                            authSession.analyticsConsentAuthority(),
-                                            selectedLanguage,
-                                            BuildConfig.VERSION_NAME,
-                                            analyticsConsent,
-                                        )
-                                    if (
-                                        authSession.identity?.anonymous == false ||
-                                            authSession.feedbackScope() != null ||
-                                            authSession.readyForActions
-                                    )
-                                        UacSectionCard(
-                                            tr(selectedLanguage, "Aktivität", "Активність")
-                                        ) {
-                                            if (authSession.readyForActions) {
-                                                UacNavigationRow(
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Meine Organisationen und Anträge",
-                                                        "Мої організації та заявки",
-                                                    ),
-                                                    icon = UacIcon.ORGANIZATIONS,
-                                                    modifier =
-                                                        Modifier.testTag(
-                                                            "account-open-organizations"
-                                                        ),
-                                                ) {
-                                                    model.navigate("profile/organizations")
-                                                }
-                                                UacRowDivider()
-                                                UacNavigationRow(
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Meine Veranstaltungen",
-                                                        "Мої події",
-                                                    ),
-                                                    icon = UacIcon.CALENDAR,
-                                                    modifier =
-                                                        Modifier.testTag(
-                                                            "account-open-registrations"
-                                                        ),
-                                                ) {
-                                                    model.navigate("profile/registrations")
-                                                }
-                                                UacRowDivider()
-                                                UacNavigationRow(
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Zuletzt angesehen",
-                                                        "Нещодавно переглянуте",
-                                                    ),
-                                                    modifier =
-                                                        Modifier.testTag("account-open-recent"),
-                                                ) {
-                                                    model.navigate("profile/recent")
-                                                }
-                                                UacRowDivider()
-                                                UacNavigationRow(
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Meine Aktivitäten",
-                                                        "Мої дії",
-                                                    ),
-                                                    modifier =
-                                                        Modifier.testTag("account-open-history"),
-                                                ) {
-                                                    model.navigate("profile/history")
-                                                }
-                                            }
-                                            if (authSession.feedbackScope() != null) {
-                                                if (authSession.readyForActions) UacRowDivider()
-                                                UacNavigationRow(
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Meine Anfragen und Support",
-                                                        "Мої звернення та підтримка",
-                                                    ),
-                                                    modifier =
-                                                        Modifier.testTag("account-open-feedback"),
-                                                ) {
-                                                    model.navigate("profile/feedback")
-                                                }
-                                            }
-                                            if (authSession.identity?.anonymous == false) {
-                                                if (
-                                                    authSession.readyForActions ||
-                                                        authSession.feedbackScope() != null
-                                                )
-                                                    UacRowDivider()
-                                                UacNavigationRow(
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Blockierte Konten und Organisationen",
-                                                        "Заблоковані користувачі й організації",
-                                                    ),
-                                                    icon = UacIcon.SETTINGS,
-                                                    modifier =
-                                                        Modifier.testTag("account-open-blocked"),
-                                                ) {
-                                                    model.navigate("profile/blocked")
-                                                }
-                                            }
-                                        }
                                     val moderationScope = authSession.moderationScope()
                                     val ownerTools =
                                         authSession.ownerAnalyticsScope()?.ready == true ||
                                             moderationScope?.allowed == true ||
                                             authSession.feedbackScope()?.canManage == true
-                                    if (ownerTools)
+                                    if (!ownerTools && route == "profile/administration")
+                                        UacSectionCard(
+                                            tr(
+                                                selectedLanguage,
+                                                "Verwaltung nicht verfügbar",
+                                                "Керування недоступне",
+                                            ),
+                                            tr(
+                                                selectedLanguage,
+                                                "Für dieses Konto sind derzeit keine Verwaltungsrechte bestätigt.",
+                                                "Для цього акаунта наразі не підтверджено права керування.",
+                                            ),
+                                            modifier =
+                                                Modifier.testTag("administration-unavailable"),
+                                        ) {
+                                            UacNavigationRow(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Zurück zum Profil",
+                                                    "Повернутися до профілю",
+                                                ),
+                                                icon = UacIcon.PROFILE,
+                                            ) {
+                                                model.navigate("profile", true)
+                                            }
+                                        }
+                                    if (ownerTools && route != "profile/administration")
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Verwaltung", "Керування")
+                                        ) {
+                                            UacNavigationRow(
+                                                tr(
+                                                    selectedLanguage,
+                                                    "Verwaltungsbereich öffnen",
+                                                    "Відкрити розділ керування",
+                                                ),
+                                                subtitle =
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Inhalte, Organisationen und Community",
+                                                        "Матеріали, організації та спільнота",
+                                                    ),
+                                                icon = UacIcon.SETTINGS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-administration"),
+                                            ) {
+                                                model.navigate("profile/administration")
+                                            }
+                                        }
+                                    if (ownerTools && route == "profile/administration")
                                         UacSectionCard(
                                             tr(selectedLanguage, "Verwaltung", "Керування"),
                                             tr(
@@ -1922,6 +2058,7 @@ class MainActivity : FragmentActivity() {
                                                         "Projektunterstützung",
                                                         "Підтримка проєкту",
                                                     ),
+                                                    icon = UacIcon.LIKE,
                                                     modifier =
                                                         Modifier.testTag(
                                                             "account-open-donation-settings"
@@ -1940,6 +2077,7 @@ class MainActivity : FragmentActivity() {
                                                         "Analytics",
                                                         "Аналітика",
                                                     ),
+                                                    icon = UacIcon.ANALYTICS,
                                                     modifier =
                                                         Modifier.testTag(
                                                             "account-open-owner-analytics"
@@ -1973,6 +2111,7 @@ class MainActivity : FragmentActivity() {
                                                             "Admin-Protokoll",
                                                             "Журнал адміністратора",
                                                         ),
+                                                    icon = UacIcon.HISTORY,
                                                     modifier =
                                                         Modifier.testTag(
                                                             "account-open-system-logs"
@@ -1991,6 +2130,7 @@ class MainActivity : FragmentActivity() {
                                                         "Nutzerverwaltung",
                                                         "Керування користувачами",
                                                     ),
+                                                    icon = UacIcon.PROFILE,
                                                     modifier =
                                                         Modifier.testTag("account-open-users"),
                                                 ) {
@@ -2007,6 +2147,7 @@ class MainActivity : FragmentActivity() {
                                                         "Inhalte prüfen",
                                                         "Перевірка матеріалів",
                                                     ),
+                                                    icon = UacIcon.SECURITY,
                                                     modifier =
                                                         Modifier.testTag("account-open-moderation"),
                                                 ) {
@@ -2023,6 +2164,7 @@ class MainActivity : FragmentActivity() {
                                                         "Organisationsanträge prüfen",
                                                         "Перевірка заявок організацій",
                                                     ),
+                                                    icon = UacIcon.ORGANIZATIONS,
                                                     modifier =
                                                         Modifier.testTag(
                                                             "account-open-organization-review"
@@ -2043,6 +2185,7 @@ class MainActivity : FragmentActivity() {
                                                         "Nutzer-Mitteilungen",
                                                         "Оповіщення користувачів",
                                                     ),
+                                                    icon = UacIcon.NOTIFICATIONS,
                                                     modifier =
                                                         Modifier.testTag(
                                                             "account-open-announcement-owner"
@@ -2067,6 +2210,7 @@ class MainActivity : FragmentActivity() {
                                                         "Empfohlene Banner",
                                                         "Рекомендовані банери",
                                                     ),
+                                                    icon = UacIcon.NEWS,
                                                     modifier =
                                                         Modifier.testTag("account-open-featured"),
                                                 ) {
@@ -2083,6 +2227,7 @@ class MainActivity : FragmentActivity() {
                                                         "Inhaltsplanung",
                                                         "Планування контенту",
                                                     ),
+                                                    icon = UacIcon.EDIT,
                                                     modifier =
                                                         Modifier.testTag(
                                                             "account-open-content-planning"
@@ -2103,6 +2248,7 @@ class MainActivity : FragmentActivity() {
                                                         "Support-Postfach",
                                                         "Скринька підтримки",
                                                     ),
+                                                    icon = UacIcon.SUPPORT,
                                                     modifier =
                                                         Modifier.testTag("account-open-support"),
                                                 ) {
@@ -2110,7 +2256,10 @@ class MainActivity : FragmentActivity() {
                                                 }
                                             }
                                         }
-                                    if (authSession.accountDeletionScope() != null)
+                                    if (
+                                        authSession.accountDeletionScope() != null &&
+                                            route != "profile/administration"
+                                    )
                                         UacSectionCard(
                                             tr(selectedLanguage, "Konto", "Обліковий запис")
                                         ) {
@@ -2121,7 +2270,7 @@ class MainActivity : FragmentActivity() {
                                                         "Konto löschen",
                                                         "Видалити обліковий запис",
                                                     ),
-                                                icon = UacIcon.SETTINGS,
+                                                icon = UacIcon.DELETE,
                                                 destructive = true,
                                                 modifier = Modifier.testTag("account-open-delete"),
                                             ) {

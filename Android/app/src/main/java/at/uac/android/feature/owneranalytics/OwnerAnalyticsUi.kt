@@ -12,6 +12,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -27,21 +30,22 @@ fun OwnerAnalyticsScreen(
     val state =
         observed.takeIf { it.session == session && session?.ready == true } ?: OwnerAnalyticsState()
     LaunchedEffect(session) { model.load(session) }
-    Column(Modifier.fillMaxSize().safeDrawingPadding().testTag("owner-analytics")) {
-        Row(
-            Modifier.fillMaxWidth().padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+    Column(Modifier.fillMaxSize().testTag("owner-analytics")) {
+        Column(
+            Modifier.fillMaxWidth().padding(bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            OutlinedButton(
+            TextButton(
                 if (state.detailTarget == null) onBack else model::closeDetail,
                 Modifier.testTag("owner-analytics-back"),
             ) {
+                UacSymbol(UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            UacSectionHeading(
                 if (state.detailTarget == null) tr(language, "Analytics", "Аналітика")
                 else tr(language, "Detailanalyse", "Детальна аналітика"),
-                style = MaterialTheme.typography.headlineSmall,
+                UacIcon.ANALYTICS,
             )
         }
         if (state.detailTarget != null) DetailContent(model, session, state, language)
@@ -57,7 +61,7 @@ private fun OverviewContent(
     language: String,
 ) {
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("owner-analytics-overview"),
+        Modifier.fillMaxSize().testTag("owner-analytics-overview"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
@@ -188,7 +192,7 @@ private fun DetailContent(
     language: String,
 ) {
     LazyColumn(
-        Modifier.fillMaxSize().padding(horizontal = 16.dp).testTag("owner-analytics-detail"),
+        Modifier.fillMaxSize().testTag("owner-analytics-detail"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {

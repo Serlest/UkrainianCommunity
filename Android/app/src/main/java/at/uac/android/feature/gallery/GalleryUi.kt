@@ -24,6 +24,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.PublicImage
@@ -169,16 +172,18 @@ fun GalleryContent(
     BackHandler(onBack = back)
     LazyColumn(
         Modifier.fillMaxSize().imePadding().testTag("gallery-list"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
             TextButton(back, Modifier.testTag("gallery-back")) {
+                UacSymbol(UacIcon.BACK)
+                Spacer(Modifier.width(8.dp))
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            UacSectionHeading(
                 tr(language, "Fotogalerie", "Фотогалерея"),
-                style = MaterialTheme.typography.headlineMedium,
+                UacIcon.PHOTO,
             )
             Text(
                 tr(
@@ -366,6 +371,8 @@ fun GalleryContent(
                                 Modifier.testTag("gallery-choose"),
                                 enabled = state.canChoose,
                             ) {
+                                UacSymbol(UacIcon.PHOTO, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
                                 Text(tr(language, "Foto auswählen", "Обрати фото"))
                             }
                             if (state.prepared != null) {
@@ -376,7 +383,11 @@ fun GalleryContent(
                                 ) {
                                     Text(
                                         if (state.replacing == null)
-                                            tr(language, "Foto veröffentlichen", "Опублікувати фото")
+                                            tr(
+                                                language,
+                                                "Foto veröffentlichen",
+                                                "Опублікувати фото",
+                                            )
                                         else tr(language, "Foto ersetzen", "Замінити фото")
                                     )
                                 }

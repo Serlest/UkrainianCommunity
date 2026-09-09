@@ -15,6 +15,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.LocalStorage
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.PublicImage
 import at.uac.android.feature.browse.displayTime
 import at.uac.android.feature.browse.tr
@@ -80,16 +83,18 @@ fun AttendeesContent(state: AttendeesState, language: String, actions: Attendees
             .orEmpty()
     LazyColumn(
         Modifier.fillMaxSize().testTag("attendees-list"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
             TextButton(actions.back, Modifier.testTag("attendees-back")) {
+                UacSymbol(UacIcon.BACK)
+                Spacer(Modifier.width(8.dp))
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            UacSectionHeading(
                 tr(language, "Teilnehmende", "Учасники"),
-                style = MaterialTheme.typography.headlineMedium,
+                UacIcon.PROFILE,
             )
             Text(
                 tr(

@@ -8,6 +8,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.*
 import at.uac.android.feature.personal.personalFailureText
 import java.time.Instant
@@ -30,7 +33,8 @@ fun RegistrationsScreen(
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         item("header") {
-            Heading(tr(language, "Meine Veranstaltungen", "Мої події"))
+            UacSectionHeading(tr(language, "Meine Veranstaltungen", "Мої події"), UacIcon.CALENDAR)
+            Spacer(Modifier.height(8.dp))
             Text(
                 tr(
                     language,
@@ -139,11 +143,19 @@ fun RegistrationsScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(event.title(language), style = MaterialTheme.typography.titleMedium)
-                        Text(displayTime(event.fields.time("startDate")!!, language))
-                        Text(
-                            event.fields.string("city"),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            UacSymbol(UacIcon.CALENDAR)
+                            Text(
+                                displayTime(event.fields.time("startDate")!!, language),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                        event.fields.string("city").takeIf(String::isNotBlank)?.let { city ->
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                UacSymbol(UacIcon.LOCATION)
+                                Text(city, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
                         if (event.fields.string("cancellationState") == "cancelled")
                             Text(
                                 tr(language, "Abgesagt", "Скасовано"),

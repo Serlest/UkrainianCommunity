@@ -28,6 +28,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.LocalStorage
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.PublicImage
 import at.uac.android.feature.browse.tr
 
@@ -116,15 +118,15 @@ fun ProfileAvatarPanel(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.testTag("profile-avatar-editor"),
     ) {
-        Text(
+        UacSectionHeading(
             tr(language, "Profilfoto", "Фото профілю"),
-            style = MaterialTheme.typography.titleMedium,
+            UacIcon.PROFILE,
         )
         Text(
             tr(
                 language,
-                "Wähle ein JPEG-, PNG- oder WebP-Foto. Wir schneiden die Mitte quadratisch zu; prüfe die Vorschau. Metadaten werden entfernt.",
-                "Оберіть фото JPEG, PNG або WebP. Ми обріжемо центр до квадрата — перевірте попередній перегляд. Метадані буде видалено.",
+                "Wähle ein Foto und prüfe den Ausschnitt vor dem Speichern. Unterstützt werden JPEG, PNG und WebP.",
+                "Оберіть фото й перевірте обрізання перед збереженням. Підтримуються JPEG, PNG і WebP.",
             ),
             style = MaterialTheme.typography.bodySmall,
         )
@@ -173,8 +175,8 @@ fun ProfileAvatarPanel(
             Text(
                 tr(
                     language,
-                    "Foto gespeichert; Datei und Profil vom Server bestätigt. Andere Formularänderungen bleiben ungespeichert.",
-                    "Фото збережено; файл і профіль підтверджено сервером. Інші зміни у формі ще не збережені.",
+                    "Profilfoto gespeichert. Speichere andere Änderungen am Profil separat.",
+                    "Фото профілю збережено. Інші зміни профілю збережіть окремо.",
                 ),
                 Modifier.testTag("profile-avatar-confirmed"),
             )

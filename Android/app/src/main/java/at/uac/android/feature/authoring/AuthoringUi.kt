@@ -20,6 +20,9 @@ import at.uac.android.core.PickerLocale
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.string
@@ -147,14 +150,18 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(bottom = 24.dp)
             .testTag("authoring-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) { Text(at(language, "Zurück", "Назад")) }
-        Text(
+        TextButton(back) {
+            UacSymbol(UacIcon.BACK)
+            Spacer(Modifier.width(8.dp))
+            Text(at(language, "Zurück", "Назад"))
+        }
+        UacSectionHeading(
             at(language, "Nachrichten & Veranstaltungen", "Новини та події"),
-            style = MaterialTheme.typography.headlineMedium,
+            UacIcon.EDIT,
         )
         if (state.session?.ready != true) {
             Text(
@@ -471,6 +478,8 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
                                             Modifier.testTag("authoring-edit-${item.id}"),
                                             enabled = state.actionable,
                                         ) {
+                                            UacSymbol(UacIcon.EDIT, modifier = Modifier.size(18.dp))
+                                            Spacer(Modifier.width(8.dp))
                                             Text(at(language, "Bearbeiten", "Редагувати"))
                                         }
                                     else Text(at(language, "Schreibgeschützt", "Лише перегляд"))
@@ -481,6 +490,11 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
                                                 Modifier.testTag("authoring-cover-${item.id}"),
                                                 enabled = state.actionable,
                                             ) {
+                                                UacSymbol(
+                                                    UacIcon.PHOTO,
+                                                    modifier = Modifier.size(18.dp),
+                                                )
+                                                Spacer(Modifier.width(8.dp))
                                                 Text(at(language, "Titelbild", "Обкладинка"))
                                             }
                                         }
@@ -500,6 +514,11 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
                                                 Modifier.testTag("authoring-lifecycle-${item.id}"),
                                                 enabled = state.actionable,
                                             ) {
+                                                UacSymbol(
+                                                    UacIcon.DELETE,
+                                                    modifier = Modifier.size(18.dp),
+                                                )
+                                                Spacer(Modifier.width(8.dp))
                                                 Text(
                                                     if (item.kind == ContentKind.NEWS)
                                                         at(language, "Löschen", "Видалити")

@@ -8,6 +8,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.ProtectedAlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.moderation.ModerationSession
 
@@ -48,14 +51,17 @@ fun DonationSettingsContent(
         allowed && state.baseline != null && !state.loading && !state.saving && !state.needsReadback
     LazyColumn(
         Modifier.fillMaxSize().testTag("donation-settings"),
-        contentPadding = PaddingValues(16.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            TextButton(onBack, enabled = !state.saving) { Text(tr(language, "Zurück", "Назад")) }
-            Text(
+            TextButton(onBack, enabled = !state.saving) {
+                UacSymbol(UacIcon.BACK)
+                Text(tr(language, "Zurück", "Назад"))
+            }
+            UacSectionHeading(
                 tr(language, "Projektunterstützung verwalten", "Керування підтримкою проєкту"),
-                style = MaterialTheme.typography.headlineSmall,
+                UacIcon.SUPPORT,
             )
         }
         if (!allowed)

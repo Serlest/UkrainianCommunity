@@ -87,7 +87,10 @@ fun BrowseScreen(
     }
     BackHandler(state.canBack) { requestNavigation(model::back) }
     UacTheme(state.theme) {
-        UacPageBackground(Modifier.fillMaxSize()) {
+        UacPageBackground(
+            Modifier.fillMaxSize(),
+            plain = state.isAccountRoute || state.route == "settings",
+        ) {
             val keyboardVisible =
                 WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
             Scaffold(
@@ -152,7 +155,8 @@ fun BrowseScreen(
                                         mutableStateOf(false)
                                     }
                                 val bannersAvailable =
-                                    state.route == "home" &&
+                                    state.route.substringBefore(':') in
+                                        setOf("home", "events", "organizations") &&
                                         state.detailId.isEmpty() &&
                                         state.data.banners.isNotEmpty()
                                 LaunchedEffect(bannersAvailable, state.detailId) {
@@ -506,12 +510,14 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                     selected = state.region.isNotEmpty(),
                     onClick = { sheet = "region" },
                     label = { Text(regionLabel) },
+                    leadingIcon = { UacSymbol(UacIcon.LOCATION, modifier = Modifier.size(18.dp)) },
                     modifier = Modifier.heightIn(min = 48.dp).testTag("region"),
                 )
                 FilterChip(
                     selected = searchVisible || state.search.isNotEmpty(),
                     onClick = { searchVisible = !searchVisible },
                     label = { Text(tr(language, "Suchen", "Пошук")) },
+                    leadingIcon = { UacSymbol(UacIcon.SEARCH, modifier = Modifier.size(18.dp)) },
                     modifier = Modifier.heightIn(min = 48.dp).testTag("search-toggle"),
                 )
                 val activeFilters =
@@ -527,6 +533,7 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                 FilterChip(
                     selected = activeFilters > 0,
                     onClick = { sheet = if (state.kind == ContentKind.NEWS) "news" else "filters" },
+                    leadingIcon = { UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp)) },
                     label = {
                         Text(
                             tr(language, "Filter", "Фільтри") +
@@ -587,6 +594,15 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                             }
                         ),
                 ) {
+                    UacSymbol(
+                        when (state.kind) {
+                            ContentKind.EVENTS -> UacIcon.CALENDAR
+                            ContentKind.ORGANIZATIONS -> UacIcon.NOTIFICATIONS
+                            else -> UacIcon.BOOKMARK
+                        },
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         when (state.kind) {
                             ContentKind.NEWS ->
@@ -1044,6 +1060,8 @@ fun SafeLink(
                     else buttonColor
             ),
     ) {
+        UacSymbol(UacIcon.OPEN_ARROW, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
         Text(title.ifBlank { url })
     }
     if (show)

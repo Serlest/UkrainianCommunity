@@ -18,6 +18,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import at.uac.android.core.ProtectedDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.usermanagement.managedUsersDate
 import at.uac.android.feature.usermanagement.managedUsersRoleLabel
@@ -140,9 +142,9 @@ fun UserStatusPanel(state: UserStatusState, language: String, actions: UserStatu
             }
         }
         if (state.targetId != null) {
-            Text(
+            UacSectionHeading(
                 tr(language, "Kontostatus verwalten", "Керування станом акаунта"),
-                style = MaterialTheme.typography.titleLarge,
+                UacIcon.PROFILE,
             )
             if (!state.fresh) {
                 Text(
@@ -241,9 +243,9 @@ private fun UserStatusConfirmation(
                     },
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
+                UacSectionHeading(
                     userStatusTitle(action, language),
-                    style = MaterialTheme.typography.headlineSmall,
+                    UacIcon.SECURITY,
                 )
                 Text(
                     tr(language, "Zielkonto: ", "Цільовий акаунт: ") + snapshot.version.targetId,

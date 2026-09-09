@@ -18,6 +18,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import at.uac.android.core.ProtectedDialog as Dialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 import java.time.Instant
 
@@ -62,9 +64,9 @@ fun InboxPopupHost(
                     color = MaterialTheme.colorScheme.error,
                 )
                 if (notice != null) {
-                    Text(
+                    UacSectionHeading(
                         notice.displayTitle(language),
-                        style = MaterialTheme.typography.headlineSmall,
+                        UacIcon.NOTIFICATIONS,
                         modifier = Modifier.testTag("inbox-popup-title"),
                     )
                     Text(

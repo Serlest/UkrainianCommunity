@@ -106,16 +106,17 @@ fun LegalEvidenceContent(
         }
     LazyColumn(
         Modifier.fillMaxSize().testTag("legal-evidence"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item("header") {
             TextButton(onBack, Modifier.testTag("legal-evidence-back")) {
+                at.uac.android.design.UacSymbol(at.uac.android.design.UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            at.uac.android.design.UacSectionHeading(
                 tr(language, "Rechtliche Nachweise", "Юридичні підтвердження"),
-                style = MaterialTheme.typography.headlineMedium,
+                icon = at.uac.android.design.UacIcon.NEWS,
             )
             Text(
                 tr(
