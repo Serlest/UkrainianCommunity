@@ -228,7 +228,11 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
                             paddedPushedHeader
                         }
 
-                        content
+                        // Group ViewBuilder siblings before applying screen insets.
+                        // Otherwise bottomPadding is repeated after every section.
+                        VStack(alignment: .leading, spacing: contentSpacing) {
+                            content
+                        }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, AppTheme.pushedScreenHorizontalPadding)
                             .padding(.bottom, bottomPadding)
