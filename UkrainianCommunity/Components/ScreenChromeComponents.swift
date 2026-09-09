@@ -391,7 +391,11 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
 
                 ScrollViewReader { scrollProxy in
                     ScrollView(.vertical, showsIndicators: true) {
-                        content(scrollProxy)
+                        // Keep ViewBuilder siblings in one layout container so the
+                        // screen insets are applied once around the full detail body.
+                        VStack(alignment: .leading, spacing: contentSpacing) {
+                            content(scrollProxy)
+                        }
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.horizontal, AppTheme.detailScreenHorizontalPadding)
                             .padding(.bottom, bottomPadding)

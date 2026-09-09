@@ -150,6 +150,7 @@ struct NotificationInboxViewModelTests {
         repository.countFails = true
         await model.refreshBadge()
         #expect(badge.counts.last == 1)
+        #expect(model.error == nil)
         await model.configure(userID: "user-2")
         #expect(badge.counts.last == 0)
         repository.countFails = false
@@ -158,6 +159,58 @@ struct NotificationInboxViewModelTests {
         #expect(badge.counts.last == 1)
         await model.configure(userID: nil)
         #expect(badge.counts.last == 0)
+    }
+
+    @Test func listenerSnapshotDoesNotClearMutationFailure() async {
+        let repository = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repository)
+        await model.configure(userID: "user-1")
+        let item = notification("first")
+        await repository.emit([item])
+        repository.deleteFails = true
+
+        #expect(await model.delete(item) == false)
+        #expect(model.error == .unknown)
+
+        await repository.emit([item])
+
+        #expect(model.notifications == [item])
+        #expect(model.error == .unknown)
+    }
+
+    @Test func badgePermissionFailureRemainsVisibleUntilBadgeReadRecovers() async {
+        let repository = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repository)
+        await model.configure(userID: "user-1")
+        let item = notification("first")
+        await repository.emit([item])
+        repository.countError = .permissionDenied
+
+        await model.refreshBadge()
+        #expect(model.error == .permissionDenied)
+
+        await repository.emit([item])
+        #expect(model.error == .permissionDenied)
+
+        repository.countError = nil
+        await model.refreshBadge()
+        #expect(model.error == nil)
+    }
+
+    @Test func successfulFallbackReadDoesNotPretendListenerRecovered() async {
+        let repository = InboxTestRepository()
+        let model = NotificationInboxViewModel(repository: repository)
+        await model.configure(userID: "user-1")
+        let item = notification("cached")
+        await repository.emit([item])
+        repository.fetchedNotifications = [item]
+
+        repository.errors.last?(.network)
+        while model.snapshotVersion < 2 { await Task.yield() }
+
+        #expect(model.notifications == [item])
+        #expect(model.error == .network)
+        await model.configure(userID: nil)
     }
 
     @Test func delayedBadgeFetchCannotOverwriteNewerListenerOrLogout() async {
@@ -185,6 +238,28 @@ struct NotificationInboxViewModelTests {
         #expect(badge.counts.last == 0)
     }
 
+    @Test func cancelledBadgeFetchDoesNotPublishUnknownError() async {
+        let repository = InboxTestRepository(), badge = BadgeRecorder()
+        let model = NotificationInboxViewModel(repository: repository, badgeUpdater: badge)
+        await model.configure(userID: "user-1")
+        await repository.emit([notification("first")])
+        await model.refreshBadge()
+        var fetchStarted = false
+        repository.fetchCount = {
+            fetchStarted = true
+            try await Task.sleep(for: .seconds(60))
+            return 9
+        }
+
+        let refresh = Task { await model.refreshBadge() }
+        while !fetchStarted { await Task.yield() }
+        refresh.cancel()
+        await refresh.value
+
+        #expect(model.error == nil)
+        #expect(badge.counts.last == 1)
+    }
+
 }
 
 @MainActor
@@ -194,7 +269,9 @@ private final class InboxTestRepository: NotificationInboxRepository {
     var items: [AppNotification] = []
     var additionalUnread = 0
     var countFails = false
+    var countError: AppError?
     var fetchCount: (() async throws -> Int)?
+    var fetchedNotifications: [AppNotification] = []
     var deleteFails = false
     var deleteCount = 0
     var beforeDeleteReturns: (@MainActor () async -> Void)?
@@ -222,9 +299,12 @@ private final class InboxTestRepository: NotificationInboxRepository {
         items.removeAll { $0.id == notificationID }
         await beforeDeleteReturns?()
     }
-    func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification] { [] }
+    func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification] {
+        return Array(fetchedNotifications.prefix(limit))
+    }
     func fetchUnreadCount(userID: String) async throws -> Int {
         badgeFetchCount += 1
+        if let countError { throw countError }
         if countFails { throw AppError.network }
         if let fetchCount { return try await fetchCount() }
         return items.filter(\.countsAsUnread).count + additionalUnread

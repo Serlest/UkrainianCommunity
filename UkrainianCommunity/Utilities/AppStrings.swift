@@ -1,6 +1,14 @@
 import Foundation
 
 enum AppStrings {
+    enum Errors {
+        static var network: String { text("app_error.network", "Немає з’єднання із сервером. Перевірте інтернет і спробуйте ще раз.") }
+        static var permissionDenied: String { text("app_error.permission_denied", "Ваш обліковий запис не має доступу до цієї дії або даних.") }
+        static var validationFailed: String { text("app_error.validation_failed", "Не вдалося обробити дані. Перевірте введену інформацію та спробуйте ще раз.") }
+        static var notFound: String { text("app_error.not_found", "Запитаний об’єкт більше недоступний. Оновіть список.") }
+        static var unknown: String { text("app_error.unknown", "Не вдалося завершити дію. Спробуйте ще раз.") }
+    }
+
     enum AccessFailure {
         static func message(_ reason: String) -> String {
             switch reason {

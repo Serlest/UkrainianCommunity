@@ -18,6 +18,7 @@ final class NewsViewModel: ObservableObject {
     private let repository: NewsRepository
     private let analyticsService: AnalyticsTracking
     private let listenerBag = RealtimeListenerBag()
+    private var observedNewsCommentIDs = Set<String>()
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -138,6 +139,7 @@ final class NewsViewModel: ObservableObject {
         pendingNewsCommentIDs = []
         commentLoadStates = [:]
         trackedNewsViewIDs = []
+        observedNewsCommentIDs = []
         listenerBag.removeAll()
         hasLoaded = false
         lastLoadedAt = nil
@@ -366,6 +368,7 @@ final class NewsViewModel: ObservableObject {
 
     func loadComments(for postID: String, forceRefresh: Bool = false) async {
         let generation = authGeneration
+        observedNewsCommentIDs.insert(postID)
         if forceRefresh || !listenerBag.contains("newsComments:\(postID)") {
             commentLoadStates[postID] = .loading
         }
@@ -395,6 +398,7 @@ final class NewsViewModel: ObservableObject {
     }
 
     func stopListeningComments(for postID: String) {
+        observedNewsCommentIDs.remove(postID)
         listenerBag.remove("newsComments:\(postID)")
     }
 
@@ -563,23 +567,33 @@ final class NewsViewModel: ObservableObject {
     func deleteNews(id: String) async throws {
         let organizationID = post(for: id)?.source.organizationId
         let generation = authGeneration
+        listenerBag.remove("newsComments:\(id)")
 
         do {
             try await repository.deleteNews(id: id)
             guard isCurrentAuthGeneration(generation) else { return }
+            observedNewsCommentIDs.remove(id)
             posts.removeAll { $0.id == id }
             contentVersion &+= 1
             error = nil
             AppContentChangeBus.postNewsChanged(organizationID: organizationID)
         } catch let appError as AppError {
             guard isCurrentAuthGeneration(generation) else { throw appError }
+            resumeCommentListenerAfterFailedDeletion(for: id)
             error = appError
             throw appError
         } catch {
             guard isCurrentAuthGeneration(generation) else { throw error }
+            resumeCommentListenerAfterFailedDeletion(for: id)
             self.error = .unknown
             throw AppError.unknown
         }
+    }
+
+    private func resumeCommentListenerAfterFailedDeletion(for postID: String) {
+        guard observedNewsCommentIDs.contains(postID),
+              posts.contains(where: { $0.id == postID }) else { return }
+        startListeningComments(for: postID)
     }
 
     func removeDeletedNews(id: String) {

@@ -33,6 +33,7 @@ final class EventsViewModel: ObservableObject {
     private let localEventReminderService: LocalEventReminderServiceProtocol?
     private let reminderUserID: @MainActor () -> String?
     private let listenerBag = RealtimeListenerBag()
+    private var observedEventCommentIDs = Set<String>()
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -177,6 +178,7 @@ final class EventsViewModel: ObservableObject {
         commentLoadStates = [:]
         registrationError = nil
         trackedEventViewIDs = []
+        observedEventCommentIDs = []
         listenerBag.removeAll()
         hasLoaded = false
         lastLoadedAt = nil
@@ -553,6 +555,7 @@ final class EventsViewModel: ObservableObject {
 
     func loadComments(for eventID: String, forceRefresh: Bool = false) async {
         let generation = sessionGeneration
+        observedEventCommentIDs.insert(eventID)
         if forceRefresh || !listenerBag.contains("eventComments:\(eventID)") {
             commentLoadStates[eventID] = .loading
         }
@@ -582,6 +585,7 @@ final class EventsViewModel: ObservableObject {
     }
 
     func stopListeningComments(for eventID: String) {
+        observedEventCommentIDs.remove(eventID)
         listenerBag.remove("eventComments:\(eventID)")
     }
 
@@ -763,10 +767,12 @@ final class EventsViewModel: ObservableObject {
     func deleteEvent(id: String) async throws {
         let organizationID = event(for: id)?.source.organizationId
         let generation = sessionGeneration
+        listenerBag.remove("eventComments:\(id)")
 
         do {
             try await repository.deleteEvent(id: id)
             guard isCurrentSession(generation) else { return }
+            observedEventCommentIDs.remove(id)
             feedRevision &+= 1
             events.removeAll { $0.id == id }
             contentVersion &+= 1
@@ -774,13 +780,21 @@ final class EventsViewModel: ObservableObject {
             AppContentChangeBus.postEventsChanged(organizationID: organizationID)
         } catch let appError as AppError {
             guard isCurrentSession(generation) else { throw appError }
+            resumeCommentListenerAfterFailedDeletion(for: id)
             error = appError
             throw appError
         } catch {
             guard isCurrentSession(generation) else { throw error }
+            resumeCommentListenerAfterFailedDeletion(for: id)
             self.error = .unknown
             throw AppError.unknown
         }
+    }
+
+    private func resumeCommentListenerAfterFailedDeletion(for eventID: String) {
+        guard observedEventCommentIDs.contains(eventID),
+              events.contains(where: { $0.id == eventID }) else { return }
+        startListeningComments(for: eventID)
     }
 
     func removeDeletedEvent(id: String) {

@@ -99,6 +99,50 @@ struct ContentInteractionRaceTests {
         #expect(model.error == nil)
     }
 
+    @Test func newsDeletionSuspendsCommentListenerAndRestoresItAfterFailureWhileObserved() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let post = makeNewsPost(id: "news-delete-listener")
+        model.posts = [post]
+        await model.loadComments(for: post.id)
+        let originalListener = repository.commentListeners[0]
+
+        let deletion = Task { () -> AppError? in
+            do {
+                try await model.deleteNews(id: post.id)
+                return nil
+            } catch let error as AppError {
+                return error
+            } catch {
+                return .unknown
+            }
+        }
+
+        #expect(await eventually { repository.deleteRequestCount == 1 })
+        #expect(originalListener.cancelCount == 1)
+        repository.completeDeleteRequest(1, error: .network)
+        #expect(await deletion.value == .network)
+        #expect(repository.commentListeners.count == 2)
+        #expect(model.post(for: post.id)?.id == post.id)
+    }
+
+    @Test func failedNewsDeletionDoesNotRestoreCommentListenerAfterDetailDisappears() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let post = makeNewsPost(id: "news-delete-after-disappear")
+        model.posts = [post]
+        await model.loadComments(for: post.id)
+
+        let deletion = Task { try? await model.deleteNews(id: post.id) }
+        #expect(await eventually { repository.deleteRequestCount == 1 })
+        model.stopListeningComments(for: post.id)
+        repository.completeDeleteRequest(1, error: .network)
+        _ = await deletion.value
+
+        #expect(repository.commentListeners.count == 1)
+        #expect(model.post(for: post.id)?.id == post.id)
+    }
+
     @Test func forcedOrganizationDetailRefreshBypassesCacheWithoutReplacingFeed() async {
         let repository = ControlledOrganizationRepository()
         let model = OrganizationsViewModel(repository: repository)
@@ -174,7 +218,7 @@ struct ContentInteractionRaceTests {
         news.posts = [makeNewsPost(id: "news")]
         newsRepository.commentFailure = .network
         organizationRepository.commentFailure = .permissionDenied
-        await news.loadComments(for: "news")
+        await news.loadComments(for: "news", forceRefresh: true)
         await organizations.loadComments(for: "org")
         #expect(news.commentLoadStates["news"] == .failed(.network))
         #expect(organizations.commentLoadStates["org"] == .failed(.permissionDenied))
@@ -749,7 +793,7 @@ struct ContentInteractionRaceTests {
 }
 
 @MainActor
-private final class ControlledNewsRepository: NewsRepository {
+private final class ControlledNewsRepository: NewsRepository, NewsRealtimeRepository {
     var commentFailure: AppError?
     var detailFetchError: AppError?
     var detailFetchIsCancelled = false
@@ -763,10 +807,13 @@ private final class ControlledNewsRepository: NewsRepository {
     private(set) var viewRequestCount = 0
     private(set) var bookmarkRequestCount = 0
     private(set) var commentDeleteRequestCount = 0
+    private(set) var deleteRequestCount = 0
+    private(set) var commentListeners: [NewsCommentTestListener] = []
     private var likeContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
     private var viewContinuations: [Int: CheckedContinuation<Bool, Error>] = [:]
     private var bookmarkContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
     private var commentDeleteContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
+    private var deleteContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
 
     func fetchNews() async throws -> [NewsPost] {
         if detailFetchIsCancelled { throw CancellationError() }
@@ -784,7 +831,23 @@ private final class ControlledNewsRepository: NewsRepository {
     func createNews(_ news: NewsPost) async throws {}
     func updateNews(_ news: NewsPost) async throws {}
     func updateNewsImageURL(id: String, imageURL: String?) async throws {}
-    func deleteNews(id: String) async throws {}
+    func deleteNews(id: String) async throws {
+        deleteRequestCount += 1
+        let requestNumber = deleteRequestCount
+        try await withCheckedThrowingContinuation { continuation in
+            deleteContinuations[requestNumber] = continuation
+        }
+    }
+
+    func listenNewsComments(
+        newsID: String,
+        onChange: @escaping @MainActor ([UkrainianCommunity.Comment]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let listener = NewsCommentTestListener()
+        commentListeners.append(listener)
+        return listener
+    }
 
     func likeNews(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await suspendLikeRequest()
@@ -875,6 +938,18 @@ private final class ControlledNewsRepository: NewsRepository {
         }
     }
 
+    func completeDeleteRequest(_ requestNumber: Int, error: AppError? = nil) {
+        guard let continuation = deleteContinuations.removeValue(forKey: requestNumber) else {
+            Issue.record("Missing news delete continuation \(requestNumber)")
+            return
+        }
+        if let error {
+            continuation.resume(throwing: error)
+        } else {
+            continuation.resume(returning: ())
+        }
+    }
+
     private func suspendLikeRequest() async throws {
         likeRequestCount += 1
         let requestNumber = likeRequestCount
@@ -890,6 +965,14 @@ private final class ControlledNewsRepository: NewsRepository {
         try await withCheckedThrowingContinuation { continuation in
             bookmarkContinuations[requestNumber] = continuation
         }
+    }
+}
+
+private final class NewsCommentTestListener: AppRealtimeListener {
+    private(set) var cancelCount = 0
+
+    func cancel() {
+        cancelCount += 1
     }
 }
 

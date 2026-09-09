@@ -10,6 +10,13 @@ enum NotificationInboxFilter: String, CaseIterable, Identifiable {
 
 @MainActor
 final class NotificationInboxViewModel: ObservableObject {
+    private enum ErrorSource: Hashable {
+        case listener
+        case refresh
+        case badge
+        case mutation
+    }
+
     @Published private(set) var notifications: [AppNotification] = []
     @Published private(set) var unreadCount = 0
     @Published private(set) var isLoading = false
@@ -28,6 +35,7 @@ final class NotificationInboxViewModel: ObservableObject {
     private var listenerGeneration = 0
     private var listenerRecoveryAttempt = 0
     private var badgeRefreshTask: Task<Void, Never>?
+    private var errorSource: ErrorSource?
     private var currentUserID: String?
     private let notificationPageSize = 50
     private var notificationLimit = 50
@@ -69,6 +77,7 @@ final class NotificationInboxViewModel: ObservableObject {
         unreadCount = 0
         snapshotVersion = 0
         error = nil
+        errorSource = nil
         selectedFilter = .all
         notificationLimit = notificationPageSize
         canLoadMoreNotifications = false
@@ -117,10 +126,18 @@ final class NotificationInboxViewModel: ObservableObject {
             }
             guard sessionVersion == session, unreadRevision == revision else { return }
             setUnreadCount(count)
+            clearError(from: [.badge])
         } catch {
+            guard !Task.isCancelled, !(error is CancellationError) else { return }
             // A failed/offline refresh must not erase a known badge.
             guard sessionVersion == session, unreadRevision == revision else { return }
-            self.error = (error as? AppError) ?? .network
+            let appError = (error as? AppError) ?? .unknown
+            // A transient badge-only network failure does not invalidate a
+            // successfully loaded inbox snapshot. Authorization and query/schema
+            // failures remain visible until the badge read itself recovers.
+            if appError != .network {
+                setError(appError, source: .badge)
+            }
         }
     }
 
@@ -143,14 +160,14 @@ final class NotificationInboxViewModel: ObservableObject {
             isLoadingMore = false
             snapshotVersion += 1
             if clearErrorOnSuccess {
-                error = nil
+                clearError(from: [.listener, .refresh])
             }
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            error = appError
+            setError(appError, source: .refresh)
         } catch {
             guard sessionVersion == session else { return }
-            self.error = .unknown
+            setError(.unknown, source: .refresh)
         }
     }
 
@@ -172,14 +189,14 @@ final class NotificationInboxViewModel: ObservableObject {
             try await repository.markNotificationRead(userID: userID, notificationID: notificationID)
             guard sessionVersion == session else { return }
             applyReadState(notificationID: notificationID, isRead: true, readAt: Date())
-            error = nil
+            clearError(from: [.mutation])
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            error = appError
+            setError(appError, source: .mutation)
         } catch {
             guard sessionVersion == session else { return }
-            self.error = .unknown
+            setError(.unknown, source: .mutation)
         }
     }
 
@@ -191,14 +208,14 @@ final class NotificationInboxViewModel: ObservableObject {
             try await repository.markNotificationUnread(userID: userID, notificationID: notification.id)
             guard sessionVersion == session else { return }
             applyReadState(notificationID: notification.id, isRead: false, readAt: nil)
-            error = nil
+            clearError(from: [.mutation])
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            error = appError
+            setError(appError, source: .mutation)
         } catch {
             guard sessionVersion == session else { return }
-            self.error = .unknown
+            setError(.unknown, source: .mutation)
         }
     }
 
@@ -213,14 +230,14 @@ final class NotificationInboxViewModel: ObservableObject {
                 guard notification.countsAsUnread else { return notification }
                 return notification.updatingReadState(isRead: true, readAt: notification.readAt ?? Date())
             }
-            error = nil
+            clearError(from: [.mutation])
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            error = appError
+            setError(appError, source: .mutation)
         } catch {
             guard sessionVersion == session else { return }
-            self.error = .unknown
+            setError(.unknown, source: .mutation)
         }
     }
 
@@ -232,14 +249,14 @@ final class NotificationInboxViewModel: ObservableObject {
             try await repository.archiveNotification(userID: userID, notificationID: notification.id)
             guard sessionVersion == session else { return }
             applyArchiveState(notificationID: notification.id)
-            error = nil
+            clearError(from: [.mutation])
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            error = appError
+            setError(appError, source: .mutation)
         } catch {
             guard sessionVersion == session else { return }
-            self.error = .unknown
+            setError(.unknown, source: .mutation)
         }
     }
 
@@ -251,12 +268,12 @@ final class NotificationInboxViewModel: ObservableObject {
             try await repository.deleteNotification(userID: userID, notificationID: notification.id)
             guard sessionVersion == session else { return false }
             notifications.removeAll { $0.id == notification.id }
-            error = nil
+            clearError(from: [.mutation])
             await refreshBadge()
             return sessionVersion == session
         } catch {
             guard sessionVersion == session else { return false }
-            self.error = (error as? AppError) ?? .unknown
+            setError((error as? AppError) ?? .unknown, source: .mutation)
             return false
         }
     }
@@ -272,14 +289,14 @@ final class NotificationInboxViewModel: ObservableObject {
             guard sessionVersion == session else { return }
             notifications = []
             snapshotVersion += 1
-            error = nil
+            clearError(from: [.mutation])
             await refreshBadge()
         } catch let appError as AppError {
             guard sessionVersion == session else { return }
-            error = appError
+            setError(appError, source: .mutation)
         } catch {
             guard sessionVersion == session else { return }
-            self.error = .unknown
+            setError(.unknown, source: .mutation)
         }
     }
 
@@ -302,7 +319,7 @@ final class NotificationInboxViewModel: ObservableObject {
                 self.snapshotVersion += 1
                 self.isLoading = false
                 self.isLoadingMore = false
-                self.error = nil
+                self.clearError(from: [.listener])
                 self.listenerRecoveryAttempt = 0
                 self.scheduleBadgeRefresh()
             },
@@ -337,7 +354,7 @@ final class NotificationInboxViewModel: ObservableObject {
         listener = nil
         isLoading = false
         isLoadingMore = false
-        error = appError
+        setError(appError, source: .listener)
 
         Task { [weak self] in
             guard let self, self.sessionVersion == session else { return }
@@ -373,6 +390,17 @@ final class NotificationInboxViewModel: ObservableObject {
         guard let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
         let notification = notifications[index]
         notifications[index] = notification.updatingReadState(isRead: isRead, readAt: readAt)
+    }
+
+    private func setError(_ error: AppError, source: ErrorSource) {
+        self.error = error
+        errorSource = source
+    }
+
+    private func clearError(from sources: Set<ErrorSource>) {
+        guard let errorSource, sources.contains(errorSource) else { return }
+        error = nil
+        self.errorSource = nil
     }
 
     private func applyArchiveState(notificationID: String) {

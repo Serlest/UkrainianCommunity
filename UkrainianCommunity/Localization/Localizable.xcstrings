@@ -1,6 +1,121 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "app_error.network": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає з’єднання із сервером. Перевірте інтернет і спробуйте ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Verbindung zum Server. Prüfen Sie Ihre Internetverbindung und versuchen Sie es erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot connect to the server. Check your internet connection and try again."
+          }
+        }
+      }
+    },
+    "app_error.permission_denied": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваш обліковий запис не має доступу до цієї дії або даних."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihr Konto hat keinen Zugriff auf diese Aktion oder Daten."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your account cannot access this action or data."
+          }
+        }
+      }
+    },
+    "app_error.validation_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося обробити дані. Перевірте введену інформацію та спробуйте ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Daten konnten nicht verarbeitet werden. Prüfen Sie Ihre Angaben und versuchen Sie es erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not process the data. Check your information and try again."
+          }
+        }
+      }
+    },
+    "app_error.not_found": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запитаний об’єкт більше недоступний. Оновіть список."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der angeforderte Eintrag ist nicht mehr verfügbar. Aktualisieren Sie die Liste."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The requested item is no longer available. Refresh the list."
+          }
+        }
+      }
+    },
+    "app_error.unknown": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося завершити дію. Спробуйте ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aktion konnte nicht abgeschlossen werden. Versuchen Sie es erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not complete the action. Try again."
+          }
+        }
+      }
+    },
     "system_logs.review.partial_failure" : {
       "extractionState": "manual",
       "localizations": {

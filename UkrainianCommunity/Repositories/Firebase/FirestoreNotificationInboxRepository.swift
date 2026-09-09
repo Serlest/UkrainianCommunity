@@ -45,12 +45,20 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     }
 
     func fetchUnreadCount(userID: String) async throws -> Int {
-        let query = inboxCollection(userID: userID)
-            .whereField("isRead", isEqualTo: false)
-            .whereField("archivedAt", isEqualTo: NSNull())
-            .whereField("deletedAt", isEqualTo: NSNull())
-        let snapshot = try await query.count.getAggregation(source: .server)
-        return snapshot.count.intValue
+        do {
+            let query = inboxCollection(userID: userID)
+                .whereField("isRead", isEqualTo: false)
+                .whereField("archivedAt", isEqualTo: NSNull())
+                .whereField("deletedAt", isEqualTo: NSNull())
+            let snapshot = try await query.count.getAggregation(source: .server)
+            return snapshot.count.intValue
+        } catch {
+            if Task.isCancelled || error is CancellationError {
+                throw CancellationError()
+            }
+            Self.logUnreadCountFailure(error)
+            throw FirebaseReadErrorMapper.map(error)
+        }
     }
 
     func markNotificationRead(userID: String, notificationID: String) async throws {
@@ -159,6 +167,23 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
                     metadata: [
                         "listenerName": listenerName,
                         "pathGroup": "users/{userID}/notificationInbox"
+                    ]
+                )
+            )
+        }
+    }
+
+    private static func logUnreadCountFailure(_ error: Error) {
+        Task {
+            await SystemTechnicalErrorLoggingService.shared.logFailure(
+                error,
+                context: SystemTechnicalErrorContext(
+                    moduleName: "Notifications",
+                    operationName: "fetchUnreadCount",
+                    targetType: .notification,
+                    metadata: [
+                        "pathGroup": "users/{userID}/notificationInbox",
+                        "queryKind": "serverAggregation"
                     ]
                 )
             )

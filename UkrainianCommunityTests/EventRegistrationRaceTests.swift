@@ -103,6 +103,50 @@ struct EventRegistrationRaceTests {
         #expect(model.error == nil)
     }
 
+    @Test func eventCancellationSuspendsCommentListenerAndRestoresItAfterFailureWhileObserved() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let event = makeEvent(id: "event-cancel-listener")
+        model.events = [event]
+        await model.loadComments(for: event.id)
+        let originalListener = repository.commentListeners[0]
+
+        let deletion = Task { () -> AppError? in
+            do {
+                try await model.deleteEvent(id: event.id)
+                return nil
+            } catch let error as AppError {
+                return error
+            } catch {
+                return .unknown
+            }
+        }
+
+        #expect(await eventually { repository.deleteRequestCount == 1 })
+        #expect(originalListener.cancelCount == 1)
+        repository.completeDeleteRequest(1, error: .network)
+        #expect(await deletion.value == .network)
+        #expect(repository.commentListeners.count == 2)
+        #expect(model.event(for: event.id)?.id == event.id)
+    }
+
+    @Test func failedEventCancellationDoesNotRestoreCommentListenerAfterSessionSwitch() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let event = makeEvent(id: "event-cancel-session-switch")
+        model.events = [event]
+        await model.loadComments(for: event.id)
+
+        let deletion = Task { try? await model.deleteEvent(id: event.id) }
+        #expect(await eventually { repository.deleteRequestCount == 1 })
+        model.resetForAuthChange()
+        repository.completeDeleteRequest(1, error: .network)
+        _ = await deletion.value
+
+        #expect(repository.commentListeners.count == 1)
+        #expect(model.events.isEmpty)
+    }
+
     @Test func registrationRejectsDoubleTapAndUsesAuthoritativeResponse() async {
         let repository = ControlledEventRepository()
         let viewModel = EventsViewModel(repository: repository, reminderUserID: {
@@ -488,7 +532,7 @@ struct EventRegistrationRaceTests {
 }
 
 @MainActor
-private final class ControlledEventRepository: @MainActor EventRepository {
+private final class ControlledEventRepository: @MainActor EventRepository, EventRealtimeRepository {
     var events: [Event] = []
     var recentPastEvents: [Event] = []
     var recentPastError: AppError?
@@ -508,6 +552,8 @@ private final class ControlledEventRepository: @MainActor EventRepository {
     private(set) var completedCommentAddRequestCount = 0
     private(set) var commentUpdateRequestCount = 0
     private(set) var commentDeleteRequestCount = 0
+    private(set) var deleteRequestCount = 0
+    private(set) var commentListeners: [EventCommentTestListener] = []
 
     private var registrationContinuations: [Int: CheckedContinuation<EventRegistrationMutationResult, Error>] = [:]
     private var likeContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
@@ -517,6 +563,7 @@ private final class ControlledEventRepository: @MainActor EventRepository {
     private var commentAddContinuations: [Int: CheckedContinuation<UkrainianCommunity.Comment, Error>] = [:]
     private var commentUpdateContinuations: [Int: CheckedContinuation<UkrainianCommunity.Comment, Error>] = [:]
     private var commentDeleteContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
+    private var deleteContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
 
     func fetchEvents() async throws -> [Event] { events }
     func fetchRecentPastEvents(
@@ -550,7 +597,24 @@ private final class ControlledEventRepository: @MainActor EventRepository {
         events[index] = event
     }
     func updateEventImageURL(id: String, imageURL: String?) async throws {}
-    func deleteEvent(id: String) async throws { events.removeAll { $0.id == id } }
+    func deleteEvent(id: String) async throws {
+        deleteRequestCount += 1
+        let requestNumber = deleteRequestCount
+        try await withCheckedThrowingContinuation { continuation in
+            deleteContinuations[requestNumber] = continuation
+        }
+        events.removeAll { $0.id == id }
+    }
+
+    func listenEventComments(
+        eventID: String,
+        onChange: @escaping @MainActor ([UkrainianCommunity.Comment]) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener {
+        let listener = EventCommentTestListener()
+        commentListeners.append(listener)
+        return listener
+    }
 
     func likeEvent(id: String) async throws { try await suspendLikeRequest() }
     func unlikeEvent(id: String) async throws { try await suspendLikeRequest() }
@@ -682,6 +746,15 @@ private final class ControlledEventRepository: @MainActor EventRepository {
         )
     }
 
+    func completeDeleteRequest(_ requestNumber: Int, error: AppError? = nil) {
+        Self.completeVoidRequest(
+            &deleteContinuations,
+            requestNumber: requestNumber,
+            error: error,
+            purpose: "delete"
+        )
+    }
+
     private func suspendRegistrationRequest() async throws -> EventRegistrationMutationResult {
         registrationRequestCount += 1
         let requestNumber = registrationRequestCount
@@ -722,5 +795,13 @@ private final class ControlledEventRepository: @MainActor EventRepository {
         } else {
             continuation.resume(returning: ())
         }
+    }
+}
+
+private final class EventCommentTestListener: AppRealtimeListener {
+    private(set) var cancelCount = 0
+
+    func cancel() {
+        cancelCount += 1
     }
 }

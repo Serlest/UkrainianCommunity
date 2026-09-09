@@ -1,6 +1,6 @@
 import Foundation
 
-enum AppError: Error, Equatable {
+enum AppError: LocalizedError, Equatable {
     case network
     case permissionDenied
     case validationFailed
@@ -9,6 +9,16 @@ enum AppError: Error, Equatable {
 }
 
 extension AppError {
+    var errorDescription: String? {
+        switch self {
+        case .network: AppStrings.Errors.network
+        case .permissionDenied: AppStrings.Errors.permissionDenied
+        case .validationFailed: AppStrings.Errors.validationFailed
+        case .notFound: AppStrings.Errors.notFound
+        case .unknown: AppStrings.Errors.unknown
+        }
+    }
+
     var asNSError: NSError {
         NSError(
             domain: "AppError",
