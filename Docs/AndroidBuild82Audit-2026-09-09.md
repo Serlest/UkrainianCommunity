@@ -53,4 +53,14 @@ The app continues to use the existing shared Firebase project and shared product
 - APK SHA-256: `b4eb415e40758a26cc1ece001cf65eb3fbbd38fe68f6f5aa7c2b6b2f026da66d`
 - Output directory: `/Users/serlest/Documents/Codex/2026-09-09/82-82/artifacts`
 
-Google Play Internal testing publication and final Console read-back are recorded after upload in the release receipt; source/build PASS alone is not store or device proof.
+## Google Play Internal testing — 2026-09-09
+
+- Google Play accepted version 82 and immediately published release **1.1 (82) – Internal** to the existing internal track `4701365572505552935`.
+- Final Console read-back: track **Aktiv**, latest release **1.1 (82) – Internal**, **Für interne Tester verfügbar**, published 9 Sept. 21:53 (Console display).
+- Device support compared with Build 80: 0 phones, tablets, TV, Auto, Chromebook or Android XR devices removed.
+- The only warning is the same nonblocking native-debug-symbol recommendation; ReTrace mapping is attached to the bundle.
+- Tester link: https://play.google.com/apps/internaltest/4701365572505552935
+- Existing tester membership was unchanged. No open/closed test, production/public release, iOS/backend deployment or production-data write was performed.
+- Receipt: `/Users/serlest/Documents/Codex/2026-09-09/82-82/build82-play-internal-receipt.json`.
+
+Play-installed runtime on a physical tester device remains NOT VERIFIED until a tester downloads and exercises this published artifact.
