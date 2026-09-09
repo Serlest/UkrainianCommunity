@@ -119,19 +119,40 @@ async function markDeletionInProgress(uid: string): Promise<void> {
   });
 }
 
+function referenceQuery(policy: AccountDeletionReferencePolicy, uid: string): Query<DocumentData> {
+  const rootQuery = policy.scope === "collection" ?
+    db.collection(policy.collection) :
+    db.collectionGroup(policy.collection);
+  let query: Query<DocumentData> = rootQuery.where(policy.field, policy.operator, uid);
+  for (const filter of policy.filters ?? []) {
+    query = query.where(filter.field, filter.operator, filter.value);
+  }
+  return query;
+}
+
+async function preflightDeletionQueries(uid: string): Promise<void> {
+  // Emulators do not enforce production indexes. Resolve every query before
+  // disabling the account or deleting any data, including empty collections.
+  const queries = [
+    ...accountDeletionReferencePolicies.map((policy) => referenceQuery(policy, uid)),
+    ...["likes", "registrations", "feedback"].map((collection) =>
+      db.collection(collection).where("userId", "==", uid)
+    ),
+  ];
+  try {
+    await Promise.all(queries.map((query) => query.limit(1).select().get()));
+  } catch (error) {
+    console.error("Account deletion query preflight failed.", error);
+    throw new HttpsError("unavailable", "Account deletion is temporarily unavailable. Please retry later.");
+  }
+}
+
 async function applyReferencePolicy(
   policy: AccountDeletionReferencePolicy,
   uid: string,
   personalReferences: readonly string[]
 ): Promise<void> {
-  const rootQuery = policy.scope === "collection" ?
-    db.collection(policy.collection) :
-    db.collectionGroup(policy.collection);
-  let query: Query<DocumentData> = rootQuery.where(policy.field, policy.operator, uid);
-
-  for (const filter of policy.filters ?? []) {
-    query = query.where(filter.field, filter.operator, filter.value);
-  }
+  const query = referenceQuery(policy, uid);
 
   while (true) {
     const snapshot = await query.limit(deletionBatchSize).get();
@@ -396,127 +417,151 @@ export const deleteOwnAccount = onCall(
   async (request): Promise<AccountDeletionResponse> => {
     const auth = requireAuth(request);
     assertRecentlyAuthenticated(auth.token as Record<string, unknown>);
-
-    const userReference = db.collection("users").doc(auth.uid);
-    const operationReference = deletionOperationReference(auth.uid);
-    const [userSnapshot, ownedOrganizationSnapshot, operationSnapshot] = await Promise.all([
-      userReference.get(),
-      db.collection("organizations")
-        .where("ownerId", "==", auth.uid)
-        .limit(1)
-        .get(),
-      operationReference.get(),
-    ]);
-
-    // Keep the deployed v1 authentication contract: recent sign-in is
-    // required above. MFA activation is a separate rollout, not a side effect
-    // of extending receipt cleanup (verified against deployed source 2e7ae13).
-
-
-    if (operationSnapshot.get("status") === "completed") {
-      const completedAt = operationSnapshot.get("completedAt");
-      return {
-        status: "deleted",
-        completedAt: completedAt instanceof Timestamp ?
-          completedAt.toDate().toISOString() : new Date().toISOString(),
-      };
-    }
-
-    const isResuming = operationSnapshot.exists;
-    if (!userSnapshot.exists && !isResuming) {
-      throw new HttpsError("failed-precondition", "Account deletion was not started for this identity.");
-    }
-
-    if (!isResuming && stringField(userSnapshot.data(), "globalRole") === "owner") {
-      throw new HttpsError(
-        "permission-denied",
-        "Platform owner account cannot be deleted from the app."
-      );
-    }
-    if (!isResuming && !ownedOrganizationSnapshot.empty) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Organization ownership must be transferred before account deletion."
-      );
-    }
-
-    const personalReferences = personalReferenceValues(auth.uid, userSnapshot.data());
-
-    if (!operationSnapshot.exists) {
-      await operationReference.set({
-        status: "inProgress",
-        stage: "started",
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        expiresAt: operationExpiry(),
-      }, {merge: true});
-    } else {
-      await recordDeletionStage(operationReference, "started", "inProgress");
-    }
-
-    const runStage = async (
-      stage: AccountDeletionOperationStage,
-      work: () => Promise<void>
-    ): Promise<void> => {
-      await recordDeletionStage(operationReference, stage, "inProgress", {
-        lastError: FieldValue.delete(),
-      });
-      try {
-        await work();
-      } catch (error) {
-        const errorCode = (error as {code?: unknown})?.code;
-        try {
-          await recordDeletionStage(operationReference, stage, "partial", {
-            lastError: typeof errorCode === "string" ? errorCode : "unknown",
-          });
-        } catch (journalError) {
-          console.error("Failed to record partial account deletion state.", journalError);
-        }
-        throw error;
-      }
-    };
-
-    await runStage("privateData", async () => {
-      if (userSnapshot.exists) await markDeletionInProgress(auth.uid);
-      // Remove feedback owned by this user before scanning feedback messages.
-      // Otherwise a recursive delete can race an anonymizing update in the same batch.
-      await deleteOwnedPrivateData(auth.uid);
-    });
-
-    await runStage("references", async () => {
-      await Promise.all([
-        deleteProfileImages(auth.uid),
-        db.collection("publicProfiles").doc(auth.uid).delete(),
-        ...accountDeletionReferencePolicies.map((policy) =>
-          applyReferencePolicy(policy, auth.uid, personalReferences)
-        ),
-      ]);
-    });
-
-    await runStage("userRoot", () => deleteUserRoot(auth.uid));
-    await runStage("authIdentity", async () => {
-      try {
-        await adminAuth.deleteUser(auth.uid);
-      } catch (error) {
-        if ((error as {code?: unknown})?.code !== "auth/user-not-found") throw error;
-      }
-    });
-
-    const completedAt = new Date();
-    try {
-      await recordDeletionStage(operationReference, "completed", "completed", {
-        completedAt: Timestamp.fromDate(completedAt),
-        lastError: FieldValue.delete(),
-      });
-    } catch (error) {
-      // Auth is already gone. Do not turn a completed destructive operation
-      // into a client-visible failure that invites an impossible retry.
-      console.error("Failed to finalize the account deletion operation receipt.", error);
-    }
-
-    return {
-      status: "deleted",
-      completedAt: completedAt.toISOString(),
-    };
+    return performAccountDeletion(auth.uid);
   }
 );
+
+// Internal maintenance entry point, deliberately not exported from index.ts.
+// An operator may resume only an already requested, incomplete deletion and
+// must match both the Auth identity and the retained profile email.
+export async function resumePendingAccountDeletionForMaintenance(
+  uid: string,
+  expectedEmail: string
+): Promise<AccountDeletionResponse> {
+  const [identity, user, operation] = await Promise.all([
+    adminAuth.getUser(uid),
+    db.doc(`users/${uid}`).get(),
+    deletionOperationReference(uid).get(),
+  ]);
+  if (identity.email !== expectedEmail || user.get("email") !== expectedEmail ||
+      user.get("deletionState") !== "inProgress" || operation.get("status") !== "partial") {
+    throw new Error("Maintenance deletion identity or pending-state guard failed.");
+  }
+  return performAccountDeletion(uid);
+}
+
+async function performAccountDeletion(uid: string): Promise<AccountDeletionResponse> {
+  const userReference = db.collection("users").doc(uid);
+  const operationReference = deletionOperationReference(uid);
+  const [userSnapshot, ownedOrganizationSnapshot, operationSnapshot] = await Promise.all([
+    userReference.get(),
+    db.collection("organizations")
+      .where("ownerId", "==", uid)
+      .limit(1)
+      .get(),
+    operationReference.get(),
+  ]);
+
+  // Keep the deployed v1 authentication contract: recent sign-in is
+  // required above. MFA activation is a separate rollout, not a side effect
+  // of extending receipt cleanup (verified against deployed source 2e7ae13).
+
+
+  if (operationSnapshot.get("status") === "completed") {
+    const completedAt = operationSnapshot.get("completedAt");
+    return {
+      status: "deleted",
+      completedAt: completedAt instanceof Timestamp ?
+        completedAt.toDate().toISOString() : new Date().toISOString(),
+    };
+  }
+
+  const isResuming = operationSnapshot.exists;
+  if (!userSnapshot.exists && !isResuming) {
+    throw new HttpsError("failed-precondition", "Account deletion was not started for this identity.");
+  }
+
+  if (!isResuming && stringField(userSnapshot.data(), "globalRole") === "owner") {
+    throw new HttpsError(
+      "permission-denied",
+      "Platform owner account cannot be deleted from the app."
+    );
+  }
+  if (!isResuming && !ownedOrganizationSnapshot.empty) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Organization ownership must be transferred before account deletion."
+    );
+  }
+
+  await preflightDeletionQueries(uid);
+
+  const personalReferences = personalReferenceValues(uid, userSnapshot.data());
+
+  if (!operationSnapshot.exists) {
+    await operationReference.set({
+      status: "inProgress",
+      stage: "started",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      expiresAt: operationExpiry(),
+    }, {merge: true});
+  } else {
+    await recordDeletionStage(operationReference, "started", "inProgress");
+  }
+
+  const runStage = async (
+    stage: AccountDeletionOperationStage,
+    work: () => Promise<void>
+  ): Promise<void> => {
+    await recordDeletionStage(operationReference, stage, "inProgress", {
+      lastError: FieldValue.delete(),
+    });
+    try {
+      await work();
+    } catch (error) {
+      const errorCode = (error as {code?: unknown})?.code;
+      try {
+        await recordDeletionStage(operationReference, stage, "partial", {
+          lastError: typeof errorCode === "string" || typeof errorCode === "number" ? String(errorCode) : "unknown",
+        });
+      } catch (journalError) {
+        console.error("Failed to record partial account deletion state.", journalError);
+      }
+      throw error;
+    }
+  };
+
+  await runStage("privateData", async () => {
+    if (userSnapshot.exists) await markDeletionInProgress(uid);
+    // Remove feedback owned by this user before scanning feedback messages.
+    // Otherwise a recursive delete can race an anonymizing update in the same batch.
+    await deleteOwnedPrivateData(uid);
+  });
+
+  await runStage("references", async () => {
+    await Promise.all([
+      deleteProfileImages(uid),
+      db.collection("publicProfiles").doc(uid).delete(),
+      ...accountDeletionReferencePolicies.map((policy) =>
+        applyReferencePolicy(policy, uid, personalReferences)
+      ),
+    ]);
+  });
+
+  await runStage("userRoot", () => deleteUserRoot(uid));
+  await runStage("authIdentity", async () => {
+    try {
+      await adminAuth.deleteUser(uid);
+    } catch (error) {
+      if ((error as {code?: unknown})?.code !== "auth/user-not-found") throw error;
+    }
+  });
+
+  const completedAt = new Date();
+  try {
+    await recordDeletionStage(operationReference, "completed", "completed", {
+      completedAt: Timestamp.fromDate(completedAt),
+      lastError: FieldValue.delete(),
+    });
+  } catch (error) {
+    // Auth is already gone. Do not turn a completed destructive operation
+    // into a client-visible failure that invites an impossible retry.
+    console.error("Failed to finalize the account deletion operation receipt.", error);
+  }
+
+  return {
+    status: "deleted",
+    completedAt: completedAt.toISOString(),
+  };
+}

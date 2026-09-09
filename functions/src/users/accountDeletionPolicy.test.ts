@@ -1,4 +1,6 @@
 import {strict as assert} from "node:assert";
+import {readFileSync} from "node:fs";
+import {resolve} from "node:path";
 import {test} from "node:test";
 
 import {
@@ -91,4 +93,16 @@ test("redaction removes identifiers from nested retained log data", () => {
     createdAt: timestampLikeValue,
   });
   assert.equal(result.createdAt, timestampLikeValue);
+});
+
+
+test("collection-group deletion queries have deployable single-field indexes", () => {
+  const config = JSON.parse(readFileSync(resolve(__dirname, "../../../Firebase/firestore.indexes.json"), "utf8"));
+  for (const policy of accountDeletionReferencePolicies.filter((item) => item.scope === "collectionGroup")) {
+    assert.ok(config.fieldOverrides.some((field: {collectionGroup: string; fieldPath: string; indexes: Array<{queryScope: string; order?: string; arrayConfig?: string}>}) =>
+      field.collectionGroup === policy.collection && field.fieldPath === policy.field &&
+      field.indexes.some((index) => index.queryScope === "COLLECTION_GROUP" &&
+        (String(policy.operator) === "array-contains" ? index.arrayConfig === "CONTAINS" : Boolean(index.order)))
+    ), `Missing collection-group index: ${policy.collection}.${policy.field}`);
+  }
 });
