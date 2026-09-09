@@ -65,7 +65,7 @@ struct SystemLogDetailView: View {
                 InlineMessageCard(style: .success, message: AppStrings.SystemLogs.detailsCopied)
             }
 
-            DetailHeaderCard(title: SystemLogDisplayFormatting.summaryTitle(log.summary), subtitle: log.technicalMessage) {
+            DetailHeaderCard(title: SystemLogExplanation.title(log), subtitle: SystemLogExplanation.action(log)) {
                 AppHorizontalChipRow(spacing: 8) {
                     AppInfoChip(
                         title: SystemLogDisplayFormatting.severityTitle(log.severity),
@@ -77,13 +77,14 @@ struct SystemLogDetailView: View {
                 }
             }
 
-            reviewActionSection
+            SystemLogActorSection(log: log)
 
-            detailSection(AppStrings.SystemLogs.actorSection, rows: [
-                (AppStrings.SystemLogs.nameLabel, nonEmpty(log.actorDisplayName)),
-                (AppStrings.SystemLogs.roleLabel, SystemLogDisplayFormatting.actorRoleTitle(log.actorRole)),
-                (AppStrings.SystemLogs.userIdLabel, nonEmpty(log.actorUserId))
-            ])
+            if SystemLogExplanation.isFailure(log) {
+                detailSection(SystemLogExplanation.text("section"), rows: [
+                    (SystemLogExplanation.text("cause"), SystemLogExplanation.cause(log)),
+                    (SystemLogExplanation.text("next"), SystemLogExplanation.nextStep(log))
+                ])
+            }
 
             detailSection(AppStrings.SystemLogs.targetSection, rows: [
                 (AppStrings.SystemLogs.typeLabel, targetTypeValue),
@@ -96,6 +97,17 @@ struct SystemLogDetailView: View {
                 (AppStrings.SystemLogs.organizationIdLabel, nonEmpty(log.organizationId))
             ])
 
+            DisclosureGroup(SystemLogExplanation.text("technical")) {
+                technicalSections
+            }
+            .tint(AppTheme.accentPrimary)
+
+            reviewActionSection
+        }
+    }
+
+    private var technicalSections: some View {
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
             detailSection(AppStrings.SystemLogs.classificationSection, rows: [
                 (AppStrings.SystemLogs.categoryLabel, SystemLogDisplayFormatting.categoryTitle(log.category)),
                 (AppStrings.SystemLogs.severityLabel, SystemLogDisplayFormatting.severityTitle(log.severity)),
@@ -107,6 +119,8 @@ struct SystemLogDetailView: View {
             ])
 
             detailSection(AppStrings.SystemLogs.diagnosticsSection, rows: [
+                (AppStrings.SystemLogs.titleLabel, nonEmpty(log.summary)),
+                (SystemLogExplanation.text("section"), nonEmpty(log.technicalMessage)),
                 (AppStrings.SystemLogs.errorCodeLabel, nonEmpty(log.errorCode)),
                 (AppStrings.SystemLogs.moduleLabel, nonEmpty(log.moduleName)),
                 (AppStrings.SystemLogs.screenLabel, nonEmpty(log.screenName)),
@@ -147,9 +161,17 @@ struct SystemLogDetailView: View {
             "\(AppStrings.SystemLogs.severityLabel): \(SystemLogDisplayFormatting.severityTitle(log.severity))",
             "\(AppStrings.SystemLogs.categoryLabel): \(SystemLogDisplayFormatting.categoryTitle(log.category))",
             "\(AppStrings.SystemLogs.eventLabel): \(SystemLogDisplayFormatting.eventTypeTitle(log.eventType))",
-            "\(AppStrings.SystemLogs.titleLabel): \(log.summary)"
+            "\(AppStrings.SystemLogs.titleLabel): \(SystemLogExplanation.title(log))",
+            "\(SystemLogExplanation.text("action")): \(SystemLogExplanation.action(log))"
         ]
+        if SystemLogExplanation.isFailure(log) {
+            lines.append("\(SystemLogExplanation.text("cause")): \(SystemLogExplanation.cause(log))")
+            lines.append("\(SystemLogExplanation.text("next")): \(SystemLogExplanation.nextStep(log))")
+        }
         let optionalRows: [(String, String?)] = [
+            (AppStrings.SystemLogs.nameLabel, log.actorDisplayName),
+            (SystemLogExplanation.text("technical"), log.technicalMessage),
+            (AppStrings.SystemLogs.titleLabel, log.summary),
             (AppStrings.SystemLogs.errorCodeLabel, log.errorCode),
             (AppStrings.SystemLogs.moduleLabel, log.moduleName),
             (AppStrings.SystemLogs.operationLabel, log.operationName),

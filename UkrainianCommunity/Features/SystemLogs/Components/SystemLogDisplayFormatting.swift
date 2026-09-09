@@ -158,7 +158,7 @@ enum SystemLogDisplayFormatting {
     }
 
     nonisolated static func dateTime(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .shortened)
+        LocalizationStore.dateString(from: date, localizedTemplate: "yMMMdHmsz")
     }
 
     static func severityTint(_ severity: SystemLogSeverity) -> Color {

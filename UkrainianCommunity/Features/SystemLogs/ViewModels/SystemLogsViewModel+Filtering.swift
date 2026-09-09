@@ -103,6 +103,8 @@ extension SystemLogsViewModel {
         [
             log.id,
             log.summary,
+            SystemLogExplanation.title(log),
+            SystemLogExplanation.action(log),
             log.technicalMessage,
             log.errorCode,
             log.moduleName,

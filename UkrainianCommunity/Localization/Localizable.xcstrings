@@ -1,6 +1,1317 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+  "system_logs.detail.actor.recorded_name": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Name in log"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Name im Protokoll"
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ім’я в записі"
+        }
+      }
+    }
+  },
+  "system_logs.detail.actor.current_profile": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Current profile"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Aktuelles Profil"
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Поточний профіль"
+        }
+      }
+    }
+  },
+  "system_logs.detail.actor.email": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Email"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "E-Mail"
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Електронна пошта"
+        }
+      }
+    }
+  },
+  "system_logs.detail.actor.loading": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Loading…"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Wird geladen…"
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Завантаження…"
+        }
+      }
+    }
+  },
+  "system_logs.detail.actor.not_found": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The current profile was not found. The account may have been deleted."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Das aktuelle Profil wurde nicht gefunden. Das Konto wurde möglicherweise gelöscht."
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Поточний профіль не знайдено. Обліковий запис міг бути видалений."
+        }
+      }
+    }
+  },
+  "system_logs.detail.actor.unavailable": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The current profile could not be loaded."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Das aktuelle Profil konnte nicht geladen werden."
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не вдалося завантажити поточний профіль."
+        }
+      }
+    }
+  },
+  "system_logs.detail.actor.no_display_data": {
+    "extractionState": "manual",
+    "localizations": {
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The current profile has no name or email address."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Das aktuelle Profil enthält weder einen Namen noch eine E-Mail-Adresse."
+        }
+      },
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "У поточному профілі немає імені або електронної пошти."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.secure.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не вдалося встановити захищене з’єднання"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Sichere Verbindung konnte nicht hergestellt werden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "A secure connection could not be established"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.secure.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перевірка захищеного з’єднання не пройшла. Цей запис сам по собі не доводить проблему сертифіката, VPN або мережі."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die sichere Verbindung konnte nicht bestätigt werden. Dieser Eintrag allein beweist kein Zertifikat-, VPN- oder Netzwerkproblem."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The secure connection could not be verified. This entry alone does not prove a certificate, VPN, or network problem."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.dns.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не вдалося знайти адресу сервера"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Serveradresse konnte nicht gefunden werden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The server address could not be resolved"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.dns.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Система не змогла визначити мережеву адресу сервера. Точну причину збою визначення адреси не записано."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Das System konnte die Netzwerkadresse des Servers nicht ermitteln. Die genaue Ursache ist nicht erfasst."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The system could not resolve the server address. The exact reason for this failure was not recorded."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.precondition.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не виконано умову для цієї дії"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Voraussetzung für diese Aktion nicht erfüllt"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "A required condition for this action was not met"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.precondition.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Сервер відхилив дію через невиконану умову. Яку саме — цей код не уточнює; потрібні додаткові дані сервера."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Der Server hat die Aktion wegen einer nicht erfüllten Voraussetzung abgelehnt. Der Code nennt diese nicht; weitere Serverdaten sind nötig."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The server rejected the action because a condition was not met. The code does not identify that condition; additional server details are needed."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.section": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Що сталося"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Was ist passiert?"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "What happened"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Під час якої дії"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Bei welcher Aktion"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "During which action"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Що відомо про причину"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Was über die Ursache bekannt ist"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "What is known about the cause"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.next": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Що перевірити"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Was geprüft werden sollte"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "What to check"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.technical": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Технічні подробиці"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Technische Details"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Technical details"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.unknown.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Дію не вдалося завершити"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Aktion konnte nicht abgeschlossen werden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The action could not be completed"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.unknown.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Точну причину в цьому записі не встановлено. Технічний код сам по собі її не пояснює."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die genaue Ursache ist in diesem Eintrag nicht festgestellt. Der technische Code allein erklärt sie nicht."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The exact cause is not established in this entry. The technical code alone does not explain it."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.unknown.next": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Скопіюйте подробиці запису для перевірки. Для з’ясування причини можуть знадобитися серверний журнал і повторення дії."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Kopieren Sie die Details zur Prüfung. Zur Klärung können Serverprotokolle und eine Wiederholung der Aktion nötig sein."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Copy the entry details for investigation. Server logs and reproducing the action may be needed."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.connection.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "З’єднання із сервером перервалося"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Verbindung zum Server unterbrochen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Connection to the server was interrupted"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.connection.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Запис підтверджує розрив з’єднання під час запиту. Чому саме воно перервалося, не записано."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Der Eintrag bestätigt einen Verbindungsabbruch während der Anfrage. Der Grund des Abbruchs wurde nicht erfasst."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The entry confirms a connection loss during the request. The reason for the interruption was not recorded."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.network.next": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перевірте з’єднання та оновіть дані. Якщо це була зміна або видалення, спочатку перевірте результат, щоб не повторити вже виконану дію."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Prüfen Sie die Verbindung und aktualisieren Sie die Daten. Bei Änderungen oder Löschungen zuerst das Ergebnis prüfen, damit keine bereits ausgeführte Aktion wiederholt wird."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Check the connection and refresh the data. For changes or deletions, check the outcome first to avoid repeating an action that already completed."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.offline.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Немає доступу до інтернету"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Keine Internetverbindung"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "No internet connection"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.offline.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Пристрій повідомив про відсутність підключення до інтернету під час запиту."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Das Gerät meldete während der Anfrage keine Internetverbindung."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The device reported no internet connection during the request."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.timeout.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Відповідь не надійшла вчасно"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Antwortzeit überschritten"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The response did not arrive in time"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.timeout.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Час очікування запиту минув. Це не підтверджує, що сервер не виконав дію; точну причину затримки не встановлено."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die Wartezeit der Anfrage ist abgelaufen. Das beweist nicht, dass der Server die Aktion nicht ausgeführt hat; die genaue Ursache der Verzögerung ist ungeklärt."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The request timed out. This does not prove that the server did not complete the action; the exact cause of the delay is unknown."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.permission.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Доступ до дії або даних відхилено"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Zugriff auf Aktion oder Daten verweigert"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Access to the action or data was denied"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.permission.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перевірка доступу відхилила запит. Сам запис не визначає, чи змінилися права користувача, стан об’єкта або його доступність."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die Zugriffsprüfung hat die Anfrage abgelehnt. Der Eintrag allein zeigt nicht, ob sich Berechtigungen, Objektstatus oder Verfügbarkeit geändert haben."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The access check rejected the request. The entry alone does not establish whether permissions, the object state, or its availability changed."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.permission.next": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перевірте користувача, його поточні права та чи існує об’єкт. Зіставте час із видаленням або зміною об’єкта."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Prüfen Sie den Benutzer, seine aktuellen Rechte und ob das Objekt existiert. Vergleichen Sie die Zeit mit Löschungen oder Änderungen."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Check the user, their current permissions, and whether the object exists. Compare the time with object deletions or changes."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.auth.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Сервер не підтвердив сесію входу"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Anmeldesitzung vom Server nicht bestätigt"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The server did not authenticate the session"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.auth.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Запит не мав прийнятного підтвердження входу. Причина втрати або відхилення сесії не записана."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die Anfrage enthielt keinen gültigen Anmeldenachweis. Warum die Sitzung verloren ging oder abgelehnt wurde, ist nicht erfasst."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The request lacked acceptable authentication. Why the session was lost or rejected was not recorded."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.auth.next": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Перевірте стан входу користувача. За потреби увійдіть повторно."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Prüfen Sie den Anmeldestatus. Melden Sie sich bei Bedarf erneut an."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Check the sign-in state. Sign in again if needed."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.mfa.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не завершено перевірку кодом автентифікатора"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Bestätigung per Authenticator fehlt"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Authenticator verification is incomplete"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.mfa.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Для привілейованого акаунта сервер вимагає сесію з підтвердженням TOTP."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Der Server verlangt für dieses privilegierte Konto eine per TOTP bestätigte Sitzung."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The server requires a TOTP-verified session for this privileged account."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.mfa.next": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Увійдіть повторно з кодом автентифікатора."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Melden Sie sich erneut mit dem Authenticator-Code an."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Sign in again using the authenticator code."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.unavailable.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Сервіс тимчасово недоступний"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Dienst vorübergehend nicht verfügbar"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The service is temporarily unavailable"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.unavailable.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Запит не зміг отримати доступ до сервісу. Цей запис не відрізняє збій мережі від недоступності сервера."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die Anfrage konnte den Dienst nicht erreichen. Dieser Eintrag unterscheidet nicht zwischen einem Netzwerkproblem und einem nicht verfügbaren Server."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The request could not reach the service. This entry does not distinguish a network problem from server unavailability."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.cancelled.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Запит скасовано"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Anfrage abgebrochen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The request was cancelled"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.cancelled.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Операцію скасовано. Сам запис не вказує, чи це сталося через вихід з екрана, зміну сесії або іншу причину."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die Operation wurde abgebrochen. Der Eintrag zeigt nicht, ob ein Bildschirmwechsel, eine neue Sitzung oder etwas anderes der Grund war."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The operation was cancelled. The entry does not say whether leaving the screen, a session change, or something else caused it."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.parsing.title": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Не вдалося прочитати отримані дані"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Empfangene Daten konnten nicht gelesen werden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The received data could not be read"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.parsing.cause": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Структура отриманих даних не відповідає формату, який очікував застосунок. Конкретне поле може бути не записане."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die empfangenen Daten entsprechen nicht dem erwarteten Format. Das betroffene Feld ist möglicherweise nicht erfasst."
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "The received data does not match the format expected by the app. The specific field may not have been recorded."
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.unknown": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Дію не уточнено; технічна назва — у подробицях"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Aktion nicht näher bezeichnet; technischer Name in den Details"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Action not specified; technical name is in the details"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.getBlockedOrganizations": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Завантаження заблокованих організацій"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Gesperrte Organisationen laden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Loading blocked organizations"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.getBlockedUsers": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Завантаження заблокованих користувачів"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Gesperrte Benutzer laden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Loading blocked users"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.listenNewsComments": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Оновлення коментарів новини"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Nachrichtenkommentare aktualisieren"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Updating news comments"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.listenEventComments": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Оновлення коментарів події"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Veranstaltungskommentare aktualisieren"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Updating event comments"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.listenNotifications": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Оновлення списку сповіщень"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Mitteilungsliste aktualisieren"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Updating the notification list"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.fetchNotifications": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Завантаження сповіщень"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Mitteilungen laden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Loading notifications"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.fetchUnreadCount": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Підрахунок непрочитаних сповіщень"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ungelesene Mitteilungen zählen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Counting unread notifications"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.deleteNotificationPushRegistration": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Відключення push-сповіщень пристрою"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Push-Mitteilungen des Geräts abmelden"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Unregistering device push notifications"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.deleteOwnAccount": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Видалення власного акаунта"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Eigenes Konto löschen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Deleting own account"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.deleteOrganization": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Видалення організації"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Organisation löschen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Deleting an organization"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.deleteNews": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Видалення новини"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Nachricht löschen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Deleting a news post"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.cancelEvent": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Скасування події"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Veranstaltung absagen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Cancelling an event"
+        }
+      }
+    }
+  },
+  "system_logs.explanation.action.deleteEvent": {
+    "extractionState": "manual",
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Видалення події"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Veranstaltung löschen"
+        }
+      },
+      "en": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Deleting an event"
+        }
+      }
+    }
+  },
     "app_error.network": {
       "extractionState": "manual",
       "localizations": {

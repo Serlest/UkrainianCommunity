@@ -10,7 +10,7 @@ struct SystemLogRowView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(SystemLogDisplayFormatting.summaryTitle(log.summary))
+                    Text(SystemLogExplanation.title(log))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
                         .lineLimit(2)
@@ -99,21 +99,13 @@ struct SystemLogRowView: View {
             Text(text)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(1)
+                .lineLimit(2)
         }
     }
 
     private var rowContextText: String? {
-        if log.category == .diagnostics || log.severity >= .error {
-            var diagnosticParts: [String] = []
-            if let errorCode = log.errorCode, !errorCode.isEmpty {
-                diagnosticParts.append(errorCode)
-            }
-            if let combinedDiagnosticPath, !combinedDiagnosticPath.isEmpty {
-                diagnosticParts.append(combinedDiagnosticPath)
-            }
-
-            return diagnosticParts.isEmpty ? SystemLogDisplayFormatting.eventTypeTitle(log.eventType) : diagnosticParts.joined(separator: " · ")
+        if SystemLogExplanation.isFailure(log) {
+            return SystemLogExplanation.action(log)
         }
 
         if log.category == .audit {
@@ -122,18 +114,6 @@ struct SystemLogRowView: View {
         }
 
         return nil
-    }
-
-    private var combinedDiagnosticPath: String? {
-        var parts: [String] = []
-        if let moduleName = log.moduleName, !moduleName.isEmpty {
-            parts.append(moduleName)
-        }
-        if let operationName = log.operationName, !operationName.isEmpty {
-            parts.append(operationName)
-        }
-
-        return parts.isEmpty ? nil : parts.joined(separator: " / ")
     }
 
 }
