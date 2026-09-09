@@ -1,4 +1,6 @@
 import {strict as assert} from "node:assert";
+import {readFileSync} from "node:fs";
+import {resolve} from "node:path";
 import {after, beforeEach, test} from "node:test";
 
 import {Timestamp} from "firebase-admin/firestore";
@@ -8,6 +10,7 @@ import {
   completeOrganizationDeletionNotifications,
   deleteOrganization,
   organizationDeletionOperationCollection,
+  organizationDeletionHistoryQueries,
   prepareOrganizationDeletionNotificationPlan,
   repairDeletedOrganizationLifecycleFromCreationProof,
 } from "./contentDeletion";
@@ -176,5 +179,43 @@ test("owner callable removes organization, news and actual stored images and not
     await db.recursiveDelete(db.doc(`news/${newsId}`));
     await bucket.file(photoPath).delete({ignoreNotFound: true});
     await bucket.file(coverPath).delete({ignoreNotFound: true});
+  }
+});
+
+
+test("all organization deletion collection-group queries have deployment indexes", () => {
+  const config = JSON.parse(readFileSync(resolve(__dirname, "../../../Firebase/firestore.indexes.json"), "utf8"));
+  for (const [collection, field] of organizationDeletionHistoryQueries) {
+    assert.ok(config.fieldOverrides.some((entry: {collectionGroup: string; fieldPath: string; indexes: Array<{queryScope: string; order?: string}>}) =>
+      entry.collectionGroup === collection && entry.fieldPath === field &&
+      entry.indexes.some(index => index.queryScope === "COLLECTION_GROUP" && Boolean(index.order))
+    ), `Missing index: ${collection}.${field}`);
+  }
+});
+
+test("missing organization deletion index leaves the organization and owner intact", {skip: !live}, async t => {
+  await db.doc(`users/${actorUserId}`).set({globalRole: "owner", accountStatus: "active"});
+  await db.doc(`organizations/${organizationId}`).set({name: "Test", ownerId: ownerUserId});
+  const original = db.collectionGroup.bind(db);
+  const mocked = t.mock.method(db, "collectionGroup", (name: string) => {
+    const group = original(name);
+    if (name === "notificationInbox") {
+      const where = group.where.bind(group);
+      t.mock.method(group, "where", (...args: Parameters<typeof group.where>) => {
+        const query = where(...args);
+        if (args[0] === "sourceId") t.mock.method(query, "limit", () => {throw Object.assign(new Error("Missing index"), {code: 9});});
+        return query;
+      });
+    }
+    return group;
+  });
+  try {
+    await assert.rejects(deleteOrganization.run({auth: {uid: actorUserId, token: {email_verified: true}}, data: {organizationId}} as never), {code: "unavailable"});
+    assert.equal((await db.doc(`organizations/${organizationId}`).get()).get("ownerId"), ownerUserId);
+    assert.equal((await db.doc(`users/${ownerUserId}`).get()).exists, true);
+    assert.equal((await db.doc(`${organizationDeletionOperationCollection}/${organizationId}`).get()).exists, false);
+  } finally {
+    mocked.mock.restore();
+    await db.doc(`users/${actorUserId}`).delete();
   }
 });

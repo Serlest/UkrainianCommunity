@@ -108,6 +108,7 @@ export const deleteOrganization = onCall(
     const organizationReference = db.collection("organizations").doc(organizationId);
     let organizationExisted: boolean;
     let notificationPlan: OrganizationDeletionNotificationPlan | undefined;
+    await preflightOrganizationDeletionHistory(organizationId);
     if (isOwner(actor)) {
       await assertOrganizationHasNoBlockingEvents(organizationId);
       notificationPlan = await prepareOrganizationDeletionNotificationPlan(
@@ -518,6 +519,25 @@ async function assertOrganizationHasNoBlockingEvents(
       "Cancel active organization events before deleting the organization.",
       {blockingEventIds: blockingEvents.slice(0, 20)}
     );
+  }
+}
+
+export const organizationDeletionHistoryQueries = [
+  ["organizationBookmarks", "organizationId"],
+  ["recentViews", "itemId"],
+  ["activityLog", "targetId"],
+  ["notificationInbox", "actionTargetId"],
+  ["notificationInbox", "sourceId"],
+] as const;
+
+async function preflightOrganizationDeletionHistory(organizationId: string): Promise<void> {
+  try {
+    await Promise.all(organizationDeletionHistoryQueries.map(([collection, field]) =>
+      db.collectionGroup(collection).where(field, "==", organizationId).limit(1).select().get()
+    ));
+  } catch (error) {
+    logger.error("Organization deletion query preflight failed.", error);
+    throw new HttpsError("unavailable", "Organization deletion is temporarily unavailable. Please retry later.");
   }
 }
 
