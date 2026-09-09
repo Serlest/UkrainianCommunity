@@ -6,6 +6,42 @@ import org.junit.Test
 
 class ModerationBuild80ContractTest {
     @Test
+    fun lostResponseNeedsExactActorOperationAndPreservedContent() {
+        val pending = ModerationDecisionUnitFixture.pending(ModerationDecisionPhase.DISPATCHED)
+        val uid = ModerationDecisionUnitFixture.actor.uid
+        val fields =
+            ModerationDecisionUnitFixture.fields() +
+                mapOf(
+                    "moderationOperationId" to pending.operationId,
+                    "moderatedByUserId" to uid,
+                    "moderatedAt" to ModerationDecisionUnitFixture.time.plusSeconds(1),
+                    "moderationStatus" to "approved",
+                )
+        assertTrue(ModerationBuild80Contract.confirmsCurrentOperation(pending, uid, fields))
+        for (key in
+            listOf(
+                "moderationOperationId",
+                "moderatedByUserId",
+                "moderatedAt",
+                "moderationStatus",
+                "body",
+            )) assertFalse(
+            ModerationBuild80Contract.confirmsCurrentOperation(
+                pending,
+                uid,
+                fields + (key to "different"),
+            )
+        )
+        assertFalse(
+            ModerationBuild80Contract.confirmsCurrentOperation(
+                pending.copy(phase = ModerationDecisionPhase.PREPARED),
+                uid,
+                fields,
+            )
+        )
+    }
+
+    @Test
     fun requestUsesExactRevisionAndStableOperation() {
         val pending = ModerationDecisionUnitFixture.pending()
         val request = ModerationBuild80Contract.payload(pending)

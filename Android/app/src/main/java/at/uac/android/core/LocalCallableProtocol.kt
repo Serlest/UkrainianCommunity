@@ -45,6 +45,7 @@ object LocalCallableProtocol {
             "unregisterFromEvent",
             "saveComment",
             "submitContentReport",
+            "reviewContentModeration",
             "setUserBlocked",
             "setOrganizationBlocked",
             "getBlockedOrganizations",
@@ -132,6 +133,7 @@ object LocalCallableProtocol {
             setOf(
                 "saveComment",
                 "submitContentReport",
+                "reviewContentModeration",
                 "acceptLegalDocument",
                 "warnUser",
                 "suspendUser",
@@ -180,7 +182,7 @@ object LocalCallableProtocol {
     // Exact existing server deadlines. Cover upload overwrites Storage then updates Firestore.
     fun maximumTimeoutMillis(name: String): Long =
         when (name) {
-            "deleteOwnAccount",
+            "deleteOwnAccount" -> 330_000L
             "deleteNews",
             "deleteFeedback",
             "clearSystemLogs" -> 300_000

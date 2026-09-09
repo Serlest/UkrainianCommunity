@@ -96,8 +96,8 @@ private fun OverviewContent(
                             Text(
                                 tr(
                                     language,
-                                    "Teildaten: ${snapshot.unavailable.joinToString()}",
-                                    "Часткові дані: ${snapshot.unavailable.joinToString()}",
+                                    "Teildaten: ${snapshot.unavailable.joinToString { analyticsSourceName(it, language) }}",
+                                    "Часткові дані: ${snapshot.unavailable.joinToString { analyticsSourceName(it, language) }}",
                                 )
                             )
                         },
@@ -116,11 +116,15 @@ private fun OverviewContent(
             }
             if (!snapshot.hasData && state.failure == null) item { Empty(language) }
             if (snapshot.hasData) {
-                item { SectionTitle(tr(language, "Überblick", "Огляд")) }
-                item { MetricGrid(summaryMetrics(snapshot), snapshot.previousMetrics, language) }
-                if (snapshot.daily.size > 1) item { Trend(snapshot, language) }
-                item { SectionTitle(tr(language, "Aktionen", "Дії")) }
-                item { MetricGrid(actionMetrics(snapshot.metrics), emptyMap(), language) }
+                if ("daily" !in snapshot.unavailable) {
+                    item { SectionTitle(tr(language, "Überblick", "Огляд")) }
+                    item {
+                        MetricGrid(summaryMetrics(snapshot), snapshot.previousMetrics, language)
+                    }
+                    if (snapshot.daily.size > 1) item { Trend(snapshot, language) }
+                    item { SectionTitle(tr(language, "Aktionen", "Дії")) }
+                    item { MetricGrid(actionMetrics(snapshot.metrics), emptyMap(), language) }
+                }
                 val top = model.filteredTop()
                 if (top.isNotEmpty()) {
                     item { SectionTitle(tr(language, "Beliebte Inhalte", "Популярні матеріали")) }
@@ -501,3 +505,12 @@ private fun stateName(value: String, language: String) =
         "vorarlberg" to "Vorarlberg",
         "burgenland" to "Burgenland",
     )[value] ?: value
+
+private fun analyticsSourceName(source: String, language: String) =
+    when (source) {
+        "daily" -> tr(language, "Tagesstatistik", "Щоденна статистика")
+        "top" -> tr(language, "Beliebte Inhalte", "Популярні матеріали")
+        "regions" -> tr(language, "Regionen", "Регіони")
+        "users" -> tr(language, "Nutzer", "Користувачі")
+        else -> source
+    }

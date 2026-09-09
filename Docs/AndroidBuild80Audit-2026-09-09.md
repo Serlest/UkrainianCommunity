@@ -5,16 +5,18 @@ Changes are Android-only. No distribution or backend deployment performed.
 
 ## Verification boundary
 
-This is an IN PROGRESS checkpoint, not full parity or release approval. Only Android source and this audit document changed. iOS, backend, Rules, production data and store tracks were not changed.
+This is a source-wide audit with implemented fixes, not full parity or release approval. Only Android source and this audit document changed. iOS, backend, Rules, production data and store tracks were not changed.
 
-- Final local compile/assemble and lint: PASS (0 lint errors, 77 warnings, 1 hint).
-- Local JVM: 1919 tests, 0 failures/errors/skips.
-- Broad component UI on API37 at OS font 200%: first run 272/276 passed; four scenarios failed while awaiting docked IME.
-- Enabling hardware-keyboard IME alone did not resolve the four failures: 17/21 passed on that recheck.
-- Screenshot and input-method state showed a floating handwriting panel. Switching the AVD to ordinary English keyboard and disabling stylus handwriting resolved all four: affected full classes 21/21 PASS. No assertions weakened.
-- Latest visual source, main screens + banner + browse + personal UI: 18/18 PASS at 200% and 18/18 PASS at 100%.
-- Main captures cover DE/UK, light/dark home, news/events/organizations and details, guest profile, login, and bundled legal readers. These use synthetic fixtures.
-- Actual new callable SDK transport, authenticated cloud journeys, API26 final binary, physical device, TalkBack and Play-installed candidate: NOT VERIFIED.
+- Local compile/assemble and lint: PASS (0 lint errors, 77 existing warnings, 1 hint).
+- JVM: 1926 tests, 0 failures/errors/skips.
+- API26: initial component 276/276 PASS; expanded UI suite 297/297 PASS at OS font 200%, including owner analytics/roles/announcements and unavailable markers. Expanded suite preceded the final read-only moderation marker change.
+- API37: MainActivity + affected UI classes 28/28 PASS at each OS font 100% and 200%; synthetic light/dark, German/Ukrainian captures. Final exact-artifact rerun recorded separately below.
+- Local Android Auth/Firestore SDK + demo-only Android callable gateway to actual iOS80 handlers: 6/6 PASS on API37; registration/verification/restore, feedback transaction/replay, exact read acknowledgement, legal integrity/tampering, moderation receipt/replay/payload conflict/stale revision/server marker.
+- App TOTP protection remained active: no-TOTP privileged source authorization was rejected. The lower-level fixture transport test is not a positive owner/admin UI authorization test.
+- On API26, Auth/Feedback 4/4 and earlier transport/legal 2/2 passed. Reinstall of the last candidate hung in the AVD package installer; no final API26 SDK result is claimed. Owned AVD was stopped and subsequent verification moved to API37.
+- Exact final formatted APK pair: API37 font 200%, 34/34 PASS (6 SDK/transport + 28 MainActivity/affected UI), build80-exact-final-api37.log.
+- Physical device, TalkBack, positive real TOTP, production Firebase Functions SDK, cloud journeys and Play-installed candidate: NOT VERIFIED.
+- First-pass screenshots and 1919-test receipts are retained in the output directory as historical evidence; newer files use build80/full-audit names. Only screenshots actually refreshed by the new runner are counted.
 
 ## Implemented Android changes
 
@@ -30,46 +32,47 @@ This is an IN PROGRESS checkpoint, not full parity or release approval. Only And
 
 ## Remaining work before full parity / release
 
-1. Complete the per-package source/scenario comparison below, especially feedback/inbox, legal receipt integrity, block lists, settings recovery, and owner management.
-2. Verify new callable contracts through Android Firebase SDK against isolated build80 backend fixtures. The old Android local callable harness does not establish support for the new moderation endpoint. No production destructive tests.
-3. Resolve explicit recovery of new moderation operations after a lost response; do not claim same-operation replay is exposed by the current Android UI.
+1. Close the explicit workflow gaps below: activity-history uncertain-write recovery, DSA submission/review actions, donation owner editor, legal document editor.
+2. Extend positive authenticated journeys to TOTP owner/admin and production-configured Firebase Functions transport. Local Auth/Firestore SDK plus Android local callable gateway now have isolated build80 backend proof.
+3. Lost responses with exact current server operation marker now reconcile read-only. Changed/deleted targets without durable acknowledgement still require stronger receipt recovery; UI does not expose same-operation resend.
 4. Complete authenticated owner/admin visual captures, real loaded artwork comparisons with iOS80, API26 and physical-device/TalkBack checks.
 5. Build signed production candidate and proceed to store distribution only within the separately authorized scope. Local version metadata is not release proof.
 
 ## iOS build 80 package coverage
 
-Each row must receive Android source evidence and scenario evidence before full parity can be claimed.
+Source comparison covers all supplied handoffs (9 and 11 have no separate handoff). “Reviewed” is source evidence, not a runtime PASS. Gaps are explicit functional differences.
 
-- NOT VERIFIED: Fix80-1 — Profile root reconciliation — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-1-handoff.md
-- NOT VERIFIED: Build 80 package 2 — shared shell/layout handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-2-handoff.md
-- NOT VERIFIED: Fix80-3 handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-3-handoff.md
-- NOT VERIFIED: Build 80 — пакет 4 «Мои мероприятия» — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-4-handoff.md
-- NOT VERIFIED: Fix80-05 — Saved content handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-5-handoff.md
-- NOT VERIFIED: Fix80-6 — Followed organizations handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-6-handoff.md
-- NOT VERIFIED: Fix80-7 — Recent views handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-7-handoff.md
-- NOT VERIFIED: Fix80-8 handoff — Activity History — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-8-handoff.md
-- NOT VERIFIED: Fix80-10 handoff — Feedback — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-10-handoff.md
-- NOT VERIFIED: Fix80 package 12 — Уведомления — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-12-handoff.md
-- NOT VERIFIED: Fix 80 — Package 13 handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-13-handoff.md
-- NOT VERIFIED: Fix80-14 handoff — App Lock availability — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-14-handoff.md
-- NOT VERIFIED: Fix80-15 — notification settings reliability — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-15-handoff.md
-- NOT VERIFIED: Fix80-16 handoff — Security settings — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-16-handoff.md
-- NOT VERIFIED: Fix80-17 — Заблокированные организации — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-17-handoff.md
-- NOT VERIFIED: Fix80 package 18 — Blocked users — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-18-handoff.md
-- NOT VERIFIED: Fix80-19 handoff — Legal reader and acceptance (sections 19 + 20) — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-19-handoff.md
-- NOT VERIFIED: Fix80-20 handoff — Privacy reader cross-check — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-20-handoff.md
-- NOT VERIFIED: Fix80 package 21 — Account deletion and DSA backend — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-21-handoff.md
-- NOT VERIFIED: Fix80-22 organization request review handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-22-handoff.md
-- NOT VERIFIED: Fix80-23 — Moderation handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-23-handoff.md
-- NOT VERIFIED: Fix80-24 handoff — Feedback operation reconciliation — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-24-handoff.md
-- NOT VERIFIED: Fix80-25 — Управління користувачами — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-25-handoff.md
-- NOT VERIFIED: Fix80-26 — Баннеры — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-26-handoff.md
-- NOT VERIFIED: Fix80-27 — Планування контенту — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-27-handoff.md
-- NOT VERIFIED: Fix 80 — Package 28 handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-28-handoff.md
-- NOT VERIFIED: Fix 80 — Package 29 handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-29-handoff.md
-- NOT VERIFIED: Fix80-30 — Legal document management handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-30-handoff.md
-- NOT VERIFIED: Fix80-31 — Legal evidence handoff — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-31-handoff.md
-- NOT VERIFIED: Fix80-32 — System Logs — reference /Users/serlest/Developer/UAC-1.1-Build80/Docs/Fix80-32-handoff.md
+| Package | Area | Result | Evidence / boundary |
+|---|---|---|---|
+| 1 | Profile root | Reviewed | PersonalIntegration/PersonalUi keep loading/error scoped to session. Badge freshness across every production route remains device verification. |
+| 2 | Shared shell and layout | Fixed + component tests | UacSectionCard, grouped details and feed cards; 48dp actions; typography not clamped. API26/37 component checks are not complete screenshot parity. |
+| 3 | Organization deletion | Reviewed | OrganizationManagement + ContentLifecycle confirmations/reconciliation exist; real cascade is shared backend and was not executed. |
+| 4 | My events | Reviewed | RegistrationsRepository/FirestoreRegistrationsSource use server reads and guarded mutations. Cancellation after backend mode changes needs positive SDK journey. |
+| 5 | Saved | Fixed + tests | Validated bookmark IDs now survive unavailable content as removable placeholders; no automatic marker deletion; server-confirmed explicit removal. |
+| 6 | Subscriptions | Fixed + tests | Same explicit unavailable-marker removal for subscriptions; cursor and account scope retained. |
+| 7 | Recent views | Reviewed | History source resolves targets individually and filters visibility; MainActivity safety applies to history. Live blocked-organization scenario remains unverified. |
+| 8 | Activity history | Gap | Android reconciliation is read-only after uncertain writes. No equivalent complete iOS80 stable-operation resend workflow claimed. |
+| 10 | Feedback | Fixed + SDK tests | Message cursor pagination past 100; equal-timestamp tie-break; loaded depth preserved on refresh; exact-snapshot user-read acknowledgement cannot consume a newer reply. |
+| 12 | Notifications | Fixed + component tests | Inbox, feedback, popup listener transient errors reconnect with bounded backoff. Dismissal mutations are not replayed. Positive push delivery is not tested. |
+| 13 | Analytics consent | Reviewed | Existing receipt-backed consent, fail-closed UI and identity guards; Build68PrivacyLegalUiTest. Production consent journey remains unverified. |
+| 14 | App lock | Reviewed + component tests | SystemAppLockAuthenticator checks device credential independently of strong biometrics; Android native credential fallback retained. Physical biometric/credential test remains. |
+| 15 | Notification settings | Reviewed | Inbox preferences and reminder state are separate; permission settings exposed. Real notification delivery/reboot coverage not established by this run. |
+| 16 | Security settings | Reviewed + SDK tests | Auth session restore/verification local SDK checks passed. Existing TOTP validation and MFA UI tested with fixtures; positive real TOTP remains unverified. |
+| 17 | Blocked organizations | Fixed + unit tests | Unknown block policy remains fail-closed. Uncertain mutation gets one immediate read-back without resending; explicit success only from confirmed list. |
+| 18 | Blocked users | Fixed + unit tests | Same uncertain-write read-back; backend deleted-target unblock behavior is not changed by Android work. |
+| 19/20 | Legal reader and acceptance | Fixed + SDK tests / dependency | SERVER pointer/version read, canonical/legacy hash validation, validated Markdown display and table rendering. Tampering rejected. New iOS registration receipts are ios-only in reference Rules; Android initial-registration evidence parity needs shared Rules design. |
+| 21 | Account deletion | Fixed + unit tests | 330s request reaches common protocol policy (previous 300s cap removed). No destructive cloud account test; backend DSA retention/resume remains shared implementation. |
+| 22 | Organization review | Fixed + contract tests | Stable operationId and exact loaded expectedRevision sent; positive TOTP-authorized server journey still unverified. |
+| 23 | Moderation / DSA | Fixed moderation + SDK tests; DSA gap | New endpoint allowlisted and non-idempotent; receipt/replay/conflict contract validated. Exact server operation marker reconciles lost response without resend. DSA appeals remain read-only preparation in Android. |
+| 24 | Feedback reconciliation | Reviewed + SDK tests | Existing stable message ID transaction verified with repeat/read-back; no duplicate reply. Read acknowledgement now added separately. |
+| 25 | User management | Reviewed + component tests | Existing auth metadata and truncation handling retained. Full privileged live user-management journey is not covered. |
+| 26 | Banners | Fixed + component tests | Artwork FIT with adaptive background, optional scrim, current-index gesture key, local schedule boundary refresh. Authenticated banner editor uses existing validations. |
+| 27 | Content planning | Reviewed + component tests | Existing draft/lease recovery and explicit retry; organization selection and draft editing retained. Every malformed backend draft combination remains unverified. |
+| 28 | Owner analytics | Fixed + component test | Missing daily documents or update timestamps mark daily coverage unavailable and hide misleading daily totals/trend; other available sections remain. Source names localized. |
+| 29 | Donation management | Gap | Public support exists; no Android owner donation editor equivalent found. This is a missing workflow, not a visual-only discrepancy. |
+| 30 | Legal document management | Gap | No Android draft/CAS/publish editor equivalent found. Reader/evidence fixes do not provide publication controls. |
+| 31 | Legal evidence | Fixed + component tests | Existing paginated owner callable; added search and version/locale/app/platform/source-record/hash detail, localized provenance. Full evidence population relies on backend receipts. |
+| 32 | System logs | Reviewed + component tests | Existing SERVER reads and refreshed detail; owner/admin visibility retained. No production log mutation performed. |
 
 ## Android screen inventory
 
@@ -111,6 +114,18 @@ Each row must receive Android source evidence and scenario evidence before full 
 - usermanagement: ManagedUsersUi.kt — full visual coverage NOT VERIFIED
 - userstatusmanagement: UserStatusUi.kt — full visual coverage NOT VERIFIED
 
+## Additional fixes in the full-audit pass
+
+- Common transport allowlist/non-idempotent policy now includes reviewContentModeration, and deleteOwnAccount permits the requested 330 seconds.
+- Legal content verifies canonical and legacy hashes before display; local synthetic fixtures now carry valid hashes.
+- Feedback uses paged message reads, preserves loaded history depth, and acknowledges only the exact read snapshot using a transaction.
+- Transient listener failures reconnect for feedback, inbox and popup heads without replaying writes.
+- Block mutations reconcile uncertain outcomes with fresh lists.
+- Unavailable saved/subscription markers have explicit remove controls with pending/error states.
+- Incomplete daily analytics no longer appear as complete zero statistics.
+- Legal evidence has search and detailed provenance.
+- Moderation lost-response reconciliation accepts only matching server operation/actor/status/preserved content; status alone is insufficient.
+
 ## Next work
 
-Final 100%/200% verification and exact source/APK receipts saved under /Users/serlest/Documents/Codex/2026-09-09/80-80. Continue the outstanding functional comparison above. Full task is not yet complete.
+Verification logs and source/APK receipts saved under /Users/serlest/Documents/Codex/2026-09-09/80-80. Continue the outstanding functional comparison above. Full task is not yet complete.

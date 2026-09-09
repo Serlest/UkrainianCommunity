@@ -295,8 +295,8 @@ private fun InboxCard(
                     Text(
                         tr(
                             language,
-                            "Dieser Zielbereich ist im lokalen Android-Paket noch nicht verfügbar.",
-                            "Цей розділ ще недоступний у локальній Android-версії.",
+                            "Dieser Zielbereich ist in dieser Android-Version noch nicht verfügbar.",
+                            "Цей розділ ще недоступний у цій Android-версії.",
                         ),
                         Modifier.testTag("inbox-destination-unavailable"),
                     )

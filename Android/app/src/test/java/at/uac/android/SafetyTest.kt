@@ -683,7 +683,7 @@ class SafetyTest {
     }
 
     @Test
-    fun uncertainBlockMutationWithholdsContentUntilFreshListRead() = runTest {
+    fun uncertainBlockMutationUsesImmediateReadbackWithoutResending() = runTest {
         val source = FakeSource()
         val model = SafetyViewModel(source)
         model.bind(alice)
@@ -691,11 +691,8 @@ class SafetyTest {
         source.failAfterCommit = true
         model.setUser("target", true)
         advanceUntilIdle()
-        assertFalse(model.state.value.visibility.loaded)
-        source.failAfterCommit = false
-        model.refresh()
-        advanceUntilIdle()
         assertTrue(model.state.value.visibility.loaded)
+        assertEquals(1, source.calls.count { it.first == "setUserBlocked" })
         assertFalse(model.state.value.visibility.allowsAuthor("target"))
     }
 

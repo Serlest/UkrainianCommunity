@@ -105,6 +105,7 @@ fun FeedbackDestination(
             { model.refresh() },
             onAccount,
             onReadDecision,
+            onMore = { model.refresh(more = true) },
         )
 }
 
@@ -289,6 +290,7 @@ fun FeedbackDetail(
     onRefresh: () -> Unit,
     onAccount: () -> Unit,
     onReadDecision: ((String) -> Unit)? = null,
+    onMore: (() -> Unit)? = null,
 ) {
     var closing by remember(state.session, state.selectedId) { mutableStateOf(false) }
     val conversation = state.conversation
@@ -360,6 +362,18 @@ fun FeedbackDetail(
                 }
             }
         }
+        if (conversation?.limited == true && onMore != null)
+            item("older-messages") {
+                OutlinedButton(
+                    onMore,
+                    enabled = !state.loading,
+                    modifier = Modifier.testTag("feedback-messages-more"),
+                ) {
+                    Text(
+                        tr(language, "Ältere Nachrichten laden", "Завантажити старіші повідомлення")
+                    )
+                }
+            }
         if (item != null)
             item("reply") {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

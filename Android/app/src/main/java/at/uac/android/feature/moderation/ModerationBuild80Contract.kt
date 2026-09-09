@@ -31,6 +31,29 @@ internal object ModerationBuild80Contract {
             invalid()
     }
 
+    fun confirmsCurrentOperation(
+        pending: ModerationPending,
+        uid: String,
+        fields: Map<String, Any?>,
+    ): Boolean =
+        pending.phase != ModerationDecisionPhase.PREPARED &&
+            pending.accountHash == ModerationDecisionContract.accountHash(uid) &&
+            fields["moderationOperationId"] == pending.operationId &&
+            fields["moderatedByUserId"] == uid &&
+            fields["moderationStatus"] == pending.decision.wire &&
+            ModerationReviewVersion.instant(fields["moderatedAt"]) != null &&
+            runCatching {
+                    ModerationReviewVersion.hash(
+                        pending.version.target,
+                        fields.filterKeys {
+                            it !in
+                                setOf("moderationOperationId", "moderatedByUserId", "moderatedAt")
+                        },
+                        true,
+                    )
+                }
+                .getOrNull() == pending.version.preservedHash
+
     private fun invalid(): Nothing =
         ModerationDecisionContract.fail(ModerationDecisionFailure.UNCONFIRMED)
 }

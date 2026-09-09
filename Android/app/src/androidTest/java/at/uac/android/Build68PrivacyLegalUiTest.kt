@@ -1,13 +1,14 @@
 package at.uac.android
 
+import androidx.compose.ui.test.*
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
 import at.uac.android.feature.analyticsconsent.AnalyticsConsentAuthority
 import at.uac.android.feature.analyticsconsent.AnalyticsConsentReceipt
 import at.uac.android.feature.analyticsconsent.AnalyticsConsentReceiptStore
@@ -27,6 +28,7 @@ class Build68PrivacyLegalUiTest {
     private class ReceiptStore(var value: AnalyticsConsentReceipt? = null) :
         AnalyticsConsentReceiptStore {
         override fun read(principalId: String) = value
+
         override fun write(principalId: String, receipt: AnalyticsConsentReceipt) {
             value = receipt
         }
@@ -97,6 +99,19 @@ class Build68PrivacyLegalUiTest {
                 "uk",
             )
         }
+        compose
+            .onNodeWithTag("legal-evidence")
+            .performScrollToNode(hasTestTag("legal-evidence-event-event-1"))
+        compose.onNodeWithTag("legal-evidence-event-event-1").assertIsDisplayed()
+        compose
+            .onNodeWithTag("legal-evidence")
+            .performScrollToNode(hasTestTag("legal-evidence-search"))
+        compose.onNodeWithTag("legal-evidence-search").performTextReplacement("немає такого запису")
+        compose.onAllNodesWithTag("legal-evidence-event-event-1").assertCountEquals(0)
+        compose.onNodeWithTag("legal-evidence-search").performTextReplacement("аналітику")
+        compose
+            .onNodeWithTag("legal-evidence")
+            .performScrollToNode(hasTestTag("legal-evidence-event-event-1"))
         compose.onNodeWithTag("legal-evidence-event-event-1").assertIsDisplayed()
     }
 }

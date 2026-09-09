@@ -115,7 +115,23 @@ class FirebaseModerationDecisionSource(
                     ModerationObservation.CONFIRMED_CURRENT
                 else ModerationObservation.CONFIRMED_CHANGED
             }
-            // Legacy journals and lost responses retain the original read-only reconciliation.
+            // A lost response can be reconciled from the exact server-written operation marker.
+            // Matching status alone is never proof and this branch never resends a decision.
+            val currentContent =
+                db.collection(pending.version.target.kind.collection)
+                    .document(pending.version.target.id)
+                    .get(Source.SERVER)
+                    .await()
+            access.identity(session)
+            if (
+                ModerationBuild80Contract.confirmsCurrentOperation(
+                    pending,
+                    session.uid,
+                    currentContent.data.orEmpty(),
+                )
+            )
+                return@withTimeout ModerationObservation.CONFIRMED_CURRENT
+            // Older journals without a build80 marker retain the legacy read-only reconciliation.
             val log =
                 if (session.role == "owner")
                     db.collection("systemLogs")

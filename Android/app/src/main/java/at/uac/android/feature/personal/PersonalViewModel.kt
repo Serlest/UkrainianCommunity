@@ -274,5 +274,7 @@ class PersonalViewModel(
         fresh.copy(
             items = (old?.items.orEmpty() + fresh.items).distinctBy { it.id },
             unavailable = (old?.unavailable ?: 0) + fresh.unavailable,
+            unavailableTargets =
+                (old?.unavailableTargets.orEmpty() + fresh.unavailableTargets).distinct(),
         )
 }

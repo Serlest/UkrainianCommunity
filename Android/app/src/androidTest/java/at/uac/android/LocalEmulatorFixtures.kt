@@ -26,19 +26,7 @@ internal class LocalEmulatorFixtures(private val context: Context) {
             )
             seed(
                 "legalDocuments/${document.type}/versions/${document.version}",
-                mapOf(
-                    "version" to document.version,
-                    "status" to "published",
-                    "requiresAcceptance" to document.requiresAcceptance,
-                    "locales" to
-                        document.texts.mapValues { (locale, text) ->
-                            mapOf(
-                                "title" to document.title(locale),
-                                "contentText" to text,
-                                "contentMarkdown" to text,
-                            )
-                        },
-                ),
+                build80LegalFixture(document),
             )
         }
     }

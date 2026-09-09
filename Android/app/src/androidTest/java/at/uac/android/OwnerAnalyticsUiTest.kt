@@ -70,6 +70,22 @@ class OwnerAnalyticsUiTest {
         }
 
     @Test
+    fun missingDailyCoverageDoesNotDisplayInventedZeroMetrics() {
+        val partial =
+            object : OwnerAnalyticsRepository by repository {
+                override suspend fun overview(
+                    session: OwnerAnalyticsSession,
+                    period: AnalyticsPeriod,
+                ) = repository.overview(session, period).copy(unavailable = setOf("daily"))
+            }
+        val model = OwnerAnalyticsViewModel(partial)
+        compose.setContent { UacTheme("light") { OwnerAnalyticsScreen(model, session, "de", {}) } }
+        compose.waitForIdle()
+        compose.onNodeWithTag("owner-analytics-overview").assertIsDisplayed()
+        compose.onNodeWithTag("owner-analytics-metric-totalViews").assertDoesNotExist()
+    }
+
+    @Test
     fun ownerCanInspectOverviewAndOpenContentDetail() {
         val model = OwnerAnalyticsViewModel(repository)
         compose.setContent {

@@ -221,6 +221,7 @@ data class PersonalListPage(
     val next: String?,
     val hasMore: Boolean,
     val unavailable: Int,
+    val unavailableTargets: List<PersonalTarget> = emptyList(),
 )
 
 data class MarkerPage(val rows: List<RawDocument>, val next: String?, val hasMore: Boolean)

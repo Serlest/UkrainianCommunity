@@ -223,14 +223,24 @@ class FirestoreAuthProfiles(private val database: FirebaseFirestore) : AuthProfi
     override suspend fun legalDocuments(): List<AuthLegalDocument> = read {
         listOf("terms", "privacy").map { type ->
             val reference = database.collection("legalDocuments").document(type)
+            val pointer =
+                reference.get(Source.SERVER).await().data
+                    ?: throw AuthException(AuthProblem.INVALID_PROFILE)
             val version =
-                reference.get(Source.SERVER).await().getString("activeVersion")?.takeIf {
-                    it.isNotBlank()
+                (pointer["activeVersion"] as? String)?.takeIf {
+                    it.isNotBlank() && '/' !in it
                 } ?: throw AuthException(AuthProblem.INVALID_PROFILE)
             val data =
                 reference.collection("versions").document(version).get(Source.SERVER).await().data
                     ?: throw AuthException(AuthProblem.INVALID_PROFILE)
-            decodeLegal(type, version, data)
+            LegalDocumentIntegrity.validate(type, version, pointer, data)
+            val verified =
+                data +
+                    ("locales" to
+                        (data["locales"] as Map<*, *>).mapValues { (_, value) ->
+                            (value as Map<*, *>).filterKeys { it != "contentText" }
+                        })
+            decodeLegal(type, version, verified)
         }
     }
 

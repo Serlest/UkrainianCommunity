@@ -12,6 +12,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -77,6 +78,32 @@ fun LegalEvidenceContent(
     onBack: () -> Unit = {},
     onRetry: () -> Unit = {},
 ) {
+    var query by remember(userId, allowed) { mutableStateOf("") }
+    val visibleEvents =
+        events.orEmpty().filter { event ->
+            query.isBlank() ||
+                (listOf(
+                        legalEvidenceEventLabel(event.eventType, language),
+                        event.source,
+                        legalEvidenceDate(event, language),
+                    ) +
+                        event.values
+                            .filterKeys {
+                                it in
+                                    setOf(
+                                        "version",
+                                        "locale",
+                                        "appVersion",
+                                        "acceptedFromPlatform",
+                                        "organizationName",
+                                        "sourceRecordId",
+                                        "contentHash",
+                                    )
+                            }
+                            .values
+                            .map { it?.toString().orEmpty() })
+                    .any { it.contains(query.trim(), ignoreCase = true) }
+        }
     LazyColumn(
         Modifier.fillMaxSize().testTag("legal-evidence"),
         contentPadding = PaddingValues(20.dp),
@@ -127,7 +154,9 @@ fun LegalEvidenceContent(
                 }
             }
         else if (events == null)
-            item("loading") { CircularProgressIndicator(Modifier.testTag("legal-evidence-loading")) }
+            item("loading") {
+                CircularProgressIndicator(Modifier.testTag("legal-evidence-loading"))
+            }
         else if (events.isEmpty())
             item("empty") {
                 Text(
@@ -135,8 +164,20 @@ fun LegalEvidenceContent(
                     Modifier.testTag("legal-evidence-empty"),
                 )
             }
-        else
-            items(events, key = { it.id }) { event ->
+        else {
+            item("search") {
+                OutlinedTextField(
+                    query,
+                    { query = it.take(200) },
+                    modifier = Modifier.fillMaxWidth().testTag("legal-evidence-search"),
+                    label = {
+                        Text(tr(language, "Nachweise durchsuchen", "Пошук у підтвердженнях"))
+                    },
+                )
+                if (visibleEvents.isEmpty())
+                    Text(tr(language, "Keine passenden Nachweise.", "Відповідних записів немає."))
+            }
+            items(visibleEvents, key = { it.id }) { event ->
                 Card(Modifier.fillMaxWidth().testTag("legal-evidence-event-${event.id}")) {
                     Column(
                         Modifier.fillMaxWidth()
@@ -147,23 +188,62 @@ fun LegalEvidenceContent(
                         Text(legalEvidenceEventLabel(event.eventType, language))
                         Text(legalEvidenceDate(event, language))
                         Text(
-                            tr(language, "Quelle: ${event.source}", "Джерело: ${event.source}"),
+                            tr(
+                                language,
+                                "Quelle: ${legalEvidenceSourceLabel(event.source, language)}",
+                                "Джерело: ${legalEvidenceSourceLabel(event.source, language)}",
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        listOf(
+                                "version" to tr(language, "Version", "Версія"),
+                                "locale" to tr(language, "Sprache", "Мова"),
+                                "appVersion" to tr(language, "App-Version", "Версія застосунку"),
+                                "acceptedFromPlatform" to tr(language, "Plattform", "Платформа"),
+                                "organizationName" to tr(language, "Organisation", "Організація"),
+                                "sourceRecordId" to tr(language, "Datensatz", "Запис"),
+                                "contentHash" to
+                                    tr(language, "Inhaltsprüfsumme", "Контрольна сума вмісту"),
+                            )
+                            .forEach { (key, label) ->
+                                (event.values[key] as? String)
+                                    ?.takeIf { it.isNotBlank() }
+                                    ?.let {
+                                        Text(
+                                            "$label: $it",
+                                            style = MaterialTheme.typography.bodySmall,
+                                        )
+                                    }
+                            }
                     }
                 }
             }
+        }
     }
 }
 
+private fun legalEvidenceSourceLabel(value: String, language: String) =
+    when (value) {
+        "registration" -> tr(language, "Registrierung", "Реєстрація")
+        "legalDocument" -> tr(language, "Rechtliches Dokument", "Юридичний документ")
+        "analyticsConsent" -> tr(language, "Analyse-Einwilligung", "Згода на аналітику")
+        else -> value
+    }
+
 internal fun legalEvidenceEventLabel(value: String, language: String) =
     when (value) {
-        "termsAccepted" -> tr(language, "Nutzungsbedingungen akzeptiert", "Умови використання прийнято")
-        "privacyAcknowledged" -> tr(language, "Datenschutz bestätigt", "Політику приватності підтверджено")
-        "minimumAgeConfirmed" -> tr(language, "Mindestalter bestätigt", "Мінімальний вік підтверджено")
-        "organizationRulesAccepted" -> tr(language, "Organisationsregeln akzeptiert", "Правила організації прийнято")
-        "analyticsGranted" -> tr(language, "Analyse-Einwilligung erteilt", "Згоду на аналітику надано")
-        "analyticsWithdrawn" -> tr(language, "Analyse-Einwilligung widerrufen", "Згоду на аналітику відкликано")
+        "termsAccepted" ->
+            tr(language, "Nutzungsbedingungen akzeptiert", "Умови використання прийнято")
+        "privacyAcknowledged" ->
+            tr(language, "Datenschutz bestätigt", "Політику приватності підтверджено")
+        "minimumAgeConfirmed" ->
+            tr(language, "Mindestalter bestätigt", "Мінімальний вік підтверджено")
+        "organizationRulesAccepted" ->
+            tr(language, "Organisationsregeln akzeptiert", "Правила організації прийнято")
+        "analyticsGranted" ->
+            tr(language, "Analyse-Einwilligung erteilt", "Згоду на аналітику надано")
+        "analyticsWithdrawn" ->
+            tr(language, "Analyse-Einwilligung widerrufen", "Згоду на аналітику відкликано")
         else -> value
     }
 

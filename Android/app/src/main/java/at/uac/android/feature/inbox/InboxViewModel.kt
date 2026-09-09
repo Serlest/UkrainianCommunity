@@ -7,9 +7,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 
 data class InboxState(
@@ -69,9 +71,23 @@ class InboxViewModel(
         watch = scope.launch {
             try {
                 if (current(session))
-                    repository.changes().collect {
-                        if (current(session) && !state.value.mutating) refresh()
-                    }
+                    repository
+                        .changes()
+                        .retryWhen { cause, attempt ->
+                            if (
+                                current(session) &&
+                                    (cause as? InboxException)?.reason == InboxFailure.OFFLINE
+                            ) {
+                                fail(session, cause as Exception)
+                                delay(
+                                    (1L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30) * 1000
+                                )
+                                true
+                            } else false
+                        }
+                        .collect {
+                            if (current(session) && !state.value.mutating) refresh()
+                        }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

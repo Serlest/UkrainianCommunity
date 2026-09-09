@@ -89,6 +89,11 @@ class FirestoreOwnerAnalyticsRepository(
         val userDataValid = validUsers(userDoc.data, periodId, currentDays.reversed())
         val users = if (userDataValid) users(userDoc.data) else AnalyticsUsers()
         val unavailable = buildSet {
+            if (
+                documents.size != (currentDays + previousDays).distinct().size ||
+                    documents.any { !it.exists() || it.getTimestamp("updatedAt") == null }
+            )
+                add("daily")
             if (!topDoc.exists() || topDoc.getTimestamp("updatedAt") == null) add("top")
             if (!regionDoc.exists() || regionDoc.getTimestamp("updatedAt") == null) add("regions")
             if (!userDataValid) add("users")

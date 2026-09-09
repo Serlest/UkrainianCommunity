@@ -15,6 +15,42 @@ interface FeedbackSource {
 
     suspend fun messages(id: String): List<RawDocument>
 
+    suspend fun messagePage(id: String, after: FeedbackCursor?, size: Int): FeedbackRawPage {
+        val rows =
+            messages(id)
+                .filter { row ->
+                    val date = row.fields["createdAt"] as? java.time.Instant
+                    after == null ||
+                        date != null &&
+                            (date < after.createdAt || date == after.createdAt && row.id < after.id)
+                }
+                .sortedWith(
+                    compareByDescending<RawDocument> {
+                            it.fields["createdAt"] as? java.time.Instant
+                        }
+                        .thenByDescending { it.id }
+                )
+        val chosen = rows.take(size)
+        val last = chosen.lastOrNull()
+        return FeedbackRawPage(
+            chosen,
+            last?.let {
+                FeedbackCursor(
+                    it.fields["createdAt"] as? java.time.Instant
+                        ?: throw FeedbackException(FeedbackFailure.INVALID),
+                    it.id,
+                )
+            },
+            rows.size > size,
+        )
+    }
+
+    suspend fun acknowledgeRead(
+        item: FeedbackItem,
+        session: FeedbackSession,
+        current: () -> Boolean,
+    ): Boolean = false
+
     suspend fun message(id: String, messageId: String): RawDocument?
 
     suspend fun create(
@@ -90,6 +126,13 @@ class FeedbackRepository(
         }
     }
 
+    suspend fun acknowledgeRead(item: FeedbackItem): Boolean {
+        val actor = capture(FeedbackAudience.OWN, write = true)
+        if (item.uid != actor.uid) throw FeedbackException(FeedbackFailure.DENIED)
+        if (!item.unreadForUser) return true
+        return write(actor) { source.acknowledgeRead(item, actor) { authority() == actor } }
+    }
+
     suspend fun page(audience: FeedbackAudience, after: FeedbackCursor? = null): FeedbackPage {
         val actor = capture(audience)
         return read(actor) {
@@ -114,7 +157,11 @@ class FeedbackRepository(
         }
     }
 
-    suspend fun conversation(id: String, audience: FeedbackAudience): FeedbackConversation {
+    suspend fun conversation(
+        id: String,
+        audience: FeedbackAudience,
+        after: FeedbackCursor? = null,
+    ): FeedbackConversation {
         val actor = capture(audience)
         if (!feedbackId(id)) throw FeedbackException(FeedbackFailure.INVALID)
         return read(actor) {
@@ -124,7 +171,10 @@ class FeedbackRepository(
             val item = FeedbackContract.item(row)
             if (item.id != id || (audience == FeedbackAudience.OWN && item.uid != actor.uid))
                 throw FeedbackException(FeedbackFailure.DENIED)
-            val raw = source.messages(id)
+            val page = source.messagePage(id, after, 100)
+            if (page.hasMore && (page.next == null || page.next == after))
+                throw FeedbackException(FeedbackFailure.INVALID)
+            val raw = page.rows
             var invalid = 0
             val messages =
                 raw.take(100).mapNotNull { value ->
@@ -139,7 +189,8 @@ class FeedbackRepository(
                 item,
                 FeedbackContract.merge(item, messages),
                 invalid,
-                raw.size > 100,
+                page.hasMore,
+                page.next,
             )
         }
     }

@@ -88,6 +88,9 @@ fun PersonalDestination(
                     language,
                     { more -> if (current()) personal.loadSaved(more) },
                     browse::openPersonalContent,
+                    onRemoveUnavailable = { target ->
+                        if (current()) personal.set(target, PersonalAction.BOOKMARK, false)
+                    },
                 )
             }
         }
@@ -100,6 +103,9 @@ fun PersonalDestination(
                     language,
                     { more -> if (current()) personal.loadSubscriptions(more) },
                     browse::openPersonalContent,
+                    onRemoveUnavailable = { target ->
+                        if (current()) personal.set(target, PersonalAction.SUBSCRIBE, false)
+                    },
                 )
             }
         }

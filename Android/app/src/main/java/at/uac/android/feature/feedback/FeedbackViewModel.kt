@@ -8,9 +8,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 
 class FeedbackViewModel(
@@ -130,12 +132,28 @@ class FeedbackViewModel(
         watch?.cancel()
         watch = scope.launch {
             try {
-                repository.changes(target.first, target.second).collect {
-                    if (
-                        current(actor) && visible && destination() == target && !state.value.pending
-                    )
-                        refresh()
-                }
+                repository
+                    .changes(target.first, target.second)
+                    .retryWhen { cause, attempt ->
+                        if (
+                            current(actor) &&
+                                destination() == target &&
+                                (cause as? FeedbackException)?.failure == FeedbackFailure.OFFLINE
+                        ) {
+                            fail(cause as Exception)
+                            delay((1L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30) * 1000)
+                            true
+                        } else false
+                    }
+                    .collect {
+                        if (
+                            current(actor) &&
+                                visible &&
+                                destination() == target &&
+                                !state.value.pending
+                        )
+                            refresh()
+                    }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
@@ -146,10 +164,19 @@ class FeedbackViewModel(
 
     fun refresh(more: Boolean = false): Job? {
         val actor = state.value.session ?: return null
-        if (!current(actor) || more && (state.value.loading || state.value.page?.hasMore != true))
+        if (
+            !current(actor) ||
+                more &&
+                    (state.value.loading ||
+                        (if (state.value.selectedId != null)
+                            state.value.conversation?.limited != true
+                        else state.value.page?.hasMore != true))
+        )
             return null
         val target = destination()
         val previous = if (more) state.value.page else null
+        val visibleMessageCount = state.value.conversation?.messages?.count { !it.legacy } ?: 0
+        val previousConversation = if (more) state.value.conversation else null
         val revision = ++readRevision
         load?.cancel()
         mutable.value = state.value.copy(loading = true, error = null)
@@ -157,9 +184,94 @@ class FeedbackViewModel(
             .launch {
                 try {
                     if (target.second != null) {
-                        val conversation = repository.conversation(target.second!!, target.first)
+                        var page =
+                            repository.conversation(
+                                target.second!!,
+                                target.first,
+                                previousConversation?.next,
+                            )
+                        if (!more) {
+                            while (
+                                page.limited &&
+                                    page.messages.count { !it.legacy } < visibleMessageCount
+                            ) {
+                                val older =
+                                    repository.conversation(
+                                        target.second!!,
+                                        target.first,
+                                        page.next,
+                                    )
+                                page =
+                                    older.copy(
+                                        messages =
+                                            FeedbackContract.merge(
+                                                older.item,
+                                                (page.messages + older.messages)
+                                                    .filterNot { it.legacy }
+                                                    .distinctBy { it.id },
+                                            ),
+                                        invalid = page.invalid + older.invalid,
+                                    )
+                            }
+                        }
+                        val conversation =
+                            if (previousConversation == null) page
+                            else
+                                page.copy(
+                                    messages =
+                                        FeedbackContract.merge(
+                                            page.item,
+                                            (previousConversation.messages + page.messages)
+                                                .filterNot { it.legacy }
+                                                .distinctBy { it.id },
+                                        ),
+                                    invalid = previousConversation.invalid + page.invalid,
+                                )
                         if (current(actor) && readRevision == revision && destination() == target)
                             mutable.value = state.value.copy(conversation = conversation)
+                        if (
+                            target.first == FeedbackAudience.OWN &&
+                                visible &&
+                                current(actor) &&
+                                readRevision == revision &&
+                                destination() == target &&
+                                conversation.invalid == 0 &&
+                                conversation.item.unreadForUser
+                        ) {
+                            try {
+                                val acknowledged = repository.acknowledgeRead(conversation.item)
+                                if (
+                                    acknowledged &&
+                                        current(actor) &&
+                                        readRevision == revision &&
+                                        destination() == target
+                                )
+                                    mutable.value =
+                                        state.value.copy(
+                                            conversation =
+                                                conversation.copy(
+                                                    item =
+                                                        conversation.item.copy(
+                                                            unreadForUser = false
+                                                        )
+                                                )
+                                        )
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (error: Exception) {
+                                if (
+                                    current(actor) &&
+                                        readRevision == revision &&
+                                        destination() == target
+                                )
+                                    mutable.value =
+                                        state.value.copy(
+                                            actionError =
+                                                (error as? FeedbackException)?.failure
+                                                    ?: FeedbackFailure.UNKNOWN
+                                        )
+                            }
+                        }
                     } else {
                         val page = repository.page(target.first, previous?.next)
                         if (current(actor) && readRevision == revision && destination() == target)
