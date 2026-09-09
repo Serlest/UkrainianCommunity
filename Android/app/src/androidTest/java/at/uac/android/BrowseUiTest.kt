@@ -44,8 +44,7 @@ class BrowseUiTest {
     }
 
     private fun scrollPrimary(tag: String) {
-        scroll("primary-filter-row")
-        compose.onNodeWithTag("primary-filter-row").performScrollToNode(hasTestTag(tag))
+        scroll(tag)
     }
 
     private fun tab(kind: String) {
@@ -117,18 +116,25 @@ class BrowseUiTest {
         compose.onNodeWithTag("back").performClick()
         ready()
         top()
-        scrollPrimary("past")
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("past").performScrollTo()
         compose.onNodeWithTag("past").performClick()
+        compose.onNodeWithTag("content-filter-done").performScrollTo().performClick()
         ready()
         scroll("card-synthetic-event-18")
         compose.onNodeWithTag("card-synthetic-event-18").assertIsDisplayed()
         top()
-        scrollPrimary("upcoming")
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("upcoming").performScrollTo()
         compose.onNodeWithTag("upcoming").performClick()
+        compose.onNodeWithTag("content-filter-done").performScrollTo().performClick()
         ready()
-        scrollPrimary("audience")
-        compose.onNodeWithTag("audience").performClick()
-        compose.onNodeWithTag("audience-families").performClick()
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("audience-families").performScrollTo().performClick()
+        compose.onNodeWithTag("content-filter-done").performScrollTo().performClick()
         ready()
         scroll("card-synthetic-event-02")
         compose.onNodeWithTag("card-synthetic-event-02").performClick()
@@ -225,18 +231,14 @@ class BrowseUiTest {
         scrollPrimary("search-toggle")
         compose.onNodeWithTag("search-toggle").performClick()
         compose.onNodeWithTag("search").assertIsDisplayed()
-        compose.onNodeWithTag("primary-filter-row").performScrollToNode(hasTestTag("quick-saved"))
+        scroll("quick-saved")
         compose.onNodeWithTag("quick-saved").assertIsDisplayed()
 
         tab("events")
-        compose
-            .onNodeWithTag("primary-filter-row")
-            .performScrollToNode(hasTestTag("quick-registrations"))
+        scroll("quick-registrations")
         compose.onNodeWithTag("quick-registrations").assertIsDisplayed()
         tab("organizations")
-        compose
-            .onNodeWithTag("primary-filter-row")
-            .performScrollToNode(hasTestTag("quick-subscriptions"))
+        scroll("quick-subscriptions")
         compose.onNodeWithTag("quick-subscriptions").assertIsDisplayed()
     }
 

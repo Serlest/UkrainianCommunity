@@ -1,6 +1,5 @@
 package at.uac.android.feature.auth
 
-import at.uac.android.BuildConfig
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,6 +18,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import at.uac.android.BuildConfig
 import at.uac.android.design.UacCard
 import at.uac.android.design.UacSectionCard
 import at.uac.android.feature.browse.Choice
@@ -97,12 +97,7 @@ fun AccountScreen(
                         )
                 }
             UacSectionCard(title, subtitle)
-        } else
-            Text(
-                authText(language, "Dein Konto", "Ваш акаунт"),
-                Modifier.semantics { heading() },
-                style = MaterialTheme.typography.headlineSmall,
-            )
+        }
         if (BuildConfig.USE_LOCAL_BACKEND) {
             Text(
                 authText(
@@ -441,22 +436,34 @@ fun AccountScreen(
                     { store.cancelMfa() },
                 )
             AuthStage.AUTHENTICATED -> {
-                Text(
-                    session.profile?.displayName.orEmpty(),
-                    Modifier.testTag("auth-profile-name"),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Text(session.profile?.email.orEmpty())
+                UacSectionCard(
+                    title =
+                        session.profile?.displayName.orEmpty().ifBlank {
+                            authText(language, "Dein Konto", "Ваш акаунт")
+                        },
+                    subtitle = session.profile?.email.orEmpty(),
+                    modifier = Modifier.testTag("auth-profile-name"),
+                ) {
+                    if (session.gate == AuthGate.READY)
+                        Surface(
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                        ) {
+                            Text(
+                                authText(
+                                    language,
+                                    "Angemeldet · E-Mail bestätigt",
+                                    "Вхід виконано · пошту підтверджено",
+                                ),
+                                Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    .testTag("auth-ready"),
+                                style = MaterialTheme.typography.labelMedium,
+                            )
+                        }
+                }
                 when (session.gate) {
                     AuthGate.READY -> {
-                        Text(
-                            authText(
-                                language,
-                                "Angemeldet · E-Mail bestätigt",
-                                "Вхід виконано · пошту підтверджено",
-                            ),
-                            Modifier.testTag("auth-ready"),
-                        )
                         personalContent?.invoke(session)
                     }
                     AuthGate.RESTRICTED -> {

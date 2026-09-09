@@ -1,5 +1,4 @@
 package at.uac.android.design
 
-/** Auth forms already own their meaningful title; keep public/account roots fully branded. */
-internal fun isCompactAuthHeaderRoute(route: String): Boolean =
-    route == "profile/login" || route == "profile/register" || route == "profile/reset"
+/** Keep the large brand lockup for the welcoming home feed; secondary routes use an app bar. */
+internal fun isCompactHeaderRoute(route: String): Boolean = route != "home"

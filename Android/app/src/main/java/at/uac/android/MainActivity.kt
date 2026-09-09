@@ -48,6 +48,10 @@ import at.uac.android.core.LocalWindowPrivacy
 import at.uac.android.core.ReminderNavigationViewModel
 import at.uac.android.core.backend.AppBackend
 import at.uac.android.design.LocalUacDark
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacRowDivider
+import at.uac.android.design.UacSectionCard
 import at.uac.android.design.UacTheme
 import at.uac.android.feature.accountdeletion.*
 import at.uac.android.feature.accountstatus.*
@@ -1762,16 +1766,27 @@ class MainActivity : FragmentActivity() {
                                         )
                                     },
                                 ) {
-                                    InboxAccountLink(inboxState, selectedLanguage) {
-                                        if (auth.state.value.inboxScope() != null)
-                                            model.navigate("profile/inbox")
-                                    }
-                                    OutlinedButton(
-                                        { model.navigate("profile/announcements") },
-                                        Modifier.fillMaxWidth()
-                                            .testTag("account-open-announcements"),
+                                    UacSectionCard(
+                                        tr(selectedLanguage, "Kommunikation", "Спілкування")
                                     ) {
-                                        Text(tr(selectedLanguage, "Mitteilungen", "Оповіщення"))
+                                        InboxAccountLink(inboxState, selectedLanguage) {
+                                            if (auth.state.value.inboxScope() != null)
+                                                model.navigate("profile/inbox")
+                                        }
+                                        UacRowDivider()
+                                        UacNavigationRow(
+                                            title =
+                                                tr(
+                                                    selectedLanguage,
+                                                    "App-Mitteilungen",
+                                                    "Оповіщення застосунку",
+                                                ),
+                                            icon = UacIcon.NEWS,
+                                            modifier =
+                                                Modifier.testTag("account-open-announcements"),
+                                        ) {
+                                            model.navigate("profile/announcements")
+                                        }
                                     }
                                     if (lockState.session != null)
                                         AppLockSettingsSection(lockState, selectedLanguage) {
@@ -1789,104 +1804,147 @@ class MainActivity : FragmentActivity() {
                                             BuildConfig.VERSION_NAME,
                                             analyticsConsent,
                                         )
-                                    if (authSession.identity?.anonymous == false)
-                                        OutlinedButton(
-                                            { model.navigate("profile/blocked") },
-                                            Modifier.fillMaxWidth().testTag("account-open-blocked"),
+                                    if (
+                                        authSession.identity?.anonymous == false ||
+                                            authSession.feedbackScope() != null ||
+                                            authSession.readyForActions
+                                    )
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Aktivität", "Активність")
                                         ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Blockierte Konten und Organisationen",
-                                                    "Заблоковані користувачі й організації",
+                                            if (authSession.readyForActions) {
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Meine Organisationen und Anträge",
+                                                        "Мої організації та заявки",
+                                                    ),
+                                                    icon = UacIcon.ORGANIZATIONS,
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-organizations"
+                                                        ),
+                                                ) {
+                                                    model.navigate("profile/organizations")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Meine Veranstaltungen",
+                                                        "Мої події",
+                                                    ),
+                                                    icon = UacIcon.CALENDAR,
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-registrations"
+                                                        ),
+                                                ) {
+                                                    model.navigate("profile/registrations")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Zuletzt angesehen",
+                                                        "Нещодавно переглянуте",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag("account-open-recent"),
+                                                ) {
+                                                    model.navigate("profile/recent")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Meine Aktivitäten",
+                                                        "Мої дії",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag("account-open-history"),
+                                                ) {
+                                                    model.navigate("profile/history")
+                                                }
+                                            }
+                                            if (authSession.feedbackScope() != null) {
+                                                if (authSession.readyForActions) UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Meine Anfragen und Support",
+                                                        "Мої звернення та підтримка",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag("account-open-feedback"),
+                                                ) {
+                                                    model.navigate("profile/feedback")
+                                                }
+                                            }
+                                            if (authSession.identity?.anonymous == false) {
+                                                if (
+                                                    authSession.readyForActions ||
+                                                        authSession.feedbackScope() != null
                                                 )
-                                            )
+                                                    UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Blockierte Konten und Organisationen",
+                                                        "Заблоковані користувачі й організації",
+                                                    ),
+                                                    icon = UacIcon.SETTINGS,
+                                                    modifier =
+                                                        Modifier.testTag("account-open-blocked"),
+                                                ) {
+                                                    model.navigate("profile/blocked")
+                                                }
+                                            }
                                         }
-                                    if (authSession.feedbackScope() != null)
-                                        OutlinedButton(
-                                            { model.navigate("profile/feedback") },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-feedback"),
+                                    val moderationScope = authSession.moderationScope()
+                                    val ownerTools =
+                                        authSession.ownerAnalyticsScope()?.ready == true ||
+                                            moderationScope?.allowed == true ||
+                                            authSession.feedbackScope()?.canManage == true
+                                    if (ownerTools)
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Verwaltung", "Керування"),
+                                            tr(
+                                                selectedLanguage,
+                                                "Nur für berechtigte Konten",
+                                                "Лише для облікових записів із дозволом",
+                                            ),
                                         ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Meine Anfragen und Support",
-                                                    "Мої звернення та підтримка",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.readyForActions)
-                                        OutlinedButton(
-                                            { model.navigate("profile/organizations") },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-organizations"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Meine Organisationen und Anträge",
-                                                    "Мої організації та заявки",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.readyForActions)
-                                        OutlinedButton(
-                                            { model.navigate("profile/registrations") },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-registrations"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Meine Veranstaltungen",
-                                                    "Мої події",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.readyForActions) {
-                                        OutlinedButton(
-                                            { model.navigate("profile/recent") },
-                                            Modifier.fillMaxWidth().testTag("account-open-recent"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Zuletzt angesehen",
-                                                    "Нещодавно переглянуте",
-                                                )
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            { model.navigate("profile/history") },
-                                            Modifier.fillMaxWidth().testTag("account-open-history"),
-                                        ) {
-                                            Text(
-                                                tr(selectedLanguage, "Meine Aktivitäten", "Мої дії")
-                                            )
-                                        }
-                                        if (authSession.ownerAnalyticsScope()?.ready == true) {
-                                            OutlinedButton(
-                                                {
+                                            if (authSession.ownerAnalyticsScope()?.ready == true) {
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Projektunterstützung",
+                                                        "Підтримка проєкту",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-donation-settings"
+                                                        ),
+                                                ) {
                                                     if (
                                                         auth.state.value.moderationScope() ==
                                                             authSession.moderationScope()
                                                     )
                                                         model.navigate("profile/donation-settings")
-                                                },
-                                                Modifier.fillMaxWidth()
-                                                    .testTag("account-open-donation-settings"),
-                                            ) {
-                                                Text(
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
                                                     tr(
                                                         selectedLanguage,
-                                                        "Projektunterstützung verwalten",
-                                                        "Керування підтримкою проєкту",
-                                                    )
-                                                )
-                                            }
-                                            OutlinedButton(
-                                                {
+                                                        "Analytics",
+                                                        "Аналітика",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-owner-analytics"
+                                                        ),
+                                                ) {
                                                     val captured = authSession.ownerAnalyticsScope()
                                                     if (
                                                         captured?.ready == true &&
@@ -1894,189 +1952,181 @@ class MainActivity : FragmentActivity() {
                                                                 .ownerAnalyticsScope() == captured
                                                     )
                                                         model.navigate("profile/analytics")
-                                                },
-                                                Modifier.fillMaxWidth()
-                                                    .testTag("account-open-owner-analytics"),
-                                            ) {
-                                                Text(
+                                                }
+                                            }
+                                            if (
+                                                authSession.ownerAnalyticsScope()?.ready == true &&
+                                                    moderationScope?.allowed == true
+                                            )
+                                                UacRowDivider()
+                                            if (moderationScope?.allowed == true) {
+                                                UacNavigationRow(
+                                                    if (moderationScope.role == "owner")
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Systemprotokoll",
+                                                            "Системний журнал",
+                                                        )
+                                                    else
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Admin-Protokoll",
+                                                            "Журнал адміністратора",
+                                                        ),
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-system-logs"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/system-logs")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
                                                     tr(
                                                         selectedLanguage,
-                                                        "Analytics",
-                                                        "Аналітика",
+                                                        "Nutzerverwaltung",
+                                                        "Керування користувачами",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag("account-open-users"),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
                                                     )
-                                                )
+                                                        model.navigate("profile/users")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Inhalte prüfen",
+                                                        "Перевірка матеріалів",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag("account-open-moderation"),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/moderation")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Organisationsanträge prüfen",
+                                                        "Перевірка заявок організацій",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-organization-review"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate(
+                                                            "profile/organization-review"
+                                                        )
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Nutzer-Mitteilungen",
+                                                        "Оповіщення користувачів",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-announcement-owner"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.announcementSession().owner
+                                                    )
+                                                        model.navigate(
+                                                            "profile/announcements/manage"
+                                                        )
+                                                }
+                                            }
+                                            if (
+                                                moderationScope?.ready == true &&
+                                                    moderationScope.role == "owner"
+                                            ) {
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Empfohlene Banner",
+                                                        "Рекомендовані банери",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag("account-open-featured"),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/featured-banners")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Inhaltsplanung",
+                                                        "Планування контенту",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-content-planning"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/content-planning")
+                                                }
+                                            }
+                                            if (authSession.feedbackScope()?.canManage == true) {
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Support-Postfach",
+                                                        "Скринька підтримки",
+                                                    ),
+                                                    modifier =
+                                                        Modifier.testTag("account-open-support"),
+                                                ) {
+                                                    model.navigate("profile/support")
+                                                }
                                             }
                                         }
-                                    }
-                                    val moderationScope = authSession.moderationScope()
-                                    if (moderationScope?.allowed == true) {
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/system-logs")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-system-logs"),
-                                        ) {
-                                            Text(
-                                                if (moderationScope.role == "owner")
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Systemprotokoll",
-                                                        "Системний журнал",
-                                                    )
-                                                else
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Admin-Protokoll",
-                                                        "Журнал адміністратора",
-                                                    )
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/users")
-                                            },
-                                            Modifier.fillMaxWidth().testTag("account-open-users"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Nutzerverwaltung",
-                                                    "Керування користувачами",
-                                                )
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/moderation")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-moderation"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Inhalte prüfen",
-                                                    "Перевірка матеріалів",
-                                                )
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/organization-review")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-organization-review"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Organisationsanträge prüfen",
-                                                    "Перевірка заявок організацій",
-                                                )
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            {
-                                                if (auth.state.value.announcementSession().owner)
-                                                    model.navigate("profile/announcements/manage")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-announcement-owner"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Nutzer-Mitteilungen verwalten",
-                                                    "Керувати оповіщеннями користувачів",
-                                                )
-                                            )
-                                        }
-                                    }
-                                    if (
-                                        moderationScope?.ready == true &&
-                                            moderationScope.role == "owner"
-                                    ) {
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/featured-banners")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-featured"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Empfohlene Banner verwalten",
-                                                    "Керувати рекомендованими банерами",
-                                                )
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/content-planning")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-content-planning"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Inhaltsplanung",
-                                                    "Планування контенту",
-                                                )
-                                            )
-                                        }
-                                    }
-                                    if (authSession.feedbackScope()?.canManage == true)
-                                        OutlinedButton(
-                                            { model.navigate("profile/support") },
-                                            Modifier.fillMaxWidth().testTag("account-open-support"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Support-Postfach verwalten",
-                                                    "Керувати скринькою підтримки",
-                                                )
-                                            )
-                                        }
                                     if (authSession.accountDeletionScope() != null)
-                                        OutlinedButton(
-                                            { model.navigate("profile/delete") },
-                                            Modifier.fillMaxWidth().testTag("account-open-delete"),
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Konto", "Обліковий запис")
                                         ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Konto löschen",
-                                                    "Видалити обліковий запис",
-                                                )
-                                            )
+                                            UacNavigationRow(
+                                                title =
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Konto löschen",
+                                                        "Видалити обліковий запис",
+                                                    ),
+                                                icon = UacIcon.SETTINGS,
+                                                destructive = true,
+                                                modifier = Modifier.testTag("account-open-delete"),
+                                            ) {
+                                                model.navigate("profile/delete")
+                                            }
                                         }
                                 }
                         },

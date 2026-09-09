@@ -126,7 +126,8 @@ fun InboxDestinationScreen(
                             live.feedbackScope()?.canManage == true,
                             Instant.now(),
                             canOpenContentPlanning =
-                                live.moderationScope()?.let { it.ready && it.role == "owner" } == true,
+                                live.moderationScope()?.let { it.ready && it.role == "owner" } ==
+                                    true,
                         )
                     if (current() && target != null) {
                         inbox.change(notice, InboxMutation.READ)
@@ -154,15 +155,20 @@ fun InboxDestinationScreen(
 @Composable
 fun InboxAccountLink(state: InboxState, language: String, onOpen: () -> Unit) {
     if (state.session == null) return
-    OutlinedButton(onOpen, Modifier.fillMaxWidth().testTag("account-open-inbox")) {
-        Text(
-            tr(
-                language,
-                "Mitteilungen (${state.unreadCount})",
-                "Повідомлення (${state.unreadCount})",
-            )
-        )
-    }
+    at.uac.android.design.UacNavigationRow(
+        title = tr(language, "Postfach", "Повідомлення"),
+        subtitle =
+            if (state.unreadCount > 0)
+                tr(
+                    language,
+                    "${state.unreadCount} ungelesene Mitteilungen",
+                    "${state.unreadCount} непрочитаних повідомлень",
+                )
+            else tr(language, "Keine ungelesenen Mitteilungen", "Немає непрочитаних повідомлень"),
+        icon = at.uac.android.design.UacIcon.NEWS,
+        modifier = Modifier.testTag("account-open-inbox"),
+        onClick = onOpen,
+    )
 }
 
 @Composable
