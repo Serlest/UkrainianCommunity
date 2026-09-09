@@ -71,9 +71,20 @@ without changing their state or authorization ownership.
 - Guest/profile/content-cover/gallery/chrome selection: 10 PASS, 1 environment-gated skip. Two initial
   failures were runner configuration only and passed after the required font-scale argument was set.
 
+## Internal testing publication
+
+- Production-signed Android App Bundle: PASS.
+- Google Play acceptance: PASS for version `1.1 (83)`.
+- Internal track state: ACTIVE.
+- Release: `1.1 (83) – Internal`.
+- Play Console read-back: available to internal testers, published 2026-09-09 at 23:10 (Europe/Vienna).
+- Device coverage: no supported devices were removed relative to the previous release.
+- Tester opt-in URL: `https://play.google.com/apps/internaltest/4701365572505552935`.
+- AAB SHA-256: `714398ac0da43e2f1b0d44e2049691e96b4948d0bd862c4d15c6d4a7c45824e4`.
+- APK SHA-256: `620e41c6396dd0bedad1219f232f6e44856440a67a0f00c704f60f1ff65ac8b8`.
+
 ## Release boundary
 
-This audit does not claim physical-device approval or production publication. A production Build 83
-must still be built with the existing production Firebase and signing configuration, uploaded only to
-Google Play Internal testing, installed through Play on the target work phone, and manually reviewed
-in German and Ukrainian before any broader track is considered.
+Internal publication is complete. Physical-device approval is still NOT VERIFIED until Build 83 is
+installed through Google Play on the target work phone and the redesigned German and Ukrainian flows
+are reviewed. No open, closed, production, or public track was changed.
