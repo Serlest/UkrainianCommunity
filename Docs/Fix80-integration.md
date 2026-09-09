@@ -36,7 +36,7 @@ Public legal pointers: terms2026.10 (202610), privacy2026.13 (202613), organizat
 5. Review final diff and exact release configuration, then commit/push and deploy affected backend/Rules with verification.
 6. Archive/upload internal-only 1.1 (80), verify archive version, Apple processing, internal availability and What to Test. A build alone is not runtime proof.
 
-Status: all 30 implementation packages are integrated (two further audit sections covered by shared packages). Consolidated verification passed. No deployment, commit or TestFlight upload yet.
+Status: all 30 implementation packages are integrated (two further audit sections covered by shared packages). Consolidated verification passed. Source commits 2302211 and 98851ae pushed. Backend deployment and TestFlight release verified.
 
 ## Verification results, 2026-09-09
 
@@ -49,3 +49,15 @@ Status: all 30 implementation packages are integrated (two further audit section
 - Functional UI: five action journeys passed (AppLock, guest Profile, notification read/delete/navigation, organization block/undo, user detail failed-refresh/retry). SDK transport: two new journeys passed against local Auth/Functions/Firestore: moderation receipt replay/stale decision/role isolation/deleted-target unblock, and exact mirrored published legal documents through strict server/hash validation. Small-screen accessibility recheck passed on 375×667 after fixing a scrolling-away notification close button (six UI journeys passed total). Physical-device notification delivery, biometric/passcode hardware and final manual TestFlight acceptance remain separate.
 
 - Dependency-aware backend scope is recorded in `Fix80-backend-deploy.json`: 28 functions and Firestore Rules. The unrelated `cleanupUnverifiedAccounts` schedule exists in base79 source but is absent from the live project and will not be newly activated by this rollout.
+
+## Deployment verification
+
+- 28 Functions deployed successfully and read back ACTIVE; all 28 source hashes changed, including one newly created reviewContentModeration endpoint.
+- Public unauthenticated moderation request returns the expected 401 UNAUTHENTICATED without accessing user data.
+- Rules API returned 503 after applying the release. Read-back confirmed the exact tested source is active: SHA-256 709707df9f0140b5e09cbc38a1cd8be8ac872bdb616c29fa6fdef9bf8f441034. No duplicate activation was needed after reconciliation.
+- Release archive succeeded: bundle at.serlest.UkrainianCommunity, version 1.1, build80, non-exempt encryption false; signature verification passed.
+- API-based distribution signing lacks permission; the existing signed-in Xcode account successfully uploaded the same archive.
+
+- Xcode-account upload succeeded (`Uploaded package is processing`, `Upload succeeded`, `EXPORT SUCCEEDED`). Apple warned about absent vendor dSYMs for FirebaseFirestoreInternal, absl, grpc, grpcpp and openssl_grpc; these are also absent from the downloaded SDK artifacts. The application dSYM is present in the archive.
+
+- Final Apple read-back: build 57128c3a-0eb2-44a6-aa1e-e70f7453900a, version1.1/build80, VALID, not expired, internal IN_BETA_TESTING, external NOT_APPLICABLE. DE and UK What to Test localizations are present.
