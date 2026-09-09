@@ -1,0 +1,75 @@
+{
+  "codeCommits": [
+    "f2d0ccd",
+    "607e01c"
+  ],
+  "deployment": [
+    {
+      "name": "deleteOrganization",
+      "state": "ACTIVE",
+      "updateTime": "2026-09-09T14:51:18.247752356Z",
+      "sourceHash": "d6577498343f0e1c2742cd906da44944a3b35c68",
+      "revision": "deleteorganization-00010-bit"
+    },
+    {
+      "name": "deleteOwnAccount",
+      "state": "ACTIVE",
+      "updateTime": "2026-09-09T14:46:59.852873914Z",
+      "sourceHash": "c728c0d6a610e3892eabd823f64ea31c7177cb1d",
+      "revision": "deleteownaccount-00008-wod"
+    },
+    {
+      "name": "cleanupExpiredData",
+      "state": "ACTIVE",
+      "updateTime": "2026-09-09T14:47:01.347750905Z",
+      "sourceHash": "c728c0d6a610e3892eabd823f64ea31c7177cb1d",
+      "revision": "cleanupexpireddata-00010-hoq"
+    }
+  ],
+  "productionRepair": {
+    "at": "2026-09-09T14:54:11.653Z",
+    "checks": {
+      "previousAccountReceiptReferencesAbsent": true,
+      "organizationAbsent": true,
+      "photosAbsent": true,
+      "noticeExists": true,
+      "noticeHasNoDeadAction": true,
+      "noticeExplainsDeletion": true,
+      "pendingOperationAbsent": true
+    }
+  },
+  "audit": {
+    "rootCollections": 41,
+    "collectionGroups": 37,
+    "storageObjects": 470,
+    "storageObjectsWithReferences": 470,
+    "orphanStorageObjects": 0,
+    "authUsers": 18,
+    "userProfiles": 18,
+    "remainingConsentStates": 4,
+    "remainingConsentReceiptIdentifiers": 6,
+    "staleRecentView": 1,
+    "stalePhotoGarbageQueue": 1
+  },
+  "tests": {
+    "ios": {
+      "passed": 43,
+      "failed": 0,
+      "skipped": 0
+    },
+    "backendUnit": {
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0
+    },
+    "integrationScenariosInitial": 7,
+    "additionalIndexGuardSuite": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0
+    },
+    "productionAccountQueries": 32,
+    "productionOrganizationQueries": 12
+  },
+  "iosRelease": "Changes committed; next binary build required."
+}
