@@ -8,13 +8,14 @@ Changes are Android-only. No distribution or backend deployment performed.
 This is a source-wide audit with implemented fixes, not full parity or release approval. Only Android source and this audit document changed. iOS, backend, Rules, production data and store tracks were not changed.
 
 - Local compile/assemble and lint: PASS (0 lint errors, 77 existing warnings, 1 hint).
-- JVM: 1926 tests, 0 failures/errors/skips.
+- JVM: 1932 tests, 0 failures/errors/skips.
 - API26: initial component 276/276 PASS; expanded UI suite 297/297 PASS at OS font 200%, including owner analytics/roles/announcements and unavailable markers. Expanded suite preceded the final read-only moderation marker change.
 - API37: MainActivity + affected UI classes 28/28 PASS at each OS font 100% and 200%; synthetic light/dark, German/Ukrainian captures. Final exact-artifact rerun recorded separately below.
 - Local Android Auth/Firestore SDK + demo-only Android callable gateway to actual iOS80 handlers: 6/6 PASS on API37; registration/verification/restore, feedback transaction/replay, exact read acknowledgement, legal integrity/tampering, moderation receipt/replay/payload conflict/stale revision/server marker.
 - App TOTP protection remained active: no-TOTP privileged source authorization was rejected. The lower-level fixture transport test is not a positive owner/admin UI authorization test.
 - On API26, Auth/Feedback 4/4 and earlier transport/legal 2/2 passed. Reinstall of the last candidate hung in the AVD package installer; no final API26 SDK result is claimed. Owned AVD was stopped and subsequent verification moved to API37.
-- Exact final formatted APK pair: API37 font 200%, 34/34 PASS (6 SDK/transport + 28 MainActivity/affected UI), build80-exact-final-api37.log.
+- Follow-up production source / local APK: API37 font 200%, 307/307 PASS (299 component UI + 6 SDK/transport + 2 MainActivity journeys), build80-owner-final-api37.log. Earlier exact-artifact 34/34 receipt is retained for commit 50275b8.
+- Owner workflow build/lint PASS, 1932 JVM tests with zero failures/errors/skips. Lint remains 0 errors, 77 existing warnings, 1 hint.
 - Physical device, TalkBack, positive real TOTP, production Firebase Functions SDK, cloud journeys and Play-installed candidate: NOT VERIFIED.
 - First-pass screenshots and 1919-test receipts are retained in the output directory as historical evidence; newer files use build80/full-audit names. Only screenshots actually refreshed by the new runner are counted.
 
@@ -32,7 +33,7 @@ This is a source-wide audit with implemented fixes, not full parity or release a
 
 ## Remaining work before full parity / release
 
-1. Close the explicit workflow gaps below: activity-history uncertain-write recovery, DSA submission/review actions, donation owner editor, legal document editor.
+1. Close the explicit workflow gaps below: activity-history uncertain-write recovery, DSA submission/review actions, legal document editor.
 2. Extend positive authenticated journeys to TOTP owner/admin and production-configured Firebase Functions transport. Local Auth/Firestore SDK plus Android local callable gateway now have isolated build80 backend proof.
 3. Lost responses with exact current server operation marker now reconcile read-only. Changed/deleted targets without durable acknowledgement still require stronger receipt recovery; UI does not expose same-operation resend.
 4. Complete authenticated owner/admin visual captures, real loaded artwork comparisons with iOS80, API26 and physical-device/TalkBack checks.
@@ -60,7 +61,7 @@ Source comparison covers all supplied handoffs (9 and 11 have no separate handof
 | 16 | Security settings | Reviewed + SDK tests | Auth session restore/verification local SDK checks passed. Existing TOTP validation and MFA UI tested with fixtures; positive real TOTP remains unverified. |
 | 17 | Blocked organizations | Fixed + unit tests | Unknown block policy remains fail-closed. Uncertain mutation gets one immediate read-back without resending; explicit success only from confirmed list. |
 | 18 | Blocked users | Fixed + unit tests | Same uncertain-write read-back; backend deleted-target unblock behavior is not changed by Android work. |
-| 19/20 | Legal reader and acceptance | Fixed + SDK tests / dependency | SERVER pointer/version read, canonical/legacy hash validation, validated Markdown display and table rendering. Tampering rejected. New iOS registration receipts are ios-only in reference Rules; Android initial-registration evidence parity needs shared Rules design. |
+| 19/20 | Legal reader and acceptance | Fixed + SDK tests / dependency | SERVER pointer/version read, canonical/legacy hash and YYYY.minor/numeric-version consistency validation, validated Markdown display and table rendering. Tampering rejected. New iOS registration receipts are ios-only in reference Rules; Android initial-registration evidence parity needs shared Rules design. |
 | 21 | Account deletion | Fixed + unit tests | 330s request reaches common protocol policy (previous 300s cap removed). No destructive cloud account test; backend DSA retention/resume remains shared implementation. |
 | 22 | Organization review | Fixed + contract tests | Stable operationId and exact loaded expectedRevision sent; positive TOTP-authorized server journey still unverified. |
 | 23 | Moderation / DSA | Fixed moderation + SDK tests; DSA gap | New endpoint allowlisted and non-idempotent; receipt/replay/conflict contract validated. Exact server operation marker reconciles lost response without resend. DSA appeals remain read-only preparation in Android. |
@@ -68,8 +69,8 @@ Source comparison covers all supplied handoffs (9 and 11 have no separate handof
 | 25 | User management | Reviewed + component tests | Existing auth metadata and truncation handling retained. Full privileged live user-management journey is not covered. |
 | 26 | Banners | Fixed + component tests | Artwork FIT with adaptive background, optional scrim, current-index gesture key, local schedule boundary refresh. Authenticated banner editor uses existing validations. |
 | 27 | Content planning | Reviewed + component tests | Existing draft/lease recovery and explicit retry; organization selection and draft editing retained. Every malformed backend draft combination remains unverified. |
-| 28 | Owner analytics | Fixed + component test | Missing daily documents or update timestamps mark daily coverage unavailable and hide misleading daily totals/trend; other available sections remain. Source names localized. |
-| 29 | Donation management | Gap | Public support exists; no Android owner donation editor equivalent found. This is a missing workflow, not a visual-only discrepancy. |
+| 28 | Owner analytics | Fixed + component test | Missing daily documents or update timestamps mark daily coverage unavailable and hide misleading daily totals/trend; other available sections remain. Source names localized. Cached owner data is now bound to the exact account/session revision and scrubbed on change. |
+| 29 | Donation management | Implemented + unit/UI verification | Added owner-only native editor, DE/UK fields, HTTPS validation, exact baseline transaction, post-save SERVER read, retained draft after failed refresh, blocked resend until readback and dirty navigation confirmation. Positive real TOTP editor write remains unverified. |
 | 30 | Legal document management | Gap | No Android draft/CAS/publish editor equivalent found. Reader/evidence fixes do not provide publication controls. |
 | 31 | Legal evidence | Fixed + component tests | Existing paginated owner callable; added search and version/locale/app/platform/source-record/hash detail, localized provenance. Full evidence population relies on backend receipts. |
 | 32 | System logs | Reviewed + component tests | Existing SERVER reads and refreshed detail; owner/admin visibility retained. No production log mutation performed. |
@@ -125,6 +126,15 @@ Source comparison covers all supplied handoffs (9 and 11 have no separate handof
 - Incomplete daily analytics no longer appear as complete zero statistics.
 - Legal evidence has search and detailed provenance.
 - Moderation lost-response reconciliation accepts only matching server operation/actor/status/preserved content; status alone is insufficient.
+
+## Owner-workflow follow-up
+
+- Added `feature/donationsettings`: owner access is checked from the current profile/token; app requires TOTP. Settings are read from SERVER and saved with an exact baseline transaction to `appConfig/donation`.
+- A confirmed write followed by failed refresh retains the just-saved draft and reports that distinction. An uncertain write blocks another save until explicit readback. No automatic mutation retry was introduced by the ViewModel.
+- Dirty Back, tab changes and header Settings navigation ask before discarding; account changes clear the private draft. Both locales remain separate, with multiline fields and normal Android keyboard/insets.
+- Empty public support labels use the existing iOS default wording; the owner-configured message still appears once.
+- Fixed cached owner analytics surviving session changes. Tests cover account revision changes and clearing cached private data.
+- No support configuration or legal document was written to production. No new public legal text was authored.
 
 ## Next work
 

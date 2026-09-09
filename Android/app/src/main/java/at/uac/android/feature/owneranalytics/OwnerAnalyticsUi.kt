@@ -23,7 +23,9 @@ fun OwnerAnalyticsScreen(
     language: String,
     onBack: () -> Unit,
 ) {
-    val state by model.state.collectAsState()
+    val observed by model.state.collectAsState()
+    val state =
+        observed.takeIf { it.session == session && session?.ready == true } ?: OwnerAnalyticsState()
     LaunchedEffect(session) { model.load(session) }
     Column(Modifier.fillMaxSize().safeDrawingPadding().testTag("owner-analytics")) {
         Row(

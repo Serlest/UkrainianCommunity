@@ -65,6 +65,7 @@ import at.uac.android.feature.community.*
 import at.uac.android.feature.contentlifecycle.*
 import at.uac.android.feature.contentmedia.*
 import at.uac.android.feature.contentplanning.*
+import at.uac.android.feature.donationsettings.*
 import at.uac.android.feature.dsaappeal.*
 import at.uac.android.feature.dsastatement.*
 import at.uac.android.feature.featuredmanagement.*
@@ -454,6 +455,16 @@ class MainActivity : FragmentActivity() {
                         )
                             as T
                     }
+                    if (modelClass == DonationSettingsViewModel::class.java) {
+                        return DonationSettingsViewModel(
+                            donationSettingsRepository(
+                                applicationContext,
+                                { auth.state.value.moderationScope() },
+                                AuthModerationDecisionGate(auth),
+                            )
+                        )
+                            as T
+                    }
                     if (modelClass == OwnerAnalyticsViewModel::class.java) {
                         return OwnerAnalyticsViewModel(
                             ownerAnalyticsRepository(applicationContext) {
@@ -770,6 +781,7 @@ class MainActivity : FragmentActivity() {
                 }
             val systemLogs: SystemLogsViewModel = viewModel(factory = factory)
             val ownerAnalytics: OwnerAnalyticsViewModel = viewModel(factory = factory)
+            val donationSettings: DonationSettingsViewModel = viewModel(factory = factory)
             val moderationDecisions: ModerationDecisionViewModel = viewModel(factory = factory)
             val organizationReviews: OrganizationReviewViewModel = viewModel(factory = factory)
             val inbox: InboxViewModel = viewModel(factory = factory)
@@ -792,6 +804,12 @@ class MainActivity : FragmentActivity() {
             val deletion: AccountDeletionViewModel = viewModel(factory = factory)
             val announcements: AnnouncementViewModel = viewModel(factory = factory)
             val authSession by auth.state.collectAsStateWithLifecycle()
+            LaunchedEffect(authSession.moderationScope()) {
+                donationSettings.bind(authSession.moderationScope())
+            }
+            LaunchedEffect(authSession.ownerAnalyticsScope()) {
+                ownerAnalytics.bind(authSession.ownerAnalyticsScope())
+            }
             val lockSnapshot by lockHost.model.state.collectAsStateWithLifecycle()
             val lockState = lockSnapshot.forSession(authSession.appLockSession())
             SideEffect { lockHost.rendered(authSession.appLockSession()) }
@@ -1066,6 +1084,11 @@ class MainActivity : FragmentActivity() {
                     BrowseScreen(
                         browseState.visibleTo(safetyState.visibility),
                         model,
+                        navigationRequest = { action ->
+                            if (browseState.route == "profile/donation-settings")
+                                donationSettings.requestLeave(action)
+                            else action()
+                        },
                         diagnostics = {
                             startActivity(Intent(this, FoundationActivity::class.java))
                         },
@@ -1458,6 +1481,13 @@ class MainActivity : FragmentActivity() {
                                     selectedLanguage,
                                     model::back,
                                 )
+                            } else if (route == "profile/donation-settings") {
+                                DonationSettingsScreen(
+                                    donationSettings,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
                             } else if (route == "profile/analytics") {
                                 OwnerAnalyticsScreen(
                                     ownerAnalytics,
@@ -1836,6 +1866,25 @@ class MainActivity : FragmentActivity() {
                                             )
                                         }
                                         if (authSession.ownerAnalyticsScope()?.ready == true) {
+                                            OutlinedButton(
+                                                {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            authSession.moderationScope()
+                                                    )
+                                                        model.navigate("profile/donation-settings")
+                                                },
+                                                Modifier.fillMaxWidth()
+                                                    .testTag("account-open-donation-settings"),
+                                            ) {
+                                                Text(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Projektunterstützung verwalten",
+                                                        "Керування підтримкою проєкту",
+                                                    )
+                                                )
+                                            }
                                             OutlinedButton(
                                                 {
                                                     val captured = authSession.ownerAnalyticsScope()

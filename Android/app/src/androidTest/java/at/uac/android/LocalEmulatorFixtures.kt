@@ -20,6 +20,7 @@ internal class LocalEmulatorFixtures(private val context: Context) {
                 "legalDocuments/${document.type}",
                 mapOf(
                     "activeVersion" to document.version,
+                    "versionNumber" to build80VersionNumber(document.version),
                     "status" to "published",
                     "requiresAcceptance" to document.requiresAcceptance,
                 ),

@@ -24,25 +24,34 @@ class LegalDocumentIntegrityTest {
             }
         return mapOf(
             "documentType" to "terms",
-            "version" to "1",
+            "version" to "2026.1",
+            "versionNumber" to 202601L,
             "status" to "published",
             "locales" to locales,
             "contentHash" to LegalDocumentIntegrity.sha256(canonical),
         )
     }
 
-    private val pointer = mapOf("activeVersion" to "1")
+    private val pointer = mapOf("activeVersion" to "2026.1", "versionNumber" to 202601L)
 
     @Test
     fun currentAndLegacyFormatsAreAcceptedButTamperingIsRejected() {
         for (legacy in listOf(false, true)) {
             val data = document(legacy)
-            LegalDocumentIntegrity.validate("terms", "1", pointer, data)
-            for (key in listOf("contentHash", "locales", "version", "status", "documentType")) {
+            LegalDocumentIntegrity.validate("terms", "2026.1", pointer, data)
+            for (key in
+                listOf(
+                    "contentHash",
+                    "locales",
+                    "version",
+                    "versionNumber",
+                    "status",
+                    "documentType",
+                )) {
                 assertThrows(AuthException::class.java) {
                     LegalDocumentIntegrity.validate(
                         "terms",
-                        "1",
+                        "2026.1",
                         pointer,
                         data + (key to "tampered"),
                     )
@@ -51,13 +60,13 @@ class LegalDocumentIntegrityTest {
             assertThrows(AuthException::class.java) {
                 LegalDocumentIntegrity.validate(
                     "terms",
-                    "1",
+                    "2026.1",
                     pointer + ("contentHash" to "wrong"),
                     data,
                 )
             }
             assertThrows(AuthException::class.java) {
-                LegalDocumentIntegrity.validate("terms", "1", pointer, data - "contentHash")
+                LegalDocumentIntegrity.validate("terms", "2026.1", pointer, data - "contentHash")
             }
         }
     }
@@ -68,7 +77,7 @@ class LegalDocumentIntegrityTest {
         val locales = data["locales"] as Map<String, Map<String, String>>
         val bad = locales + ("de" to (locales.getValue("de") + ("contentMarkdown" to "changed")))
         assertThrows(AuthException::class.java) {
-            LegalDocumentIntegrity.validate("terms", "1", pointer, data + ("locales" to bad))
+            LegalDocumentIntegrity.validate("terms", "2026.1", pointer, data + ("locales" to bad))
         }
     }
 

@@ -110,6 +110,7 @@ private constructor(
                 "profile/content-planning",
                 "profile/system-logs",
                 "profile/analytics",
+                "profile/donation-settings",
                 "profile/announcements",
                 "profile/announcements/manage",
             )

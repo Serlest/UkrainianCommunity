@@ -422,5 +422,20 @@ data class Donation(val fields: Fields) {
             else null
 
     fun text(key: String, language: String) =
-        fields.string(key + if (language == "uk") "UK" else "DE")
+        fields.string(key + if (language == "uk") "UK" else "DE").trim().ifEmpty {
+            donationDefaultText(key, language)
+        }
 }
+
+fun donationDefaultText(key: String, language: String): String =
+    when (key) {
+        "title" -> tr(language, "Projekt unterstützen", "Підтримати проєкт")
+        "buttonTitle" -> tr(language, "Unterstützen", "Підтримати")
+        "message" ->
+            tr(
+                language,
+                "Ukrainian Community ist ein nicht-kommerzielles Projekt zur Unterstützung von Ukrainerinnen und Ukrainern in Österreich. Wenn Sie die Weiterentwicklung und den Betrieb der App unterstützen möchten, können Sie freiwillig spenden.",
+                "Ukrainian Community — некомерційний проєкт, створений для підтримки українців в Австрії. Якщо ви хочете допомогти з розвитком і підтримкою додатку, можете зробити добровільний внесок.",
+            )
+        else -> ""
+    }

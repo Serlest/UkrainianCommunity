@@ -17,14 +17,24 @@ data class OwnerAnalyticsState(
     val detailTarget: Pair<String, String>? = null,
     val search: String = "",
     val failure: OwnerAnalyticsFailure? = null,
+    val session: OwnerAnalyticsSession? = null,
 )
 
 class OwnerAnalyticsViewModel(private val repository: OwnerAnalyticsRepository) : ViewModel() {
     private val mutable = MutableStateFlow(OwnerAnalyticsState())
     val state = mutable.asStateFlow()
     private var job: Job? = null
+    private var boundSession: OwnerAnalyticsSession? = null
+
+    fun bind(session: OwnerAnalyticsSession?) {
+        if (boundSession == session) return
+        job?.cancel()
+        boundSession = session
+        mutable.value = OwnerAnalyticsState(session = session)
+    }
 
     fun load(session: OwnerAnalyticsSession?, force: Boolean = false) {
+        bind(session)
         if (session?.ready != true) {
             job?.cancel()
             mutable.value = OwnerAnalyticsState(failure = OwnerAnalyticsFailure.ACCESS)
@@ -42,17 +52,20 @@ class OwnerAnalyticsViewModel(private val repository: OwnerAnalyticsRepository) 
             mutable.value = mutable.value.copy(loading = true, failure = null)
             try {
                 val result = repository.overview(session, period)
-                mutable.value =
-                    mutable.value.copy(loading = false, snapshot = result, failure = null)
+                if (boundSession == session)
+                    mutable.value =
+                        mutable.value.copy(loading = false, snapshot = result, failure = null)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: OwnerAnalyticsException) {
-                mutable.value = mutable.value.copy(loading = false, failure = error.failure)
+                if (boundSession == session)
+                    mutable.value = mutable.value.copy(loading = false, failure = error.failure)
             }
         }
     }
 
     fun period(value: AnalyticsPeriod, session: OwnerAnalyticsSession?) {
+        bind(session)
         if (mutable.value.period == value) return
         mutable.value =
             mutable.value.copy(period = value, snapshot = null, detail = null, detailTarget = null)
@@ -64,6 +77,7 @@ class OwnerAnalyticsViewModel(private val repository: OwnerAnalyticsRepository) 
     }
 
     fun open(session: OwnerAnalyticsSession?, type: String, id: String) {
+        bind(session)
         if (session?.ready != true) return
         job?.cancel()
         val period = mutable.value.period
@@ -77,11 +91,14 @@ class OwnerAnalyticsViewModel(private val repository: OwnerAnalyticsRepository) 
                 )
             try {
                 val result = repository.detail(session, period, type, id)
-                mutable.value = mutable.value.copy(loading = false, detail = result, failure = null)
+                if (boundSession == session)
+                    mutable.value =
+                        mutable.value.copy(loading = false, detail = result, failure = null)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: OwnerAnalyticsException) {
-                mutable.value = mutable.value.copy(loading = false, failure = error.failure)
+                if (boundSession == session)
+                    mutable.value = mutable.value.copy(loading = false, failure = error.failure)
             }
         }
     }

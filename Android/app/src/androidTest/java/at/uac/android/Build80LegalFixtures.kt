@@ -30,6 +30,7 @@ internal fun build80LegalFixture(document: AuthLegalDocument): Map<String, Any> 
         }
     return mapOf(
         "version" to document.version,
+        "versionNumber" to build80VersionNumber(document.version),
         "documentType" to document.type,
         "status" to "published",
         "requiresAcceptance" to document.requiresAcceptance,
@@ -37,3 +38,6 @@ internal fun build80LegalFixture(document: AuthLegalDocument): Map<String, Any> 
         "contentHash" to hash(canonical),
     )
 }
+
+internal fun build80VersionNumber(version: String): Long =
+    version.split('.').let { it[0].toLong() * 100 + it[1].toLong() }

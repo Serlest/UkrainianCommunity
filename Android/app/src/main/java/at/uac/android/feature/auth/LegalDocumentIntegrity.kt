@@ -21,6 +21,16 @@ internal object LegalDocumentIntegrity {
             if (!value) throw AuthException(AuthProblem.INVALID_PROFILE)
         }
         requireValid(pointer["activeVersion"] == version)
+        val parts = version.split('.')
+        val numericVersion =
+            if (Regex("[0-9]{4}\\.[1-9][0-9]?").matches(version))
+                parts[0].toLong() * 100 + parts[1].toLong()
+            else null
+        requireValid(
+            numericVersion != null &&
+                (pointer["versionNumber"] as? Number)?.toLong() == numericVersion &&
+                (data["versionNumber"] as? Number)?.toLong() == numericVersion
+        )
         for (fields in listOf(pointer, data)) {
             requireValid(fields["documentType"] == null || fields["documentType"] == type)
             requireValid(fields["status"] == null || fields["status"] == "published")

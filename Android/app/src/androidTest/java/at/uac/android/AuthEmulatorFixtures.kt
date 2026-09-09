@@ -34,6 +34,7 @@ internal object AuthEmulatorFixtures {
                     "PATCH",
                     mapOf(
                         "activeVersion" to document.version,
+                        "versionNumber" to build80VersionNumber(document.version),
                         "status" to "published",
                         "requiresAcceptance" to document.requiresAcceptance,
                     ),
@@ -91,6 +92,7 @@ internal object AuthEmulatorFixtures {
     private fun firestoreValue(value: Any): JSONObject =
         when (value) {
             is java.time.Instant -> JSONObject().put("timestampValue", value.toString())
+            is Number -> JSONObject().put("integerValue", value.toLong().toString())
             is String -> JSONObject().put("stringValue", value)
             is Boolean -> JSONObject().put("booleanValue", value)
             is Map<*, *> ->

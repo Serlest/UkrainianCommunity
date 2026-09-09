@@ -58,6 +58,7 @@ fun BrowseScreen(
     visibilityNotice: (@Composable () -> Unit)? = null,
     overlay: (@Composable () -> Unit)? = null,
     publicGallery: (@Composable (Content, BrowseState) -> Unit)? = null,
+    navigationRequest: (((() -> Unit)) -> Unit)? = null,
 ) {
     val l = state.language
     LifecycleResumeEffect(model) {
@@ -74,7 +75,10 @@ fun BrowseScreen(
             }
         }
     }
-    BackHandler(state.canBack, model::back)
+    fun requestNavigation(action: () -> Unit) {
+        if (navigationRequest != null) navigationRequest(action) else action()
+    }
+    BackHandler(state.canBack) { requestNavigation(model::back) }
     UacTheme(state.theme) {
         UacPageBackground(Modifier.fillMaxSize()) {
             val keyboardVisible =
@@ -84,7 +88,9 @@ fun BrowseScreen(
                 modifier = Modifier.imePadding(),
                 bottomBar = {
                     if (!keyboardVisible)
-                        UacBottomNavigation(state.selectedTab, l, model::selectTab)
+                        UacBottomNavigation(state.selectedTab, l) { tab ->
+                            requestNavigation { model.selectTab(tab) }
+                        }
                 },
             ) { insets ->
                 Column(Modifier.fillMaxSize().padding(insets)) {
@@ -92,8 +98,8 @@ fun BrowseScreen(
                         UacHeader(
                             l,
                             state.canBack,
-                            model::back,
-                            { model.navigate("settings") },
+                            { requestNavigation(model::back) },
+                            { requestNavigation { model.navigate("settings") } },
                             compact =
                                 isCompactAuthHeaderRoute(state.route) ||
                                     keyboardVisible ||

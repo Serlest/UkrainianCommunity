@@ -2,7 +2,7 @@ package at.uac.android.feature.moderation
 
 import java.time.Instant
 
-/** Exact callable contract deployed with iOS 1.1 (80). */
+/** Callable contract from the iOS 1.1 (80) server sources. */
 internal object ModerationBuild80Contract {
     fun payload(pending: ModerationPending): Map<String, String> {
         pending.version.validate()
@@ -43,15 +43,14 @@ internal object ModerationBuild80Contract {
             fields["moderationStatus"] == pending.decision.wire &&
             ModerationReviewVersion.instant(fields["moderatedAt"]) != null &&
             runCatching {
-                    ModerationReviewVersion.hash(
-                        pending.version.target,
-                        fields.filterKeys {
-                            it !in
-                                setOf("moderationOperationId", "moderatedByUserId", "moderatedAt")
-                        },
-                        true,
-                    )
-                }
+                ModerationReviewVersion.hash(
+                    pending.version.target,
+                    fields.filterKeys {
+                        it !in setOf("moderationOperationId", "moderatedByUserId", "moderatedAt")
+                    },
+                    true,
+                )
+            }
                 .getOrNull() == pending.version.preservedHash
 
     private fun invalid(): Nothing =
