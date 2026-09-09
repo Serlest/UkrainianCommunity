@@ -1,6 +1,6 @@
 # Android: журнал пакетов и доказательств
 
-> 2026-09-09: актуальный Android 1.1 (80), аудит и исправления — [AndroidBuild80Audit-2026-09-09.md](AndroidBuild80Audit-2026-09-09.md). Это локальная разработка; новый build 80 в Google Play не загружен.
+> 2026-09-09: актуальный Android 1.1 (80), аудит и исправления — [AndroidBuild80Audit-2026-09-09.md](AndroidBuild80Audit-2026-09-09.md). Build 80 опубликован в Google Play Internal testing; Console подтверждает доступность внутренним тестерам. Физическая установка и полное функциональное соответствие остаются отдельными проверками.
 
 > Текущий release-readiness snapshot после начала cloud/build-68 интеграции: [AndroidReleaseReadiness-2026-09-07.md](AndroidReleaseReadiness-2026-09-07.md). Записи ниже — хронологические receipts; не использовать старые `local-only` границы как описание текущих исходников.
 

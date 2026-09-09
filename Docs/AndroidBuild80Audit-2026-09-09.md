@@ -149,3 +149,19 @@ Output: `/Users/serlest/Documents/Codex/2026-09-09/80-80`.
 ## Next work
 
 Verification logs and source/APK receipts saved under /Users/serlest/Documents/Codex/2026-09-09/80-80. Continue the outstanding functional comparison above. Full task is not yet complete.
+
+
+## Google Play Internal testing — 2026-09-09
+
+User explicitly requested upload for testing after receiving the audit limitations.
+
+- Signed production build from `85ef15cf3d88aa72d74f06fff6706e81566578f5`: `assembleProductionRelease` + `bundleProductionRelease` PASS, including R8 and lintVital.
+- Package `at.serlest.ukrainiancommunity`, version `1.1 (80)`, min/target SDK `26 / 36`; upload certificate matches build 79. APK signature and AAB JAR signature verified.
+- AAB SHA-256: `00e6f73e950b90cde0c9e2e9337bfc924a9a31f549cc80f27f2733c606682a1c`.
+- APK SHA-256: `ce85a228398565896c85e0f47a152238452e9e4fa3fae736becda2fc99a48039`.
+- Google Play accepted version 80 and published release **1.1 (80) – Internal** on existing internal track `4701365572505552935`. Final Console read-back: **Aktiv**, **Für interne Tester verfügbar**, published 9 Sept. 14:53 (Console display).
+- One nonblocking warning: native debug symbols absent; ReTrace mapping is attached. No supported devices lost compared with build 79.
+- Tester link read back: https://play.google.com/apps/internaltest/4701365572505552935
+- Existing tester access unchanged. No public, open or closed testing release, and no backend/iOS deployment.
+- Physical Play installation, device runtime and previously listed parity limitations remain unverified/open.
+- Receipt: output `build80-play-internal-receipt.json`; production artifacts under `artifacts/app-production-release-build80-UPLOAD-SIGNED.{aab,apk}`. Build log `build80-production-release.log`; AAB signature log `build80-aab-signature.log`.
