@@ -16,6 +16,9 @@ import {adminStorage, db} from "../firebase/admin";
 import {getOrganizationRoles} from "../permissions/organizationPermissions";
 import {isOwner} from "../permissions/userPermissions";
 import {
+  writeUserNotification,
+} from "../notifications/notificationPayloads";
+import {
   type ContentKind,
   contentReferencePoliciesFor,
   contentStoragePrefixes,
@@ -43,6 +46,27 @@ const callableOptions = {
 const relatedBatchSize = 400;
 const organizationContentBatchSize = 100;
 const systemOrganizationId = "ukrainian-community";
+export const organizationDeletionOperationCollection = "organizationDeletionOperations";
+const organizationDeletionOperationRetentionMilliseconds = 7 * 24 * 60 * 60 * 1_000;
+
+type OrganizationDeletionRecipientRole =
+  | "communityOwner"
+  | "communityAdmin"
+  | "communityModerator";
+
+interface OrganizationDeletionRecipient {
+  userId: string;
+  role: OrganizationDeletionRecipientRole;
+}
+
+export interface OrganizationDeletionNotificationPlan {
+  organizationId: string;
+  organizationName: string;
+  organizationExisted: boolean;
+  actorUserId: string;
+  recipients: OrganizationDeletionRecipient[];
+  localeHint?: string;
+}
 
 export const deleteNews = onCall(
   callableOptions,
@@ -83,9 +107,14 @@ export const deleteOrganization = onCall(
 
     const organizationReference = db.collection("organizations").doc(organizationId);
     let organizationExisted: boolean;
+    let notificationPlan: OrganizationDeletionNotificationPlan | undefined;
     if (isOwner(actor)) {
-      const organizationSnapshot = await organizationReference.get();
-      organizationExisted = organizationSnapshot.exists;
+      await assertOrganizationHasNoBlockingEvents(organizationId);
+      notificationPlan = await prepareOrganizationDeletionNotificationPlan(
+        organizationId,
+        auth.uid
+      );
+      organizationExisted = notificationPlan.organizationExisted;
       await deleteOrganizationContent(organizationId, organizationExisted);
     } else {
       organizationExisted = await discardUnpublishedOrganizationRequest(
@@ -96,6 +125,9 @@ export const deleteOrganization = onCall(
       await db.recursiveDelete(organizationReference);
     }
     await deleteOrganizationHistoryReferences(organizationId);
+    if (notificationPlan) {
+      await completeOrganizationDeletionNotifications(notificationPlan);
+    }
     const deletedAt = new Date().toISOString();
     logger.info("Organization deletion completed.", {
       organizationId,
@@ -143,6 +175,253 @@ export async function discardUnpublishedOrganizationRequest(
     transaction.delete(organizationReference);
     return true;
   });
+}
+
+/**
+ * Persists the role recipients before the organization document is removed.
+ * A callable retry can therefore finish deterministic notifications even when
+ * the Firestore deletion succeeded before the first invocation returned.
+ */
+export async function prepareOrganizationDeletionNotificationPlan(
+  organizationId: string,
+  actorUserId: string
+): Promise<OrganizationDeletionNotificationPlan> {
+  const operationReference = db.collection(organizationDeletionOperationCollection)
+    .doc(organizationId);
+  const organizationReference = db.collection("organizations").doc(organizationId);
+
+  return db.runTransaction(async (transaction) => {
+    const [operationSnapshot, organizationSnapshot] = await transaction.getAll(
+      operationReference,
+      organizationReference
+    );
+    if (operationSnapshot.exists && !organizationSnapshot.exists) {
+      return organizationDeletionNotificationPlanFromData(
+        organizationId,
+        operationSnapshot.data()
+      );
+    }
+
+    const organization = organizationSnapshot.data() ?? {};
+    const plan: OrganizationDeletionNotificationPlan = {
+      organizationId,
+      organizationName: nonEmptyString(organization.name) ?? "Organization",
+      organizationExisted: organizationSnapshot.exists,
+      actorUserId,
+      recipients: organizationDeletionRecipients(organization),
+    };
+    transaction.set(operationReference, {
+      ...plan,
+      status: "prepared",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(
+        Date.now() + organizationDeletionOperationRetentionMilliseconds
+      ),
+    });
+    return plan;
+  });
+}
+
+export async function completeOrganizationDeletionNotifications(
+  plan: OrganizationDeletionNotificationPlan
+): Promise<void> {
+  await Promise.all(plan.recipients.map(async (recipient) => {
+    const user = await db.collection("users").doc(recipient.userId).get();
+    const copy = organizationDeletionNotificationCopy(
+      plan.organizationName,
+      user.data(),
+      plan.localeHint
+    );
+    await writeUserNotification({
+      notificationId: organizationDeletionNotificationId(
+        plan.organizationId,
+        recipient.userId
+      ),
+      targetUserId: recipient.userId,
+      type: "organizationRoleRemoved",
+      title: copy.title,
+      message: copy.message,
+      severity: "info",
+      actionType: "none",
+      requiresPopup: false,
+      actorUserId: plan.actorUserId,
+      sourceType: "organization",
+      sourceId: plan.organizationId,
+      metadata: {
+        organizationId: plan.organizationId,
+        organizationName: plan.organizationName,
+        previousRole: recipient.role,
+        newRole: "none",
+        reason: copy.message,
+        reasonCode: "organizationDeleted",
+      },
+      dedupeKey: `organizationDeleted:${plan.organizationId}:${recipient.userId}`,
+    });
+  }));
+
+  await db.collection(organizationDeletionOperationCollection)
+    .doc(plan.organizationId)
+    .delete();
+}
+
+function organizationDeletionNotificationCopy(
+  organizationName: string,
+  user: DocumentData | undefined,
+  localeHint?: string
+): {title: string; message: string} {
+  const locale = [
+    user?.appLanguage,
+    user?.language,
+    user?.locale,
+    user?.preferredLanguage,
+    localeHint,
+  ]
+    .find((value) => typeof value === "string" && value.trim().length > 0);
+  if (typeof locale === "string" && locale.toLowerCase().startsWith("de")) {
+    return {
+      title: "Organisation gelöscht",
+      message: `${organizationName} wurde gelöscht. Ihre Organisationsrolle wurde entfernt.`,
+    };
+  }
+  return {
+    title: "Організацію видалено",
+    message: `${organizationName} видалено. Вашу роль в організації скасовано.`,
+  };
+}
+
+/**
+ * One-time maintenance entry point for a deletion completed before recipient
+ * snapshots existed. The retained, unexpired creation proof is the required
+ * evidence tying the deleted organization to its original owner.
+ */
+export async function repairDeletedOrganizationLifecycleFromCreationProof(
+  organizationId: string,
+  actorUserId: string
+): Promise<void> {
+  const operationReference = db.collection(organizationDeletionOperationCollection)
+    .doc(organizationId);
+  const organizationReference = db.collection("organizations").doc(organizationId);
+  const proofReference = db.collection("organizationCreationProofs").doc(organizationId);
+  const plan = await db.runTransaction(async (transaction) => {
+    const [organizationSnapshot, proofSnapshot, operationSnapshot] =
+      await transaction.getAll(
+        organizationReference,
+        proofReference,
+        operationReference
+      );
+    if (organizationSnapshot.exists) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Historical repair requires an already deleted organization."
+      );
+    }
+    if (operationSnapshot.exists) {
+      return organizationDeletionNotificationPlanFromData(
+        organizationId,
+        operationSnapshot.data()
+      );
+    }
+
+    const proof = proofSnapshot.data();
+    const proofUserId = nonEmptyString(proof?.userId);
+    const proofOrganizationId = nonEmptyString(proof?.organizationId);
+    const proofExpiresAt = proof?.expiresAt;
+    if (!proofSnapshot.exists
+      || !proofUserId
+      || proofOrganizationId !== organizationId
+      || !(proofExpiresAt instanceof Timestamp)
+      || proofExpiresAt.toMillis() <= Date.now()) {
+      throw new HttpsError(
+        "failed-precondition",
+        "A matching unexpired organization creation proof is required."
+      );
+    }
+
+    const repairPlan: OrganizationDeletionNotificationPlan = {
+      organizationId,
+      organizationName: nonEmptyString(proof?.organizationName) ?? "Organization",
+      organizationExisted: true,
+      actorUserId,
+      recipients: [{userId: proofUserId, role: "communityOwner"}],
+      localeHint: nonEmptyString(proof?.locale),
+    };
+    transaction.create(operationReference, {
+      ...repairPlan,
+      status: "preparedHistoricalRepair",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(
+        Date.now() + organizationDeletionOperationRetentionMilliseconds
+      ),
+    });
+    return repairPlan;
+  });
+
+  await deleteOrganizationHistoryReferences(organizationId);
+  await completeOrganizationDeletionNotifications(plan);
+}
+
+function organizationDeletionNotificationId(
+  organizationId: string,
+  userId: string
+): string {
+  return `organizationDeleted_${organizationId}_${userId}`;
+}
+
+function organizationDeletionRecipients(data: DocumentData): OrganizationDeletionRecipient[] {
+  const recipients = new Map<string, OrganizationDeletionRecipientRole>();
+  const add = (value: unknown, role: OrganizationDeletionRecipientRole): void => {
+    const userId = nonEmptyString(value);
+    if (userId && !recipients.has(userId)) recipients.set(userId, role);
+  };
+
+  add(data.ownerId, "communityOwner");
+  for (const userId of stringArray(data.adminIds)) add(userId, "communityAdmin");
+  for (const userId of stringArray(data.moderatorIds)) add(userId, "communityModerator");
+  return Array.from(recipients, ([userId, role]) => ({userId, role}));
+}
+
+function organizationDeletionNotificationPlanFromData(
+  organizationId: string,
+  data: DocumentData | undefined
+): OrganizationDeletionNotificationPlan {
+  const recipients = Array.isArray(data?.recipients) ? data.recipients.flatMap((value) => {
+    if (!isRecord(value)) return [];
+    const userId = nonEmptyString(value.userId);
+    const role = value.role;
+    if (!userId || !isOrganizationDeletionRecipientRole(role)) return [];
+    return [{userId, role}];
+  }) : [];
+  return {
+    organizationId,
+    organizationName: nonEmptyString(data?.organizationName) ?? "Organization",
+    organizationExisted: data?.organizationExisted === true,
+    actorUserId: nonEmptyString(data?.actorUserId) ?? "system",
+    recipients,
+    localeHint: nonEmptyString(data?.localeHint),
+  };
+}
+
+function isOrganizationDeletionRecipientRole(
+  value: unknown
+): value is OrganizationDeletionRecipientRole {
+  return value === "communityOwner"
+    || value === "communityAdmin"
+    || value === "communityModerator";
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.flatMap((entry) => {
+    const normalized = nonEmptyString(entry);
+    return normalized ? [normalized] : [];
+  }) : [];
+}
+
+function nonEmptyString(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 export async function deleteNewsContent(
@@ -202,20 +481,6 @@ async function deleteOrganizationContent(
   organizationId: string,
   organizationExists: boolean
 ): Promise<void> {
-  const eventSnapshot = await db.collection("events")
-    .where("organizationId", "==", organizationId)
-    .get();
-  const blockingEvents = eventSnapshot.docs
-    .filter((document) => eventBlocksOrganizationDeletion(document.data()))
-    .map((document) => document.id);
-  if (blockingEvents.length > 0) {
-    throw new HttpsError(
-      "failed-precondition",
-      "Cancel active organization events before deleting the organization.",
-      {blockingEventIds: blockingEvents.slice(0, 20)}
-    );
-  }
-
   const organizationReference = db.collection("organizations").doc(organizationId);
   if (organizationExists) {
     await organizationReference.delete();
@@ -238,6 +503,24 @@ async function deleteOrganizationContent(
   await db.recursiveDelete(organizationReference);
 }
 
+async function assertOrganizationHasNoBlockingEvents(
+  organizationId: string
+): Promise<void> {
+  const eventSnapshot = await db.collection("events")
+    .where("organizationId", "==", organizationId)
+    .get();
+  const blockingEvents = eventSnapshot.docs
+    .filter((document) => eventBlocksOrganizationDeletion(document.data()))
+    .map((document) => document.id);
+  if (blockingEvents.length > 0) {
+    throw new HttpsError(
+      "failed-precondition",
+      "Cancel active organization events before deleting the organization.",
+      {blockingEventIds: blockingEvents.slice(0, 20)}
+    );
+  }
+}
+
 async function deleteOrganizationHistoryReferences(
   organizationId: string
 ): Promise<void> {
@@ -248,6 +531,22 @@ async function deleteOrganizationHistoryReferences(
   await deletePolicyQuery(
     db.collectionGroup("activityLog").where("targetId", "==", organizationId),
     (document) => document.get("targetType") === "organization"
+  );
+  await deletePolicyQuery(
+    db.collectionGroup("notificationInbox").where(
+      "actionTargetId",
+      "==",
+      organizationId
+    ),
+    (document) => ["openOrganization", "openOrganizationRequest"].includes(
+      document.get("actionType")
+    )
+  );
+  await deletePolicyQuery(
+    db.collectionGroup("notificationInbox").where("sourceId", "==", organizationId),
+    (document) => ["openOrganization", "openOrganizationRequest"].includes(
+      document.get("actionType")
+    )
   );
 }
 

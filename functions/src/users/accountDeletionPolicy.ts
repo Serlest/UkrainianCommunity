@@ -246,6 +246,15 @@ export const accountDeletionReferencePolicies = [
     patch: "userStatusUpdater",
   },
   {
+    name: "analytics consent receipts",
+    scope: "collection",
+    collection: "analyticsConsentReceipts",
+    field: "userId",
+    operator: "==",
+    action: "anonymize",
+    patch: "legalAcceptance",
+  },
+  {
     name: "legal acceptance records",
     scope: "collection",
     collection: "legalAcceptanceLogs",

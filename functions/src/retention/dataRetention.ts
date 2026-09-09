@@ -18,7 +18,11 @@ import {
   analyticsUserActivityCollection,
   analyticsUserRegistrationEventCollection,
 } from "../analytics/analyticsUserActivity";
-import {deleteEventContent, deleteNewsContent} from "../content/contentDeletion";
+import {
+  deleteEventContent,
+  deleteNewsContent,
+  organizationDeletionOperationCollection,
+} from "../content/contentDeletion";
 import {deleteFeedbackRecords} from "../feedback/feedbackManagement";
 import { db } from "../firebase/admin";
 import {accountDeletionOperationCollection} from "../users/accountDeletion";
@@ -63,6 +67,7 @@ type CleanupSummary = {
   dsaCases: number;
   dsaPortalRateLimits: number;
   organizationMutationReceipts: number;
+  organizationDeletionOperations: number;
   eventCancellationOperations: number;
   accountDeletionOperations: number;
   contentModerationOperations: number;
@@ -111,6 +116,8 @@ export const cleanupExpiredData = onSchedule(
       dsaCases: await cleanupExpiredDsaCases(now),
       organizationMutationReceipts: await deleteLimitedQuery(
         db.collection("organizationMutationReceipts").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
+      organizationDeletionOperations: await deleteLimitedQuery(
+        db.collection(organizationDeletionOperationCollection).where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
       eventCancellationOperations: await deleteLimitedQuery(
         db.collection("eventCancellationOperations").where("expiresAt", "<=", Timestamp.fromDate(now)), maxLogDocumentsPerPolicy),
       accountDeletionOperations: await deleteLimitedQuery(

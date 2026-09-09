@@ -36,6 +36,7 @@ test("account deletion policy covers every cross-document user reference", () =>
       "feedback messages written as a manager",
       "notifications in other users' inboxes",
       "user status update actors",
+      "analytics consent receipts",
       "legal acceptance records",
       "audit targets",
       "audit actors",

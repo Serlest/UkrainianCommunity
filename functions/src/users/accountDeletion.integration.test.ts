@@ -12,6 +12,7 @@ test("Build80 deletion resumes after Auth failure without losing canonical DSA e
   await db.doc(`users/${uid}`).set({id: uid, globalRole: "user", accountStatus: "active", displayName: "Deletion fixture"});
   await db.doc(`users/${uid}/activityHistory/one`).set({title: "Private"});
   await db.doc(`analyticsConsentStates/${uid}`).set({enabled: true});
+  await db.doc(`analyticsConsentReceipts/${uid}`).set({userId: uid, consentID: "receipt-fixture", enabled: true, privacyVersion: "2026.13"});
   await db.doc(`feedback/${uid}`).set({userId: uid, userDisplayName: "Deletion fixture"});
   await db.doc(`feedback/${uid}/messages/evidence`).set({body: "Retained evidence"});
   await db.doc(`dsaCases/${uid}`).set({reporterUserId: uid, status: "submitted"});
@@ -25,6 +26,9 @@ test("Build80 deletion resumes after Auth failure without losing canonical DSA e
   await assert.rejects(deleteOwnAccount.run(request), {code: "auth/internal-error"});
   assert.equal((await db.doc(`users/${uid}`).get()).exists, false);
   assert.equal((await db.doc(`analyticsConsentStates/${uid}`).get()).exists, false);
+  const receipt = await db.doc(`analyticsConsentReceipts/${uid}`).get();
+  assert.equal(receipt.get("userId"), "deleted");
+  assert.equal(receipt.get("privacyVersion"), "2026.13");
   assert.equal((await adminAuth.getUser(uid)).uid, uid);
   const completed = await deleteOwnAccount.run(request);
   assert.equal(completed.status, "deleted");

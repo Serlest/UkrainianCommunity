@@ -19,6 +19,16 @@ final class AuthoringOrganizationsViewModel: ObservableObject {
 
     init(repository: OrganizationRepository) { self.repository = repository }
 
+    static func discardDeletedOrganization(id: String) {
+        guard !id.isEmpty else { return }
+        sharedSnapshots = sharedSnapshots.mapValues { snapshot in
+            SharedSnapshot(
+                organizations: snapshot.organizations.filter { $0.id != id },
+                loadedAt: snapshot.loadedAt
+            )
+        }
+    }
+
     /// The app owner can always open the editors. Avoid downloading every
     /// approved organization merely to decide whether the global plus button
     /// should be visible; the editor loads the picker data only when opened.

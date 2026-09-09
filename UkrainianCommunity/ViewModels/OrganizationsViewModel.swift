@@ -695,6 +695,7 @@ final class OrganizationsViewModel: ObservableObject {
             error = nil
             validationErrorMessage = nil
             removeDeletedOrganization(id: id)
+            AuthoringOrganizationsViewModel.discardDeletedOrganization(id: id)
             organizationRequests.removeAll { $0.id == id }
             AppContentChangeBus.postOrganizationsChanged(organizationID: id)
         } catch let appError as AppError {

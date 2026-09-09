@@ -70,7 +70,7 @@ struct OrganizationManagementHubView: View {
     }
 
     private var manageableOrganizations: [Organization] {
-        guard let authorityUser else { return [] }
+        guard let authorityUser, authoringOrganizations.error == nil else { return [] }
         let organizations = PermissionService.manageableOrganizations(
             from: authoringOrganizations.organizations,
             user: authorityUser
@@ -120,7 +120,10 @@ struct OrganizationManagementHubView: View {
             managedOrganizationsContent
         }
         .task(id: authorityUser?.id) {
-            await authoringOrganizations.load(for: authorityUser, force: false)
+            // This screen exposes current server-authorized roles. A shared
+            // editor snapshot may survive an account switch and may contain an
+            // organization deleted by another account, so reconcile it here.
+            await authoringOrganizations.load(for: authorityUser, force: true)
             await organizationsViewModel.loadIfNeeded()
             await organizationsViewModel.refreshIfStale()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
@@ -229,7 +232,22 @@ struct OrganizationManagementHubView: View {
     private var managedOrganizationsContent: some View {
         if (organizationsViewModel.isLoading || authoringOrganizations.isLoading) && allOrganizationSectionsAreEmpty {
             LoadingStateCard(title: nil)
-        } else if let error = authoringOrganizations.error ?? organizationsViewModel.error, allOrganizationSectionsAreEmpty {
+        } else if let error = authoringOrganizations.error, organizationRequests.isEmpty {
+            // Cached organizations include role-bearing fields. If the server
+            // cannot confirm them, keep the snapshot for a retry but do not
+            // present its owner/admin/moderator role as current authority.
+            ErrorStateCard(
+                title: AppStrings.Profile.myOrganizations,
+                message: organizationErrorMessage(error),
+                retryTitle: AppStrings.Action.retry
+            ) {
+                Task {
+                    await authoringOrganizations.load(for: authorityUser)
+                    await organizationsViewModel.refresh()
+                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                }
+            }
+        } else if let error = organizationsViewModel.error, allOrganizationSectionsAreEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.myOrganizations,
                 message: organizationErrorMessage(error),
@@ -248,6 +266,20 @@ struct OrganizationManagementHubView: View {
                 message: AppStrings.Profile.noOrganizations
             )
         } else {
+            if let error = authoringOrganizations.error {
+                ErrorStateCard(
+                    title: AppStrings.Profile.myOrganizations,
+                    message: organizationErrorMessage(error),
+                    retryTitle: AppStrings.Action.retry
+                ) {
+                    Task {
+                        await authoringOrganizations.load(for: authorityUser)
+                        await organizationsViewModel.refresh()
+                        await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                    }
+                }
+            }
+
             if !manageableOrganizations.isEmpty {
                 AppEditorSectionTitle(title: AppStrings.Profile.managedOrganizations)
                     .padding(.horizontal, 2)

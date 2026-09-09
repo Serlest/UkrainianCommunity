@@ -648,6 +648,43 @@ struct ContentInteractionRaceTests {
     }
 
     @Test
+    func failedAuthoringRefreshDoesNotTreatNetworkFailureAsDeletion() async {
+        let repository = ControlledOrganizationRepository()
+        let user = MockContentBuilder.ownerUser()
+        let target = makeOrganization(id: "network-stale-\(UUID().uuidString)")
+        repository.authoringHandler = { _ in [target] }
+        let model = AuthoringOrganizationsViewModel(repository: repository)
+
+        await model.load(for: user)
+        repository.authoringHandler = { _ in throw AppError.network }
+        await model.load(for: user)
+
+        #expect(model.organizations.map(\.id) == [target.id])
+        #expect(model.error == .network)
+    }
+
+    @Test
+    func confirmedDeletionIsRemovedFromSharedAuthoringSnapshots() async {
+        let repository = ControlledOrganizationRepository()
+        let user = MockContentBuilder.ownerUser()
+        let target = makeOrganization(id: "deleted-\(UUID().uuidString)")
+        repository.authoringHandler = { _ in [target] }
+        let initialModel = AuthoringOrganizationsViewModel(repository: repository)
+        await initialModel.load(for: user)
+
+        AuthoringOrganizationsViewModel.discardDeletedOrganization(id: target.id)
+
+        repository.authoringHandler = { _ in
+            Issue.record("A fresh shared snapshot should not need a server read")
+            return [target]
+        }
+        let reauthenticatedModel = AuthoringOrganizationsViewModel(repository: repository)
+        await reauthenticatedModel.load(for: user, force: false)
+        #expect(reauthenticatedModel.organizations.isEmpty)
+        #expect(reauthenticatedModel.error == nil)
+    }
+
+    @Test
     func authoringDiscoveryPicksUpAnOrganizationApprovedAfterTheInitialLoad() async {
         let repository = ControlledOrganizationRepository()
         let user = MockContentBuilder.ownerUser()
