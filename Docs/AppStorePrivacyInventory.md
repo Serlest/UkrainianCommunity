@@ -1,5 +1,7 @@
 # App Store privacy inventory
 
+Latest candidate (2026-09-09): **1.1 (82)**, source `0538963`, same application code as tested build 81. All 30 archived privacy manifests match build 81. Apple processed the build as VALID / APP_STORE_ELIGIBLE. Authenticated App Privacy questionnaire verification remains **NOT VERIFIED** because the available browser requires Apple Account login. Submission is prepared but not submitted. See [submission checkpoint](AppStore-1.1-82-submission.md).
+
 Historical archive and authenticated App Privacy UI verification: 2026-09-02, version 1.0.1 (65). The 30 archive privacy manifests are unchanged from build 64. See `Docs/PrivacyPublication-2026-09-02.md`, `Docs/Build65ReleaseReadiness-2026-09-02.md` and the ignored release evidence `build65-privacy-readback.md`.
 
 Current candidate: 1.0.3 (69). Shared Simulator checks and a local Apple Development-signed device Release archive passed. See [release evidence](ReleaseEvidence-1.0.3.json) and [remaining gates](ReleaseGates-1.0.3.json). The final archive contains 30 privacy manifests and 14 collected-data categories; every manifest matches retained build68 byte-for-byte. First-party UserDefaults CA92.1 and SDK required reasons are unchanged. This is archive packaging evidence, not authenticated App Privacy answers, distribution export or physical-device behavior. Privacy2026.13 is published in Firestore/Hosting with read-back. Apple questionnaire login remains blocked.
