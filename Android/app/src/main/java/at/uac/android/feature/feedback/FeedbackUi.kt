@@ -4,11 +4,16 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -18,6 +23,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -32,8 +38,10 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacCard
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.displayTime
 import at.uac.android.feature.browse.tr
 
@@ -242,10 +250,18 @@ fun FeedbackList(
                     item.subject?.takeIf(String::isNotBlank)?.let {
                         Text(it, style = MaterialTheme.typography.titleMedium)
                     }
-                    Text(item.preview, maxLines = 4)
-                    Text(item.status.label(language), color = MaterialTheme.colorScheme.primary)
+                    Text(
+                        item.preview,
+                        maxLines = 4,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    FeedbackStatusBadge(item.status, language)
                     if (if (manager) item.unreadForOwner else item.unreadForUser)
-                        Text(tr(language, "Neue Nachricht", "Нове повідомлення"))
+                        Text(
+                            tr(language, "Neue Nachricht", "Нове повідомлення"),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
                     if (manager) Text(item.name)
                     Text(
                         displayTime(
@@ -259,16 +275,18 @@ fun FeedbackList(
         }
         if (!state.loading && state.error == null && state.page != null && visibleItems.isEmpty())
             item("empty") {
-                Text(
-                    if (manager)
-                        tr(
-                            language,
-                            "Keine passenden Anfragen im geladenen Teil.",
-                            "У завантаженій частині немає відповідних звернень.",
-                        )
-                    else tr(language, "Noch keine Anfragen.", "Звернень поки немає."),
-                    Modifier.testTag("feedback-empty"),
-                )
+                UacCard {
+                    Text(
+                        if (manager)
+                            tr(
+                                language,
+                                "Keine passenden Anfragen im geladenen Teil.",
+                                "У завантаженій частині немає відповідних звернень.",
+                            )
+                        else tr(language, "Noch keine Anfragen.", "Звернень поки немає."),
+                        Modifier.testTag("feedback-empty"),
+                    )
+                }
             }
         if (state.page?.hasMore == true)
             item("more") {
@@ -311,7 +329,7 @@ fun FeedbackDetail(
                 UacIcon.SUPPORT,
             )
             item?.let {
-                Text(it.status.label(language))
+                FeedbackStatusBadge(it.status, language)
                 it.caseNumber?.let { number ->
                     Text(tr(language, "Fallnummer: ", "Номер справи: ") + number)
                 }
@@ -387,7 +405,8 @@ fun FeedbackDetail(
             }
         if (item != null)
             item("reply") {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                UacCard(Modifier.testTag("feedback-reply-section")) {
+                    UacSectionHeading(tr(language, "Antwort", "Відповідь"), UacIcon.EDIT)
                     FeedbackActionStatus(state, language)
                     when {
                         item.status == FeedbackStatus.UNKNOWN -> Text(item.status.label(language))
@@ -429,7 +448,10 @@ fun FeedbackDetail(
                                 OutlinedButton(
                                     { closing = true },
                                     enabled = !state.pending,
-                                    modifier = Modifier.testTag("feedback-close"),
+                                    modifier =
+                                        Modifier.fillMaxWidth()
+                                            .heightIn(min = 48.dp)
+                                            .testTag("feedback-close"),
                                 ) {
                                     Text(tr(language, "Anfrage schließen", "Закрити звернення"))
                                 }
@@ -448,6 +470,7 @@ fun FeedbackDetail(
     }
     if (closing)
         AlertDialog(
+            modifier = Modifier.testTag("feedback-close-dialog"),
             onDismissRequest = { closing = false },
             title = { Text(tr(language, "Anfrage schließen?", "Закрити звернення?")) },
             text = {
@@ -471,7 +494,9 @@ fun FeedbackDetail(
                 }
             },
             dismissButton = {
-                TextButton({ closing = false }) { Text(tr(language, "Abbrechen", "Скасувати")) }
+                TextButton({ closing = false }, Modifier.testTag("feedback-cancel-close")) {
+                    Text(tr(language, "Abbrechen", "Скасувати"))
+                }
             },
         )
 }
@@ -515,7 +540,7 @@ private fun SubmitButton(
             onSubmit()
         },
         enabled = !pending && valid,
-        modifier = Modifier.testTag(tag),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(tag),
     ) {
         Text(
             when {
@@ -523,6 +548,20 @@ private fun SubmitButton(
                 retry -> tr(language, "Ergebnis bestätigen", "Підтвердити результат")
                 else -> tr(language, "Senden", "Надіслати")
             }
+        )
+    }
+}
+
+@Composable
+private fun FeedbackStatusBadge(status: FeedbackStatus, language: String) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Text(
+            status.label(language),
+            Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
         )
     }
 }

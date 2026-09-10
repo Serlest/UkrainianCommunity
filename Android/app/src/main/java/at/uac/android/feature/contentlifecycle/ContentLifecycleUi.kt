@@ -101,9 +101,16 @@ fun ContentLifecycleContent(
             }
         } else {
             state.snapshot?.let { snapshot ->
-                Text(snapshot.organization.name, style = MaterialTheme.typography.titleMedium)
-                snapshot.item?.let {
-                    Text(it.content.title(language), style = MaterialTheme.typography.titleLarge)
+                at.uac.android.design.UacSectionCard(
+                    lc(language, "Ausgewählter Inhalt", "Обраний матеріал")
+                ) {
+                    Text(snapshot.organization.name, style = MaterialTheme.typography.titleMedium)
+                    snapshot.item?.let {
+                        Text(
+                            it.content.title(language),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    }
                 }
             }
             state.error?.let {

@@ -5,10 +5,12 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.dp
+import androidx.core.view.WindowCompat
 import androidx.test.platform.app.InstrumentationRegistry
 import at.uac.android.design.*
 import at.uac.android.feature.moderation.ModerationSession
@@ -27,6 +29,16 @@ class Build85AdminVisualUiTest {
 
     @Composable
     private fun Host(language: String, theme: String, content: @Composable () -> Unit) {
+        SideEffect {
+            WindowCompat.getInsetsController(
+                    compose.activity.window,
+                    compose.activity.window.decorView,
+                )
+                .apply {
+                    isAppearanceLightStatusBars = theme != "dark"
+                    isAppearanceLightNavigationBars = theme != "dark"
+                }
+        }
         UacTheme(theme) {
             UacPageBackground(Modifier.fillMaxSize(), plain = true) {
                 Column(Modifier.fillMaxSize().safeDrawingPadding()) {

@@ -335,7 +335,8 @@ fun ManagedUsersContent(
                 }
             }
         if (privileged) {
-            if (actionContent != null) item("status-actions") { actionContent() }
+            if (actionContent != null && state.selectedId == null)
+                item("status-actions") { actionContent() }
             item("refresh") {
                 OutlinedButton(
                     {
@@ -367,8 +368,8 @@ fun ManagedUsersContent(
                             Text(
                                 tr(
                                     language,
-                                    "Serversuche: 2–120 normalisierte Zeichen, höchstens 100 Treffer.",
-                                    "Пошук на сервері: 2–120 нормалізованих символів, щонайбільше 100 збігів.",
+                                    "Mindestens 2 Zeichen eingeben. Bis zu 100 passende Profile werden geladen.",
+                                    "Введіть щонайменше 2 символи. Буде завантажено до 100 відповідних профілів.",
                                 )
                             )
                         },
@@ -474,7 +475,7 @@ fun ManagedUsersContent(
                         )
                     }
                 items(shown, key = { it.id }) { user ->
-                    OutlinedButton(
+                    Card(
                         {
                             focus.clearFocus()
                             actions.open(user.id)
@@ -484,7 +485,7 @@ fun ManagedUsersContent(
                             .testTag("managed-user-row-${user.id}"),
                     ) {
                         Column(
-                            Modifier.fillMaxWidth(),
+                            Modifier.fillMaxWidth().padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
                             Text(
@@ -595,6 +596,10 @@ fun ManagedUsersContent(
                         item("presence") {
                             ManagedPresenceCard(presenceState, language, refreshPresence)
                         }
+                        if (actionContent != null)
+                            item("status-actions") {
+                                at.uac.android.design.UacCard { actionContent() }
+                            }
                     }
         }
     }
@@ -612,7 +617,6 @@ private fun ManagedUserProfile(
                 user.displayName.ifBlank { tr(language, "Profil", "Профіль") },
                 style = MaterialTheme.typography.titleLarge,
             )
-            Metadata(tr(language, "Kennung", "Ідентифікатор"), user.id)
             Metadata(
                 tr(language, "Vollständiger Name", "Повне ім’я"),
                 user.fullName.ifBlank { unknown(language) },
@@ -664,6 +668,7 @@ private fun ManagedUserProfile(
                 tr(language, "Profil erstellt", "Профіль створено"),
                 date(user.createdAt, language),
             )
+            Metadata(tr(language, "Kennung", "Ідентифікатор"), user.id)
             if (onLegalEvidence != null)
                 OutlinedButton(
                     onLegalEvidence,

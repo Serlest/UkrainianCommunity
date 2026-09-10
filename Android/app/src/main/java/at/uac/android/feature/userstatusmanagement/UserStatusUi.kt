@@ -247,46 +247,53 @@ private fun UserStatusConfirmation(
                     userStatusTitle(action, language),
                     UacIcon.SECURITY,
                 )
-                Text(
-                    tr(language, "Zielkonto: ", "Цільовий акаунт: ") + snapshot.version.targetId,
-                    Modifier.testTag("user-status-target"),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                snapshot.displayName?.let {
+                at.uac.android.design.UacCard {
                     Text(
-                        it,
-                        Modifier.testTag("user-status-target-name"),
+                        tr(language, "Zielkonto: ", "Цільовий акаунт: ") +
+                            snapshot.version.targetId,
+                        Modifier.testTag("user-status-target"),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                }
-                snapshot.email?.let {
-                    Text(it, Modifier.testTag("user-status-target-email"))
-                }
-                Text(managedUsersRoleLabel(snapshot.role, language))
-                Text(
-                    tr(language, "Kontostatus: ", "Стан акаунта: ") +
-                        managedUsersStatusLabel(snapshot.accountStatus, language)
-                )
-                Text(
-                    tr(language, "Zugriffsstatus: ", "Стан доступу: ") +
-                        managedUsersStatusLabel(snapshot.blockState, language)
-                )
-                Text(tr(language, "Warnungen: ", "Попередження: ") + snapshot.warningCount)
-                snapshot.statusReason
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let {
+                    snapshot.displayName?.let {
                         Text(
-                            tr(language, "Bisherige Begründung: ", "Попередня причина: ") + it,
-                            Modifier.testTag("user-status-previous-reason"),
+                            it,
+                            Modifier.testTag("user-status-target-name"),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                snapshot.banExpiresAt?.let {
+                    snapshot.email?.let {
+                        Text(it, Modifier.testTag("user-status-target-email"))
+                    }
+                    Text(managedUsersRoleLabel(snapshot.role, language))
                     Text(
-                        tr(language, "Bisher eingeschränkt bis: ", "Попереднє обмеження до: ") +
-                            managedUsersDate(it, language)
+                        tr(language, "Kontostatus: ", "Стан акаунта: ") +
+                            managedUsersStatusLabel(snapshot.accountStatus, language)
                     )
+                    Text(
+                        tr(language, "Zugriffsstatus: ", "Стан доступу: ") +
+                            managedUsersStatusLabel(snapshot.blockState, language)
+                    )
+                    Text(tr(language, "Warnungen: ", "Попередження: ") + snapshot.warningCount)
+                    snapshot.statusReason
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let {
+                            Text(
+                                tr(language, "Bisherige Begründung: ", "Попередня причина: ") + it,
+                                Modifier.testTag("user-status-previous-reason"),
+                            )
+                        }
+                    snapshot.banExpiresAt?.let {
+                        Text(
+                            tr(language, "Bisher eingeschränkt bis: ", "Попереднє обмеження до: ") +
+                                managedUsersDate(it, language)
+                        )
+                    }
                 }
-                Text(userStatusEffect(action, language), Modifier.testTag("user-status-effect"))
+                Text(
+                    userStatusEffect(action, language),
+                    Modifier.testTag("user-status-effect"),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
                 Text(
                     tr(
                         language,

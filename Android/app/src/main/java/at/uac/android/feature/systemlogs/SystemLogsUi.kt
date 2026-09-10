@@ -1,19 +1,22 @@
 package at.uac.android.feature.systemlogs
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionHeading
 import at.uac.android.design.UacSymbol
+import at.uac.android.feature.browse.tr
 import at.uac.android.feature.moderation.ModerationSession
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun SystemLogsScreen(
@@ -150,6 +153,10 @@ private fun SystemLogList(
         }
         if (filtersExpanded) {
             item {
+                Text(
+                    tr(language, "Zeitraum und Priorität", "Період і пріоритет"),
+                    style = MaterialTheme.typography.titleSmall,
+                )
                 FlowRow(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -165,6 +172,10 @@ private fun SystemLogList(
                 }
             }
             item {
+                Text(
+                    tr(language, "Prüfstatus", "Стан перегляду"),
+                    style = MaterialTheme.typography.titleSmall,
+                )
                 FlowRow(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -187,6 +198,10 @@ private fun SystemLogList(
                 }
             }
             item {
+                Text(
+                    tr(language, "Sortierung", "Порядок записів"),
+                    style = MaterialTheme.typography.titleSmall,
+                )
                 FlowRow(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -202,8 +217,6 @@ private fun SystemLogList(
                 }
             }
         }
-        if (state.access == SystemLogAccess.OWNER)
-            item { OwnerDiagnostics(model, session, state, language) }
         if (state.loading)
             item { LinearProgressIndicator(Modifier.fillMaxWidth().testTag("system-log-loading")) }
         if (!state.loading && values.isEmpty())
@@ -224,8 +237,9 @@ private fun SystemLogList(
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        "${log.severity} · ${log.category} · ${log.createdAt}",
+                        "${logSeverity(log.severity, language)} · ${logDate(log.createdAt)}",
                         style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         if (log.reviewed) (if (language == "uk") "Переглянуто" else "Geprüft")
@@ -234,6 +248,8 @@ private fun SystemLogList(
                 }
             }
         }
+        if (state.access == SystemLogAccess.OWNER)
+            item { OwnerDiagnostics(model, session, state, language) }
     }
 }
 
@@ -245,42 +261,63 @@ private fun OwnerDiagnostics(
     language: String,
 ) {
     var confirmClear by remember { mutableStateOf(false) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Button(
-            { model.testPush(session) },
-            Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("system-log-test-push"),
-            enabled = !state.mutating && state.unconfirmedAction == null,
-        ) {
-            Text(if (language == "uk") "Надіслати тестовий push" else "Test-Push senden")
-        }
-        if (confirmClear)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
-                    {
-                        confirmClear = false
-                        model.clear(session)
-                    },
-                    colors =
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        ),
-                    enabled = !state.mutating,
-                    modifier = Modifier.testTag("system-log-clear-confirm"),
-                ) {
-                    Text(if (language == "uk") "Підтвердити очищення" else "Leeren bestätigen")
-                }
-                TextButton({ confirmClear = false }) {
-                    Text(if (language == "uk") "Скасувати" else "Abbrechen")
-                }
-            }
-        else
+    OutlinedCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                tr(language, "Diagnose und Wartung", "Діагностика й обслуговування"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                tr(
+                    language,
+                    "Werkzeuge für den App-Inhaber. Das Leeren betrifft den gesamten Journalbestand.",
+                    "Інструменти власника. Очищення стосується всіх записів журналу.",
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             OutlinedButton(
-                { confirmClear = true },
-                Modifier.fillMaxWidth().testTag("system-log-clear"),
+                { model.testPush(session) },
+                Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("system-log-test-push"),
                 enabled = !state.mutating && state.unconfirmedAction == null,
             ) {
-                Text(if (language == "uk") "Очистити весь журнал" else "Gesamtes Protokoll leeren")
+                Text(if (language == "uk") "Надіслати тестовий push" else "Test-Push senden")
             }
+            if (confirmClear)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        {
+                            confirmClear = false
+                            model.clear(session)
+                        },
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
+                        enabled = !state.mutating,
+                        modifier = Modifier.testTag("system-log-clear-confirm"),
+                    ) {
+                        Text(if (language == "uk") "Підтвердити очищення" else "Leeren bestätigen")
+                    }
+                    TextButton(
+                        { confirmClear = false },
+                        Modifier.testTag("system-log-clear-cancel"),
+                    ) {
+                        Text(if (language == "uk") "Скасувати" else "Abbrechen")
+                    }
+                }
+            else
+                OutlinedButton(
+                    { confirmClear = true },
+                    Modifier.fillMaxWidth().testTag("system-log-clear"),
+                    enabled = !state.mutating && state.unconfirmedAction == null,
+                ) {
+                    Text(
+                        if (language == "uk") "Очистити весь журнал"
+                        else "Gesamtes Protokoll leeren"
+                    )
+                }
+        }
     }
 }
 
@@ -299,8 +336,24 @@ private fun SystemLogDetail(
         contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         item {
-            Text(log.summary, style = MaterialTheme.typography.titleLarge)
-            log.technicalMessage?.let { Text(it) }
+            ElevatedCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        logSeverity(log.severity, language),
+                        style = MaterialTheme.typography.labelLarge,
+                        color =
+                            if (log.severity in setOf("critical", "error"))
+                                MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.primary,
+                    )
+                    Text(log.summary, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        logDate(log.createdAt),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
         }
         state.failure?.let { item { SystemLogError(state, language) { model.load(session) } } }
         item { DetailRows(log, language) }
@@ -337,7 +390,10 @@ private fun SystemLogDetail(
                                 else "Löschen bestätigen"
                             )
                         }
-                        TextButton({ confirmDelete = false }) {
+                        TextButton(
+                            { confirmDelete = false },
+                            Modifier.testTag("system-log-delete-cancel"),
+                        ) {
                             Text(if (language == "uk") "Скасувати" else "Abbrechen")
                         }
                     }
@@ -358,32 +414,63 @@ private fun DetailRows(log: SystemLogEntry, language: String) {
     val rows =
         listOf(
             (if (language == "uk") "Категорія" else "Kategorie") to log.category,
-            (if (language == "uk") "Рівень" else "Stufe") to log.severity,
+            (if (language == "uk") "Рівень" else "Stufe") to logSeverity(log.severity, language),
             (if (language == "uk") "Подія" else "Ereignis") to log.eventType,
-            "Actor" to listOfNotNull(log.actorDisplayName, log.actorUserId).joinToString(" · "),
-            "Target" to listOfNotNull(log.targetTitle, log.targetId).joinToString(" · "),
+            tr(language, "Ausgeführt von", "Виконавець") to
+                listOfNotNull(log.actorDisplayName, log.actorUserId).joinToString(" · "),
+            tr(language, "Betroffener Eintrag", "Пов’язаний запис") to
+                listOfNotNull(log.targetTitle, log.targetId).joinToString(" · "),
             (if (language == "uk") "Зберігати до" else "Aufbewahrung bis") to
-                (log.retentionUntil?.toString() ?: "—"),
-            "Module" to
+                logDate(log.retentionUntil),
+            tr(language, "Technisches Modul", "Технічний модуль") to
                 listOfNotNull(log.moduleName, log.operationName, log.errorCode).joinToString(" · "),
-            "Device" to
+            tr(language, "App und Gerät", "Застосунок і пристрій") to
                 listOfNotNull(log.appVersion, log.osVersion, log.deviceModel).joinToString(" · "),
-            "Correlation" to (log.correlationId ?: "—"),
+            tr(language, "Vorgangskennung", "Ідентифікатор операції") to (log.correlationId ?: "—"),
+            tr(language, "Technische Meldung", "Технічне повідомлення") to
+                log.technicalMessage.orEmpty(),
         ) + log.metadata.entries.sortedBy { it.key }.map { it.key to it.value }
     ElevatedCard(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
             rows
                 .filter { it.second.isNotBlank() }
                 .forEach { (title, value) ->
-                    Text("$title: $value", style = MaterialTheme.typography.bodySmall)
+                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(value, style = MaterialTheme.typography.bodyMedium)
+                    }
                 }
         }
     }
 }
 
+private fun logDate(value: Instant?): String =
+    value?.let {
+        DateTimeFormatter.ofPattern("dd.MM.yyyy · HH:mm")
+            .withZone(ZoneId.of("Europe/Vienna"))
+            .format(it)
+    } ?: "—"
+
+private fun logSeverity(value: String, language: String): String =
+    when (value) {
+        "critical" -> tr(language, "Kritisch", "Критично")
+        "error" -> tr(language, "Fehler", "Помилка")
+        "warning" -> tr(language, "Warnung", "Попередження")
+        "info" -> tr(language, "Information", "Інформація")
+        "debug" -> tr(language, "Diagnose", "Діагностика")
+        else -> value
+    }
+
 @Composable
 private fun Metric(id: String, value: Int, title: String) {
-    ElevatedCard(Modifier.fillMaxWidth(0.48f).testTag("system-log-metric-$id")) {
+    ElevatedCard(
+        Modifier.fillMaxWidth(if (LocalDensity.current.fontScale >= 1.3f) 1f else 0.48f)
+            .testTag("system-log-metric-$id")
+    ) {
         Column(Modifier.padding(12.dp)) {
             Text(value.toString(), style = MaterialTheme.typography.titleLarge)
             Text(title, style = MaterialTheme.typography.bodySmall)

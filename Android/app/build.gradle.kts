@@ -27,7 +27,7 @@ android {
         minSdk = 26
         targetSdk = 36
         // Product/build identity follows the current iOS TestFlight baseline.
-        versionCode = 85
+        versionCode = 86
         versionName = "1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["appLabel"] = "UAC"

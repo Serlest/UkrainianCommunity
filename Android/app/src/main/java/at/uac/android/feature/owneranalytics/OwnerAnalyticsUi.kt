@@ -1,10 +1,8 @@
 package at.uac.android.feature.owneranalytics
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -51,8 +49,9 @@ fun OwnerAnalyticsScreen(
                 UacIcon.ANALYTICS,
             )
         }
-        if (state.detailTarget != null) DetailContent(model, session, state, language)
-        else OverviewContent(model, session, state, language)
+        if (state.detailTarget != null) {
+            key(state.detailTarget) { DetailContent(model, session, state, language) }
+        } else OverviewContent(model, session, state, language)
     }
 }
 
@@ -72,9 +71,11 @@ private fun OverviewContent(
             Text(
                 tr(
                     language,
-                    "Aggregierte, datensparsame Nutzungssignale · Zeitzone Europe/Vienna",
-                    "Агреговані мінімалізовані сигнали використання · часовий пояс Europe/Vienna",
-                )
+                    "Nutzung im Überblick · Wiener Ortszeit",
+                    "Огляд використання · віденський час",
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         item { Periods(state.period, language) { model.period(it, session) } }
@@ -83,7 +84,7 @@ private fun OverviewContent(
                 state.search,
                 model::search,
                 label = {
-                    Text(tr(language, "Geladene Daten durchsuchen", "Пошук у завантажених даних"))
+                    Text(tr(language, "Inhalte und Regionen suchen", "Знайти матеріал або регіон"))
                 },
                 modifier = Modifier.fillMaxWidth().testTag("owner-analytics-search"),
                 singleLine = true,
@@ -99,20 +100,22 @@ private fun OverviewContent(
         state.snapshot?.let { snapshot ->
             if (snapshot.unavailable.isNotEmpty())
                 item {
-                    AssistChip(
-                        {},
-                        {
-                            Text(
-                                tr(
-                                    language,
-                                    "Teildaten: ${snapshot.unavailable.joinToString { analyticsSourceName(it, language) }}",
-                                    "Часткові дані: ${snapshot.unavailable.joinToString { analyticsSourceName(it, language) }}",
-                                )
-                            )
-                        },
-                        enabled = false,
-                        modifier = Modifier.testTag("owner-analytics-partial"),
-                    )
+                    Surface(
+                        modifier = Modifier.fillMaxWidth().testTag("owner-analytics-partial"),
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    ) {
+                        Text(
+                            tr(
+                                language,
+                                "Teildaten: ${snapshot.unavailable.joinToString { analyticsSourceName(it, language) }}",
+                                "Часткові дані: ${snapshot.unavailable.joinToString { analyticsSourceName(it, language) }}",
+                            ),
+                            modifier = Modifier.padding(12.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
                 }
             snapshot.generatedAt?.let { updated ->
                 item {
@@ -160,14 +163,14 @@ private fun OverviewContent(
                     item {
                         SectionTitle(tr(language, "Regionale Aktivität", "Регіональна активність"))
                     }
-                    items(regions, key = { it.id }) { RegionRow(it, language) }
+                    items(regions, key = { "region:${it.id}" }) { RegionRow(it, language) }
                 }
                 if (snapshot.users != AnalyticsUsers()) {
                     item { SectionTitle(tr(language, "Nutzer", "Користувачі")) }
                     item { UserMetrics(snapshot.users, language) }
                     items(
                         snapshot.users.byFederalState.entries.sortedByDescending { it.value },
-                        key = { it.key },
+                        key = { "users-region:${it.key}" },
                     ) {
                         Text(
                             "${stateName(it.key, language)}: ${it.value}",
@@ -236,17 +239,27 @@ private fun DetailContent(
                 item { MetricGrid(detail.metrics, emptyMap(), language) }
             if (detail.regions.isNotEmpty()) {
                 item { SectionTitle(tr(language, "Regionale Aktivität", "Регіональна активність")) }
-                items(detail.regions, key = { it.id }) { RegionRow(it, language) }
+                items(detail.regions, key = { "region:${it.id}" }) { RegionRow(it, language) }
             }
             val related = detail.topNews + detail.topEvents
             if (related.isNotEmpty()) {
                 item { SectionTitle(tr(language, "Top-Inhalte", "Топ матеріалів")) }
                 items(related, key = { "${it.type}:${it.id}" }) { item ->
-                    OutlinedButton(
+                    ElevatedCard(
                         { model.open(session, item.type, item.id) },
                         Modifier.fillMaxWidth().testTag("owner-analytics-related-${item.id}"),
                     ) {
-                        Text("${item.title} · ${item.views}")
+                        Column(
+                            Modifier.padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Text(item.title, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "${kind(item.type, language)} · ${item.views} ${tr(language, "Aufrufe", "переглядів")}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -350,13 +363,30 @@ internal fun metricDelta(current: Int, previous: Int): String =
 @Composable
 private fun Trend(snapshot: OwnerAnalyticsSnapshot, language: String) {
     ElevatedCard(Modifier.fillMaxWidth().testTag("owner-analytics-trend")) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 tr(language, "Aufruftrend", "Динаміка переглядів"),
                 style = MaterialTheme.typography.titleMedium,
             )
+            val maximum =
+                snapshot.daily.maxOfOrNull { it.second["totalViews"] ?: 0 }?.coerceAtLeast(1) ?: 1
             snapshot.daily.forEach { (day, metrics) ->
-                Text("$day · ${metrics["totalViews"] ?: 0}")
+                val count = metrics["totalViews"] ?: 0
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(
+                            day,
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(count.toString(), style = MaterialTheme.typography.labelLarge)
+                    }
+                    LinearProgressIndicator(
+                        progress = { count.toFloat() / maximum },
+                        modifier = Modifier.fillMaxWidth(),
+                        drawStopIndicator = {},
+                    )
+                }
             }
         }
     }
@@ -476,6 +506,7 @@ private fun kind(type: String, language: String) =
 
 private fun metricName(key: String, language: String) =
     when (key) {
+        "views" -> tr(language, "Aufrufe", "Перегляди")
         "totalViews" -> tr(language, "Aufrufe gesamt", "Усього переглядів")
         "newsViews" -> tr(language, "Nachrichtenaufrufe", "Перегляди новин")
         "eventViews" -> tr(language, "Veranstaltungsaufrufe", "Перегляди подій")
@@ -512,10 +543,10 @@ private fun stateName(value: String, language: String) =
         "oberoesterreich" to tr(language, "Oberösterreich", "Верхня Австрія"),
         "steiermark" to tr(language, "Steiermark", "Штирія"),
         "kaernten" to tr(language, "Kärnten", "Каринтія"),
-        "salzburg" to "Salzburg",
-        "tirol" to "Tirol",
-        "vorarlberg" to "Vorarlberg",
-        "burgenland" to "Burgenland",
+        "salzburg" to tr(language, "Salzburg", "Зальцбург"),
+        "tirol" to tr(language, "Tirol", "Тіроль"),
+        "vorarlberg" to tr(language, "Vorarlberg", "Форарльберг"),
+        "burgenland" to tr(language, "Burgenland", "Бургенланд"),
     )[value] ?: value
 
 private fun analyticsSourceName(source: String, language: String) =

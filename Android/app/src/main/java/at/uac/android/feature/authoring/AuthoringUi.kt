@@ -160,7 +160,10 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
             Text(at(language, "Zurück", "Назад"))
         }
         UacSectionHeading(
-            at(language, "Nachrichten & Veranstaltungen", "Новини та події"),
+            if (state.draft == null)
+                at(language, "Nachrichten & Veranstaltungen", "Новини та події")
+            else if (state.base == null) at(language, "Material erstellen", "Створення матеріалу")
+            else at(language, "Material bearbeiten", "Редагування матеріалу"),
             UacIcon.EDIT,
         )
         if (state.session?.ready != true) {
@@ -657,7 +660,7 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
             },
             dismissButton = {
                 TextButton({ leave = false }) {
-                    Text(at(language, "Weiter bearbeiten", "Продовжити редагування"))
+                    Text(at(language, "Weiter bearbeiten", "Редагувати далі"))
                 }
             },
         )
@@ -1308,6 +1311,10 @@ private fun AuthoringEventParticipation(
         { text ->
             change { block(it, text) }
         }
+    Text(
+        at(language, "Anmeldung und Plätze", "Реєстрація та місця"),
+        style = MaterialTheme.typography.titleMedium,
+    )
     AuthoringChoice(
         at(language, "Teilnahme", "Участь"),
         d.participation,
@@ -1333,6 +1340,8 @@ private fun AuthoringEventParticipation(
             enabled,
             change = update { old, value -> old.copy(capacity = value) },
         )
+    HorizontalDivider()
+    Text(at(language, "Kosten", "Вартість"), style = MaterialTheme.typography.titleMedium)
     AuthoringChoice(
         at(language, "Preis", "Ціна"),
         d.priceKind,
@@ -1365,6 +1374,8 @@ private fun AuthoringEventParticipation(
         enabled,
         change = update { old, value -> old.copy(priceNote = value) },
     )
+    HorizontalDivider()
+    Text(at(language, "Zielgruppe", "Аудиторія"), style = MaterialTheme.typography.titleMedium)
     AuthoringChoice(
         at(language, "Zielgruppe", "Аудиторія"),
         d.audience,
@@ -1374,8 +1385,8 @@ private fun AuthoringEventParticipation(
     ) { value ->
         change { it.copy(audience = value) }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.weight(1f)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.fillMaxWidth()) {
             AuthoringField(
                 at(language, "Alter ab", "Вік від"),
                 d.minimumAge,
@@ -1384,7 +1395,7 @@ private fun AuthoringEventParticipation(
                 change = update { old, value -> old.copy(minimumAge = value) },
             )
         }
-        Box(Modifier.weight(1f)) {
+        Box(Modifier.fillMaxWidth()) {
             AuthoringField(
                 at(language, "Alter bis", "Вік до"),
                 d.maximumAge,
@@ -1394,6 +1405,11 @@ private fun AuthoringEventParticipation(
             )
         }
     }
+    HorizontalDivider()
+    Text(
+        at(language, "Veranstalter und Kontakt", "Організатор і контакти"),
+        style = MaterialTheme.typography.titleMedium,
+    )
     AuthoringField(
         at(language, "Veranstalter", "Організатор"),
         d.organizer,
@@ -1462,8 +1478,18 @@ private fun AuthoringChoice(
     change: (String) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    Box {
-        OutlinedButton({ open = true }, enabled = enabled) { Text("$label: ${title(value)}") }
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedButton({ open = true }, modifier = Modifier.fillMaxWidth(), enabled = enabled) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(title(value), style = MaterialTheme.typography.bodyLarge)
+            }
+            UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp))
+        }
         DropdownMenu(open, { open = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -1570,7 +1596,11 @@ internal fun AuthoringDateTime(
                     timeOpen = false
                 },
             ) {
-                TimePicker(picker)
+                // The fixed-size 24-hour dial overlaps its inner and outer numerals
+                // at accessibility font sizes; numeric entry preserves the same state.
+                if (androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.5f)
+                    TimeInput(picker)
+                else TimePicker(picker)
                 if (selected == null)
                     Text(
                         at(

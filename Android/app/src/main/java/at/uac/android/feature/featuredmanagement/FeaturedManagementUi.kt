@@ -143,7 +143,14 @@ private fun FeaturedList(
                         style = MaterialTheme.typography.titleMedium,
                     )
                     Text(
-                        "${banner.draft.priority} · ${banner.draft.sections.joinToString { it.wire }}"
+                        (if (language == "uk") "Пріоритет: " else "Priorität: ") +
+                            banner.draft.priority +
+                            " · " +
+                            banner.draft.sections.joinToString {
+                                featuredSectionLabel(it, language)
+                            },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     if (banner.repairRequired)
                         Text(
@@ -252,11 +259,9 @@ private fun FeaturedEditor(
         for (code in listOf("uk", "de")) {
             item {
                 val localized = draft.localizations[code] ?: FeaturedLocalized()
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        if (code == "uk") "Українська" else "Deutsch",
-                        style = MaterialTheme.typography.titleMedium,
-                    )
+                at.uac.android.design.UacSectionCard(
+                    if (code == "uk") "Українська" else "Deutsch"
+                ) {
                     OutlinedTextField(
                         localized.title,
                         { value ->
@@ -331,7 +336,9 @@ private fun FeaturedEditor(
             OutlinedTextField(
                 draft.imageUrl,
                 { value -> model.change { it.copy(imageUrl = value) } },
-                label = { Text("Bild-URL / URL зображення") },
+                label = {
+                    Text(if (language == "uk") "Посилання на зображення" else "Bildadresse")
+                },
                 modifier = Modifier.fillMaxWidth().testTag("featured-image-url"),
             )
             if (draft.imageUrl.isNotBlank()) {
@@ -361,19 +368,26 @@ private fun FeaturedEditor(
                 if (language == "uk") "Дія" else "Aktion",
                 style = MaterialTheme.typography.titleMedium,
             )
-            FeaturedAction.entries.forEach { action ->
-                FilterChip(
-                    draft.action == action,
-                    { model.change { it.copy(action = action) } },
-                    { Text(action.wire) },
-                    Modifier.padding(end = 6.dp).testTag("featured-action-${action.wire}"),
-                )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                FeaturedAction.entries.forEach { action ->
+                    FilterChip(
+                        draft.action == action,
+                        { model.change { it.copy(action = action) } },
+                        { Text(featuredActionLabel(action, language)) },
+                        Modifier.padding(end = 6.dp).testTag("featured-action-${action.wire}"),
+                    )
+                }
             }
             if (draft.action.needsTarget)
                 OutlinedTextField(
                     draft.actionTargetId,
                     { value -> model.change { it.copy(actionTargetId = value) } },
-                    label = { Text("Target ID") },
+                    label = {
+                        Text(if (language == "uk") "Ідентифікатор матеріалу" else "Inhaltskennung")
+                    },
                     modifier = Modifier.fillMaxWidth().testTag("featured-target"),
                 )
             if (draft.action == FeaturedAction.EXTERNAL_URL)
@@ -389,21 +403,26 @@ private fun FeaturedEditor(
                 if (language == "uk") "Розділи" else "Bereiche",
                 style = MaterialTheme.typography.titleMedium,
             )
-            FeaturedSection.entries.forEach { section ->
-                FilterChip(
-                    section in draft.sections,
-                    {
-                        model.change { current ->
-                            current.copy(
-                                sections =
-                                    if (section in current.sections) current.sections - section
-                                    else current.sections + section
-                            )
-                        }
-                    },
-                    { Text(section.wire) },
-                    Modifier.padding(end = 6.dp).testTag("featured-section-${section.wire}"),
-                )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                FeaturedSection.entries.forEach { section ->
+                    FilterChip(
+                        section in draft.sections,
+                        {
+                            model.change { current ->
+                                current.copy(
+                                    sections =
+                                        if (section in current.sections) current.sections - section
+                                        else current.sections + section
+                                )
+                            }
+                        },
+                        { Text(featuredSectionLabel(section, language)) },
+                        Modifier.padding(end = 6.dp).testTag("featured-section-${section.wire}"),
+                    )
+                }
             }
         }
         item {
@@ -411,22 +430,60 @@ private fun FeaturedEditor(
                 if (language == "uk") "Регіон" else "Region",
                 style = MaterialTheme.typography.titleMedium,
             )
-            FeaturedRegion.entries.forEach { region ->
-                FilterChip(
-                    draft.region == region,
-                    { model.change { it.copy(region = region) } },
-                    { Text(region.wire) },
-                    Modifier.padding(end = 6.dp),
-                )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                FeaturedRegion.entries.forEach { region ->
+                    FilterChip(
+                        draft.region == region,
+                        { model.change { it.copy(region = region) } },
+                        {
+                            Text(
+                                if (region == FeaturedRegion.FEDERAL_STATE)
+                                    (if (language == "uk") "Федеральна земля" else "Bundesland")
+                                else (if (language == "uk") "Уся Австрія" else "Ganz Österreich")
+                            )
+                        },
+                        Modifier.padding(end = 6.dp),
+                    )
+                }
             }
-            if (draft.region == FeaturedRegion.FEDERAL_STATE)
-                OutlinedTextField(
-                    draft.federalState,
-                    { value -> model.change { it.copy(federalState = value.lowercase()) } },
-                    label = { Text(if (language == "uk") "Федеральна земля" else "Bundesland") },
-                    supportingText = { Text(FeaturedManagementContract.states.joinToString()) },
-                    modifier = Modifier.fillMaxWidth().testTag("featured-state"),
-                )
+            if (draft.region == FeaturedRegion.FEDERAL_STATE) {
+                var choosingState by remember { mutableStateOf(false) }
+                Box(Modifier.fillMaxWidth()) {
+                    OutlinedButton(
+                        { choosingState = true },
+                        modifier = Modifier.fillMaxWidth().testTag("featured-state"),
+                    ) {
+                        UacSymbol(UacIcon.LOCATION, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            at.uac.android.feature.browse.regions
+                                .firstOrNull { it.first == draft.federalState }
+                                ?.second
+                                ?: if (language == "uk") "Оберіть федеральну землю"
+                                else "Bundesland auswählen"
+                        )
+                    }
+                    at.uac.android.core.ProtectedDropdownMenu(
+                        choosingState,
+                        { choosingState = false },
+                    ) {
+                        at.uac.android.feature.browse.regions
+                            .filter { it.first in FeaturedManagementContract.states }
+                            .forEach { (code, name) ->
+                                DropdownMenuItem(
+                                    text = { Text(name) },
+                                    onClick = {
+                                        model.change { it.copy(federalState = code) }
+                                        choosingState = false
+                                    },
+                                )
+                            }
+                    }
+                }
+            }
         }
         item {
             OutlinedTextField(
@@ -477,14 +534,15 @@ private fun FeaturedEditor(
             )
         }
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     { model.save(session) },
                     enabled =
                         !state.saving &&
                             !state.uploading &&
                             runCatching { FeaturedManagementContract.validate(draft) }.isSuccess,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("featured-save"),
+                    modifier =
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("featured-save"),
                 ) {
                     Text(
                         if (state.saving) (if (language == "uk") "Збереження…" else "Speichern…")
@@ -494,7 +552,7 @@ private fun FeaturedEditor(
                 OutlinedButton(
                     model::closeEditor,
                     enabled = !state.saving && !state.uploading,
-                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
                 ) {
                     Text(if (language == "uk") "Скасувати" else "Abbrechen")
                 }
@@ -502,6 +560,22 @@ private fun FeaturedEditor(
         }
     }
 }
+
+private fun featuredSectionLabel(value: FeaturedSection, language: String): String =
+    when (value.wire) {
+        "home" -> if (language == "uk") "Головна" else "Startseite"
+        "events" -> if (language == "uk") "Події" else "Veranstaltungen"
+        else -> if (language == "uk") "Організації" else "Organisationen"
+    }
+
+private fun featuredActionLabel(value: FeaturedAction, language: String): String =
+    when (value.wire) {
+        "none" -> if (language == "uk") "Без переходу" else "Ohne Weiterleitung"
+        "news" -> if (language == "uk") "Новина" else "Nachricht"
+        "event" -> if (language == "uk") "Подія" else "Veranstaltung"
+        "organization" -> if (language == "uk") "Організація" else "Organisation"
+        else -> if (language == "uk") "Вебпосилання" else "Weblink"
+    }
 
 @Composable
 internal fun FeaturedImagePreview(draft: FeaturedDraft, language: String) {

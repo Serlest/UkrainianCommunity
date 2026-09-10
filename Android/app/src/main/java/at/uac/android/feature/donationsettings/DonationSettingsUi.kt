@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -50,7 +51,7 @@ fun DonationSettingsContent(
     val editable =
         allowed && state.baseline != null && !state.loading && !state.saving && !state.needsReadback
     LazyColumn(
-        Modifier.fillMaxSize().testTag("donation-settings"),
+        Modifier.fillMaxSize().imePadding().testTag("donation-settings"),
         contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -60,7 +61,7 @@ fun DonationSettingsContent(
                 Text(tr(language, "Zurück", "Назад"))
             }
             UacSectionHeading(
-                tr(language, "Projektunterstützung verwalten", "Керування підтримкою проєкту"),
+                tr(language, "Projektunterstützung", "Підтримка проєкту"),
                 UacIcon.SUPPORT,
             )
         }
@@ -95,24 +96,46 @@ fun DonationSettingsContent(
                 }
             if (state.baseline != null) {
                 item {
-                    Card(Modifier.fillMaxWidth()) {
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            ),
+                    ) {
                         Column(
                             Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    tr(
+                                        language,
+                                        "Öffentliche Karte anzeigen",
+                                        "Показувати публічну картку",
+                                    ),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                Switch(
+                                    state.draft.enabled,
+                                    { onEdit(state.draft.copy(enabled = it)) },
+                                    enabled = editable,
+                                    modifier = Modifier.testTag("donation-enabled"),
+                                )
+                            }
                             Text(
                                 tr(
                                     language,
-                                    "Öffentliche Karte anzeigen",
-                                    "Показувати публічну картку",
+                                    "Die Karte wird nur mit aktivem Schalter und gültigem Link angezeigt.",
+                                    "Картка відображається лише з увімкненим перемикачем і дійсним посиланням.",
                                 ),
-                                style = MaterialTheme.typography.titleMedium,
-                            )
-                            Switch(
-                                state.draft.enabled,
-                                { onEdit(state.draft.copy(enabled = it)) },
-                                enabled = editable,
-                                modifier = Modifier.testTag("donation-enabled"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             OutlinedTextField(
                                 state.draft.url,
@@ -137,14 +160,20 @@ fun DonationSettingsContent(
                     }
                 }
                 for (locale in listOf("UK", "DE")) item("locale-$locale") {
-                    Card(Modifier.fillMaxWidth()) {
+                    Card(
+                        Modifier.fillMaxWidth(),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            ),
+                    ) {
                         Column(
                             Modifier.padding(16.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Text(
                                 if (locale == "UK") "Українська" else "Deutsch",
-                                style = MaterialTheme.typography.titleLarge,
+                                style = MaterialTheme.typography.titleMedium,
                             )
                             for (field in listOf("title", "message", "buttonTitle")) {
                                 val key = field + locale
@@ -224,11 +253,23 @@ fun DonationSettingsContent(
                 )
             },
             confirmButton = {
-                TextButton(onDiscard) { Text(tr(language, "Verwerfen", "Відхилити")) }
-            },
-            dismissButton = {
-                TextButton(onCancelLeave) {
-                    Text(tr(language, "Weiter bearbeiten", "Продовжити редагування"))
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    TextButton(
+                        onCancelLeave,
+                        Modifier.fillMaxWidth().testTag("donation-continue-editing"),
+                    ) {
+                        Text(tr(language, "Weiter bearbeiten", "Редагувати далі"))
+                    }
+                    TextButton(
+                        onDiscard,
+                        Modifier.fillMaxWidth(),
+                        colors =
+                            ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
+                    ) {
+                        Text(tr(language, "Verwerfen", "Відхилити"))
+                    }
                 }
             },
         )

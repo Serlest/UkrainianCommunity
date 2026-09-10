@@ -262,28 +262,31 @@ private fun PlatformRoleConfirmation(
                     platformRoleTitle(action, language),
                     UacIcon.SECURITY,
                 )
-                Text(
-                    tr(language, "Zielkonto: ", "Цільовий акаунт: ") + snapshot.version.targetId,
-                    Modifier.testTag("platform-role-target"),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                snapshot.displayName?.let {
+                at.uac.android.design.UacCard {
                     Text(
-                        it,
-                        Modifier.testTag("platform-role-target-name"),
+                        tr(language, "Zielkonto: ", "Цільовий акаунт: ") +
+                            snapshot.version.targetId,
+                        Modifier.testTag("platform-role-target"),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    snapshot.displayName?.let {
+                        Text(
+                            it,
+                            Modifier.testTag("platform-role-target-name"),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    snapshot.email?.let {
+                        Text(it, Modifier.testTag("platform-role-target-email"))
+                    }
+                    Text(
+                        managedUsersRoleLabel(snapshot.target.role, language) +
+                            " → " +
+                            managedUsersRoleLabel(action.newRole, language),
+                        Modifier.testTag("platform-role-transition"),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }
-                snapshot.email?.let {
-                    Text(it, Modifier.testTag("platform-role-target-email"))
-                }
-                Text(
-                    managedUsersRoleLabel(snapshot.target.role, language) +
-                        " → " +
-                        managedUsersRoleLabel(action.newRole, language),
-                    Modifier.testTag("platform-role-transition"),
-                    style = MaterialTheme.typography.titleMedium,
-                )
                 platformRoleAssignmentIssue(state, language)?.let { issue ->
                     Text(
                         issue,
@@ -291,7 +294,11 @@ private fun PlatformRoleConfirmation(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                Text(platformRoleEffect(action, language), Modifier.testTag("platform-role-effect"))
+                Text(
+                    platformRoleEffect(action, language),
+                    Modifier.testTag("platform-role-effect"),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
                 Text(
                     tr(
                         language,

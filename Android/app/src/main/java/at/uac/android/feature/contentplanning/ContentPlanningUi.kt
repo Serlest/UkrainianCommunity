@@ -282,7 +282,8 @@ private fun DraftCard(
             }
             if (draft.missingFields.isNotEmpty())
                 Text(
-                    tr(language, "Fehlt: ", "Бракує: ") + draft.missingFields.joinToString(),
+                    tr(language, "Fehlt: ", "Бракує: ") +
+                        draft.missingFields.joinToString { missingFieldLabel(it, language) },
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -323,9 +324,20 @@ private fun ContentPlanningDetail(
             UacSectionHeading(draft.title, UacIcon.EDIT)
             Text("${kindLabel(draft.kind, language)} · ${stateLabel(draft.state, language)}")
         }
+        draft.scheduledAt?.let { scheduled ->
+            item("schedule") {
+                DetailCard(
+                    tr(language, "Geplante Veröffentlichung", "Запланована публікація"),
+                    listOf(format(scheduled, language)),
+                )
+            }
+        }
         if (draft.missingFields.isNotEmpty())
             item("missing") {
-                DetailCard(tr(language, "Fehlende Angaben", "Відсутні дані"), draft.missingFields)
+                DetailCard(
+                    tr(language, "Fehlende Angaben", "Відсутні дані"),
+                    draft.missingFields.map { missingFieldLabel(it, language) },
+                )
             }
         if (draft.verificationNotes.isNotEmpty())
             item("notes") {
@@ -342,14 +354,13 @@ private fun ContentPlanningDetail(
                         style = MaterialTheme.typography.titleMedium,
                     )
                     draft.sources.forEachIndexed { index, source ->
-                        AssistChip(
+                        at.uac.android.design.UacNavigationRow(
                             onClick = { uri.openUri(source.url) },
-                            label = {
-                                Text(
-                                    (if (source.primary) "★ " else "") +
-                                        (source.title ?: source.url)
-                                )
-                            },
+                            title = source.title ?: source.url,
+                            subtitle =
+                                if (source.primary) tr(language, "Primärquelle", "Першоджерело")
+                                else tr(language, "Weitere Quelle", "Додаткове джерело"),
+                            icon = UacIcon.OPEN_ARROW,
                             modifier = Modifier.testTag("content-planning-source-$index"),
                         )
                     }
@@ -395,9 +406,10 @@ private fun ContentPlanningDetail(
                                     onClick = { organizationId = organization.id },
                                     label = { Text(organization.name) },
                                     modifier =
-                                        Modifier.testTag(
-                                            "content-planning-organization-${organization.id}"
-                                        ),
+                                        Modifier.fillMaxWidth()
+                                            .testTag(
+                                                "content-planning-organization-${organization.id}"
+                                            ),
                                 )
                             }
                     }
@@ -428,6 +440,10 @@ private fun ContentPlanningDetail(
                         onDelete,
                         enabled = state.busyDraftId == null,
                         modifier = Modifier.fillMaxWidth().testTag("content-planning-delete"),
+                        colors =
+                            androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
                     ) {
                         Text(tr(language, "Löschen", "Видалити"))
                     }
@@ -577,6 +593,31 @@ private fun errorLabel(value: ContentPlanningFailure, language: String) =
                 "Die Inhaltsplanung konnte nicht bestätigt werden.",
                 "Не вдалося підтвердити планування контенту.",
             )
+    }
+
+private fun missingFieldLabel(field: String, language: String): String =
+    when (field) {
+        "title" -> tr(language, "Titel", "Заголовок")
+        "summary" -> tr(language, "Zusammenfassung", "Короткий опис")
+        "body",
+        "details" -> tr(language, "Text", "Текст")
+        "germanTitle" -> tr(language, "Deutscher Titel", "Заголовок німецькою")
+        "germanSummary" -> tr(language, "Deutsche Zusammenfassung", "Короткий опис німецькою")
+        "germanBody",
+        "germanDetails" -> tr(language, "Deutscher Text", "Текст німецькою")
+        "venue" -> tr(language, "Veranstaltungsort", "Місце проведення")
+        "address" -> tr(language, "Adresse", "Адреса")
+        "city" -> tr(language, "Stadt", "Місто")
+        "federalState" -> tr(language, "Bundesland", "Федеральна земля")
+        "category" -> tr(language, "Kategorie", "Категорія")
+        "sourceInput" -> tr(language, "Quelle", "Джерело")
+        "startDate" -> tr(language, "Beginn", "Початок")
+        "endDate" -> tr(language, "Ende", "Завершення")
+        "scheduledAt" -> tr(language, "Geplante Veröffentlichung", "Запланована публікація")
+        "eventOrganizerName" -> tr(language, "Veranstalter", "Організатор")
+        "contactEmail" -> tr(language, "Kontakt-E-Mail", "Контактна пошта")
+        "contactPhone" -> tr(language, "Kontakttelefon", "Контактний телефон")
+        else -> field // Server may return a human-readable validation message; preserve it.
     }
 
 private fun format(value: java.time.Instant, language: String) =

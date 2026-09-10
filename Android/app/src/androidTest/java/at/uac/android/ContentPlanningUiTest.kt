@@ -75,7 +75,16 @@ class ContentPlanningUiTest {
         compose.onNodeWithTag("content-planning-section-attention").assertIsDisplayed()
         compose.onNodeWithTag("content-planning-sections").performScrollToIndex(3)
         compose.onNodeWithTag("content-planning-section-history").assertIsDisplayed()
-        compose.onAllNodesWithText("Fehlt: germanBody").assertCountEquals(1)
+        compose.onAllNodesWithText("Fehlt: Deutscher Text").assertCountEquals(1)
+    }
+
+    @Test
+    fun unknownMissingFieldMessageIsPreserved() {
+        val message = "Bitte den Veranstalter kontaktieren"
+        compose.setContent {
+            ContentPlanningContent(state(draft.copy(missingFields = listOf(message))), "de")
+        }
+        compose.onAllNodesWithText("• $message").assertCountEquals(1)
     }
 
     @Test

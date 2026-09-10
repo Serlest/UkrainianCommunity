@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.feature.browse.PublicImage
+import at.uac.android.feature.browse.displayTime
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.organizationreview.*
 
@@ -291,7 +292,8 @@ fun ModerationContent(
                     }
                     item("preview-meta") {
                         Text(
-                            "${kindText(preview.item.target.kind, language)} · ${statusText(preview.item.status, language)}\n${preview.item.createdAt}"
+                            "${kindText(preview.item.target.kind, language)} · ${statusText(preview.item.status, language)}\n${displayTime(preview.item.createdAt, language)}",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     item("preview-summary") { Text(preview.item.summary.value(language)) }
@@ -322,7 +324,17 @@ fun ModerationContent(
                                 // Plain text: private review links do not launch activities or
                                 // public routes.
                                 Text(
-                                    field.text.value(language),
+                                    field.text.value(language).let { value ->
+                                        if (field.key in setOf("startDate", "endDate")) {
+                                            runCatching {
+                                                    displayTime(
+                                                        java.time.Instant.parse(value),
+                                                        language,
+                                                    )
+                                                }
+                                                .getOrDefault(value)
+                                        } else value
+                                    },
                                     Modifier.testTag("moderation-field-${field.key}"),
                                 )
                             }
@@ -361,28 +373,40 @@ fun ModerationContent(
                 )
             }
             item("filters") {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    TextButton(
-                        { actions.filter(null) },
-                        Modifier.testTag("moderation-filter-all"),
-                    ) {
-                        Text(tr(language, "Alle Typen", "Усі типи"))
-                    }
-                    state.section.kinds.forEach { kind ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        tr(language, "Inhaltstyp", "Тип матеріалу"),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         FilterChip(
-                            state.filter == kind,
-                            { actions.filter(kind) },
-                            { Text(kindText(kind, language)) },
-                            Modifier.testTag("moderation-filter-${kind.name}"),
+                            state.filter == null,
+                            { actions.filter(null) },
+                            { Text(tr(language, "Alle Typen", "Усі типи")) },
+                            Modifier.testTag("moderation-filter-all"),
                         )
+                        state.section.kinds.forEach { kind ->
+                            FilterChip(
+                                state.filter == kind,
+                                { actions.filter(kind) },
+                                { Text(kindText(kind, language)) },
+                                Modifier.testTag("moderation-filter-${kind.name}"),
+                            )
+                        }
                     }
-                    ModerationSort.entries.forEach { sort ->
-                        FilterChip(
-                            state.sort == sort,
-                            { actions.sort(sort) },
-                            { Text(sortText(sort, language)) },
-                            Modifier.testTag("moderation-sort-${sort.name}"),
-                        )
+                    Text(
+                        tr(language, "Sortierung", "Порядок"),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        ModerationSort.entries.forEach { sort ->
+                            FilterChip(
+                                state.sort == sort,
+                                { actions.sort(sort) },
+                                { Text(sortText(sort, language)) },
+                                Modifier.testTag("moderation-sort-${sort.name}"),
+                            )
+                        }
                     }
                 }
             }
@@ -461,11 +485,14 @@ fun ModerationContent(
                         )
                         Text(
                             item.title.value(language),
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.titleMedium,
                         )
                         Text(item.summary.value(language))
                         item.submitter?.let { Text(it) }
-                        Text(item.createdAt.toString(), style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            displayTime(item.createdAt, language),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
                         OutlinedButton(
                             { actions.open(item.target) },
                             Modifier.fillMaxWidth()

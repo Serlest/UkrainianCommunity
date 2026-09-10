@@ -297,13 +297,13 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
                         Modifier.testTag("content-cover-unresolved"),
                     )
             }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(
                     actions.choose,
-                    Modifier.testTag("content-cover-choose"),
+                    Modifier.fillMaxWidth().testTag("content-cover-choose"),
                     enabled = state.canChoose,
                 ) {
                     Text(tr(language, "Foto auswählen", "Обрати фото"))
@@ -311,7 +311,7 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
                 if (state.prepared != null) {
                     Button(
                         actions.upload,
-                        Modifier.testTag("content-cover-upload"),
+                        Modifier.fillMaxWidth().testTag("content-cover-upload"),
                         enabled = state.canUpload,
                     ) {
                         Text(tr(language, "Diesen Ausschnitt speichern", "Зберегти цей фрагмент"))
@@ -326,7 +326,11 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
                 } else if (state.snapshot?.removable == true)
                     OutlinedButton(
                         actions.remove,
-                        Modifier.testTag("content-cover-remove"),
+                        Modifier.fillMaxWidth().testTag("content-cover-remove"),
+                        colors =
+                            ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
                         enabled = state.canRemove,
                     ) {
                         Text(

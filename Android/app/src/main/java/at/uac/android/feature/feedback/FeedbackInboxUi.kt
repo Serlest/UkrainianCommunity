@@ -19,6 +19,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.UacCard
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 
 @Composable
@@ -32,7 +35,7 @@ internal fun FeedbackInboxControls(
 ) {
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    UacCard(Modifier.testTag("feedback-inbox-controls")) {
         Text(
             tr(
                 language,
@@ -60,7 +63,10 @@ internal fun FeedbackInboxControls(
                 )
             }
         }
-        Text(tr(language, "Letzte Aktivität", "Остання активність"))
+        Text(
+            tr(language, "Letzte Aktivität", "Остання активність"),
+            style = MaterialTheme.typography.labelLarge,
+        )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             FeedbackInboxSort.entries.forEach { sort ->
                 FilterChip(
@@ -91,6 +97,7 @@ internal fun FeedbackInboxControls(
                 )
             },
             singleLine = true,
+            leadingIcon = { UacSymbol(UacIcon.SEARCH) },
             isError = state.inboxQueryRejected,
             keyboardOptions =
                 KeyboardOptions(

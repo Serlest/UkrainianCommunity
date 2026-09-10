@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -184,26 +185,28 @@ private fun OrganizationReviewConfirmation(
                     },
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
+                at.uac.android.design.UacSectionHeading(
                     organizationReviewTitle(action, language),
-                    style = MaterialTheme.typography.headlineSmall,
+                    at.uac.android.design.UacIcon.ORGANIZATIONS,
                 )
-                Text(snapshot.name, style = MaterialTheme.typography.titleLarge)
-                Text(snapshot.version.organizationId)
-                Text(
-                    tr(language, "Antragsteller-ID: ", "ID заявника: ") + snapshot.submitterId,
-                    Modifier.testTag("organization-review-submitter"),
-                )
-                Text(
-                    tr(language, "Aktueller Status: ", "Поточний статус: ") +
-                        when (snapshot.status) {
-                            "pendingReview" -> tr(language, "In Prüfung", "На розгляді")
-                            "needsRevision" ->
-                                tr(language, "Ergänzung erforderlich", "Потрібне доповнення")
-                            "rejected" -> tr(language, "Abgelehnt", "Відхилено")
-                            else -> tr(language, "Nicht verfügbar", "Недоступний")
-                        }
-                )
+                at.uac.android.design.UacCard {
+                    Text(snapshot.name, style = MaterialTheme.typography.titleLarge)
+                    Text(snapshot.version.organizationId)
+                    Text(
+                        tr(language, "Antragsteller-ID: ", "ID заявника: ") + snapshot.submitterId,
+                        Modifier.testTag("organization-review-submitter"),
+                    )
+                    Text(
+                        tr(language, "Aktueller Status: ", "Поточний статус: ") +
+                            when (snapshot.status) {
+                                "pendingReview" -> tr(language, "In Prüfung", "На розгляді")
+                                "needsRevision" ->
+                                    tr(language, "Ergänzung erforderlich", "Потрібне доповнення")
+                                "rejected" -> tr(language, "Abgelehnt", "Відхилено")
+                                else -> tr(language, "Nicht verfügbar", "Недоступний")
+                            }
+                    )
+                }
                 if (action == OrganizationReviewAction.APPROVE)
                     Text(
                         tr(
@@ -266,6 +269,13 @@ private fun OrganizationReviewConfirmation(
                     { if (state.canConfirm) actions.confirm() },
                     Modifier.fillMaxWidth().testTag("organization-review-confirm"),
                     enabled = state.canConfirm,
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor =
+                                if (action == OrganizationReviewAction.REJECT)
+                                    MaterialTheme.colorScheme.error
+                                else MaterialTheme.colorScheme.primary
+                        ),
                 ) {
                     Text(organizationReviewTitle(action, language))
                 }

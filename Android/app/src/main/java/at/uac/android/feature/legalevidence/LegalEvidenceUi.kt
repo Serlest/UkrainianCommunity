@@ -1,5 +1,6 @@
 package at.uac.android.feature.legalevidence
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -25,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.LocalEmbeddedNavigation
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.moderation.ModerationSession
 import java.time.ZoneId
@@ -79,6 +81,8 @@ fun LegalEvidenceContent(
     onRetry: () -> Unit = {},
 ) {
     var query by remember(userId, allowed) { mutableStateOf("") }
+    // The LazyColumn header can leave composition; toolbar/system back must remain registered.
+    BackHandler(enabled = LocalEmbeddedNavigation.current, onBack = onBack)
     val visibleEvents =
         events.orEmpty().filter { event ->
             query.isBlank() ||
@@ -186,8 +190,15 @@ fun LegalEvidenceContent(
                             .testTag("legal-evidence-event-content"),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Text(legalEvidenceEventLabel(event.eventType, language))
-                        Text(legalEvidenceDate(event, language))
+                        Text(
+                            legalEvidenceEventLabel(event.eventType, language),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                        Text(
+                            legalEvidenceDate(event, language),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         Text(
                             tr(
                                 language,
@@ -210,10 +221,17 @@ fun LegalEvidenceContent(
                                 (event.values[key] as? String)
                                     ?.takeIf { it.isNotBlank() }
                                     ?.let {
-                                        Text(
-                                            "$label: $it",
-                                            style = MaterialTheme.typography.bodySmall,
-                                        )
+                                        Column(
+                                            Modifier.padding(top = 8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(3.dp),
+                                        ) {
+                                            Text(
+                                                label,
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                            Text(it, style = MaterialTheme.typography.bodyMedium)
+                                        }
                                     }
                             }
                     }

@@ -452,6 +452,10 @@ fun GalleryContent(
                                     { actions.remove(photo) },
                                     Modifier.testTag("gallery-remove-${photo.target.photoId}"),
                                     enabled = state.actionable && state.pending.isEmpty(),
+                                    colors =
+                                        ButtonDefaults.outlinedButtonColors(
+                                            contentColor = MaterialTheme.colorScheme.error
+                                        ),
                                 ) {
                                     Text(tr(language, "Löschen", "Видалити"))
                                 }
