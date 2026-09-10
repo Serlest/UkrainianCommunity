@@ -32,15 +32,16 @@ Detailed source/branch/visual evidence and explicit remaining limitations are re
 
 ## Verification checkpoint
 
-Final validation is still in progress. Intermediate evidence is not the release gate:
+Final source: `cda63d6`. Evidence under `artifacts/android-build86` in the 82-82 task workspace:
 
-- 1,950 JVM tests passed with zero failure/error/skip; local build and lint passed before final
-  small visual corrections. Final build/test repetition follows.
-- All 34 populated synthetic visual traversal scenarios passed at font100 and font200 before
-  final owner/time-input corrections; corrected branches must be recaptured.
-- Management regression at native font200 with docked keyboard: 129/130 passed. The remaining
-  test expected the old technical field label; updated to the exact localized label, with a new
-  test preserving unknown server prose. Final repetition pending.
+- PASS: 1,950 JVM tests, zero failure/error/skip; final local builds and lint (`final-validation.log`).
+- PASS: 34 populated visual traversal scenarios at font100 (`matrix-font100-final.log`).
+- PASS: 165 tests at native font200 with docked keyboard: the same 34 visual scenarios plus
+  131 component regressions (`final-font200-regression.log`, 293.224 seconds).
+- Final captures are in `screenshots-font100-final` and `screenshots-font200-final`.
+  Paired configurations are German/light and Ukrainian/dark, not every locale/theme permutation.
+- The earlier 129/130 regression result is superseded: the obsolete technical-label expectation
+  was localized and unknown server prose now has a separate passing preservation test.
 - Every generated branch group was visually inspected. Invalid early captures (wrong dialog root,
   stale files, open leave dialogs) were explicitly excluded and regenerated, not counted as PASS.
 
@@ -51,5 +52,14 @@ Native calendar header may follow system language; calendar body/buttons follow 
 
 ## Release
 
-Not published yet. Only Google Play Internal testing is authorized. Record the exact signed
-artifact, SHA-256 and Play availability read-back here after final acceptance; no public rollout.
+Published 2026-09-10 09:36 Vienna, Internal only. Play read-back: `Aktiv`,
+`Neuester Release: 1.1 (86) – Internal`, `Für interne Tester verfügbar`, one version code.
+Package `at.serlest.ukrainiancommunity`, versionCode86, versionName1.1, min26/target36.
+Signed AAB SHA-256: `61ef0c7b1428fca9210a91c96f9a6f2a04bd88a098042460af5b2e5ac110ca6a`.
+Signed APK SHA-256: `f1db7f50a50f7346821265fb6afd06aee8d72d95014b80015f78ab20fadbf93f`.
+Production build PASS; APK signature verification PASS. No supported-device losses versus85.
+One non-blocking Play warning: native debug symbols absent. ReTrace mapping present.
+[Internal test installation](https://play.google.com/apps/internaltest/4701365572505552935).
+Receipt: `artifacts/android-build86/build86-play-internal-receipt.json` in task workspace.
+Play availability is not proof of installation or live functions on the user's phone. No public rollout.
+AVD font and keyboard settings restored after testing; work phone untouched.

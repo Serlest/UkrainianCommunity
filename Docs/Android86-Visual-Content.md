@@ -106,6 +106,23 @@ Remaining coverage caveats: system photo picker and shared translation dialogs a
 
 ### Font 200 attempt 2: corrected dialog capture
 
+### Final font 100 review
+
+Coordinator reports all 34 final matrix tests PASS. Final dialog/preview/viewer screenshots reviewed in `screenshots-font100-final-content-review`, labelled sheets 01, 03, 04, 05, 07, 10, 12, 13, 14, 16, 18. All reviewed dialogs now faithfully show their content and controls; no blocking clipping or overlaps found. The shorter Ukrainian edit action is fully visible, standard-size time dial remains legible, and planning missing-field labels are localized. This closes the prior font100 dialog-capture evidence gap. The latest font200 changes are verified in the final review below. No production/device or remote-function readiness claim follows from these offline UI fixtures.
+
+### Final font 200 review
+
+Coordinator reports **165/165 PASS** (34 visual tests and 131 regression tests) on the final APK. Individually inspected these final images in `/Users/serlest/Documents/Codex/2026-09-09/82-82/artifacts/android-build86/screenshots-font200-final/`:
+
+- `build86-content-authoring-time-picker-de-light.png`
+- `build86-content-authoring-time-picker-uk-dark.png`
+- `build86-content-authoring-leave-EVENTS-de-light.png`
+- `build86-content-authoring-leave-EVENTS-uk-dark.png`
+- `build86-content-authoring-leave-NEWS-de-light.png`
+- `build86-content-authoring-leave-NEWS-uk-dark.png`
+
+**Visual PASS for all six final captures:** hour/minute inputs and labels are readable, time-dialog actions remain fully visible, and numerals no longer overlap. Both locales' event/news leave dialogs show complete text and fully visible actions with bottom padding. The shortened Ukrainian edit action does not clip. These are faithful dialog captures, not cropped Activity backgrounds. This closes the two presentation defects identified in font200 attempt 2; earlier pending rerun statements below are historical. No sources changed during this final review. Emulator fixture evidence does not establish physical-device, production-backend, or release readiness.
+
 Coordinator reports 34 matrix tests PASS. Reviewed all regenerated dialog/preview/viewer captures in labelled sheets 01, 03, 04, 05, 07, 10, 12, 13, 14, 16, 18 of `screenshots-font200-attempt2-content-review`. Capture now faithfully contains each dialog rather than Activity background. Archive/delete, cover, gallery cleanup/upload/replace/delete/leave/viewer, featured leave and lifecycle dialogs have readable controls at 200%; authoring preview is explicitly scrollable. Localized planning missing fields verified on ATTENTION detail. Two real presentation defects became visible: 24h TimePicker numerals overlap at 200%, and Ukrainian authoring leave action wraps against the bottom edge. Switched to Material TimeInput at fontScale >=1.5 using the same state and shortened that action to “Редагувати далі”. Both latest changes require rerun, not yet visual PASS. Updated legacy planning assertion to localized label, preserving exact count; added unknown server-message preservation assertion.
 
 Coordinator reports all 12 content tests PASS. All 188 content PNGs were reviewed using every filename-labelled contact sheet 01–24 in `screenshots-font200-attempt1-content-review`. All dialog/picker/viewer/preview captures affected by the old root selection are excluded from visual acceptance. Non-dialog pages retain readable wrapping and scroll access: banner selection chips wrap, footer actions remain full-width; authoring participation/age controls stack; media and gallery actions wrap; planning organization/action controls remain legible; lifecycle consequences and confirmation-result text wrap. No additional blocking non-dialog overlap was found. Long content legitimately extends beyond the scroll viewport, not beneath a fixed bottom bar. Horizontal planning tabs remain horizontally scrollable, as before.

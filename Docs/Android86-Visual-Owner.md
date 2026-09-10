@@ -45,7 +45,7 @@ Compilation PASS during implementation. Screenshot execution/review: IN PROGRESS
 All 98 owner captures at native font_scale=2.0 reviewed in 13 labelled sheets, with full-size
 inspection of suspicious frames; German/light and Ukrainian/dark. Normal-font populated forms,
 overview/detail/related content, errors, filters and diagnostics were also inspected.
-Findings fixed, awaiting the final owner recapture:
+Findings fixed and confirmed in final font100/font200 recaptures (`cda63d6`):
 
 - Related analytics navigation reused the previous detail's scroll position. Detail composition
   is now keyed by target; a bounds assertion requires the period control to start within the viewport.
