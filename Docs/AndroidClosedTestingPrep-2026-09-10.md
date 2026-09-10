@@ -41,17 +41,17 @@
   - 1024×500 feature graphic, accurately declared as AI-generated;
   - four 1080×1920 German phone screenshots.
 - All eleven initial Play setup tasks are complete. The dashboard now exposes the closed-test track setup.
-- Closed-test country availability is saved for Austria.
+- Closed-test country availability covers Austria, Germany, and Ukraine. Germany and Ukraine were added and sent to Google review on 2026-09-10.
 - Signed Android build `1.1 (86)` remains available on Internal testing and has now been submitted for Closed-testing review. No production action was taken.
 
 ## Current closed-test state
 
 - Track: `Closed testing - Alpha`.
-- Country: Austria.
+- Countries: Austria, Germany, and Ukraine. Play Console reports `3 Länder/Regionen`; the Germany/Ukraine expansion is under Google review.
 - Tester access: Google Group `UAC Android Closed Test` was created at `https://groups.google.com/g/uac-android-closed-test`; anyone may find and join it. Play tester access is now managed by `uac-android-closed-test@googlegroups.com`, replacing the temporary two-address email list.
 - Release: closed-track release `1.1 (86)` was created from the exact signed Internal artifact; German and Ukrainian release notes and ReTrace mapping are attached. It was submitted to Google review on 2026-09-10.
-- Publishing overview: both blocking precheck findings were resolved and the final fast precheck completed. Play read-back now states `Deine Änderungen werden jetzt überprüft` and lists the 14 submitted changes, including Closed testing Alpha, Build 86, Austria and the Google Group. The package is limited to Closed testing and required app-content/store declarations; no production release is present.
-- Opt-in URLs reserved by Play but disabled until the release is published:
+- Publishing overview: the original closed-test submission completed and build 86 is available to selected testers. A follow-up change adding Germany and Ukraine was sent to Google review on 2026-09-10; Play read-back lists exactly `2 Länder/Regionen hinzufügen: Deutschland, Ukraine` under `Geschlossener Test - Alpha`. No production release is present.
+- Tester URLs for the published closed-test release:
   - Android: `https://play.google.com/store/apps/details?id=at.serlest.ukrainiancommunity`
   - Web: `https://play.google.com/apps/testing/at.serlest.ukrainiancommunity`
 
