@@ -7,6 +7,7 @@ from datetime import datetime
 import gzip
 import json
 from pathlib import Path
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -28,9 +29,33 @@ require = privacy.require
 sha = hosting.sha
 Transport = hosting.Transport
 current = hosting.current
-inventory = hosting.inventory
 save_new = hosting.save_new
 journal = hosting.journal
+
+
+def inventory(transport, version):
+    """Read a finalized filemap; newer candidates may omit metadata.fileCount."""
+    hosting.validate_version(version)
+    metadata = transport.api("GET", version)
+    require(metadata["status"] == "FINALIZED", "Version must be finalized")
+    files = {}
+    token = ""
+    seen = set()
+    while True:
+        query = urlencode({"pageSize": 1000, "status": "ACTIVE", **({"pageToken": token} if token else {})})
+        page = transport.api("GET", version + "/files?" + query)
+        for item in page.get("files", []):
+            require(item["status"] == "ACTIVE" and item["path"] not in files, "Unexpected/duplicate Hosting file")
+            require(re.fullmatch(r"[0-9a-f]{64}", item["hash"]), "Unexpected Hosting file hash")
+            files[item["path"]] = item["hash"]
+        token = page.get("nextPageToken", "")
+        if not token:
+            break
+        require(token not in seen and len(seen) < 100, "Unexpected file pagination")
+        seen.add(token)
+    if "fileCount" in metadata:
+        require(len(files) == int(metadata["fileCount"]), "Incomplete Hosting filemap")
+    return {"config": metadata["config"], "files": dict(sorted(files.items()))}
 
 
 def public(url, allow_missing=False):
@@ -152,10 +177,26 @@ def rollback(transport, plan, state, state_path):
     return result
 
 
+def resume_finalized(transport, plan, state, state_path):
+    require(state["phase"] == "finalize-intent", "Resume requires a stopped finalize-intent state")
+    version = state["candidateVersion"]
+    require(inventory(transport, version) == {"config": plan["config"], "files": plan["afterFiles"]}, "Finalized candidate differs")
+    require(current(transport) == plan["beforeRelease"], "Live release changed before resume")
+    journal(state_path, state, "release-intent")
+    try:
+        transport.api("POST", LIVE + "/releases?" + urlencode({"versionName": version}), {"message": "Android launch legal pages: privacy 2026.14, support, account deletion"})
+    except Exception:
+        journal(state_path, state, "release-response-uncertain")
+        raise ValueError("Release response uncertain; use --verify, never repeat resume") from None
+    result = verify(transport, plan, state)
+    journal(state_path, state, "verified", publishedRelease=result["release"])
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     modes = parser.add_mutually_exclusive_group()
-    for mode in ("apply", "verify", "rollback", "verify-rollback"):
+    for mode in ("apply", "resume-finalized", "verify", "rollback", "verify-rollback"):
         modes.add_argument("--" + mode, action="store_true")
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--state", type=Path)
@@ -163,7 +204,7 @@ def main():
     args = parser.parse_args()
     local, pages = payload()
     transport = Transport(args.control)
-    if not any((args.apply, args.verify, args.rollback, args.verify_rollback)):
+    if not any((args.apply, args.resume_finalized, args.verify, args.rollback, args.verify_rollback)):
         plan = prepare(transport, local)
         save_new(args.plan, plan)
         print(json.dumps({"result": "dry-run-no-writes", "plan": str(args.plan), "beforeRelease": plan["beforeRelease"], "changedPaths": plan["changedPaths"], "preservedFiles": len(plan["beforeFiles"]) - len(ROUTES)}, indent=2))
@@ -176,7 +217,14 @@ def main():
     else:
         state = json.loads(args.state.read_text())
         require(state["planHash"] == privacy.digest(plan), "State does not belong to plan")
-        result = rollback(transport, plan, state, args.state) if args.rollback else verify(transport, plan, state, rollback=args.verify_rollback)
+        if args.resume_finalized:
+            result = resume_finalized(transport, plan, state, args.state)
+        else:
+            result = rollback(transport, plan, state, args.state) if args.rollback else verify(transport, plan, state, rollback=args.verify_rollback)
+            if args.verify:
+                journal(args.state, state, "verified", publishedRelease=result["release"])
+            elif args.verify_rollback:
+                journal(args.state, state, "rollback-verified", rollbackRelease=result["release"])
     print(json.dumps(result, indent=2))
 
 
