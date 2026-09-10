@@ -42,15 +42,15 @@
   - four 1080×1920 German phone screenshots.
 - All eleven initial Play setup tasks are complete. The dashboard now exposes the closed-test track setup.
 - Closed-test country availability is saved for Austria.
-- Signed Android build `1.1 (86)` remains available only on Internal testing. No production action was taken.
+- Signed Android build `1.1 (86)` remains available on Internal testing and has now been submitted for Closed-testing review. No production action was taken.
 
 ## Current closed-test state
 
 - Track: `Closed testing - Alpha`.
 - Country: Austria.
-- Tester access: the existing `UAC Internal Test` two-address email list is temporarily saved so the release could be prepared. The intended self-service Google Group `UAC Android Closed Test` is staged with the address `uac-android-closed-test@googlegroups.com`, but Google presented a CAPTCHA at the final group-creation step. Human completion is required before the group can replace the temporary list on the track.
-- Release: closed-track release `1.1 (86)` is created from the exact signed Internal artifact and saved on `Closed testing - Alpha`; German and Ukrainian release notes and ReTrace mapping are attached. It has not been submitted for Google review.
-- Publishing overview: both blocking precheck findings were resolved. The `14 Änderungen zur Überprüfung einreichen` control is enabled while fast automatic checks continue. The pending package is limited to Closed testing and required app-content/store declarations; no production release is present.
+- Tester access: Google Group `UAC Android Closed Test` was created at `https://groups.google.com/g/uac-android-closed-test`; anyone may find and join it. Play tester access is now managed by `uac-android-closed-test@googlegroups.com`, replacing the temporary two-address email list.
+- Release: closed-track release `1.1 (86)` was created from the exact signed Internal artifact; German and Ukrainian release notes and ReTrace mapping are attached. It was submitted to Google review on 2026-09-10.
+- Publishing overview: both blocking precheck findings were resolved and the final fast precheck completed. Play read-back now states `Deine Änderungen werden jetzt überprüft` and lists the 14 submitted changes, including Closed testing Alpha, Build 86, Austria and the Google Group. The package is limited to Closed testing and required app-content/store declarations; no production release is present.
 - Opt-in URLs reserved by Play but disabled until the release is published:
   - Android: `https://play.google.com/store/apps/details?id=at.serlest.ukrainiancommunity`
   - Web: `https://play.google.com/apps/testing/at.serlest.ukrainiancommunity`
