@@ -14,6 +14,8 @@
   - `https://ukrainiancommunity-dbd5f.web.app/privacy`
   - `https://ukrainiancommunity-dbd5f.web.app/support`
   - `https://ukrainiancommunity-dbd5f.web.app/delete-account`
+- Scoped Hosting release `1789032133429000` added the bilingual child-safety standards and updated only the support-page link; the other 15 hosted files were preserved and read back:
+  - `https://ukrainiancommunity-dbd5f.web.app/child-safety`
 - Play Console declarations saved:
   - privacy-policy URL;
   - no ads;
@@ -22,6 +24,8 @@
   - no health features;
   - category `Social Networks`;
   - public contact email and website.
+  - Advertising ID is not used; this matches the exact merged Build 86 production manifest, which has no `com.google.android.gms.permission.AD_ID` permission.
+  - child-safety standards URL, in-app reporting capability, legal/authority-reporting commitment, and the verified Play developer contact.
 - Dedicated standard reviewer account created, verified, login-tested, and saved in Play Console. Its password is stored only in macOS Keychain under service `UAC Play Reviewer`; no credential was committed to the repository.
 - Target audience saved as `16–17` and `18+`.
 - IARC questionnaire and terms completed. Current ratings include USK 12 for Germany, PEGI parental guidance for Europe, ESRB Teen for North America, and 12+ for the generic IARC regions.
@@ -44,8 +48,9 @@
 
 - Track: `Closed testing - Alpha`.
 - Country: Austria.
-- Tester access: pending creation of the self-service Google Group. Google presented a CAPTCHA at the final group-creation step, so human completion is required before its group address can be attached to the Play track.
-- Release: not yet created. Build 86 can be promoted from the existing Internal artifact after tester access is saved.
+- Tester access: the existing `UAC Internal Test` two-address email list is temporarily saved so the release could be prepared. The intended self-service Google Group `UAC Android Closed Test` is staged with the address `uac-android-closed-test@googlegroups.com`, but Google presented a CAPTCHA at the final group-creation step. Human completion is required before the group can replace the temporary list on the track.
+- Release: closed-track release `1.1 (86)` is created from the exact signed Internal artifact and saved on `Closed testing - Alpha`; German and Ukrainian release notes and ReTrace mapping are attached. It has not been submitted for Google review.
+- Publishing overview: both blocking precheck findings were resolved. The `14 Änderungen zur Überprüfung einreichen` control is enabled while fast automatic checks continue. The pending package is limited to Closed testing and required app-content/store declarations; no production release is present.
 - Opt-in URLs reserved by Play but disabled until the release is published:
   - Android: `https://play.google.com/store/apps/details?id=at.serlest.ukrainiancommunity`
   - Web: `https://play.google.com/apps/testing/at.serlest.ukrainiancommunity`
@@ -53,6 +58,8 @@
 The current icon and feature graphic are suitable for closed-test setup. The four Store screenshots represent the earlier build-79 UI and remain a deliberate temporary choice to unblock the closed test; replace them with owner-approved build-86 captures before any production submission.
 
 The reviewer login was verified through Firebase Authentication after creation: UID `dMewmkhGatNyrVyWMq29QcK1Ozu2`, email verified, account enabled. Its matching Firestore profile is an active ordinary `user` in Tirol, so privileged management sections remain intentionally unavailable.
+
+The exact merged Build 86 production manifest was inspected before the Advertising ID answer. It contains notification, network, biometric and Firebase Messaging permissions but no Advertising ID permission. The published child-safety page was then checked in both German and Ukrainian through the live site; the language switch, reporting link, standards and contact are rendered and accessible.
 
 ## Explicitly not done
 
