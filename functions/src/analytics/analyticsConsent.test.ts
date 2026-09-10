@@ -54,7 +54,7 @@ test("consent receipt identifiers are stable and do not expose principal or UUID
 });
 
 
-test("server receipt versions match the current iOS disclosure contract", () => {
+test("server receipt versions match the current cross-platform disclosure contract", () => {
   const root = resolve(__dirname, "../../../UkrainianCommunity/Services");
   const auth = readFileSync(resolve(root, "Auth/AuthService.swift"), "utf8");
   const consent = readFileSync(resolve(root, "Analytics/AnalyticsConsentService.swift"), "utf8");
@@ -63,8 +63,8 @@ test("server receipt versions match the current iOS disclosure contract", () => 
 });
 
 
-test("privacy correction accepts both released and new explicit consent versions without relabeling", () => {
-  for (const privacyVersion of ["2026.12", "2026.13"]) {
+test("platform extension accepts released and current explicit consent versions without relabeling", () => {
+  for (const privacyVersion of ["2026.12", "2026.13", "2026.14"]) {
     for (const enabled of [true, false]) {
       const input = parseAnalyticsConsentMutation({
         enabled, consentID, locale: "uk", appVersion: "1.0.3",
@@ -84,7 +84,7 @@ test("privacy correction accepts both released and new explicit consent versions
   // Never infer evidence for the new release from its app version alone.
   assert.throws(() => consentPrivacyVersion({...input, appVersion: "1.0.3"}));
   for (const versions of [
-    {privacyVersion: "2026.14", disclosureVersion: analyticsConsentDisclosureVersion},
+    {privacyVersion: "2026.15", disclosureVersion: analyticsConsentDisclosureVersion},
     {privacyVersion: "2026.13", disclosureVersion: "unknown"},
     {privacyVersion: "2026.13"},
     {disclosureVersion: analyticsConsentDisclosureVersion},

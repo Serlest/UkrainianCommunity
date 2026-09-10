@@ -14,12 +14,12 @@ import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 export const analyticsConsentStateCollection = "analyticsConsentStates";
 export const analyticsConsentReceiptCollection = "analyticsConsentReceipts";
 export const analyticsConsentPurposeVersion = "owner-aggregate-analytics-v1";
-export const analyticsConsentPrivacyVersion = "2026.13";
+export const analyticsConsentPrivacyVersion = "2026.14";
 export const analyticsConsentDisclosureVersion = "2026-08-25.1";
 
-// The presence-only notice correction leaves the analytics disclosure unchanged.
-// Keep explicit grants/withdrawals from released 2026.12 clients valid too.
-const mutationPrivacyVersions = new Set(["2026.12", analyticsConsentPrivacyVersion]);
+// Privacy 2026.14 adds Android platform details without changing the optional
+// analytics disclosure. Keep grants/withdrawals from released clients valid.
+const mutationPrivacyVersions = new Set(["2026.12", "2026.13", analyticsConsentPrivacyVersion]);
 
 export interface AnalyticsConsentMutationInput {
   enabled: boolean;
@@ -138,7 +138,7 @@ export async function requireCurrentAnalyticsConsent(
 const compatibleConsentVersions = new Set([
   "2026.1|2026-08-24.1", "2026.10|2026-08-25.1",
   "2026.11|2026-08-25.1", "2026.12|2026-08-25.1",
-  "2026.13|2026-08-25.1",
+  "2026.13|2026-08-25.1", "2026.14|2026-08-25.1",
 ]);
 
 export function consentPrivacyVersion(input: AnalyticsConsentMutationInput): string {
