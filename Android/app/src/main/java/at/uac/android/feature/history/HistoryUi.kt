@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacBackButton
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.PublicImage
 import at.uac.android.feature.browse.displayTime
@@ -146,7 +147,7 @@ fun HistoryContent(state: HistoryState, language: String, actions: HistoryAction
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
-            TextButton(actions.back, Modifier.testTag("history-back")) {
+            UacBackButton(actions.back, Modifier.testTag("history-back")) {
                 at.uac.android.design.UacSymbol(at.uac.android.design.UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }

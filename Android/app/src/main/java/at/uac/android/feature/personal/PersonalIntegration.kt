@@ -164,6 +164,8 @@ fun PersonalDestination(
                     onNavigateAuth = { page -> browse.navigate("profile/$page") },
                     showAccountUtilities = route == "profile/security",
                     showIdentity = route != "profile/security",
+                    confirmedAvatarUrl =
+                        state.forSession(authSession.personalScope()).profile?.draft?.avatarUrl,
                 ) {
                     if (route != "profile/security") {
                         UacSectionCard(tr(language, "Mein Bereich", "Мій простір")) {

@@ -107,7 +107,7 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
             .testTag("content-cover-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) {
+        at.uac.android.design.UacBackButton(back) {
             UacSymbol(UacIcon.BACK)
             Spacer(Modifier.width(8.dp))
             Text(tr(language, "Zurück", "Назад"))

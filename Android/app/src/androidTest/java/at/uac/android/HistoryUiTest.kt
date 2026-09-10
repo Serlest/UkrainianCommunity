@@ -8,6 +8,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import at.uac.android.design.LocalEmbeddedNavigation
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.history.*
@@ -52,6 +53,21 @@ class HistoryUiTest {
 
     private fun scroll(tag: String) =
         compose.onNodeWithTag("history-list").performScrollToNode(hasTestTag(tag))
+
+    @Test
+    fun embeddedHistoryOmitsDuplicateBackWhileStandaloneKeepsItsAction() {
+        val embedded = mutableStateOf(true)
+        var backs = 0
+        compose.setContent {
+            CompositionLocalProvider(LocalEmbeddedNavigation provides embedded.value) {
+                MaterialTheme { HistoryContent(state(), "uk", HistoryActions(back = { backs++ })) }
+            }
+        }
+        compose.onNodeWithTag("history-back").assertDoesNotExist()
+        compose.runOnIdle { embedded.value = false }
+        compose.onNodeWithTag("history-back").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, backs) }
+    }
 
     @Test
     fun boundedWindowAndExplicitDeleteAreReachableAtTwoHundredPercent() {

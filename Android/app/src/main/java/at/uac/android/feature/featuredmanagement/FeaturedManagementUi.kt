@@ -6,14 +6,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.UacBackButton
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionHeading
 import at.uac.android.design.UacSymbol
+import at.uac.android.feature.browse.PublicImage
+import at.uac.android.feature.browse.PublicImagePresentation
 import at.uac.android.feature.moderation.ModerationSession
 import at.uac.android.feature.translation.ContentTranslationButton
 import at.uac.android.feature.translation.TranslationField
@@ -27,12 +32,47 @@ fun FeaturedManagementScreen(
 ) {
     val state by model.state.collectAsState()
     LaunchedEffect(session) { model.load(session) }
+    var confirmLeave by remember { mutableStateOf(false) }
+    val back: () -> Unit = {
+        if (!state.saving && !state.uploading) {
+            if (state.editing == null) onBack() else confirmLeave = true
+        }
+    }
+    androidx.activity.compose.BackHandler(onBack = back)
+    if (confirmLeave && state.editing != null) {
+        at.uac.android.core.ProtectedAlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = { Text(if (language == "uk") "Закрити редактор?" else "Editor schließen?") },
+            text = {
+                Text(
+                    if (language == "uk") "Незбережені зміни буде втрачено."
+                    else "Nicht gespeicherte Änderungen gehen verloren."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    {
+                        confirmLeave = false
+                        model.closeEditor()
+                    },
+                    enabled = !state.saving && !state.uploading,
+                ) {
+                    Text(if (language == "uk") "Закрити" else "Schließen")
+                }
+            },
+            dismissButton = {
+                TextButton({ confirmLeave = false }) {
+                    Text(if (language == "uk") "Продовжити" else "Weiter bearbeiten")
+                }
+            },
+        )
+    }
     Column(Modifier.fillMaxSize().testTag("featured-management")) {
         Column(
             Modifier.fillMaxWidth().padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(onBack, Modifier.testTag("featured-back")) {
+            UacBackButton(back, Modifier.testTag("featured-back")) {
                 UacSymbol(UacIcon.BACK)
                 Text(if (language == "uk") "Назад" else "Zurück")
             }
@@ -94,6 +134,7 @@ private fun FeaturedList(
         items(state.banners, key = { it.id }) { banner ->
             ElevatedCard(Modifier.fillMaxWidth().testTag("featured-row-${banner.id}")) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FeaturedImagePreview(banner.draft, language)
                     Text(
                         banner.draft.internalName.ifBlank {
                             banner.draft.localizations[language]?.title
@@ -293,6 +334,10 @@ private fun FeaturedEditor(
                 label = { Text("Bild-URL / URL зображення") },
                 modifier = Modifier.fillMaxWidth().testTag("featured-image-url"),
             )
+            if (draft.imageUrl.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                FeaturedImagePreview(draft, language)
+            }
             Spacer(Modifier.height(8.dp))
             OutlinedButton(
                 {
@@ -456,6 +501,23 @@ private fun FeaturedEditor(
             }
         }
     }
+}
+
+@Composable
+internal fun FeaturedImagePreview(draft: FeaturedDraft, language: String) {
+    PublicImage(
+        draft.imageUrl,
+        draft.localizations[language]?.title?.takeIf(String::isNotBlank)
+            ?: draft.title.ifBlank { draft.internalName },
+        language,
+        Modifier.fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag("featured-preview-${draft.id}"),
+        fallback = UacIcon.PHOTO,
+        presentation = PublicImagePresentation.VIEWPORT_FIT,
+        externalBanner = true,
+    )
 }
 
 @Composable

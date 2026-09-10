@@ -430,28 +430,7 @@ class FirestoreOwnerAnalyticsRepository(
 
     private fun Timestamp.instant(): Instant = toDate().toInstant()
 
-    private suspend fun <T> read(block: suspend () -> T): T =
-        try {
-            block()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (error: OwnerAnalyticsException) {
-            throw error
-        } catch (error: TimeoutCancellationException) {
-            throw OwnerAnalyticsException(OwnerAnalyticsFailure.OFFLINE, error)
-        } catch (error: Exception) {
-            val denied =
-                error is FirebaseFirestoreException &&
-                    error.code in
-                        setOf(
-                            FirebaseFirestoreException.Code.PERMISSION_DENIED,
-                            FirebaseFirestoreException.Code.UNAUTHENTICATED,
-                        )
-            throw OwnerAnalyticsException(
-                if (denied) OwnerAnalyticsFailure.ACCESS else OwnerAnalyticsFailure.OFFLINE,
-                error,
-            )
-        }
+    private suspend fun <T> read(block: suspend () -> T): T = ownerAnalyticsRead(block)
 
     private companion object {
         val federalStates =
@@ -468,3 +447,26 @@ class FirestoreOwnerAnalyticsRepository(
             )
     }
 }
+
+internal suspend fun <T> ownerAnalyticsRead(block: suspend () -> T): T =
+    try {
+        block()
+    } catch (error: TimeoutCancellationException) {
+        throw OwnerAnalyticsException(OwnerAnalyticsFailure.OFFLINE, error)
+    } catch (error: CancellationException) {
+        throw error
+    } catch (error: OwnerAnalyticsException) {
+        throw error
+    } catch (error: Exception) {
+        val denied =
+            error is FirebaseFirestoreException &&
+                error.code in
+                    setOf(
+                        FirebaseFirestoreException.Code.PERMISSION_DENIED,
+                        FirebaseFirestoreException.Code.UNAUTHENTICATED,
+                    )
+        throw OwnerAnalyticsException(
+            if (denied) OwnerAnalyticsFailure.ACCESS else OwnerAnalyticsFailure.OFFLINE,
+            error,
+        )
+    }

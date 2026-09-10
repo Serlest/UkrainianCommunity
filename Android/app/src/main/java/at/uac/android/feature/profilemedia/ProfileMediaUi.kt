@@ -27,10 +27,10 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import at.uac.android.core.LocalStorage
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.PublicImage
+import at.uac.android.feature.browse.PublicMediaPolicy
 import at.uac.android.feature.browse.tr
 
 /**
@@ -60,13 +60,16 @@ fun ProfileAvatarEditor(
     if (
         state.selection == null &&
             state.session != null &&
-            LocalStorage.urlMatches(currentAvatarUrl, profileAvatarPath(state.session.uid))
+            PublicMediaPolicy.address(currentAvatarUrl) != null
     ) {
         Box(Modifier.size(112.dp).clip(CircleShape).testTag("profile-avatar-current")) {
             PublicImage(
                 currentAvatarUrl,
                 tr(language, "Aktuelles Profilfoto", "Поточне фото профілю"),
                 language,
+                modifier = Modifier.fillMaxWidth().size(112.dp),
+                compact = true,
+                fallback = UacIcon.PROFILE,
             )
         }
     }

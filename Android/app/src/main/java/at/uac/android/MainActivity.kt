@@ -1202,7 +1202,34 @@ class MainActivity : FragmentActivity() {
                             }
                         },
                         accountContent = { route, selectedLanguage ->
-                            if (route == "profile/preferences") {
+                            val managementAccess =
+                                ProfileManagementAccess(
+                                    owner = authSession.ownerAnalyticsScope()?.ready == true,
+                                    moderator = authSession.moderationScope()?.allowed == true,
+                                    support = authSession.feedbackScope()?.canManage == true,
+                                )
+                            if (!managementAccess.allows(route)) {
+                                UacSectionCard(
+                                    tr(
+                                        selectedLanguage,
+                                        "Zugriff nicht verfügbar",
+                                        "Доступ недоступний",
+                                    ),
+                                    tr(
+                                        selectedLanguage,
+                                        "Für dieses Konto sind keine passenden Verwaltungsrechte bestätigt.",
+                                        "Для цього акаунта не підтверджено потрібні права керування.",
+                                    ),
+                                    modifier = Modifier.testTag("management-access-denied"),
+                                ) {
+                                    UacNavigationRow(
+                                        tr(selectedLanguage, "Zum Profil", "До профілю"),
+                                        icon = UacIcon.PROFILE,
+                                    ) {
+                                        model.navigate("profile", tab = true)
+                                    }
+                                }
+                            } else if (route == "profile/preferences") {
                                 Column(
                                     Modifier.fillMaxSize()
                                         .verticalScroll(rememberScrollState())
@@ -2178,25 +2205,29 @@ class MainActivity : FragmentActivity() {
                                                             "profile/organization-review"
                                                         )
                                                 }
-                                                UacRowDivider()
-                                                UacNavigationRow(
-                                                    tr(
-                                                        selectedLanguage,
-                                                        "Nutzer-Mitteilungen",
-                                                        "Оповіщення користувачів",
-                                                    ),
-                                                    icon = UacIcon.NOTIFICATIONS,
-                                                    modifier =
-                                                        Modifier.testTag(
-                                                            "account-open-announcement-owner"
+                                                if (authSession.announcementSession().owner) {
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Nutzer-Mitteilungen",
+                                                            "Оповіщення користувачів",
                                                         ),
-                                                ) {
-                                                    if (
-                                                        auth.state.value.announcementSession().owner
-                                                    )
-                                                        model.navigate(
-                                                            "profile/announcements/manage"
+                                                        icon = UacIcon.NOTIFICATIONS,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-announcement-owner"
+                                                            ),
+                                                    ) {
+                                                        if (
+                                                            auth.state.value
+                                                                .announcementSession()
+                                                                .owner
                                                         )
+                                                            model.navigate(
+                                                                "profile/announcements/manage"
+                                                            )
+                                                    }
                                                 }
                                             }
                                             if (

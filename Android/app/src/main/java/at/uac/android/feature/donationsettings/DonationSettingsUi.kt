@@ -55,7 +55,7 @@ fun DonationSettingsContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            TextButton(onBack, enabled = !state.saving) {
+            at.uac.android.design.UacBackButton(onBack, enabled = !state.saving) {
                 UacSymbol(UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }

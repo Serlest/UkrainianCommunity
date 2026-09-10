@@ -154,7 +154,7 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
             .testTag("authoring-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) {
+        at.uac.android.design.UacBackButton(back) {
             UacSymbol(UacIcon.BACK)
             Spacer(Modifier.width(8.dp))
             Text(at(language, "Zurück", "Назад"))

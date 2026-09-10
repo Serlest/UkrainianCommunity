@@ -110,7 +110,7 @@ fun LegalEvidenceContent(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item("header") {
-            TextButton(onBack, Modifier.testTag("legal-evidence-back")) {
+            at.uac.android.design.UacBackButton(onBack, Modifier.testTag("legal-evidence-back")) {
                 at.uac.android.design.UacSymbol(at.uac.android.design.UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }

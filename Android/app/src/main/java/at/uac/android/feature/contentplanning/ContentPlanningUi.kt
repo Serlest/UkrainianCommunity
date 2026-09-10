@@ -99,6 +99,10 @@ fun ContentPlanningContent(
 ) {
     var confirmation by remember { mutableStateOf<Pair<String, ContentPlanningDraft>?>(null) }
     val selected = state.selected
+    androidx.activity.compose.BackHandler {
+        if (confirmation != null) confirmation = null
+        else if (selected != null) onClose() else onBack()
+    }
     if (selected != null) {
         ContentPlanningDetail(
             selected,
@@ -121,7 +125,10 @@ fun ContentPlanningContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item("header") {
-                TextButton(onBack, Modifier.testTag("content-planning-back")) {
+                at.uac.android.design.UacBackButton(
+                    onBack,
+                    Modifier.testTag("content-planning-back"),
+                ) {
                     UacSymbol(UacIcon.BACK)
                     Text(tr(language, "Zurück", "Назад"))
                 }
@@ -306,7 +313,10 @@ private fun ContentPlanningDetail(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item("header") {
-            TextButton(onClose, Modifier.testTag("content-planning-detail-back")) {
+            at.uac.android.design.UacBackButton(
+                onClose,
+                Modifier.testTag("content-planning-detail-back"),
+            ) {
                 UacSymbol(UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }

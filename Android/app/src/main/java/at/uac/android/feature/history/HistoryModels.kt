@@ -115,6 +115,7 @@ data class HistoryRecord(
     val subtitle: String?,
     val imageUrl: String?,
     val at: Instant,
+    val organizationId: String? = null,
 ) {
     override fun toString() = "HistoryRecord(${section.name}, [redacted])"
 }
@@ -172,7 +173,7 @@ enum class HistoryReconciliation {
 
 object HistoryContract {
     private val recentFields =
-        setOf("itemId", "itemType", "title", "subtitle", "imageURL", "viewedAt")
+        setOf("itemId", "itemType", "title", "subtitle", "imageURL", "organizationID", "viewedAt")
     private val activityFields =
         setOf(
             "id",
@@ -222,6 +223,8 @@ object HistoryContract {
         val title = f["title"] as? String ?: invalid()
         val subtitle = f["subtitle"]?.let { it as? String ?: invalid() }
         val image = f["imageURL"]?.let { it as? String ?: invalid() }
+        // Shared iOS/Firestore schema: optional metadata, never authority for target resolution.
+        val organizationId = f["organizationID"]?.let { it as? String ?: invalid() }
         if (title.length > 2_000 || (subtitle?.length ?: 0) > 4_000 || (image?.length ?: 0) > 8_192)
             invalid()
         return HistoryRecord(
@@ -233,6 +236,7 @@ object HistoryContract {
             subtitle,
             image,
             f[section.dateField] as? Instant ?: invalid(),
+            organizationId,
         )
     }
 
@@ -244,12 +248,14 @@ object HistoryContract {
         imageUrl: String?,
         id: String,
         date: Any,
+        organizationId: String? = null,
     ): Fields {
         val base = mutableMapOf<String, Any?>("title" to title.take(2_000))
         subtitle?.take(4_000)?.let { base["subtitle"] = it }
         imageUrl?.take(8_192)?.let { base["imageURL"] = it }
         if (action == null) {
             require(id == target.recentId)
+            organizationId?.let { base["organizationID"] = it }
             base.putAll(
                 mapOf("itemId" to target.id, "itemType" to target.type.wire, "viewedAt" to date)
             )

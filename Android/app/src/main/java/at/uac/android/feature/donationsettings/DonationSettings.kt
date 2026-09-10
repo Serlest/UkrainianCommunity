@@ -60,7 +60,36 @@ data class DonationDraft(
         }
 }
 
-data class DonationSnapshot(val draft: DonationDraft, val revision: Instant?, val exists: Boolean)
+data class DonationSnapshot(
+    val draft: DonationDraft,
+    val revision: Instant?,
+    val exists: Boolean,
+    // Preserve the exact read version even when legacy fields use display defaults.
+    val sourceFields: Map<String, Any?>? = null,
+)
+
+internal fun decodeDonationSnapshot(data: Map<String, Any?>?): DonationSnapshot {
+    if (data == null) return DonationSnapshot(DonationDraft(), null, false)
+    val defaults = DonationDraft()
+    if (
+        (data.containsKey("isEnabled") && data["isEnabled"] !is Boolean) ||
+            (data.containsKey("donationURL") && data["donationURL"] !is String) ||
+            donationTextKeys.any { data.containsKey(it) && data[it] !is String } ||
+            (data.containsKey("updatedAt") && data["updatedAt"] !is com.google.firebase.Timestamp)
+    )
+        throw DonationException(DonationProblem.INVALID)
+    val stamp = data["updatedAt"] as? com.google.firebase.Timestamp
+    return DonationSnapshot(
+        DonationDraft(
+            data["isEnabled"] as? Boolean ?: false,
+            data["donationURL"] as? String ?: "",
+            donationTextKeys.associateWith { data[it] as? String ?: defaults.texts.getValue(it) },
+        ),
+        stamp?.let { Instant.ofEpochSecond(it.seconds, it.nanoseconds.toLong()) },
+        true,
+        data.toMap(),
+    )
+}
 
 enum class DonationProblem {
     ACCESS,
@@ -92,33 +121,14 @@ fun donationSettingsRepository(
             throw DonationException(DonationProblem.ACCESS)
         access.identity(session)
     }
-    fun decode(data: Map<String, Any?>?): DonationSnapshot {
-        if (data == null) return DonationSnapshot(DonationDraft(), null, false)
-        if (
-            data["isEnabled"] !is Boolean ||
-                data["donationURL"] !is String ||
-                donationTextKeys.any { data[it] !is String }
-        )
-            throw DonationException(DonationProblem.INVALID)
-        val stamp =
-            data["updatedAt"] as? com.google.firebase.Timestamp
-                ?: throw DonationException(DonationProblem.INVALID)
-        return DonationSnapshot(
-            DonationDraft(
-                data["isEnabled"] as Boolean,
-                data["donationURL"] as String,
-                donationTextKeys.associateWith { data[it] as String },
-            ),
-            Instant.ofEpochSecond(stamp.seconds, stamp.nanoseconds.toLong()),
-            true,
-        )
-    }
     return object : DonationSettingsRepository {
         override suspend fun load(session: ModerationSession): DonationSnapshot =
             withTimeout(15_000) {
                 requireCurrent(session)
                 access.privileged(session)
-                decode(reference.get(Source.SERVER).await().data).also { requireCurrent(session) }
+                decodeDonationSnapshot(reference.get(Source.SERVER).await().data).also {
+                    requireCurrent(session)
+                }
             }
 
         override suspend fun save(
@@ -133,7 +143,7 @@ fun donationSettingsRepository(
                 requireCurrent(session)
                 db.runTransaction { transaction ->
                         requireCurrent(session)
-                        val latest = decode(transaction.get(reference).data)
+                        val latest = decodeDonationSnapshot(transaction.get(reference).data)
                         if (latest != baseline) throw DonationException(DonationProblem.CONFLICT)
                         transaction.set(
                             reference,
@@ -209,7 +219,8 @@ class DonationSettingsViewModel(private val repository: DonationSettingsReposito
                     mutable.value =
                         state.value.copy(
                             loading = false,
-                            problem = (error as? DonationException)?.problem ?: DonationProblem.LOAD,
+                            problem =
+                                (error as? DonationException)?.problem ?: DonationProblem.LOAD,
                         )
             }
         }

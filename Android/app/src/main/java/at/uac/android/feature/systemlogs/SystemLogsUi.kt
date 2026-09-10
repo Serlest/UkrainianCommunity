@@ -25,12 +25,15 @@ fun SystemLogsScreen(
     val state by model.state.collectAsState()
     LaunchedEffect(session) { model.load(session) }
     val selected = model.selected()
+    androidx.activity.compose.BackHandler {
+        if (selected == null) onBack() else model.select(null)
+    }
     Column(Modifier.fillMaxSize().testTag("system-logs")) {
         Column(
             Modifier.fillMaxWidth().padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(
+            at.uac.android.design.UacBackButton(
                 { if (selected == null) onBack() else model.select(null) },
                 Modifier.testTag("system-logs-back"),
             ) {
@@ -58,6 +61,7 @@ private fun SystemLogList(
 ) {
     val values = model.visible()
     val metrics = model.metrics()
+    var filtersExpanded by remember { mutableStateOf(false) }
     LazyColumn(
         Modifier.fillMaxSize().testTag("system-log-list"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -67,13 +71,15 @@ private fun SystemLogList(
             Text(
                 if (state.access == SystemLogAccess.OWNER)
                     (if (language == "uk")
-                        "Повний журнал власника. Дані показуються з додатковим локальним приховуванням секретів."
+                        "Події застосунку, помилки та дії керування. Конфіденційні значення приховано."
                     else
-                        "Vollständiges Inhaberprotokoll mit zusätzlicher lokaler Geheimnis-Redaktion.")
+                        "App-Ereignisse, Fehler und Verwaltungsaktionen. Vertrauliche Werte werden ausgeblendet.")
                 else
                     (if (language == "uk")
                         "Обмежений журнал адміністратора без безпекових і власницьких записів."
-                    else "Eingeschränktes Admin-Protokoll ohne Sicherheits- und Inhabereinträge.")
+                    else "Eingeschränktes Admin-Protokoll ohne Sicherheits- und Inhabereinträge."),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         state.failure?.let { item { SystemLogError(state, language) { model.load(session) } } }
@@ -92,9 +98,10 @@ private fun SystemLogList(
             }
         }
         item {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            FlowRow(
+                Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Metric(
                     "unreviewed",
@@ -132,54 +139,66 @@ private fun SystemLogList(
             )
         }
         item {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            OutlinedButton(
+                { filtersExpanded = !filtersExpanded },
+                Modifier.testTag("system-log-toggle-filters"),
             ) {
-                SystemLogQuickFilter.entries.forEach { filter ->
+                UacSymbol(UacIcon.FILTER)
+                Spacer(Modifier.width(8.dp))
+                Text(if (language == "uk") "Фільтри й порядок" else "Filter und Sortierung")
+            }
+        }
+        if (filtersExpanded) {
+            item {
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SystemLogQuickFilter.entries.forEach { filter ->
+                        FilterChip(
+                            filter in state.quick,
+                            { model.toggle(filter) },
+                            { Text(quickLabel(filter, language)) },
+                            Modifier.testTag("system-log-filter-${filter.name}"),
+                        )
+                    }
+                }
+            }
+            item {
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     FilterChip(
-                        filter in state.quick,
-                        { model.toggle(filter) },
-                        { Text(quickLabel(filter, language)) },
-                        Modifier.testTag("system-log-filter-${filter.name}"),
+                        state.review == null,
+                        { model.reviewFilter(null) },
+                        { Text(if (language == "uk") "Усі" else "Alle") },
+                    )
+                    FilterChip(
+                        state.review == false,
+                        { model.reviewFilter(false) },
+                        { Text(if (language == "uk") "Не переглянуті" else "Nicht geprüft") },
+                    )
+                    FilterChip(
+                        state.review == true,
+                        { model.reviewFilter(true) },
+                        { Text(if (language == "uk") "Переглянуті" else "Geprüft") },
                     )
                 }
             }
-        }
-        item {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                FilterChip(
-                    state.review == null,
-                    { model.reviewFilter(null) },
-                    { Text(if (language == "uk") "Усі" else "Alle") },
-                )
-                FilterChip(
-                    state.review == false,
-                    { model.reviewFilter(false) },
-                    { Text(if (language == "uk") "Не переглянуті" else "Nicht geprüft") },
-                )
-                FilterChip(
-                    state.review == true,
-                    { model.reviewFilter(true) },
-                    { Text(if (language == "uk") "Переглянуті" else "Geprüft") },
-                )
-            }
-        }
-        item {
-            Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                SystemLogSort.entries.forEach { sort ->
-                    FilterChip(
-                        state.sort == sort,
-                        { model.sort(sort, session) },
-                        { Text(sortLabel(sort, language)) },
-                        enabled = !state.loading && !state.mutating,
-                    )
+            item {
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    SystemLogSort.entries.forEach { sort ->
+                        FilterChip(
+                            state.sort == sort,
+                            { model.sort(sort, session) },
+                            { Text(sortLabel(sort, language)) },
+                            enabled = !state.loading && !state.mutating,
+                        )
+                    }
                 }
             }
         }
@@ -364,7 +383,7 @@ private fun DetailRows(log: SystemLogEntry, language: String) {
 
 @Composable
 private fun Metric(id: String, value: Int, title: String) {
-    ElevatedCard(Modifier.widthIn(min = 110.dp).testTag("system-log-metric-$id")) {
+    ElevatedCard(Modifier.fillMaxWidth(0.48f).testTag("system-log-metric-$id")) {
         Column(Modifier.padding(12.dp)) {
             Text(value.toString(), style = MaterialTheme.typography.titleLarge)
             Text(title, style = MaterialTheme.typography.bodySmall)

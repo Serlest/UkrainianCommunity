@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import at.uac.android.BuildConfig
 import at.uac.android.R
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSymbol
@@ -41,8 +42,16 @@ fun PublicImage(
     adaptiveBackdrop: Boolean = false,
     fallback: UacIcon = UacIcon.NEWS,
     presentation: PublicImagePresentation = PublicImagePresentation.STANDARD,
+    externalBanner: Boolean = false,
 ) {
-    val address = remember(url) { PublicMediaPolicy.address(url) }
+    val bucketAddress = remember(url) { PublicMediaPolicy.address(url) }
+    val address =
+        remember(url, externalBanner) {
+            bucketAddress
+                ?: if (externalBanner && !BuildConfig.USE_LOCAL_BACKEND)
+                    ExternalBannerMediaPolicy.address(url)
+                else null
+        }
     var bitmap by remember(address, presentation) { mutableStateOf<ImageBitmap?>(null) }
     var loading by remember(address, presentation) { mutableStateOf(address != null) }
     LaunchedEffect(address, presentation) {
@@ -51,6 +60,18 @@ fun PublicImage(
                 withContext(Dispatchers.IO) {
                     PublicImageWork.load(presentation) {
                         val context = currentCoroutineContext()
+                        if (bucketAddress == null) {
+                            try {
+                                val bytes =
+                                    ExternalBannerMedia.bytes(address) { context.ensureActive() }
+                                context.ensureActive()
+                                return@load decodePublicImage(bytes, presentation)?.asImageBitmap()
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (_: Exception) {
+                                return@load null
+                            }
+                        }
                         val connection = URI(address).toURL().openConnection() as HttpURLConnection
                         try {
                             connection.instanceFollowRedirects = false

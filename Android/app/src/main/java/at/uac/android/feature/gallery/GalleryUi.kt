@@ -176,7 +176,7 @@ fun GalleryContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
-            TextButton(back, Modifier.testTag("gallery-back")) {
+            at.uac.android.design.UacBackButton(back, Modifier.testTag("gallery-back")) {
                 UacSymbol(UacIcon.BACK)
                 Spacer(Modifier.width(8.dp))
                 Text(tr(language, "Zurück", "Назад"))

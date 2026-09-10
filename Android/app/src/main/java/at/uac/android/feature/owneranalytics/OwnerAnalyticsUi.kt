@@ -30,12 +30,15 @@ fun OwnerAnalyticsScreen(
     val state =
         observed.takeIf { it.session == session && session?.ready == true } ?: OwnerAnalyticsState()
     LaunchedEffect(session) { model.load(session) }
+    androidx.activity.compose.BackHandler {
+        if (state.detailTarget == null) onBack() else model.closeDetail()
+    }
     Column(Modifier.fillMaxSize().testTag("owner-analytics")) {
         Column(
             Modifier.fillMaxWidth().padding(bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextButton(
+            at.uac.android.design.UacBackButton(
                 if (state.detailTarget == null) onBack else model::closeDetail,
                 Modifier.testTag("owner-analytics-back"),
             ) {
@@ -128,8 +131,11 @@ private fun OverviewContent(
                         MetricGrid(summaryMetrics(snapshot), snapshot.previousMetrics, language)
                     }
                     if (snapshot.daily.size > 1) item { Trend(snapshot, language) }
-                    item { SectionTitle(tr(language, "Aktionen", "Дії")) }
-                    item { MetricGrid(actionMetrics(snapshot.metrics), emptyMap(), language) }
+                    val actions = actionMetrics(snapshot.metrics)
+                    if (actions.values.any { it > 0 }) {
+                        item { SectionTitle(tr(language, "Aktionen", "Дії")) }
+                        item { MetricGrid(actions, emptyMap(), language) }
+                    }
                 }
                 val top = model.filteredTop()
                 if (top.isNotEmpty()) {
@@ -254,8 +260,8 @@ private fun Periods(
     language: String,
     change: (AnalyticsPeriod) -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+    FlowRow(
+        Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         AnalyticsPeriod.entries.forEach { period ->

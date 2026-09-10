@@ -68,6 +68,8 @@ fun BrowseScreen(
     navigationRequest: (((() -> Unit)) -> Unit)? = null,
 ) {
     val l = state.language
+    val backDispatcher =
+        androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     LifecycleResumeEffect(model) {
         model.onHostResume()
         onPauseOrDispose { model.onHostPause() }
@@ -108,7 +110,10 @@ fun BrowseScreen(
                         UacHeader(
                             l,
                             state.canBack,
-                            { requestNavigation(model::back) },
+                            {
+                                if (backDispatcher != null) backDispatcher.onBackPressed()
+                                else requestNavigation(model::back)
+                            },
                             { requestNavigation { model.navigate("settings") } },
                             compact =
                                 isCompactHeaderRoute(state.route) ||
@@ -137,7 +142,13 @@ fun BrowseScreen(
                                                 vertical = 12.dp,
                                             )
                                     ) {
-                                        if (accountContent != null) accountContent(state.route, l)
+                                        if (accountContent != null)
+                                            CompositionLocalProvider(
+                                                at.uac.android.design
+                                                    .LocalEmbeddedNavigation provides true
+                                            ) {
+                                                accountContent(state.route, l)
+                                            }
                                         else
                                             Text(
                                                 tr(

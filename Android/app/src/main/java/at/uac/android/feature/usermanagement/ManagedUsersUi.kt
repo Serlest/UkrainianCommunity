@@ -289,7 +289,7 @@ fun ManagedUsersContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
-            TextButton(
+            at.uac.android.design.UacBackButton(
                 {
                     focus.clearFocus()
                     actions.back()

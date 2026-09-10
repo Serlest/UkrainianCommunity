@@ -8,11 +8,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -25,11 +27,15 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
+import at.uac.android.design.UacBackButton
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacNavigationRow
 import at.uac.android.design.UacSymbol
 import at.uac.android.feature.auth.AuthLegalReader
 import at.uac.android.feature.auth.AuthValidation
+import at.uac.android.feature.browse.PublicImage
+import at.uac.android.feature.browse.PublicImagePresentation
+import at.uac.android.feature.browse.organizationImageUrl
 import at.uac.android.feature.translation.ContentTranslationButton
 import at.uac.android.feature.translation.TranslationField
 import java.time.Instant
@@ -117,7 +123,7 @@ fun OrganizationContent(
             .testTag("organization-hub"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(onBack) {
+        UacBackButton(onBack) {
             UacSymbol(UacIcon.BACK)
             Spacer(Modifier.width(8.dp))
             Text(tr(language, "Zurück", "Назад"))
@@ -234,7 +240,7 @@ fun OrganizationContent(
                                 Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp),
                             ) {
-                                Text(row.name, style = MaterialTheme.typography.titleMedium)
+                                OrganizationRecordIdentity(row, language)
                                 Text(authorityText(row.authority, language))
                                 Text(
                                     tr(
@@ -528,7 +534,7 @@ private fun OrganizationRequestCard(
 ) {
     Card(Modifier.fillMaxWidth().testTag("organization-request-${row.id}")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(row.name, style = MaterialTheme.typography.titleMedium)
+            OrganizationRecordIdentity(row, language)
             Text(
                 when (row.status) {
                     "pendingReview" -> tr(language, "In Prüfung", "На перевірці")
@@ -580,6 +586,28 @@ private fun OrganizationRequestCard(
                     }
             }
         }
+    }
+}
+
+/** Uses the retained server fields for both managed profiles and the user's own requests. */
+@Composable
+internal fun OrganizationRecordIdentity(row: OrganizationRecord, language: String) {
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        PublicImage(
+            organizationImageUrl(row.fields, preferCover = false),
+            row.name,
+            language,
+            Modifier.size(64.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .testTag("organization-record-image-${row.id}"),
+            fallback = UacIcon.ORGANIZATIONS,
+            presentation = PublicImagePresentation.VIEWPORT_FIT,
+        )
+        Text(row.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
     }
 }
 

@@ -2,15 +2,18 @@ package at.uac.android.feature.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -24,6 +27,7 @@ import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionCard
 import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Choice
+import at.uac.android.feature.browse.PublicImage
 import at.uac.android.feature.browse.regions
 
 @Composable
@@ -34,6 +38,7 @@ fun AccountScreen(
     onNavigateAuth: ((String) -> Unit)? = null,
     showAccountUtilities: Boolean = true,
     showIdentity: Boolean = true,
+    confirmedAvatarUrl: String? = null,
     personalContent: (@Composable (AuthSession) -> Unit)? = null,
 ) {
     val session by store.state.collectAsStateWithLifecycle()
@@ -449,6 +454,10 @@ fun AccountScreen(
                         subtitle = session.profile?.email.orEmpty(),
                         modifier = Modifier.testTag("auth-profile-name"),
                     ) {
+                        AccountProfileAvatar(
+                            confirmedAvatarUrl ?: session.profile?.avatarUrl.orEmpty(),
+                            language,
+                        )
                         if (session.gate == AuthGate.READY)
                             Surface(
                                 shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
@@ -746,6 +755,28 @@ private fun AuthPassword(
         visualTransformation = PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
     )
+}
+
+@Composable
+internal fun AccountProfileAvatar(url: String, language: String) {
+    val description = authText(language, "Profilfoto", "Фото профілю")
+    Surface(
+        modifier =
+            Modifier.size(80.dp).clip(CircleShape).testTag("auth-profile-avatar").semantics {
+                contentDescription = description
+            },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    ) {
+        PublicImage(
+            url = url,
+            description = description,
+            language = language,
+            modifier = Modifier.fillMaxSize(),
+            compact = true,
+            fallback = UacIcon.PROFILE,
+        )
+    }
 }
 
 @Composable

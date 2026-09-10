@@ -23,6 +23,7 @@ import at.uac.android.core.PickerLocale
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
+import at.uac.android.design.UacBackButton
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacNavigationRow
 import at.uac.android.design.UacSectionCard
@@ -129,7 +130,7 @@ fun OrganizationManagementContent(
             .testTag("organization-management"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(actions.back) {
+        UacBackButton(actions.back) {
             UacSymbol(UacIcon.BACK)
             Spacer(Modifier.width(8.dp))
             Text(om(language, "Zurück", "Назад"))

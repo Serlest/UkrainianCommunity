@@ -78,7 +78,7 @@ fun ContentLifecycleContent(
             .testTag("content-lifecycle-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) {
+        at.uac.android.design.UacBackButton(back) {
             UacSymbol(UacIcon.BACK)
             Spacer(Modifier.width(8.dp))
             Text(lc(language, "Zurück", "Назад"))

@@ -254,6 +254,117 @@ class HistoryTest {
     }
 
     @Test
+    fun recentRowsAcceptSharedIosOrganizationMetadataAndNulls() {
+        // RecentViewsService.swift writes this optional key even when its value is null.
+        for (organizationId in listOf(null, "synthetic-organization")) {
+            val iosRow =
+                row().let {
+                    it.copy(
+                        fields =
+                            it.fields +
+                                mapOf(
+                                    "organizationID" to organizationId,
+                                    "subtitle" to null,
+                                    "imageURL" to null,
+                                )
+                    )
+                }
+            val record = HistoryContract.record(HistorySection.RECENT, iosRow)
+            assertEquals(organizationId, record.organizationId)
+            assertEquals(target(), record.target)
+            assertNull(record.subtitle)
+            assertNull(record.imageUrl)
+        }
+    }
+
+    @Test
+    fun organizationMetadataIsValidatedAndNotAcceptedOnActivity() = runTest {
+        for (value in listOf(7, true, mapOf("id" to "synthetic"))) {
+            failure(HistoryFailure.INVALID) {
+                HistoryContract.record(
+                    HistorySection.RECENT,
+                    row().let {
+                        it.copy(fields = it.fields + ("organizationID" to value))
+                    },
+                )
+            }
+        }
+        val activity = row(action = HistoryAction.SAVE_NEWS, id = "activity")
+        failure(HistoryFailure.INVALID) {
+            HistoryContract.record(
+                HistorySection.ACTIVITY,
+                activity.copy(fields = activity.fields + ("organizationID" to "synthetic")),
+            )
+        }
+    }
+
+    @Test
+    fun recentWriteMetadataRoundTripsAndParticipatesInDeleteVersionCheck() {
+        val fields =
+            HistoryContract.fields(
+                target(),
+                null,
+                "Title",
+                null,
+                null,
+                target().recentId,
+                time,
+                organizationId = "synthetic-org",
+            )
+        val record =
+            HistoryContract.record(HistorySection.RECENT, RawDocument(target().recentId, fields))
+        assertEquals("synthetic-org", record.organizationId)
+        assertNotEquals(record, record.copy(organizationId = "changed-org"))
+        val activity =
+            HistoryContract.fields(
+                target(),
+                HistoryAction.SAVE_NEWS,
+                "Title",
+                null,
+                null,
+                "activity",
+                time,
+                organizationId = "synthetic-org",
+            )
+        assertFalse(activity.containsKey("organizationID"))
+    }
+
+    @Test
+    fun sharedIosRecentPageLoadsThroughViewModelWithoutExposingBlockedSnapshots() = runTest {
+        val fake =
+            Fake().apply {
+                seed(3)
+                rows.replaceAll { _, value ->
+                    value.copy(fields = value.fields + ("organizationID" to "synthetic-org"))
+                }
+            }
+        val visiblePage = repo(fake).page(HistorySection.RECENT)
+        assertEquals(3, visiblePage.entries.size)
+        assertTrue(visiblePage.entries.all { it.content != null })
+        allowed = false
+        val model = model(fake)
+        model.show(HistorySection.RECENT)
+        advanceUntilIdle()
+        assertNull(model.state.value.error)
+        val entries = model.state.value.page!!.entries
+        assertEquals(3, entries.size)
+        assertTrue(
+            entries.all { it.record.organizationId == "synthetic-org" && it.content == null }
+        )
+        assertTrue(
+            HistoryContract.selected(
+                    entries,
+                    HistoryFilter.ALL,
+                    HistorySort.NEWEST,
+                    "Private",
+                    "de",
+                )
+                .isEmpty()
+        )
+        model.hide()
+    }
+
+    @Test
     fun activityTargetTypeAndBodyIdCannotBeForged() = runTest {
         val value = row(action = HistoryAction.SAVE_NEWS, id = "activity")
         failure(HistoryFailure.INVALID) {

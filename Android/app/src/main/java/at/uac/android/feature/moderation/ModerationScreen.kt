@@ -208,7 +208,7 @@ fun ModerationContent(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
-            TextButton(actions.back, Modifier.testTag("moderation-back")) {
+            at.uac.android.design.UacBackButton(actions.back, Modifier.testTag("moderation-back")) {
                 at.uac.android.design.UacSymbol(at.uac.android.design.UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }

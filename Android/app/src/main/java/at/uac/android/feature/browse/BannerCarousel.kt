@@ -213,6 +213,7 @@ fun BannerHero(
                 Modifier.matchParentSize(),
                 presentation = PublicImagePresentation.VIEWPORT_FIT,
                 adaptiveBackdrop = true,
+                externalBanner = true,
             )
         Box(
             Modifier.matchParentSize()
