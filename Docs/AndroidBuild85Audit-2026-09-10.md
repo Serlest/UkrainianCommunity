@@ -49,6 +49,20 @@ Avatar, organization and banner image tests now verify actual downloaded bitmaps
 presence. Temporary local image fixtures are removed exactly; no production account/data writes.
 AVD font and keyboard settings restored to their previous values.
 
-In progress: signed build/Internal publication.
+## Signed release and Internal publication — PASS
+
+Source commit: `9584da6`. Production release build PASS; APK signing verification PASS.
+Package `at.serlest.ukrainiancommunity`, version `1.1 (85)`, minimum API 26, target API 36.
+Archived AAB SHA256: `0de11a123b8526dacfbd8615fed8056d8dbf70ec3a7e5c97581b099cb3638096`.
+Archived APK SHA256: `eee9f02bfcf34c076af816338b605e04b05f11e9d9cc2ded3771c82df3df8476`.
+
+Google Play read-back at 2026-09-10 06:32 UTC: `Aktiv`, latest `1.1 (85) – Internal`,
+`Für interne Tester verfügbar`, published 10 September 08:31 Vienna. Review reports no lost
+supported devices and one nonblocking native-debug-symbol warning. No production/open/closed
+track or tester-list changes. Internal acceptance is not public review approval or device proof.
+Test link: https://play.google.com/apps/internaltest/4701365572505552935
+Artifacts, test logs, screenshots and `build85-play-internal-receipt.json` are archived in
+`/Users/serlest/Documents/Codex/2026-09-09/82-82/artifacts/android-build85/`.
+
 No physical-device or complete live-cloud functional parity claim. Destructive management operations
 must not be tested against users' real production records.
