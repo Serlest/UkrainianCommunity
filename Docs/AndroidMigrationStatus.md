@@ -1,5 +1,7 @@
 # Android: журнал пакетов и доказательств
 
+> **CURRENT ANDROID BASELINE:** Android `1.1 (86)` lives in `/Users/serlest/Developer/UAC-Android-1.1-Build86` on branch `codex/android-current-1.1-86`. Start with [AndroidCurrentCheckpoint.md](AndroidCurrentCheckpoint.md). The legacy Build 80 worktree and branch are not current.
+
 > 2026-09-10 09:36 Vienna: Android 1.1 (86) — переработаны все 10 разделов «Керування» и вложенные формы/детали/диалоги. [AndroidBuild86Audit-2026-09-10.md](AndroidBuild86Audit-2026-09-10.md). Google Play подтверждает `Aktiv`, `1.1 (86) – Internal`, `Für interne Tester verfügbar`. 1950 JVM-тестов, 34 визуальных сценария при 100% шрифте и 165 экранных/компонентных проверок при 200% PASS; финальные снимки просмотрены. Только синтетические AVD-сценарии, не полная проверка боевых функций. iOS/backend/Rules не менялись; публичного выпуска нет.
 
 > 2026-09-10 08:32 Vienna: Android 1.1 (85) — исправлены изображения профиля/организаций/баннеров, совместимость истории с iOS, двойной возврат, вложенная навигация, доступ к управлению, ошибки аналитики и настроек поддержки. [AndroidBuild85Audit-2026-09-10.md](AndroidBuild85Audit-2026-09-10.md). Google Play подтверждает `Aktiv`, `1.1 (85) – Internal`, `Für interne Tester verfügbar`. 1950 JVM-тестов, 52 компонентных сценария при 200% шрифте, системная тема и реальные Main-сценарии на AVD PASS. iOS/backend/Rules не менялись. Физический телефон и полная проверка боевых функций остаются отдельными этапами; публичный релиз не выполнялся.
