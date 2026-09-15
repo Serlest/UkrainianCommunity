@@ -113,20 +113,27 @@ struct AdaptiveBannerImage: View {
     let image: UIImage
 
     var body: some View {
-        ZStack {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .saturation(0.82)
-                .blur(radius: 22, opaque: true)
-                .scaleEffect(1.08)
+        GeometryReader { proxy in
+            ZStack {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
+                    .saturation(0.82)
+                    .blur(radius: 22, opaque: true)
+                    .scaleEffect(1.08)
 
-            Color.black.opacity(0.10)
+                Color.black.opacity(0.10)
 
-            Image(uiImage: image)
-                .resizable()
-                .interpolation(.high)
-                .scaledToFit()
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+            }
+            .frame(width: proxy.size.width, height: proxy.size.height)
+            .clipped()
         }
         .clipped()
     }
