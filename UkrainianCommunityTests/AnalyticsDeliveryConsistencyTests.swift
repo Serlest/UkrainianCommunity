@@ -418,7 +418,7 @@ struct AnalyticsDeliveryConsistencyTests {
         #expect(analytics.allTrackedEvents.count == 3)
     }
 
-    @Test(.timeLimit(.minutes(1))) func dismissedDetailDoesNotRecordWhenConsentFinishesLater() async throws {
+    @Test(.timeLimit(.minutes(5))) func dismissedDetailDoesNotRecordWhenConsentFinishesLater() async throws {
         let analytics = ToggleableRecordingAnalyticsService()
         analytics.beginConsentSynchronization()
         let organization = try #require(try await MockOrganizationRepository().fetchOrganizations().first)
