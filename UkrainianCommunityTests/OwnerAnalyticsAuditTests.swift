@@ -3,22 +3,45 @@ import Testing
 @testable import UkrainianCommunity
 
 @MainActor
-private final class DelayedOwnerAnalyticsRepository: OwnerAnalyticsRepository {
-    let delaysByPeriod: [AnalyticsPeriod: UInt64]
+private final class PeriodRequestGate {
+    private var startedPeriods: Set<AnalyticsPeriod> = []
+    private var releasedPeriods: Set<AnalyticsPeriod> = []
+    private var startWaiters: [AnalyticsPeriod: [CheckedContinuation<Void, Never>]] = [:]
+    private var releaseWaiters: [AnalyticsPeriod: [CheckedContinuation<Void, Never>]] = [:]
+
+    func waitForRelease(of period: AnalyticsPeriod) async {
+        startedPeriods.insert(period)
+        startWaiters.removeValue(forKey: period)?.forEach { $0.resume() }
+        guard !releasedPeriods.contains(period) else { return }
+        await withCheckedContinuation { releaseWaiters[period, default: []].append($0) }
+    }
+
+    func waitUntilStarted(_ period: AnalyticsPeriod) async {
+        guard !startedPeriods.contains(period) else { return }
+        await withCheckedContinuation { startWaiters[period, default: []].append($0) }
+    }
+
+    func release(_ period: AnalyticsPeriod) {
+        releasedPeriods.insert(period)
+        releaseWaiters.removeValue(forKey: period)?.forEach { $0.resume() }
+    }
+}
+
+@MainActor
+private final class GatedOwnerAnalyticsRepository: OwnerAnalyticsRepository {
+    let gate: PeriodRequestGate
     let snapshotsByPeriod: [AnalyticsPeriod: OwnerAnalyticsSnapshot]
 
     init(
-        delaysByPeriod: [AnalyticsPeriod: UInt64],
+        gate: PeriodRequestGate,
         snapshotsByPeriod: [AnalyticsPeriod: OwnerAnalyticsSnapshot]
     ) {
-        self.delaysByPeriod = delaysByPeriod
+        self.gate = gate
         self.snapshotsByPeriod = snapshotsByPeriod
     }
 
     func fetchSnapshot(period: AnalyticsPeriod) async throws -> OwnerAnalyticsSnapshot {
-        if let delay = delaysByPeriod[period] {
-            try await Task.sleep(nanoseconds: delay)
-        }
+        await gate.waitForRelease(of: period)
         return snapshotsByPeriod[period] ?? .empty(period: period)
     }
 
@@ -71,18 +94,18 @@ private final class SequencedOwnerAnalyticsRepository: OwnerAnalyticsRepository 
 
 @MainActor
 private final class DetailOwnerAnalyticsRepository: OwnerAnalyticsRepository {
-    private let contentDelaysByPeriod: [AnalyticsPeriod: UInt64]
+    private let contentGate: PeriodRequestGate?
     private var contentResultsByPeriod: [AnalyticsPeriod: [Result<AnalyticsContentDetailSnapshot, AppError>]]
     private var organizationResultsByPeriod: [AnalyticsPeriod: [Result<AnalyticsOrganizationDetailSnapshot, AppError>]]
     private(set) var contentFetchCountByPeriod: [AnalyticsPeriod: Int] = [:]
     private(set) var organizationFetchCountByPeriod: [AnalyticsPeriod: Int] = [:]
 
     init(
-        contentDelaysByPeriod: [AnalyticsPeriod: UInt64] = [:],
+        contentGate: PeriodRequestGate? = nil,
         contentResultsByPeriod: [AnalyticsPeriod: [Result<AnalyticsContentDetailSnapshot, AppError>]] = [:],
         organizationResultsByPeriod: [AnalyticsPeriod: [Result<AnalyticsOrganizationDetailSnapshot, AppError>]] = [:]
     ) {
-        self.contentDelaysByPeriod = contentDelaysByPeriod
+        self.contentGate = contentGate
         self.contentResultsByPeriod = contentResultsByPeriod
         self.organizationResultsByPeriod = organizationResultsByPeriod
     }
@@ -97,9 +120,7 @@ private final class DetailOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         contentType: AnalyticsContentType
     ) async throws -> AnalyticsContentDetailSnapshot {
         contentFetchCountByPeriod[period, default: 0] += 1
-        if let delay = contentDelaysByPeriod[period] {
-            try await Task.sleep(nanoseconds: delay)
-        }
+        if let contentGate { await contentGate.waitForRelease(of: period) }
 
         var results = contentResultsByPeriod[period] ?? []
         guard !results.isEmpty else {
@@ -273,11 +294,9 @@ struct OwnerAnalyticsAuditTests {
     @Test func latestPeriodSelectionWinsWhenOlderRequestFinishesLast() async {
         let sevenDaySnapshot = Self.snapshot(period: .sevenDays, totalViews: 7)
         let thirtyDaySnapshot = Self.snapshot(period: .thirtyDays, totalViews: 30)
-        let repository = DelayedOwnerAnalyticsRepository(
-            delaysByPeriod: [
-                .sevenDays: 150_000_000,
-                .thirtyDays: 10_000_000
-            ],
+        let gate = PeriodRequestGate()
+        let repository = GatedOwnerAnalyticsRepository(
+            gate: gate,
             snapshotsByPeriod: [
                 .sevenDays: sevenDaySnapshot,
                 .thirtyDays: thirtyDaySnapshot
@@ -286,10 +305,14 @@ struct OwnerAnalyticsAuditTests {
         let viewModel = OwnerAnalyticsViewModel(repository: repository)
 
         let olderLoad = Task { await viewModel.selectPeriod(.sevenDays) }
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await gate.waitUntilStarted(.sevenDays)
         let latestLoad = Task { await viewModel.selectPeriod(.thirtyDays) }
-        await olderLoad.value
+        await gate.waitUntilStarted(.thirtyDays)
+        gate.release(.thirtyDays)
         await latestLoad.value
+        #expect(viewModel.snapshot == thirtyDaySnapshot)
+        gate.release(.sevenDays)
+        await olderLoad.value
 
         #expect(viewModel.selectedPeriod == .thirtyDays)
         #expect(viewModel.snapshot == thirtyDaySnapshot)
@@ -378,11 +401,9 @@ struct OwnerAnalyticsAuditTests {
     @Test func contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast() async {
         let sevenDaySnapshot = Self.contentDetailSnapshot(period: .sevenDays, views: 7)
         let thirtyDaySnapshot = Self.contentDetailSnapshot(period: .thirtyDays, views: 30)
+        let gate = PeriodRequestGate()
         let repository = DetailOwnerAnalyticsRepository(
-            contentDelaysByPeriod: [
-                .sevenDays: 150_000_000,
-                .thirtyDays: 10_000_000
-            ],
+            contentGate: gate,
             contentResultsByPeriod: [
                 .sevenDays: [.success(sevenDaySnapshot)],
                 .thirtyDays: [.success(thirtyDaySnapshot)]
@@ -396,10 +417,14 @@ struct OwnerAnalyticsAuditTests {
         )
 
         let olderLoad = Task { await viewModel.selectPeriod(.sevenDays) }
-        try? await Task.sleep(nanoseconds: 20_000_000)
+        await gate.waitUntilStarted(.sevenDays)
         let latestLoad = Task { await viewModel.selectPeriod(.thirtyDays) }
-        await olderLoad.value
+        await gate.waitUntilStarted(.thirtyDays)
+        gate.release(.thirtyDays)
         await latestLoad.value
+        #expect(viewModel.snapshot == thirtyDaySnapshot)
+        gate.release(.sevenDays)
+        await olderLoad.value
 
         #expect(viewModel.selectedPeriod == .thirtyDays)
         #expect(viewModel.snapshot == thirtyDaySnapshot)
