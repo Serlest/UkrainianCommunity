@@ -1,11 +1,11 @@
 import Foundation
 
-struct AnnouncementText: Codable, Equatable, Hashable, Sendable {
+nonisolated struct AnnouncementText: Codable, Equatable, Hashable, Sendable {
     var uk = ""
     var de = ""
-    func localized(_ language: AppLanguage = .stored) -> String { language == .ukrainian ? uk : de }
+    @MainActor func localized(_ language: AppLanguage = .stored) -> String { language == .ukrainian ? uk : de }
 }
-struct UserAnnouncement: Codable, Identifiable, Equatable, Hashable, Sendable {
+nonisolated struct UserAnnouncement: Codable, Identifiable, Equatable, Hashable, Sendable {
     var id = UUID().uuidString
     var schemaVersion = 1
     var revision = 0
@@ -56,7 +56,7 @@ struct UserAnnouncement: Codable, Identifiable, Equatable, Hashable, Sendable {
     }
 }
 struct AnnouncementUser: Codable, Identifiable { let id: String; let name: String; let region: String? }
-struct AnnouncementRequest: Encodable {
+nonisolated struct AnnouncementRequest: Encodable {
     var operation: String?
     var platform = "ios"
     var capability = 1

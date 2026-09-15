@@ -128,13 +128,13 @@ struct FeedbackMessagePage {
     let hasMore: Bool
 }
 
-enum FeedbackOperationKind: String, Equatable {
+nonisolated enum FeedbackOperationKind: String, Equatable {
     case userMessage
     case ownerReply
     case close
 }
 
-struct FeedbackOperationAttempt: Equatable {
+nonisolated struct FeedbackOperationAttempt: Equatable {
     let id: String
     let feedbackID: String
     let kind: FeedbackOperationKind

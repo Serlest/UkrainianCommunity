@@ -3,7 +3,7 @@ import FirebaseAuth
 import FirebaseFunctions
 import UIKit
 
-struct UserPresenceUpdate: Codable, Equatable {
+nonisolated struct UserPresenceUpdate: Codable, Equatable {
     let userId: String
     let sessionId: String
     let sequence: Int
@@ -37,7 +37,7 @@ struct ManagedUserPresenceSnapshot {
 @MainActor
 enum UserPresenceAPI {
     private struct Acknowledgement: Decodable { let accepted: Bool }
-    private struct ReadRequest: Encodable { let targetUserId: String }
+    private nonisolated struct ReadRequest: Encodable { let targetUserId: String }
 
     static func send(_ update: UserPresenceUpdate) async throws {
         // Never let a queued task write presence for a newly selected account.

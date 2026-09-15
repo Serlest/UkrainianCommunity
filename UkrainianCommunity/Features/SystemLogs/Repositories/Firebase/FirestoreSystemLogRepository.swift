@@ -259,7 +259,7 @@ struct SystemLogBulkReviewPartialError: LocalizedError {
     }
 }
 
-private struct SystemDiagnosticFunctionRequest: Encodable {
+private nonisolated struct SystemDiagnosticFunctionRequest: Encodable {
     let eventType: String
     let severity: String
     let targetType: String
@@ -279,7 +279,7 @@ private struct SystemDiagnosticFunctionRequest: Encodable {
     let metadata: [String: String]
     let correlationId: String?
 
-    init(draft: SystemLogDraft) {
+    @MainActor init(draft: SystemLogDraft) {
         eventType = draft.eventType.rawValue
         severity = draft.severity.rawValue
         targetType = draft.targetType.rawValue
@@ -306,9 +306,9 @@ private struct SystemDiagnosticFunctionResponse: Decodable {
     let createdAt: String
 }
 
-private struct EmptySystemLogRequest: Encodable {}
+private nonisolated struct EmptySystemLogRequest: Encodable {}
 
-private struct DeleteSystemLogRequest: Encodable {
+private nonisolated struct DeleteSystemLogRequest: Encodable {
     let logId: String
 }
 

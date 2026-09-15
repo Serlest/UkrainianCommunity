@@ -2,7 +2,7 @@ import Combine
 import Foundation
 import SwiftUI
 
-private enum HomeContentRefreshReason: Hashable {
+private nonisolated enum HomeContentRefreshReason: Hashable {
     case news
     case events
     case organizations

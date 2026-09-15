@@ -10,7 +10,8 @@ import Foundation
 import Testing
 @testable import UkrainianCommunity
 
-private actor RecordingFeedbackRepository: FeedbackRepository {
+@MainActor
+private final class RecordingFeedbackRepository: FeedbackRepository {
     private(set) var submittedItems: [FeedbackItem] = []
 
     func submitFeedback(_ feedback: FeedbackItem) async throws {

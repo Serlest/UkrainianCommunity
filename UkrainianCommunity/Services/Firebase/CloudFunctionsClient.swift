@@ -1,4 +1,5 @@
 import FirebaseFunctions
+import FirebaseSharedSwift
 import Foundation
 
 enum CloudFunctionName: String, CaseIterable {
@@ -924,7 +925,7 @@ final class CloudFunctionsClient {
         _ functionName: CloudFunctionName,
         request: Request
     ) async throws -> Response {
-        var callable: Callable<Request, Response> = functions.httpsCallable(functionName.rawValue)
+        let callable = functions.httpsCallable(functionName.rawValue)
         if functionName == .deleteOwnAccount {
             // Account deletion has a 300-second server deadline and may remove Auth last.
             // Keep the client connected long enough to receive that final confirmation.
@@ -932,7 +933,11 @@ final class CloudFunctionsClient {
         }
         let startedAt = ProcessInfo.processInfo.systemUptime
         do {
-            let response = try await callable.call(request)
+            // Encode and decode on the caller's actor. The callable only receives a detached
+            // JSON value, so generic protocol conformances never cross its concurrent boundary.
+            let payload = try FirebaseDataEncoder().encode(request)
+            let result = try await callable.call(payload)
+            let response = try FirebaseDataDecoder().decode(Response.self, from: result.data)
             await logSecuritySuccessIfNeeded(functionName, request: request, response: response)
             return response
         } catch {

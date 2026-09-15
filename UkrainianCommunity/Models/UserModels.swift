@@ -487,7 +487,7 @@ enum FeedbackType: String, CaseIterable, Codable, Identifiable {
     }
 }
 
-enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
+nonisolated enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
     case open
     case answered
     case reviewed
@@ -496,7 +496,7 @@ enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    @MainActor var title: String {
         switch self {
         case .open:
             AppStrings.Feedback.statusOpen
@@ -516,11 +516,11 @@ enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
     }
 }
 
-enum FeedbackSenderRole: String, Codable {
+nonisolated enum FeedbackSenderRole: String, Codable {
     case user
     case owner
 
-    var title: String {
+    @MainActor var title: String {
         switch self {
         case .user:
             AppStrings.Feedback.userSender
@@ -543,7 +543,7 @@ struct ContentReportContext: Codable, Equatable {
     let slaDueAt: Date
 }
 
-struct DsaDecisionSummary: Codable, Equatable {
+nonisolated struct DsaDecisionSummary: Codable, Equatable {
     let outcome: String
     let factsAndCircumstances: String
     let legalBasis: String?
@@ -556,7 +556,7 @@ struct DsaDecisionSummary: Codable, Equatable {
     let appealDeadline: Date
 }
 
-struct DsaCaseSummary: Codable, Equatable {
+nonisolated struct DsaCaseSummary: Codable, Equatable {
     let caseNumber: String
     let status: String
     let category: String
@@ -571,7 +571,7 @@ struct DsaCaseSummary: Codable, Equatable {
     let appeal: DsaAppealSummary?
 }
 
-struct DsaAppealSummary: Codable, Equatable {
+nonisolated struct DsaAppealSummary: Codable, Equatable {
     let status: String
     let reason: String
     let outcome: String?
@@ -647,7 +647,7 @@ struct FeedbackItem: Identifiable, Codable {
     }
 }
 
-struct FeedbackMessage: Identifiable, Codable, Equatable {
+nonisolated struct FeedbackMessage: Identifiable, Codable, Equatable {
     let id: String
     let feedbackId: String
     let senderId: String

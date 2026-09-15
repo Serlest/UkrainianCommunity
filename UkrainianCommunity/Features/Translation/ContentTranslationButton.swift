@@ -31,7 +31,7 @@ enum ContentTranslationService {
             return texts.map { (sourceLanguage == .ukrainian ? "DE: " : "UK: ") + $0 }
         }
         #endif
-        struct Request: Encodable { let kind: String; let texts: [String]; let source: String }
+        nonisolated struct Request: Encodable { let kind: String; let texts: [String]; let source: String }
         struct Response: Decodable { let texts: [String] }
         let call: Callable<Request, Response> = Functions.functions(region: "europe-west3").httpsCallable("translateContent")
         return try await call.call(Request(kind: kind, texts: texts, source: sourceLanguage.rawValue)).texts

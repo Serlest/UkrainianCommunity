@@ -72,7 +72,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
         draftID: String,
         attemptID: String
     ) async throws -> OwnerContentPublicationLease {
-        struct Request: Encodable {
+        nonisolated struct Request: Encodable {
             let draftId: String
             let attemptId: String
         }
@@ -97,7 +97,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
         guard let leaseID = publication.publicationLeaseID else {
             throw AppError.validationFailed
         }
-        struct Request: Encodable {
+        nonisolated struct Request: Encodable {
             let draftId: String
             let leaseId: String
             let contentId: String
@@ -127,7 +127,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
         leaseID: String,
         message: String
     ) async throws {
-        struct Request: Encodable {
+        nonisolated struct Request: Encodable {
             let draftId: String
             let leaseId: String
             let message: String
@@ -149,7 +149,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
     }
 
     func archive(userID: String, draftID: String) async throws {
-        struct Request: Encodable { let draftId: String }
+        nonisolated struct Request: Encodable { let draftId: String }
         struct Response: Decodable { let archived: Bool }
 
         do {
@@ -163,7 +163,7 @@ struct FirestoreOwnerContentDraftRepository: OwnerContentDraftRepository {
     }
 
     func delete(userID: String, draftID: String) async throws {
-        struct Request: Encodable { let draftId: String }
+        nonisolated struct Request: Encodable { let draftId: String }
         struct Response: Decodable { let deleted: Bool }
 
         do {
