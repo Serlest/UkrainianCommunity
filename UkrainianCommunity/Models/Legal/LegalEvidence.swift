@@ -124,7 +124,7 @@ struct LegalEvidenceEvent: Identifiable, Equatable, Codable {
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
             .split(whereSeparator: \.isWhitespace)
         guard !tokens.isEmpty else { return true }
-        let haystack = [
+        let accountFields: [String] = [
             userID,
             displayName ?? "",
             email ?? "",
@@ -133,15 +133,20 @@ struct LegalEvidenceEvent: Identifiable, Equatable, Codable {
             source,
             locale ?? "",
             appVersion ?? "",
+        ]
+        let organizationFields: [String] = [
             organizationID ?? "",
             organizationName ?? "",
             sourceRecordID ?? "",
             acceptedFromPlatform ?? "",
+        ]
+        let consentFields: [String] = [
             consentID ?? "",
             purposeVersion ?? "",
             disclosureVersion ?? "",
             disclosureText ?? "",
         ]
+        let haystack = (accountFields + organizationFields + consentFields)
         .joined(separator: " ")
         .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
         return tokens.allSatisfy { haystack.contains($0) }
