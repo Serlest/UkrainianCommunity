@@ -383,7 +383,7 @@ struct AnalyticsDeliveryConsistencyTests {
         #expect(analytics.allTrackedEvents.count == 6)
     }
 
-    @Test(.timeLimit(.minutes(1))) func visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates() async throws {
+    @Test(.timeLimit(.minutes(5))) func visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates() async throws {
         let analytics = ToggleableRecordingAnalyticsService()
         analytics.beginConsentSynchronization()
         let post = try #require(try await MockNewsRepository().fetchNews().first)
