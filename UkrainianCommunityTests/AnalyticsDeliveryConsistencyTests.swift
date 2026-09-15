@@ -384,6 +384,7 @@ struct AnalyticsDeliveryConsistencyTests {
     }
 
     @Test(.timeLimit(.minutes(5))) func visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates() async throws {
+        Attachment.record("started", named: "analytics-visibility-0.txt")
         let analytics = ToggleableRecordingAnalyticsService()
         analytics.beginConsentSynchronization()
         let post = try #require(try await MockNewsRepository().fetchNews().first)
@@ -399,35 +400,45 @@ struct AnalyticsDeliveryConsistencyTests {
         ]
         defer { tasks.forEach { $0.cancel() } }
         await analytics.waitForScopeReads(3)
+        Attachment.record("initial observers read scope", named: "analytics-visibility-1.txt")
         #expect(analytics.allTrackedEvents.isEmpty)
 
         analytics.confirmConsentSynchronization()
         await analytics.waitForScopeReads(6)
+        Attachment.record("consent confirmation read scope", named: "analytics-visibility-2.txt")
         #expect(Set(analytics.events.map(\.name)) == [.newsView, .eventView, .organizationView])
         #expect(analytics.allTrackedEvents.count == 3)
         analytics.repeatCollectionSignal()
         await analytics.waitForScopeReads(9)
+        Attachment.record("repeat signal read scope", named: "analytics-visibility-3.txt")
         #expect(analytics.allTrackedEvents.count == 3)
 
         analytics.setCollectionEnabled(false)
         await analytics.waitForScopeReads(12)
+        Attachment.record("opt-out signal read scope", named: "analytics-visibility-4.txt")
         #expect(analytics.allTrackedEvents.count == 3)
         tasks.forEach { $0.cancel() }
+        Attachment.record("visible tasks cancelled", named: "analytics-visibility-5.txt")
         for task in tasks { await task.value }
+        Attachment.record("visible tasks finished", named: "analytics-visibility-6.txt")
         analytics.setCollectionEnabled(true)
         #expect(analytics.allTrackedEvents.count == 3)
     }
 
     @Test(.timeLimit(.minutes(5))) func dismissedDetailDoesNotRecordWhenConsentFinishesLater() async throws {
+        Attachment.record("started", named: "analytics-dismissed-0.txt")
         let analytics = ToggleableRecordingAnalyticsService()
         analytics.beginConsentSynchronization()
         let organization = try #require(try await MockOrganizationRepository().fetchOrganizations().first)
         let model = OrganizationsViewModel(repository: MockOrganizationRepository(), analyticsService: analytics)
         let task = Task { await model.trackViewWhileVisible(for: organization) }
         await analytics.waitForScopeReads(1)
+        Attachment.record("initial observer read scope", named: "analytics-dismissed-1.txt")
         task.cancel()
         analytics.confirmConsentSynchronization()
+        Attachment.record("task cancelled and consent confirmed", named: "analytics-dismissed-2.txt")
         await task.value
+        Attachment.record("visible task finished", named: "analytics-dismissed-3.txt")
         #expect(analytics.allTrackedEvents.isEmpty)
     }
 

@@ -211,6 +211,7 @@ struct PullToRefreshTests {
     @Test func presenceCoalescesPollAndPullAndPublishesBeforeBothFinish() async {
         let deadline = ManualRefreshDeadline()
         defer { deadline.cancel() }
+        let testInstant = ContinuousClock().now
         let gate = ReadGate<ManagedUserPresenceSnapshot>()
         let coalesced = ReadGate<Void>()
         var count = 0
@@ -227,9 +228,9 @@ struct PullToRefreshTests {
         #expect(didCoalesce, "The pull refresh did not join the pending presence request")
         #expect(count == 1)
         #expect(model.isRefreshing)
-        gate.complete(Self.presence(online: true))
+        gate.complete(Self.presence(online: true, requestStartedAt: testInstant))
         await pull.value
-        #expect(model.snapshot?.isOnline() == true)
+        #expect(model.snapshot?.isOnline(at: testInstant) == true)
         #expect(!model.isRefreshing)
         await poll.value
         #expect(count == 1)
@@ -238,13 +239,14 @@ struct PullToRefreshTests {
     @Test func presenceRefreshShowsOfflineAndRecoversAfterFailure() async {
         var fail = false
         var online = true
+        let testInstant = ContinuousClock().now
         let model = ManagedUserPresenceViewModel(load: { _ in
             if fail { throw AppError.network }
-            return Self.presence(online: online)
+            return Self.presence(online: online, requestStartedAt: testInstant)
         })
         let actor = MockContentBuilder.ownerUser()
         await model.refresh(userID: "member", actor: actor)
-        #expect(model.snapshot?.isOnline() == true)
+        #expect(model.snapshot?.isOnline(at: testInstant) == true)
         fail = true
         await model.refresh(userID: "member", actor: actor)
         #expect(model.failed)
@@ -253,16 +255,19 @@ struct PullToRefreshTests {
         fail = false; online = false
         await model.refresh(userID: "member", actor: actor)
         #expect(!model.failed)
-        #expect(model.snapshot?.isOnline() == false)
+        #expect(model.snapshot?.isOnline(at: testInstant) == false)
         #expect(model.snapshot?.lastSeenAt != nil)
         await model.refresh(userID: "member", actor: nil)
         #expect(model.snapshot == nil)
     }
 
-    private static func presence(online: Bool) -> ManagedUserPresenceSnapshot {
+    private static func presence(
+        online: Bool,
+        requestStartedAt: ContinuousClock.Instant
+    ) -> ManagedUserPresenceSnapshot {
         let now = Date().timeIntervalSince1970 * 1_000
         return ManagedUserPresenceSnapshot(response: ManagedUserPresenceResponse(targetUserId: "member",
-            lastSeenAt: now, onlineUntil: online ? now + 60_000 : nil, serverTime: now), requestStartedAt: .now)
+            lastSeenAt: now, onlineUntil: online ? now + 60_000 : nil, serverTime: now), requestStartedAt: requestStartedAt)
     }
 }
 
