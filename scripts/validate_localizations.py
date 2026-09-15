@@ -12,11 +12,12 @@ CATALOG = Path("UkrainianCommunity/Localization/Localizable.xcstrings")
 SOURCE_ROOT = Path("UkrainianCommunity")
 REQUIRED_LANGUAGES = ("de", "uk")
 SOURCE_LANGUAGE = "de"
-SUPPORTED_LANGUAGES = frozenset(REQUIRED_LANGUAGES)
+# English entries may remain in the catalog; the shipped app requires German and Ukrainian.
+SUPPORTED_LANGUAGES = frozenset((*REQUIRED_LANGUAGES, "en"))
 LOCALIZATION_KEY = r"([A-Za-z0-9_.-]+)"
 DIRECT_KEY_PATTERNS = (
-    re.compile(rf'String\(localized:\s*"{LOCALIZATION_KEY}"'),
-    re.compile(rf'LocalizationStore\.localized(?:String|Format)\(\s*"{LOCALIZATION_KEY}"'),
+    re.compile(rf'String\(localized:\s*"{LOCALIZATION_KEY}"(?=\s*(?:,|\)))'),
+    re.compile(rf'LocalizationStore\.localized(?:String|Format)\(\s*"{LOCALIZATION_KEY}"(?=\s*(?:,|\)))'),
 )
 APP_STRINGS_KEY_PATTERN = re.compile(rf'\btext\(\s*"{LOCALIZATION_KEY}"\s*,')
 MOCK_CONTENT_KEY_PATTERN = re.compile(rf'\blocalized\(\s*"{LOCALIZATION_KEY}"\s*,')
@@ -107,6 +108,23 @@ def placeholder_signature(value: str) -> list[str]:
     return sorted(PLACEHOLDER_PATTERN.findall(value))
 
 
+def translated_units(localization: dict[str, object]) -> dict[str, dict[str, object]]:
+    unit = localization.get("stringUnit")
+    if isinstance(unit, dict):
+        return {"base": unit}
+    variations = localization.get("variations", {})
+    if not isinstance(variations, dict):
+        return {}
+    plural = variations.get("plural", {})
+    if not isinstance(plural, dict):
+        return {}
+    return {
+        form: branch.get("stringUnit", {})
+        for form, branch in plural.items()
+        if isinstance(branch, dict)
+    }
+
+
 def german_tone_failure(key: str, value: str) -> str | None:
     if GERMAN_INFORMAL_PRONOUN_PATTERN.search(value):
         return f"{key!r}: German translation uses an informal pronoun"
@@ -154,27 +172,41 @@ def main() -> int:
         if is_locale_invariant(key):
             continue
 
-        translated_values: dict[str, str] = {}
+        translated_values: dict[str, dict[str, str]] = {}
         for language in REQUIRED_LANGUAGES:
-            unit = localizations.get(language, {}).get("stringUnit", {})
-            value = unit.get("value")
-            if not isinstance(value, str) or not value.strip():
+            units = translated_units(localizations.get(language, {}))
+            if not units:
                 failures.append(f"{key!r}: missing {language} translation")
-            elif unit.get("state") == "needs_review":
-                failures.append(f"{key!r}: {language} translation needs review")
-            else:
-                translated_values[language] = value
+                continue
+            expected_forms = (
+                {"one", "other"} if language == "de" else {"one", "few", "many", "other"}
+            ) if "base" not in units else {"base"}
+            for form in sorted(expected_forms - units.keys()):
+                failures.append(f"{key!r}: missing {language} {form} translation")
+            values: dict[str, str] = {}
+            for form, unit in units.items():
+                value = unit.get("value")
+                if not isinstance(value, str) or not value.strip():
+                    failures.append(f"{key!r}: missing {language} {form} translation")
+                elif unit.get("state") == "needs_review":
+                    failures.append(f"{key!r}: {language} {form} translation needs review")
+                else:
+                    values[form] = value
+            if len(values) == len(units) and expected_forms <= units.keys():
+                translated_values[language] = values
 
         if len(translated_values) == len(REQUIRED_LANGUAGES):
-            if tone_failure := german_tone_failure(key, translated_values["de"]):
-                failures.append(tone_failure)
+            for value in translated_values["de"].values():
+                if tone_failure := german_tone_failure(key, value):
+                    failures.append(tone_failure)
 
             signatures = {
-                language: placeholder_signature(value)
-                for language, value in translated_values.items()
+                tuple(placeholder_signature(value))
+                for values in translated_values.values()
+                for value in values.values()
             }
-            if len({tuple(signature) for signature in signatures.values()}) != 1:
-                failures.append(f"{key!r}: placeholder mismatch {signatures}")
+            if len(signatures) != 1:
+                failures.append(f"{key!r}: placeholder mismatch {translated_values}")
 
     if failures:
         print("Localization validation failed:", file=sys.stderr)

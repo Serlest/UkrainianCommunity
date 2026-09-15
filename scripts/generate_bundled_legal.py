@@ -21,8 +21,7 @@ def canonical_documents():
         for locale, filename in definition["files"].items():
             lines = (ROOT / filename).read_text().splitlines()
             heading = next(line for line in lines if line.startswith("# "))
-            first_section = next(i for i, line in enumerate(lines) if line.startswith("## "))
-            markdown = "\n".join([heading, "", *lines[first_section:]]).strip()
+            markdown = "\n".join(lines).strip()
             locales[locale] = {
                 "title": heading[2:].strip(),
                 "contentMarkdown": markdown,
