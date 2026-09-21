@@ -31,6 +31,28 @@ struct EventRegistrationRaceTests {
         #expect(model.error == nil)
     }
 
+    @Test func pastEventHistoryLoadsThreeThenFifteenAtATime() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        repository.events = [makeEvent(id: "upcoming-event")]
+        repository.recentPastEvents = (0..<21).map { makeEvent(id: "past-event-\($0)") }
+
+        await model.loadIfNeeded(federalState: nil, initialLimit: 15)
+
+        #expect(model.events.count == 4)
+        #expect(model.hasMorePastEvents)
+
+        await model.loadMorePastEvents(pageSize: 15)
+
+        #expect(model.events.count == 19)
+        #expect(model.hasMorePastEvents)
+
+        await model.loadMorePastEvents(pageSize: 15)
+
+        #expect(model.events.count == 22)
+        #expect(!model.hasMorePastEvents)
+    }
+
     @Test func eventRecommendationCandidatesAreBoundedAndCachedForTheSession() async {
         let repository = ControlledEventRepository()
         let model = EventsViewModel(repository: repository)
@@ -573,6 +595,27 @@ private final class ControlledEventRepository: @MainActor EventRepository, Event
         lastRecentPastLimit = limit
         if let recentPastError { throw recentPastError }
         return Array(recentPastEvents.prefix(limit))
+    }
+    func fetchPastEventsPage(
+        limit: Int,
+        after cursor: EventPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> EventPage {
+        lastRecentPastLimit = limit
+        if let recentPastError { throw recentPastError }
+        let startIndex: Int
+        if let cursor,
+           let cursorIndex = recentPastEvents.firstIndex(where: { $0.id == cursor.documentID }) {
+            startIndex = recentPastEvents.index(after: cursorIndex)
+        } else {
+            startIndex = recentPastEvents.startIndex
+        }
+        let items = Array(recentPastEvents.dropFirst(startIndex).prefix(max(1, limit)))
+        return EventPage(
+            items: items,
+            nextCursor: items.last.map { EventPageCursor(endDate: $0.endDate, documentID: $0.id) },
+            hasMore: recentPastEvents.count > startIndex + items.count
+        )
     }
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
         recommendationRequestCount += 1

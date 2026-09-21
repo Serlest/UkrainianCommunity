@@ -597,6 +597,10 @@ struct EventsListView: View {
 
                 if !content.pastEvents.isEmpty {
                     pastContent(content)
+
+                    if viewModel.hasMorePastEvents {
+                        loadMorePastEventsButton
+                    }
                 }
             }
         }
@@ -614,6 +618,20 @@ struct EventsListView: View {
             }
         }
         .accessibilityIdentifier("events.feed.loadMore")
+    }
+
+    private var loadMorePastEventsButton: some View {
+        PrimaryActionButton(
+            title: AppStrings.Search.loadMoreContent,
+            loadingTitle: AppStrings.Search.loadingMoreContent,
+            isLoading: viewModel.isLoadingPastEvents,
+            systemImage: "clock.arrow.circlepath"
+        ) {
+            Task {
+                await viewModel.loadMorePastEvents()
+            }
+        }
+        .accessibilityIdentifier("events.feed.loadMorePast")
     }
 
     private var filteredEventsEmptySystemImage: String {

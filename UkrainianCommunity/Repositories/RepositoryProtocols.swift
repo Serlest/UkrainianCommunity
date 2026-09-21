@@ -543,6 +543,11 @@ protocol EventRepository: EventRegistrationMutating {
         limit: Int,
         federalState: AustrianFederalState?
     ) async throws -> [Event]
+    func fetchPastEventsPage(
+        limit: Int,
+        after cursor: EventPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> EventPage
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event]
     func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
@@ -803,6 +808,28 @@ extension EventRepository {
         federalState: AustrianFederalState?
     ) async throws -> [Event] {
         []
+    }
+
+    func fetchPastEventsPage(
+        limit: Int,
+        after cursor: EventPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> EventPage {
+        guard cursor == nil else {
+            return EventPage(items: [], nextCursor: nil, hasMore: false)
+        }
+
+        let boundedLimit = max(1, limit)
+        let fetchedItems = try await fetchRecentPastEvents(
+            limit: boundedLimit + 1,
+            federalState: federalState
+        )
+        let items = Array(fetchedItems.prefix(boundedLimit))
+        return EventPage(
+            items: items,
+            nextCursor: items.last.map { EventPageCursor(endDate: $0.endDate, documentID: $0.id) },
+            hasMore: fetchedItems.count > boundedLimit
+        )
     }
 
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event] {

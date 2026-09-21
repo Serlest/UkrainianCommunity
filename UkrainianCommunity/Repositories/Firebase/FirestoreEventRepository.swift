@@ -117,13 +117,26 @@ struct FirestoreEventRepository: EventRepository {
         limit: Int,
         federalState: AustrianFederalState?
     ) async throws -> [Event] {
+        try await fetchPastEventsPage(
+            limit: limit,
+            after: nil,
+            federalState: federalState
+        ).items
+    }
+
+    func fetchPastEventsPage(
+        limit: Int,
+        after cursor: EventPageCursor?,
+        federalState: AustrianFederalState?
+    ) async throws -> EventPage {
+        let boundedLimit = max(1, limit)
         var query: Query = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
             .whereField("endDate", isLessThan: Timestamp(date: Date()))
             .order(by: "endDate", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
-            .limit(to: max(1, limit))
+            .limit(to: boundedLimit + 1)
 
         if let federalState {
             query = query.whereFilter(Filter.orFilter([
@@ -132,8 +145,17 @@ struct FirestoreEventRepository: EventRepository {
             ]))
         }
 
+        if let cursor {
+            query = query.start(after: cursor.firestoreStartAfterValues)
+        }
+
         let snapshot = try await query.getDocuments()
-        return try await makePublicEvents(from: snapshot.documents)
+        let documents = Array(snapshot.documents.prefix(boundedLimit))
+        return EventPage(
+            items: try await makePublicEvents(from: documents),
+            nextCursor: documents.last.flatMap(makeEventPageCursor),
+            hasMore: snapshot.documents.count > boundedLimit
+        )
     }
 
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {

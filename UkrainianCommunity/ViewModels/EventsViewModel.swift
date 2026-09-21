@@ -17,6 +17,8 @@ final class EventsViewModel: ObservableObject {
     @Published private(set) var interactionError: AppError?
     @Published private(set) var isLoadingNextPage = false
     @Published private(set) var hasMorePages = false
+    @Published private(set) var isLoadingPastEvents = false
+    @Published private(set) var hasMorePastEvents = false
     @Published private(set) var contentVersion = 0
     @Published private(set) var pendingEventLikeIDs = Set<String>()
     @Published private(set) var pendingEventRegistrationIDs = Set<String>()
@@ -36,9 +38,11 @@ final class EventsViewModel: ObservableObject {
     private var observedEventCommentIDs = Set<String>()
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
+    private var pastEventsTask: Task<Void, Never>?
     private var hasLoaded = false
     private var lastLoadedAt: Date?
     private var nextPageCursor: EventPageCursor?
+    private var pastEventsCursor: EventPageCursor?
     private var activeFederalState: AustrianFederalState?
     private var trackedEventViewIDs = Set<String>()
     private(set) var visibilityPolicy = ContentVisibilityPolicy()
@@ -161,12 +165,16 @@ final class EventsViewModel: ObservableObject {
         recommendationCandidateCache = [:]
         loadTask?.cancel()
         nextPageTask?.cancel()
+        pastEventsTask?.cancel()
         loadTask = nil
         nextPageTask = nil
+        pastEventsTask = nil
         events = []
         isLoading = false
         isLoadingNextPage = false
+        isLoadingPastEvents = false
         hasMorePages = false
+        hasMorePastEvents = false
         error = nil
         interactionError = nil
         contentVersion &+= 1
@@ -183,6 +191,7 @@ final class EventsViewModel: ObservableObject {
         hasLoaded = false
         lastLoadedAt = nil
         nextPageCursor = nil
+        pastEventsCursor = nil
         activeFederalState = nil
     }
 
@@ -816,8 +825,11 @@ final class EventsViewModel: ObservableObject {
         guard force || !hasLoaded else { return }
         if force {
             nextPageTask?.cancel()
+            pastEventsTask?.cancel()
             nextPageTask = nil
+            pastEventsTask = nil
             isLoadingNextPage = false
+            isLoadingPastEvents = false
         }
 
         if let loadTask {
@@ -874,6 +886,25 @@ final class EventsViewModel: ObservableObject {
         await task.value
         guard isCurrentSession(generation) else { return }
         nextPageTask = nil
+    }
+
+    func loadMorePastEvents(pageSize: Int = publicFeedPageSize) async {
+        let generation = sessionGeneration
+        guard hasLoaded, hasMorePastEvents, !isLoading, !isLoadingPastEvents else { return }
+
+        if let pastEventsTask {
+            await pastEventsTask.value
+            return
+        }
+
+        let task = Task { [weak self] in
+            guard let self else { return }
+            await self.performLoadMorePastEvents(generation: generation, limit: pageSize)
+        }
+        pastEventsTask = task
+        await task.value
+        guard isCurrentSession(generation) else { return }
+        pastEventsTask = nil
     }
 
     func loadRemainingPagesForSearch(maximumLoadedCount: Int = 120) async {
@@ -939,18 +970,21 @@ final class EventsViewModel: ObservableObject {
                 )
             }
             async let recentPastRequest = RefreshRequest.run { [repository] in
-                try await repository.fetchRecentPastEvents(
+                try await repository.fetchPastEventsPage(
                     limit: recentPastEventPreviewSize,
+                    after: nil,
                     federalState: federalState
                 )
             }
             let page = try await pageRequest
-            let recentPastEvents = (try? await recentPastRequest) ?? []
+            let recentPastPage = try? await recentPastRequest
             guard !Task.isCancelled, isCurrentSession(generation) else { return }
             feedRevision &+= 1
-            events = visibilityPolicy.visibleEvents(page.items + recentPastEvents).deduplicatedEventsByID()
+            events = visibilityPolicy.visibleEvents(page.items + (recentPastPage?.items ?? [])).deduplicatedEventsByID()
             nextPageCursor = page.nextCursor
             hasMorePages = page.hasMore
+            pastEventsCursor = recentPastPage?.nextCursor
+            hasMorePastEvents = recentPastPage?.hasMore ?? false
             contentVersion &+= 1
             error = nil
             hasLoaded = true
@@ -1002,6 +1036,43 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
+    private func performLoadMorePastEvents(generation: Int, limit: Int) async {
+        guard isCurrentSession(generation) else { return }
+        guard let pastEventsCursor else { return }
+        isLoadingPastEvents = true
+        defer {
+            if isCurrentSession(generation) {
+                isLoadingPastEvents = false
+            }
+        }
+
+        do {
+            let federalState = activeFederalState
+            let page = try await RefreshRequest.run { [repository, pastEventsCursor] in
+                try await repository.fetchPastEventsPage(
+                    limit: max(1, limit),
+                    after: pastEventsCursor,
+                    federalState: federalState
+                )
+            }
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
+            feedRevision &+= 1
+            appendUniqueEvents(page.items)
+            self.pastEventsCursor = page.nextCursor
+            hasMorePastEvents = page.hasMore
+            contentVersion &+= 1
+            error = nil
+            lastLoadedAt = Date()
+        } catch is CancellationError {
+        } catch let appError as AppError {
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
+            error = appError
+        } catch {
+            guard !Task.isCancelled, isCurrentSession(generation) else { return }
+            self.error = .unknown
+        }
+    }
+
     private func appendUniqueEvents(_ newEvents: [Event]) {
         var seenIDs = Set(events.map(\.id))
         events.append(contentsOf: visibilityPolicy.visibleEvents(newEvents).filter {
@@ -1015,14 +1086,19 @@ final class EventsViewModel: ObservableObject {
         feedRevision &+= 1
         loadTask?.cancel()
         nextPageTask?.cancel()
+        pastEventsTask?.cancel()
         loadTask = nil
         nextPageTask = nil
+        pastEventsTask = nil
         events = []
         isLoading = false
         isLoadingNextPage = false
+        isLoadingPastEvents = false
         hasMorePages = false
+        hasMorePastEvents = false
         error = nil
         nextPageCursor = nil
+        pastEventsCursor = nil
         hasLoaded = false
         lastLoadedAt = nil
         activeFederalState = federalState
