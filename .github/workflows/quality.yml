@@ -280,25 +280,50 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
           test
           -only-testing:UkrainianCommunityTests
+          "-skip-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/latestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
+          "-skip-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
+
+      - name: Run timeout-sensitive analytics unit tests in isolation
+        if: needs.changes.outputs.ios_unit == 'true'
+        run: >
+          xcodebuild
+          -project UkrainianCommunity.xcodeproj
+          -scheme UkrainianCommunity
+          -configuration Debug
+          -destination "$IOS_TEST_DESTINATION"
+          -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
+          -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityIsolatedUnitTests.xcresult"
+          CODE_SIGNING_ALLOWED=NO
+          test
+          "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/latestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
+          "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
 
       - name: Verify Swift unit tests were discovered
         if: ${{ always() && needs.changes.outputs.ios_unit == 'true' }}
         env:
           RESULT_BUNDLE: ${{ runner.temp }}/UkrainianCommunityUnitTests.xcresult
+          ISOLATED_RESULT_BUNDLE: ${{ runner.temp }}/UkrainianCommunityIsolatedUnitTests.xcresult
           RESULT_SUMMARY: ${{ runner.temp }}/UkrainianCommunityUnitTests-summary.json
+          ISOLATED_RESULT_SUMMARY: ${{ runner.temp }}/UkrainianCommunityIsolatedUnitTests-summary.json
         run: |
           test -d "$RESULT_BUNDLE"
+          test -d "$ISOLATED_RESULT_BUNDLE"
           xcrun xcresulttool get test-results summary --path "$RESULT_BUNDLE" > "$RESULT_SUMMARY"
-          python3 - "$RESULT_SUMMARY" <<'PY'
+          xcrun xcresulttool get test-results summary --path "$ISOLATED_RESULT_BUNDLE" > "$ISOLATED_RESULT_SUMMARY"
+          python3 - "$RESULT_SUMMARY" "$ISOLATED_RESULT_SUMMARY" <<'PY'
           import json
           import sys
 
-          with open(sys.argv[1], encoding="utf-8") as summary_file:
-              summary = json.load(summary_file)
-          test_count = summary.get("totalTestCount")
-          if not isinstance(test_count, int) or test_count < 1:
-              raise SystemExit(f"Expected at least one Swift unit test, found {test_count!r}")
-          print(f"Verified {test_count} discovered Swift unit tests")
+          counts = []
+          for summary_path in sys.argv[1:]:
+              with open(summary_path, encoding="utf-8") as summary_file:
+                  count = json.load(summary_file).get("totalTestCount")
+              if not isinstance(count, int) or count < 1:
+                  raise SystemExit(f"Expected at least one Swift unit test in {summary_path}, found {count!r}")
+              counts.append(count)
+          if counts[1] != 2:
+              raise SystemExit(f"Expected exactly two isolated Swift unit tests, found {counts[1]}")
+          print(f"Verified {sum(counts)} discovered Swift unit tests across both runs")
           PY
 
       - name: Preserve Swift test diagnostics
@@ -306,7 +331,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ios-unit-xcresult-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/UkrainianCommunityUnitTests.xcresult
+          path: |
+            ${{ runner.temp }}/UkrainianCommunityUnitTests.xcresult
+            ${{ runner.temp }}/UkrainianCommunityIsolatedUnitTests.xcresult
           if-no-files-found: warn
           retention-days: 14
 
