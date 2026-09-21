@@ -591,12 +591,12 @@ struct EventsListView: View {
             VStack(alignment: .leading, spacing: AppTheme.eventsSectionSpacing) {
                 upcomingContent(content)
 
-                if !content.pastEvents.isEmpty {
-                    pastContent(content)
-                }
-
                 if viewModel.hasMorePages {
                     loadMoreButton
+                }
+
+                if !content.pastEvents.isEmpty {
+                    pastContent(content)
                 }
             }
         }
