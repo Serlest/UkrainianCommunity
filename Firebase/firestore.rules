@@ -1216,7 +1216,7 @@ service cloud.firestore {
     }
 
     function featuredBannerVisibleSections() {
-      return ['home', 'events', 'organizations'];
+      return ['home', 'events', 'organizations', 'directory'];
     }
 
     function featuredBannerHasValidSections(data) {
@@ -1399,6 +1399,7 @@ service cloud.firestore {
           'home' in resource.data.visibleSections
           || 'events' in resource.data.visibleSections
           || 'organizations' in resource.data.visibleSections
+          || 'directory' in resource.data.visibleSections
         );
     }
 

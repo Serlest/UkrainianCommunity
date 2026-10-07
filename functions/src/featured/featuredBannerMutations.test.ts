@@ -51,6 +51,14 @@ test("normalizes cleared text and stale conditional fields", () => {
   });
 });
 
+test("accepts the new directory placement while keeping retired guide values invalid", () => {
+  const parsed = parseFeaturedBannerDraft(validDraft({
+    visibleSections: ["directory", "home"],
+  }));
+  assert.deepEqual(parsed.visibleSections, ["directory", "home"]);
+  assert.throws(() => parseFeaturedBannerDraft(validDraft({visibleSections: ["guide"]})));
+});
+
 test("rejects unsupported languages and malformed localized fields", () => {
   assert.throws(() => parseFeaturedBannerDraft(validDraft({
     localizations: { en: { title: "English", subtitle: "" } },

@@ -13211,13 +13211,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Highlights auf Home, Events und Organisationen verwalten."
+            "value" : "Highlights für Nachrichten, Veranstaltungen, Organisationen und Wegweiser verwalten."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Керуйте виділеними матеріалами на головній, у подіях та організаціях."
+            "value" : "Керуйте банерами новин, подій, організацій та довідника."
           }
         }
       }
@@ -46656,6 +46656,23 @@
         }
       }
     },
+    "tab.directory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wegweiser"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Довідник"
+          }
+        }
+      }
+    },
     "tab.events" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -46663,6 +46680,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Veranstaltungen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Події"
+          }
+        }
+      }
+    },
+    "tab.events.compact" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termine"
           }
         },
         "uk" : {
@@ -46697,6 +46731,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Organisationen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Організації"
+          }
+        }
+      }
+    },
+    "tab.organizations.compact" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation"
           }
         },
         "uk" : {

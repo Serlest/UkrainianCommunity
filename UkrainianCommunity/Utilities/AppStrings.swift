@@ -93,7 +93,10 @@ enum AppStrings {
     enum Tabs {
         static var home: String { text("tab.home", "News") }
         static var events: String { text("tab.events", "Events") }
+        static var eventsCompact: String { text("tab.events.compact", "Події") }
         static var organizations: String { text("tab.organizations", "Organizations") }
+        static var organizationsCompact: String { text("tab.organizations.compact", "Організації") }
+        static var directory: String { text("tab.directory", "Довідник") }
         static var profile: String { text("tab.profile", "Profile") }
     }
 
@@ -300,7 +303,7 @@ enum AppStrings {
     enum FeaturedManagement {
         static var title: String { text("featured.management.title", "Featured Content") }
         static var profileEntryTitle: String { text("featured.management.profile_entry.title", "Featured Content") }
-        static var profileEntrySubtitle: String { text("featured.management.profile_entry.subtitle", "Manage highlights shown across Home, Events, and Organizations.") }
+        static var profileEntrySubtitle: String { text("featured.management.profile_entry.subtitle", "Керуйте банерами новин, подій, організацій та довідника.") }
         static var subtitle: String { text("featured.management.subtitle", "Create, preview, schedule, edit, migrate, and remove highlights across the public app.") }
         static var emptyTitle: String { text("featured.management.empty.title", "No featured banners yet") }
         static var emptyMessage: String { text("featured.management.empty.message", "Create the first highlight and choose exactly where and when it should appear.") }

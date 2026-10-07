@@ -8,7 +8,7 @@ import { assertOwner } from "../permissions/userPermissions";
 type FeaturedBannerSaveMode = "create" | "update";
 type FeaturedBannerActionType = "none" | "news" | "event" | "organization" | "externalURL";
 type FeaturedBannerRegionScope = "allAustria" | "federalState";
-type FeaturedBannerVisibleSection = "home" | "events" | "organizations";
+type FeaturedBannerVisibleSection = "home" | "events" | "organizations" | "directory";
 type FeaturedBannerLanguage = "uk" | "de";
 
 interface FeaturedBannerLocalizedContent {
@@ -91,6 +91,7 @@ const visibleSections = new Set<FeaturedBannerVisibleSection>([
   "home",
   "events",
   "organizations",
+  "directory",
 ]);
 const featuredBannerLanguages = new Set<FeaturedBannerLanguage>(["uk", "de"]);
 const actionTargetCollections: Partial<Record<FeaturedBannerActionType, string>> = {

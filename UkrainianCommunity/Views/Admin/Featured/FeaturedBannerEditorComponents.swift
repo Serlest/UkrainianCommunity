@@ -237,6 +237,8 @@ extension FeaturedBannerVisibleSection {
             return AppStrings.Tabs.events
         case .organizations:
             return AppStrings.Tabs.organizations
+        case .directory:
+            return AppStrings.Tabs.directory
         case .unsupportedLegacy:
             return AppStrings.FeaturedManagement.unsupportedLegacy
         }

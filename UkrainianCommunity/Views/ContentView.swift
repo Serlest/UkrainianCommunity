@@ -10,6 +10,7 @@ struct ContentView: View {
         case home
         case events
         case organizations
+        case directory
         case profile
     }
 
@@ -42,13 +43,16 @@ struct ContentView: View {
     @State private var homeNavigationPath: [HomeFeedDestinationReference] = []
     @State private var eventsNavigationPath: [EventNavigationRoute] = []
     @State private var organizationsNavigationPath: [OrganizationNavigationRoute] = []
+    @State private var directoryNavigationPath: [DirectoryRoute] = []
     @State private var profileNavigationPath: [ProfileNavigationRoute] = []
     @State private var homeScrollResetToken = 0
     @State private var eventsScrollResetToken = 0
     @State private var organizationsScrollResetToken = 0
+    @State private var directoryScrollResetToken = 0
     @State private var homeSearchResetToken = 0
     @State private var eventsSearchResetToken = 0
     @State private var organizationsSearchResetToken = 0
+    @State private var directorySearchResetToken = 0
     @State private var profileScrollResetToken = 0
     @State private var lastHandledAuthIdentityResetKey: String?
     @State private var notificationRouteErrorMessage: String?
@@ -142,7 +146,8 @@ struct ContentView: View {
                 .frame(width: 0, height: 0)
             }
 
-            if selectedTab != .profile, organizationBlockingCoordinator.requiresVisibilityGate {
+            if selectedTab != .profile && selectedTab != .directory,
+               organizationBlockingCoordinator.requiresVisibilityGate {
                 OrganizationContentVisibilityGate(
                     isLoading: organizationBlockingCoordinator.verificationState == .pending,
                     errorMessage: organizationBlockingCoordinator.errorMessage
@@ -554,6 +559,7 @@ struct ContentView: View {
         homeTab
         eventsTab
         organizationsTab
+        directoryTab
         profileTab
     }
 
@@ -603,7 +609,7 @@ struct ContentView: View {
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.events")
         .tabItem {
-            Label(AppStrings.Tabs.events, systemImage: "calendar")
+            Label(AppStrings.Tabs.eventsCompact, systemImage: "calendar")
                 .accessibilityIdentifier("tab.events")
         }
         .tag(AppTab.events)
@@ -630,7 +636,7 @@ struct ContentView: View {
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.organizations")
         .tabItem {
-            Label(AppStrings.Tabs.organizations, systemImage: "building.2.fill")
+            Label(AppStrings.Tabs.organizationsCompact, systemImage: "building.2.fill")
                 .accessibilityIdentifier("tab.organizations")
         }
         .tag(AppTab.organizations)
@@ -670,6 +676,27 @@ struct ContentView: View {
                 .accessibilityIdentifier("tab.profile")
         }
         .tag(AppTab.profile)
+    }
+
+    private var directoryTab: some View {
+        NavigationStack(path: $directoryNavigationPath) {
+            DirectoryHomeView(
+                featuredBannerRepository: container.featuredBannerRepository,
+                featuredBannerCache: container.featuredBannerCache,
+                selectedFederalState: publicRegionBinding,
+                onFeaturedBannerTap: handleFeaturedBannerTap,
+                scrollResetToken: directoryScrollResetToken,
+                searchResetToken: directorySearchResetToken,
+                isActive: selectedTab == .directory
+            )
+        }
+        .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
+        .accessibilityIdentifier("screen.directory")
+        .tabItem {
+            Label(AppStrings.Tabs.directory, systemImage: "books.vertical.fill")
+                .accessibilityIdentifier("tab.directory")
+        }
+        .tag(AppTab.directory)
     }
 
     private func applyContentVisibility(blockedUserIDs: Set<String>) {
@@ -748,6 +775,10 @@ struct ContentView: View {
             if !organizationsNavigationPath.isEmpty {
                 organizationsNavigationPath.removeAll()
             }
+        case .directory:
+            if !directoryNavigationPath.isEmpty {
+                directoryNavigationPath.removeAll()
+            }
         case .profile:
             if !profileNavigationPath.isEmpty {
                 profileNavigationPath.removeAll()
@@ -763,6 +794,8 @@ struct ContentView: View {
             eventsSearchResetToken += 1
         case .organizations:
             organizationsSearchResetToken += 1
+        case .directory:
+            directorySearchResetToken += 1
         case .profile:
             break
         }
@@ -777,6 +810,9 @@ struct ContentView: View {
         }
         if !organizationsNavigationPath.isEmpty {
             organizationsNavigationPath.removeAll()
+        }
+        if !directoryNavigationPath.isEmpty {
+            directoryNavigationPath.removeAll()
         }
         if !profileNavigationPath.isEmpty {
             profileNavigationPath.removeAll()
@@ -801,6 +837,8 @@ struct ContentView: View {
                 eventsScrollResetToken += 1
             case .organizations:
                 organizationsScrollResetToken += 1
+            case .directory:
+                directoryScrollResetToken += 1
             case .profile:
                 profileScrollResetToken += 1
             }

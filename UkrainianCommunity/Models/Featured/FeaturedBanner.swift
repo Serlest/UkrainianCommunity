@@ -52,12 +52,13 @@ enum FeaturedBannerVisibleSection: String, CaseIterable, Codable, Identifiable, 
     case home
     case events
     case organizations
+    case directory
     // Retained only to decode and retire existing Firestore banners.
     case unsupportedLegacy = "guide"
 
     var id: String { rawValue }
 
-    static let supportedCases: [Self] = [.home, .events, .organizations]
+    static let supportedCases: [Self] = [.home, .events, .organizations, .directory]
 
     var isSupported: Bool {
         self != .unsupportedLegacy

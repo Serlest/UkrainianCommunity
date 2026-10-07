@@ -318,6 +318,15 @@ describe("removed Guide management values", () => {
     ));
   });
 
+  test("a directory banner can be saved and read without restoring retired Guide banners", async () => {
+    const reference = doc(auth("owner"), "featuredBanners", "directory-banner");
+    await assertSucceeds(setDoc(reference, featuredBanner("directory-banner", {
+      visibleSections: ["directory"],
+    })));
+    await assertSucceeds(getDoc(doc(unauthenticated(), "featuredBanners", "directory-banner")));
+    await assertFails(getDoc(doc(unauthenticated(), "featuredBanners", "legacy-guide-banner")));
+  });
+
   test("owner can save bilingual featured-banner content", async () => {
     const db = auth("owner");
     const localizedBannerRef = doc(db, "featuredBanners", "localized-banner");
