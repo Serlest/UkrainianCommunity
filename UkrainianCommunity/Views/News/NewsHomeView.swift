@@ -4,6 +4,7 @@ private let newsHomeScrollTopID = "newsHomeScrollTop"
 
 struct NewsHomeView: View {
     @EnvironmentObject private var authState: AuthState
+    @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @ObservedObject var newsViewModel: NewsViewModel
     @ObservedObject var eventsViewModel: EventsViewModel
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
@@ -72,10 +73,12 @@ struct NewsHomeView: View {
 
                     NewsHomeFilterRow(filter: $filter, selectedFederalState: $selectedFederalState,
                                       authenticated: authState.isAuthenticated)
+                        .id(languageCode)
                         .padding(.bottom, AppTheme.homeSectionSpacing)
 
                     AppGroupedContentPlane(padding: AppTheme.homeFeedPlanePadding) {
                         newsContent
+                            .id(languageCode)
                     }
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)

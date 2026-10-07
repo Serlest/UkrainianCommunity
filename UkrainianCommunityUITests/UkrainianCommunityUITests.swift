@@ -1942,6 +1942,11 @@ final class UkrainianCommunityUITests: XCTestCase {
         let firstGermanBanner = element("featuredBanner.card.featured-emergency-support", in: app)
         XCTAssertTrue(firstGermanBanner.waitForExistence(timeout: 15))
         XCTAssertTrue(firstGermanBanner.label.contains("Schnelle Hilfe in Österreich"))
+        let topic = app.buttons["home.filter.topic"].firstMatch
+        XCTAssertTrue(topic.waitForExistence(timeout: 10))
+        topic.tap()
+        app.buttons["Allgemeine Nachrichten"].firstMatch.tap()
+        XCTAssertTrue(topic.label.contains("Allgemeine Nachrichten"))
 
         assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
         let settings = app.buttons["profile.settings.open"].firstMatch
@@ -1965,6 +1970,12 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(element("profile.settings.language", in: app).exists)
 
         tapRootTab(rootTabs[0], in: app, timeout: 10)
+        let summary = app.staticTexts["home.news.summary"].firstMatch
+        XCTAssertTrue(summary.waitForExistence(timeout: 10))
+        XCTAssertTrue(summary.label.contains("За весь час"))
+        XCTAssertTrue(summary.label.contains("Спочатку нові"))
+        XCTAssertTrue(topic.waitForExistence(timeout: 10))
+        XCTAssertTrue(topic.label.contains("Загальні новини"))
         let firstUkrainianBanner = element("featuredBanner.card.featured-emergency-support", in: app)
         XCTAssertTrue(firstUkrainianBanner.waitForExistence(timeout: 10))
         XCTAssertTrue(firstUkrainianBanner.label.contains("Швидка допомога в Австрії"))
