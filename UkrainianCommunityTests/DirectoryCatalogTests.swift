@@ -23,6 +23,29 @@ struct DirectoryCatalogTests {
         #expect(safety?.matches("невідомий запит", language: .ukrainian) == false)
     }
 
+    @Test func everySafetyTopicHasBilingualStepsAndOfficialSources() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "safety" }?.topics ?? []
+        #expect(!topics.isEmpty)
+        #expect(Set(topics.map(\.id)) == Set(DirectorySafetyContent.guides.keys))
+        for topic in topics {
+            let guide = DirectorySafetyContent.guides[topic.id]
+            #expect(guide?.sections.isEmpty == false)
+            #expect(guide?.sources.isEmpty == false)
+            #expect(guide?.summary.ukrainian.isEmpty == false)
+            #expect(guide?.summary.german.isEmpty == false)
+            for section in guide?.sections ?? [] {
+                #expect(!section.body.ukrainian.isEmpty)
+                #expect(!section.body.german.isEmpty)
+                for contact in section.contacts {
+                    #expect(contact.phoneURL.scheme == "tel")
+                }
+            }
+            for source in guide?.sources ?? [] {
+                #expect(source.url.scheme == "https")
+            }
+        }
+    }
+
     @Test func previouslyCombinedSubjectsHaveSeparateDestinations() {
         let ids = Set(DirectoryCatalog.categories.map(\.id))
         for id in ["residence", "documents", "citizenship", "work", "qualifications",

@@ -17,11 +17,11 @@ struct DirectorySafetyOverviewView: View {
                 AppGlassCard {
                     Label(text("Небезпека зараз?", "Akute Gefahr?"), systemImage: "exclamationmark.shield.fill")
                         .font(.headline)
-                    Text(text("Телефонуйте до поліції. Якщо потрібна інша екстрена допомога, скористайтеся номером 112.",
-                              "Rufen Sie die Polizei. Für andere Notfälle wählen Sie 112."))
+                    Text(text("Якщо не знаєте, яку службу викликати, телефонуйте 112. При загрозі насильства — поліції 133.",
+                              "Wenn unklar ist, welche Stelle zuständig ist, wählen Sie 112. Bei drohender Gewalt: Polizei 133."))
                         .foregroundStyle(AppTheme.textSecondary)
-                    SafetyCallButton(contact: DirectorySafetyContent.police, language: language)
                     SafetyCallButton(contact: DirectorySafetyContent.europeanEmergency, language: language)
+                    SafetyCallButton(contact: DirectorySafetyContent.police, language: language)
                 }
 
                 Text(text("Теми", "Themen"))
@@ -29,16 +29,9 @@ struct DirectorySafetyOverviewView: View {
                 ForEach(category.topics) { topic in
                     NavigationLink(value: DirectoryRoute.topic(categoryID: category.id, topicID: topic.id)) {
                         HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(topic.title.value(for: language))
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(AppTheme.textPrimary)
-                                if !DirectorySafetyContent.publishedTopicIDs.contains(topic.id) {
-                                    Text(text("Готується", "In Vorbereitung"))
-                                        .font(.caption)
-                                        .foregroundStyle(AppTheme.textSecondary)
-                                }
-                            }
+                            Text(topic.title.value(for: language))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .font(.caption.weight(.semibold))

@@ -9,7 +9,14 @@ extension DirectoryCatalog {
             topic("domestic-violence", "Домашнє насильство", "Häusliche Gewalt"),
             topic("women", "Допомога жінкам", "Hilfe für Frauen"),
             topic("children", "Захист дітей", "Kinderschutz"),
-            topic("discrimination", "Дискримінація та переслідування", "Diskriminierung & Belästigung")
+            topic("assault", "Напад і злочин", "Angriff und Straftat"),
+            topic("discrimination", "Дискримінація та переслідування", "Diskriminierung & Belästigung"),
+            topic("fire-gas", "Пожежа та запах газу", "Brand und Gasgeruch"),
+            topic("mountains-water", "Гори та водойми", "Berge und Gewässer"),
+            topic("poisoning", "Отруєння", "Vergiftung"),
+            topic("disasters", "Негода та катастрофи", "Unwetter und Katastrophen"),
+            topic("road-accident", "Дорожня пригода", "Verkehrsunfall"),
+            topic("mental-crisis", "Психологічна криза", "Psychische Krise")
         ]),
         category("first-steps", "Перші кроки", "Erste Schritte",
                  summaryUK: "Орієнтація після прибуття", summaryDE: "Orientierung nach der Ankunft",
