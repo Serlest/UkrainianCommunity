@@ -35,7 +35,7 @@ struct NewsBrowseFilter: Hashable {
                     calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: max(startDate, endDate))))
         }
     }
-    var activeCount: Int { (period == .all ? 0 : 1) + (oldestFirst ? 1 : 0) + (scope == .all ? 0 : 1) }
+    var activeCount: Int { (period == .all ? 0 : 1) + (oldestFirst ? 1 : 0) }
 }
 struct NewsBrowseQuery: Hashable {
     var filter: NewsBrowseFilter

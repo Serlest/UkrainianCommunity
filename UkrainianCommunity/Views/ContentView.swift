@@ -20,7 +20,6 @@ struct ContentView: View {
     @State private var updateLegalCheckKey: String?
     @State private var updateMFACheckKey: String?
     @State private var updateAppLockIsLocked = true
-    @StateObject private var homeViewModel: HomeViewModel
     @StateObject private var newsViewModel: NewsViewModel
     @StateObject private var eventsViewModel: EventsViewModel
     @StateObject private var organizationsViewModel: OrganizationsViewModel
@@ -59,11 +58,6 @@ struct ContentView: View {
         _announcementCoordinator = StateObject(wrappedValue: AnnouncementCoordinator(repository: container.announcementRepository))
         self.container = container
         self.isStartupReady = isStartupReady
-        _homeViewModel = StateObject(wrappedValue: HomeViewModel(
-            newsRepository: container.newsRepository,
-            eventRepository: container.eventRepository,
-            organizationRepository: container.organizationRepository
-        ))
         _newsViewModel = StateObject(wrappedValue: NewsViewModel(
             repository: container.newsRepository,
             analyticsService: container.analyticsService
@@ -565,8 +559,7 @@ struct ContentView: View {
 
     private var homeTab: some View {
         NavigationStack(path: $homeNavigationPath) {
-            HomeView(
-                viewModel: homeViewModel,
+            NewsHomeView(
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 organizationsViewModel: organizationsViewModel,
@@ -574,17 +567,17 @@ struct ContentView: View {
                 featuredBannerRepository: container.featuredBannerRepository,
                 featuredBannerCache: container.featuredBannerCache,
                 navigationPath: $homeNavigationPath,
+                selectedFederalState: publicRegionBinding,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 scrollResetToken: homeScrollResetToken,
                 searchResetToken: homeSearchResetToken,
-                isActive: selectedTab == .home,
-                selectedFederalState: publicRegionBinding
+                isActive: selectedTab == .home
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.home")
         .tabItem {
-            Label(AppStrings.Tabs.home, systemImage: "house.fill")
+            Label(AppStrings.Tabs.home, systemImage: "newspaper.fill")
                 .accessibilityIdentifier("tab.home")
         }
         .tag(AppTab.home)
@@ -711,7 +704,6 @@ struct ContentView: View {
         isShowingNotificationInbox = false
         resetNavigationStateAfterAuthChange()
 
-        homeViewModel.resetForAuthChange()
         newsViewModel.resetForAuthChange()
         eventsViewModel.resetForAuthChange()
         organizationsViewModel.resetForAuthChange()

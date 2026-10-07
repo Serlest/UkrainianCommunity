@@ -15053,23 +15053,6 @@
         }
       }
     },
-    "home.filter.events" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Veranstaltungen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Події"
-          }
-        }
-      }
-    },
     "home.filter.favorites" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15083,40 +15066,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Збережені"
-          }
-        }
-      }
-    },
-    "home.filter.news" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "News"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новини"
-          }
-        }
-      }
-    },
-    "home.filter.organizations" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Organisationen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Організації"
           }
         }
       }
@@ -41225,13 +41174,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Updates, Events und Organisationen suchen"
+            "value" : "Nachrichten durchsuchen"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Пошук оновлень, подій та організацій"
+            "value" : "Пошук новин"
           }
         }
       }
@@ -46747,13 +46696,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Start"
+            "value" : "Nachrichten"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Головна"
+            "value" : "Новини"
           }
         }
       }

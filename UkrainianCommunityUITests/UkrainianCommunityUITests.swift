@@ -16,13 +16,10 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launch()
-        let type = app.buttons["home.filter.type"].firstMatch
-        XCTAssertTrue(type.waitForExistence(timeout: 20))
-        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.news.topicLink.")).firstMatch.exists)
-        type.tap()
-        app.buttons["Новини"].firstMatch.tap()
         let topic = app.buttons["home.filter.topic"].firstMatch
-        XCTAssertTrue(topic.waitForExistence(timeout: 10)); topic.tap()
+        XCTAssertTrue(topic.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "home.news.topicLink.")).firstMatch.exists)
+        topic.tap()
         app.buttons["Загальні новини"].firstMatch.tap()
         let summary = app.staticTexts["home.news.summary"].firstMatch
         XCTAssertTrue(summary.waitForExistence(timeout: 10))
@@ -50,17 +47,14 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
-    func testNewsBrowseFiltersAndTypeSwitch() throws {
+    func testNewsBrowseTopicAndSortFilters() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launch()
-        let type = app.buttons["home.filter.type"].firstMatch
-        XCTAssertTrue(type.waitForExistence(timeout: 20)); type.tap()
-        app.buttons["News"].firstMatch.tap()
         let topic = app.buttons["home.filter.topic"].firstMatch
-        XCTAssertTrue(topic.waitForExistence(timeout: 10)); topic.tap()
+        XCTAssertTrue(topic.waitForExistence(timeout: 20)); topic.tap()
         app.buttons["Allgemeine Nachrichten"].firstMatch.tap()
         let filters = app.buttons["home.filter.options"].firstMatch
         XCTAssertTrue(filters.waitForExistence(timeout: 5)); filters.tap()
@@ -72,15 +66,28 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(summary.waitForExistence(timeout: 5))
         XCTAssertTrue(summary.label.contains("Älteste zuerst"))
         attachScreenshot(named: "news-topic-oldest-german", from: app)
-        type.tap(); app.buttons["Alle"].firstMatch.tap()
-        XCTAssertFalse(app.buttons["home.filter.topic"].exists)
-        type.tap(); app.buttons["News"].firstMatch.tap()
-        XCTAssertTrue(summary.waitForExistence(timeout: 5))
-        XCTAssertTrue(summary.label.contains("Älteste zuerst"))
+        XCTAssertTrue(topic.exists)
         app.buttons["home.filter.options"].tap()
         app.buttons["home.news.reset"].tap()
         app.buttons["home.news.apply"].tap()
         XCTAssertTrue(summary.label.contains("Neueste zuerst"))
+    }
+
+    @MainActor
+    func testNewsTabKeepsSubscriptionFilter() throws {
+        let app = launchAuthenticatedApp()
+        let topic = app.buttons["home.filter.topic"].firstMatch
+        XCTAssertTrue(topic.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.buttons["home.filter.type"].exists)
+
+        let subscribed = app.buttons["home.filter.subscribed"].firstMatch
+        XCTAssertTrue(subscribed.exists)
+        subscribed.tap()
+        let summary = app.staticTexts["home.news.summary"].firstMatch
+        XCTAssertTrue(summary.waitForExistence(timeout: 10))
+        XCTAssertTrue(summary.label.contains("Abonnierte Organisationen"))
+        subscribed.tap()
+        XCTAssertFalse(summary.label.contains("Abonnierte Organisationen"))
     }
 
     @MainActor
@@ -168,7 +175,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     private let rootTabs: [MainTabSpec] = [
-        MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Start"),
+        MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Nachrichten"),
         MainTabSpec(screenIdentifier: "screen.events", tabIdentifier: "tab.events", tabLabel: "Veranstaltungen"),
         MainTabSpec(screenIdentifier: "screen.organizations", tabIdentifier: "tab.organizations", tabLabel: "Organisationen"),
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
@@ -792,7 +799,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testMainFeedPullRefreshKeepsNavigationResponsive() throws {
         let app = launchAuthenticatedApp()
         for (index, filterID, cardPrefix) in [
-            (0, "home.filter.type", "home.card."),
+            (0, "home.filter.topic", "home.card."),
             (1, "events.filter.period", "event.card."),
             (2, "organizations.filter.category", "organization.card.")
         ] {
@@ -1393,7 +1400,7 @@ final class UkrainianCommunityUITests: XCTestCase {
             assertRootScreen(screenIdentifier: "screen.organizations", tabLabel: "Organisationen", in: app)
             cardID = "organization.card.org-1"
         default:
-            assertRootScreen(screenIdentifier: "screen.home", tabLabel: "Start", in: app)
+            assertRootScreen(screenIdentifier: "screen.home", tabLabel: "Nachrichten", in: app)
             cardID = "home.card.news-news-1"
         }
         var card = app.descendants(matching: .any).matching(identifier: cardID).firstMatch

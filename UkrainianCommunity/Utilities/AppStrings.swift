@@ -91,7 +91,7 @@ enum AppStrings {
     }
 
     enum Tabs {
-        static var home: String { text("tab.home", "Home") }
+        static var home: String { text("tab.home", "News") }
         static var events: String { text("tab.events", "Events") }
         static var organizations: String { text("tab.organizations", "Organizations") }
         static var profile: String { text("tab.profile", "Profile") }
@@ -263,7 +263,7 @@ enum AppStrings {
         static var loadingMoreResults: String { text("search.loading_more_results", "Loading more results…") }
         static var noResultsTitle: String { text("search.no_results.title", "Nothing found") }
         static var noResultsMessage: String { text("search.no_results.message", "Try a different search term or adjust the current filters.") }
-        static var homePlaceholder: String { text("search.placeholder.home", "Search updates, events, and organizations") }
+        static var homePlaceholder: String { text("search.placeholder.home", "Search news") }
         static var eventsPlaceholder: String { text("search.placeholder.events", "Search events") }
         static var organizationsPlaceholder: String { text("search.placeholder.organizations", "Search organizations") }
     }
@@ -487,9 +487,6 @@ enum AppStrings {
         static var highlights: String { text("home.highlights", "Community Highlights") }
         static var latestNews: String { text("home.latest_news", "Latest updates") }
         static var filterAll: String { text("home.filter.all", "Усе") }
-        static var filterNews: String { text("home.filter.news", "Новини") }
-        static var filterEvents: String { text("home.filter.events", "Події") }
-        static var filterOrganizations: String { text("home.filter.organizations", "Організації") }
         static var filterSubscriptions: String { text("home.filter.subscriptions", "Subscriptions") }
         static var filterFavorites: String { text("home.filter.favorites", "Favorites") }
         static var filterSaved: String { text("home.filter.saved", "Збережені") }

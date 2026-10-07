@@ -23,10 +23,9 @@ struct NewsTopicMenu: View {
 struct NewsBrowseFilterSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Binding var selection: NewsBrowseFilter
-    let authenticated: Bool
     @State private var draft: NewsBrowseFilter
-    init(selection: Binding<NewsBrowseFilter>, authenticated: Bool) {
-        _selection = selection; self.authenticated = authenticated
+    init(selection: Binding<NewsBrowseFilter>) {
+        _selection = selection
         _draft = State(initialValue: selection.wrappedValue)
     }
     var body: some View {
@@ -55,13 +54,6 @@ struct NewsBrowseFilterSheet: View {
                         Text(NewsBrowseStrings.text("newest")).tag(false)
                         Text(NewsBrowseStrings.text("oldest")).tag(true)
                     }.tint(AppTheme.accentPrimaryForeground).accessibilityIdentifier("home.news.sort")
-                } }
-                AppEditorSectionCard { VStack(alignment: .leading, spacing: 12) {
-                    AppEditorSectionTitle(title: NewsBrowseStrings.text("source"))
-                    Picker(NewsBrowseStrings.text("source"), selection: $draft.scope) {
-                        ForEach(NewsBrowseScope.allCases, id: \.self) { Text($0.title).tag($0) }
-                    }.disabled(!authenticated).tint(AppTheme.accentPrimaryForeground).accessibilityIdentifier("home.news.scope")
-                    if !authenticated { Text(NewsBrowseStrings.text("signIn")).font(.caption) }
                 } }
                 Button(NewsBrowseStrings.text("reset")) { draft = NewsBrowseFilter() }
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
