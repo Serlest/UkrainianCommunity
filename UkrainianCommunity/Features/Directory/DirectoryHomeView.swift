@@ -45,7 +45,7 @@ struct DirectoryHomeView: View {
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
+                VStack(alignment: .leading, spacing: 0) {
                     Color.clear.frame(height: 0).id(directoryScrollTopID)
 
                     AppSearchableBrandHeader(
@@ -54,6 +54,7 @@ struct DirectoryHomeView: View {
                         placeholder: DirectoryStrings.searchPlaceholder,
                         collapseToken: searchResetToken
                     )
+                    .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                     if query.isEmpty {
                         banner {
@@ -61,6 +62,7 @@ struct DirectoryHomeView: View {
                                 proxy.scrollTo(directoryCategoriesID, anchor: .top)
                             }
                         }
+                        .padding(.bottom, AppTheme.homeSectionSpacing)
                         introductoryContent
                     } else {
                         searchContent
@@ -120,7 +122,9 @@ struct DirectoryHomeView: View {
                 .accessibilityIdentifier("directory.category.safety")
             }
 
-            categoryGrid(Array(DirectoryCatalog.categories.dropFirst()))
+            categorySection(DirectoryStrings.startHeading, items: Array(DirectoryCatalog.startCategories.dropFirst()))
+            categorySection(DirectoryStrings.lifeHeading, items: DirectoryCatalog.lifeCategories)
+            categorySection(DirectoryStrings.supportHeading, items: DirectoryCatalog.supportCategories)
 
             Text(DirectoryStrings.preparing)
                 .font(.footnote)
@@ -139,13 +143,22 @@ struct DirectoryHomeView: View {
             } else {
                 Text(DirectoryStrings.categoriesHeading)
                     .font(.title3.bold())
-                categoryGrid(categories)
+                categoryList(categories)
             }
         }
     }
 
-    private func categoryGrid(_ items: [DirectoryCategory]) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 145, maximum: 240), spacing: 12)], spacing: 12) {
+    private func categorySection(_ title: String, items: [DirectoryCategory]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+            categoryList(items)
+        }
+    }
+
+    private func categoryList(_ items: [DirectoryCategory]) -> some View {
+        LazyVStack(spacing: 9) {
             ForEach(items) { category in
                 NavigationLink(value: DirectoryRoute.category(category.id)) {
                     DirectoryCategoryCard(category: category, language: language)
