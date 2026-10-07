@@ -13,6 +13,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
     @Published private(set) var banners: [FeaturedBanner] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
+    @Published private(set) var hasResolvedCurrentQuery = false
 
     private let repository: FeaturedBannerRepository
     private let cache: FeaturedBannerCache
@@ -143,10 +144,12 @@ final class FeaturedBannerListViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             guard currentQuery == query else { return }
             error = appError
+            hasResolvedCurrentQuery = true
         } catch {
             guard !Task.isCancelled else { return }
             guard currentQuery == query else { return }
             self.error = .unknown
+            hasResolvedCurrentQuery = true
         }
     }
 
@@ -157,6 +160,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         currentQuery = query
         banners = []
         error = nil
+        hasResolvedCurrentQuery = false
     }
 
     private func applyCachedBanners(_ cached: FeaturedBannerCache.Entry, for query: FeaturedBannerCache.Key) {
@@ -167,6 +171,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
             federalState: query.federalState,
             now: now
         )
+        hasResolvedCurrentQuery = true
         scheduleBoundaryRefresh(for: cached, query: query, now: now)
     }
 

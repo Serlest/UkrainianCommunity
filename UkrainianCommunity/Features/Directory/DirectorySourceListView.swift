@@ -7,7 +7,7 @@ struct DirectorySourceListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(DirectoryText(ukrainian: "Офіційні джерела", german: "Offizielle Quellen").value(for: language))
+            Text(DirectoryText(ukrainian: "Джерела та сервіси", german: "Quellen und Dienste").value(for: language))
                 .font(.headline)
             ForEach(sources) { source in
                 Link(destination: source.url) {
@@ -17,8 +17,8 @@ struct DirectorySourceListView: View {
                 }
             }
             Text(DirectoryText(
-                ukrainian: "Посилання перевірено \(checkedOn).",
-                german: "Links geprüft am \(checkedOn)."
+                ukrainian: "Стан інформації: \(checkedOn).",
+                german: "Informationsstand: \(checkedOn)."
             ).value(for: language))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)

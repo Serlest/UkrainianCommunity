@@ -8,39 +8,45 @@ struct DirectorySafetyTopicView: View {
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
-                Text(topic.title.value(for: language))
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(AppTheme.textPrimary)
-                Text(guide.summary.value(for: language))
-                    .foregroundStyle(AppTheme.textSecondary)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
+                    DirectoryPageHeading(title: topic.title.value(for: language),
+                                         summary: guide.summary.value(for: language))
 
-                ForEach(guide.sections) { section in
-                    SafetyInfoCard(
-                        title: section.title.value(for: language), symbol: section.symbol
-                    ) {
-                        Text(section.body.value(for: language))
-                            .foregroundStyle(AppTheme.textSecondary)
-                        ForEach(section.contacts) { contact in
-                            SafetyCallButton(contact: contact, language: language)
-                        }
+                    DirectoryTopicOutlineView(
+                        titles: guide.sections.map { $0.title.value(for: language) },
+                        language: language
+                    ) { index in
+                        withAnimation(.easeInOut) { proxy.scrollTo(guide.sections[index].id, anchor: .top) }
                     }
+
+                    ForEach(guide.sections) { section in
+                        SafetyInfoCard(
+                            title: section.title.value(for: language), symbol: section.symbol
+                        ) {
+                            DirectoryGuideBodyView(text: section.body.value(for: language))
+                            ForEach(section.contacts) { contact in
+                                SafetyCallButton(contact: contact, language: language)
+                            }
+                        }
+                        .id(section.id)
+                    }
+                    if DirectoryRegionalContent.applies(categoryID: "safety", topicID: topic.id) {
+                        DirectoryRegionalSectionsView(
+                            categoryID: "safety", topicID: topic.id,
+                            selectedFederalState: $selectedFederalState, language: language
+                        )
+                    }
+                    DirectorySourceListView(
+                        sources: guide.sources, language: language,
+                        checkedOn: DirectorySafetyContent.reviewedOn)
                 }
-                if DirectoryRegionalContent.applies(categoryID: "safety", topicID: topic.id) {
-                    DirectoryRegionalSectionsView(
-                        categoryID: "safety", topicID: topic.id,
-                        selectedFederalState: $selectedFederalState, language: language
-                    )
-                }
-                DirectorySourceListView(
-                    sources: guide.sources, language: language,
-                    checkedOn: DirectorySafetyContent.reviewedOn)
+                .padding(.horizontal, AppTheme.pageHorizontal)
+                .padding(.top, AppTheme.homeSectionSpacing)
+                .padding(.bottom, AppTheme.homeBottomContentPadding)
+                .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
-            .padding(.horizontal, AppTheme.pageHorizontal)
-            .padding(.top, AppTheme.homeSectionSpacing)
-            .padding(.bottom, AppTheme.homeBottomContentPadding)
-            .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
         }
         .background(AppBackgroundView())
         .navigationTitle(topic.title.value(for: language))

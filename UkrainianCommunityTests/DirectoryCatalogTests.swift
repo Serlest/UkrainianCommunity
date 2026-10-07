@@ -99,6 +99,21 @@ struct DirectoryCatalogTests {
         }
     }
 
+    @Test func everyPublishedTopicAppearsInExactlyOneBilingualGroup() {
+        let completed = DirectoryCatalog.startCategories
+        #expect(completed.reduce(0) { $0 + $1.topics.count } == 85)
+        for category in completed {
+            #expect(DirectoryTopicGroups.isComplete(categoryID: category.id))
+            let groups = DirectoryTopicGroups.forCategory(category)
+            #expect(!groups.isEmpty)
+            #expect(groups.allSatisfy { !$0.title.ukrainian.isEmpty && !$0.title.german.isEmpty })
+            let grouped = groups.flatMap(\.topicIDs)
+            #expect(grouped.count == Set(grouped).count)
+            #expect(Set(grouped) == Set(category.topics.map(\.id)))
+        }
+        #expect(!DirectoryTopicGroups.isComplete(categoryID: "health"))
+    }
+
     @Test func nearbyConsulatesHaveDirectOfficialLinks() {
         let guide = DocumentGuides.guide(for: "consulates-nearby")
         #expect(guide?.sections.count == 8)

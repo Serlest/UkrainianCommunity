@@ -9,9 +9,7 @@ struct DirectoryGuideSectionCard: View {
             Label(section.title.value(for: language), systemImage: section.symbol)
                 .font(.headline)
                 .foregroundStyle(AppTheme.textPrimary)
-            Text(section.body.value(for: language))
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+            DirectoryGuideBodyView(text: section.body.value(for: language))
             if let source = section.source {
                 Link(destination: source.url) {
                     Label(source.name, systemImage: "arrow.up.right.square")

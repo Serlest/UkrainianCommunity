@@ -62,7 +62,8 @@ struct DirectoryHomeView: View {
                                 proxy.scrollTo(directoryCategoriesID, anchor: .top)
                             }
                         }
-                        .padding(.bottom, AppTheme.homeSectionSpacing)
+                        .padding(.bottom, featuredBannerViewModel.hasResolvedCurrentQuery
+                            ? AppTheme.homeSectionSpacing : 0)
                         introductoryContent
                     } else {
                         searchContent
@@ -101,7 +102,11 @@ struct DirectoryHomeView: View {
                 sizing: .responsiveHero,
                 onBannerTap: onFeaturedBannerTap
             )
-        } else {
+        } else if let error = featuredBannerViewModel.error {
+            FeaturedBannerLoadFailureView(error: error) {
+                await featuredBannerViewModel.refresh(for: .directory, federalState: selectedFederalState)
+            }
+        } else if featuredBannerViewModel.hasResolvedCurrentQuery {
             DirectoryWelcomeBanner(onBrowse: onBrowse)
                 .id(languageCode)
         }
@@ -173,9 +178,7 @@ struct DirectoryHomeView: View {
         switch route {
         case let .category(id):
             if let category = DirectoryCatalog.categories.first(where: { $0.id == id }) {
-                if id == "safety" {
-                    DirectorySafetyOverviewView(category: category)
-                } else if id == "first-steps" || id == "registration" {
+                if DirectoryTopicGroups.isComplete(categoryID: id) {
                     DirectoryGuideCategoryView(category: category)
                 } else {
                     DirectoryCategoryView(category: category)
