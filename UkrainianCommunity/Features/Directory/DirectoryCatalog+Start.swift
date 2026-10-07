@@ -42,12 +42,21 @@ extension DirectoryCatalog {
             topic("appointments", "Запис до установ", "Behördentermine")
         ]),
         category("residence", "Статус перебування", "Aufenthalt",
-                 summaryUK: "Підстави й дозволи на проживання", summaryDE: "Status und Aufenthaltstitel",
+                 summaryUK: "Захист, навчання, родина, робота й постійне проживання",
+                 summaryDE: "Schutz, Studium, Familie, Arbeit und Daueraufenthalt",
                  symbol: "person.crop.rectangle", topics: [
+            topic("residence-permits", "З чого почати: віза чи дозвіл?", "Einstieg: Visum oder Aufenthaltstitel?"),
             topic("temporary-protection", "Тимчасовий захист", "Vorübergehender Schutz"),
-            topic("residence-permits", "Дозволи на проживання", "Aufenthaltstitel"),
+            topic("international-protection", "Притулок і субсидіарний захист", "Asyl und subsidiärer Schutz"),
+            topic("student-residence", "Навчання й студентський статус", "Studium und Aufenthaltsbewilligung"),
+            topic("austrian-family", "Шлюб і сім’я громадянина Австрії", "Ehe und Familie österreichischer Staatsbürger"),
+            topic("eu-family", "Родина громадянина ЄС / ЄЕЗ", "Familie von EU- und EWR-Bürgern"),
+            topic("third-country-family", "Возз’єднання з іноземцем", "Familiennachzug zu Drittstaatsangehörigen"),
+            topic("work-residence", "Робочий дозвіл: RWR і Blue Card", "Arbeit: RWR-Karte und Blaue Karte EU"),
             topic("rwr-plus", "Червона-біло-червона картка плюс", "Rot-Weiß-Rot-Karte plus"),
-            topic("status-change", "Зміна статусу", "Statuswechsel")
+            topic("status-change", "Зміна підстави перебування", "Aufenthaltszweck ändern"),
+            topic("residence-renewal", "Продовження дозволу", "Aufenthaltstitel verlängern"),
+            topic("permanent-residence", "Довгострокове проживання", "Daueraufenthalt – EU")
         ]),
         category("documents", "Документи", "Dokumente",
                  summaryUK: "Посвідчення, переклади й копії", summaryDE: "Ausweise, Übersetzungen und Kopien",

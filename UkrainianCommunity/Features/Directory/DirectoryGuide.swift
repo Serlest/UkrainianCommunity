@@ -31,6 +31,7 @@ enum DirectoryGuideCatalog {
         switch categoryID {
         case "first-steps": FirstStepsGuides.guide(for: topicID)
         case "registration": RegistrationGuides.guide(for: topicID)
+        case "residence": ResidenceGuides.guide(for: topicID)
         default: nil
         }
     }

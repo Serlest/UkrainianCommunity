@@ -63,8 +63,8 @@ struct DirectoryCatalogTests {
         #expect(FeaturedBannerVisibleSection(rawValue: "directory") == .directory)
     }
 
-    @Test func firstStepsAndRegistrationTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration"] {
+    @Test func firstStepsRegistrationAndResidenceTopicsHaveCompleteBilingualGuides() {
+        for categoryID in ["first-steps", "registration", "residence"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             for topic in category?.topics ?? [] {
@@ -75,11 +75,18 @@ struct DirectoryCatalogTests {
                 #expect(guide?.cardSummary.ukrainian.isEmpty == false)
                 #expect(guide?.cardSummary.german.isEmpty == false)
                 for section in guide?.sections ?? [] {
+                    #expect(!section.title.ukrainian.isEmpty)
+                    #expect(!section.title.german.isEmpty)
                     #expect(!section.body.ukrainian.isEmpty)
                     #expect(!section.body.german.isEmpty)
                 }
                 for source in guide?.sources ?? [] {
                     #expect(source.url.scheme == "https")
+                    if categoryID == "residence" {
+                        #expect(["bmi.gv.at", "www.bmi.gv.at", "oesterreich.gv.at",
+                                 "www.oesterreich.gv.at", "eausweise.oesterreich.gv.at",
+                                 "www.migration.gv.at"].contains(source.url.host ?? ""))
+                    }
                 }
             }
         }

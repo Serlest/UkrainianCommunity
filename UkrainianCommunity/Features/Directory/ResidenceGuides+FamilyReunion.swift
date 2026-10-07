@@ -1,0 +1,25 @@
+import Foundation
+
+extension ResidenceGuides {
+    static let thirdCountryFamilyGuide = DirectoryGuide(
+        cardSummary: .init(ukrainian: "До власника RWR, Blue Card, студентського чи іншого дозволу", german: "Zu Personen mit RWR-, Blue-Card-, Studierenden- oder anderem Titel"),
+        introduction: .init(ukrainian: "Для возз’єднання зі громадянином третьої країни вид дозволу члена сім’ї залежить від чинного статусу людини в Австрії. Перевірте обидва документи до подання.", german: "Beim Nachzug zu einem Drittstaatsangehörigen hängt der Titel der Familie vom Aufenthaltstitel der Bezugsperson in Österreich ab. Prüfen Sie beide Dokumente vor dem Antrag."),
+        sections: [
+            .init("who", "person.2.fill", "Коло членів сім’ї", "Welche Familienmitglieder",
+                  "У базовому маршруті це подружжя, зареєстровані партнери та неодружені неповнолітні діти, включно з усиновленими й пасинками. Подружжю або партнерам має бути щонайменше 21 рік на час подання. Для фактичних партнерів, батьків і дорослих дітей діють інші, вузькі правила; звичайна сімейна процедура їх автоматично не охоплює.",
+                  "Im regulären Weg sind es Ehegatten, eingetragene Partner und ledige minderjährige Kinder einschließlich Adoptiv- und Stiefkinder. Ehegatten oder Partner müssen bei Antragstellung mindestens 21 Jahre alt sein. Für Lebenspartner, Eltern und erwachsene Kinder gelten andere, engere Regeln; das reguläre Verfahren umfasst sie nicht automatisch."),
+            .init("title", "person.text.rectangle", "Який дозвіл видадуть", "Welcher Titel erteilt wird",
+                  "Для сім’ї власника RWR-картки або Blue Card EU та багатьох осіб з постійним оселенням часто передбачена RWR+ з вільним доступом до роботи. Для сім’ї власника тимчасового студентського дозволу передбачена Aufenthaltsbewilligung – Familiengemeinschaft; її умови й строк залежать від статусу студента. Для інших Niederlassungsbewilligung можуть діяти інші назви та квоти.",
+                  "Familienangehörige von RWR- oder Blue-Card-Inhabern und vielen niedergelassenen Personen können häufig eine RWR-Karte plus mit freiem Arbeitsmarktzugang erhalten. Zur Familie eines Studierenden mit befristeter Bewilligung passt die Aufenthaltsbewilligung – Familiengemeinschaft; Bedingungen und Dauer hängen vom Studierendentitel ab. Bei anderen Niederlassungsbewilligungen können andere Titel und Quoten gelten."),
+            .init("conditions", "checklist", "Кошти, житло, страхування й мова", "Mittel, Unterkunft, Versicherung und Sprache",
+                  "Орган перевіряє родинний зв’язок, паспорт, достатні кошти, страхування та житло; для певних перших заяв потрібна німецька A1 до в’їзду, але існують винятки. Деякі категорії мають квоту, інші — ні. Суми й квоти змінюються, тому користуйтеся поточною офіційною сторінкою саме свого маршруту.",
+                  "Die Behörde prüft Familienbeziehung, Pass, ausreichende Mittel, Versicherung und Unterkunft; für bestimmte Erstanträge ist A1-Deutsch vor Zuwanderung nötig, mit Ausnahmen. Manche Kategorien sind quotenpflichtig, andere nicht. Beträge und Quoten ändern sich; verwenden Sie die aktuelle amtliche Seite Ihres Weges."),
+            .init("process", "building.2", "Де подавати й коли в’їжджати", "Wo beantragen und wann einreisen",
+                  "Першу заяву зазвичай подають особисто в австрійському представництві за кордоном; дозволені винятки для законного перебування в Австрії. Подання всередині країни зазвичай не продовжує візу або безвіз. Підготуйте свідоцтва про шлюб чи народження й уточніть вимоги до перекладів та легалізації.",
+                  "Der Erstantrag wird grundsätzlich persönlich bei einer österreichischen Vertretung im Ausland gestellt; Ausnahmen für rechtmäßigen Aufenthalt im Inland bestehen. Ein Inlandsantrag verlängert Visum oder visumfreie Zeit meist nicht. Bereiten Sie Ehe- oder Geburtsurkunden vor und klären Sie Übersetzung und Beglaubigung."),
+            .init("protection", "shield", "Якщо основний статус — захист", "Wenn die Bezugsperson Schutz hat",
+                  "Сім’я особи з тимчасовим захистом в Україні та сім’я людини з визнаним притулком або субсидіарним захистом підпорядковуються різним правилам. Для переміщеної особи після переходу на RWR+ є окремий шлях возз’єднання без квоти за FAQ BMI. Для притулку / субсидіарного захисту перевірте спеціальні чинні правила та квоти перед заявою.",
+                  "Familien von vorübergehend Vertriebenen und Familien von Asylberechtigten oder subsidiär Schutzberechtigten unterliegen verschiedenen Regeln. Nach dem Umstieg Vertriebener auf RWR-Karte plus nennt die BMI-FAQ einen besonderen quotenfreien Nachzugsweg. Für Asyl und subsidiären Schutz prüfen Sie die aktuellen Sonderregeln und Quoten vor dem Antrag.")
+        ], sources: [thirdCountryFamily, student, protectionTransition, firstApplication]
+    )
+}
