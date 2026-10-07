@@ -12,7 +12,7 @@ enum DirectoryStrings {
     static var startHeading: String { value("Початок в Австрії", "Ankommen in Österreich") }
     static var lifeHeading: String { value("Повсякденне життя", "Alltag") }
     static var supportHeading: String { value("Підтримка та участь", "Unterstützung und Teilhabe") }
-    static var preparing: String { value("Матеріали додаємо після перевірки офіційних джерел.", "Inhalte werden nach Prüfung offizieller Quellen ergänzt.") }
+    static var preparing: String { value("Інші матеріали додаємо після перевірки офіційних джерел.", "Weitere Inhalte werden nach Prüfung offizieller Quellen ergänzt.") }
     static var noResults: String { value("Нічого не знайдено", "Keine Treffer") }
     static var tryAnotherQuery: String { value("Спробуйте інше слово або перегляньте всі теми.", "Versuchen Sie ein anderes Wort oder sehen Sie alle Themen an.") }
     static var topicPending: String { value("Інформація готується", "Informationen in Vorbereitung") }

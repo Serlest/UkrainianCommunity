@@ -173,11 +173,19 @@ struct DirectoryHomeView: View {
         switch route {
         case let .category(id):
             if let category = DirectoryCatalog.categories.first(where: { $0.id == id }) {
-                DirectoryCategoryView(category: category)
+                if id == "safety" {
+                    DirectorySafetyOverviewView(category: category)
+                } else {
+                    DirectoryCategoryView(category: category)
+                }
             }
         case let .topic(categoryID, topicID):
             if let topic = DirectoryCatalog.categories.first(where: { $0.id == categoryID })?.topics.first(where: { $0.id == topicID }) {
-                DirectoryTopicView(topic: topic)
+                if categoryID == "safety", DirectorySafetyContent.publishedTopicIDs.contains(topicID) {
+                    DirectorySafetyTopicView(topic: topic)
+                } else {
+                    DirectoryTopicView(topic: topic)
+                }
             }
         }
     }
