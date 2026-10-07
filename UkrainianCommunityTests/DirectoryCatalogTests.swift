@@ -63,8 +63,8 @@ struct DirectoryCatalogTests {
         #expect(FeaturedBannerVisibleSection(rawValue: "directory") == .directory)
     }
 
-    @Test func firstStepsRegistrationAndResidenceTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration", "residence"] {
+    @Test func publishedDirectoryTopicsHaveCompleteBilingualGuides() {
+        for categoryID in ["first-steps", "registration", "residence", "documents"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             for topic in category?.topics ?? [] {
@@ -79,6 +79,9 @@ struct DirectoryCatalogTests {
                     #expect(!section.title.german.isEmpty)
                     #expect(!section.body.ukrainian.isEmpty)
                     #expect(!section.body.german.isEmpty)
+                    if let source = section.source {
+                        #expect(source.url.scheme == "https")
+                    }
                 }
                 for source in guide?.sources ?? [] {
                     #expect(source.url.scheme == "https")
@@ -90,5 +93,14 @@ struct DirectoryCatalogTests {
                 }
             }
         }
+    }
+
+    @Test func nearbyConsulatesHaveDirectOfficialLinks() {
+        let guide = DocumentGuides.guide(for: "consulates-nearby")
+        #expect(guide?.sections.count == 8)
+        for section in guide?.sections ?? [] {
+            #expect(section.source?.url.host == "mfa.gov.ua")
+        }
+        #expect(DocumentGuides.guide(for: "consulate-austria")?.sections.first?.source?.url.host == "mfa.gov.ua")
     }
 }

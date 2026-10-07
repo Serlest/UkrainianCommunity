@@ -24,6 +24,13 @@ struct DirectoryGuideTopicView: View {
                         Text(section.body.value(for: language))
                             .foregroundStyle(AppTheme.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
+                        if let source = section.source {
+                            Link(destination: source.url) {
+                                Label(source.name, systemImage: "arrow.up.right.square")
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .accessibilityIdentifier("directory.source.\(section.id)")
+                        }
                         if let number = section.phoneNumber,
                            let url = URL(string: "tel:\(number.replacingOccurrences(of: " ", with: ""))") {
                             Link(destination: url) {

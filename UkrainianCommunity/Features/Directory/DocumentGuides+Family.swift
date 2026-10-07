@@ -1,0 +1,64 @@
+import Foundation
+
+extension DocumentGuides {
+    static let childDocuments = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Народження в Австрії, громадянство й паспорт дитини", german: "Geburt in Österreich, Staatsangehörigkeit und Kinderpass"),
+        introduction: .init(ukrainian: "Австрійське свідоцтво про народження, підтвердження українського громадянства та паспорт дитини вирішують різні завдання.", german: "Österreichische Geburtsurkunde, Nachweis ukrainischer Staatsangehörigkeit und Kinderpass erfüllen verschiedene Zwecke."),
+        sections: [
+            .init("birth", "cross.case", "Народження в Австрії", "Geburt in Österreich",
+                  "Народження реєструють в австрійському Standesamt за місцем народження. Підготуйте документи батьків, відомості про шлюб або батьківство, ім’я дитини; лікарня часто передає повідомлення про народження. Попросіть Geburtsurkunde та уточніть, чи потрібен багатомовний витяг для подальших процедур.",
+                  "Die Geburt wird beim österreichischen Standesamt des Geburtsorts beurkundet. Bereiten Sie Elternurkunden, Angaben zu Ehe oder Elternschaft und den Namen des Kindes vor; das Krankenhaus meldet die Geburt oft bereits. Beantragen Sie die Geburtsurkunde und fragen Sie nach einem mehrsprachigen Auszug für weitere Verfahren."),
+            .init("citizenship", "globe.europe.africa", "Українське громадянство", "Ukrainische Staatsangehörigkeit",
+                  "Якщо один із батьків мав громадянство України на момент народження, дитина набуває його за походженням. Для паспорта зверніться до установи України за консульським округом. Від 16 січня 2026 року консульства не оформлюють окрему довідку про реєстрацію громадянства, коли обоє батьків українці; якщо один з батьків іноземець, довідка може бути потрібна. Перевірте перелік для вашої сім’ї.",
+                  "War ein Elternteil bei der Geburt ukrainischer Staatsbürger, erwirbt das Kind die Staatsangehörigkeit durch Abstammung. Für den Pass wenden Sie sich an die zuständige ukrainische Vertretung. Seit 16. Januar 2026 stellen Konsulate bei zwei ukrainischen Eltern keine gesonderte Registrierungsbescheinigung mehr aus; bei einem ausländischen Elternteil kann sie nötig sein. Prüfen Sie die Liste für Ihre Familie."),
+            .init("passport", "airplane", "Паспорт дитини", "Reisepass für das Kind",
+                  "Для закордонного паспорта до 16 років заяву подає один із батьків або законний представник. Зазвичай потрібні свідоцтво про народження, документи представника та попередній паспорт дитини, якщо він є. Австрійське свідоцтво для подання до української установи може потребувати апостиля й засвідченого перекладу українською; уточніть вимоги до конкретного документа.",
+                  "Für den ukrainischen Pass unter 16 Jahren stellt ein Elternteil oder gesetzlicher Vertreter den Antrag. Regelmäßig nötig sind Geburtsurkunde, Vertreterdokumente und ein früherer Kinderpass, soweit vorhanden. Die österreichische Geburtsurkunde kann für die ukrainische Vertretung Apostille und beglaubigte ukrainische Übersetzung erfordern; klären Sie den konkreten Fall."),
+            .init("travel", "person.2", "Перед поїздкою з дитиною", "Vor einer Reise mit Kind",
+                  "Перевірте строк паспорта дитини й правила в’їзду країни призначення. Якщо прізвища батька і дитини різні або подорожує лише один дорослий, підготуйте документи про спорідненість та з’ясуйте вимоги країни маршруту до згоди другого з батьків. Свідоцтво про народження саме по собі не є універсальним проїзним документом.",
+                  "Prüfen Sie Passgültigkeit und Einreiseregeln des Ziellandes. Bei unterschiedlichen Nachnamen oder Reise mit nur einem Elternteil halten Sie Verwandtschaftsnachweise bereit und prüfen Sie die Regeln der Reiseländer zur Zustimmung des anderen Elternteils. Eine Geburtsurkunde ist kein allgemeines Reisedokument.")
+        ], sources: [birthAT, childPassport, passportActions,
+                     DirectorySource(name: "МЗС України · РНОКПП і громадянство дітей", url: "https://mfa.gov.ua/consul/forua/oformlennya-kartki-platnika-podatkiv-rnokpp/oformlennya-kartki-platnika-podatkiv-rnokpp-dlya-ditej-vikom-do-18-rokiv-odnim-z-batkiv")]
+    )
+
+    static let records = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Повторне свідоцтво про народження, шлюб, смерть і витяг", german: "Neue Geburts-, Ehe-, Sterbeurkunde und Registerauszug"),
+        introduction: .init(ukrainian: "Втрачений український актовий документ часто можна отримати повторно. Дублікат має таку саму юридичну силу, як первинне свідоцтво.", german: "Eine verlorene ukrainische Personenstandsurkunde kann oft erneut ausgestellt werden. Ein Duplikat hat dieselbe Rechtswirkung wie die erste Urkunde."),
+        sections: [
+            .init("choose", "doc.text", "Свідоцтво чи витяг", "Urkunde oder Registerauszug",
+                  "ДРАЦС видає повторні свідоцтва про народження, шлюб, смерть, зміну імені та інші акти, а також витяги з державного реєстру. Перед заявою спитайте приймаючу установу, чи потрібне саме повторне свідоцтво, повний витяг або окрема довідка; вони містять різні дані.",
+                  "Das ukrainische Personenstandsregister stellt neue Urkunden über Geburt, Ehe, Tod, Namensänderung und weitere Ereignisse sowie Registerauszüge aus. Fragen Sie die empfangende Behörde vorab, ob sie eine neue Urkunde, einen vollständigen Auszug oder eine besondere Bescheinigung braucht; der Inhalt unterscheidet sich."),
+            .init("where", "building.2", "Де отримати за кордоном", "Ausstellung im Ausland",
+                  "МЗС наділило низку закордонних установ додатковими повноваженнями для видачі повторних українських свідоцтв і витягів; у списку є Відень, Мюнхен та Мілан. Перевірте, чи саме потрібна дія доступна в обраній установі, її консульський округ, запис і можливість представництва. В Україні звертаються до ДРАЦС або доступних державних сервісів.",
+                  "Das ukrainische Außenministerium ermächtigte bestimmte Auslandsvertretungen zur Ausstellung neuer ukrainischer Urkunden und Auszüge; Wien, München und Mailand stehen auf der Liste. Prüfen Sie Leistung, Konsularbezirk, Termin und Vertretungsmöglichkeit bei der gewünschten Stelle. In der Ukraine sind die Standesämter und verfügbare staatliche Dienste zuständig."),
+            .init("details", "list.bullet.rectangle", "Дані для пошуку запису", "Daten für die Registersuche",
+                  "Підготуйте документ особи, ПІБ на час події, дату й місце народження чи шлюбу, дані батьків або подружжя та старе свідоцтво, якщо є. При зміні прізвища додайте документ, який пов’язує попередні й нові дані. Точний перелік визначає консульська послуга.",
+                  "Halten Sie Ausweis, Namen zur Zeit des Ereignisses, Datum und Ort von Geburt oder Ehe, Angaben zu Eltern oder Ehegatten und vorhandene alte Urkunden bereit. Bei Namensänderung legen Sie die Verbindung zwischen alten und neuen Daten bei. Die konkrete Liste legt die Konsularleistung fest."),
+            .init("use-austria", "seal", "Перед замовленням для Австрії", "Vor Bestellung für Österreich",
+                  "Якщо свідоцтво потрібне австрійському органу, спершу запитайте, чи прийме він дублікат, виданий консульством: на документи дипломатичних установ Гаазький апостиль не ставлять. Якщо орган вимагає апостиль, може знадобитися український документ від ДРАЦС з апостилем Мін’юсту України та належним перекладом.",
+                  "Benötigen Sie die Urkunde für eine österreichische Stelle, fragen Sie zuerst, ob eine konsularisch ausgestellte Zweitschrift akzeptiert wird: Urkunden diplomatischer Vertretungen erhalten keine Haager Apostille. Wird eine Apostille verlangt, kann eine in der Ukraine ausgestellte Registerurkunde mit Apostille des Justizministeriums und passender Übersetzung nötig sein."),
+            .init("foreign", "globe.europe.africa", "Якщо подія сталася в Австрії", "Wenn das Ereignis in Österreich stattfand",
+                  "Австрійське свідоцтво видає австрійський Standesamt, а не український ДРАЦС. Для використання в Україні може знадобитися апостиль від компетентного австрійського органу та переклад українською. МЗС України зазначає: якщо акт уже зареєстрований органом країни перебування, консульство повторно його не реєструє.",
+                  "Eine österreichische Urkunde stellt das österreichische Standesamt aus, nicht das ukrainische Register. Für die Verwendung in der Ukraine können Apostille der zuständigen österreichischen Stelle und ukrainische Übersetzung nötig sein. Laut ukrainischem MFA wird ein bereits im Aufenthaltsstaat registriertes Ereignis konsularisch nicht erneut beurkundet.")
+        ], sources: [civilRecords, civilRegistration, birthAT, austrianApostille]
+    )
+
+    static let names = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Як підтвердити нове прізвище й послідовно оновити документи", german: "Neuen Namen belegen und Dokumente geordnet aktualisieren"),
+        introduction: .init(ukrainian: "Після шлюбу чи зміни імені важливо мати документальний зв’язок між старим і новим написанням. Шлюб не змінює громадянство й статус перебування автоматично.", german: "Nach Ehe oder Namensänderung ist der Nachweis zwischen alter und neuer Schreibweise wichtig. Eine Ehe ändert Staatsangehörigkeit oder Aufenthaltsstatus nicht automatisch."),
+        sections: [
+            .init("proof", "doc.text", "Збережіть підтвердження зміни", "Namensänderung nachweisen",
+                  "Тримайте оригінал свідоцтва про шлюб, зміни імені чи рішення про розлучення. Для австрійського документа, який подаватимете в Україні, спитайте про апостиль і переклад. Для українського документа в Австрії спитайте відповідний орган про апостиль та засвідчений переклад.",
+                  "Bewahren Sie die Ehe-, Namensänderungs- oder Scheidungsurkunde im Original auf. Für österreichische Urkunden zur Verwendung in der Ukraine klären Sie Apostille und Übersetzung. Für ukrainische Urkunden in Österreich fragen Sie die empfangende Behörde nach Apostille und beglaubigter Übersetzung."),
+            .init("order", "arrow.right.circle", "У якому порядку міняти", "Reihenfolge beim Austausch",
+                  "Якщо прізвище справді змінено, перевірте порядок обміну українського внутрішнього паспорта / ID і закордонного паспорта на сторінці МЗС або ДМС. Для громадян, які тимчасово перебувають за кордоном і зареєстровані в Україні, консульство не оформлює внутрішню ID; закордонний паспорт після зміни даних може залежати від оновлення внутрішнього документа. Уточніть чинний порядок для вашого статусу до поїздки.",
+                  "Wurde der Nachname tatsächlich geändert, prüfen Sie die Reihenfolge für ukrainischen Inlandspass/ID und Reisepass bei Außenministerium oder DMS. Für vorübergehend im Ausland lebende und in der Ukraine gemeldete Bürger stellt die Botschaft keine Inlandskarte aus; der Reisepass nach Datenänderung kann einen aktualisierten Inlandspass voraussetzen. Klären Sie die aktuelle Reihenfolge für Ihren Status vor der Reise."),
+            .init("austria", "person.text.rectangle", "Оновіть австрійські записи", "Österreichische Daten aktualisieren",
+                  "Повідомте правильне ім’я органу, який видав ваш Aufenthaltstitel чи картку захисту, а також роботодавцю, страховій касі, банку й іншим установам, де зберігаються ваші дані. Запитайте, чи потрібна нова картка, і зберігайте підтвердження зміни прізвища до її отримання.",
+                  "Melden Sie den richtigen Namen der Stelle, die Ihren Aufenthaltstitel oder Schutzausweis ausstellte, sowie Arbeitgeber, Krankenkasse, Bank und anderen datenspeichernden Stellen. Fragen Sie, ob eine neue Karte nötig ist, und bewahren Sie den Namensnachweis bis zur Ausstellung auf."),
+            .init("spelling", "textformat.abc", "Різна транслітерація", "Unterschiedliche Schreibweisen",
+                  "Якщо латинське написання імені відрізняється між паспортом, дипломом і свідоцтвом, не змінюйте документ навмання. Покажіть установі весь ланцюг документів і запитайте, чи достатньо підтвердження особи, перекладу або офіційного виправлення.",
+                  "Weicht die lateinische Schreibweise zwischen Pass, Diplom und Urkunde ab, ändern Sie kein Dokument auf Verdacht. Legen Sie der Behörde die Nachweiskette vor und klären Sie, ob Identitätsnachweis, Übersetzung oder amtliche Berichtigung nötig ist.")
+        ], sources: [nameChange, passportActions, inlandID, austrianApostille]
+    )
+}

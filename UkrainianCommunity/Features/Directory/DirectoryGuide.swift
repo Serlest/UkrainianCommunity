@@ -6,14 +6,17 @@ struct DirectoryGuideSection: Identifiable {
     let title: DirectoryText
     let body: DirectoryText
     let phoneNumber: String?
+    let source: DirectorySource?
 
     init(_ id: String, _ symbol: String, _ titleUK: String, _ titleDE: String,
-         _ bodyUK: String, _ bodyDE: String, phoneNumber: String? = nil) {
+         _ bodyUK: String, _ bodyDE: String, phoneNumber: String? = nil,
+         source: DirectorySource? = nil) {
         self.id = id
         self.symbol = symbol
         title = DirectoryText(ukrainian: titleUK, german: titleDE)
         body = DirectoryText(ukrainian: bodyUK, german: bodyDE)
         self.phoneNumber = phoneNumber
+        self.source = source
     }
 }
 
@@ -32,6 +35,7 @@ enum DirectoryGuideCatalog {
         case "first-steps": FirstStepsGuides.guide(for: topicID)
         case "registration": RegistrationGuides.guide(for: topicID)
         case "residence": ResidenceGuides.guide(for: topicID)
+        case "documents": DocumentGuides.guide(for: topicID)
         default: nil
         }
     }
