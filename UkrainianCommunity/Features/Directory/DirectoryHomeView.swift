@@ -175,6 +175,8 @@ struct DirectoryHomeView: View {
             if let category = DirectoryCatalog.categories.first(where: { $0.id == id }) {
                 if id == "safety" {
                     DirectorySafetyOverviewView(category: category)
+                } else if id == "first-steps" || id == "registration" {
+                    DirectoryGuideCategoryView(category: category)
                 } else {
                     DirectoryCategoryView(category: category)
                 }
@@ -183,6 +185,8 @@ struct DirectoryHomeView: View {
             if let topic = DirectoryCatalog.categories.first(where: { $0.id == categoryID })?.topics.first(where: { $0.id == topicID }) {
                 if categoryID == "safety", DirectorySafetyContent.publishedTopicIDs.contains(topicID) {
                     DirectorySafetyTopicView(topic: topic)
+                } else if let guide = DirectoryGuideCatalog.guide(categoryID: categoryID, topicID: topicID) {
+                    DirectoryGuideTopicView(categoryID: categoryID, topic: topic, guide: guide)
                 } else {
                     DirectoryTopicView(topic: topic)
                 }

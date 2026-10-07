@@ -9,13 +9,6 @@ struct SafetyContact: Identifiable {
     var phoneURL: URL { URL(string: "tel:\(number.replacingOccurrences(of: " ", with: ""))")! }
 }
 
-struct SafetySource: Identifiable {
-    let name: String
-    let url: URL
-
-    var id: String { url.absoluteString }
-}
-
 enum DirectorySafetyContent {
     static let publishedTopicIDs: Set<String> = ["emergency", "domestic-violence"]
     static let reviewedOn = "07.10.2026"
@@ -45,16 +38,16 @@ enum DirectorySafetyContent {
         detail: .init(ukrainian: "Консультація і підтримка після насильства", german: "Beratung und Unterstützung nach Gewalt")
     )
 
-    static let emergencySource = SafetySource(
+    static let emergencySource = DirectorySource(
         name: "oesterreich.gv.at · Notrufnummern",
-        url: URL(string: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/notrufnummern")!
+        url: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/notrufnummern"
     )
-    static let violenceSource = SafetySource(
+    static let violenceSource = DirectorySource(
         name: "oesterreich.gv.at · Häusliche Gewalt",
-        url: URL(string: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/2/Seite.290501")!
+        url: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/2/Seite.290501"
     )
-    static let supportSource = SafetySource(
+    static let supportSource = DirectorySource(
         name: "Gewaltschutzzentren Österreich · Українською",
-        url: URL(string: "https://www.gewaltschutzzentrum.at/uk/%D0%B7%D0%B0%D0%B3%D0%B0%D0%BB%D1%8C%D0%BD%D1%96-%D0%BA%D0%BE%D0%BD%D1%81%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%86%D1%96%D1%97-%D1%82%D0%B0-%D0%BF%D1%96%D0%B4%D1%82%D1%80%D0%B8%D0%BC%D0%BA%D0%B0/")!
+        url: "https://www.gewaltschutzzentrum.at/uk/%D0%B7%D0%B0%D0%B3%D0%B0%D0%BB%D1%8C%D0%BD%D1%96-%D0%BA%D0%BE%D0%BD%D1%81%D1%83%D0%BB%D1%8C%D1%82%D0%B0%D1%86%D1%96%D1%97-%D1%82%D0%B0-%D0%BF%D1%96%D0%B4%D1%82%D1%80%D0%B8%D0%BC%D0%BA%D0%B0/"
     )
 }

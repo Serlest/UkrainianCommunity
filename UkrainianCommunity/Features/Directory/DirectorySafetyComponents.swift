@@ -48,28 +48,3 @@ struct SafetyCallButton: View {
         .accessibilityIdentifier("directory.call.\(contact.number)")
     }
 }
-
-struct SafetySourcesView: View {
-    let sources: [SafetySource]
-    let language: AppLanguage
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(DirectoryText(ukrainian: "Офіційні джерела", german: "Offizielle Quellen").value(for: language))
-                .font(.headline)
-            ForEach(sources) { source in
-                Link(destination: source.url) {
-                    Label(source.name, systemImage: "arrow.up.right.square")
-                        .font(.subheadline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-            Text(DirectoryText(
-                ukrainian: "Посилання та номери перевірено \(DirectorySafetyContent.reviewedOn).",
-                german: "Links und Nummern geprüft am \(DirectorySafetyContent.reviewedOn)."
-            ).value(for: language))
-                .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
-        }
-    }
-}

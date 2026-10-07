@@ -19,9 +19,10 @@ extension DirectoryCatalog {
             topic("initial-support", "Початкова підтримка", "Erste Unterstützung")
         ]),
         category("registration", "Реєстрація", "Anmeldung",
-                 summaryUK: "Адреса й офіційні записи", summaryDE: "Wohnsitz und Behördentermine",
+                 summaryUK: "Адреса, тимчасовий захист і записи", summaryDE: "Wohnsitz, Schutz und Behördentermine",
                  symbol: "checklist", topics: [
             topic("residence-registration", "Реєстрація адреси", "Wohnsitz anmelden"),
+            topic("protection-registration", "Реєстрація для тимчасового захисту", "Erfassung für vorübergehenden Schutz"),
             topic("address-change", "Зміна адреси", "Adressänderung"),
             topic("appointments", "Запис до установ", "Behördentermine")
         ]),

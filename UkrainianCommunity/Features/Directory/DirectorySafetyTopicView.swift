@@ -18,11 +18,12 @@ struct DirectorySafetyTopicView: View {
                     .foregroundStyle(AppTheme.textSecondary)
 
                 if isEmergency { emergencyContent } else { violenceContent }
-                SafetySourcesView(
+                DirectorySourceListView(
                     sources: isEmergency
                         ? [DirectorySafetyContent.emergencySource]
                         : [DirectorySafetyContent.violenceSource, DirectorySafetyContent.supportSource],
-                    language: language
+                    language: language,
+                    checkedOn: DirectorySafetyContent.reviewedOn
                 )
             }
             .padding(.horizontal, AppTheme.pageHorizontal)

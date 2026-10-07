@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import UkrainianCommunity
 
@@ -37,5 +38,27 @@ struct DirectoryCatalogTests {
         #expect(FeaturedBannerVisibleSection.supportedCases.contains(.directory))
         #expect(FeaturedBannerVisibleSection(rawValue: "guide") == .unsupportedLegacy)
         #expect(FeaturedBannerVisibleSection(rawValue: "directory") == .directory)
+    }
+
+    @Test func firstStepsAndRegistrationTopicsHaveCompleteBilingualGuides() {
+        for categoryID in ["first-steps", "registration"] {
+            let category = DirectoryCatalog.categories.first { $0.id == categoryID }
+            #expect(category != nil)
+            for topic in category?.topics ?? [] {
+                let guide = DirectoryGuideCatalog.guide(categoryID: categoryID, topicID: topic.id)
+                #expect(guide != nil)
+                #expect(guide?.sections.isEmpty == false)
+                #expect(guide?.sources.isEmpty == false)
+                #expect(guide?.cardSummary.ukrainian.isEmpty == false)
+                #expect(guide?.cardSummary.german.isEmpty == false)
+                for section in guide?.sections ?? [] {
+                    #expect(!section.body.ukrainian.isEmpty)
+                    #expect(!section.body.german.isEmpty)
+                }
+                for source in guide?.sources ?? [] {
+                    #expect(source.url.scheme == "https")
+                }
+            }
+        }
     }
 }
