@@ -27,13 +27,13 @@ struct DirectoryGuideTopicView: View {
                         if let number = section.phoneNumber,
                            let url = URL(string: "tel:\(number.replacingOccurrences(of: " ", with: ""))") {
                             Link(destination: url) {
-                                Label("BBU · \(number)", systemImage: "phone.fill")
+                                Label(number, systemImage: "phone.fill")
                                     .font(.subheadline.weight(.semibold))
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .padding(12)
                                     .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 12))
                             }
-                            .accessibilityIdentifier("directory.call.bbu")
+                            .accessibilityIdentifier("directory.call.\(section.id)")
                         }
                     }
                 }

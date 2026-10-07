@@ -12,39 +12,39 @@ enum FirstStepsGuides {
         case "arrival": arrival
         case "checklist": checklist
         case "initial-support": support
+        case "health-insurance": healthInsurance
+        case "children": children
+        case "work-language": workLanguage
         default: nil
         }
     }
 
     private static let arrival = DirectoryGuide(
-        cardSummary: .init(ukrainian: "Житло, адреса й статус після прибуття", german: "Unterkunft, Adresse und Status nach Ankunft"),
-        introduction: .init(ukrainian: "Почніть із безпечного місця для проживання. Наступні дії залежать від вашої ситуації та підстави перебування.",
-                            german: "Sorgen Sie zuerst für eine sichere Unterkunft. Die nächsten Schritte hängen von Ihrer Situation und Ihrem Aufenthaltsgrund ab."),
+        cardSummary: .init(ukrainian: "Приватне житло або перевірка місць через BBU", german: "Private Unterkunft oder freie Plätze bei der BBU prüfen"),
+        introduction: .init(ukrainian: "Спочатку з’ясуйте, де безпечно переночувати. Наявність організованого житла потрібно перевіряти перед поїздкою.",
+                            german: "Klären Sie zuerst, wo Sie sicher übernachten können. Prüfen Sie organisierte Unterkünfte vor der Anreise."),
         sections: [
             .init("shelter", "house.fill", "Де жити сьогодні", "Unterkunft für heute",
-                  "Якщо у вас немає житла й ви прибули з України, перевірте актуальні можливості первинного прийому на сайті BBU або зателефонуйте на їхню лінію +43 1 2676 870 9460. Місця та умови змінюються; не вирушайте до центру без перевірки.",
-                  "Wenn Sie aus der Ukraine kommen und keine Unterkunft haben, prüfen Sie die aktuellen Erstankunftsmöglichkeiten bei der BBU oder rufen Sie +43 1 2676 870 9460 an. Plätze und Bedingungen ändern sich; prüfen Sie sie vor der Anreise.", phoneNumber: "+43 1 2676 870 9460"),
+                  "Якщо ви прибули з України без житла, відкрийте актуальні можливості первинного прийому на сайті BBU або телефонуйте +43 1 2676 870 9460. Місць мало; очікування організованого житла може тривати кілька днів. Не вирушайте до центру без перевірки доступності.",
+                  "Wenn Sie aus der Ukraine ohne Unterkunft ankommen, prüfen Sie die Erstankunftsmöglichkeiten bei der BBU oder rufen Sie +43 1 2676 870 9460 an. Plätze sind knapp; auf eine organisierte Unterkunft kann man mehrere Tage warten. Prüfen Sie die Verfügbarkeit vor der Anreise.", phoneNumber: "+43 1 2676 870 9460"),
             .init("address", "mappin.and.ellipse", "Фактична адреса", "Tatsächliche Wohnadresse",
-                  "Коли ви заселилися, дізнайтеся, хто підписує Meldezettel, і зареєструйте адресу в установлені три дні. Для короткого перебування до трьох днів діє виняток. Деталі є в окремому розділі «Реєстрація».",
-                  "Nach dem Einzug klären Sie, wer den Meldezettel unterschreibt, und melden die Adresse innerhalb von drei Tagen an. Für Aufenthalte bis zu drei Tagen gibt es eine Ausnahme. Details stehen im Bereich „Anmeldung“."),
-            .init("protection", "person.crop.rectangle", "Якщо ви шукаєте захисту з України", "Wenn Sie Schutz aus der Ukraine suchen",
-                  "Для посвідчення переміщеної особи потрібна окрема реєстрація в поліції. Перевірте пункт прийому, години та потребу в записі на сторінці BMI. Візьміть паспорт та інші документи, які маєте; звернутися можна і без повного комплекту.",
-                  "Für den Ausweis für Vertriebene ist eine gesonderte Erfassung durch die Polizei nötig. Prüfen Sie Stelle, Öffnungszeiten und Terminpflicht beim BMI. Nehmen Sie vorhandene Ausweise und Urkunden mit; die Erfassung ist auch ohne vollständige Unterlagen möglich."),
-            .init("next", "arrow.forward.circle.fill", "Що далі", "Danach",
-                  "Якщо потрібна базова підтримка, уточніть подання заяви у вашій федеральній землі. Для мовних курсів і орієнтації можна звернутися до Австрійського інтеграційного фонду (ÖIF).",
-                  "Wenn Sie Grundversorgung benötigen, klären Sie den Antrag in Ihrem Bundesland. Für Deutschkurse und Orientierung können Sie sich an den Österreichischen Integrationsfonds (ÖIF) wenden.")
+                  "Якщо ви оселилися приватно, уточніть, хто підпише Meldezettel. Після фактичного заселення зареєструйте адресу протягом трьох днів; докладні кроки є в розділі «Реєстрація».",
+                  "Bei privater Unterkunft klären Sie, wer den Meldezettel unterschreibt. Melden Sie die Adresse binnen drei Tagen nach dem tatsächlichen Einzug; die Schritte stehen im Bereich „Anmeldung“."),
+            .init("medical", "cross.case.fill", "Якщо потрібна невідкладна медична допомога", "Bei einem medizinischen Notfall",
+                  "Телефонуйте 144 або 112. Невідкладну допомогу нададуть і до оформлення документів, але витрати не завжди покриваються автоматично. Повідомте лікарні, що ви щойно прибули, і якнайшвидше уточніть страхування та можливість базового забезпечення.",
+                  "Rufen Sie 144 oder 112 an. Notfallversorgung ist auch vor der Registrierung möglich, die Kosten werden aber nicht automatisch übernommen. Sagen Sie dem Krankenhaus, dass Sie gerade angekommen sind, und klären Sie Versicherung und Grundversorgung so bald wie möglich.")
         ],
-        sources: [bbu, housing, police, integration]
+        sources: [bbu, bbuUK, housing]
     )
 
     private static let checklist = DirectoryGuide(
-        cardSummary: .init(ukrainian: "Кроки на перші дні в Австрії", german: "Schritte für die ersten Tage in Österreich"),
-        introduction: .init(ukrainian: "Послідовність для першого часу. Виконуйте лише ті кроки, які стосуються вашої ситуації.",
-                            german: "Eine Reihenfolge für die erste Zeit. Gehen Sie nur die Schritte durch, die auf Ihre Situation zutreffen."),
+        cardSummary: .init(ukrainian: "Адреса, поліція, підтримка й наступні звернення", german: "Adresse, Polizei, Versorgung und weitere Wege"),
+        introduction: .init(ukrainian: "Орієнтир для людей, які прибули з України. Реєстрація адреси, поліцейська реєстрація та заява на допомогу — три різні дії.",
+                            german: "Orientierung für Menschen aus der Ukraine. Wohnsitzmeldung, polizeiliche Erfassung und Antrag auf Grundversorgung sind drei verschiedene Schritte."),
         sections: [
             .init("one", "1.circle.fill", "1. Знайдіть житло", "1. Unterkunft klären",
-                  "Маєте приватне житло — уточніть у людини, яка його надає, порядок підписання Meldezettel. Не маєте житла після прибуття з України — зверніться до BBU щодо актуальних можливостей.",
-                  "Bei privater Unterkunft klären Sie mit der Unterkunftgeberin oder dem Unterkunftgeber die Unterschrift auf dem Meldezettel. Ohne Unterkunft nach der Ankunft aus der Ukraine fragen Sie bei der BBU nach aktuellen Möglichkeiten."),
+                  "Маєте приватне житло — уточніть, хто підпише Meldezettel. Не маєте житла — перевірте актуальні можливості первинного прийому в BBU, перш ніж їхати до центру.",
+                  "Bei privater Unterkunft klären Sie die Unterschrift auf dem Meldezettel. Ohne Unterkunft prüfen Sie bei der BBU die aktuellen Erstankunftsmöglichkeiten vor der Anreise."),
             .init("two", "2.circle.fill", "2. Зареєструйте адресу", "2. Wohnadresse anmelden",
                   "Після фактичного заселення подайте Meldezettel до відповідного Gemeindeamt або Magistrat упродовж трьох днів. Збережіть підтвердження реєстрації.",
                   "Melden Sie nach dem tatsächlichen Einzug Ihre Adresse binnen drei Tagen beim zuständigen Gemeindeamt oder Magistrat an. Bewahren Sie die Meldebestätigung auf."),
@@ -52,29 +52,35 @@ enum FirstStepsGuides {
                   "Якщо ви маєте право на тимчасовий захист як переміщена особа з України, пройдіть реєстрацію в поліції. Це окрема процедура від реєстрації адреси. За інших підстав перевіряйте правила свого статусу в компетентному органі.",
                   "Wenn Sie als aus der Ukraine vertriebene Person Anspruch auf vorübergehenden Schutz haben, lassen Sie sich polizeilich erfassen. Das ist ein anderer Vorgang als die Wohnsitzmeldung. Bei anderen Aufenthaltsgründen gelten die Regeln des jeweiligen Status."),
             .init("four", "4.circle.fill", "4. Запитайте про підтримку", "4. Unterstützung klären",
-                  "Якщо ви потребуєте допомоги, з'ясуйте умови Grundversorgung у федеральній землі проживання. ÖIF допомагає з орієнтацією та курсами німецької мови.",
-                  "Wenn Sie Hilfe benötigen, erkundigen Sie sich in Ihrem Bundesland nach Grundversorgung. Der ÖIF unterstützt bei Orientierung und Deutschkursen."),
-            .init("five", "5.circle.fill", "5. Плануйте наступні звернення", "5. Weitere Wege planen",
-                  "Перевірте страхування, школу чи догляд за дітьми та можливості роботи відповідно до вашого статусу. Зберігайте отримані підтвердження й листи від установ.",
-                  "Prüfen Sie Versicherung, Schule oder Kinderbetreuung und Arbeitsmöglichkeiten passend zu Ihrem Status. Bewahren Sie Bestätigungen und Schreiben von Behörden auf.")
+                  "Якщо потрібні гроші, житло чи страхування, дізнайтеся, як подати заяву на Grundversorgung у вашій федеральній землі. Поліцейська реєстрація сама по собі не є заявою на допомогу.",
+                  "Wenn Sie Geld, Unterkunft oder Versicherung benötigen, klären Sie den Antrag auf Grundversorgung in Ihrem Bundesland. Die polizeiliche Erfassung ist noch kein Antrag auf Hilfe."),
+            .init("five", "5.circle.fill", "5. Перевірте медичне страхування", "5. Krankenversicherung prüfen",
+                  "Тимчасовий захист сам по собі не дає автоматичного медичного страхування. З’ясуйте, чи ви застраховані через роботу, члена сім’ї, самостійно або в межах Grundversorgung.",
+                  "Vorübergehender Schutz allein bewirkt keine automatische Krankenversicherung. Prüfen Sie Versicherung durch Arbeit, Angehörige, Selbstversicherung oder Grundversorgung."),
+            .init("six", "6.circle.fill", "6. Діти, робота й мова", "6. Kinder, Arbeit und Deutsch",
+                  "Для дітей уточніть школу чи дитсадок. Для пошуку роботи зверніться до AMS, для курсів німецької й орієнтації — до ÖIF. Зберігайте документи та листи від установ.",
+                  "Klären Sie Schule oder Kindergarten für Kinder. Für die Arbeitssuche wenden Sie sich an das AMS, für Deutschkurse und Orientierung an den ÖIF. Bewahren Sie Unterlagen und Behördenschreiben auf.")
         ],
-        sources: [bbu, police, integration]
+        sources: [bbu, bbuUK, police, integration]
     )
 
     private static let support = DirectoryGuide(
-        cardSummary: .init(ukrainian: "Житло, базова підтримка й консультації", german: "Unterkunft, Grundversorgung und Beratung"),
-        introduction: .init(ukrainian: "Якщо потрібні житло, орієнтація або допомога з наступними кроками, почніть з відповідної офіційної служби.",
-                            german: "Wenn Sie Unterkunft, Orientierung oder Hilfe bei den nächsten Schritten brauchen, wenden Sie sich an die passende offizielle Stelle."),
+        cardSummary: .init(ukrainian: "Заява на Grundversorgung і контакти служб", german: "Antrag auf Grundversorgung und Anlaufstellen"),
+        introduction: .init(ukrainian: "Якщо власних коштів або житла не вистачає, дізнайтеся про базове забезпечення у федеральній землі проживання.",
+                            german: "Wenn eigene Mittel oder Unterkunft nicht ausreichen, informieren Sie sich über Grundversorgung in Ihrem Bundesland."),
         sections: [
             .init("bbu", "phone.fill", "Прибуття й житло: BBU", "Ankunft und Unterkunft: BBU",
-                  "BBU публікує актуальну інформацію для людей, які прибули з України, та має лінію +43 1 2676 870 9460. На сайті є матеріали українською. Наявність місць для проживання потрібно перевіряти безпосередньо.",
-                  "Die BBU veröffentlicht aktuelle Informationen für Menschen aus der Ukraine und ist unter +43 1 2676 870 9460 erreichbar. Verfügbare Unterkünfte sollten Sie direkt prüfen.", phoneNumber: "+43 1 2676 870 9460"),
+                  "Якщо немає де переночувати, телефонуйте BBU +43 1 2676 870 9460 і перевірте поточні місця прийому на сайті. Наявність місця не гарантована; на організоване житло іноді доводиться чекати.",
+                  "Wenn Sie keinen Schlafplatz haben, rufen Sie die BBU unter +43 1 2676 870 9460 an und prüfen Sie die aktuellen Aufnahmestellen. Ein Platz ist nicht garantiert; auf organisierte Unterkunft muss man mitunter warten.", phoneNumber: "+43 1 2676 870 9460"),
             .init("basic-care", "hand.raised.fill", "Базова підтримка", "Grundversorgung",
-                  "Якщо вам потрібна матеріальна підтримка, дізнайтеся про заяву на Grundversorgung у відповідній федеральній землі. Поліцейська реєстрація і заява на підтримку — різні кроки.",
-                  "Wenn Sie materielle Unterstützung brauchen, informieren Sie sich über den Antrag auf Grundversorgung im zuständigen Bundesland. Polizeiliche Erfassung und Antrag auf Unterstützung sind getrennte Schritte."),
+                  "Після поліцейської реєстрації, якщо ви потребуєте допомоги й відповідаєте умовам, подайте окрему заяву на Grundversorgung у федеральній землі, де проживаєте. Порядок і контакт відповідального органу знайдіть у FAQ BBU; допомога не починається автоматично.",
+                  "Nach der polizeilichen Erfassung stellen Sie bei Hilfsbedürftigkeit einen gesonderten Antrag auf Grundversorgung im Bundesland Ihres Wohnsitzes. Zuständige Stelle und Ablauf stehen in den BBU-FAQ; die Leistung beginnt nicht automatisch."),
+            .init("insurance", "cross.case.fill", "Що може входити до підтримки", "Was die Versorgung umfassen kann",
+                  "Залежно від рішення та виду розміщення базове забезпечення може включати житло, харчування чи кошти на проживання і медичне страхування. Уточніть, на які саме виплати ви маєте право, у відповідальному органі землі.",
+                  "Je nach Entscheidung und Unterkunft kann Grundversorgung Wohnen, Verpflegung oder Geldleistungen sowie Krankenversicherung umfassen. Klären Sie Ihren konkreten Anspruch bei der zuständigen Landesstelle."),
             .init("oif", "person.2.fill", "Мова й орієнтація: ÖIF", "Sprache und Orientierung: ÖIF",
-                  "ÖIF консультує щодо життя в Австрії, курсів німецької та наступних інтеграційних кроків. На сторінці фонду можна знайти консультаційний центр і спосіб запису.",
-                  "Der ÖIF berät zum Leben in Österreich, zu Deutschkursen und weiteren Integrationsschritten. Auf seiner Website finden Sie Beratungsstellen und Informationen zur Terminvereinbarung.")
+                  "За допомогою з орієнтацією та курсами німецької зверніться до ÖIF. Це консультація з інтеграції, а не орган, який призначає Grundversorgung.",
+                  "Für Orientierung und Deutschkurse wenden Sie sich an den ÖIF. Die Integrationsberatung entscheidet nicht über Grundversorgung.")
         ],
         sources: [bbuUK, bbu, integration]
     )

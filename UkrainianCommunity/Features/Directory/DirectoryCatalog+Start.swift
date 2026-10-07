@@ -19,11 +19,15 @@ extension DirectoryCatalog {
             topic("mental-crisis", "Психологічна криза", "Psychische Krise")
         ]),
         category("first-steps", "Перші кроки", "Erste Schritte",
-                 summaryUK: "Орієнтація після прибуття", summaryDE: "Orientierung nach der Ankunft",
+                 summaryUK: "Житло, перші дні, допомога, здоров’я, діти й робота",
+                 summaryDE: "Unterkunft, erste Tage, Hilfe, Gesundheit, Kinder und Arbeit",
                  symbol: "figure.walk.arrival", topics: [
-            topic("arrival", "Прибуття та перші дії", "Ankunft & erste Schritte"),
-            topic("checklist", "Покроковий список", "Schritt-für-Schritt-Liste"),
-            topic("initial-support", "Початкова підтримка", "Erste Unterstützung")
+            topic("arrival", "Де зупинитися після прибуття?", "Wo kann ich nach der Ankunft bleiben?"),
+            topic("checklist", "Що зробити в перші дні?", "Was ist in den ersten Tagen zu tun?"),
+            topic("initial-support", "Де отримати базову допомогу?", "Wo bekomme ich Grundversorgung?"),
+            topic("health-insurance", "Як отримати медичну допомогу?", "Wie bekomme ich medizinische Hilfe?"),
+            topic("children", "Що зробити для дитини?", "Was braucht mein Kind?"),
+            topic("work-language", "З чого почати роботу й мову?", "Wie beginne ich mit Arbeit und Deutsch?")
         ]),
         category("registration", "Реєстрація", "Anmeldung",
                  summaryUK: "Адреса, тимчасовий захист і записи", summaryDE: "Wohnsitz, Schutz und Behördentermine",
