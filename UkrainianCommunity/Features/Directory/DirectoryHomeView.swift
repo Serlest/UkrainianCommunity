@@ -184,9 +184,11 @@ struct DirectoryHomeView: View {
         case let .topic(categoryID, topicID):
             if let topic = DirectoryCatalog.categories.first(where: { $0.id == categoryID })?.topics.first(where: { $0.id == topicID }) {
                 if categoryID == "safety", let guide = DirectorySafetyContent.guides[topicID] {
-                    DirectorySafetyTopicView(topic: topic, guide: guide)
+                    DirectorySafetyTopicView(topic: topic, guide: guide,
+                                             selectedFederalState: $selectedFederalState)
                 } else if let guide = DirectoryGuideCatalog.guide(categoryID: categoryID, topicID: topicID) {
-                    DirectoryGuideTopicView(categoryID: categoryID, topic: topic, guide: guide)
+                    DirectoryGuideTopicView(categoryID: categoryID, topic: topic, guide: guide,
+                                            selectedFederalState: $selectedFederalState)
                 } else {
                     DirectoryTopicView(topic: topic)
                 }

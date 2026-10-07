@@ -64,7 +64,7 @@ struct DirectoryCatalogTests {
     }
 
     @Test func publishedDirectoryTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship"] {
+        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             for topic in category?.topics ?? [] {
@@ -106,5 +106,31 @@ struct DirectoryCatalogTests {
             #expect(section.source?.url.host == "mfa.gov.ua")
         }
         #expect(DocumentGuides.guide(for: "consulate-austria")?.sections.first?.source?.url.host == "mfa.gov.ua")
+    }
+
+    @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
+        let regionalTopics = [
+            ("safety", "domestic-violence"),
+            ("first-steps", "initial-support"),
+            ("registration", "after-registration"),
+            ("residence", "temporary-protection"),
+            ("citizenship", "application"),
+            ("housing", "housing-support"),
+            ("housing", "foreign-buyers")
+        ]
+        for state in AustrianFederalState.allCases {
+            for (categoryID, topicID) in regionalTopics {
+                #expect(DirectoryRegionalContent.applies(categoryID: categoryID, topicID: topicID))
+                let sections = DirectoryRegionalContent.sections(categoryID: categoryID, topicID: topicID,
+                                                                 state: state)
+                #expect(!sections.isEmpty)
+                for section in sections {
+                    #expect(!section.body.ukrainian.isEmpty)
+                    #expect(!section.body.german.isEmpty)
+                    #expect(section.source?.url.scheme == "https")
+                }
+            }
+        }
+        #expect(!DirectoryRegionalContent.applies(categoryID: "health", topicID: "doctors"))
     }
 }

@@ -15,7 +15,7 @@ enum DocumentGuides {
     static let criminalUA = DirectorySource(name: "Дія · Витяг про несудимість", url: "https://diia.gov.ua/services/vityag-pro-nesudimist")
     static let notary = DirectorySource(name: "МЗС України · Нотаріальні дії", url: "https://mfa.gov.ua/consul/forua/legalization/notary")
     static let ukrainianApostille = DirectorySource(name: "МЗС України · Апостиль", url: "https://mfa.gov.ua/consul/forua/legalization/apostille")
-    static let austrianApostille = DirectorySource(name: "BMEIA · Beglaubigung und Apostille", url: "https://www.bmeia.gv.at/reise-services/urkunden-und-beglaubigungen/beglaubigung-apostille/")
+    static let austrianApostille = DirectorySource(name: "BMEIA · Beglaubigung und Apostille", url: "https://www.bmeia.gv.at/reise-services/urkunden-und-beglaubigungen/beglaubigung-apostille")
     static let apostilleOffices = DirectorySource(name: "BMEIA · Zuständige Stellen und Kontakt", url: "https://www.bmeia.gv.at/reise-services/urkunden-und-beglaubigungen/beglaubigung-apostille/kontakt-beglaubigung")
     static let translators = DirectorySource(name: "Justiz · Gerichtsdolmetscherliste", url: "https://edikte.justiz.gv.at/edikte/ex/edparm3.nsf/h/SVPHLdf01")
     static let licenceEU = DirectorySource(name: "EU · Verordnung zu ukrainischen Führerscheinen", url: "https://eur-lex.europa.eu/eli/reg/2022/1280/oj?locale=de")

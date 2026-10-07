@@ -4,6 +4,7 @@ struct DirectoryGuideTopicView: View {
     let categoryID: String
     let topic: DirectoryTopic
     let guide: DirectoryGuide
+    @Binding var selectedFederalState: AustrianFederalState?
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
@@ -17,32 +18,15 @@ struct DirectoryGuideTopicView: View {
                     .foregroundStyle(AppTheme.textSecondary)
 
                 ForEach(guide.sections) { section in
-                    AppGlassCard {
-                        Label(section.title.value(for: language), systemImage: section.symbol)
-                            .font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
-                        Text(section.body.value(for: language))
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if let source = section.source {
-                            Link(destination: source.url) {
-                                Label(source.name, systemImage: "arrow.up.right.square")
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            .accessibilityIdentifier("directory.source.\(section.id)")
-                        }
-                        if let number = section.phoneNumber,
-                           let url = URL(string: "tel:\(number.replacingOccurrences(of: " ", with: ""))") {
-                            Link(destination: url) {
-                                Label(number, systemImage: "phone.fill")
-                                    .font(.subheadline.weight(.semibold))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding(12)
-                                    .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 12))
-                            }
-                            .accessibilityIdentifier("directory.call.\(section.id)")
-                        }
-                    }
+                    DirectoryGuideSectionCard(section: section, language: language)
+                }
+
+                if DirectoryRegionalContent.applies(categoryID: categoryID, topicID: topic.id) {
+                    DirectoryRegionalSectionsView(
+                        categoryID: categoryID, topicID: topic.id,
+                        selectedFederalState: $selectedFederalState,
+                        language: language
+                    )
                 }
 
                 if categoryID == "first-steps" {

@@ -3,6 +3,7 @@ import SwiftUI
 struct DirectorySafetyTopicView: View {
     let topic: DirectoryTopic
     let guide: SafetyGuide
+    @Binding var selectedFederalState: AustrianFederalState?
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
@@ -25,6 +26,12 @@ struct DirectorySafetyTopicView: View {
                             SafetyCallButton(contact: contact, language: language)
                         }
                     }
+                }
+                if DirectoryRegionalContent.applies(categoryID: "safety", topicID: topic.id) {
+                    DirectoryRegionalSectionsView(
+                        categoryID: "safety", topicID: topic.id,
+                        selectedFederalState: $selectedFederalState, language: language
+                    )
                 }
                 DirectorySourceListView(
                     sources: guide.sources, language: language,

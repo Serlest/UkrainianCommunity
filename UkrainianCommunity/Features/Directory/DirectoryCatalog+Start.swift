@@ -99,12 +99,27 @@ extension DirectoryCatalog {
             topic("application", "Заява, процедура й витрати", "Antrag, Verfahren und Kosten")
         ]),
         category("housing", "Житло", "Wohnen",
-                 summaryUK: "Прийом, тимчасове житло й оренда", summaryDE: "Aufnahme, Unterkunft und Miete",
+                 summaryUK: "Від першого прихистку до оренди, гуртожитку й купівлі",
+                 summaryDE: "Von der ersten Unterkunft bis Miete, Wohnheim und Kauf",
                  symbol: "house.lodge.fill", topics: [
-            topic("reception", "Де приймають людей", "Aufnahmestellen"),
-            topic("temporary-housing", "Тимчасове житло", "Vorübergehende Unterkunft"),
-            topic("rent", "Оренда та права мешканців", "Miete & Wohnrechte"),
-            topic("housing-support", "Допомога з житлом", "Wohnunterstützung")
+            topic("arrival-housing", "Де ночувати після прибуття", "Unterkunft nach der Ankunft"),
+            topic("temporary-housing", "Тимчасове житло й Grundversorgung", "Vorübergehende Unterkunft und Grundversorgung"),
+            topic("find-rental", "Де шукати квартиру", "Mietwohnung suchen"),
+            topic("viewing", "Перегляд і перевірка квартири", "Besichtigung und Wohnungsprüfung"),
+            topic("rental-contract", "Договір оренди та Mietanbot", "Mietvertrag und Mietanbot"),
+            topic("rent-costs", "Оренда, комунальні та індексація", "Miete, Betriebskosten und Anpassungen"),
+            topic("deposit", "Застава, Ablöse та передача ключів", "Kaution, Ablöse und Übergabe"),
+            topic("rental-agents", "Маклер і комісія", "Makler und Provision"),
+            topic("tenant-rights", "Права орендаря та ремонт", "Mieterrechte und Reparaturen"),
+            topic("ending-lease", "Розірвання, виселення та виїзд", "Kündigung, Räumung und Auszug"),
+            topic("shared-flat", "Кімната, WG і суборенда", "Zimmer, WG und Untermiete"),
+            topic("student-housing", "Студентські гуртожитки", "Studierendenwohnheime"),
+            topic("social-housing", "Муніципальне й кооперативне житло", "Gemeinde- und Genossenschaftswohnungen"),
+            topic("housing-support", "Допомога з оплатою житла", "Wohnbeihilfe und Unterstützung"),
+            topic("buying", "Купівля квартири чи будинку", "Wohnung oder Haus kaufen"),
+            topic("buying-costs", "Кредит, податки й витрати на купівлю", "Kredit, Steuern und Kaufnebenkosten"),
+            topic("foreign-buyers", "Правила для покупців з України", "Regeln für Käufer aus der Ukraine"),
+            topic("moving", "Переїзд, Meldezettel і договори", "Umzug, Meldezettel und Verträge")
         ])
     ]
 }

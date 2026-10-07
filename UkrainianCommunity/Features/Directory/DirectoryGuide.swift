@@ -37,6 +37,7 @@ enum DirectoryGuideCatalog {
         case "residence": ResidenceGuides.guide(for: topicID)
         case "documents": DocumentGuides.guide(for: topicID)
         case "citizenship": CitizenshipGuides.guide(for: topicID)
+        case "housing": HousingGuides.guide(for: topicID)
         default: nil
         }
     }
