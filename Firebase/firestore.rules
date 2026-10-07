@@ -998,7 +998,7 @@ service cloud.firestore {
       return canManageFeedback()
         && (!('dsaCase' in resource.data) || request.resource.data.status != 'closed')
         && feedbackChangedKeys().hasOnly(feedbackOwnerUpdateFields())
-        && request.resource.data.status in ['open', 'answered', 'closed', 'reviewed', 'archived']
+        && request.resource.data.status in ['open', 'reviewed', 'inProgress', 'done', 'answered', 'closed', 'archived']
         && request.resource.data.updatedAt is timestamp
         && (!feedbackChangedKeys().hasAny(['lastMessageText']) || request.resource.data.lastMessageText is string)
         && (!feedbackChangedKeys().hasAny(['lastMessageAt']) || request.resource.data.lastMessageAt is timestamp)

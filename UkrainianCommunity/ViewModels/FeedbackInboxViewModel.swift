@@ -133,7 +133,11 @@ final class FeedbackInboxViewModel: ObservableObject {
     }
 
     func markReviewed(_ item: FeedbackItem) async {
-        await update(item, status: .answered)
+        await update(item, status: .reviewed)
+    }
+
+    func setStatus(_ status: FeedbackStatus, for item: FeedbackItem) async {
+        await update(item, status: status)
     }
 
     func archive(_ item: FeedbackItem, owner: AppUser) async {

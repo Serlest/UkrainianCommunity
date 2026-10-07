@@ -14645,6 +14645,20 @@
         }
       }
     },
+    "feedback.status.done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erledigt" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Готово" } }
+      }
+    },
+    "feedback.status.in_progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "In Bearbeitung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "У роботі" } }
+      }
+    },
     "feedback.status.open" : {
       "extractionState" : "manual",
       "localizations" : {

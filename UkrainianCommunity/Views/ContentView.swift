@@ -687,7 +687,8 @@ struct ContentView: View {
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 scrollResetToken: directoryScrollResetToken,
                 searchResetToken: directorySearchResetToken,
-                isActive: selectedTab == .directory
+                isActive: selectedTab == .directory,
+                feedbackRepository: container.feedbackRepository
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)

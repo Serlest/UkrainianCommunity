@@ -4,6 +4,7 @@ struct DirectorySafetyTopicView: View {
     let topic: DirectoryTopic
     let guide: SafetyGuide
     @Binding var selectedFederalState: AustrianFederalState?
+    let feedbackRepository: FeedbackRepository
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
@@ -38,6 +39,7 @@ struct DirectorySafetyTopicView: View {
                             selectedFederalState: $selectedFederalState, language: language
                         )
                     }
+                    DirectoryFeedbackView(kind: .correction(categoryID: "safety", topicID: topic.id, title: topic.title.value(for: language)), repository: feedbackRepository)
                     DirectorySourceListView(
                         sources: guide.sources, language: language,
                         checkedOn: DirectorySafetyContent.reviewedOn)

@@ -5,6 +5,7 @@ struct DirectoryGuideTopicView: View {
     let topic: DirectoryTopic
     let guide: DirectoryGuide
     @Binding var selectedFederalState: AustrianFederalState?
+    let feedbackRepository: FeedbackRepository
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
@@ -50,6 +51,8 @@ struct DirectoryGuideTopicView: View {
                         }
                         .buttonStyle(.plain)
                     }
+
+                    DirectoryFeedbackView(kind: .correction(categoryID: categoryID, topicID: topic.id, title: topic.title.value(for: language)), repository: feedbackRepository)
 
                     DirectorySourceListView(
                         sources: guide.sources,

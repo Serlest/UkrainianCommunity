@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DirectoryGuideCategoryView: View {
     let category: DirectoryCategory
+    let feedbackRepository: FeedbackRepository
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
@@ -13,6 +14,7 @@ struct DirectoryGuideCategoryView: View {
                                      symbol: category.symbol)
 
                 if category.id == "safety" { emergencyCard }
+                DirectoryFeedbackView(kind: .question(categoryID: category.id, title: category.title.value(for: language)), repository: feedbackRepository)
 
                 ForEach(DirectoryTopicGroups.forCategory(category)) { group in
                     VStack(alignment: .leading, spacing: 10) {

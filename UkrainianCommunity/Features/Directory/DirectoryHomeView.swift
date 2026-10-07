@@ -11,6 +11,7 @@ struct DirectoryHomeView: View {
     let scrollResetToken: Int
     let searchResetToken: Int
     let isActive: Bool
+    let feedbackRepository: FeedbackRepository
 
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var isSearchPresented = false
@@ -23,7 +24,8 @@ struct DirectoryHomeView: View {
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void,
         scrollResetToken: Int,
         searchResetToken: Int,
-        isActive: Bool
+        isActive: Bool,
+        feedbackRepository: FeedbackRepository
     ) {
         _featuredBannerViewModel = StateObject(wrappedValue: FeaturedBannerListViewModel(
             repository: featuredBannerRepository, cache: featuredBannerCache
@@ -33,6 +35,7 @@ struct DirectoryHomeView: View {
         self.scrollResetToken = scrollResetToken
         self.searchResetToken = searchResetToken
         self.isActive = isActive
+        self.feedbackRepository = feedbackRepository
     }
 
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
@@ -127,6 +130,8 @@ struct DirectoryHomeView: View {
                 .accessibilityIdentifier("directory.category.safety")
             }
 
+            DirectoryFeedbackView(kind: .question(categoryID: nil, title: DirectoryText(ukrainian: "Довідник", german: "Wegweiser").value(for: language)), repository: feedbackRepository)
+
             categorySection(DirectoryStrings.startHeading, items: Array(DirectoryCatalog.startCategories.dropFirst()))
             categorySection(DirectoryStrings.lifeHeading, items: DirectoryCatalog.lifeCategories)
             categorySection(DirectoryStrings.supportHeading, items: DirectoryCatalog.supportCategories)
@@ -179,21 +184,21 @@ struct DirectoryHomeView: View {
         case let .category(id):
             if let category = DirectoryCatalog.categories.first(where: { $0.id == id }) {
                 if DirectoryTopicGroups.isComplete(categoryID: id) {
-                    DirectoryGuideCategoryView(category: category)
+                    DirectoryGuideCategoryView(category: category, feedbackRepository: feedbackRepository)
                 } else {
-                    DirectoryCategoryView(category: category)
+                    DirectoryCategoryView(category: category, feedbackRepository: feedbackRepository)
                 }
             }
         case let .topic(categoryID, topicID):
             if let topic = DirectoryCatalog.categories.first(where: { $0.id == categoryID })?.topics.first(where: { $0.id == topicID }) {
                 if categoryID == "safety", let guide = DirectorySafetyContent.guides[topicID] {
                     DirectorySafetyTopicView(topic: topic, guide: guide,
-                                             selectedFederalState: $selectedFederalState)
+                                             selectedFederalState: $selectedFederalState, feedbackRepository: feedbackRepository)
                 } else if let guide = DirectoryGuideCatalog.guide(categoryID: categoryID, topicID: topicID) {
                     DirectoryGuideTopicView(categoryID: categoryID, topic: topic, guide: guide,
-                                            selectedFederalState: $selectedFederalState)
+                                            selectedFederalState: $selectedFederalState, feedbackRepository: feedbackRepository)
                 } else {
-                    DirectoryTopicView(topic: topic)
+                    DirectoryTopicView(topic: topic, categoryID: categoryID, feedbackRepository: feedbackRepository)
                 }
             }
         }

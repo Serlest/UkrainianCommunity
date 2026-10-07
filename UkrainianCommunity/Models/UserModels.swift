@@ -489,6 +489,8 @@ enum FeedbackType: String, CaseIterable, Codable, Identifiable {
 
 nonisolated enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
     case open
+    case inProgress
+    case done
     case answered
     case reviewed
     case archived
@@ -500,7 +502,13 @@ nonisolated enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .open:
             AppStrings.Feedback.statusOpen
-        case .answered, .reviewed:
+        case .reviewed:
+            AppStrings.Feedback.statusReviewed
+        case .inProgress:
+            AppStrings.Feedback.statusInProgress
+        case .done:
+            AppStrings.Feedback.statusDone
+        case .answered:
             AppStrings.Feedback.statusAnswered
         case .archived, .closed:
             AppStrings.Feedback.statusClosed
@@ -508,7 +516,7 @@ nonisolated enum FeedbackStatus: String, CaseIterable, Codable, Identifiable {
     }
 
     var isAnswered: Bool {
-        self == .answered || self == .reviewed
+        self == .answered || self == .done
     }
 
     var isClosed: Bool {

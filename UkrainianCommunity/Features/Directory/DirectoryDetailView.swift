@@ -7,6 +7,7 @@ enum DirectoryRoute: Hashable {
 
 struct DirectoryCategoryView: View {
     let category: DirectoryCategory
+    let feedbackRepository: FeedbackRepository
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
 
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
@@ -35,6 +36,8 @@ struct DirectoryCategoryView: View {
                     .padding(.horizontal, 12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 12))
+
+                DirectoryFeedbackView(kind: .question(categoryID: category.id, title: category.title.value(for: language)), repository: feedbackRepository)
 
                 Text(DirectoryStrings.inCategory)
                     .font(.title3.bold())
@@ -71,6 +74,8 @@ struct DirectoryCategoryView: View {
 
 struct DirectoryTopicView: View {
     let topic: DirectoryTopic
+    let categoryID: String
+    let feedbackRepository: FeedbackRepository
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
 
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
@@ -87,6 +92,7 @@ struct DirectoryTopicView: View {
                 Text(topic.title.value(for: language))
                     .font(.largeTitle.bold())
                     .foregroundStyle(AppTheme.textPrimary)
+                DirectoryFeedbackView(kind: .question(categoryID: categoryID, title: topic.title.value(for: language)), repository: feedbackRepository)
                 AppGlassCard {
                     Text(DirectoryStrings.topicPending)
                         .font(.headline)

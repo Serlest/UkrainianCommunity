@@ -52,11 +52,11 @@ class FeedbackInboxSelectionTest {
     fun statusGroupsPreserveLegacyAliasesAndKeepUnknownSeparate() {
         val items = FeedbackStatus.entries.map { item(it.name).copy(status = it) }
         assertEquals(
-            listOf("OPEN"),
-            select(items, filter = FeedbackInboxFilter.OPEN).items.map { it.id },
+            setOf("OPEN", "REVIEWED", "IN_PROGRESS"),
+            select(items, filter = FeedbackInboxFilter.OPEN).items.map { it.id }.toSet(),
         )
         assertEquals(
-            setOf("ANSWERED", "REVIEWED"),
+            setOf("ANSWERED", "DONE"),
             select(items, filter = FeedbackInboxFilter.ANSWERED).items.map { it.id }.toSet(),
         )
         assertEquals(
@@ -67,7 +67,7 @@ class FeedbackInboxSelectionTest {
             listOf("UNKNOWN"),
             select(items, filter = FeedbackInboxFilter.UNKNOWN).items.map { it.id },
         )
-        assertEquals(6, select(items).items.size)
+        assertEquals(8, select(items).items.size)
     }
 
     @Test

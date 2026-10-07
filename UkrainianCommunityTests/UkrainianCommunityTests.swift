@@ -1286,7 +1286,11 @@ struct UkrainianCommunityTests {
 
     @Test func feedbackModelSupportsExpectedTypesAndOpenStatus() {
         #expect(Set(FeedbackType.allCases) == Set([.question, .suggestion, .bug, .report]))
-        #expect(Set(FeedbackStatus.allCases) == Set([.open, .answered, .reviewed, .archived, .closed]))
+        #expect(Set(FeedbackStatus.allCases) == Set([.open, .reviewed, .inProgress, .done, .answered, .archived, .closed]))
+        #expect(FeedbackStatus.reviewed.isAnswered == false)
+        #expect(FeedbackStatus.inProgress.isAnswered == false)
+        #expect(FeedbackStatus.done.isAnswered)
+        #expect(FeedbackStatus.done.isClosed == false)
 
         let item = FeedbackItem(
             id: "feedback-1",

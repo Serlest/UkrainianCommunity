@@ -569,8 +569,10 @@ fun FeedbackType.label(l: String): String =
 fun FeedbackStatus.label(l: String): String =
     when (this) {
         FeedbackStatus.OPEN -> tr(l, "Wartet auf Antwort", "Очікує відповіді")
-        FeedbackStatus.ANSWERED,
-        FeedbackStatus.REVIEWED -> tr(l, "Beantwortet", "Є відповідь")
+        FeedbackStatus.REVIEWED -> tr(l, "Gesehen", "Переглянуто")
+        FeedbackStatus.IN_PROGRESS -> tr(l, "In Bearbeitung", "У роботі")
+        FeedbackStatus.DONE -> tr(l, "Erledigt", "Готово")
+        FeedbackStatus.ANSWERED -> tr(l, "Beantwortet", "Є відповідь")
         FeedbackStatus.CLOSED,
         FeedbackStatus.ARCHIVED -> tr(l, "Geschlossen", "Закрито")
         FeedbackStatus.UNKNOWN ->

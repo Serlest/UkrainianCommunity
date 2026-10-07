@@ -12,8 +12,8 @@ enum class FeedbackInboxFilter {
 
     fun includes(status: FeedbackStatus): Boolean =
         when (this) {
-            OPEN -> status == FeedbackStatus.OPEN
-            ANSWERED -> status == FeedbackStatus.ANSWERED || status == FeedbackStatus.REVIEWED
+            OPEN -> status in setOf(FeedbackStatus.OPEN, FeedbackStatus.REVIEWED, FeedbackStatus.IN_PROGRESS)
+            ANSWERED -> status == FeedbackStatus.ANSWERED || status == FeedbackStatus.DONE
             CLOSED -> status == FeedbackStatus.CLOSED || status == FeedbackStatus.ARCHIVED
             UNKNOWN -> status == FeedbackStatus.UNKNOWN
             ALL -> true

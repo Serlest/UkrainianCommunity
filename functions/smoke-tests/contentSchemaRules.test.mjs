@@ -457,6 +457,18 @@ describe("platform moderation and server-owned deletion", () => {
     await assertFails(deleteDoc(doc(db("regular-user"), "feedback", "feedback-1")));
   });
 
+  test("only management can advance directory feedback statuses", async () => {
+    const feedback = doc(db("owner"), "feedback", "feedback-1");
+    const updatedAt = new Date("2026-08-25T12:05:00Z");
+    for (const status of ["reviewed", "inProgress", "done"]) {
+      await assertSucceeds(updateDoc(feedback, {status, updatedAt}));
+    }
+    await assertFails(updateDoc(doc(db("regular-user"), "feedback", "feedback-1"), {
+      status: "done", updatedAt,
+    }));
+    await assertFails(updateDoc(feedback, {status: "unrecognized", updatedAt}));
+  });
+
   test("DSA cases are server-only and cannot be closed without the decision function", async () => {
     await assertFails(updateDoc(doc(db("owner"), "feedback", "dsa-feedback-1"), {
       status: "closed",

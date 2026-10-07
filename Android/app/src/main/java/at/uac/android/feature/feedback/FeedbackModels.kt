@@ -29,6 +29,8 @@ enum class FeedbackType(val wire: String) {
 
 enum class FeedbackStatus(val wire: String) {
     OPEN("open"),
+    IN_PROGRESS("inProgress"),
+    DONE("done"),
     ANSWERED("answered"),
     REVIEWED("reviewed"),
     ARCHIVED("archived"),

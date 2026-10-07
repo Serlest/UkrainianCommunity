@@ -2026,6 +2026,8 @@ enum AppStrings {
         static var statusAnswered: String { text("feedback.status.answered", "Відповідь отримано") }
         static var statusClosed: String { text("feedback.status.closed", "Закрито") }
         static var statusReviewed: String { text("feedback.status.reviewed", "Переглянуто") }
+        static var statusInProgress: String { text("feedback.status.in_progress", "У роботі") }
+        static var statusDone: String { text("feedback.status.done", "Готово") }
         static var statusArchived: String { text("feedback.status.archived", "Архів") }
         static var loadFailed: String { text("feedback.error.load_failed", "Не вдалося завантажити відгуки.") }
         static var updateFailed: String { text("feedback.error.update_failed", "Не вдалося оновити статус відгуку.") }

@@ -190,7 +190,7 @@ private enum MyFeedbackFilter: String, CaseIterable, Identifiable {
     func includes(_ item: FeedbackItem) -> Bool {
         switch self {
         case .all: true
-        case .open: item.status == .open
+        case .open: [.open, .reviewed, .inProgress].contains(item.status)
         case .answered: item.status.isAnswered
         case .closed: item.status.isClosed
         }
@@ -506,6 +506,13 @@ private struct FeedbackUserRequestCard: View {
                     FeedbackStatusBadge(status: item.status, userFacing: true)
                 }
 
+                if let subject = item.subject, !subject.isEmpty {
+                    Text(subject)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .lineLimit(2)
+                }
+
                 Text(previewText)
                     .font(.body)
                     .foregroundStyle(AppTheme.textPrimary)
@@ -542,7 +549,7 @@ private enum FeedbackInboxFilter: String, CaseIterable, Identifiable {
     func includes(_ item: FeedbackItem) -> Bool {
         switch self {
         case .open:
-            item.status == .open
+            [.open, .reviewed, .inProgress].contains(item.status)
         case .answered:
             item.status.isAnswered
         case .closed:
@@ -784,6 +791,23 @@ struct FeedbackInboxView: View {
                         .buttonStyle(.plain)
 
                         if PermissionService.isAppOwner(user: authState.user) {
+                            Menu {
+                                Button(AppStrings.Feedback.markReviewed, systemImage: "eye") {
+                                    Task { await viewModel.setStatus(.reviewed, for: item) }
+                                }
+                                Button(AppStrings.Feedback.statusInProgress, systemImage: "hammer") {
+                                    Task { await viewModel.setStatus(.inProgress, for: item) }
+                                }
+                                Button(AppStrings.Feedback.statusDone, systemImage: "checkmark.circle") {
+                                    Task { await viewModel.setStatus(.done, for: item) }
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis.circle")
+                                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                            }
+                            .accessibilityLabel(AppStrings.Common.status)
+                            .disabled(viewModel.updatingFeedbackIDs.contains(item.id) || item.dsaCase != nil)
+
                             if viewModel.deletingFeedbackIDs.contains(item.id) {
                                 ProgressView()
                                     .controlSize(.small)
@@ -992,6 +1016,13 @@ private struct FeedbackInboxRow: View {
                         FeedbackStatusBadge(status: item.status)
                     }
 
+                    if let subject = item.subject, !subject.isEmpty {
+                        Text(subject)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineLimit(1)
+                    }
+
                     Text(previewText)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -1104,6 +1135,14 @@ private struct FeedbackConversationSheet: View {
 
                                     FeedbackMetadataRow(systemImage: "person", title: item.userDisplayName.isEmpty ? AppStrings.Profile.unknownUser : item.userDisplayName)
                                     FeedbackMetadataRow(systemImage: "calendar", title: LocalizationStore.dateString(from: item.createdAt, dateStyle: .medium, timeStyle: .short))
+                                }
+                            }
+
+                            if let subject = item.subject, !subject.isEmpty {
+                                AppEditorSectionCard {
+                                    Text(subject)
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(AppTheme.textPrimary)
                                 }
                             }
 
@@ -1736,7 +1775,9 @@ private struct FeedbackStatusBadge: View {
         switch status {
         case .open:
             return AppTheme.accentPrimaryForeground
-        case .answered, .reviewed:
+        case .reviewed, .inProgress:
+            return AppTheme.accentPrimaryForeground
+        case .answered, .done:
             return AppTheme.textSecondary
         case .archived, .closed:
             return AppTheme.accentDestructiveForeground
