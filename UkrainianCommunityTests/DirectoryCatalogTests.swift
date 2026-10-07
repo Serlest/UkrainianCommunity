@@ -64,7 +64,7 @@ struct DirectoryCatalogTests {
     }
 
     @Test func publishedDirectoryTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration", "residence", "documents"] {
+        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             for topic in category?.topics ?? [] {
@@ -89,6 +89,10 @@ struct DirectoryCatalogTests {
                         #expect(["bmi.gv.at", "www.bmi.gv.at", "oesterreich.gv.at",
                                  "www.oesterreich.gv.at", "eausweise.oesterreich.gv.at",
                                  "www.migration.gv.at"].contains(source.url.host ?? ""))
+                    }
+                    if categoryID == "citizenship" {
+                        #expect(["www.oesterreich.gv.at", "www.wien.gv.at", "www.bmi.gv.at",
+                                 "mfa.gov.ua", "dmsu.gov.ua", "edikte.justiz.gv.at"].contains(source.url.host ?? ""))
                     }
                 }
             }

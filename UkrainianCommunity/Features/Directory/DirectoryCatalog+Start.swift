@@ -80,11 +80,23 @@ extension DirectoryCatalog {
             topic("consulates-nearby", "Консульства в сусідніх країнах", "Konsulate in Nachbarländern")
         ]),
         category("citizenship", "Громадянство", "Staatsbürgerschaft",
-                 summaryUK: "Шлях до громадянства", summaryDE: "Weg zur Staatsbürgerschaft",
+                 summaryUK: "Шляхи через 6 і 10 років, статус, мова, родина й громадянство України",
+                 summaryDE: "Wege nach 6 und 10 Jahren, Status, Sprache, Familie und Ukraine",
                  symbol: "globe.europe.africa.fill", topics: [
-            topic("requirements", "Умови", "Voraussetzungen"),
-            topic("application", "Заява та процедура", "Antrag & Verfahren"),
-            topic("documents", "Потрібні документи", "Benötigte Unterlagen")
+            topic("overview", "З чого почати й хто може подати?", "Einstieg: Wer kann einen Antrag stellen?"),
+            topic("six-years", "Шлях через 6 років", "Weg nach 6 Jahren"),
+            topic("ten-years", "Шлях через 10 років", "Weg nach 10 Jahren"),
+            topic("protection", "Тимчасовий захист українців", "Vorübergehender Schutz für Ukrainer"),
+            topic("student", "Студентська віза й навчання", "Studium und Aufenthaltsbewilligung"),
+            topic("austrian-spouse", "Шлюб з громадянином Австрії", "Ehe mit österreichischem Staatsbürger"),
+            topic("other-statuses", "Робота, родина, притулок", "Arbeit, Familie und Asyl"),
+            topic("language", "Німецька мова та іспит", "Deutsch und Staatsbürgerschaftstest"),
+            topic("livelihood", "Доходи й інші умови", "Lebensunterhalt und weitere Bedingungen"),
+            topic("absences", "Поїздки й переривання проживання", "Auslandszeiten und Unterbrechungen"),
+            topic("dual-citizenship", "Українське громадянство й відмова", "Ukrainische Staatsangehörigkeit und Entlassung"),
+            topic("children", "Діти та громадянство", "Kinder und Staatsbürgerschaft"),
+            topic("documents", "Підготовка документів", "Unterlagen vorbereiten"),
+            topic("application", "Заява, процедура й витрати", "Antrag, Verfahren und Kosten")
         ]),
         category("housing", "Житло", "Wohnen",
                  summaryUK: "Прийом, тимчасове житло й оренда", summaryDE: "Aufnahme, Unterkunft und Miete",
