@@ -30,11 +30,15 @@ extension DirectoryCatalog {
             topic("work-language", "З чого почати роботу й мову?", "Wie beginne ich mit Arbeit und Deutsch?")
         ]),
         category("registration", "Реєстрація", "Anmeldung",
-                 summaryUK: "Адреса, тимчасовий захист і записи", summaryDE: "Wohnsitz, Schutz und Behördentermine",
+                 summaryUK: "Адреса, тимчасовий захист, посвідчення й переїзд",
+                 summaryDE: "Wohnsitz, Schutz, Ausweis und Umzug",
                  symbol: "checklist", topics: [
             topic("residence-registration", "Реєстрація адреси", "Wohnsitz anmelden"),
+            topic("housing-types", "Якщо немає власного житла", "Wenn Sie keine eigene Wohnung haben"),
             topic("protection-registration", "Реєстрація для тимчасового захисту", "Erfassung für vorübergehenden Schutz"),
+            topic("after-registration", "Посвідчення після реєстрації", "Ausweis nach der Erfassung"),
             topic("address-change", "Зміна адреси", "Adressänderung"),
+            topic("leaving-austria", "Виїзд і зняття з обліку", "Wegzug und Abmeldung"),
             topic("appointments", "Запис до установ", "Behördentermine")
         ]),
         category("residence", "Статус перебування", "Aufenthalt",
