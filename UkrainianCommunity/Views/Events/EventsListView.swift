@@ -333,11 +333,11 @@ struct EventsListView: View {
     var body: some View {
         ScrollViewReader { scrollProxy in
             ScrollView(.vertical, showsIndicators: false) {
-                Color.clear
-                    .frame(height: 0)
-                    .id(eventsRootScrollTopID)
-
                 VStack(alignment: .leading, spacing: 0) {
+                    Color.clear
+                        .frame(height: 0)
+                        .id(eventsRootScrollTopID)
+
                     eventsHeader
                         .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 

@@ -335,24 +335,26 @@ struct ProfileView: View {
             GeometryReader { proxy in
                 ScrollViewReader { scrollProxy in
                     ScrollView(.vertical, showsIndicators: true) {
-                        Color.clear
-                            .frame(height: 0)
-                            .id(profileRootScrollTopID)
-
-                        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                            profileHeader
-                            NavigationLink(value: ProfileNavigationRoute.announcementHistory) {
-                                ProfileModuleRow(title: AnnouncementStrings.history, subtitle: "", systemImage: "megaphone")
-                            }.buttonStyle(.plain).accessibilityIdentifier("profile.announcementHistory")
+                        VStack(alignment: .leading, spacing: 0) {
+                            Color.clear
+                                .frame(height: 0)
+                                .id(profileRootScrollTopID)
 
                             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                                if let user = displayUser {
-                                    userProfileContent(for: user)
-                                } else {
-                                    guestProfileContent
+                                profileHeader
+                                NavigationLink(value: ProfileNavigationRoute.announcementHistory) {
+                                    ProfileModuleRow(title: AnnouncementStrings.history, subtitle: "", systemImage: "megaphone")
+                                }.buttonStyle(.plain).accessibilityIdentifier("profile.announcementHistory")
+
+                                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                                    if let user = displayUser {
+                                        userProfileContent(for: user)
+                                    } else {
+                                        guestProfileContent
+                                    }
                                 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .padding(.horizontal, AppTheme.pageHorizontal)
                         .padding(.bottom, AppTheme.homeBottomContentPadding + 32)
