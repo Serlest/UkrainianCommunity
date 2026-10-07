@@ -61,6 +61,12 @@ enum DirectorySafetyContent {
             ukrainian: "Консультація і підтримка після насильства",
             german: "Beratung und Unterstützung nach Gewalt")
     )
+    static let menHelpline = SafetyContact(
+        number: "0800 400 777",
+        title: .init(ukrainian: "Кризова допомога чоловікам", german: "Männerberatung 24/7"),
+        detail: .init(ukrainian: "Безкоштовно, конфіденційно, цілодобово",
+                      german: "Kostenlos, vertraulich, rund um die Uhr")
+    )
     static let gas = SafetyContact(
         number: "128", title: .init(ukrainian: "Аварійна газова служба", german: "Gasnotruf"),
         detail: .init(
@@ -68,7 +74,12 @@ enum DirectorySafetyContent {
     static let mountain = SafetyContact(
         number: "140", title: .init(ukrainian: "Гірська рятувальна служба", german: "Bergrettung"),
         detail: .init(
-            ukrainian: "У Форарльберзі — 144 або 112", german: "In Vorarlberg: 144 oder 112"))
+            ukrainian: "Поза Форарльбергом", german: "Außerhalb Vorarlbergs"))
+    static let vorarlbergMountain = SafetyContact(
+        number: "144",
+        title: .init(ukrainian: "Гірська допомога у Форарльберзі", german: "Bergnotruf in Vorarlberg"),
+        detail: .init(ukrainian: "Рятувальна служба 144", german: "Rettungsnotruf 144")
+    )
     static let poison = SafetyContact(
         number: "01 406 43 43",
         title: .init(

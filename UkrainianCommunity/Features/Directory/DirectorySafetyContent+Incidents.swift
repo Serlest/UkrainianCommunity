@@ -40,11 +40,11 @@ extension DirectorySafetyContent {
                     "mountain", "У горах", "Am Berg", "mountain.2.fill",
                     "Забезпечте власну безпеку, назвіть точне місце та стан постраждалих. Телефонуйте гірській рятувальній службі 140; у Форарльберзі — 144. Номер 112 теж приймає екстрені виклики. Не наражайте себе на небезпеку на схилі чи під час лавини.",
                     "Sichern Sie sich selbst und nennen Sie Ort und Zustand der Betroffenen. Bergrettung: 140; in Vorarlberg: 144. Auch 112 nimmt Notrufe entgegen. Bringen Sie sich am Hang oder bei Lawinen nicht selbst in Gefahr.",
-                    [mountain, europeanEmergency]),
+                    [mountain, vorarlbergMountain, europeanEmergency]),
                 section(
                     "water", "На водоймі", "Am Gewässer", "water.waves",
-                    "Покличте рятувальників на місці й телефонуйте 144 або 112. Повідомте назву водойми, берег/орієнтир і кількість людей. Допомагайте з берега лише так, щоб не стати ще одним постраждалим; дотримуйтеся вказівок диспетчера.",
-                    "Rufen Sie Rettungskräfte vor Ort und wählen Sie 144 oder 112. Nennen Sie Gewässer, Ufer oder Orientierungspunkt und Zahl der Betroffenen. Helfen Sie vom Ufer nur ohne Eigengefährdung und folgen Sie der Leitstelle.",
+                    "Покличте рятувальників на місці й телефонуйте 144 або 112. У Каринтії та Верхній Австрії водних рятувальників також викликають через земельну диспетчерську 130; в інших землях порядок може відрізнятися. Повідомте назву водойми, берег і кількість людей. Допомагайте лише без ризику для себе.",
+                    "Rufen Sie Rettungskräfte vor Ort und wählen Sie 144 oder 112. In Kärnten und Oberösterreich wird die Wasserrettung auch über die Landeswarnzentrale 130 alarmiert; in anderen Bundesländern kann es anders sein. Nennen Sie Gewässer, Ufer und Zahl der Betroffenen. Helfen Sie nur ohne Eigengefährdung.",
                     [ambulance, europeanEmergency]),
             ],
             [
@@ -54,6 +54,9 @@ extension DirectorySafetyContent {
                 DirectorySource(
                     name: "Österreichische Wasserrettung · Einsatzdienst",
                     url: "https://sbg.owr.at/seeham/ueber-uns/fachbereiche/einsatzdienst/"),
+                DirectorySource(
+                    name: "Österreichische Wasserrettung · regionale Alarmierung",
+                    url: "https://owr.at/owr/wp-content/uploads/2023/12/Jahresbericht-BUL-2022.pdf"),
                 emergencySource,
             ]),
         "poisoning": guide(
@@ -144,9 +147,9 @@ extension DirectorySafetyContent {
                 ),
                 section(
                     "call", "Викличте допомогу", "Hilfe rufen", "phone.fill",
-                    "При травмах телефонуйте 144, при пожежі — 122. Якщо не знаєте, яка служба потрібна, телефонуйте 112. Повідомте місце (дорога, напрямок, кілометр), кількість постраждалих та небезпеку.",
-                    "Bei Verletzten 144, bei Brand 122 anrufen. Wenn die zuständige Stelle unklar ist, 112 wählen. Nennen Sie Straße, Fahrtrichtung, Kilometer, Zahl der Verletzten und Gefahren.",
-                    [ambulance, fire, europeanEmergency]),
+                    "При травмах телефонуйте 144 і повідомте поліцію за номером 133; при пожежі — 122. Якщо не знаєте, яка служба потрібна, телефонуйте 112. Повідомте місце (дорога, напрямок, кілометр), кількість постраждалих та небезпеку.",
+                    "Bei Verletzten 144 anrufen und die Polizei unter 133 verständigen; bei Brand 122 wählen. Wenn die zuständige Stelle unklar ist, 112 wählen. Nennen Sie Straße, Fahrtrichtung, Kilometer, Zahl der Verletzten und Gefahren.",
+                    [ambulance, police, fire, europeanEmergency]),
             ],
             [
                 DirectorySource(

@@ -37,10 +37,15 @@ extension DirectorySafetyContent {
                 section(
                     "support", "Конфіденційна підтримка", "Vertrauliche Unterstützung",
                     "hand.raised.heart.fill",
-                    "Звернутися по пораду можна до прийняття рішення про подальші кроки. Центри захисту допомагають людям, які постраждали від насильства; жіноча гаряча лінія консультує жінок та їхнє оточення. Якщо телефон контролюють, користуйтеся безпечним пристроєм.",
-                    "Beratung ist auch möglich, bevor Sie weitere Schritte entscheiden. Gewaltschutzzentren helfen Betroffenen; die Frauenhelpline berät Frauen und ihr Umfeld. Bei Überwachung Ihres Telefons nutzen Sie ein sicheres Gerät.",
-                    [protectionCentre, womenHelpline]),
-            ], [violenceSource, supportSource, emergencySource]),
+                    "Звернутися по пораду можна до прийняття рішення про подальші кроки. Центри захисту допомагають усім постраждалим; для жінок є жіноча гаряча лінія, для чоловіків — кризова консультація. Якщо телефон контролюють, користуйтеся безпечним пристроєм.",
+                    "Beratung ist auch möglich, bevor Sie weitere Schritte entscheiden. Gewaltschutzzentren helfen allen Betroffenen; für Frauen gibt es die Frauenhelpline, für Männer eine Krisenberatung. Bei Überwachung Ihres Telefons nutzen Sie ein sicheres Gerät.",
+                    [protectionCentre, womenHelpline, menHelpline]),
+            ], [
+                violenceSource,
+                supportSource,
+                DirectorySource(name: "Männerberatung 24/7", url: "https://maennerinfo.at/"),
+                emergencySource,
+            ]),
         "women": guide(
             "Куди звернутися при насильстві, переслідуванні чи загрозі.",
             "Hilfe bei Gewalt, Stalking oder Bedrohung.",
