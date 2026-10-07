@@ -81,7 +81,6 @@ enum NewsBrowseStrings {
         case "scope.all": LocalizationStore.localizedString("news.browse.scope.all", defaultValue: "Усі новини")
         case "scope.saved": LocalizationStore.localizedString("news.browse.scope.saved", defaultValue: "Збережені")
         case "scope.subscribed": LocalizationStore.localizedString("news.browse.scope.subscribed", defaultValue: "Підписані організації")
-        case "source": LocalizationStore.localizedString("news.browse.source", defaultValue: "Джерела")
         case "from": LocalizationStore.localizedString("news.browse.from", defaultValue: "Від")
         case "to": LocalizationStore.localizedString("news.browse.to", defaultValue: "До")
         case "reset": LocalizationStore.localizedString("news.browse.reset", defaultValue: "Скинути фільтри")

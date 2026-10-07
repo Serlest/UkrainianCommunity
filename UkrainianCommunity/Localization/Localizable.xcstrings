@@ -20048,23 +20048,6 @@
         }
       }
     },
-    "news.browse.source" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Quellen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Джерела"
-          }
-        }
-      }
-    },
     "news.browse.to" : {
       "extractionState" : "manual",
       "localizations" : {
