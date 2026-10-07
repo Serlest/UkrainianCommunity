@@ -1,7 +1,17 @@
 import SwiftUI
 
 struct DirectoryWelcomeBanner: View {
+    let onBrowse: () -> Void
+
     var body: some View {
+        Button(action: onBrowse) {
+            content
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("directory.browseSections")
+    }
+
+    private var content: some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
                 .fill(AppTheme.surfaceHero)
@@ -28,10 +38,17 @@ struct DirectoryWelcomeBanner: View {
                     .foregroundStyle(.white.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: 270, alignment: .leading)
+                HStack(spacing: 6) {
+                    Text(DirectoryStrings.browseSections)
+                    Image(systemName: "arrow.right")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.top, 4)
             }
             .padding(22)
         }
-        .frame(height: 190)
+        .frame(minHeight: 190)
         .clipShape(RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous))
         .accessibilityElement(children: .combine)
     }

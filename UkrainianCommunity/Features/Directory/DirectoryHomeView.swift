@@ -1,6 +1,7 @@
 import SwiftUI
 
 private let directoryScrollTopID = "directoryScrollTop"
+private let directoryCategoriesID = "directoryCategories"
 
 struct DirectoryHomeView: View {
     @EnvironmentObject private var authState: AuthState
@@ -54,9 +55,12 @@ struct DirectoryHomeView: View {
                         collapseToken: searchResetToken
                     )
 
-                    banner
-
                     if query.isEmpty {
+                        banner {
+                            withAnimation(.easeInOut) {
+                                proxy.scrollTo(directoryCategoriesID, anchor: .top)
+                            }
+                        }
                         introductoryContent
                     } else {
                         searchContent
@@ -88,7 +92,7 @@ struct DirectoryHomeView: View {
         .observesKeyboardDismissTaps()
     }
 
-    @ViewBuilder private var banner: some View {
+    @ViewBuilder private func banner(onBrowse: @escaping () -> Void) -> some View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
@@ -96,16 +100,17 @@ struct DirectoryHomeView: View {
                 onBannerTap: onFeaturedBannerTap
             )
         } else {
-            DirectoryWelcomeBanner()
+            DirectoryWelcomeBanner(onBrowse: onBrowse)
                 .id(languageCode)
         }
     }
 
     private var introductoryContent: some View {
         VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
-            Text(DirectoryStrings.heading)
+            Text(DirectoryStrings.categoriesHeading)
                 .font(.title2.bold())
                 .foregroundStyle(AppTheme.textPrimary)
+                .id(directoryCategoriesID)
 
             if let safety = DirectoryCatalog.categories.first {
                 NavigationLink(value: DirectoryRoute.category(safety.id)) {
@@ -114,10 +119,6 @@ struct DirectoryHomeView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("directory.category.safety")
             }
-
-            Text(DirectoryStrings.categoriesHeading)
-                .font(.title3.bold())
-                .foregroundStyle(AppTheme.textPrimary)
 
             categoryGrid(Array(DirectoryCatalog.categories.dropFirst()))
 

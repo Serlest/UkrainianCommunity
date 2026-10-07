@@ -22,6 +22,17 @@ struct DirectoryCatalogTests {
         #expect(safety?.matches("невідомий запит", language: .ukrainian) == false)
     }
 
+    @Test func previouslyCombinedSubjectsHaveSeparateDestinations() {
+        let ids = Set(DirectoryCatalog.categories.map(\.id))
+        for id in ["residence", "documents", "citizenship", "work", "qualifications",
+                   "education", "family", "finances", "social-support", "communication",
+                   "digital", "community", "leisure", "accessibility", "care", "seniors"] {
+            #expect(ids.contains(id))
+        }
+        #expect(DirectoryCatalog.categories.first(where: { $0.id == "citizenship" })?
+            .matches("Staatsbürgerschaft", language: .german) == true)
+    }
+
     @Test func newBannerSectionDoesNotReviveRetiredGuideValue() {
         #expect(FeaturedBannerVisibleSection.supportedCases.contains(.directory))
         #expect(FeaturedBannerVisibleSection(rawValue: "guide") == .unsupportedLegacy)

@@ -5,10 +5,10 @@ enum DirectoryStrings {
         DirectoryText(ukrainian: uk, german: de).value(for: LocalizationStore.language)
     }
 
-    static var heading: String { value("Знайдіть потрібне", "Finden Sie, was Sie brauchen") }
     static var introduction: String { value("Важливі теми для життя в Австрії — від перших кроків до щоденних питань.", "Wichtige Themen für das Leben in Österreich – vom Ankommen bis zum Alltag.") }
+    static var browseSections: String { value("Переглянути розділи", "Bereiche entdecken") }
     static var searchPlaceholder: String { value("Пошук у довіднику", "Im Wegweiser suchen") }
-    static var categoriesHeading: String { value("Усі теми", "Alle Themen") }
+    static var categoriesHeading: String { value("Розділи довідника", "Bereiche im Wegweiser") }
     static var safetyHeading: String { value("Безпека та захист", "Sicherheit & Schutz") }
     static var safetySummary: String { value("Безпека, захист і підтримка у складних ситуаціях", "Sicherheit, Schutz und Hilfe in schwierigen Situationen") }
     static var preparing: String { value("Матеріали додаємо після перевірки офіційних джерел.", "Inhalte werden nach Prüfung offizieller Quellen ergänzt.") }
