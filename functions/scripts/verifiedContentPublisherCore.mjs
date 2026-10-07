@@ -932,15 +932,13 @@ function validateSources(rawSources, kind) {
   if (uniqueCanonicalURLs.size < 2) {
     throw new Error("Live publication requires at least two unique canonical source URLs.");
   }
-  if (kind === "news") {
-    const independent = sources.filter((source) => source.verificationRole === "independent");
-    if (independent.length === 0) {
-      throw new Error("Verified news requires an independent secondary source.");
-    }
-    const primaryHost = new URL(primary.url).hostname.toLowerCase();
-    if (!independent.some((source) => new URL(source.url).hostname.toLowerCase() !== primaryHost)) {
-      throw new Error("The independent news source must be hosted on a different site.");
-    }
+  const independent = sources.filter((source) => source.verificationRole === "independent");
+  if (independent.length === 0) {
+    throw new Error(`Verified ${kind} requires an independent secondary source.`);
+  }
+  const primaryHost = new URL(primary.url).hostname.toLowerCase();
+  if (!independent.some((source) => new URL(source.url).hostname.toLowerCase() !== primaryHost)) {
+    throw new Error(`The independent ${kind} source must be hosted on a different site.`);
   }
   return sources;
 }

@@ -332,6 +332,22 @@ describe("verified content publisher core", () => {
     );
   });
 
+  test("requires an independent event source on a different site", () => {
+    const organizerOnly = eventManifest();
+    organizerOnly.sources[1].verificationRole = "ticketing";
+    assert.throws(
+      () => normalizeAndValidateManifestItem(organizerOnly, "wien"),
+      /event requires an independent secondary source/
+    );
+
+    const sameHost = eventManifest();
+    sameHost.sources[1].url = "https://example.at/events/independent-calendar";
+    assert.throws(
+      () => normalizeAndValidateManifestItem(sameHost, "wien"),
+      /independent event source must be hosted on a different site/
+    );
+  });
+
   test("rejects category errors and unverified manifests", () => {
     assert.throws(
       () => normalizeAndValidateManifestItem({...eventManifest(), category: "not-real"}, "wien"),
@@ -781,9 +797,9 @@ function eventManifest() {
       },
       {
         url: "https://tickets.example.org/community-day",
-        title: "Квитки",
+        title: "Незалежний календар",
         isPrimary: false,
-        verificationRole: "ticketing",
+        verificationRole: "independent",
       },
     ],
   };
