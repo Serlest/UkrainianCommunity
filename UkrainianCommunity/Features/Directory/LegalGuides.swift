@@ -1,0 +1,61 @@
+import Foundation
+
+enum LegalGuides {
+    private static let legalAid = DirectorySource(name: "oesterreich.gv.at · Verfahrenshilfe", url: "https://www.oesterreich.gv.at/de/lexicon/V/Seite.990044")
+    private static let proceedings = DirectorySource(name: "oesterreich.gv.at · Zivilverfahren", url: "https://www.oesterreich.gv.at/de/themen/gesetze_und_recht/gerichtsorganisation_der_justiz/zivilrecht/1/Seite.1010180")
+    private static let appeal = DirectorySource(name: "oesterreich.gv.at · Bescheidbeschwerde", url: "https://www.oesterreich.gv.at/de/lexicon/B/Seite.991938")
+    private static let asylum = DirectorySource(name: "oesterreich.gv.at · Asylverfahren", url: "https://www.oesterreich.gv.at/de/themen/menschen_aus_anderen_staaten/asyl-in-oesterreich/Seite.3210002")
+    private static let warranty = DirectorySource(name: "Arbeiterkammer · Gewährleistung", url: "https://www.arbeiterkammer.at/beratung/konsument/konsumundeinkauf/kaufundrechte/Gewaehrleistung_ab_1.1.2022.html")
+    private static let withdrawal = DirectorySource(name: "Arbeiterkammer · Rücktrittsrecht", url: "https://www.arbeiterkammer.at/ruecktritt")
+    private static let interpreters = DirectorySource(name: "Justiz · Gerichtsdolmetscherliste", url: "https://edikte.justiz.gv.at/edikte/ex/edparm3.nsf/h/SVPHLdf01")
+
+    static func guide(for topicID: String) -> DirectoryGuide? {
+        switch topicID {
+        case "legal-aid": legalHelp
+        case "authorities": authorities
+        case "consumer-rights": consumers
+        case "interpreting": interpreting
+        default: nil
+        }
+    }
+
+    private static let legalHelp = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Вибір юриста, ціна консультації, судова допомога та строки", german: "Rechtsberatung, Honorar, Verfahrenshilfe und Fristen"),
+        introduction: .init(ukrainian: "Для житла, роботи, сім’ї та статусу перебування потрібні різні фахівці. Якщо маєте Bescheid або судовий лист, насамперед перевірте строк дії.", german: "Wohnen, Arbeit, Familie und Aufenthaltsrecht brauchen unterschiedliche Fachberatung. Bei Bescheid oder Gerichtsschreiben zuerst Frist prüfen."),
+        sections: [
+            .init("route", "person.crop.rectangle", "Знайдіть компетентну допомогу", "Passende Stelle finden", "Для трудового спору спершу зверніться до Arbeiterkammer, для споживчого — до AK, для адміністративного або сімейного питання — до профільного юриста чи консультації. Перед зустріччю запитайте спеціалізацію, мову, ціну першої зустрічі та письмовий кошторис. Не вважайте будь-яку першу розмову безкоштовною.", "Bei Arbeits- oder Konsumentenstreit zuerst Arbeiterkammer, bei Verwaltungs- oder Familienrecht passende Kanzlei oder Beratungsstelle. Vor Termin Spezialisierung, Sprache, Erstberatungspreis und schriftliche Kostenauskunft erfragen. Nicht jedes Erstgespräch ist kostenlos.", source: proceedings),
+            .init("prepare", "checklist", "Зберіть справу в хронології", "Fall chronologisch vorbereiten", "Збережіть договір, листи, Bescheid з конвертом або електронною датою вручення, платежі й фото. Запишіть дати, події та бажаний результат. Попросіть юриста назвати конкретний строк, можливі витрати й ризик оплати іншої сторони; підтверджуйте важливі кроки письмово.", "Verträge, Schreiben, Bescheid samt Umschlag oder elektronischem Zustelldatum, Zahlungen und Fotos sichern. Daten, Ereignisse und Ziel notieren. Konkrete Frist, Kosten und gegnerisches Kostenrisiko erfragen; wichtige Schritte schriftlich festhalten.", source: proceedings),
+            .init("assistance", "building.columns", "Якщо немає грошей на суд", "Wenn Prozesskosten nicht leistbar sind", "У цивільному процесі можна подати заяву на Verfahrenshilfe до суду першої інстанції. За умовами справи вона може тимчасово звільнити від судового збору й забезпечити адвоката, але не означає гарантованого покриття всіх ризиків. Подайте вчасно й з’ясуйте, чи це впливає на строк основної скарги.", "Für Zivilverfahren kann Verfahrenshilfe beim erstinstanzlichen Gericht beantragt werden. Sie kann unter Voraussetzungen vorläufig Gerichtsgebühren erlassen und anwaltliche Vertretung ermöglichen, deckt aber nicht automatisch jedes Kostenrisiko. Rechtzeitig beantragen und Einfluss auf die Hauptfrist klären.", source: legalAid)
+        ], sources: [proceedings, legalAid, appeal]
+    )
+
+    private static let authorities = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Заява, підтвердження прийому, Bescheid і оскарження", german: "Antrag, Eingangsbestätigung, Bescheid und Beschwerde"),
+        introduction: .init(ukrainian: "В австрійських процедурах важливі компетентний орган, письмове рішення і дата вручення. Усна відповідь телефоном не завжди замінює Bescheid.", german: "Im Verwaltungsverfahren zählen zuständige Behörde, schriftliche Entscheidung und Zustelldatum. Telefonauskunft ersetzt einen Bescheid nicht immer."),
+        sections: [
+            .init("office", "building.2", "Знайдіть компетентний орган", "Zuständige Behörde finden", "Перед поданням перевірте, чи рішення приймає Gemeinde, Bezirksverwaltungsbehörde, земля або федеральний орган. Попросіть точний перелік документів, плату, строк і спосіб подачі. Якщо документи надсилаєте поштою або онлайн, збережіть підтвердження доставки.", "Vor Antrag klären, ob Gemeinde, Bezirksverwaltungsbehörde, Land oder Bund zuständig ist. Dokumentenliste, Gebühr, Frist und Einbringungsweg erfragen. Bei Post oder Online-Antrag Zustellnachweis sichern.", source: appeal),
+            .init("decision", "doc.text.magnifyingglass", "Читайте Bescheid повністю", "Bescheid vollständig lesen", "Перевірте, що саме вирішено, для кого, з якої дати та за яких умов. Знайдіть Rechtsmittelbelehrung і зафіксуйте дату фактичного вручення. Якщо не розумієте мову або причину відмови, негайно зверніться до спеціаліста; не відкладайте до кінця строку.", "Spruch, betroffene Person, Wirksamkeit und Bedingungen prüfen. Rechtsmittelbelehrung und tatsächliches Zustelldatum notieren. Bei Sprach- oder Verständnisproblemen sofort Beratung suchen, nicht bis Fristende warten.", source: appeal),
+            .init("appeal", "arrow.uturn.backward", "Як оскаржити", "Beschwerde einbringen", "Для багатьох адміністративних Bescheid загальний строк скарги — чотири тижні, але в міграційних та інших спеціальних справах він може відрізнятися; вирішальне значення має інструкція у вашому рішенні. Зазвичай скаргу подають органу, який видав Bescheid. Попросіть юриста перевірити форму, аргументи й наслідки для виконання рішення.", "Für viele Verwaltungsbescheide gelten grundsätzlich vier Wochen, in Asyl- und Sonderverfahren können andere Fristen gelten; maßgeblich ist die Belehrung im eigenen Bescheid. Beschwerde wird meist bei der erlassenden Behörde eingebracht. Form, Gründe und Wirkung anwaltlich prüfen lassen.", source: asylum)
+        ], sources: [appeal, asylum]
+    )
+
+    private static let consumers = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Недолік товару, онлайн-покупка, підписка й письмова претензія", german: "Mangel, Onlinekauf, Abo und schriftliche Reklamation"),
+        introduction: .init(ukrainian: "Законна Gewährleistung, добровільна гарантія виробника і право відмовитися від дистанційної покупки — різні права. Залежить від того, де і в кого ви купили.", german: "Gesetzliche Gewährleistung, freiwillige Herstellergarantie und Rücktritt vom Fernabsatz sind verschieden. Einkaufsort und Vertragspartner sind entscheidend."),
+        sections: [
+            .init("evidence", "doc.text", "Збережіть докази", "Belege sichern", "Збережіть рахунок, умови замовлення, рекламу, опис недоліку, фото й листування. Для товару з дефектом звертайтеся до продавця, а не автоматично до виробника. У письмовій вимозі назвіть дату покупки й попросіть безкоштовного ремонту чи заміни за правилами Gewährleistung.", "Rechnung, Bestellbedingungen, Werbung, Mangelbeschreibung, Fotos und Nachrichten aufbewahren. Bei Defekt den Verkäufer kontaktieren, nicht automatisch den Hersteller. Kaufdatum nennen und nach Gewährleistungsregeln kostenlose Verbesserung oder Austausch verlangen.", source: warranty),
+            .init("withdraw", "arrow.uturn.backward", "Онлайн-покупка і відмова", "Onlinekauf und Rücktritt", "Для багатьох дистанційних покупок є 14-денне право відмови від отримання товару, але винятки залежать від виду товару й послуги. Повідомте продавця доказово до завершення строку й збережіть підтвердження відправлення. Звичайний магазин не зобов’язаний приймати справний товар назад тільки тому, що він не сподобався.", "Für viele Fernabsatzkäufe besteht ein 14-tägiges Rücktrittsrecht ab Warenerhalt, mit Ausnahmen je Produkt oder Dienstleistung. Rücktritt rechtzeitig nachweisbar erklären und Versandbeleg behalten. Im Laden gibt es kein allgemeines Rückgaberecht für mangelfreie Ware.", source: withdrawal),
+            .init("escalate", "person.crop.rectangle", "Якщо продавець відмовляє", "Wenn der Händler ablehnt", "Попросіть письмову причину відмови й зверніться до консультування AK за місцем проживання. Не припиняйте платити за підписку без перевірки договору: скасування та законні вимоги слід документувати окремо. Якщо строк або сума значні, зверніться до правника.", "Ablehnung schriftlich begründen lassen und Konsumentenberatung der AK am Wohnort kontaktieren. Abokosten nicht ohne Vertragsprüfung ignorieren; Kündigung und Ansprüche getrennt dokumentieren. Bei wichtigen Beträgen oder Fristen Rechtsberatung einholen.", source: warranty)
+        ], sources: [warranty, withdrawal]
+    )
+
+    private static let interpreting = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Усний перекладач, присяжний переклад документів і перевірка вартості", german: "Dolmetschen, beglaubigte Übersetzung und Kostenklärung"),
+        introduction: .init(ukrainian: "Для усної зустрічі й письмового документа потрібні різні послуги. Не кожний переклад приймають суд, орган перебування або університет.", german: "Mündliche Termine und Schriftstücke brauchen unterschiedliche Leistungen. Nicht jede Übersetzung wird von Gericht, Aufenthaltsbehörde oder Hochschule akzeptiert."),
+        sections: [
+            .init("ask", "text.bubble", "Спершу спитайте установу", "Zuerst Stelle fragen", "Попросіть письмово назвати мову, форму, чи потрібен gerichtlich beeideter und zertifizierter Dolmetscher, оригінал і апостиль. Для терміну в органі запитайте, чи забезпечує перекладача сама установа і хто сплачує. Не замовляйте повний переклад пакета документів без списку потрібних сторінок.", "Schriftlich nach Sprache, Form, gerichtlich beeideter und zertifizierter Übersetzung, Original und Apostille fragen. Beim Behördentermin klären, ob die Stelle Dolmetschung stellt und wer zahlt. Keine gesamte Akte übersetzen lassen, bevor nötige Seiten feststehen.", source: interpreters),
+            .init("find", "magnifyingglass", "Знайдіть сертифікованого фахівця", "Zertifizierte Fachperson suchen", "В офіційному реєстрі Justiz оберіть українську мову та судовий округ або всю Австрію. Перед замовленням надішліть вимоги органу й запитайте ціну за сторінку, термін, доставку та чи входить засвідчення. Збережіть підтвердження замовлення й рахунок.", "In der amtlichen Justizliste Ukrainisch und Gerichtssprengel oder ganz Österreich wählen. Vor Auftrag Behördenvorgaben schicken und Seitenpreis, Dauer, Zustellung und Beglaubigung klären. Auftrag und Rechnung behalten.", source: interpreters),
+            .init("meeting", "person.2", "На прийомі", "Beim Termin", "Повідомте, якщо не розумієте важливого питання або переклад неточний; попросіть повторити й зафіксувати зауваження до протоколу. Не підписуйте текст, змісту якого не розумієте. Для суду, поліції чи притулку права на переклад залежать від процедури; попросіть індивідуальну правову допомогу.", "Sagen Sie, wenn eine wichtige Frage unverständlich oder falsch übertragen ist; um Wiederholung und Protokollierung bitten. Nichts unterschreiben, was Sie nicht verstehen. Rechte auf Dolmetschung in Gericht, Polizei oder Asylverfahren hängen vom Verfahren ab; individuell beraten lassen.", source: interpreters)
+        ], sources: [interpreters]
+    )
+}

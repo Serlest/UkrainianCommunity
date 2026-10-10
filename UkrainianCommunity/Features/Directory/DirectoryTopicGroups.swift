@@ -89,6 +89,18 @@ enum DirectoryTopicGroups {
             .init("daily", "Щоденна підтримка", "Unterstützung im Alltag", ["childcare", "parenting"]),
             .init("services", "Служби для сім’ї", "Dienste für Familien", ["family-services"])
         ],
+        "finances": [
+            .init("daily", "Банк і податки", "Bank und Steuern", ["banking", "taxes"]),
+            .init("later", "Пенсія", "Pension", ["pension"])
+        ],
+        "social-support": [
+            .init("claims", "Державні виплати", "Staatliche Leistungen", ["benefits", "family-benefits", "basic-support"]),
+            .init("help", "Додаткова допомога", "Weitere Hilfe", ["aid-organizations"])
+        ],
+        "legal": [
+            .init("rights", "Порада й захист прав", "Beratung und Rechtsschutz", ["legal-aid", "consumer-rights"]),
+            .init("procedure", "Спілкування з установами", "Behördenkontakte", ["authorities", "interpreting"])
+        ],
         "transport": [
             .init("public", "Громадський транспорт", "Öffentlicher Verkehr", ["local-transport", "rail", "bus"]),
             .init("other", "Інші поїздки й доступність", "Weitere Wege und Barrierefreiheit", ["taxi", "accessible-travel"])

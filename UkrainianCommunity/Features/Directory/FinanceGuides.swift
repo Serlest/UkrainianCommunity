@@ -1,0 +1,48 @@
+import Foundation
+
+enum FinanceGuides {
+    private static let bank = DirectorySource(name: "FMA · Basiskonto", url: "https://www.fma.gv.at/konto/basiskonto/")
+    private static let tax = DirectorySource(name: "BMF · Arbeitnehmerveranlagung", url: "https://www.bmf.gv.at/themen/steuern/arbeitnehmerveranlagung/verfahren-arbeitnehmerinnenveranlagung/arbeitnehmerinnenveranlagung.html")
+    private static let taxDeadline = DirectorySource(name: "BMF · Verfahren und Fristen", url: "https://www.bmf.gv.at/themen/steuern/arbeitnehmerveranlagung/verfahren-arbeitnehmerinnenveranlagung/verfahren-beim-finanzamt.html")
+    private static let pension = DirectorySource(name: "Pensionsversicherung · Versicherungszeiten im Ausland", url: "https://www.pv.at/web/pension/ihr-weg-zur-pension/zwischenstaatliche-pensionsversicherung")
+    private static let pensionRecord = DirectorySource(name: "Pensionsversicherung · Versicherungszeiten prüfen", url: "https://www.pv.at/web/pension/ihr-weg-zur-pension/ueberpruefung-der-versicherungszeiten")
+
+    static func guide(for topicID: String) -> DirectoryGuide? {
+        switch topicID {
+        case "banking": banking
+        case "taxes": taxes
+        case "pension": pensionGuide
+        default: nil
+        }
+    }
+
+    private static let banking = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Рахунок, Basiskonto, комісії й відмова банку", german: "Konto, Basiskonto, Entgelte und Bankablehnung"),
+        introduction: .init(ukrainian: "Для зарплати й багатьох виплат потрібен IBAN. Якщо звичайний рахунок недоступний, перевірте право на Basiskonto у FMA.", german: "Für Lohn und viele Leistungen ist ein IBAN nötig. Wenn ein normales Konto nicht möglich ist, prüfen Sie das Recht auf Basiskonto bei der FMA."),
+        sections: [
+            .init("compare", "eurosign.circle", "Порівняйте рахунки", "Konten vergleichen", "Запитайте щомісячну й річну плату, вартість картки, переказів, готівки, мінуса на рахунку й закриття. Для Basiskonto передбачені основні платежі, але немає дозволеного овердрафту. Попросіть письмовий Preisblatt до підписання та збережіть договір.", "Monats- und Jahresgebühr, Karte, Überweisungen, Bargeld, Überziehung und Kündigung vergleichen. Basiskonto bietet Grundfunktionen, aber keine Überziehung. Preisblatt vor Unterschrift und Vertragskopie verlangen.", source: bank),
+            .init("apply", "person.text.rectangle", "Відкрийте Basiskonto", "Basiskonto beantragen", "FMA пояснює право споживача з законним перебуванням у ЄС і без придатного платіжного рахунку. Банку потрібна перевірка особи; підготуйте офіційний документ і адресу для листування, навіть якщо немає постійного житла. Попросіть письмове підтвердження повної заяви й причину відмови, якщо вона буде.", "Laut FMA haben Verbraucher mit rechtmäßigem EU-Aufenthalt ohne nutzbares Zahlungskonto grundsätzlich Anspruch. Die Bank muss Identität prüfen; amtlichen Ausweis und Zustelladresse vorbereiten, auch ohne festen Wohnsitz. Vollständigen Antrag und gegebenenfalls Ablehnungsgrund schriftlich dokumentieren.", source: bank),
+            .init("security", "lock.shield", "Захистіть доступ", "Zugang schützen", "Нікому не передавайте PIN, пароль і коди підтвердження, навіть якщо людина називається працівником банку. Перевіряйте отримувача й IBAN перед переказом. При втраті картки одразу блокуйте її через банк і документуйте підозрілі операції.", "PIN, Passwort und Freigabecodes niemals weitergeben, auch nicht an angebliche Bankmitarbeiter. Empfänger und IBAN vor Überweisung prüfen. Verlorene Karte sofort sperren und verdächtige Buchungen dokumentieren.", source: bank)
+        ], sources: [bank]
+    )
+
+    private static let taxes = DirectoryGuide(
+        cardSummary: .init(ukrainian: "FinanzOnline, податкова декларація працівника й доходи з інших країн", german: "FinanzOnline, Arbeitnehmerveranlagung und Auslandseinkünfte"),
+        introduction: .init(ukrainian: "Податкові обов’язки залежать від виду доходу й податкового резидентства. Не переносьте автоматично правила зарплати на самозайнятість або іноземний дохід.", german: "Steuerpflicht hängt von Einkunftsart und Ansässigkeit ab. Regeln für Lohn gelten nicht automatisch für Selbständigkeit oder Auslandseinkünfte."),
+        sections: [
+            .init("records", "doc.text", "Зберіть документи за рік", "Jahresunterlagen sammeln", "Збережіть Lohnzettel, підтвердження витрат на роботу, догляд за дітьми, навчання, благодійність та інші документи, що можуть мати значення. Перевірте в FinanzOnline, які дані вже передані роботодавцем. Якщо були доходи в Україні чи іншій державі, запишіть їх окремо для індивідуальної перевірки податкового договору.", "Lohnzettel und Belege zu Arbeit, Betreuung, Weiterbildung, Spenden und weiteren möglichen Abzügen sammeln. In FinanzOnline übermittelte Arbeitgeberdaten prüfen. Einkünfte aus Ukraine oder anderen Staaten getrennt erfassen, damit das Doppelbesteuerungsabkommen individuell geprüft werden kann.", source: tax),
+            .init("file", "checklist", "Подайте правильну декларацію", "Richtige Erklärung abgeben", "Працівники часто використовують Arbeitnehmerveranlagung L1 через FinanzOnline або на папері. Для самозайнятості, кількох доходів чи певних іноземних доходів може бути потрібна інша декларація. Добровільну заяву працівник зазвичай може подати протягом п’яти років; обов’язкові строки інші. При сумніві уточніть у Finanzamt чи незалежного податкового фахівця до дедлайну.", "Beschäftigte nutzen oft Arbeitnehmerveranlagung L1 über FinanzOnline oder Papier. Selbständige, mehrere Einkunftsarten oder Auslandseinkünfte können eine andere Erklärung erfordern. Freiwillige Arbeitnehmerveranlagung ist grundsätzlich fünf Jahre möglich; Pflichtfristen unterscheiden sich. Bei Zweifel Finanzamt oder unabhängige Steuerberatung rechtzeitig fragen.", source: taxDeadline),
+            .init("decision", "envelope.open", "Перевірте Bescheid", "Bescheid prüfen", "Після рішення звірте доходи, враховані витрати, суму до повернення або сплати й правову інструкцію щодо оскарження. Не ігноруйте повідомлення в електронній скриньці FinanzOnline. Якщо помітили помилку, дійте в строк, указаний у Bescheid, і збережіть підтвердження подання.", "Im Bescheid Einkommen, Abzüge, Guthaben oder Nachzahlung und Rechtsmittelbelehrung prüfen. FinanzOnline-Nachrichten nicht übersehen. Fehler innerhalb der im Bescheid genannten Frist anfechten und Einbringungsnachweis behalten.", source: tax)
+        ], sources: [tax, taxDeadline]
+    )
+
+    private static let pensionGuide = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Австрійські внески, періоди з України й заява на пенсію", german: "Österreichische Zeiten, ukrainische Zeiten und Pensionsantrag"),
+        introduction: .init(ukrainian: "Право на пенсію не виникає тільки від віку. Потрібно перевірити страхові місяці, вид пенсії й правила міжнародного врахування періодів.", german: "Pensionsrecht entsteht nicht allein mit dem Alter. Versicherungsmonate, Pensionsart und internationale Zusammenrechnung müssen geprüft werden."),
+        sections: [
+            .init("account", "clock.arrow.circlepath", "Перевірте австрійські періоди", "Österreichische Zeiten prüfen", "Замовте Versicherungsdatenauszug або перегляньте Pensionskonto через ID Austria. Звірте роботодавців, місяці роботи, догляд за дитиною й інші зараховані періоди. Якщо даних бракує, подайте до PV підтвердження та попросіть виправлення заздалегідь.", "Versicherungsdatenauszug anfordern oder Pensionskonto mit ID Austria prüfen. Arbeitgeber, Beschäftigungsmonate, Kindererziehungs- und weitere Zeiten abgleichen. Fehlende Einträge mit Nachweisen bei der PV früh berichtigen lassen.", source: pensionRecord),
+            .init("foreign", "globe.europe.africa", "Періоди роботи за кордоном", "Auslandszeiten", "Розкажіть PV про український та інший іноземний стаж і збережіть трудові книжки, виписки та рішення про пенсію. Сумування періодів залежить від відповідного міжнародного договору; кожна держава визначає право й виплату за своїми правилами. Не припускайте, що австрійська пенсія автоматично включить усі українські роки.", "PV über ukrainische und andere Auslandszeiten informieren und Arbeitsnachweise, Versicherungsdaten und Pensionsbescheide behalten. Zusammenrechnung hängt vom jeweiligen Abkommen ab; jeder Staat prüft Anspruch und Zahlung nach eigenen Regeln. Ukrainische Jahre nicht automatisch als österreichische Monate annehmen.", source: pension),
+            .init("apply", "doc.text", "Плануйте заяву завчасно", "Antrag früh planen", "За кілька місяців до планованого виходу зверніться до PV для перевірки особистих умов, дати й потрібних документів. Окремо з’ясуйте, як пенсія вплине на страхування, Grundversorgung або інші виплати. Для української пенсії зверніться також до компетентного українського органу.", "Einige Monate vor geplantem Pensionsbeginn PV nach persönlichen Voraussetzungen, Stichtag und Unterlagen fragen. Auswirkungen auf Krankenversicherung, Grundversorgung und andere Leistungen gesondert prüfen. Für ukrainische Pension auch die ukrainische zuständige Stelle kontaktieren.", source: pension)
+        ], sources: [pensionRecord, pension]
+    )
+}
