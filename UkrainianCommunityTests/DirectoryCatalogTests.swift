@@ -251,6 +251,21 @@ struct DirectoryCatalogTests {
         }
     }
 
+    @Test func citizenshipGuidesCoverDistinctRoutesWithDirectSources() {
+        let category = DirectoryCatalog.categories.first { $0.id == "citizenship" }
+        #expect(category?.topics.count == 14)
+        for topic in category?.topics ?? [] {
+            guard let guide = CitizenshipGuides.guide(for: topic.id) else {
+                Issue.record("Missing citizenship guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.count == Set(guide.sections.map(\.id)).count)
+        }
+        let childPaths = Set(CitizenshipGuides.guide(for: "children")?.sections.map(\.id) ?? [])
+        #expect(childPaths.isSuperset(of: ["extend", "own", "adoption"]))
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
