@@ -6,7 +6,7 @@ enum TransportGuides {
     private static let rail = DirectorySource(name: "ÖBB · Tickets und Fahrplan", url: "https://www.oebb.at/de/neuigkeiten/tickets-neuer-fahrplan")
     private static let railRights = DirectorySource(name: "apf · Fahrgastrechte Bahn", url: "https://www.apf.gv.at/bahn-allgemeines")
     private static let busRights = DirectorySource(name: "apf · Fahrgastrechte Bus", url: "https://www.apf.gv.at/bus-fahrgastrechte")
-    private static let taxi = DirectorySource(name: "WKO · Taxitarife nach Ort", url: "https://www.wko.at/noe/transport-verkehr/befoerderungsgewerbe-personenkraftwagen/taxitarife-und-eichungen-von-taxametern")
+    private static let taxi = DirectorySource(name: "BMIMI · Gelegenheitsverkehr und Taxi", url: "https://www.bmimi.gv.at/themen/mobilitaet/transport/personen_gueter/recht/gelegenheitsverkehr.html")
     private static let mobility = DirectorySource(name: "ÖBB · Mobilitätsservice", url: "https://www.oebb.at/de/reiseplanung-services/barrierefrei-reisen/mobilitaetsservice")
 
     static func guide(for topicID: String) -> DirectoryGuide? {

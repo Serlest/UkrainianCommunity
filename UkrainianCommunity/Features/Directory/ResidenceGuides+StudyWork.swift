@@ -61,7 +61,10 @@ extension ResidenceGuides {
                   "Der Antrag geht an die Aufenthaltsbehörde am Wohnort (in Wien MA 35). Sie prüft die Unterlagen; das AMS bestätigt die vollversicherten Zeiten. Der Umstieg ist freiwillig und für Vertriebene nicht quotenpflichtig. Für später nachziehende Familienmitglieder gilt ein eigenes Verfahren."),
             .init("effect", "arrow.right.circle", "Що зміниться", "Was sich ändert",
                   "RWR+ потребує особистого продовження до закінчення картки. На відміну від тимчасового захисту, для отримання RWR+ не можна отримувати Grundversorgung. Після переходу можливе возз’єднання сім’ї та, за виконання умов, шлях до Daueraufenthalt – EU; попередні періоди захисту безпосередньо перед RWR+ можуть зараховуватися за правилами BMI.",
-                  "Die RWR-Karte plus muss vor Ablauf persönlich verlängert werden. Für ihre Erteilung darf anders als beim vorübergehenden Schutz keine Grundversorgung bezogen werden. Der Titel ermöglicht Familiennachzug und bei erfüllten Bedingungen später Daueraufenthalt – EU; unmittelbar vorangehende Schutzzeiten können nach BMI-Regeln angerechnet werden.")
-        ], sources: [protectionTransition, rwrPlus, conditions]
+                  "Die RWR-Karte plus muss vor Ablauf persönlich verlängert werden. Für ihre Erteilung darf anders als beim vorübergehenden Schutz keine Grundversorgung bezogen werden. Der Titel ermöglicht Familiennachzug und bei erfüllten Bedingungen später Daueraufenthalt – EU; unmittelbar vorangehende Schutzzeiten können nach BMI-Regeln angerechnet werden."),
+            .init("current-validity", "calendar", "Перевірте чинний строк захисту", "Aktuelle Schutzdauer prüfen",
+                  "Окрема сторінка BMI про перехід на RWR+ має дату 01.01.2026 і ще згадує 2027 рік для синьої картки. Актуальний FAQ BMI про реєстрацію та перебування вказує 4 березня 2028 року. Для строку захисту користуйтеся саме новішим FAQ; умови переходу перевіряйте на сторінці RWR+ та в органі перед заявою.",
+                  "Die BMI-Umstiegsseite zur RWR-Karte plus trägt den Stand 01.01.2026 und nennt für die blaue Karte noch 2027. Die aktuelle BMI-FAQ zu Erfassung und Aufenthalt nennt den 4. März 2028. Für die Schutzdauer die neuere FAQ verwenden; Umstiegsbedingungen vor Antrag auf der RWR-Seite und bei der Behörde prüfen.", source: protection)
+        ], sources: [protectionTransition, rwrPlus, conditions, protection]
     )
 }
