@@ -196,7 +196,7 @@ struct DirectoryCatalogTests {
                     if category.id == "residence" {
                         #expect(["bmi.gv.at", "www.bmi.gv.at", "oesterreich.gv.at",
                                  "www.oesterreich.gv.at", "eausweise.oesterreich.gv.at",
-                                 "www.migration.gv.at"].contains(source.url.host ?? ""))
+                                 "www.migration.gv.at", "oead.at"].contains(source.url.host ?? ""))
                     }
                     if category.id == "citizenship" {
                         #expect(["www.oesterreich.gv.at", "www.wien.gv.at", "www.bmi.gv.at",
@@ -316,6 +316,25 @@ struct DirectoryCatalogTests {
         #expect(DirectoryRegionalContent.applies(categoryID: "mental-health", topicID: "crisis"))
         #expect(!DirectoryRegionalContent.applies(categoryID: "mental-health", topicID: "counseling"))
         #expect(!DirectoryRegionalContent.applies(categoryID: "mental-health", topicID: "children"))
+    }
+
+    @Test func residenceArticlesSourceEveryActionAndDistinguishProtectionTransition() throws {
+        let category = try #require(DirectoryCatalog.categories.first { $0.id == "residence" })
+        #expect(category.topics.count == 12)
+        for topic in category.topics {
+            let guide = try #require(ResidenceGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 4)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            for section in guide.sections {
+                #expect(section.source?.url.scheme == "https", "\(topic.id)/\(section.id)")
+                #expect(section.body.ukrainian.count >= 90)
+                #expect(section.body.german.count >= 90)
+            }
+        }
+        let transition = try #require(ResidenceGuides.guide(for: "rwr-plus"))
+        #expect(transition.sections.contains { $0.id == "cost-and-result" })
+        #expect(transition.sections.contains { $0.id == "other-titles" })
+        #expect(!transition.sections.contains { $0.id == "current-validity" })
     }
 
     @Test func housingGuidesKeepDistinctSourcedRoutes() throws {
