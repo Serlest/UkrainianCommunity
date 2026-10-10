@@ -64,7 +64,7 @@ struct DirectoryCatalogTests {
     }
 
     @Test func publishedDirectoryTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing"] {
+        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing", "health"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             for topic in category?.topics ?? [] {
@@ -94,6 +94,9 @@ struct DirectoryCatalogTests {
                         #expect(["www.oesterreich.gv.at", "www.wien.gv.at", "www.bmi.gv.at",
                                  "mfa.gov.ua", "dmsu.gov.ua", "edikte.justiz.gv.at"].contains(source.url.host ?? ""))
                     }
+                    if categoryID == "health" {
+                        #expect(["www.gesundheit.gv.at", "www.oegk.at", "www.basg.gv.at"].contains(source.url.host ?? ""))
+                    }
                 }
             }
         }
@@ -111,7 +114,13 @@ struct DirectoryCatalogTests {
             #expect(grouped.count == Set(grouped).count)
             #expect(Set(grouped) == Set(category.topics.map(\.id)))
         }
-        #expect(!DirectoryTopicGroups.isComplete(categoryID: "health"))
+        let health = DirectoryCatalog.categories.first { $0.id == "health" }
+        #expect(health != nil)
+        #expect(DirectoryTopicGroups.isComplete(categoryID: "health"))
+        let healthGroups = DirectoryTopicGroups.forCategory(health!)
+        let groupedHealthTopics = healthGroups.flatMap(\.topicIDs)
+        #expect(groupedHealthTopics.count == Set(groupedHealthTopics).count)
+        #expect(Set(groupedHealthTopics) == Set(health!.topics.map(\.id)))
     }
 
     @Test func nearbyConsulatesHaveDirectOfficialLinks() {
@@ -131,7 +140,10 @@ struct DirectoryCatalogTests {
             ("residence", "temporary-protection"),
             ("citizenship", "application"),
             ("housing", "housing-support"),
-            ("housing", "foreign-buyers")
+            ("housing", "foreign-buyers"),
+            ("health", "doctors"),
+            ("health", "clinics"),
+            ("health", "patient-rights")
         ]
         for state in AustrianFederalState.allCases {
             for (categoryID, topicID) in regionalTopics {
@@ -146,6 +158,6 @@ struct DirectoryCatalogTests {
                 }
             }
         }
-        #expect(!DirectoryRegionalContent.applies(categoryID: "health", topicID: "doctors"))
+        #expect(!DirectoryRegionalContent.applies(categoryID: "health", topicID: "child-health"))
     }
 }

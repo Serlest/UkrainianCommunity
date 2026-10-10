@@ -57,7 +57,7 @@ struct DirectoryGuideTopicView: View {
                     DirectorySourceListView(
                         sources: guide.sources,
                         language: language,
-                        checkedOn: DirectoryGuideCatalog.checkedOn
+                        checkedOn: DirectoryGuideCatalog.checkedOn(for: categoryID)
                     )
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)

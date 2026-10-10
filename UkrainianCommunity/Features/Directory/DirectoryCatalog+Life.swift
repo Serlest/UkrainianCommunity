@@ -3,12 +3,19 @@ import Foundation
 extension DirectoryCatalog {
     static let lifeCategories: [DirectoryCategory] = [
         category("health", "Здоров’я", "Gesundheit",
-                 summaryUK: "Лікарі, лікарні й ліки", summaryDE: "Ärzte, Krankenhäuser und Medikamente",
+                 summaryUK: "Лікарі, лікарні, ліки, діти та профілактика", summaryDE: "Ärzte, Krankenhäuser, Medikamente, Kinder und Vorsorge",
                  symbol: "cross.case.fill", topics: [
+            topic("where-to-go", "Куди звернутися спочатку", "Wohin zuerst?"),
             topic("doctors", "Лікарі та прийом", "Ärzte & Termine"),
+            topic("specialists", "Спеціалісти та направлення", "Fachärzte & Überweisungen"),
             topic("clinics", "Клініки та лікарні", "Kliniken & Krankenhäuser"),
+            topic("dental", "Стоматологія", "Zahnbehandlung"),
             topic("medication", "Аптеки та ліки", "Apotheken & Medikamente"),
-            topic("pregnancy", "Вагітність і пологи", "Schwangerschaft & Geburt")
+            topic("ongoing-care", "Хронічні хвороби й терапія", "Chronische Erkrankungen & Therapie"),
+            topic("pregnancy", "Вагітність і пологи", "Schwangerschaft & Geburt"),
+            topic("child-health", "Здоров’я дітей", "Kindergesundheit"),
+            topic("prevention", "Щеплення та профілактика", "Impfungen & Vorsorge"),
+            topic("patient-rights", "Права пацієнта й скарги", "Patientenrechte & Beschwerden")
         ]),
         category("mental-health", "Психічне здоров’я", "Psychische Gesundheit",
                  summaryUK: "Підтримка й консультації", summaryDE: "Unterstützung und Beratung",

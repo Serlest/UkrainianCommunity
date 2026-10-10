@@ -37,6 +37,7 @@ enum DirectoryRegionalContent {
     static func applies(categoryID: String, topicID: String) -> Bool {
         switch categoryID {
         case "housing": HousingRegionalContent.applies(to: topicID)
+        case "health": HealthRegionalContent.applies(to: topicID)
         case "first-steps": ["arrival", "initial-support"].contains(topicID)
         case "registration": ["housing-types", "protection-registration", "after-registration"].contains(topicID)
         case "residence": topicID == "temporary-protection"
@@ -49,6 +50,7 @@ enum DirectoryRegionalContent {
     static func sections(categoryID: String, topicID: String, state: AustrianFederalState) -> [DirectoryGuideSection] {
         switch categoryID {
         case "housing": return HousingRegionalContent.sections(for: topicID, state: state)
+        case "health": return HealthRegionalContent.sections(for: topicID, state: state)
         case "first-steps", "registration":
             if topicID == "after-registration" { return [bfaSection(state)] }
             if topicID == "protection-registration" { return [policeRegistrationSection(state)] }

@@ -58,6 +58,12 @@ enum DirectoryTopicGroups {
             .init("rent", "Оренда і витрати", "Miete und Kosten", ["rental-contract", "rent-costs", "deposit", "rental-agents", "housing-support"]),
             .init("living", "Права і переїзд", "Wohnen und Umzug", ["tenant-rights", "ending-lease", "moving"]),
             .init("buy", "Купівля", "Kauf", ["buying", "buying-costs", "foreign-buyers"])
+        ],
+        "health": [
+            .init("start", "Знайти допомогу", "Hilfe finden", ["where-to-go", "doctors", "specialists", "clinics"]),
+            .init("treatment", "Лікування", "Behandlung", ["dental", "medication", "ongoing-care"]),
+            .init("family", "Родина і профілактика", "Familie und Vorsorge", ["pregnancy", "child-health", "prevention"]),
+            .init("rights", "Права пацієнта", "Patientenrechte", ["patient-rights"])
         ]
     ]
 }
