@@ -266,6 +266,25 @@ struct DirectoryCatalogTests {
         #expect(childPaths.isSuperset(of: ["extend", "own", "adoption"]))
     }
 
+    @Test func insuranceGuidesCoverAllTopicsWithDirectSources() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "insurance" }?.topics ?? []
+        #expect(topics.count == 4)
+        for topic in topics {
+            guard let guide = InsuranceGuides.guide(for: topic.id) else {
+                Issue.record("Missing insurance guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 4)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        let healthSections = InsuranceGuides.guide(for: "health-cover")?.sections.map(\.id) ?? []
+        let familySections = InsuranceGuides.guide(for: "family-cover")?.sections.map(\.id) ?? []
+        #expect(healthSections.contains("marginal"))
+        #expect(familySections.contains("adult-child"))
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
