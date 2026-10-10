@@ -1,0 +1,47 @@
+import Foundation
+
+enum QualificationGuides {
+    private static let procedures = DirectorySource(name: "Berufsanerkennung · Verfahren", url: "https://www.berufsanerkennung.at/de/berufsanerkennung/verfahren-zur-anerkennung/")
+    private static let advice = DirectorySource(name: "Berufsanerkennung · AST-Beratung", url: "https://www.berufsanerkennung.at/de/beratung/")
+    private static let courses = DirectorySource(name: "AMS · Aus- und Weiterbildungsdatenbank", url: "https://www.ams.at/arbeitsuchende/aus-und-weiterbildung/ausbildungs--und-weiterbildungsdatenbank")
+    private static let funding = DirectorySource(name: "AMS · Aus- und Weiterbildungsbeihilfen", url: "https://www.ams.at/arbeitsuchende/aus-und-weiterbildung/so-foerdern-wir-ihre-aus--und-weiterbildung-/aus--und-weiterbildungshilfen")
+
+    static func guide(for topicID: String) -> DirectoryGuide? {
+        switch topicID {
+        case "recognition": recognition
+        case "regulated-professions": regulated
+        case "training": training
+        default: nil
+        }
+    }
+
+    private static let recognition = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Оцінка диплома, нострифікація чи дозвіл на професію — різні процедури", german: "Bewertung, Nostrifikation oder Berufszulassung unterscheiden"),
+        introduction: .init(ukrainian: "В Австрії немає одного універсального «визнання диплома». Спочатку визначте, для чого потрібен документ: робота, вступ на навчання або право працювати в регламентованій професії.", german: "Eine einheitliche Anerkennung für alle Diplome gibt es in Österreich nicht. Klären Sie zuerst den Zweck: Arbeit, Studienzulassung oder Zugang zu einem reglementierten Beruf."),
+        sections: [
+            .init("goal", "scope", "Визначте мету", "Zweck festlegen", "Для нерегламентованої роботи офіційне визнання часто не є умовою; роботодавцю може вистачити диплома й оцінки. Для навчання рішення приймає заклад. Для регламентованої професії потрібна визначена законом процедура й компетентний орган. Не сплачуйте за нострифікацію, доки не перевірили, що вона потрібна саме вам.", "Für nicht reglementierte Arbeit ist formale Anerkennung oft nicht Pflicht; Diplom und Bewertung können genügen. Über Studienzulassung entscheidet die Hochschule. Reglementierte Berufe brauchen ein gesetzliches Verfahren bei der zuständigen Behörde. Keine Nostrifikation bezahlen, bevor deren Notwendigkeit geklärt ist.", source: procedures),
+            .init("advisor", "person.crop.rectangle", "Безкоштовна консультація AST", "Kostenlose AST-Beratung", "Зверніться до Anlaufstelle für Personen mit im Ausland erworbenen Qualifikationen у своїй землі. Вона допоможе визначити процедуру, орган, переклади, підтвердження й можливу підтримку з заявою. Візьміть диплом, додаток, досвід роботи та опис бажаної професії. Консультації можливі кількома мовами.", "Wenden Sie sich an die AST-Anlaufstelle Ihres Bundeslandes. Dort klären Sie Verfahren, Behörde, Übersetzungen, Nachweise und Hilfe beim Antrag. Bringen Sie Diplom, Beilage, Berufserfahrung und Zielberuf mit. Beratung ist mehrsprachig möglich.", source: advice),
+            .init("documents", "doc.on.doc", "Збирайте документи за вимогою органу", "Unterlagen gezielt beschaffen", "Попросіть точний перелік: диплом, предмети й години, трудовий стаж, присяжний переклад, інколи легалізація чи апостиль. Для втраченої через війну документації повідомте про це AST: для деяких груп можливі альтернативні способи підтвердження кваліфікації. Строк і збір залежать від процедури; вимагайте письмову інформацію.", "Lassen Sie sich eine genaue Liste geben: Abschluss, Fächer und Stunden, Praxis, beglaubigte Übersetzung, gegebenenfalls Apostille. Bei kriegsbedingt fehlenden Unterlagen AST nach alternativen Nachweisen fragen. Dauer und Gebühren hängen vom Verfahren ab; schriftlich erfragen.", source: advice)
+        ], sources: [procedures, advice]
+    )
+
+    private static let regulated = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Медицина, педагогіка та інші професії з обов’язковим допуском", german: "Gesundheit, Pädagogik und andere Berufe mit Berufszulassung"),
+        introduction: .init(ukrainian: "У регламентованій професії диплом і право перебування не замінюють професійного допуску. Орган і вимоги залежать від конкретної професії та країни освіти.", german: "In reglementierten Berufen ersetzen Diplom und Aufenthaltsrecht nicht die Berufszulassung. Zuständige Stelle und Anforderungen hängen von Beruf und Ausbildungsland ab."),
+        sections: [
+            .init("check", "checkmark.shield", "Перевірте, чи професія регламентована", "Reglementierung prüfen", "Використайте офіційний Anerkennungs-Wegweiser й назвіть точну професію, наприклад Pflege, Arztberuf чи Lehramt. Однакові назви посад можуть мати різний обсяг дозволених дій. Не починайте виконувати захищені професійні функції до рішення компетентного органу.", "Im amtlichen Anerkennungs-Wegweiser den genauen Beruf nennen, etwa Pflege, Medizin oder Lehramt. Ähnliche Berufsbezeichnungen können unterschiedliche Befugnisse haben. Geschützte Tätigkeiten erst nach Entscheidung der zuständigen Stelle ausüben.", source: procedures),
+            .init("route", "arrow.triangle.branch", "Правильна процедура", "Richtiges Verfahren", "Для освіти з ЄС/ЄЕЗ та третьої країни процедури можуть бути різними; у медицині, освіті й ремеслах працюють різні органи. AST допоможе визначити, чи потрібні порівняння навчальних програм, мовний доказ, практика, компенсаційні заходи або іспит. Попросіть письмове рішення і пояснення можливості оскарження.", "Für Qualifikationen aus EU/EWR und Drittstaaten können andere Wege gelten; Gesundheit, Bildung und Gewerbe haben verschiedene Stellen. AST klärt Curriculumsvergleich, Sprache, Praxis, Ausgleichsmaßnahmen oder Prüfung. Schriftlichen Bescheid und Rechtsmittelhinweis verlangen.", source: advice),
+            .init("interim", "briefcase", "Робота під час процедури", "Arbeit während des Verfahrens", "Запитайте, чи можна працювати на іншій, не захищеній посаді та які обов’язки дозволені. Не погоджуйтеся працювати під регламентованою назвою без допуску. Обговоріть із AMS або роботодавцем мовний курс, практику й фінансування необхідного донавчання.", "Prüfen Sie, ob eine andere, nicht geschützte Tätigkeit möglich ist und welche Aufgaben zulässig sind. Geschützte Berufsbezeichnung nicht ohne Zulassung verwenden. Sprachkurs, Praxis und Finanzierung von Anpassungsqualifizierung mit AMS oder Arbeitgeber besprechen.", source: procedures)
+        ], sources: [procedures, advice]
+    )
+
+    private static let training = DirectoryGuide(
+        cardSummary: .init(ukrainian: "Знайти курс, оцінити сертифікат і погодити можливе фінансування", german: "Kurs finden, Zertifikat prüfen, Förderung vorab klären"),
+        introduction: .init(ukrainian: "Курси відрізняються за вимогами, вартістю й результатом. Безкоштовна консультація до оплати допоможе не витратити час на сертифікат, який не потрібен для вашої професії.", german: "Kurse unterscheiden sich bei Zugang, Preis und Abschluss. Beratung vor Zahlung verhindert einen für den Zielberuf unnötigen Kurs."),
+        sections: [
+            .init("goal", "target", "Визначте ціль", "Ziel festlegen", "Виберіть конкретну вакансію або професію й порівняйте вимоги до мови, диплома, ліцензії та цифрових навичок. У базі AMS шукайте курси за регіоном і професією; перевірте, який документ видають і чи визнає його роботодавець або орган допуску.", "Wählen Sie Zielstelle oder Beruf und vergleichen Sie Sprache, Abschluss, Zulassung und digitale Fähigkeiten. In der AMS-Datenbank nach Region und Beruf suchen; prüfen, welches Zertifikat ausgestellt wird und ob Arbeitgeber oder Behörde es akzeptieren.", source: courses),
+            .init("cost", "eurosign.circle", "Фінансування до початку", "Förderung vor Kursbeginn", "Якщо зареєстровані в AMS, обговоріть курс зі своїм консультантом до запису. AMS перевіряє доцільність і умови індивідуально; автоматичного права на оплату немає. Запитайте письмово про покриття навчання, матеріалів, проїзду й проживання. Деякі землі мають додаткові програми.", "Sind Sie beim AMS vorgemerkt, sprechen Sie vor Anmeldung mit Ihrer Beratung. Förderfähigkeit wird einzeln geprüft; es gibt keinen automatischen Anspruch. Schriftlich Kurs, Material, Fahrt und Unterkunft klären. Manche Länder bieten ergänzende Programme.", source: funding),
+            .init("agreement", "doc.text", "Перед підписанням із провайдером", "Vor Vertrag mit dem Anbieter", "Перевірте повну ціну, відвідування, умови скасування, дату іспиту, додаткову плату та формат занять. Якщо курс пов’язаний із регламентованою професією, спершу з’ясуйте з органом визнання, чи він зарахує цей курс. Зберігайте підтвердження й сертифікат.", "Gesamtpreis, Teilnahme, Storno, Prüfungstermin, Zusatzkosten und Format prüfen. Bei reglementiertem Beruf zuerst mit Anerkennungsbehörde klären, ob der Kurs zählt. Bestätigungen und Abschlussnachweise aufbewahren.", source: courses)
+        ], sources: [courses, funding, procedures]
+    )
+}

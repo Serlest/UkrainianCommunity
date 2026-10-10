@@ -72,6 +72,26 @@ enum DirectoryTopicGroups {
         "insurance": [
             .init("public", "Медичне покриття", "Krankenversicherung", ["ukrainian-cover", "health-cover", "family-cover"]),
             .init("private", "Інші ризики", "Weitere Risiken", ["other-cover"])
+        ],
+        "work": [
+            .init("find", "Почати роботу", "Arbeit aufnehmen", ["work-rights", "job-search"]),
+            .init("conditions", "Умови й власна справа", "Arbeitsbedingungen und Selbständigkeit", ["employee-rights", "self-employment"])
+        ],
+        "qualifications": [
+            .init("recognize", "Оцінити освіту", "Qualifikation prüfen", ["recognition", "regulated-professions"]),
+            .init("develop", "Довчитися", "Weiterbildung", ["training"])
+        ],
+        "education": [
+            .init("children", "Для дітей", "Für Kinder", ["kindergarten", "school"]),
+            .init("adults", "Навчання дорослих", "Bildung für Erwachsene", ["higher-education", "language"])
+        ],
+        "family": [
+            .init("daily", "Щоденна підтримка", "Unterstützung im Alltag", ["childcare", "parenting"]),
+            .init("services", "Служби для сім’ї", "Dienste für Familien", ["family-services"])
+        ],
+        "transport": [
+            .init("public", "Громадський транспорт", "Öffentlicher Verkehr", ["local-transport", "rail", "bus"]),
+            .init("other", "Інші поїздки й доступність", "Weitere Wege und Barrierefreiheit", ["taxi", "accessible-travel"])
         ]
     ]
 }

@@ -64,7 +64,7 @@ struct DirectoryCatalogTests {
     }
 
     @Test func publishedDirectoryTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing", "health", "mental-health", "insurance"] {
+        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing", "health", "mental-health", "insurance", "work", "qualifications", "education", "family", "transport"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             for topic in category?.topics ?? [] {
@@ -114,7 +114,7 @@ struct DirectoryCatalogTests {
             #expect(grouped.count == Set(grouped).count)
             #expect(Set(grouped) == Set(category.topics.map(\.id)))
         }
-        for categoryID in ["health", "mental-health", "insurance"] {
+        for categoryID in ["health", "mental-health", "insurance", "work", "qualifications", "education", "family", "transport"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             #expect(DirectoryTopicGroups.isComplete(categoryID: categoryID))
