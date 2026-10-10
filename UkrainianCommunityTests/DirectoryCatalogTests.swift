@@ -64,7 +64,7 @@ struct DirectoryCatalogTests {
     }
 
     @Test func publishedDirectoryTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing", "health"] {
+        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing", "health", "mental-health", "insurance"] {
             let category = DirectoryCatalog.categories.first { $0.id == categoryID }
             #expect(category != nil)
             for topic in category?.topics ?? [] {
@@ -114,13 +114,15 @@ struct DirectoryCatalogTests {
             #expect(grouped.count == Set(grouped).count)
             #expect(Set(grouped) == Set(category.topics.map(\.id)))
         }
-        let health = DirectoryCatalog.categories.first { $0.id == "health" }
-        #expect(health != nil)
-        #expect(DirectoryTopicGroups.isComplete(categoryID: "health"))
-        let healthGroups = DirectoryTopicGroups.forCategory(health!)
-        let groupedHealthTopics = healthGroups.flatMap(\.topicIDs)
-        #expect(groupedHealthTopics.count == Set(groupedHealthTopics).count)
-        #expect(Set(groupedHealthTopics) == Set(health!.topics.map(\.id)))
+        for categoryID in ["health", "mental-health", "insurance"] {
+            let category = DirectoryCatalog.categories.first { $0.id == categoryID }
+            #expect(category != nil)
+            #expect(DirectoryTopicGroups.isComplete(categoryID: categoryID))
+            let groups = DirectoryTopicGroups.forCategory(category!)
+            let groupedTopics = groups.flatMap(\.topicIDs)
+            #expect(groupedTopics.count == Set(groupedTopics).count)
+            #expect(Set(groupedTopics) == Set(category!.topics.map(\.id)))
+        }
     }
 
     @Test func nearbyConsulatesHaveDirectOfficialLinks() {

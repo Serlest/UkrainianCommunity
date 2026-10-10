@@ -15,6 +15,7 @@ struct DirectoryGuideCategoryView: View {
 
                 if category.id == "safety" { emergencyCard }
                 if category.id == "health" { healthHelpCard }
+                if category.id == "mental-health" { mentalHealthHelpCard }
                 DirectoryFeedbackView(kind: .question(categoryID: category.id, title: category.title.value(for: language)), repository: feedbackRepository)
 
                 ForEach(DirectoryTopicGroups.forCategory(category)) { group in
@@ -69,6 +70,23 @@ struct DirectoryGuideCategoryView: View {
                 .foregroundStyle(AppTheme.textSecondary)
             SafetyCallButton(contact: DirectorySafetyContent.ambulance, language: language)
             SafetyCallButton(contact: HealthGuides.healthAdvice, language: language)
+        }
+    }
+
+    private var mentalHealthHelpCard: some View {
+        AppGlassCard {
+            Label(DirectoryText(ukrainian: "Потрібна допомога зараз?", german: "Brauchen Sie jetzt Hilfe?").value(for: language),
+                  systemImage: "heart.text.square.fill")
+                .font(.headline)
+            Text(DirectoryText(
+                ukrainian: "Якщо є безпосередня небезпека — 144. Для анонімної розмови цілодобово — 142; дітям і підліткам — 147.",
+                german: "Bei unmittelbarer Gefahr 144. Für ein anonymes Gespräch rund um die Uhr 142; für Kinder und Jugendliche 147."
+            ).value(for: language))
+                .font(.body)
+                .foregroundStyle(AppTheme.textSecondary)
+            SafetyCallButton(contact: DirectorySafetyContent.ambulance, language: language)
+            SafetyCallButton(contact: DirectorySafetyContent.crisis, language: language)
+            SafetyCallButton(contact: DirectorySafetyContent.children, language: language)
         }
     }
 

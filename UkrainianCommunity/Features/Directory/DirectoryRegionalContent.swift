@@ -38,6 +38,8 @@ enum DirectoryRegionalContent {
         switch categoryID {
         case "housing": HousingRegionalContent.applies(to: topicID)
         case "health": HealthRegionalContent.applies(to: topicID)
+        case "mental-health": topicID == "crisis" || topicID == "counseling"
+        case "insurance": topicID == "ukrainian-cover"
         case "first-steps": ["arrival", "initial-support"].contains(topicID)
         case "registration": ["housing-types", "protection-registration", "after-registration"].contains(topicID)
         case "residence": topicID == "temporary-protection"
@@ -51,6 +53,12 @@ enum DirectoryRegionalContent {
         switch categoryID {
         case "housing": return HousingRegionalContent.sections(for: topicID, state: state)
         case "health": return HealthRegionalContent.sections(for: topicID, state: state)
+        case "mental-health":
+            return [.init("regional-mental-health", "heart.text.square", "Підтримка у вашій землі", "Hilfe in Ihrem Bundesland",
+                          "На офіційній сторінці відкрийте служби землі \(state.displayName) й перевірте прямий номер та години роботи. При безпосередній небезпеці використовуйте 144; анонімна лінія 142 діє по всій Австрії.",
+                          "Öffnen Sie auf der amtlichen Seite die Dienste für \(state.displayName) und prüfen Sie Nummer und Erreichbarkeit. Bei unmittelbarer Gefahr 144 wählen; die anonyme Nummer 142 gilt österreichweit.",
+                          source: DirectorySource(name: "Gesundheitsportal · Krisendienste \(state.displayName)", url: "https://www.gesundheit.gv.at/leben/suizidpraevention/anlaufstellen/notrufnummern.html"))]
+        case "insurance": return [basicCareSection(state)]
         case "first-steps", "registration":
             if topicID == "after-registration" { return [bfaSection(state)] }
             if topicID == "protection-registration" { return [policeRegistrationSection(state)] }

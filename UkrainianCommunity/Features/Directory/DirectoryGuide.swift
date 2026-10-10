@@ -31,7 +31,7 @@ enum DirectoryGuideCatalog {
     static let checkedOn = "07.10.2026"
 
     static func checkedOn(for categoryID: String) -> String {
-        categoryID == "health" ? "10.10.2026" : checkedOn
+        ["health", "mental-health", "insurance"].contains(categoryID) ? "10.10.2026" : checkedOn
     }
 
     static func guide(categoryID: String, topicID: String) -> DirectoryGuide? {
@@ -43,6 +43,8 @@ enum DirectoryGuideCatalog {
         case "citizenship": CitizenshipGuides.guide(for: topicID)
         case "housing": HousingGuides.guide(for: topicID)
         case "health": HealthGuides.guide(for: topicID)
+        case "mental-health": MentalHealthGuides.guide(for: topicID)
+        case "insurance": InsuranceGuides.guide(for: topicID)
         default: nil
         }
     }
