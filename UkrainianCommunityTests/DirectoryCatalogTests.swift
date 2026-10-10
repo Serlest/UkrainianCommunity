@@ -233,6 +233,24 @@ struct DirectoryCatalogTests {
         #expect(DocumentGuides.guide(for: "consulate-austria")?.sections.first?.source?.url.host == "mfa.gov.ua")
     }
 
+    @Test func documentGuidesHaveTraceableSections() {
+        let category = DirectoryCatalog.categories.first { $0.id == "documents" }
+        #expect(category?.topics.count == 16)
+        for topic in category?.topics ?? [] {
+            guard let guide = DocumentGuides.guide(for: topic.id) else {
+                Issue.record("Missing document guide: \(topic.id)")
+                continue
+            }
+            #expect(!guide.sections.isEmpty)
+            #expect(guide.sections.count == Set(guide.sections.map(\.id)).count)
+            for section in guide.sections {
+                #expect(section.source?.url.scheme == "https")
+                #expect(!section.title.ukrainian.isEmpty && !section.title.german.isEmpty)
+                #expect(!section.body.ukrainian.isEmpty && !section.body.german.isEmpty)
+            }
+        }
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
