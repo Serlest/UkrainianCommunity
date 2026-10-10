@@ -306,6 +306,27 @@ struct DirectoryCatalogTests {
         #expect(business.contains("svs") && business.contains("tax") && business.contains("vat"))
     }
 
+    @Test func qualificationGuidesDistinguishAssessmentLicensingAndCourses() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "qualifications" }?.topics ?? []
+        #expect(topics.count == 3)
+        for topic in topics {
+            guard let guide = QualificationGuides.guide(for: topic.id) else {
+                Issue.record("Missing qualification guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 4)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        let recognition = QualificationGuides.guide(for: "recognition")?.sections.map(\.id) ?? []
+        let regulated = QualificationGuides.guide(for: "regulated-professions")?.sections.map(\.id) ?? []
+        let training = QualificationGuides.guide(for: "training")?.sections.map(\.id) ?? []
+        #expect(recognition.contains("academic") && recognition.contains("vocational") && recognition.contains("nostrification"))
+        #expect(regulated.contains("health-register"))
+        #expect(training.contains("provider") && training.contains("cost"))
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
