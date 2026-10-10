@@ -65,8 +65,8 @@ enum DirectoryTopicGroups {
             .init("rights", "Права пацієнта", "Patientenrechte", ["patient-rights"])
         ],
         "mental-health": [
-            .init("support", "Підтримка й лікування", "Beratung und Behandlung", ["counseling"]),
-            .init("urgent", "Криза і захист", "Krise und Schutz", ["crisis", "children"])
+            .init("support", "Підтримка й лікування", "Beratung und Behandlung", ["counseling", "children"]),
+            .init("urgent", "Невідкладна підтримка", "Hilfe in akuten Krisen", ["crisis"])
         ],
         "insurance": [
             .init("public", "Медичне покриття", "Krankenversicherung", ["ukrainian-cover", "health-cover", "family-cover"]),

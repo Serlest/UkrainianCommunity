@@ -50,7 +50,7 @@ enum DirectoryRegionalContent {
         switch categoryID {
         case "housing": HousingRegionalContent.applies(to: topicID)
         case "health": HealthRegionalContent.applies(to: topicID)
-        case "mental-health": topicID == "crisis" || topicID == "counseling"
+        case "mental-health": topicID == "crisis"
         case "insurance": topicID == "ukrainian-cover"
         case "social-support": ["benefits", "basic-support"].contains(topicID)
         case "community": topicID == "local-services"
@@ -71,9 +71,9 @@ enum DirectoryRegionalContent {
         case "housing": return HousingRegionalContent.sections(for: topicID, state: state)
         case "health": return HealthRegionalContent.sections(for: topicID, state: state)
         case "mental-health":
-            return [.init("regional-mental-health", "heart.text.square", "Підтримка у вашій землі", "Hilfe in Ihrem Bundesland",
-                          "На офіційній сторінці відкрийте служби землі \(state.displayName) й перевірте прямий номер та години роботи. При безпосередній небезпеці використовуйте 144; анонімна лінія 142 діє по всій Австрії.",
-                          "Öffnen Sie auf der amtlichen Seite die Dienste für \(state.displayName) und prüfen Sie Nummer und Erreichbarkeit. Bei unmittelbarer Gefahr 144 wählen; die anonyme Nummer 142 gilt österreichweit.",
+            return [.init("regional-mental-health", "heart.text.square", "Кризова служба у вашій землі", "Krisendienst in Ihrem Bundesland",
+                          "На офіційній сторінці знайдіть кризову службу землі \(state.displayName). Перевірте номер і години прийому перед дзвінком; якщо ви зараз перебуваєте в іншій землі, оберіть її. При безпосередній небезпеці телефонуйте 144. Для анонімної розмови по всій Австрії працює 142.",
+                          "Suchen Sie auf der amtlichen Seite den Krisendienst für \(state.displayName). Prüfen Sie Nummer und Erreichbarkeit vor dem Anruf; bei Aufenthalt in einem anderen Bundesland wählen Sie dieses. Bei unmittelbarer Gefahr 144 anrufen. Für ein anonymes Gespräch gilt österreichweit 142.",
                           source: DirectorySource(name: "Gesundheitsportal · Krisendienste \(state.displayName)", url: "https://www.gesundheit.gv.at/leben/suizidpraevention/anlaufstellen/notrufnummern.html"))]
         case "insurance": return [basicCareSection(state)]
         case "social-support":

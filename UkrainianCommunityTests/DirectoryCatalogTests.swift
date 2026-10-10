@@ -299,6 +299,25 @@ struct DirectoryCatalogTests {
         }
     }
 
+    @Test func mentalHealthArticlesHaveSeparateHelpRoutesAndOfficialSources() throws {
+        let category = try #require(DirectoryCatalog.categories.first { $0.id == "mental-health" })
+        #expect(Set(category.topics.map(\.id)) == ["counseling", "crisis", "children"])
+        for topic in category.topics {
+            let guide = try #require(MentalHealthGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 4)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            for section in guide.sections {
+                #expect(section.source?.url.scheme == "https", "\(topic.id)/\(section.id)")
+                #expect(section.body.ukrainian.count >= 100)
+                #expect(section.body.german.count >= 100)
+            }
+        }
+        #expect(MentalHealthGuides.guide(for: "children")?.sections.contains { $0.id == "free-program" } == true)
+        #expect(DirectoryRegionalContent.applies(categoryID: "mental-health", topicID: "crisis"))
+        #expect(!DirectoryRegionalContent.applies(categoryID: "mental-health", topicID: "counseling"))
+        #expect(!DirectoryRegionalContent.applies(categoryID: "mental-health", topicID: "children"))
+    }
+
     @Test func housingGuidesKeepDistinctSourcedRoutes() throws {
         let category = try #require(DirectoryCatalog.categories.first { $0.id == "housing" })
         #expect(category.topics.count == 18)
