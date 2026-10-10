@@ -6,7 +6,7 @@ struct SafetyInfoCard<Content: View>: View {
     @ViewBuilder let content: Content
 
     var body: some View {
-        AppGlassCard {
+        AppGlassCard(material: .regularMaterial) {
             Label(title, systemImage: symbol).font(.headline)
             content
         }

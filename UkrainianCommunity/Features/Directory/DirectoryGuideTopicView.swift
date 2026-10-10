@@ -14,7 +14,8 @@ struct DirectoryGuideTopicView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
                     DirectoryPageHeading(title: topic.title.value(for: language),
-                                         summary: guide.introduction.value(for: language))
+                                         summary: guide.introduction.value(for: language),
+                                         isArticle: true)
 
                     if guide.sections.count > 5 {
                         DirectoryTopicOutlineView(

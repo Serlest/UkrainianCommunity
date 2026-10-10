@@ -5,24 +5,30 @@ struct DirectoryGuideSectionCard: View {
     let language: AppLanguage
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 11) {
                 Image(systemName: section.symbol)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .frame(width: 30, height: 30)
-                    .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 9))
+                    .frame(width: 36, height: 36)
+                    .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 11))
                     .accessibilityHidden(true)
                 Text(section.title.value(for: language))
-                    .font(.headline)
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+            Divider()
             DirectoryGuideBodyView(text: section.body.value(for: language))
             if let source = section.source {
+                Divider()
                 Link(destination: source.url) {
-                    Label(source.name, systemImage: "arrow.up.right.square")
-                        .font(.footnote.weight(.semibold))
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Image(systemName: "arrow.up.right.square")
+                        Text(source.name)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .font(.subheadline.weight(.medium))
                 }
                 .accessibilityIdentifier("directory.source.\(section.id)")
             }
@@ -39,7 +45,7 @@ struct DirectoryGuideSectionCard: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 14)
-        .overlay(alignment: .bottom) { Divider() }
+        .padding(16)
+        .appGlassCard(material: .regularMaterial)
     }
 }

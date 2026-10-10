@@ -3,6 +3,49 @@ import Testing
 @testable import UkrainianCommunity
 
 struct DirectoryCatalogTests {
+    @Test func articleFormattingKeepsDatesAndNumberedStepsTogether() {
+        #expect(DirectoryReadingBlocks.from("Seit 16. Januar 2026 gilt die Regel. Prüfen Sie den Antrag.") == [
+            "Seit 16. Januar 2026 gilt die Regel.", "Prüfen Sie den Antrag."
+        ])
+        #expect(DirectoryReadingBlocks.from("1. Befund. 2. Kostenvoranschlag. 3. Antrag stellen.") == [
+            "1. Befund.", "2. Kostenvoranschlag.", "3. Antrag stellen."
+        ])
+    }
+
+    @Test func articleFormattingPreservesEveryLocalizedSection() {
+        func check(_ text: String) {
+            let original = text.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+            let rendered = DirectoryReadingBlocks.from(text).joined(separator: " ")
+                .split(whereSeparator: \.isWhitespace).joined(separator: " ")
+            #expect(rendered == original)
+        }
+
+        for category in DirectoryCatalog.categories {
+            for topic in category.topics {
+                if category.id == "safety" {
+                    for section in DirectorySafetyContent.guides[topic.id]?.sections ?? [] {
+                        check(section.body.ukrainian)
+                        check(section.body.german)
+                    }
+                } else {
+                    for section in DirectoryGuideCatalog.guide(categoryID: category.id, topicID: topic.id)?.sections ?? [] {
+                        check(section.body.ukrainian)
+                        check(section.body.german)
+                    }
+                }
+                if DirectoryRegionalContent.applies(categoryID: category.id, topicID: topic.id) {
+                    for state in AustrianFederalState.allCases {
+                        for section in DirectoryRegionalContent.sections(categoryID: category.id,
+                                                                         topicID: topic.id, state: state) {
+                            check(section.body.ukrainian)
+                            check(section.body.german)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     @Test func categoriesAndTopicsHaveStableUniqueIdentifiers() {
         let categories = DirectoryCatalog.categories
         #expect(!categories.isEmpty)

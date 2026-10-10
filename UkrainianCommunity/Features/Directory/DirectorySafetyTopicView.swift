@@ -13,7 +13,8 @@ struct DirectorySafetyTopicView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
                     DirectoryPageHeading(title: topic.title.value(for: language),
-                                         summary: guide.summary.value(for: language))
+                                         summary: guide.summary.value(for: language),
+                                         isArticle: true)
 
                     if guide.sections.count > 5 {
                         DirectoryTopicOutlineView(
