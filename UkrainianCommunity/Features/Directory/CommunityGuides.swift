@@ -6,6 +6,7 @@ enum CommunityGuides {
     private static let ukraine = DirectorySource(name: "ÖIF · Ukraine", url: "https://www.integrationsfonds.at/ukraine/")
     private static let volunteering = DirectorySource(name: "Freiwilligenweb · Freiwilligenzentren", url: "https://www.freiwilligenweb.at/nuetzliches/freiwilligenzentren/")
     private static let rights = DirectorySource(name: "Freiwilligenweb · Rechtliche Rahmenbedingungen", url: "https://www.freiwilligenweb.at/freiwilliges-engagement/rechtliche-rahmenbedingungen/")
+    private static let volunteerRecord = DirectorySource(name: "Freiwilligenweb · Freiwilligen-Nachweis", url: "https://www.freiwilligenweb.at/freiwilliges-engagement/freiwilligen-nachweis/")
 
     static func guide(for topicID: String) -> DirectoryGuide? {
         switch topicID {
@@ -42,7 +43,8 @@ enum CommunityGuides {
         sections: [
             .init("find", "hand.raised", "Знайдіть перевірене місце", "Passende Stelle finden", "Офіційний Freiwilligenweb перелічує регіональні Freiwilligenzentren, які допомагають обрати діяльність. Розкажіть про мову, час, навички та обмеження; попросіть опис завдань, ім’я відповідальної особи та адресу.", "Das Freiwilligenweb listet regionale Freiwilligenzentren, die bei der Auswahl helfen. Sprache, Zeit, Fähigkeiten und Grenzen nennen; Aufgabenbeschreibung, Kontaktperson und Ort erfragen.", source: volunteering),
             .init("conditions", "doc.text", "Уточніть умови й захист", "Bedingungen und Schutz klären", "Перед початком письмово з’ясуйте години, навчання, відшкодування витрат, страхування від нещасних випадків і відповідальність. Захист залежить від організації та форми участі; не припускайте, що кожна добровільна дія автоматично застрахована.", "Vor Beginn Stunden, Einschulung, Auslagenersatz, Unfall- und Haftpflichtschutz schriftlich klären. Schutz hängt von Organisation und Form des Engagements ab; nicht jede freiwillige Tätigkeit ist automatisch versichert.", source: rights),
+            .init("record", "checkmark.seal", "Збережіть підтвердження досвіду", "Erfahrung nachweisen", "Після початку попросіть організацію вести облік завдань і годин. На Freiwilligenweb є паперовий і цифровий Freiwilligenpass та підтвердження навичок, які заповнюють разом волонтер і організація. Такий документ може допомогти при заявці на роботу, але не замінює професійного допуску чи диплома.", "Nach Beginn Tätigkeiten und Stunden mit der Organisation dokumentieren. Freiwilligenweb bietet papiergebundenen und digitalen Freiwilligenpass sowie Kompetenznachweis, die Freiwillige und Organisation gemeinsam erstellen. Das kann Bewerbungen unterstützen, ersetzt aber keine Berufszulassung oder einen Abschluss.", source: volunteerRecord),
             .init("rights", "person.crop.rectangle", "Відрізняйте від роботи", "Von Beschäftigung abgrenzen", "Якщо є фіксовані зміни, вказівки керівника й діяльність замість оплачуваної посади, попросіть пояснити правовий статус. Для роботи та виплат перевірте правила у відповідних розділах; за сумніву зверніться до Arbeiterkammer.", "Bei festen Schichten, Weisungen und Ersatz einer bezahlten Stelle den rechtlichen Status erklären lassen. Für Arbeit und Leistungen die jeweiligen Regeln prüfen; im Zweifel Arbeiterkammer kontaktieren.", source: rights)
-        ], sources: [volunteering, rights]
+        ], sources: [volunteering, rights, volunteerRecord]
     )
 }

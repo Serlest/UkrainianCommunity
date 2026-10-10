@@ -55,7 +55,7 @@ extension DirectoryCatalog {
                  summaryUK: "Послуги для людей з інвалідністю", summaryDE: "Angebote für Menschen mit Behinderung",
                  symbol: "figure.roll", topics: [
             topic("disability", "Підтримка людей з інвалідністю", "Unterstützung bei Behinderung"),
-            topic("accessible-services", "Доступні послуги", "Barrierefreie Angebote"),
+            topic("accessible-services", "Доступ до послуг і роботи", "Zugang zu Diensten und Arbeit"),
             topic("assistive-devices", "Допоміжні засоби", "Hilfsmittel")
         ]),
         category("care", "Догляд", "Pflege",

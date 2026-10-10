@@ -74,7 +74,8 @@ enum DirectoryTopicGroups {
         ],
         "work": [
             .init("find", "Почати роботу", "Arbeit aufnehmen", ["work-rights", "job-search"]),
-            .init("conditions", "Умови й власна справа", "Arbeitsbedingungen und Selbständigkeit", ["employee-rights", "self-employment"])
+            .init("conditions", "Права працівника", "Arbeitnehmerrechte", ["employee-rights"]),
+            .init("business", "Власна справа", "Selbständigkeit", ["self-employment"])
         ],
         "qualifications": [
             .init("recognize", "Оцінити освіту", "Qualifikation prüfen", ["recognition", "regulated-professions"]),
@@ -93,7 +94,8 @@ enum DirectoryTopicGroups {
             .init("later", "Пенсія", "Pension", ["pension"])
         ],
         "social-support": [
-            .init("claims", "Державні виплати", "Staatliche Leistungen", ["benefits", "family-benefits", "basic-support"]),
+            .init("status", "Допомога за статусом", "Leistungen nach Status", ["benefits", "basic-support"]),
+            .init("family", "Для сімей", "Für Familien", ["family-benefits"]),
             .init("help", "Додаткова допомога", "Weitere Hilfe", ["aid-organizations"])
         ],
         "legal": [
