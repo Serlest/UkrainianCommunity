@@ -19,11 +19,11 @@ extension DirectoryCatalog {
             topic("mental-crisis", "Психологічна криза", "Psychische Krise")
         ]),
         category("first-steps", "Перші кроки", "Erste Schritte",
-                 summaryUK: "Що зробити сьогодні та в перший тиждень",
-                 summaryDE: "Was heute und in der ersten Woche wichtig ist",
+                 summaryUK: "Перший день і наступні кроки",
+                 summaryDE: "Der erste Tag und die nächsten Schritte",
                  symbol: "figure.walk.arrival", topics: [
-            topic("arrival", "Перший день: безпечна ночівля", "Erster Tag: sicher übernachten"),
-            topic("checklist", "Перший тиждень: порядок дій", "Erste Woche: die nächsten Schritte")
+            topic("arrival", "Перший день: ночівля й допомога", "Erster Tag: Unterkunft und Hilfe"),
+            topic("checklist", "Після прибуття: порядок дій", "Nach der Ankunft: die nächsten Schritte")
         ]),
         category("registration", "Реєстрація", "Anmeldung",
                  summaryUK: "Адреса, тимчасовий захист, посвідчення й переїзд",

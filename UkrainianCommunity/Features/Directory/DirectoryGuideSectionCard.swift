@@ -3,6 +3,7 @@ import SwiftUI
 struct DirectoryGuideSectionCard: View {
     let section: DirectoryGuideSection
     let language: AppLanguage
+    var compactBody: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -19,7 +20,7 @@ struct DirectoryGuideSectionCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Divider()
-            DirectoryGuideBodyView(text: section.body.value(for: language))
+            DirectoryGuideBodyView(text: section.body.value(for: language), compact: compactBody)
             if let source = section.source {
                 Divider()
                 Link(destination: source.url) {

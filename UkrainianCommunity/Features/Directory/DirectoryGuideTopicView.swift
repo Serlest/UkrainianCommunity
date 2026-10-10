@@ -27,7 +27,8 @@ struct DirectoryGuideTopicView: View {
                     }
 
                     ForEach(guide.sections) { section in
-                        DirectoryGuideSectionCard(section: section, language: language)
+                        DirectoryGuideSectionCard(section: section, language: language,
+                                                  compactBody: categoryID == "first-steps")
                             .id(section.id)
                     }
 

@@ -111,6 +111,19 @@ struct DirectoryCatalogTests {
         }
     }
 
+    @Test func firstStepsKeepTheArrivalRouteSeparateAndSourceEachAction() throws {
+        let arrival = try #require(FirstStepsGuides.guide(for: "arrival"))
+        let checklist = try #require(FirstStepsGuides.guide(for: "checklist"))
+        #expect(arrival.sections.count == 4)
+        #expect(checklist.sections.count == 8)
+        #expect(Set(arrival.sections.map(\.id)).isDisjoint(with: Set(checklist.sections.map(\.id))))
+        for section in arrival.sections + checklist.sections {
+            #expect(section.source?.url.scheme == "https")
+            #expect(section.body.ukrainian.count > 100)
+            #expect(section.body.german.count > 100)
+        }
+    }
+
     @Test func regionalSafetyAddsLocalServicesWithoutRepeatingEmergencyAdvice() {
         for state in AustrianFederalState.allCases {
             for topicID in ["domestic-violence", "women", "children", "assault"] {

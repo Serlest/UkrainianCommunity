@@ -2,15 +2,32 @@ import SwiftUI
 
 struct DirectoryGuideBodyView: View {
     let text: String
+    var compact: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            ForEach(Array(DirectoryReadingBlocks.from(text).enumerated()), id: \.offset) { index, block in
-                Text(block)
-                    .font(.body.weight(index == 0 && block.count <= 140 ? .medium : .regular))
+            let blocks = DirectoryReadingBlocks.from(text)
+            if compact, let first = blocks.first {
+                Text(first)
+                    .font(.body.weight(.medium))
                     .lineSpacing(5)
                     .foregroundStyle(AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                if blocks.count > 1 {
+                    Text(blocks.dropFirst().joined(separator: " "))
+                        .font(.body)
+                        .lineSpacing(5)
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                ForEach(Array(blocks.enumerated()), id: \.offset) { index, block in
+                    Text(block)
+                        .font(.body.weight(index == 0 && block.count <= 140 ? .medium : .regular))
+                        .lineSpacing(5)
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
