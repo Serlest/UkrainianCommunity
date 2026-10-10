@@ -31,7 +31,7 @@ enum DirectoryTopicGroups {
         "registration": [
             .init("address", "Адреса проживання", "Wohnsitz", ["residence-registration", "housing-types", "address-change", "leaving-austria"]),
             .init("protection", "Тимчасовий захист", "Vorübergehender Schutz", ["protection-registration", "after-registration"]),
-            .init("appointments", "Звернення до установ", "Behördentermine", ["appointments"])
+            .init("corrections", "Виправлення даних", "Daten berichtigen", ["registration-errors"])
         ],
         "residence": [
             .init("choose", "Визначити підставу", "Aufenthaltsgrund klären", ["residence-permits", "temporary-protection", "international-protection"]),

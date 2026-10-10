@@ -124,6 +124,23 @@ struct DirectoryCatalogTests {
         }
     }
 
+    @Test func registrationRoutesAreDistinctAndEveryInstructionHasAResponsibleSource() throws {
+        let category = try #require(DirectoryCatalog.categories.first { $0.id == "registration" })
+        #expect(category.topics.count == 7)
+        #expect(!category.topics.contains { $0.id == "appointments" })
+        #expect(category.topics.contains { $0.id == "registration-errors" })
+        for topic in category.topics {
+            let guide = try #require(RegistrationGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 3)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            for section in guide.sections {
+                #expect(section.source?.url.scheme == "https", "Missing direct source: \(topic.id)/\(section.id)")
+                #expect(section.body.ukrainian.count > 90)
+                #expect(section.body.german.count > 90)
+            }
+        }
+    }
+
     @Test func regionalSafetyAddsLocalServicesWithoutRepeatingEmergencyAdvice() {
         for state in AustrianFederalState.allCases {
             for topicID in ["domestic-violence", "women", "children", "assault"] {

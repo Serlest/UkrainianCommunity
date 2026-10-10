@@ -26,16 +26,16 @@ extension DirectoryCatalog {
             topic("checklist", "Після прибуття: порядок дій", "Nach der Ankunft: die nächsten Schritte")
         ]),
         category("registration", "Реєстрація", "Anmeldung",
-                 summaryUK: "Адреса, тимчасовий захист, посвідчення й переїзд",
-                 summaryDE: "Wohnsitz, Schutz, Ausweis und Umzug",
+                 summaryUK: "Адреса, захист, посвідчення та виправлення даних",
+                 summaryDE: "Wohnsitz, Schutz, Ausweis und Datenkorrektur",
                  symbol: "checklist", topics: [
             topic("residence-registration", "Реєстрація адреси", "Wohnsitz anmelden"),
-            topic("housing-types", "Якщо немає власного житла", "Wenn Sie keine eigene Wohnung haben"),
+            topic("housing-types", "Яке у вас житло", "Welche Unterkunft Sie haben"),
             topic("protection-registration", "Реєстрація для тимчасового захисту", "Erfassung für vorübergehenden Schutz"),
             topic("after-registration", "Посвідчення після реєстрації", "Ausweis nach der Erfassung"),
             topic("address-change", "Зміна адреси", "Adressänderung"),
             topic("leaving-austria", "Виїзд і зняття з обліку", "Wegzug und Abmeldung"),
-            topic("appointments", "Запис до установ", "Behördentermine")
+            topic("registration-errors", "Помилки в даних і зміна імені", "Fehler in Daten und Namensänderung")
         ]),
         category("housing", "Житло", "Wohnen",
                  summaryUK: "Від першого прихистку до оренди, гуртожитку й купівлі",
