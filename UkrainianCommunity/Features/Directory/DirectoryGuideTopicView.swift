@@ -14,17 +14,15 @@ struct DirectoryGuideTopicView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
                     DirectoryPageHeading(title: topic.title.value(for: language),
-                                         summary: guide.cardSummary.value(for: language))
-                    Text(guide.introduction.value(for: language))
-                        .font(.body)
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
+                                         summary: guide.introduction.value(for: language))
 
-                    DirectoryTopicOutlineView(
-                        titles: guide.sections.map { $0.title.value(for: language) },
-                        language: language
-                    ) { index in
-                        withAnimation(.easeInOut) { proxy.scrollTo(guide.sections[index].id, anchor: .top) }
+                    if guide.sections.count > 5 {
+                        DirectoryTopicOutlineView(
+                            titles: guide.sections.map { $0.title.value(for: language) },
+                            language: language
+                        ) { index in
+                            withAnimation(.easeInOut) { proxy.scrollTo(guide.sections[index].id, anchor: .top) }
+                        }
                     }
 
                     ForEach(guide.sections) { section in
@@ -40,25 +38,15 @@ struct DirectoryGuideTopicView: View {
                         )
                     }
 
-                    if categoryID == "first-steps" {
-                        NavigationLink(value: DirectoryRoute.category("registration")) {
-                            Label(DirectoryText(ukrainian: "Детально про реєстрацію", german: "Mehr zur Anmeldung").value(for: language),
-                                  systemImage: "arrow.right.circle.fill")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(16)
-                                .appGlassCard()
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    DirectoryFeedbackView(kind: .correction(categoryID: categoryID, topicID: topic.id, title: topic.title.value(for: language)), repository: feedbackRepository)
-
                     DirectorySourceListView(
-                        sources: guide.sources,
+                        sources: guide.sources.filter { source in
+                            !guide.sections.contains { $0.source?.url == source.url }
+                        },
                         language: language,
                         checkedOn: DirectoryGuideCatalog.checkedOn(for: categoryID)
                     )
+
+                    DirectoryFeedbackView(kind: .correction(categoryID: categoryID, topicID: topic.id, title: topic.title.value(for: language)), repository: feedbackRepository)
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.top, AppTheme.homeSectionSpacing)
@@ -67,7 +55,7 @@ struct DirectoryGuideTopicView: View {
             }
         }
         .background(AppBackgroundView())
-        .navigationTitle(topic.title.value(for: language))
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

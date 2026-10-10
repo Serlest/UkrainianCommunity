@@ -2,9 +2,9 @@ import SwiftUI
 
 struct DirectoryGuideCategoryView: View {
     let category: DirectoryCategory
-    let feedbackRepository: FeedbackRepository
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
+    private var groups: [DirectoryTopicGroup] { DirectoryTopicGroups.forCategory(category) }
 
     var body: some View {
         ScrollView {
@@ -16,20 +16,24 @@ struct DirectoryGuideCategoryView: View {
                 if category.id == "safety" { emergencyCard }
                 if category.id == "health" { healthHelpCard }
                 if category.id == "mental-health" { mentalHealthHelpCard }
-                DirectoryFeedbackView(kind: .question(categoryID: category.id, title: category.title.value(for: language)), repository: feedbackRepository)
-
-                ForEach(DirectoryTopicGroups.forCategory(category)) { group in
+                ForEach(groups) { group in
                     VStack(alignment: .leading, spacing: 10) {
-                        Text(group.title.value(for: language))
-                            .font(.title3.bold())
-                            .foregroundStyle(AppTheme.textPrimary)
-                        ForEach(group.topicIDs, id: \.self) { topicID in
-                            if let topic = category.topics.first(where: { $0.id == topicID }) {
-                                topicLink(topic)
+                        if groups.count > 1 {
+                            Text(group.title.value(for: language))
+                                .font(.headline.weight(.semibold))
+                                .foregroundStyle(AppTheme.textPrimary)
+                        }
+                        AppGlassCard(padding: 0, spacing: 0) {
+                            ForEach(Array(group.topicIDs.enumerated()), id: \.element) { index, topicID in
+                                if let topic = category.topics.first(where: { $0.id == topicID }) {
+                                    if index > 0 { Divider().padding(.leading, 56) }
+                                    topicLink(topic)
+                                }
                             }
                         }
                     }
                 }
+                if category.id == "first-steps" { firstStepsNext }
             }
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.top, AppTheme.homeSectionSpacing)
@@ -37,7 +41,7 @@ struct DirectoryGuideCategoryView: View {
             .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
         }
         .background(AppBackgroundView())
-        .navigationTitle(category.title.value(for: language))
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -94,29 +98,61 @@ struct DirectoryGuideCategoryView: View {
         let guide = DirectoryGuideCatalog.guide(categoryID: category.id, topicID: topic.id)
         let safetyGuide = DirectorySafetyContent.guides[topic.id]
         return NavigationLink(value: DirectoryRoute.topic(categoryID: category.id, topicID: topic.id)) {
-            HStack(alignment: .top, spacing: 13) {
+            HStack(spacing: 12) {
                 Image(systemName: guide?.sections.first?.symbol ?? safetyGuide?.sections.first?.symbol ?? category.symbol)
-                    .font(.title3)
+                    .font(.body)
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .frame(width: 32)
+                    .frame(width: 24)
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(topic.title.value(for: language))
-                        .font(AppTheme.cardTitleFont)
-                        .foregroundStyle(AppTheme.textPrimary)
-                    if let summary = guide?.cardSummary ?? safetyGuide?.summary {
-                        Text(summary.value(for: language))
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
+                Text(topic.title.value(for: language))
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(AppTheme.textPrimary)
                 Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .accessibilityHidden(true)
             }
-            .padding(16)
-            .appGlassCard()
+            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("directory.topic.\(topic.id)")
+    }
+
+    private var firstStepsNext: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(DirectoryText(ukrainian: "Далі за вашою ситуацією", german: "Danach, je nach Situation").value(for: language))
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(AppTheme.textPrimary)
+            AppGlassCard(padding: 0, spacing: 0) {
+                ForEach(Array(["registration", "housing", "social-support", "insurance", "education", "work"].enumerated()), id: \.element) { index, id in
+                    if let destination = DirectoryCatalog.categories.first(where: { $0.id == id }) {
+                        if index > 0 { Divider().padding(.leading, 56) }
+                        NavigationLink(value: DirectoryRoute.category(id)) {
+                            HStack(spacing: 12) {
+                                Image(systemName: destination.symbol)
+                                    .font(.body)
+                                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                                    .frame(width: 24)
+                                Text(destination.title.value(for: language))
+                                    .font(.body.weight(.medium))
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                            }
+                            .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 5)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+        }
     }
 }

@@ -40,9 +40,8 @@ struct DirectoryHomeView: View {
 
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
     private var query: String { searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var categories: [DirectoryCategory] {
-        guard !query.isEmpty else { return DirectoryCatalog.categories }
-        return DirectoryCatalog.categories.filter { $0.matches(query, language: language) }
+    private var searchMatches: [DirectorySearchMatch] {
+        DirectorySearchIndex.search(query, language: language)
     }
 
     var body: some View {
@@ -130,30 +129,25 @@ struct DirectoryHomeView: View {
                 .accessibilityIdentifier("directory.category.safety")
             }
 
-            DirectoryFeedbackView(kind: .question(categoryID: nil, title: DirectoryText(ukrainian: "Довідник", german: "Wegweiser").value(for: language)), repository: feedbackRepository)
-
             categorySection(DirectoryStrings.startHeading, items: Array(DirectoryCatalog.startCategories.dropFirst()))
             categorySection(DirectoryStrings.lifeHeading, items: DirectoryCatalog.lifeCategories)
             categorySection(DirectoryStrings.supportHeading, items: DirectoryCatalog.supportCategories)
-
-            Text(DirectoryStrings.preparing)
-                .font(.footnote)
-                .foregroundStyle(AppTheme.textSecondary)
+            DirectoryFeedbackView(kind: .question(categoryID: nil, title: DirectoryText(ukrainian: "Довідник", german: "Wegweiser").value(for: language)), repository: feedbackRepository)
         }
     }
 
     private var searchContent: some View {
         VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
-            if categories.isEmpty {
+            if searchMatches.isEmpty {
                 ContentUnavailableView(
                     DirectoryStrings.noResults,
                     systemImage: "magnifyingglass",
                     description: Text(DirectoryStrings.tryAnotherQuery)
                 )
             } else {
-                Text(DirectoryStrings.categoriesHeading)
+                Text(DirectoryStrings.searchResults)
                     .font(.title3.bold())
-                categoryList(categories)
+                DirectorySearchResultsView(matches: searchMatches, language: language)
             }
         }
     }
@@ -170,7 +164,7 @@ struct DirectoryHomeView: View {
     private func categoryList(_ items: [DirectoryCategory]) -> some View {
         LazyVStack(spacing: 9) {
             ForEach(items) { category in
-                NavigationLink(value: DirectoryRoute.category(category.id)) {
+                NavigationLink(value: route(for: category)) {
                     DirectoryCategoryCard(category: category, language: language)
                 }
                 .buttonStyle(.plain)
@@ -179,14 +173,21 @@ struct DirectoryHomeView: View {
         }
     }
 
+    private func route(for category: DirectoryCategory) -> DirectoryRoute {
+        if let onlyTopic = category.topics.first, category.topics.count == 1 {
+            return .topic(categoryID: category.id, topicID: onlyTopic.id)
+        }
+        return .category(category.id)
+    }
+
     @ViewBuilder private func destination(for route: DirectoryRoute) -> some View {
         switch route {
         case let .category(id):
             if let category = DirectoryCatalog.categories.first(where: { $0.id == id }) {
                 if DirectoryTopicGroups.isComplete(categoryID: id) {
-                    DirectoryGuideCategoryView(category: category, feedbackRepository: feedbackRepository)
+                    DirectoryGuideCategoryView(category: category)
                 } else {
-                    DirectoryCategoryView(category: category, feedbackRepository: feedbackRepository)
+                    DirectoryCategoryView(category: category)
                 }
             }
         case let .topic(categoryID, topicID):

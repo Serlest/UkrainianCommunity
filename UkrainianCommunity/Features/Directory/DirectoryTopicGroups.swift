@@ -26,8 +26,7 @@ enum DirectoryTopicGroups {
             .init("mental", "Психологічна криза", "Psychische Krise", ["mental-crisis"])
         ],
         "first-steps": [
-            .init("arrival", "Прибуття і перші дні", "Ankunft und erste Tage", ["arrival", "checklist", "initial-support"]),
-            .init("daily", "Здоров’я, діти, робота", "Gesundheit, Kinder und Arbeit", ["health-insurance", "children", "work-language"])
+            .init("route", "Порядок дій", "Schritte nach der Ankunft", ["arrival", "checklist"])
         ],
         "registration": [
             .init("address", "Адреса проживання", "Wohnsitz", ["residence-registration", "housing-types", "address-change", "leaving-austria"]),

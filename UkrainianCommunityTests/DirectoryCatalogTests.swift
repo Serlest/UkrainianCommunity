@@ -23,6 +23,13 @@ struct DirectoryCatalogTests {
         #expect(safety?.matches("невідомий запит", language: .ukrainian) == false)
     }
 
+    @Test func searchOpensMatchingArticleInsteadOfOnlyItsCategory() {
+        let matches = DirectorySearchIndex.search("Anspruchsbeleg", language: .german)
+        #expect(matches.contains { $0.route == .topic(categoryID: "health", topicID: "pregnancy") })
+        #expect(Set(matches.map(\.id)).count == matches.count)
+        #expect(DirectorySearchIndex.search("Wohnen", language: .german).first?.route == .category("housing"))
+    }
+
     @Test func everySafetyTopicHasBilingualStepsAndOfficialSources() {
         let topics = DirectoryCatalog.categories.first { $0.id == "safety" }?.topics ?? []
         #expect(!topics.isEmpty)
@@ -68,7 +75,8 @@ struct DirectoryCatalogTests {
             for topic in category.topics {
                 let guide = DirectoryGuideCatalog.guide(categoryID: category.id, topicID: topic.id)
                 #expect(guide != nil)
-                #expect(guide?.sections.isEmpty == false)
+                #expect((guide?.sections.count ?? 0) >= 3, "\(category.id)/\(topic.id)")
+                #expect(Set(guide?.sections.map(\.id) ?? []).count == guide?.sections.count)
                 #expect(guide?.sources.isEmpty == false)
                 #expect(guide?.cardSummary.ukrainian.isEmpty == false)
                 #expect(guide?.cardSummary.german.isEmpty == false)
@@ -102,7 +110,7 @@ struct DirectoryCatalogTests {
 
     @Test func everyPublishedTopicAppearsInExactlyOneBilingualGroup() {
         let completed = DirectoryCatalog.startCategories
-        #expect(completed.reduce(0) { $0 + $1.topics.count } == 85)
+        #expect(completed.reduce(0) { $0 + $1.topics.count } == 81)
         for category in DirectoryCatalog.categories {
             #expect(DirectoryTopicGroups.isComplete(categoryID: category.id))
             let groups = DirectoryTopicGroups.forCategory(category)
@@ -126,7 +134,7 @@ struct DirectoryCatalogTests {
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
-            ("first-steps", "initial-support"),
+            ("first-steps", "arrival"),
             ("registration", "after-registration"),
             ("residence", "temporary-protection"),
             ("citizenship", "application"),

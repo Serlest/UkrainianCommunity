@@ -15,11 +15,13 @@ struct DirectorySafetyTopicView: View {
                     DirectoryPageHeading(title: topic.title.value(for: language),
                                          summary: guide.summary.value(for: language))
 
-                    DirectoryTopicOutlineView(
-                        titles: guide.sections.map { $0.title.value(for: language) },
-                        language: language
-                    ) { index in
-                        withAnimation(.easeInOut) { proxy.scrollTo(guide.sections[index].id, anchor: .top) }
+                    if guide.sections.count > 5 {
+                        DirectoryTopicOutlineView(
+                            titles: guide.sections.map { $0.title.value(for: language) },
+                            language: language
+                        ) { index in
+                            withAnimation(.easeInOut) { proxy.scrollTo(guide.sections[index].id, anchor: .top) }
+                        }
                     }
 
                     ForEach(guide.sections) { section in
@@ -39,10 +41,10 @@ struct DirectorySafetyTopicView: View {
                             selectedFederalState: $selectedFederalState, language: language
                         )
                     }
-                    DirectoryFeedbackView(kind: .correction(categoryID: "safety", topicID: topic.id, title: topic.title.value(for: language)), repository: feedbackRepository)
                     DirectorySourceListView(
                         sources: guide.sources, language: language,
                         checkedOn: DirectorySafetyContent.reviewedOn)
+                    DirectoryFeedbackView(kind: .correction(categoryID: "safety", topicID: topic.id, title: topic.title.value(for: language)), repository: feedbackRepository)
                 }
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.top, AppTheme.homeSectionSpacing)
@@ -51,7 +53,7 @@ struct DirectorySafetyTopicView: View {
             }
         }
         .background(AppBackgroundView())
-        .navigationTitle(topic.title.value(for: language))
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

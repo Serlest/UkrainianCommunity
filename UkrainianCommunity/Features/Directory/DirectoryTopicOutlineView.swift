@@ -4,32 +4,32 @@ struct DirectoryTopicOutlineView: View {
     let titles: [String]
     let language: AppLanguage
     let onSelect: (Int) -> Void
+    @State private var isExpanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(DirectoryText(ukrainian: "У цій темі", german: "In diesem Thema").value(for: language))
-                .font(.headline)
-                .foregroundStyle(AppTheme.textPrimary)
-            ForEach(titles.indices, id: \.self) { index in
-                Button {
-                    onSelect(index)
-                } label: {
-                    HStack(spacing: 10) {
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(titles.indices, id: \.self) { index in
+                    Button {
+                        isExpanded = false
+                        onSelect(index)
+                    } label: {
                         Text(titles[index])
                             .font(.subheadline.weight(.medium))
-                            .multilineTextAlignment(.leading)
-                        Spacer(minLength: 0)
-                        Image(systemName: "arrow.down")
-                            .font(.caption.weight(.semibold))
-                            .accessibilityHidden(true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.vertical, 8)
                     }
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .padding(.vertical, 7)
+                    .buttonStyle(.plain)
+                    if index < titles.count - 1 { Divider() }
                 }
-                .buttonStyle(.plain)
             }
+        } label: {
+            Label(DirectoryText(ukrainian: "Перейти до пункту", german: "Zu einem Abschnitt springen").value(for: language),
+                  systemImage: "list.bullet")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
         }
-        .padding(16)
+        .padding(14)
         .appGlassCard()
     }
 }

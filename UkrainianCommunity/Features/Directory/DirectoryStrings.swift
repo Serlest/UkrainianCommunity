@@ -9,6 +9,7 @@ enum DirectoryStrings {
     static var browseSections: String { value("Переглянути розділи", "Bereiche entdecken") }
     static var searchPlaceholder: String { value("Пошук у довіднику", "Im Wegweiser suchen") }
     static var categoriesHeading: String { value("Розділи довідника", "Bereiche im Wegweiser") }
+    static var searchResults: String { value("Знайдені теми", "Gefundene Themen") }
     static var startHeading: String { value("Початок в Австрії", "Ankommen in Österreich") }
     static var lifeHeading: String { value("Повсякденне життя", "Alltag") }
     static var supportHeading: String { value("Підтримка та участь", "Unterstützung und Teilhabe") }

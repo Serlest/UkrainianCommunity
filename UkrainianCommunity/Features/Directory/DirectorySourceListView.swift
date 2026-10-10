@@ -7,13 +7,15 @@ struct DirectorySourceListView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(DirectoryText(ukrainian: "Джерела та сервіси", german: "Quellen und Dienste").value(for: language))
-                .font(.headline)
-            ForEach(sources) { source in
-                Link(destination: source.url) {
-                    Label(source.name, systemImage: "arrow.up.right.square")
-                        .font(.subheadline)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            if !sources.isEmpty {
+                Text(DirectoryText(ukrainian: "Джерела та сервіси", german: "Quellen und Dienste").value(for: language))
+                    .font(.headline)
+                ForEach(sources) { source in
+                    Link(destination: source.url) {
+                        Label(source.name, systemImage: "arrow.up.right.square")
+                            .font(.subheadline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
             }
             Text(DirectoryText(

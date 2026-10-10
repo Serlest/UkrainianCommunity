@@ -45,7 +45,7 @@ enum DirectoryRegionalContent {
         case "accessibility": ["disability", "assistive-devices"].contains(topicID)
         case "care": ["home-care", "care-services"].contains(topicID)
         case "seniors": topicID == "seniors"
-        case "first-steps": ["arrival", "initial-support"].contains(topicID)
+        case "first-steps": topicID == "arrival"
         case "registration": ["housing-types", "protection-registration", "after-registration"].contains(topicID)
         case "residence": topicID == "temporary-protection"
         case "citizenship": ["overview", "documents", "application"].contains(topicID)

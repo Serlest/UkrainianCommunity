@@ -26,9 +26,21 @@ struct DirectoryFeedbackView: View {
         func explanation(_ language: AppLanguage) -> String {
             switch self {
             case .question:
-                DirectoryText(ukrainian: "Не знайшли відповіді? Напишіть нам. Команда перевірить офіційні джерела, поглибить тему й додасть відповідь до довідника. Статус запиту можна переглянути тут.", german: "Keine Antwort gefunden? Schreiben Sie uns. Unser Team prüft offizielle Quellen, vertieft das Thema und ergänzt den Wegweiser. Den Status sehen Sie hier.").value(for: language)
+                DirectoryText(ukrainian: "Напишіть, якої відповіді бракує. Команда перевірить джерела й доповнить довідник; перебіг роботи видно у ваших зверненнях.", german: "Schreiben Sie, welche Antwort fehlt. Unser Team prüft Quellen und ergänzt den Wegweiser; den Stand sehen Sie in Ihren Anfragen.").value(for: language)
             case .correction:
-                DirectoryText(ukrainian: "Помітили застарілу або неправильну інформацію? Опишіть, що саме потрібно перевірити. Ми розглянемо повідомлення та покажемо його статус.", german: "Veraltete oder falsche Information entdeckt? Beschreiben Sie, was geprüft werden soll. Wir prüfen Ihre Meldung und zeigen ihren Status.").value(for: language)
+                DirectoryText(ukrainian: "Опишіть, що саме слід перевірити в цій статті. Статус перевірки з’явиться у ваших зверненнях.", german: "Beschreiben Sie, was in diesem Beitrag überprüft werden soll. Den Stand sehen Sie in Ihren Anfragen.").value(for: language)
+            }
+        }
+        func prompt(_ language: AppLanguage) -> String {
+            switch self {
+            case .question: DirectoryText(ukrainian: "Бракує відповіді?", german: "Fehlt eine Antwort?").value(for: language)
+            case .correction: DirectoryText(ukrainian: "Є неточність?", german: "Stimmt etwas nicht?").value(for: language)
+            }
+        }
+        func action(_ language: AppLanguage) -> String {
+            switch self {
+            case .question: DirectoryText(ukrainian: "Запитати команду", german: "Team fragen").value(for: language)
+            case .correction: DirectoryText(ukrainian: "Повідомити", german: "Melden").value(for: language)
             }
         }
     }
@@ -42,8 +54,8 @@ struct DirectoryFeedbackView: View {
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
     var body: some View {
-        AppGlassCard {
-            Label(kind.title(language), systemImage: kind.type == .question ? "questionmark.bubble" : "exclamationmark.bubble")
+        AppGlassCard(padding: 15, spacing: 8) {
+            Label(kind.prompt(language), systemImage: kind.type == .question ? "questionmark.bubble" : "exclamationmark.bubble")
                 .font(.headline)
                 .foregroundStyle(AppTheme.textPrimary)
             Text(kind.explanation(language))
@@ -54,9 +66,9 @@ struct DirectoryFeedbackView: View {
                 if authState.user == nil { authState.presentAuthFlow(.login) }
                 else { showingComposer = true }
             } label: {
-                Label(kind.title(language), systemImage: "square.and.pencil")
+                Label(kind.action(language), systemImage: "square.and.pencil")
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
             .accessibilityIdentifier("directory.feedback.compose")
             if authState.user != nil {
                 Button {
@@ -64,7 +76,8 @@ struct DirectoryFeedbackView: View {
                 } label: {
                     Label(DirectoryText(ukrainian: "Мої звернення та їхній статус", german: "Meine Anfragen und ihr Status").value(for: language), systemImage: "clock.arrow.circlepath")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .font(.subheadline.weight(.medium))
                 .accessibilityIdentifier("directory.feedback.status")
             }
         }

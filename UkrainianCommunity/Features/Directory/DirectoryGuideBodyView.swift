@@ -1,4 +1,3 @@
-import NaturalLanguage
 import SwiftUI
 
 struct DirectoryGuideBodyView: View {
@@ -17,17 +16,8 @@ struct DirectoryGuideBodyView: View {
     }
 
     private var paragraphs: [String] {
-        if text.contains("\n") {
-            return text.split(separator: "\n").map(String.init)
-        }
-        let tokenizer = NLTokenizer(unit: .sentence)
-        tokenizer.string = text
-        var sentences: [String] = []
-        tokenizer.enumerateTokens(in: text.startIndex..<text.endIndex) { range, _ in
-            let sentence = text[range].trimmingCharacters(in: .whitespacesAndNewlines)
-            if !sentence.isEmpty { sentences.append(sentence) }
-            return true
-        }
-        return sentences.isEmpty ? [text] : sentences
+        text.components(separatedBy: "\n\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
     }
 }

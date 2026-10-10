@@ -19,15 +19,11 @@ extension DirectoryCatalog {
             topic("mental-crisis", "Психологічна криза", "Psychische Krise")
         ]),
         category("first-steps", "Перші кроки", "Erste Schritte",
-                 summaryUK: "Житло, перші дні, допомога, здоров’я, діти й робота",
-                 summaryDE: "Unterkunft, erste Tage, Hilfe, Gesundheit, Kinder und Arbeit",
+                 summaryUK: "Що зробити сьогодні та в перший тиждень",
+                 summaryDE: "Was heute und in der ersten Woche wichtig ist",
                  symbol: "figure.walk.arrival", topics: [
-            topic("arrival", "Де зупинитися після прибуття?", "Wo kann ich nach der Ankunft bleiben?"),
-            topic("checklist", "Що зробити в перші дні?", "Was ist in den ersten Tagen zu tun?"),
-            topic("initial-support", "Де отримати базову допомогу?", "Wo bekomme ich Grundversorgung?"),
-            topic("health-insurance", "Як отримати медичну допомогу?", "Wie bekomme ich medizinische Hilfe?"),
-            topic("children", "Що зробити для дитини?", "Was braucht mein Kind?"),
-            topic("work-language", "З чого почати роботу й мову?", "Wie beginne ich mit Arbeit und Deutsch?")
+            topic("arrival", "Перший день: безпечна ночівля", "Erster Tag: sicher übernachten"),
+            topic("checklist", "Перший тиждень: порядок дій", "Erste Woche: die nächsten Schritte")
         ]),
         category("registration", "Реєстрація", "Anmeldung",
                  summaryUK: "Адреса, тимчасовий захист, посвідчення й переїзд",
@@ -40,6 +36,29 @@ extension DirectoryCatalog {
             topic("address-change", "Зміна адреси", "Adressänderung"),
             topic("leaving-austria", "Виїзд і зняття з обліку", "Wegzug und Abmeldung"),
             topic("appointments", "Запис до установ", "Behördentermine")
+        ]),
+        category("housing", "Житло", "Wohnen",
+                 summaryUK: "Від першого прихистку до оренди, гуртожитку й купівлі",
+                 summaryDE: "Von der ersten Unterkunft bis Miete, Wohnheim und Kauf",
+                 symbol: "house.lodge.fill", topics: [
+            topic("arrival-housing", "Де ночувати після прибуття", "Unterkunft nach der Ankunft"),
+            topic("temporary-housing", "Тимчасове житло й Grundversorgung", "Vorübergehende Unterkunft und Grundversorgung"),
+            topic("find-rental", "Де шукати квартиру", "Mietwohnung suchen"),
+            topic("viewing", "Перегляд і перевірка квартири", "Besichtigung und Wohnungsprüfung"),
+            topic("rental-contract", "Договір оренди та Mietanbot", "Mietvertrag und Mietanbot"),
+            topic("rent-costs", "Оренда, комунальні та індексація", "Miete, Betriebskosten und Anpassungen"),
+            topic("deposit", "Застава, Ablöse та передача ключів", "Kaution, Ablöse und Übergabe"),
+            topic("rental-agents", "Маклер і комісія", "Makler und Provision"),
+            topic("tenant-rights", "Права орендаря та ремонт", "Mieterrechte und Reparaturen"),
+            topic("ending-lease", "Розірвання, виселення та виїзд", "Kündigung, Räumung und Auszug"),
+            topic("shared-flat", "Кімната, WG і суборенда", "Zimmer, WG und Untermiete"),
+            topic("student-housing", "Студентські гуртожитки", "Studierendenwohnheime"),
+            topic("social-housing", "Муніципальне й кооперативне житло", "Gemeinde- und Genossenschaftswohnungen"),
+            topic("housing-support", "Допомога з оплатою житла", "Wohnbeihilfe und Unterstützung"),
+            topic("buying", "Купівля квартири чи будинку", "Wohnung oder Haus kaufen"),
+            topic("buying-costs", "Кредит, податки й витрати на купівлю", "Kredit, Steuern und Kaufnebenkosten"),
+            topic("foreign-buyers", "Правила для покупців з України", "Regeln für Käufer aus der Ukraine"),
+            topic("moving", "Переїзд, Meldezettel і договори", "Umzug, Meldezettel und Verträge")
         ]),
         category("residence", "Статус перебування", "Aufenthalt",
                  summaryUK: "Захист, навчання, родина, робота й постійне проживання",
@@ -97,29 +116,6 @@ extension DirectoryCatalog {
             topic("children", "Діти та громадянство", "Kinder und Staatsbürgerschaft"),
             topic("documents", "Підготовка документів", "Unterlagen vorbereiten"),
             topic("application", "Заява, процедура й витрати", "Antrag, Verfahren und Kosten")
-        ]),
-        category("housing", "Житло", "Wohnen",
-                 summaryUK: "Від першого прихистку до оренди, гуртожитку й купівлі",
-                 summaryDE: "Von der ersten Unterkunft bis Miete, Wohnheim und Kauf",
-                 symbol: "house.lodge.fill", topics: [
-            topic("arrival-housing", "Де ночувати після прибуття", "Unterkunft nach der Ankunft"),
-            topic("temporary-housing", "Тимчасове житло й Grundversorgung", "Vorübergehende Unterkunft und Grundversorgung"),
-            topic("find-rental", "Де шукати квартиру", "Mietwohnung suchen"),
-            topic("viewing", "Перегляд і перевірка квартири", "Besichtigung und Wohnungsprüfung"),
-            topic("rental-contract", "Договір оренди та Mietanbot", "Mietvertrag und Mietanbot"),
-            topic("rent-costs", "Оренда, комунальні та індексація", "Miete, Betriebskosten und Anpassungen"),
-            topic("deposit", "Застава, Ablöse та передача ключів", "Kaution, Ablöse und Übergabe"),
-            topic("rental-agents", "Маклер і комісія", "Makler und Provision"),
-            topic("tenant-rights", "Права орендаря та ремонт", "Mieterrechte und Reparaturen"),
-            topic("ending-lease", "Розірвання, виселення та виїзд", "Kündigung, Räumung und Auszug"),
-            topic("shared-flat", "Кімната, WG і суборенда", "Zimmer, WG und Untermiete"),
-            topic("student-housing", "Студентські гуртожитки", "Studierendenwohnheime"),
-            topic("social-housing", "Муніципальне й кооперативне житло", "Gemeinde- und Genossenschaftswohnungen"),
-            topic("housing-support", "Допомога з оплатою житла", "Wohnbeihilfe und Unterstützung"),
-            topic("buying", "Купівля квартири чи будинку", "Wohnung oder Haus kaufen"),
-            topic("buying-costs", "Кредит, податки й витрати на купівлю", "Kredit, Steuern und Kaufnebenkosten"),
-            topic("foreign-buyers", "Правила для покупців з України", "Regeln für Käufer aus der Ukraine"),
-            topic("moving", "Переїзд, Meldezettel і договори", "Umzug, Meldezettel und Verträge")
         ])
     ]
 }
