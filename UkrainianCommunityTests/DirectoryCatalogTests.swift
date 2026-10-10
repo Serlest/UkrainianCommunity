@@ -285,6 +285,27 @@ struct DirectoryCatalogTests {
         #expect(familySections.contains("adult-child"))
     }
 
+    @Test func workGuidesKeepEmploymentAndBusinessRoutesDistinct() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "work" }?.topics ?? []
+        #expect(topics.count == 4)
+        for topic in topics {
+            guard let guide = WorkGuides.guide(for: topic.id) else {
+                Issue.record("Missing work guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 4)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        let permit = WorkGuides.guide(for: "work-rights")?.sections.map(\.id) ?? []
+        let employee = WorkGuides.guide(for: "employee-rights")?.sections.map(\.id) ?? []
+        let business = WorkGuides.guide(for: "self-employment")?.sections.map(\.id) ?? []
+        #expect(permit.contains("student") && permit.contains("registration"))
+        #expect(employee.contains("ill") && employee.contains("termination") && employee.contains("mutual"))
+        #expect(business.contains("svs") && business.contains("tax") && business.contains("vat"))
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
