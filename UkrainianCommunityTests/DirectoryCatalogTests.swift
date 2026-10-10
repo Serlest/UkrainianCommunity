@@ -6,6 +6,7 @@ struct DirectoryCatalogTests {
     @Test func categoriesAndTopicsHaveStableUniqueIdentifiers() {
         let categories = DirectoryCatalog.categories
         #expect(!categories.isEmpty)
+        #expect(categories.reduce(0) { $0 + $1.topics.count } >= 145)
         #expect(categories.first?.id == "safety")
         #expect(Set(categories.map(\.id)).count == categories.count)
         for category in categories {

@@ -116,8 +116,8 @@ extension DirectorySafetyContent {
                 section(
                     "advice", "Незалежна консультація", "Unabhängige Beratung",
                     "person.crop.rectangle.stack.fill",
-                    "Служба рівного ставлення безкоштовно й конфіденційно консультує щодо дискримінації на роботі, під час пошуку житла, у послугах та інших ситуаціях. Якщо ви постраждали від злочину, цілодобова служба підтримки потерпілих допоможе визначити наступні кроки.",
-                    "Die Gleichbehandlungsanwaltschaft berät kostenlos und vertraulich zu Diskriminierung etwa bei Arbeit, Wohnungssuche und Dienstleistungen. Nach einer Straftat hilft der Opfer-Notruf rund um die Uhr bei den nächsten Schritten.",
+                    "Служба рівного ставлення безкоштовно й конфіденційно консультує щодо дискримінації на роботі, під час пошуку житла та в послугах. Після злочину зверніться до служби підтримки потерпілих у робочі дні 08:00–20:00; при негайній небезпеці телефонуйте 133 або 112.",
+                    "Die Gleichbehandlungsanwaltschaft berät kostenlos und vertraulich zu Diskriminierung bei Arbeit, Wohnungssuche und Dienstleistungen. Nach einer Straftat erreichen Sie den Opfer-Notruf werktags 08:00–20:00; bei akuter Gefahr 133 oder 112 wählen.",
                     [equality, victims]),
             ],
             [
@@ -144,15 +144,14 @@ extension DirectorySafetyContent {
                 section(
                     "support", "Підтримка після події", "Hilfe nach der Tat",
                     "hand.raised.heart.fill",
-                    "Служба підтримки потерпілих цілодобово, безкоштовно й анонімно допомагає людям, яких безпосередньо або опосередковано торкнувся злочин. Розкажіть, що сталося; служба допоможе зорієнтуватися та знайти місцеву підтримку. Якщо безпечно, збережіть повідомлення й інші можливі докази.",
-                    "Der Opfer-Notruf berät Betroffene und Angehörige rund um die Uhr kostenlos und anonym. Schildern Sie den Vorfall; die Stelle hilft bei der Orientierung und vermittelt regionale Unterstützung. Bewahren Sie Nachrichten und mögliche Belege auf, sofern das sicher ist.",
+                    "Служба підтримки потерпілих консультує безкоштовно у робочі дні 08:00–20:00. Розкажіть, що сталося; вам допоможуть знайти місцеву підтримку. Поза цими годинами при загрозі телефонуйте 133 або 112; для розмови під час кризи доступна лінія 142. Якщо безпечно, збережіть повідомлення й інші можливі докази.",
+                    "Der Opfer-Notruf berät werktags von 08:00–20:00 kostenlos. Schildern Sie den Vorfall; die Stelle vermittelt weitere Hilfe vor Ort. Außerhalb dieser Zeiten bei Gefahr 133 oder 112 wählen; für ein Krisengespräch gibt es 142. Nachrichten und mögliche Belege sichern, sofern das sicher ist.",
                     [victims]),
             ],
             [
                 DirectorySource(
-                    name: "oesterreich.gv.at · Opfer-Notruf",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/melde-und-beratungsstellen-in-oesterreich/melde__und_beratungsstellen"
+                    name: "Opfer-Notruf · Erreichbarkeit",
+                    url: "https://www.opfer-notruf.at/"
                 ), violenceSource,
             ]),
         "mental-crisis": guide(

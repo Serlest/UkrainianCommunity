@@ -10,6 +10,18 @@ enum DirectoryRegionalContent {
         .tirol: "0512 508 2592", .vorarlberg: "05574 511 24105"
     ]
 
+    private static let basicCareRoutes: [AustrianFederalState: DirectoryText] = [
+        .burgenland: .init(ukrainian: "Для приватного житла подайте заяву через портал землі; для організованого місця зверніться до Diakonie Flüchtlingsdienst.", german: "Für private Unterkunft den Landesantrag nutzen; für ein organisiertes Quartier Diakonie Flüchtlingsdienst kontaktieren."),
+        .kaernten: .init(ukrainian: "Заяви на приватну й організовану допомогу приймає уряд землі за адресою Hasnerstraße 8, 9020 Klagenfurt.", german: "Anträge für private und organisierte Versorgung nimmt die Landesregierung in der Hasnerstraße 8, 9020 Klagenfurt entgegen."),
+        .niederoesterreich: .init(ukrainian: "Для приватного житла зверніться до Bezirkshauptmannschaft, Magistrat або Gemeinde; для організованого місця — до уряду землі.", german: "Für private Unterkunft sind Bezirkshauptmannschaft, Magistrat oder Gemeinde zuständig; für ein organisiertes Quartier die Landesregierung."),
+        .oberoesterreich: .init(ukrainian: "Для приватного житла заяву приймають Caritas або Volkshilfe у Лінці; для організованого місця — уряд землі.", german: "Für private Unterkunft nehmen Caritas oder Volkshilfe in Linz Anträge entgegen; für organisierte Quartiere die Landesregierung."),
+        .salzburg: .init(ukrainian: "Для обох форм проживання зверніться до Caritas Clearingstelle Grundversorgung у Зальцбурзі.", german: "Für beide Wohnformen wenden Sie sich an die Caritas Clearingstelle Grundversorgung in Salzburg."),
+        .steiermark: .init(ukrainian: "Для приватного й організованого проживання перша заявка подається до Caritas у Граці, Mariengasse 24.", german: "Für private und organisierte Unterbringung wird der Erstantrag bei der Caritas in Graz, Mariengasse 24, gestellt."),
+        .tirol: .init(ukrainian: "Для приватного житла зверніться до відділу Soziales уряду Тіролю; для організованого місця — до Tiroler Soziale Dienste.", german: "Für private Unterkunft ist die Sozialabteilung des Landes zuständig; für ein organisiertes Quartier die Tiroler Sozialen Dienste."),
+        .vorarlberg: .init(ukrainian: "Для приватного житла зверніться до своєї Bezirkshauptmannschaft; для організованого місця — до Caritas Erstankunftsbüro у Фельдкірху.", german: "Für private Unterkunft wenden Sie sich an die Bezirkshauptmannschaft; für organisierte Quartiere an das Caritas Erstankunftsbüro in Feldkirch."),
+        .wien: .init(ukrainian: "Запишіться через систему термінів FSW Beratungszentrum Grundversorgung; наявність організованого місця уточнюйте окремо.", german: "Termin über das FSW Beratungszentrum Grundversorgung buchen; Verfügbarkeit eines organisierten Quartiers gesondert klären.")
+    ]
+
     private static let citizenshipURLs: [AustrianFederalState: String] = [
         .burgenland: "https://www.burgenland.at/service/service-und-beratungsstellen/staatsbuergerschaft/",
         .kaernten: "https://www.ktn.gv.at/Verwaltung/Amt-der-Kaerntner-Landesregierung/Abteilung-1/Organisation?oid=2000082",
@@ -114,9 +126,10 @@ enum DirectoryRegionalContent {
     }
 
     static func basicCareSection(_ state: AustrianFederalState) -> DirectoryGuideSection {
-        DirectoryGuideSection("regional-basic-care", "house", "Базова допомога у землі", "Grundversorgung im Bundesland",
-                              "BBU публікує актуальну таблицю органів усіх земель: там зазначено, куди подавати заяву при приватному й організованому проживанні. Номер нижче — контакт земельної служби; спершу перевірте порядок на сайті.",
-                              "Die BBU veröffentlicht die Landesstellen und Antragswege für private und organisierte Unterkunft. Die Nummer unten gehört zur Landesstelle; prüfen Sie zuerst den aktuellen Ablauf auf der Website.",
+        let route = basicCareRoutes[state]
+        return DirectoryGuideSection("regional-basic-care", "house", "Базова допомога у землі", "Grundversorgung im Bundesland",
+                              "\(route?.ukrainian ?? "Перевірте відповідальну службу своєї землі.") Актуальні форми, години й контактні дані перевірте в таблиці BBU. Номер нижче — контакт земельної служби, але заяву в деяких землях приймає інша організація.",
+                              "\(route?.german ?? "Prüfen Sie die zuständige Landesstelle.") Aktuelle Formulare, Zeiten und Kontakte stehen in der BBU-Tabelle. Die Nummer unten gehört zur Landesstelle; in manchen Ländern nimmt eine andere Organisation den Antrag entgegen.",
                               phoneNumber: basicCarePhones[state],
                               source: DirectorySource(name: "BBU · Grundversorgung \(state.displayName)", url: "https://www.bbu.gv.at/ukraine-info-faq-deutsch"))
     }

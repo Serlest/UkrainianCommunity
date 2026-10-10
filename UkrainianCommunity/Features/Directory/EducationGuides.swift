@@ -9,7 +9,8 @@ enum EducationGuides {
     private static let summerSchool = DirectorySource(name: "oesterreich.gv.at · Sommerschule", url: "https://www.oesterreich.gv.at/de/themen/bildung_und_ausbildung/schulen/sommerschule")
     private static let higher = DirectorySource(name: "OeAD · Studium in Österreich", url: "https://studyinaustria.at/en/tuition")
     private static let ukraineHigher = DirectorySource(name: "OeAD · Informationen für Studierende aus der Ukraine", url: "https://studyinaustria.at/en/studium/oead4refugees/informacija-dlja-studentiv-ta-doslidnikiv-z-ukrajini")
-    private static let german = DirectorySource(name: "ÖIF · Deutschkurse für Vertriebene", url: "https://www.integrationsfonds.at/ukraine/deutschkurse")
+    private static let german = DirectorySource(name: "ÖIF · Deutschkurs-Anmeldung", url: "https://www.integration.at/angebote/integrationsmassnahmen/deutsch-lernen/deutschkurse/deutschkurs-anmeldung/")
+    private static let germanOnline = DirectorySource(name: "ÖIF · Sprachportal", url: "https://sprachportal.at/deutsch-lernen/")
 
     static func guide(for topicID: String) -> DirectoryGuide? {
         switch topicID {
@@ -60,8 +61,8 @@ enum EducationGuides {
         introduction: .init(ukrainian: "Для переміщених українців ÖIF пропонує курси по всій Австрії. Вибір курсу залежить від поточного рівня, цілі та доступного часу.", german: "Der ÖIF bietet Vertriebenen aus der Ukraine Kurse in ganz Österreich. Wählen Sie nach Sprachniveau, Ziel und verfügbarer Zeit."),
         sections: [
             .init("start", "text.bubble", "Запишіться на консультацію", "Beratung vereinbaren", "Знайдіть Integrationszentrum ÖIF своєї землі. Візьміть Ausweis für Vertriebene та Meldezettel, пройдіть визначення рівня й запитайте про денний, вечірній або курс із доглядом за дітьми. Підтвердіть місце, дату початку й правила відвідування до того, як відмовлятися від іншого курсу.", "ÖIF-Integrationszentrum im Bundesland finden. Vertriebenenausweis und Meldezettel mitbringen, Niveau feststellen lassen und nach Tages-, Abendkurs oder Kinderbetreuung fragen. Platz, Beginn und Anwesenheit klären, bevor ein anderer Kurs abgesagt wird.", source: german),
-            .init("online", "laptopcomputer", "Навчання між заняттями", "Zwischen den Terminen lernen", "ÖIF має безкоштовні онлайн-заняття й вправи на Sprachportal. Поєднуйте їх із розмовною практикою, власним словником для роботи чи навчання і регулярним повторенням. Онлайн-участь не завжди замінює присутність на фінансованому курсі.", "Der ÖIF bietet kostenlose Online-Stunden und Übungen im Sprachportal. Kombinieren Sie sie mit Gesprächspraxis, beruflichem Wortschatz und Wiederholung. Online-Lernen ersetzt nicht automatisch Anwesenheit in einem geförderten Kurs.", source: german),
+            .init("online", "laptopcomputer", "Навчання між заняттями", "Zwischen den Terminen lernen", "ÖIF має безкоштовні онлайн-заняття й вправи на Sprachportal. Поєднуйте їх із розмовною практикою, власним словником для роботи чи навчання і регулярним повторенням. Онлайн-участь не завжди замінює присутність на фінансованому курсі.", "Der ÖIF bietet kostenlose Online-Stunden und Übungen im Sprachportal. Kombinieren Sie sie mit Gesprächspraxis, beruflichem Wortschatz und Wiederholung. Online-Lernen ersetzt nicht automatisch Anwesenheit in einem geförderten Kurs.", source: germanOnline),
             .init("certificate", "checkmark.seal", "Визначте потрібний доказ мови", "Benötigten Nachweis bestimmen", "Для роботи, навчання, дозволу на перебування й громадянства можуть вимагати різні рівні та визнані іспити. Перед оплатою іспиту попросіть установу назвати точний сертифікат, рівень і допустимий строк давності. Сам факт відвідування курсу може не бути достатнім.", "Arbeit, Studium, Aufenthalt und Staatsbürgerschaft können unterschiedliche Niveaus und anerkannte Prüfungen verlangen. Vor Prüfungszahlung genaue Zertifikatsart, Niveau und Gültigkeit bei der zuständigen Stelle erfragen. Kursbesuch allein genügt nicht immer.", source: german)
-        ], sources: [german]
+        ], sources: [german, germanOnline]
     )
 }

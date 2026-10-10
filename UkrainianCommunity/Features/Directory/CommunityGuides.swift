@@ -3,7 +3,7 @@ import Foundation
 enum CommunityGuides {
     private static let authoritySearch = DirectorySource(name: "oesterreich.gv.at · Behördensuche", url: "https://www.oesterreich.gv.at/de/orgsearch")
     private static let centers = DirectorySource(name: "ÖIF · Standorte in Österreich", url: "https://www.integrationsfonds.at/der-oeif/standorte/uebersicht-standorte/")
-    private static let ukraine = DirectorySource(name: "ÖIF · Ukraine", url: "https://www.integrationsfonds.at/ukraine/")
+    private static let ukraine = DirectorySource(name: "ÖIF · Ukraine", url: "https://www.integration.at/themen/ukraine/")
     private static let volunteering = DirectorySource(name: "Freiwilligenweb · Freiwilligenzentren", url: "https://www.freiwilligenweb.at/nuetzliches/freiwilligenzentren/")
     private static let rights = DirectorySource(name: "Freiwilligenweb · Rechtliche Rahmenbedingungen", url: "https://www.freiwilligenweb.at/freiwilliges-engagement/rechtliche-rahmenbedingungen/")
     private static let volunteerRecord = DirectorySource(name: "Freiwilligenweb · Freiwilligen-Nachweis", url: "https://www.freiwilligenweb.at/freiwilliges-engagement/freiwilligen-nachweis/")

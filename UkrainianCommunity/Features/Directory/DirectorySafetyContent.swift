@@ -24,7 +24,7 @@ struct SafetyGuide {
 }
 
 enum DirectorySafetyContent {
-    static let reviewedOn = "07.10.2026"
+    static let reviewedOn = "10.10.2026"
     static let guides = protectionGuides.merging(incidentGuides) { _, newer in newer }
 
     static let police = SafetyContact(
@@ -104,8 +104,8 @@ enum DirectorySafetyContent {
         number: "0800 112 112",
         title: .init(ukrainian: "Підтримка потерпілих", german: "Opfer-Notruf"),
         detail: .init(
-            ukrainian: "Цілодобово для постраждалих від злочину",
-            german: "Rund um die Uhr für Opfer von Straftaten"))
+            ukrainian: "У робочі дні 08:00–20:00 для постраждалих від злочину",
+            german: "Werktags 08:00–20:00 für Opfer von Straftaten"))
 
     static let emergencySource = DirectorySource(
         name: "oesterreich.gv.at · Notrufnummern",
