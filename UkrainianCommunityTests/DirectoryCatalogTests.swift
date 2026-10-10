@@ -97,6 +97,34 @@ struct DirectoryCatalogTests {
         }
     }
 
+    @Test func safetyGuidesHaveDistinctActionsAndSources() {
+        let guides = DirectorySafetyContent.guides
+        #expect(guides.count == 12)
+        for (topicID, guide) in guides {
+            #expect(guide.sections.count >= 3, "\(topicID) needs actionable sections")
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+            for section in guide.sections {
+                #expect(section.body.ukrainian.count >= 70)
+                #expect(section.body.german.count >= 70)
+            }
+        }
+    }
+
+    @Test func regionalSafetyAddsLocalServicesWithoutRepeatingEmergencyAdvice() {
+        for state in AustrianFederalState.allCases {
+            for topicID in ["domestic-violence", "women", "children", "assault"] {
+                let sections = DirectoryRegionalContent.sections(categoryID: "safety", topicID: topicID,
+                                                                 state: state)
+                #expect(sections.count == 1)
+                #expect(!sections[0].body.ukrainian.contains("133"))
+                #expect(!sections[0].body.ukrainian.contains("112"))
+                #expect(!sections[0].body.german.contains("133"))
+                #expect(!sections[0].body.german.contains("112"))
+            }
+        }
+    }
+
     @Test func previouslyCombinedSubjectsHaveSeparateDestinations() {
         let ids = Set(DirectoryCatalog.categories.map(\.id))
         for id in ["residence", "documents", "citizenship", "work", "qualifications",

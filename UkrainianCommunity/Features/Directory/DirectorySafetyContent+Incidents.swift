@@ -3,160 +3,81 @@ import Foundation
 extension DirectorySafetyContent {
     static let incidentGuides: [String: SafetyGuide] = [
         "fire-gas": guide(
-            "Перші дії при пожежі, димі та запаху газу.",
-            "Erste Schritte bei Brand, Rauch und Gasgeruch.",
+            "Окремі дії при пожежі, задимленні сходів, витоку газу та підозрі на чадний газ.",
+            "Unterschiedliche Schritte bei Brand, verrauchten Fluchtwegen, Gasgeruch und Kohlenmonoxid.",
             [
                 section(
-                    "fire", "Пожежа або дим", "Brand oder Rauch", "flame.fill",
-                    "Залиште небезпечну зону, попередьте інших, якщо це безпечно, і телефонуйте 122 з безпечного місця. Не повертайтеся всередину; виконуйте вказівки пожежної служби.",
-                    "Verlassen Sie den Gefahrenbereich, warnen Sie andere, wenn es sicher ist, und rufen Sie 122 von einem sicheren Ort an. Gehen Sie nicht zurück; folgen Sie der Feuerwehr.",
+                    "fire", "Пожежа у вашому приміщенні", "Brand in Ihrer Wohnung", "flame.fill",
+                    "Викличте пожежну службу. Якщо шлях вільний від диму, виведіть людей, закрийте двері до осередку пожежі й виходьте сходами, не ліфтом. Не повертайтеся за речами й не намагайтеся гасити сильне полум’я або дим самостійно.",
+                    "Rufen Sie die Feuerwehr. Ist der Fluchtweg rauchfrei, bringen Sie Menschen hinaus, schließen Sie die Tür zum Brandraum und benutzen Sie die Treppe, nicht den Aufzug. Kehren Sie nicht wegen Gegenständen zurück und versuchen Sie nicht, starken Brand oder Rauch selbst zu löschen.",
                     [fire]),
                 section(
-                    "gas", "Запах газу", "Gasgeruch", "wind",
-                    "Не запалюйте вогонь, не користуйтеся вимикачами, дзвінком або телефоном у приміщенні. Якщо безпечно, перекрийте газ; вийдіть із будівлі й ззовні телефонуйте 128. При пожежі також викликайте 122.",
-                    "Keine Flammen entzünden und im Gebäude keine Schalter, Klingel oder Telefone benutzen. Wenn gefahrlos möglich, Gas abdrehen; Gebäude verlassen und von draußen 128 anrufen. Bei Brand zusätzlich 122 wählen.",
-                    [gas, fire]),
+                    "smoke", "Якщо сходи заповнені димом", "Wenn das Stiegenhaus verraucht ist", "door.left.hand.closed",
+                    "Не виходьте через задимлені сходи. Якщо ваша квартира не горить, залишайтеся всередині, щільно зачиніть двері, викличте пожежних і повідомте точну адресу та поверх. Чекайте їхніх вказівок і подайте знак із вікна; не стрибайте й не користуйтеся ліфтом.",
+                    "Fliehen Sie nicht durch ein verrauchtetes Stiegenhaus. Brennt Ihre Wohnung nicht, bleiben Sie darin, schließen Sie die Türen dicht, rufen Sie die Feuerwehr und nennen Sie Adresse und Stockwerk. Folgen Sie ihren Anweisungen und machen Sie sich am Fenster bemerkbar; springen Sie nicht und benutzen Sie keinen Aufzug."
+                ),
+                section(
+                    "gas", "Запах газу — без іскор", "Gasgeruch – Funken vermeiden", "wind",
+                    "Не вмикайте й не вимикайте світло чи прилади, не користуйтеся дзвінком і телефоном усередині. Якщо це безпечно, відкрийте вікна, загасіть відкрите полум’я і перекрийте газ. Вийдіть із будівлі та телефонуйте аварійній газовій службі ззовні; при пожежі викличте також пожежних.",
+                    "Schalten Sie im Gebäude weder Licht noch Geräte ein oder aus und benutzen Sie weder Klingel noch Telefon. Wenn gefahrlos möglich, Fenster öffnen, offene Flammen löschen und Gas abdrehen. Verlassen Sie das Gebäude und rufen Sie den Gasnotruf von draußen; bei Brand auch die Feuerwehr.",
+                    [gas]),
                 section(
                     "co", "Підозра на чадний газ", "Verdacht auf Kohlenmonoxid", "lungs.fill",
-                    "Головний біль, запаморочення й нудота у кількох людей одночасно можуть бути ознакою отруєння чадним газом. Вийдіть на свіже повітря, не наражайтеся на небезпеку та викликайте 144; якщо приміщення небезпечне — також 122.",
-                    "Kopfschmerzen, Schwindel und Übelkeit bei mehreren Personen können auf Kohlenmonoxid hinweisen. Gehen Sie an die frische Luft, gefährden Sie sich nicht selbst und rufen Sie 144; bei Gefahr im Gebäude auch 122.",
+                    "Головний біль, запаморочення чи нудота у кількох людей одночасно біля газового приладу можуть бути ознакою отруєння чадним газом. Негайно вийдіть на свіже повітря й викличте швидку. Не повертайтеся всередину по інших без захисного обладнання; повідомте пожежних про небезпечне приміщення.",
+                    "Kopfschmerzen, Schwindel oder Übelkeit bei mehreren Personen nahe einem Gasgerät können auf Kohlenmonoxid hinweisen. Gehen Sie sofort an die frische Luft und rufen Sie die Rettung. Kehren Sie nicht ohne Schutzausrüstung für andere zurück; informieren Sie die Feuerwehr über das gefährliche Gebäude.",
                     [ambulance, fire]),
-            ],
-            [
-                DirectorySource(
-                    name: "Wiener Netze · Was tun bei Gasgeruch",
-                    url: "https://www.wienernetze.at/was-tun-bei-gasgeruch"),
-                DirectorySource(
-                    name: "Gesundheitsportal · Kohlenmonoxid",
-                    url:
-                        "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-kohlenmonoxid.html"
-                ), emergencySource,
-            ]),
-        "mountains-water": guide(
-            "Куди дзвонити при нещасному випадку в горах, на озері чи річці.",
-            "Notruf bei Unfällen am Berg, See oder Fluss.",
-            [
-                section(
-                    "mountain", "У горах", "Am Berg", "mountain.2.fill",
-                    "Забезпечте власну безпеку, назвіть точне місце та стан постраждалих. Телефонуйте гірській рятувальній службі 140; у Форарльберзі — 144. Номер 112 теж приймає екстрені виклики. Не наражайте себе на небезпеку на схилі чи під час лавини.",
-                    "Sichern Sie sich selbst und nennen Sie Ort und Zustand der Betroffenen. Bergrettung: 140; in Vorarlberg: 144. Auch 112 nimmt Notrufe entgegen. Bringen Sie sich am Hang oder bei Lawinen nicht selbst in Gefahr.",
-                    [mountain, vorarlbergMountain, europeanEmergency]),
-                section(
-                    "water", "На водоймі", "Am Gewässer", "water.waves",
-                    "Покличте рятувальників на місці й телефонуйте 144 або 112. У Каринтії та Верхній Австрії водних рятувальників також викликають через земельну диспетчерську 130; в інших землях порядок може відрізнятися. Повідомте назву водойми, берег і кількість людей. Допомагайте лише без ризику для себе.",
-                    "Rufen Sie Rettungskräfte vor Ort und wählen Sie 144 oder 112. In Kärnten und Oberösterreich wird die Wasserrettung auch über die Landeswarnzentrale 130 alarmiert; in anderen Bundesländern kann es anders sein. Nennen Sie Gewässer, Ufer und Zahl der Betroffenen. Helfen Sie nur ohne Eigengefährdung.",
-                    [ambulance, europeanEmergency]),
-            ],
-            [
-                DirectorySource(
-                    name: "Österreichische Bergrettung · Notruf",
-                    url: "https://bergrettung.at/tipps/notruf-absetzen/"),
-                DirectorySource(
-                    name: "Österreichische Wasserrettung · Einsatzdienst",
-                    url: "https://sbg.owr.at/seeham/ueber-uns/fachbereiche/einsatzdienst/"),
-                DirectorySource(
-                    name: "Österreichische Wasserrettung · regionale Alarmierung",
-                    url: "https://owr.at/owr/wp-content/uploads/2023/12/Jahresbericht-BUL-2022.pdf"),
+            ], [
+                DirectorySource(name: "Stadt Wien · Verhalten im Brandfall", url: "https://www.wien.gv.at/zusammenleben/feuerwehr-sicherheitstipps-brandfall"),
+                DirectorySource(name: "Wiener Netze · Gasgeruch", url: "https://www.wienernetze.at/was-tun-bei-gasgeruch"),
+                DirectorySource(name: "Gesundheitsportal · Kohlenmonoxid", url: "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-kohlenmonoxid.html"),
                 emergencySource,
             ]),
         "poisoning": guide(
-            "При підозрі на отруєння ліками, хімією, рослинами чи грибами.",
-            "Bei Verdacht auf Vergiftung durch Medikamente, Chemikalien, Pflanzen oder Pilze.",
+            "Що робити при контакті з ліками, хімією, рослинами, грибами або небезпечними парами.",
+            "Schritte nach Kontakt mit Medikamenten, Chemikalien, Pflanzen, Pilzen oder gefährlichen Dämpfen.",
             [
                 section(
-                    "first", "Зверніться по консультацію", "Sofort Rat holen",
-                    "phone.arrow.up.right.fill",
-                    "Телефонуйте до центру інформації про отруєння 01 406 43 43. Підготуйте назву речовини або упаковку, приблизну кількість, час контакту, вік і стан людини. Не викликайте блювання без вказівки фахівця.",
-                    "Rufen Sie die Vergiftungsinformationszentrale 01 406 43 43 an. Halten Sie Stoffname oder Verpackung, ungefähre Menge, Zeitpunkt, Alter und Zustand bereit. Ohne fachliche Anweisung kein Erbrechen auslösen.",
+                    "life-threat", "Спершу оцініть стан", "Zuerst den Zustand prüfen", "cross.case.fill",
+                    "Якщо людина непритомна, не дихає нормально або має тяжкі симптоми, негайно викличте швидку й виконуйте вказівки диспетчера. При випарах чи газі не заходьте в небезпечну зону за постраждалим: спершу захистіть себе та викличте спеціальні служби.",
+                    "Ist die Person bewusstlos, atmet nicht normal oder zeigt schwere Symptome, sofort die Rettung alarmieren und der Leitstelle folgen. Betreten Sie bei Dämpfen oder Gas keinen Gefahrenbereich, um jemanden zu holen: Schützen Sie sich und rufen Sie Einsatzkräfte.",
+                    [ambulance]),
+                section(
+                    "contact", "Якщо симптоми відсутні або легкі", "Bei fehlenden oder leichten Beschwerden", "drop.fill",
+                    "При потраплянні речовини на шкіру зніміть забруднений одяг і промийте шкіру водою. При потраплянні в око промивайте його водою щонайменше 10–15 хвилин. При ковтанні очистіть рот; не викликайте блювання. Потім одразу зверніться до центру інформації про отруєння й дотримуйтеся його вказівок.",
+                    "Bei Hautkontakt getränkte Kleidung ausziehen und die Haut mit Wasser spülen. Bei Augenkontakt mindestens 10–15 Minuten mit Wasser spülen. Nach Verschlucken den Mund reinigen; kein Erbrechen auslösen. Danach umgehend die Vergiftungsinformationszentrale anrufen und ihren Anweisungen folgen.",
                     [poison]),
                 section(
-                    "severe", "Тяжкі симптоми", "Schwere Symptome", "cross.case.fill",
-                    "При втраті свідомості, порушенні дихання чи інших тяжких симптомах негайно викликайте 144. Виконуйте вказівки диспетчера; збережіть упаковку для медиків.",
-                    "Bei Bewusstlosigkeit, Atemproblemen oder anderen schweren Symptomen sofort 144 rufen. Folgen Sie der Leitstelle und behalten Sie die Verpackung für das medizinische Personal.",
-                    [ambulance]),
-            ],
-            [
-                DirectorySource(
-                    name: "Gesundheitsportal · Vergiftungsinformation",
-                    url:
-                        "https://www.gesundheit.gv.at/service/notruf/vergiftungsinformationszentrale.html"
+                    "facts", "Що повідомити токсикологам", "Angaben für die Giftberatung", "list.clipboard.fill",
+                    "Підготуйте упаковку або назву речовини, приблизну кількість, час і спосіб контакту. Назвіть вік, приблизну вагу й симптоми людини. Не чекайте симптомів після можливого проковтування дитиною ліків або батарейки — одразу запитайте фахівців, що робити.",
+                    "Halten Sie Verpackung oder Stoffnamen, ungefähre Menge, Zeitpunkt und Art des Kontakts bereit. Nennen Sie Alter, ungefähres Gewicht und Beschwerden. Warten Sie nach möglichem Verschlucken von Medikamenten oder Knopfzellen durch ein Kind nicht auf Symptome, sondern fragen Sie sofort die Fachleute."
                 ),
-                DirectorySource(
-                    name: "Gesundheitsportal · Gefahren im Haushalt",
-                    url:
-                        "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-gefahren-haushalt.html"
-                ),
-            ]),
-        "disasters": guide(
-            "Повінь, буря, лавина, землетрус, блекаут та офіційні попередження.",
-            "Hochwasser, Sturm, Lawine, Erdbeben, Blackout und amtliche Warnungen.",
-            [
-                section(
-                    "warning", "Попередження та евакуація", "Warnung und Evakuierung",
-                    "exclamationmark.triangle.fill",
-                    "Стежте за офіційними повідомленнями AT-Alert і місцевої влади. Виконуйте накази про евакуацію або укриття. Не заходьте у затоплені підвали й не перетинайте затоплені дороги; уникайте дерев, ліній електропередач і небезпечних схилів.",
-                    "Beachten Sie AT-Alert und Mitteilungen der Behörden. Folgen Sie Anordnungen zu Evakuierung oder Schutz. Betreten Sie keine überfluteten Keller und queren Sie keine überschwemmten Straßen; meiden Sie Bäume, Stromleitungen und gefährliche Hänge."
-                ),
-                section(
-                    "flood-storm", "Повінь і буря", "Hochwasser und Sturm", "cloud.heavyrain.fill",
-                    "Залишайтеся в будівлі під час бурі, відійдіть від вікон. Уникайте водойм, затоплених підземних переходів і доріг; не спускайтеся до затопленого підвалу. Слухайте місцеві повідомлення й попереджайте близьких лише без ризику для себе.",
-                    "Bleiben Sie bei Sturm im Gebäude und meiden Sie Fenster. Halten Sie Abstand zu Gewässern, überfluteten Unterführungen und Straßen; betreten Sie keinen überfluteten Keller. Beachten Sie lokale Meldungen und warnen Sie andere nur ohne Eigengefährdung."
-                ),
-                section(
-                    "earthquake", "Землетрус", "Erdbeben", "waveform.path.ecg",
-                    "У приміщенні тримайтеся подалі від вікон і дочекайтеся кінця поштовхів у захищеному місці. Надворі відійдіть від будівель та ліній електропередач. Після сильного землетрусу не входьте в пошкоджену будівлю, доки її не визнають безпечною.",
-                    "Drinnen Abstand zu Fenstern halten und das Ende der Erschütterung an einem geschützten Ort abwarten. Draußen Abstand zu Gebäuden und Stromleitungen halten. Ein beschädigtes Gebäude nach starkem Beben erst nach Freigabe wieder betreten."
-                ),
-                section(
-                    "blackout", "Тривале відключення світла", "Längerer Stromausfall",
-                    "bolt.slash.fill",
-                    "Майте вдома воду, їжу, потрібні ліки, ліхтар і батарейний радіоприймач; домовтеся з родиною про зв’язок без телефону. Під час блекауту слухайте офіційні повідомлення. Не використовуйте вугільний гриль або непридатні для приміщень пальники всередині: є ризик чадного газу.",
-                    "Halten Sie Wasser, Lebensmittel, nötige Medikamente, Taschenlampe und Batterieradio bereit und vereinbaren Sie einen Treffpunkt ohne Telefon. Bei Blackout amtliche Meldungen beachten. Holzkohlegrills und ungeeignete Kocher nie drinnen nutzen: Kohlenmonoxidgefahr."
-                ),
-                section(
-                    "urgent", "Коли потрібна допомога", "Wenn Hilfe nötig ist", "phone.fill",
-                    "При безпосередній загрозі життю телефонуйте 112. При пожежі чи рятуванні — 122, при медичній невідкладній ситуації — 144. Назвіть місце та конкретну небезпеку.",
-                    "Bei unmittelbarer Lebensgefahr 112 wählen. Bei Brand oder technischer Rettung 122, bei medizinischem Notfall 144. Nennen Sie Ort und konkrete Gefahr.",
-                    [europeanEmergency, fire, ambulance]),
-            ],
-            [
-                DirectorySource(
-                    name: "oesterreich.gv.at · Selbstschutz im Katastrophenfall",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1"
-                ),
-                DirectorySource(
-                    name: "oesterreich.gv.at · AT-Alert",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/2/Seite.29500311"
-                ),
-                DirectorySource(
-                    name: "oesterreich.gv.at · Blackout",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500329"
-                ),
+            ], [
+                DirectorySource(name: "Gesundheitsportal · Vergiftung im Notfall", url: "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-vorgehen-notfall.html"),
+                DirectorySource(name: "Gesundheitsportal · Gefahren im Haushalt", url: "https://www.gesundheit.gv.at/krankheiten/vergiftungsinformation/vergiftung-gefahren-haushalt.html"),
             ]),
         "road-accident": guide(
-            "Безпека та виклик допомоги після дорожньої пригоди.",
-            "Sicherheit und Hilfe nach einem Verkehrsunfall.",
+            "Убезпечити місце, допомогти людям і повідомити про пригоду: дії залежать від того, чи є травми.",
+            "Absichern, helfen, melden: unterschiedliche Schritte bei Verletzten und reinem Sachschaden.",
             [
                 section(
-                    "secure", "Спочатку безпека", "Zuerst Sicherheit", "car.side.fill",
-                    "Зупиніться, убезпечте місце пригоди настільки, наскільки це можливо без ризику для себе, та перевірте, чи є постраждалі. На автомагістралі тримайтеся подалі від руху; виконуйте вказівки служб.",
-                    "Halten Sie an, sichern Sie die Unfallstelle ohne Eigengefährdung und prüfen Sie, ob Menschen verletzt sind. Auf Autobahnen Abstand zum Verkehr halten und Anweisungen der Einsatzkräfte befolgen."
+                    "secure", "Місце пригоди та власна безпека", "Unfallstelle und Eigenschutz", "car.side.fill",
+                    "Зупиніться, увімкніть аварійну сигналізацію й одягніть сигнальний жилет перед виходом на проїзну частину. Позначте місце трикутником, якщо це безпечно. На автомагістралі відійдіть від руху за огорожу; не переходьте смуги заради фото чи уламків.",
+                    "Halten Sie an, schalten Sie die Warnblinkanlage ein und ziehen Sie vor dem Aussteigen auf die Fahrbahn die Warnweste an. Sichern Sie die Stelle mit dem Warndreieck, soweit dies sicher möglich ist. Auf der Autobahn Abstand zum Verkehr hinter der Leitschiene halten; überqueren Sie keine Fahrstreifen für Fotos oder Gegenstände."
                 ),
                 section(
-                    "call", "Викличте допомогу", "Hilfe rufen", "phone.fill",
-                    "При травмах телефонуйте 144 і повідомте поліцію за номером 133; при пожежі — 122. Якщо не знаєте, яка служба потрібна, телефонуйте 112. Повідомте місце (дорога, напрямок, кілометр), кількість постраждалих та небезпеку.",
-                    "Bei Verletzten 144 anrufen und die Polizei unter 133 verständigen; bei Brand 122 wählen. Wenn die zuständige Stelle unklar ist, 112 wählen. Nennen Sie Straße, Fahrtrichtung, Kilometer, Zahl der Verletzten und Gefahren.",
-                    [ambulance, police, fire, europeanEmergency]),
-            ],
-            [
-                DirectorySource(
-                    name: "oesterreich.gv.at · Verkehrsunfall",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/unfall/4/Seite.2892001"
-                ), emergencySource,
+                    "injured", "Якщо є постраждалі", "Wenn Menschen verletzt sind", "cross.case.fill",
+                    "Негайно організуйте першу допомогу й викличте швидку; повідомте також поліцію. Назвіть дорогу, напрямок руху, кілометр або найближчий з’їзд, кількість постраждалих та небезпеки. При пожежі викличте пожежних.",
+                    "Leisten oder organisieren Sie sofort Erste Hilfe und rufen Sie die Rettung; verständigen Sie auch die Polizei. Nennen Sie Straße, Fahrtrichtung, Kilometer oder nächste Ausfahrt, Zahl der Verletzten und Gefahren. Bei Brand die Feuerwehr rufen.",
+                    [ambulance, police, fire]),
+                section(
+                    "property", "Якщо пошкоджене лише майно", "Wenn nur Sachschaden entstand", "doc.text.fill",
+                    "Обміняйтеся і підтвердьте ім’я та адресу учасників, дані автомобілів і страховок; запишіть свідків та обставини. Поліцію можна не викликати, якщо немає травм і учасники довели одне одному ім’я та адресу. Якщо інша сторона поїхала або дані встановити не вдається, зверніться до поліції.",
+                    "Tauschen Sie nachweislich Namen und Anschriften aus und notieren Sie Fahrzeug-, Versicherungs- und Zeugendaten sowie den Ablauf. Ohne Verletzte kann die Polizeimeldung entfallen, wenn Beteiligte einander Namen und Anschriften nachweisen. Fährt die andere Person weg oder lässt sich ihre Identität nicht feststellen, wenden Sie sich an die Polizei."
+                ),
+            ], [
+                DirectorySource(name: "oesterreich.gv.at · Verkehrsunfall", url: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/unfall/4/Seite.2892001"),
+                DirectorySource(name: "oesterreich.gv.at · Panne und Unfall", url: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/katastrophenfaelle/1/Seite.29500326"),
+                emergencySource,
             ]),
     ]
 }

@@ -25,7 +25,10 @@ struct SafetyGuide {
 
 enum DirectorySafetyContent {
     static let reviewedOn = "10.10.2026"
-    static let guides = protectionGuides.merging(incidentGuides) { _, newer in newer }
+    static let guides = protectionGuides
+        .merging(victimSupportGuides) { _, newer in newer }
+        .merging(incidentGuides) { _, newer in newer }
+        .merging(outdoorGuides) { _, newer in newer }
 
     static let police = SafetyContact(
         number: "133", title: .init(ukrainian: "Поліція", german: "Polizei"),
@@ -80,6 +83,11 @@ enum DirectorySafetyContent {
         title: .init(ukrainian: "Гірська допомога у Форарльберзі", german: "Bergnotruf in Vorarlberg"),
         detail: .init(ukrainian: "Рятувальна служба 144", german: "Rettungsnotruf 144")
     )
+    static let waterRescue = SafetyContact(
+        number: "130", title: .init(ukrainian: "Водна рятувальна служба", german: "Wasserrettung"),
+        detail: .init(ukrainian: "Диспетчерська у Каринтії та Верхній Австрії",
+                      german: "Landesleitstelle in Kärnten und Oberösterreich")
+    )
     static let poison = SafetyContact(
         number: "01 406 43 43",
         title: .init(
@@ -113,9 +121,9 @@ enum DirectorySafetyContent {
             "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/notrufnummern"
     )
     static let violenceSource = DirectorySource(
-        name: "oesterreich.gv.at · Häusliche Gewalt",
+        name: "oesterreich.gv.at · Betretungs- und Annäherungsverbot",
         url:
-            "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/2/Seite.290501"
+            "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/5/Seite.299420"
     )
     static let supportSource = DirectorySource(
         name: "Gewaltschutzzentren Österreich · Українською",

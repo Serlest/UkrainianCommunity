@@ -3,180 +3,113 @@ import Foundation
 extension DirectorySafetyContent {
     static let protectionGuides: [String: SafetyGuide] = [
         "emergency": guide(
-            "Що робити та кому телефонувати в небезпечній ситуації.",
-            "Was tun und wen bei Gefahr anrufen?",
+            "Визначте службу, передайте місце події та дійте за вказівками диспетчера.",
+            "Wählen Sie den richtigen Notruf, nennen Sie den Ort und folgen Sie der Leitstelle.",
             [
                 section(
-                    "call", "Викличте допомогу", "Hilfe rufen", "phone.fill",
-                    "133 — поліція; 144 — швидка; 122 — пожежна служба; 112 — загальноєвропейський номер, якщо не знаєте, яка служба потрібна.",
-                    "133 – Polizei; 144 – Rettung; 122 – Feuerwehr; 112 – Euro-Notruf, wenn Sie nicht wissen, welche Stelle zuständig ist.",
+                    "choose", "Яку службу викликати", "Welchen Notruf wählen", "phone.fill",
+                    "Поліція — при насильстві або загрозі; швидка — при тяжкій травмі чи раптовому погіршенні здоров’я; пожежна служба — при пожежі та технічному порятунку. Якщо не знаєте, яка служба потрібна, телефонуйте 112. Екстрені дзвінки безкоштовні.",
+                    "Polizei bei Gewalt oder Gefahr, Rettung bei schwerer Verletzung oder akuter Erkrankung, Feuerwehr bei Brand oder technischer Rettung. Wenn die zuständige Stelle unklar ist, wählen Sie 112. Notrufe sind kostenlos.",
                     [police, ambulance, fire, europeanEmergency]),
                 section(
-                    "report", "Що сказати диспетчеру", "Was der Leitstelle sagen?",
-                    "text.bubble.fill",
-                    "Назвіть точне місце, що сталося, кількість постраждалих і свій номер. Не завершуйте розмову, доки диспетчер не скаже. Екстрені номери безкоштовні; 112 працює навіть без PIN-коду.",
-                    "Nennen Sie den genauen Ort, das Geschehen, die Zahl der Betroffenen und Ihre Rückrufnummer. Legen Sie erst auf, wenn die Leitstelle es sagt. Notrufe sind kostenlos; 112 funktioniert auch ohne PIN."
+                    "report", "Що сказати диспетчеру", "Was die Leitstelle wissen muss", "text.bubble.fill",
+                    "Спочатку назвіть місце: адресу, поверх або орієнтир. Потім коротко скажіть, що сталося, скільки людей постраждало і які є небезпеки. Назвіть номер для зворотного дзвінка, відповідайте на запитання й не завершуйте виклик самостійно.",
+                    "Nennen Sie zuerst Ort, Adresse, Stockwerk oder einen Orientierungspunkt. Beschreiben Sie dann kurz das Ereignis, die Zahl der Betroffenen und weitere Gefahren. Geben Sie eine Rückrufnummer an, beantworten Sie Fragen und beenden Sie das Gespräch erst auf Anweisung."
                 ),
                 section(
-                    "accessible", "Якщо не можете говорити", "Wenn Sprechen nicht möglich ist",
-                    "text.bubble.fill",
-                    "Офіційний застосунок DEC112 дозволяє надсилати текстовий екстрений виклик. Для людей із порушеннями слуху поліція також приймає SMS на 0800 133 133. Якщо загроза пов’язана з насильством і говорити небезпечно, у DEC112 є тихий виклик поліції; вкажіть точну адресу.",
-                    "Mit der offiziellen App DEC112 ist ein textbasierter Notruf möglich. Gehörlose und hörbeeinträchtigte Menschen können die Polizei auch per SMS an 0800 133 133 erreichen. Bei Gewalt und Gefahr durch Sprechen ist in DEC112 ein stiller Polizeinotruf mit genauer Adresse möglich."
+                    "waiting", "Поки їде допомога", "Bis Hilfe eintrifft", "cross.case.fill",
+                    "Не заходьте в небезпечну зону. Якщо людина не реагує, викличте швидку й перевірте нормальне дихання. За відсутності нормального дихання починайте натискання на грудну клітку та виконуйте вказівки диспетчера; якщо дихає нормально, спостерігайте за диханням до прибуття допомоги.",
+                    "Betreten Sie keinen Gefahrenbereich. Reagiert eine Person nicht, rufen Sie die Rettung und prüfen Sie die normale Atmung. Fehlt normale Atmung, beginnen Sie mit der Herzdruckmassage und folgen Sie der Leitstelle; bei normaler Atmung beobachten Sie die Person bis Hilfe eintrifft."
                 ),
-            ], [emergencySource]),
+                section(
+                    "accessible", "Якщо говорити неможливо", "Wenn Sprechen nicht möglich ist", "text.bubble.fill",
+                    "Офіційний застосунок DEC112 передає текстовий екстрений виклик. Люди з порушенням слуху можуть також надіслати SMS поліції на 0800 133 133. При загрозі насильства тихий виклик поліції через DEC112 потребує точної адреси в застосунку або чаті; краще налаштувати його заздалегідь.",
+                    "Die offizielle App DEC112 ermöglicht einen textbasierten Notruf. Gehörlose und hörbeeinträchtigte Menschen können die Polizei auch per SMS unter 0800 133 133 erreichen. Für den stillen Polizeinotruf bei Gewalt braucht DEC112 eine genaue Adresse in der App oder im Chat; richten Sie die App möglichst vorher ein."
+                ),
+            ], [
+                emergencySource,
+                DirectorySource(name: "Gesundheitsportal · Erste Hilfe", url: "https://www.gesundheit.gv.at/krankheiten/erste-hilfe/wiederbelebung-erwachsene.html"),
+            ]),
         "domestic-violence": guide(
-            "Захист при насильстві вдома або з боку близької людини.",
-            "Schutz bei Gewalt zu Hause oder durch nahestehende Personen.",
+            "Негайний захист, поліцейська заборона наближення та допомога після насильства вдома.",
+            "Akuter Schutz, polizeiliches Annäherungsverbot und Hilfe nach häuslicher Gewalt.",
             [
                 section(
-                    "now", "Якщо небезпека зараз", "Bei akuter Gefahr",
-                    "exclamationmark.shield.fill",
-                    "Перейдіть у безпечне місце, якщо можете. Телефонуйте 133 або 112. Якщо говорити небезпечно, офіційний застосунок DEC112 підтримує текстовий і тихий виклик поліції; для тихого виклику потрібна точна адреса.",
-                    "Gehen Sie möglichst an einen sicheren Ort. Wählen Sie 133 oder 112. Wenn Sprechen gefährlich ist, ermöglicht die offizielle App DEC112 Text- und stillen Polizeinotruf; für den stillen Notruf ist eine genaue Adresse nötig.",
-                    [police, europeanEmergency]),
+                    "now", "Якщо небезпека зараз", "Bei akuter Gefahr", "exclamationmark.shield.fill",
+                    "Перейдіть з дітьми в безпечне місце, якщо це можливо без ризику. Викличте поліцію; при травмах також швидку. Якщо говорити небезпечно, у DEC112 є тихий виклик поліції, для якого потрібна точна адреса.",
+                    "Gehen Sie mit Kindern an einen sicheren Ort, sofern das gefahrlos möglich ist. Rufen Sie die Polizei, bei Verletzungen auch die Rettung. Wenn Sprechen gefährlich ist, bietet DEC112 einen stillen Polizeinotruf mit genauer Adresse.",
+                    [police, ambulance]),
                 section(
-                    "support", "Конфіденційна підтримка", "Vertrauliche Unterstützung",
-                    "hand.raised.heart.fill",
-                    "Звернутися по пораду можна до прийняття рішення про подальші кроки. Центри захисту допомагають усім постраждалим; для жінок є жіноча гаряча лінія, для чоловіків — кризова консультація. Якщо телефон контролюють, користуйтеся безпечним пристроєм.",
-                    "Beratung ist auch möglich, bevor Sie weitere Schritte entscheiden. Gewaltschutzzentren helfen allen Betroffenen; für Frauen gibt es die Frauenhelpline, für Männer eine Krisenberatung. Bei Überwachung Ihres Telefons nutzen Sie ein sicheres Gerät.",
-                    [protectionCentre, womenHelpline, menHelpline]),
+                    "police-order", "Що може зробити поліція", "Was die Polizei tun kann", "shield.fill",
+                    "Поліція може заборонити кривднику входити до житла та наближатися до вас на 100 м. Заборона зазвичай діє два тижні; при заяві до Bezirksgericht про судовий захист протягом цього строку вона подовжується щонайбільше до чотирьох тижнів. При порушенні заборони негайно телефонуйте поліції.",
+                    "Die Polizei kann der gefährdenden Person das Betreten der Wohnung und eine Annäherung auf 100 m untersagen. Das Verbot gilt grundsätzlich zwei Wochen; bei rechtzeitigem Antrag auf eine einstweilige Verfügung beim Bezirksgericht verlängert es sich höchstens auf vier Wochen. Bei einem Verstoß sofort die Polizei rufen."
+                ),
+                section(
+                    "next", "Захист після перших днів", "Schutz nach den ersten Tagen", "hand.raised.heart.fill",
+                    "Центр захисту від насильства консультує незалежно від статі, допомагає з планом безпеки, зверненням до суду й супроводом у процедурах. Зверніться якомога раніше, щоб не пропустити строк поліцейської заборони. Зберігайте документи, повідомлення й медичні записи лише там, де кривдник не має доступу.",
+                    "Ein Gewaltschutzzentrum berät unabhängig vom Geschlecht, hilft beim Sicherheitsplan, bei Gerichtsanträgen und bei Verfahren. Kontaktieren Sie es frühzeitig wegen der Frist des polizeilichen Verbots. Bewahren Sie Unterlagen, Nachrichten und ärztliche Befunde nur an einem sicheren Ort auf.",
+                    [protectionCentre]),
+                section(
+                    "private-help", "Як отримати допомогу безпечно", "Sicher Hilfe suchen", "lock.shield.fill",
+                    "Якщо ваш телефон контролюють, скористайтеся безпечним пристроєм або попросіть довірену людину зателефонувати. Жіноча лінія допоможе знайти прихисток; чоловіки можуть звернутися до цілодобової кризової лінії. Для дитини безпечним контактом є також 147.",
+                    "Wenn Ihr Telefon überwacht wird, nutzen Sie ein sicheres Gerät oder bitten Sie eine Vertrauensperson um einen Anruf. Die Frauenhelpline vermittelt Schutzunterkünfte; Männer erreichen eine rund um die Uhr besetzte Krisenberatung. Kinder können sich auch an 147 wenden.",
+                    [womenHelpline, menHelpline, children]),
             ], [
-                violenceSource,
-                supportSource,
+                violenceSource, supportSource,
                 DirectorySource(name: "Männerberatung 24/7", url: "https://maennerinfo.at/"),
-                emergencySource,
             ]),
         "women": guide(
-            "Куди звернутися при насильстві, переслідуванні чи загрозі.",
-            "Hilfe bei Gewalt, Stalking oder Bedrohung.",
+            "Конфіденційна консультація, прихисток із дітьми та спеціалізована допомога жінкам.",
+            "Vertrauliche Beratung, Schutzunterkunft mit Kindern und spezialisierte Hilfe für Frauen.",
             [
                 section(
-                    "urgent", "Негайна загроза", "Unmittelbare Gefahr",
-                    "exclamationmark.triangle.fill",
-                    "Якщо вам або дітям загрожує небезпека, викличте поліцію. У разі травм телефонуйте швидкій допомозі.",
-                    "Bei Gefahr für Sie oder Kinder die Polizei rufen. Bei Verletzungen die Rettung alarmieren.",
-                    [police, ambulance]),
+                    "helpline", "Перший конфіденційний контакт", "Erster vertraulicher Kontakt", "phone.fill",
+                    "Жіноча гаряча лінія працює цілодобово й безкоштовно. Можна звернутися навіть без заяви до поліції або коли ви ще не вирішили, що робити. Консультантка допоможе оцінити небезпеку, права та наступний безпечний крок; доступні різні мови, але години консультацій окремими мовами відрізняються.",
+                    "Die Frauenhelpline ist rund um die Uhr kostenlos erreichbar. Sie können auch ohne Anzeige und vor einer Entscheidung anrufen. Die Beraterin hilft, Gefahr, Rechte und den nächsten sicheren Schritt einzuschätzen; mehrere Sprachen sind möglich, deren Beratungszeiten sich jedoch unterscheiden.",
+                    [womenHelpline]),
                 section(
-                    "help", "Порада і безпечне місце", "Beratung und Schutzunterkunft",
-                    "heart.text.square.fill",
-                    "Жіноча гаряча лінія працює цілодобово, безкоштовно, анонімно й конфіденційно. Вона допоможе знайти регіональну службу захисту. Можна звернутися й через центр захисту від насильства.",
-                    "Die Frauenhelpline ist rund um die Uhr kostenlos, anonym und vertraulich erreichbar und vermittelt regionale Schutzeinrichtungen. Auch Gewaltschutzzentren beraten.",
-                    [womenHelpline, protectionCentre]),
-            ],
-            [
-                violenceSource,
-                DirectorySource(
-                    name: "Frauenhelpline · Angebot",
-                    url: "https://www.frauenhelpline.at/de/angebot"),
+                    "shelter", "Якщо вдома залишатися небезпечно", "Wenn Zuhause nicht sicher ist", "house.fill",
+                    "Попросіть лінію підібрати найближчий Frauenhaus або іншу захисну оселю. Такі місця приймають жінок та їхніх дітей і допомагають із подальшими кроками. Не повідомляйте кривднику адресу прихистку; порядок прийому та вільні місця уточнюйте через службу.",
+                    "Bitten Sie die Helpline um Vermittlung an ein Frauenhaus oder eine andere Schutzunterkunft in Ihrer Nähe. Diese Einrichtungen bieten Frauen und ihren Kindern Schutz und Unterstützung. Teilen Sie der gefährdenden Person die Adresse nicht mit; Aufnahme und freie Plätze klärt die Beratungsstelle."
+                ),
+                section(
+                    "specialized", "Після сексуального насильства або переслідування", "Nach sexualisierter Gewalt oder Stalking", "heart.text.square.fill",
+                    "Спеціалізовані консультаційні центри допомагають жінкам і дівчатам після сексуального насильства безкоштовно та конфіденційно, за потреби з перекладачкою. Вони пояснюють медичну допомогу, заяву й супровід. Центри захисту допомагають також при переслідуванні та зверненні до поліції чи суду.",
+                    "Spezialisierte Beratungsstellen unterstützen Frauen und Mädchen nach sexualisierter Gewalt kostenlos und vertraulich, bei Bedarf mit Dolmetscherin. Sie erklären medizinische Versorgung, Anzeige und Begleitung. Gewaltschutzzentren helfen auch bei Stalking und bei Polizei oder Gericht.",
+                    [protectionCentre]),
+            ], [
+                DirectorySource(name: "oesterreich.gv.at · Frauenhelpline", url: "https://eausweise.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/2/Seite.290501/frauenhelpline"),
+                DirectorySource(name: "Frauenhelpline · Sprachen", url: "https://www.frauenhelpline.at/de/unsere-sprachen"),
+                DirectorySource(name: "oesterreich.gv.at · Hilfe für Frauen", url: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/2"),
             ]),
         "children": guide(
-            "Допомога дитині, підлітку та дорослим, які помітили небезпеку.",
-            "Hilfe für Kinder, Jugendliche und Erwachsene, die Gefahr bemerken.",
+            "Що робити дитині, близьким і свідкам насильства; куди звертатися, якщо дитина зникла.",
+            "Was Kinder, Angehörige und Zeug:innen bei Gewalt tun können und was bei Vermissten gilt.",
             [
                 section(
-                    "danger", "Дитині загрожує небезпека", "Kind in Gefahr",
-                    "exclamationmark.shield.fill",
-                    "У разі безпосередньої загрози або травми телефонуйте 133 чи 144. Дитина може піти до безпечного дорослого або людного місця та попросити допомоги.",
-                    "Bei unmittelbarer Gefahr oder Verletzung 133 beziehungsweise 144 anrufen. Ein Kind kann sich an eine sichere erwachsene Person oder an einen belebten Ort wenden und um Hilfe bitten.",
+                    "danger", "Небезпека або травма зараз", "Akute Gefahr oder Verletzung", "exclamationmark.shield.fill",
+                    "Дитина може піти до безпечної дорослої людини або в людне місце й попросити викликати допомогу. При насильстві викликайте поліцію, при тяжкій травмі — швидку. Не залишайте дитину з людиною, від якої виходить загроза, якщо можете убезпечити її без ризику.",
+                    "Ein Kind kann zu einer sicheren erwachsenen Person oder an einen belebten Ort gehen und um Hilfe bitten. Bei Gewalt die Polizei, bei schwerer Verletzung die Rettung rufen. Lassen Sie das Kind möglichst nicht bei der gefährdenden Person, sofern Sie es sicher schützen können.",
                     [police, ambulance]),
                 section(
-                    "talk", "Поговорити конфіденційно", "Vertraulich sprechen",
-                    "bubble.left.and.bubble.right.fill",
-                    "147 Rat auf Draht допомагає дітям, підліткам і людям, які про них піклуються. При насильстві консультація анонімна й безкоштовна. Також можна звернутися до дитячо-молодіжної служби свого району або Kinder- und Jugendanwaltschaft землі.",
-                    "147 Rat auf Draht hilft Kindern, Jugendlichen und Bezugspersonen. Bei Gewalt ist die Beratung anonym und kostenlos. Weitere Hilfe bieten die örtliche Kinder- und Jugendhilfe und die Kinder- und Jugendanwaltschaft des Bundeslandes.",
+                    "child-help", "Дитині потрібна розмова", "Wenn ein Kind reden möchte", "bubble.left.and.bubble.right.fill",
+                    "147 Rat auf Draht безкоштовно й анонімно консультує дітей та підлітків. Дитині не потрібно самій визначати, чи сталося правопорушення: достатньо описати, що відбувається. Дорослі, які непокояться за дитину, теж можуть отримати пораду.",
+                    "147 Rat auf Draht berät Kinder und Jugendliche kostenlos und anonym. Ein Kind muss nicht selbst beurteilen, ob eine Straftat vorliegt; es kann erzählen, was geschieht. Auch besorgte Erwachsene können Rat einholen.",
                     [children]),
                 section(
+                    "adult-help", "Якщо ви помітили ризик для дитини", "Wenn Sie eine Gefährdung bemerken", "person.2.fill",
+                    "Не ігноруйте ознаки насильства або нехтування. Зверніться до Kinder- und Jugendhilfe за місцем проживання дитини: служба оцінює ризик і організовує допомогу. Для незалежної поради є Kinder- und Jugendanwaltschaft федеральної землі; при негайній небезпеці звертайтеся до поліції.",
+                    "Ignorieren Sie Hinweise auf Gewalt oder Vernachlässigung nicht. Wenden Sie sich an die örtliche Kinder- und Jugendhilfe: Sie prüft die Gefährdung und organisiert Hilfe. Unabhängige Beratung bietet die Kinder- und Jugendanwaltschaft des Bundeslands; bei akuter Gefahr die Polizei rufen."
+                ),
+                section(
                     "missing", "Якщо дитина зникла", "Wenn ein Kind vermisst wird", "figure.child",
-                    "Негайно повідомте поліцію, якщо не знаєте, де дитина, і боїтеся за її безпеку. Чекати 24 години не потрібно. Підготуйте актуальне фото, опис одягу й останнє відоме місце. Лінія 116 000 надає підтримку щодо зниклих дітей.",
-                    "Informieren Sie sofort die Polizei, wenn ein Kind verschwunden ist und Sie seine Sicherheit befürchten. Eine Wartefrist von 24 Stunden gibt es nicht. Halten Sie ein aktuelles Foto, Kleidung und letzten bekannten Ort bereit. Die Hotline 116 000 unterstützt bei vermissten Kindern.",
+                    "Якщо ви не знаєте, де дитина, і непокоїтеся за її безпеку, повідомте поліцію одразу: чекати 24 години не потрібно. Підготуйте свіже фото, опис одягу, останнє відоме місце й час. Лінія 116 000 надає підтримку родині, але не замінює повідомлення поліції.",
+                    "Ist ein Kind verschwunden und Sie sorgen sich um seine Sicherheit, informieren Sie die Polizei sofort: Eine Wartezeit von 24 Stunden gibt es nicht. Halten Sie ein aktuelles Foto, Kleidung, letzten Ort und Zeitpunkt bereit. Die Hotline 116 000 unterstützt Angehörige, ersetzt aber nicht die Polizeimeldung.",
                     [police, missingChildren]),
-            ],
-            [
-                DirectorySource(
-                    name: "oesterreich.gv.at · Hilfe für Kinder",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/3/Seite.290114"
-                ),
-                DirectorySource(
-                    name: "oesterreich.gv.at · Abgängigkeitsanzeige",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/vermisst/Seite.2970010"
-                ), emergencySource,
-            ]),
-        "discrimination": guide(
-            "Допомога при дискримінації, сексуальних домаганнях і переслідуванні.",
-            "Hilfe bei Diskriminierung, sexueller Belästigung und Nachstellung.",
-            [
-                section(
-                    "threat", "Погрози або напад", "Drohung oder Angriff",
-                    "exclamationmark.shield.fill",
-                    "Якщо є негайна небезпека, телефонуйте поліції. Збережіть повідомлення, дати й інші докази, якщо це безпечно.",
-                    "Bei akuter Gefahr die Polizei rufen. Nachrichten, Daten und andere Belege aufbewahren, sofern das sicher möglich ist.",
-                    [police]),
-                section(
-                    "advice", "Незалежна консультація", "Unabhängige Beratung",
-                    "person.crop.rectangle.stack.fill",
-                    "Служба рівного ставлення безкоштовно й конфіденційно консультує щодо дискримінації на роботі, під час пошуку житла та в послугах. Після злочину зверніться до служби підтримки потерпілих у робочі дні 08:00–20:00; при негайній небезпеці телефонуйте 133 або 112.",
-                    "Die Gleichbehandlungsanwaltschaft berät kostenlos und vertraulich zu Diskriminierung bei Arbeit, Wohnungssuche und Dienstleistungen. Nach einer Straftat erreichen Sie den Opfer-Notruf werktags 08:00–20:00; bei akuter Gefahr 133 oder 112 wählen.",
-                    [equality, victims]),
-            ],
-            [
-                DirectorySource(
-                    name: "Gleichbehandlungsanwaltschaft · Beratung",
-                    url:
-                        "https://www.gleichbehandlungsanwaltschaft.gv.at/unser-angebot/beratung-und-unterstuetzung.html"
-                ),
-                DirectorySource(
-                    name: "oesterreich.gv.at · Beratungsstellen",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/melde-und-beratungsstellen-in-oesterreich/melde__und_beratungsstellen"
-                ),
-            ]),
-        "assault": guide(
-            "Допомога після нападу, сексуального насильства чи іншого злочину — для кожної людини.",
-            "Hilfe nach einem Angriff, sexualisierter Gewalt oder einer anderen Straftat – für alle.",
-            [
-                section(
-                    "urgent", "Негайна небезпека", "Akute Gefahr", "exclamationmark.shield.fill",
-                    "Відійдіть у безпечне місце й телефонуйте поліції 133 або 112. Якщо є травми чи потрібна термінова медична допомога — 144. Не повертайтеся до небезпечного місця за речами.",
-                    "Gehen Sie an einen sicheren Ort und rufen Sie die Polizei unter 133 oder 112. Bei Verletzungen oder dringendem medizinischem Bedarf wählen Sie 144. Kehren Sie nicht wegen Gegenständen an einen gefährlichen Ort zurück.",
-                    [police, ambulance]),
-                section(
-                    "support", "Підтримка після події", "Hilfe nach der Tat",
-                    "hand.raised.heart.fill",
-                    "Служба підтримки потерпілих консультує безкоштовно у робочі дні 08:00–20:00. Розкажіть, що сталося; вам допоможуть знайти місцеву підтримку. Поза цими годинами при загрозі телефонуйте 133 або 112; для розмови під час кризи доступна лінія 142. Якщо безпечно, збережіть повідомлення й інші можливі докази.",
-                    "Der Opfer-Notruf berät werktags von 08:00–20:00 kostenlos. Schildern Sie den Vorfall; die Stelle vermittelt weitere Hilfe vor Ort. Außerhalb dieser Zeiten bei Gefahr 133 oder 112 wählen; für ein Krisengespräch gibt es 142. Nachrichten und mögliche Belege sichern, sofern das sicher ist.",
-                    [victims]),
-            ],
-            [
-                DirectorySource(
-                    name: "Opfer-Notruf · Erreichbarkeit",
-                    url: "https://www.opfer-notruf.at/"
-                ), violenceSource,
-            ]),
-        "mental-crisis": guide(
-            "Підтримка під час психологічної кризи — для дорослих і дітей.",
-            "Hilfe in psychischen Krisen für Erwachsene und Kinder.",
-            [
-                section(
-                    "acute", "Негайна небезпека", "Akute Gefahr", "cross.case.fill",
-                    "Якщо людина може завдати шкоди собі чи іншим або потребує негайної медичної допомоги, телефонуйте 144 чи 112. Залишайтеся поруч лише тоді, коли це безпечно.",
-                    "Wenn jemand sich oder andere gefährden könnte oder sofort medizinische Hilfe braucht, 144 oder 112 wählen. Bleiben Sie nur dann bei der Person, wenn es sicher ist.",
-                    [ambulance, europeanEmergency]),
-                section(
-                    "talk", "Поговорити з кимось", "Mit jemandem sprechen",
-                    "heart.text.square.fill",
-                    "Телефон довіри 142 підтримує людей у кризі. Діти й підлітки можуть телефонувати 147.",
-                    "Die Telefonseelsorge 142 unterstützt Menschen in Krisen. Kinder und Jugendliche können 147 anrufen.",
-                    [crisis, children]),
-            ],
-            [
-                emergencySource,
-                DirectorySource(
-                    name: "oesterreich.gv.at · Beratungsstellen",
-                    url:
-                        "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/melde-und-beratungsstellen-in-oesterreich/melde__und_beratungsstellen"
-                ),
+            ], [
+                DirectorySource(name: "oesterreich.gv.at · Hilfe für Kinder", url: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/hilfe-bei-gewalt/3/Seite.290114"),
+                DirectorySource(name: "oesterreich.gv.at · Vermisstenanzeige", url: "https://www.oesterreich.gv.at/de/themen/notfaelle_unfaelle_und_kriminalitaet/vermisst/Seite.2970010"),
+                DirectorySource(name: "Gewaltinfo · Kinder- und Jugendhilfe", url: "https://www.gewaltinfo.at/recht/mitteilungspflicht-an-die-kinder-und-jugendhilfe.html"),
             ]),
     ]
 }

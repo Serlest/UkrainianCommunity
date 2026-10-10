@@ -113,13 +113,13 @@ enum DirectoryRegionalContent {
         case "safety":
             let url = "https://www.gewaltschutzzentrum.at/\(state.rawValue)/"
             let protection = DirectoryGuideSection("regional-protection", "hand.raised", "Центр захисту землі", "Gewaltschutzzentrum im Bundesland",
-                          "Конфіденційна консультація для постраждалих від насильства; адреси та прямі телефони є на сайті центру. За безпосередньої небезпеки телефонуйте 133 або 112.",
-                          "Vertrauliche Beratung für Gewaltbetroffene; Standorte und direkte Telefonnummern stehen auf der Website. Bei unmittelbarer Gefahr wählen Sie 133 oder 112.",
+                          "На сайті центру землі \(state.displayName) знайдіть найближчий офіс, прямий номер, години роботи та спосіб запису. Повідомте, чи потрібен перекладач і чи безпечно вам передзвонювати.",
+                          "Auf der Website für \(state.displayName) finden Sie die nächste Stelle, ihre direkte Nummer, Öffnungszeiten und Terminvereinbarung. Geben Sie an, ob Sie Dolmetschung brauchen und ob ein Rückruf sicher ist.",
                           source: DirectorySource(name: "Gewaltschutzzentrum \(state.displayName)", url: url))
             guard topicID == "children", let childURL = childWelfareURLs[state] else { return [protection] }
-            return [protection, .init("regional-children", "figure.child", "Захист дитини у вашій землі", "Kinder- und Jugendhilfe im Bundesland",
-                                      "Якщо дитина потребує захисту, зверніться до Kinder- und Jugendhilfe землі або місцевої Bezirksverwaltungsbehörde. При гострій небезпеці — поліція 133; для дитини діє також анонімна лінія 147.",
-                                      "Braucht ein Kind Schutz, kontaktieren Sie die Kinder- und Jugendhilfe des Landes oder die Bezirksverwaltungsbehörde. Bei akuter Gefahr Polizei 133; für Kinder gibt es auch die anonyme Hilfe 147.",
+            return [.init("regional-children", "figure.child", "Захист дитини у вашій землі", "Kinder- und Jugendhilfe im Bundesland",
+                                      "На сторінці землі \(state.displayName) знайдіть відповідальну Kinder- und Jugendhilfe за місцем проживання дитини. Уточніть прямий контакт, години роботи та як повідомити про загрозу безпеці дитини.",
+                                      "Auf der Seite für \(state.displayName) finden Sie die zuständige Kinder- und Jugendhilfe am Wohnort des Kindes. Prüfen Sie direkten Kontakt, Öffnungszeiten und den Meldeweg bei einer Gefährdung des Kindes.",
                                       source: DirectorySource(name: "\(state.displayName) · Kinder- und Jugendhilfe", url: childURL))]
         default: return []
         }
