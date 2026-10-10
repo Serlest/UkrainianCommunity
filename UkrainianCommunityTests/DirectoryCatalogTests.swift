@@ -242,8 +242,9 @@ struct DirectoryCatalogTests {
             ("citizenship", "application"),
             ("housing", "housing-support"),
             ("housing", "foreign-buyers"),
-            ("health", "doctors"),
+            ("health", "specialists"),
             ("health", "clinics"),
+            ("health", "pregnancy"),
             ("health", "patient-rights"),
             ("social-support", "basic-support"),
             ("social-support", "benefits"),
@@ -266,6 +267,36 @@ struct DirectoryCatalogTests {
             }
         }
         #expect(!DirectoryRegionalContent.applies(categoryID: "health", topicID: "child-health"))
+        #expect(!DirectoryRegionalContent.applies(categoryID: "health", topicID: "doctors"))
+    }
+
+    @Test func healthArticlesUseDistinctActionsAndVerifiedRegionalNames() throws {
+        let category = try #require(DirectoryCatalog.categories.first { $0.id == "health" })
+        #expect(category.topics.count == 11)
+        for topic in category.topics {
+            let guide = try #require(HealthGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 4)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            for section in guide.sections {
+                #expect(section.source?.url.scheme == "https", "\(topic.id)/\(section.id)")
+                #expect(section.body.ukrainian.count >= 90)
+                #expect(section.body.german.count >= 90)
+            }
+        }
+        for state in AustrianFederalState.allCases {
+            for topicID in ["specialists", "clinics", "pregnancy", "patient-rights"] {
+                let sections = HealthRegionalContent.sections(for: topicID, state: state)
+                #expect(!sections.isEmpty)
+                for section in sections {
+                    if topicID != "pregnancy" || state != .wien {
+                        #expect(section.body.ukrainian.contains(state.displayName))
+                        #expect(section.body.german.contains(state.displayName))
+                    }
+                    #expect(!section.body.ukrainian.contains("state.displayName"))
+                    #expect(section.source?.url.scheme == "https")
+                }
+            }
+        }
     }
 
     @Test func housingGuidesKeepDistinctSourcedRoutes() throws {

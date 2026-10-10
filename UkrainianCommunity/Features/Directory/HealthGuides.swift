@@ -25,6 +25,7 @@ enum HealthGuides {
     static let parentChildPass = DirectorySource(name: "Gesundheitsportal · Eltern-Kind-Pass ab Oktober 2026", url: "https://www.gesundheit.gv.at/leben/eltern/eltern-kind-pass/eltern-kind-pass-untersuchungen.html")
     static let pregnancyChecks = DirectorySource(name: "Gesundheitsportal · Untersuchungen in der Schwangerschaft", url: "https://www.gesundheit.gv.at/leben/eltern/eltern-kind-pass/untersuchungen-schwangerschaft.html")
     static let birth = DirectorySource(name: "Gesundheitsportal · Wahl des Geburtsortes", url: "https://www.gesundheit.gv.at/leben/eltern/geburt/spitalsgeburt-hausgeburt.html")
+    static let viennaBirth = DirectorySource(name: "Stadt Wien · Schwangerschaft und Geburt", url: "https://www.wien.gv.at/gesundheit/geburt-schwangerschaft")
     static let midwife = DirectorySource(name: "Gesundheitsportal · Hebammen und Kosten", url: "https://www.gesundheit.gv.at/gesundheitsleistungen/berufe/gesundheitsberufe-a-z/hebammen/hebammen.html")
     static let childChecks = DirectorySource(name: "Gesundheitsportal · Kindesuntersuchungen", url: "https://www.gesundheit.gv.at/leben/eltern/eltern-kind-pass/kindesuntersuchungen.html")
     static let childVaccines = DirectorySource(name: "Gesundheitsportal · Impfungen für Kinder", url: "https://www.gesundheit.gv.at/leben/gesundheitsvorsorge/impfungen/kinderimpfungen.html")
