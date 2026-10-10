@@ -267,4 +267,28 @@ struct DirectoryCatalogTests {
         }
         #expect(!DirectoryRegionalContent.applies(categoryID: "health", topicID: "child-health"))
     }
+
+    @Test func housingGuidesKeepDistinctSourcedRoutes() throws {
+        let category = try #require(DirectoryCatalog.categories.first { $0.id == "housing" })
+        #expect(category.topics.count == 18)
+        for topic in category.topics {
+            let guide = try #require(HousingGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 3)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            for section in guide.sections {
+                #expect(section.body.ukrainian.count >= 100, "\(topic.id)/\(section.id)")
+                #expect(section.body.german.count >= 100, "\(topic.id)/\(section.id)")
+                #expect(section.source?.url.scheme == "https", "\(topic.id)/\(section.id)")
+            }
+        }
+        #expect(HousingRegionalContent.applies(to: "housing-support"))
+        #expect(HousingRegionalContent.applies(to: "foreign-buyers"))
+        #expect(!HousingRegionalContent.applies(to: "find-rental"))
+        #expect(!HousingRegionalContent.applies(to: "buying-costs"))
+        for state in AustrianFederalState.allCases {
+            let sections = HousingRegionalContent.sections(for: "arrival-housing", state: state)
+            #expect(sections.count == 1)
+            #expect(sections[0].id != "regional-care")
+        }
+    }
 }

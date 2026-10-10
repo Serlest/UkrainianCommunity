@@ -28,21 +28,15 @@ enum HousingRegionalContent {
     ]
 
     static func applies(to topicID: String) -> Bool {
-        ["arrival-housing", "temporary-housing", "find-rental", "social-housing",
-         "housing-support", "buying", "buying-costs", "foreign-buyers"].contains(topicID)
+        ["arrival-housing", "temporary-housing", "social-housing",
+         "housing-support", "foreign-buyers"].contains(topicID)
     }
 
     static func sections(for topicID: String, state: AustrianFederalState) -> [DirectoryGuideSection] {
         switch topicID {
         case "arrival-housing", "temporary-housing":
-            let arrivalHelp: [DirectoryGuideSection] = topicID == "arrival-housing" ? [
-                .init("regional-care", "building.columns", "Допомога у вашій землі", "Hilfe in Ihrem Bundesland",
-                      "Якщо сьогодні немає де ночувати, зателефонуйте до BBU. Наявність місця й порядок розміщення уточнюйте перед поїздкою; місце можуть надати в іншій землі.",
-                      "Wenn heute ein Schlafplatz fehlt, rufen Sie die BBU an. Klären Sie Platz und Aufnahme vor der Anreise; eine Zuteilung kann in einem anderen Bundesland erfolgen.",
-                      phoneNumber: "+43 1 2676 870 9460", source: HousingGuides.accommodation)
-            ] : []
-            return arrivalHelp + [DirectoryRegionalContent.basicCareSection(state)]
-        case "find-rental", "social-housing":
+            return [DirectoryRegionalContent.basicCareSection(state)]
+        case "social-housing":
             return [
                 .init("regional-programs", "building.2", "Програми землі та громад", "Landes- und Gemeindeangebote",
                       "Офіційний портал веде до програм житлової підтримки цієї землі. Муніципальне житло часто розподіляє саме місто або громада; умови проживання, доходу й статусу перевіряйте перед заявою.",
@@ -57,7 +51,7 @@ enum HousingRegionalContent {
                       "Anspruch, Aufenthaltsstatus, Einkommen, Miete und Nachweise unterscheiden sich je nach Land. Prüfen Sie Bedingungen und Kontakt auf der amtlichen Landes-Seite. Grundversorgung und WOHNSCHIRM haben eigene Regeln.",
                       source: DirectorySource(name: "\(state.displayName) · Wohnbeihilfe", url: url))
             ]
-        case "buying", "buying-costs", "foreign-buyers":
+        case "foreign-buyers":
             guard let url = purchaseAuthorityURLs[state] else { return [] }
             return [
                 .init("regional-purchase", "building.columns", "Правила за місцем нерухомості", "Regeln am Ort der Immobilie",

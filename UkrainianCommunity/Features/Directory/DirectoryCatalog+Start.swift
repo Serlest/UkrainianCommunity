@@ -41,7 +41,7 @@ extension DirectoryCatalog {
                  summaryUK: "Від першого прихистку до оренди, гуртожитку й купівлі",
                  summaryDE: "Von der ersten Unterkunft bis Miete, Wohnheim und Kauf",
                  symbol: "house.lodge.fill", topics: [
-            topic("arrival-housing", "Де ночувати після прибуття", "Unterkunft nach der Ankunft"),
+            topic("arrival-housing", "Немає житла: як отримати місце", "Ohne Unterkunft: einen Platz finden"),
             topic("temporary-housing", "Тимчасове житло й Grundversorgung", "Vorübergehende Unterkunft und Grundversorgung"),
             topic("find-rental", "Де шукати квартиру", "Mietwohnung suchen"),
             topic("viewing", "Перегляд і перевірка квартири", "Besichtigung und Wohnungsprüfung"),
@@ -58,7 +58,7 @@ extension DirectoryCatalog {
             topic("buying", "Купівля квартири чи будинку", "Wohnung oder Haus kaufen"),
             topic("buying-costs", "Кредит, податки й витрати на купівлю", "Kredit, Steuern und Kaufnebenkosten"),
             topic("foreign-buyers", "Правила для покупців з України", "Regeln für Käufer aus der Ukraine"),
-            topic("moving", "Переїзд, Meldezettel і договори", "Umzug, Meldezettel und Verträge")
+            topic("moving", "Переїзд: комунальні договори", "Umzug: Energie und Verträge")
         ]),
         category("residence", "Статус перебування", "Aufenthalt",
                  summaryUK: "Захист, навчання, родина, робота й постійне проживання",

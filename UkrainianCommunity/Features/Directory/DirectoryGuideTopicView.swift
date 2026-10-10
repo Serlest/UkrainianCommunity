@@ -28,7 +28,7 @@ struct DirectoryGuideTopicView: View {
 
                     ForEach(guide.sections) { section in
                         DirectoryGuideSectionCard(section: section, language: language,
-                                                  compactBody: categoryID == "first-steps" || categoryID == "registration")
+                                                  compactBody: ["first-steps", "registration", "housing"].contains(categoryID))
                             .id(section.id)
                     }
 
