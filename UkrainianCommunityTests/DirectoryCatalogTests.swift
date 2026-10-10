@@ -64,11 +64,9 @@ struct DirectoryCatalogTests {
     }
 
     @Test func publishedDirectoryTopicsHaveCompleteBilingualGuides() {
-        for categoryID in ["first-steps", "registration", "residence", "documents", "citizenship", "housing", "health", "mental-health", "insurance", "work", "qualifications", "education", "family", "transport", "finances", "social-support", "legal"] {
-            let category = DirectoryCatalog.categories.first { $0.id == categoryID }
-            #expect(category != nil)
-            for topic in category?.topics ?? [] {
-                let guide = DirectoryGuideCatalog.guide(categoryID: categoryID, topicID: topic.id)
+        for category in DirectoryCatalog.categories where category.id != "safety" {
+            for topic in category.topics {
+                let guide = DirectoryGuideCatalog.guide(categoryID: category.id, topicID: topic.id)
                 #expect(guide != nil)
                 #expect(guide?.sections.isEmpty == false)
                 #expect(guide?.sources.isEmpty == false)
@@ -85,16 +83,16 @@ struct DirectoryCatalogTests {
                 }
                 for source in guide?.sources ?? [] {
                     #expect(source.url.scheme == "https")
-                    if categoryID == "residence" {
+                    if category.id == "residence" {
                         #expect(["bmi.gv.at", "www.bmi.gv.at", "oesterreich.gv.at",
                                  "www.oesterreich.gv.at", "eausweise.oesterreich.gv.at",
                                  "www.migration.gv.at"].contains(source.url.host ?? ""))
                     }
-                    if categoryID == "citizenship" {
+                    if category.id == "citizenship" {
                         #expect(["www.oesterreich.gv.at", "www.wien.gv.at", "www.bmi.gv.at",
                                  "mfa.gov.ua", "dmsu.gov.ua", "edikte.justiz.gv.at"].contains(source.url.host ?? ""))
                     }
-                    if categoryID == "health" {
+                    if category.id == "health" {
                         #expect(["www.gesundheit.gv.at", "www.oegk.at", "www.basg.gv.at"].contains(source.url.host ?? ""))
                     }
                 }
@@ -105,7 +103,7 @@ struct DirectoryCatalogTests {
     @Test func everyPublishedTopicAppearsInExactlyOneBilingualGroup() {
         let completed = DirectoryCatalog.startCategories
         #expect(completed.reduce(0) { $0 + $1.topics.count } == 85)
-        for category in completed {
+        for category in DirectoryCatalog.categories {
             #expect(DirectoryTopicGroups.isComplete(categoryID: category.id))
             let groups = DirectoryTopicGroups.forCategory(category)
             #expect(!groups.isEmpty)
@@ -113,15 +111,6 @@ struct DirectoryCatalogTests {
             let grouped = groups.flatMap(\.topicIDs)
             #expect(grouped.count == Set(grouped).count)
             #expect(Set(grouped) == Set(category.topics.map(\.id)))
-        }
-        for categoryID in ["health", "mental-health", "insurance", "work", "qualifications", "education", "family", "transport", "finances", "social-support", "legal"] {
-            let category = DirectoryCatalog.categories.first { $0.id == categoryID }
-            #expect(category != nil)
-            #expect(DirectoryTopicGroups.isComplete(categoryID: categoryID))
-            let groups = DirectoryTopicGroups.forCategory(category!)
-            let groupedTopics = groups.flatMap(\.topicIDs)
-            #expect(groupedTopics.count == Set(groupedTopics).count)
-            #expect(Set(groupedTopics) == Set(category!.topics.map(\.id)))
         }
     }
 
@@ -145,7 +134,13 @@ struct DirectoryCatalogTests {
             ("housing", "foreign-buyers"),
             ("health", "doctors"),
             ("health", "clinics"),
-            ("health", "patient-rights")
+            ("health", "patient-rights"),
+            ("social-support", "basic-support"),
+            ("social-support", "benefits"),
+            ("community", "local-services"),
+            ("accessibility", "disability"),
+            ("care", "care-services"),
+            ("seniors", "seniors")
         ]
         for state in AustrianFederalState.allCases {
             for (categoryID, topicID) in regionalTopics {

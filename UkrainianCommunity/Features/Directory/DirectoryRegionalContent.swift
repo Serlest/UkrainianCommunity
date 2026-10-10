@@ -40,6 +40,11 @@ enum DirectoryRegionalContent {
         case "health": HealthRegionalContent.applies(to: topicID)
         case "mental-health": topicID == "crisis" || topicID == "counseling"
         case "insurance": topicID == "ukrainian-cover"
+        case "social-support": ["benefits", "basic-support"].contains(topicID)
+        case "community": topicID == "local-services"
+        case "accessibility": ["disability", "assistive-devices"].contains(topicID)
+        case "care": ["home-care", "care-services"].contains(topicID)
+        case "seniors": topicID == "seniors"
         case "first-steps": ["arrival", "initial-support"].contains(topicID)
         case "registration": ["housing-types", "protection-registration", "after-registration"].contains(topicID)
         case "residence": topicID == "temporary-protection"
@@ -59,6 +64,28 @@ enum DirectoryRegionalContent {
                           "Öffnen Sie auf der amtlichen Seite die Dienste für \(state.displayName) und prüfen Sie Nummer und Erreichbarkeit. Bei unmittelbarer Gefahr 144 wählen; die anonyme Nummer 142 gilt österreichweit.",
                           source: DirectorySource(name: "Gesundheitsportal · Krisendienste \(state.displayName)", url: "https://www.gesundheit.gv.at/leben/suizidpraevention/anlaufstellen/notrufnummern.html"))]
         case "insurance": return [basicCareSection(state)]
+        case "social-support":
+            if topicID == "basic-support" { return [basicCareSection(state)] }
+            return [.init("regional-benefits", "building.columns", "Соціальна служба вашої землі", "Sozialstelle Ihres Bundeslandes",
+                          "Для землі \(state.displayName) знайдіть компетентну Bezirksverwaltungsbehörde за адресою проживання. Перед поданням уточніть, чи ваш статус дає право на конкретну виплату, чи замість неї діє Grundversorgung, і попросіть перелік документів.",
+                          "Für \(state.displayName) die Bezirksverwaltungsbehörde des Wohnorts suchen. Vor Antrag klären, ob Ihr Status Anspruch auf die konkrete Leistung eröffnet oder Grundversorgung einschlägig ist, und Unterlagenliste verlangen.",
+                          source: DirectorySource(name: "oesterreich.gv.at · Sozialhilfeantrag", url: "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/4/Seite.1693912"))]
+        case "community":
+            return [.init("regional-integration", "person.2", "Інтеграційний центр вашої землі", "Integrationszentrum Ihres Bundeslandes",
+                          "У списку ÖIF знайдіть центр землі \(state.displayName), перевірте адресу й запис. Загальна лінія 050 46 80 допоможе визначити відповідний центр.",
+                          "In der ÖIF-Liste das Zentrum für \(state.displayName) suchen und Anschrift sowie Termin prüfen. Die Hotline 050 46 80 hilft bei der Zuordnung.",
+                          phoneNumber: "050 46 80",
+                          source: DirectorySource(name: "ÖIF · Standorte", url: "https://www.integrationsfonds.at/der-oeif/standorte/uebersicht-standorte/"))]
+        case "accessibility":
+            return [.init("regional-accessibility", "figure.roll", "Соціальне міністерство у вашій землі", "Sozialministeriumservice im Bundesland",
+                          "На офіційній сторінці виберіть Landesstelle \(state.displayName): тут уточнюють Behindertenpass, додаткові записи й заявку до фонду підтримки. Перед відвідуванням перевірте години й доступність.",
+                          "Auf der amtlichen Seite Landesstelle \(state.displayName) wählen: Dort Behindertenpass, Zusatzeintragungen und Unterstützungsfonds klären. Zeiten und Barrierefreiheit vor Besuch prüfen.",
+                          source: DirectorySource(name: "Sozialministeriumservice · Landesstellen", url: "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Landesstellen_des_Sozialministeriumservice.de.html"))]
+        case "care", "seniors":
+            return [.init("regional-care", "house", "Догляд у вашій землі", "Pflege in Ihrem Bundesland",
+                          "Для землі \(state.displayName) запитайте в Gemeinde, Bezirk або Magistrat про наявні мобільні служби, ціну після субсидії й місцеві заяви. Федеральна сторінка пояснює, хто відповідальний; конкретного постачальника перевіряйте за вашою адресою.",
+                          "Für \(state.displayName) Gemeinde, Bezirk oder Magistrat nach mobilen Diensten, gefördertem Preis und örtlichem Antrag fragen. Die Bundesseite erklärt die Zuständigkeit; Anbieter am Wohnort prüfen.",
+                          source: DirectorySource(name: "oesterreich.gv.at · Soziale Dienste", url: "https://www.oesterreich.gv.at/themen/pflege/soziale_dienste/Seite.1210200.html"))]
         case "first-steps", "registration":
             if topicID == "after-registration" { return [bfaSection(state)] }
             if topicID == "protection-registration" { return [policeRegistrationSection(state)] }

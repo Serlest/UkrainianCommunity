@@ -101,6 +101,25 @@ enum DirectoryTopicGroups {
             .init("rights", "Порада й захист прав", "Beratung und Rechtsschutz", ["legal-aid", "consumer-rights"]),
             .init("procedure", "Спілкування з установами", "Behördenkontakte", ["authorities", "interpreting"])
         ],
+        "communication": [
+            .init("connections", "Телефон та інтернет", "Telefon und Internet", ["phone", "internet"]),
+            .init("letters", "Листи", "Post", ["postal"])
+        ],
+        "digital": [
+            .init("services", "Онлайн-послуги", "Online-Dienste", ["online-services", "digital-identity"]),
+            .init("security", "Захист", "Schutz", ["online-safety"])
+        ],
+        "community": [
+            .init("orientation", "Місцева орієнтація", "Orientierung vor Ort", ["local-services", "community"]),
+            .init("participation", "Долучитися", "Mitmachen", ["volunteering"])
+        ],
+        "leisure": [.init("ideas", "Ідеї для дозвілля", "Freizeitideen", ["leisure"])],
+        "accessibility": [
+            .init("rights", "Посвідчення й послуги", "Ausweis und Angebote", ["disability", "accessible-services"]),
+            .init("support", "Засоби підтримки", "Hilfsmittel", ["assistive-devices"])
+        ],
+        "care": [.init("care", "Організувати догляд", "Pflege organisieren", ["home-care", "care-services"])],
+        "seniors": [.init("seniors", "Підтримка у старшому віці", "Unterstützung im Alter", ["seniors"])],
         "transport": [
             .init("public", "Громадський транспорт", "Öffentlicher Verkehr", ["local-transport", "rail", "bus"]),
             .init("other", "Інші поїздки й доступність", "Weitere Wege und Barrierefreiheit", ["taxi", "accessible-travel"])
