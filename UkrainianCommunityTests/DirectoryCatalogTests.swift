@@ -327,6 +327,29 @@ struct DirectoryCatalogTests {
         #expect(training.contains("provider") && training.contains("cost"))
     }
 
+    @Test func educationGuidesCoverAgeSpecificRoutesAndCurrentFees() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "education" }?.topics ?? []
+        #expect(topics.count == 4)
+        for topic in topics {
+            guard let guide = EducationGuides.guide(for: topic.id) else {
+                Issue.record("Missing education guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        let preschool = EducationGuides.guide(for: "kindergarten")?.sections.map(\.id) ?? []
+        let school = EducationGuides.guide(for: "school")?.sections.map(\.id) ?? []
+        let higher = EducationGuides.guide(for: "higher-education")?.sections.map(\.id) ?? []
+        let language = EducationGuides.guide(for: "language")?.sections.map(\.id) ?? []
+        #expect(preschool.contains("year") && preschool.contains("no-place") && preschool.contains("cost"))
+        #expect(school.contains("until-18") && school.contains("summer"))
+        #expect(higher.contains("preparation") && higher.contains("cost") && higher.contains("status"))
+        #expect(language.contains("choice") && language.contains("certificate"))
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
