@@ -10,8 +10,8 @@ struct DirectoryManagementView: View {
         List {
             Section {
                 Text(DirectoryEditorText.value(
-                    "Тут можна змінювати категорії, підкатегорії, статті та джерела. Збереження одразу публікує зміни для читачів.",
-                    "Hier bearbeiten Sie Bereiche, Unterbereiche, Beiträge und Quellen. Speichern veröffentlicht die Änderungen sofort."
+                    "Оберіть категорію для редагування або додайте нову в потрібний блок. Публікація робить зміни видимими для читачів.",
+                    "Wählen Sie einen Bereich zum Bearbeiten oder fügen Sie ihn im passenden Block hinzu. Nach der Veröffentlichung sind Änderungen für Leser sichtbar."
                 ))
                 .font(.subheadline)
             }
@@ -32,20 +32,18 @@ struct DirectoryManagementView: View {
                             }
                         }
                     }
+                    if contentStore.canEdit {
+                        NavigationLink(value: DirectoryRoute.create(placement)) {
+                            Label(DirectoryEditorText.value("Додати категорію в цей блок", "Bereich in diesem Block hinzufügen"),
+                                  systemImage: "plus.circle.fill")
+                        }
+                        .accessibilityIdentifier("directory.category.add.\(placement.rawValue)")
+                    }
                 }
             }
         }
         .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Керування довідником", "Ratgeber verwalten"))
-        .toolbar {
-            if contentStore.canEdit {
-                NavigationLink(value: DirectoryRoute.create) {
-                    Label(DirectoryEditorText.value("Додати категорію", "Bereich hinzufügen"),
-                          systemImage: "plus")
-                }
-                .accessibilityIdentifier("directory.category.add")
-            }
-        }
     }
 
     private func placementTitle(_ placement: DirectoryManagedCategory.Placement) -> String {

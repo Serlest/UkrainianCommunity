@@ -12,37 +12,45 @@ struct DirectoryTopicEditorView: View {
                                      text: $topic.title)
             DirectoryBilingualFields(title: DirectoryEditorText.value("Вступ", "Einleitung"),
                                      text: $topic.summary, multiline: true)
-            Section(DirectoryEditorText.value("Розміщення", "Platzierung")) {
+            Section(DirectoryEditorText.value("У довіднику", "Im Ratgeber")) {
                 Picker(DirectoryEditorText.value("Підкатегорія", "Unterbereich"),
                        selection: $topic.groupID) {
                     ForEach(groups) { group in
                         Text(group.title.value(for: language)).tag(group.id)
                     }
                 }
-                Stepper(value: $topic.order, in: 0...1000) {
-                    Text("\(DirectoryEditorText.value("Порядок", "Reihenfolge")): \(topic.order)")
-                }
                 Toggle(DirectoryEditorText.value("Прибрати статтю з довідника", "Beitrag aus Ratgeber entfernen"),
                        isOn: $topic.isHidden)
             }
             Section(DirectoryEditorText.value("Блоки інформації", "Informationsabschnitte")) {
-                ForEach($topic.sections) { $section in
-                    NavigationLink {
-                        DirectorySectionEditorView(section: $section)
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(section.title.value(for: language))
-                            if section.isHidden {
-                                Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
-                                    .font(.caption).foregroundStyle(.secondary)
+                let ids = DirectoryEditorOrdering.sectionIDs(topic.sections)
+                ForEach(ids, id: \.self) { id in
+                    if let index = topic.sections.firstIndex(where: { $0.id == id }),
+                       let rank = ids.firstIndex(of: id) {
+                        HStack {
+                            NavigationLink {
+                                DirectorySectionEditorView(section: $topic.sections[index])
+                            } label: {
+                                VStack(alignment: .leading) {
+                                    Text(topic.sections[index].title.value(for: language).isEmpty
+                                         ? DirectoryEditorText.value("Новий блок", "Neuer Abschnitt")
+                                         : topic.sections[index].title.value(for: language))
+                                    if topic.sections[index].isHidden {
+                                        Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
                             }
+                            DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
+                                              moveUp: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: -1) },
+                                              moveDown: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: 1) })
                         }
                     }
                 }
                 Button {
                     topic.sections.append(.init(
                         id: "section-" + UUID().uuidString.lowercased(),
-                        order: topic.sections.count, isHidden: false,
+                        order: min(1000, (topic.sections.map(\.order).max() ?? -1) + 1), isHidden: false,
                         title: .init(ukrainian: "", german: ""),
                         body: .init(ukrainian: "", german: ""),
                         symbol: "text.book.closed.fill",
@@ -134,23 +142,35 @@ private struct DirectoryRegionEditorView: View {
                 .font(.subheadline).foregroundStyle(.secondary)
             }
             Section(DirectoryEditorText.value("Регіональні блоки", "Regionale Abschnitte")) {
-                ForEach(sections) { $section in
-                    NavigationLink {
-                        DirectorySectionEditorView(section: $section)
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(section.title.value(for: language))
-                            if section.isHidden {
-                                Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
-                                    .font(.caption).foregroundStyle(.secondary)
+                let ids = DirectoryEditorOrdering.sectionIDs(sections.wrappedValue)
+                ForEach(ids, id: \.self) { id in
+                    if let index = sections.wrappedValue.firstIndex(where: { $0.id == id }),
+                       let rank = ids.firstIndex(of: id) {
+                        HStack {
+                            NavigationLink {
+                                DirectorySectionEditorView(section: sections[index])
+                            } label: {
+                                VStack(alignment: .leading) {
+                                    Text(sections.wrappedValue[index].title.value(for: language).isEmpty
+                                         ? DirectoryEditorText.value("Новий блок", "Neuer Abschnitt")
+                                         : sections.wrappedValue[index].title.value(for: language))
+                                    if sections.wrappedValue[index].isHidden {
+                                        Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
+                                            .font(.caption).foregroundStyle(.secondary)
+                                    }
+                                }
                             }
+                            DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
+                                              moveUp: { moveRegionSection(id, by: -1) },
+                                              moveDown: { moveRegionSection(id, by: 1) })
                         }
                     }
                 }
                 Button {
                     var current = sections.wrappedValue
                     current.append(.init(
-                        id: "region-" + UUID().uuidString.lowercased(), order: current.count,
+                        id: "region-" + UUID().uuidString.lowercased(),
+                        order: min(1000, (current.map(\.order).max() ?? -1) + 1),
                         isHidden: false, title: .init(ukrainian: "", german: ""),
                         body: .init(ukrainian: "", german: ""), symbol: "building.columns",
                         phoneNumber: nil, source: nil, contacts: []
@@ -164,6 +184,12 @@ private struct DirectoryRegionEditorView: View {
         }
         .directoryEditorChrome()
         .navigationTitle(state.displayName)
+    }
+
+    private func moveRegionSection(_ id: String, by offset: Int) {
+        var current = sections.wrappedValue
+        DirectoryEditorOrdering.moveSection(&current, id: id, by: offset)
+        sections.wrappedValue = current
     }
 }
 

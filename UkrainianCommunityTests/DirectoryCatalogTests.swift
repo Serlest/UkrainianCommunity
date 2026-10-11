@@ -3,6 +3,35 @@ import Testing
 @testable import UkrainianCommunity
 
 struct DirectoryCatalogTests {
+    @Test func editorAddsCategoriesToChosenBlockAndMovesRowsByVisiblePosition() throws {
+        let categories = DirectoryCatalog.categories.map(DirectoryManagedCategory.bundled)
+        for placement in DirectoryManagedCategory.Placement.allCases {
+            let next = DirectoryEditorOrdering.nextOrder(in: placement, categories: categories)
+            #expect(next > (categories.filter { $0.placement == placement }.map(\.order).max() ?? -1))
+        }
+
+        let base = try #require(categories.first { $0.groups.count > 1 && !$0.topics.isEmpty })
+        var groups = base.groups
+        let originalGroups = DirectoryEditorOrdering.groupIDs(groups)
+        DirectoryEditorOrdering.moveGroup(&groups, id: originalGroups[1], by: -1)
+        #expect(DirectoryEditorOrdering.groupIDs(groups).prefix(2) == [originalGroups[1], originalGroups[0]])
+
+        let groupID = try #require(base.groups.first { group in
+            base.topics.filter { $0.groupID == group.id }.count > 1
+        }?.id)
+        var topics = base.topics
+        let originalTopics = DirectoryEditorOrdering.topicIDs(topics, groupID: groupID)
+        DirectoryEditorOrdering.moveTopic(&topics, id: originalTopics[1], groupID: groupID, by: -1)
+        #expect(DirectoryEditorOrdering.topicIDs(topics, groupID: groupID).prefix(2)
+                == [originalTopics[1], originalTopics[0]])
+
+        var sections = try #require(base.topics.first { $0.sections.count > 1 }?.sections)
+        let originalSections = DirectoryEditorOrdering.sectionIDs(sections)
+        DirectoryEditorOrdering.moveSection(&sections, id: originalSections[1], by: -1)
+        #expect(DirectoryEditorOrdering.sectionIDs(sections).prefix(2)
+                == [originalSections[1], originalSections[0]])
+    }
+
     @Test func bundledDirectoryCanBeOpenedInEditorWithoutLosingExistingContent() throws {
         #expect(DirectoryCatalog.categories.count == 25)
         for category in DirectoryCatalog.categories {

@@ -4,7 +4,7 @@ nonisolated enum DirectoryRoute: Hashable {
     case manage
     case edit(String)
     case editTopic(categoryID: String, topicID: String)
-    case create
+    case create(DirectoryManagedCategory.Placement)
     case category(String)
     case topic(categoryID: String, topicID: String)
 

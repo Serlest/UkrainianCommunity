@@ -211,8 +211,12 @@ struct DirectoryHomeView: View {
                                             expectedRevision: contentStore.revision(categoryID),
                                             focusTopicID: topicID)
             }
-        case .create:
-            if contentStore.canEdit { DirectoryCategoryEditorView(category: nil) }
+        case let .create(placement):
+            if contentStore.canEdit {
+                DirectoryCategoryEditorView(category: nil, newPlacement: placement,
+                                            newOrder: DirectoryEditorOrdering.nextOrder(
+                                                in: placement, categories: contentStore.allManagedCategories))
+            }
         case let .category(id):
             if let category = contentStore.categories.first(where: { $0.id == id }) {
                 if contentStore.published[id] != nil || DirectoryTopicGroups.isComplete(categoryID: id) {

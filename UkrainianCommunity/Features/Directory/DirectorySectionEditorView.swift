@@ -17,10 +17,11 @@ struct DirectorySectionEditorView: View {
             DirectoryBilingualFields(title: DirectoryEditorText.value("Інформація", "Information"),
                                      text: $section.body, multiline: true)
             Section(DirectoryEditorText.value("Показ", "Anzeige")) {
-                TextField(DirectoryEditorText.value("Системна іконка", "Systemsymbol"),
-                          text: $section.symbol)
-                Stepper(value: $section.order, in: 0...1000) {
-                    Text("\(DirectoryEditorText.value("Порядок", "Reihenfolge")): \(section.order)")
+                NavigationLink {
+                    DirectorySymbolPicker(selection: $section.symbol)
+                } label: {
+                    Label(DirectoryEditorText.value("Іконка блока", "Symbol des Abschnitts"),
+                          systemImage: section.symbol)
                 }
                 Toggle(DirectoryEditorText.value("Прибрати блок з довідника", "Abschnitt aus Ratgeber entfernen"),
                        isOn: $section.isHidden)
