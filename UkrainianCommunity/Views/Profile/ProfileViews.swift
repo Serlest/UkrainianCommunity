@@ -42,12 +42,6 @@ enum ProfileNavigationRoute: Hashable {
     case legal(LegalDocumentKind)
 }
 
-enum ProfileBrowseDestination {
-    case home
-    case events
-    case organizations
-}
-
 struct ProfileView: View {
     @EnvironmentObject private var announcementCoordinator: AnnouncementCoordinator
     @ObservedObject var viewModel: ProfileViewModel
@@ -65,7 +59,6 @@ struct ProfileView: View {
     private let notificationInboxRepository: NotificationInboxRepository
     @ObservedObject private var userBlockingCoordinator: UserBlockingCoordinator
     private let onNotificationTap: (AppNotification) -> Void
-    private let onBrowseDestinationSelected: (ProfileBrowseDestination) -> Void
     @EnvironmentObject var authState: AuthState
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
@@ -124,7 +117,6 @@ struct ProfileView: View {
         userBlockingCoordinator: UserBlockingCoordinator,
         localEventReminderService: LocalEventReminderServiceProtocol = LocalEventReminderService(),
         onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
-        onBrowseDestinationSelected: @escaping (ProfileBrowseDestination) -> Void = { _ in },
         navigationPath: Binding<[ProfileNavigationRoute]> = .constant([]),
         scrollResetToken: Int = 0
     ) {
@@ -152,7 +144,6 @@ struct ProfileView: View {
         )
         self.userBlockingCoordinator = userBlockingCoordinator
         self.onNotificationTap = onNotificationTap
-        self.onBrowseDestinationSelected = onBrowseDestinationSelected
         self.scrollResetToken = scrollResetToken
         _isAnalyticsCollectionEnabled = State(initialValue: analyticsService.isCollectionEnabled)
         _navigationPath = navigationPath
@@ -351,7 +342,9 @@ struct ProfileView: View {
                                     if let user = displayUser {
                                         userProfileContent(for: user)
                                     } else {
-                                        guestProfileContent
+                                        ProgressView()
+                                            .frame(maxWidth: .infinity)
+                                            .accessibilityIdentifier("profile.loading")
                                     }
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -820,27 +813,6 @@ struct ProfileView: View {
     }
 
     @ViewBuilder
-    private var guestProfileContent: some View {
-        GuestPlatformHeroCard(
-            onSignIn: { authState.presentAuthFlow(.login) },
-            onCreateAccount: { authState.presentAuthFlow(.register) }
-        )
-
-        ProfileSectionCard(
-            title: AppStrings.Profile.guestAvailableTitle,
-            subtitle: AppStrings.Profile.guestAvailableSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                guestBrowseButton(title: AppStrings.Profile.guestBrowseNews, subtitle: AppStrings.Profile.previewNewsSubtitle, systemImage: "newspaper", destination: .home)
-                guestBrowseButton(title: AppStrings.Profile.guestBrowseEvents, subtitle: AppStrings.Profile.previewEventsSubtitle, systemImage: "calendar", destination: .events)
-                guestBrowseButton(title: AppStrings.Profile.guestBrowseOrganizations, subtitle: AppStrings.Profile.previewOrganizationsSubtitle, systemImage: "building.2", destination: .organizations)
-            }
-        }
-
-        guestSupportAndSettingsSection
-    }
-
-    @ViewBuilder
     private func userProfileContent(for user: AppUser) -> some View {
         if let profileDashboardMode {
             platformProfileContent(for: user, mode: profileDashboardMode)
@@ -1035,36 +1007,6 @@ struct ProfileView: View {
         }
     }
 
-    private var guestSupportAndSettingsSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.guestSettingsSupportTitle,
-            subtitle: AppStrings.Profile.guestSettingsSupportSubtitle
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if isProjectSupportAvailable {
-                    NavigationLink(value: ProfileNavigationRoute.supportProject) {
-                        ProfileModuleRow(
-                            title: DonationLocalization.publicSectionTitle(for: appLanguage),
-                            subtitle: DonationLocalization.publicSectionSubtitle(for: appLanguage),
-                            systemImage: "heart.circle"
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                NavigationLink(value: ProfileNavigationRoute.profileSettings) {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.settingsAndPrivacyTitle,
-                        subtitle: AppStrings.Profile.settingsAndPrivacySubtitle,
-                        systemImage: "gearshape"
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("profile.settings.open")
-            }
-        }
-    }
-
     private var isProjectSupportAvailable: Bool {
         donationConfigViewModel.hasLoadedData
             && donationConfigViewModel.config.isEnabled
@@ -1079,25 +1021,6 @@ struct ProfileView: View {
                 systemImage: "building.2",
                 status: .available
             ))
-        }
-        .buttonStyle(.plain)
-    }
-
-    private func guestBrowseButton(
-        title: String,
-        subtitle: String,
-        systemImage: String,
-        destination: ProfileBrowseDestination
-    ) -> some View {
-        Button {
-            onBrowseDestinationSelected(destination)
-        } label: {
-            ProfileModuleRow(
-                title: title,
-                subtitle: subtitle,
-                systemImage: systemImage,
-                status: .available
-            )
         }
         .buttonStyle(.plain)
     }

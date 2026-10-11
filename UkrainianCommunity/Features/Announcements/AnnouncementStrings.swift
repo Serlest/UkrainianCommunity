@@ -11,7 +11,6 @@ enum AnnouncementStrings {
     static var test: String { LocalizationStore.localizedString("announcements.test", defaultValue: "Надіслати тест собі") }
     static var cancel: String { LocalizationStore.localizedString("announcements.cancel", defaultValue: "Припинити показ") }
     static var registered: String { LocalizationStore.localizedString("announcements.registered", defaultValue: "Усі зареєстровані") }
-    static var guests: String { LocalizationStore.localizedString("announcements.guests", defaultValue: "Усі гості (без обмеження регіону)") }
     static var organizationOwners: String { LocalizationStore.localizedString("announcements.organizationOwners", defaultValue: "Власники організацій") }
     static var appAdmins: String { LocalizationStore.localizedString("announcements.appAdmins", defaultValue: "Адміністратори застосунку") }
     static var organizationAdmins: String { LocalizationStore.localizedString("announcements.organizationAdmins", defaultValue: "Адміністратори організацій") }
@@ -20,7 +19,7 @@ enum AnnouncementStrings {
     static var people: String { LocalizationStore.localizedString("announcements.people", defaultValue: "Вибрати користувачів") }
     static var regions: String { LocalizationStore.localizedString("announcements.regions", defaultValue: "Регіон акаунту") }
     static var austria: String { LocalizationStore.localizedString("announcements.austria", defaultValue: "Уся Австрія") }
-    static var regionHelp: String { LocalizationStore.localizedString("announcements.regionHelp", defaultValue: "Регіон застосовується до всіх вибраних акаунтів. Гості отримають повідомлення незалежно від регіону.") }
+    static var regionHelp: String { LocalizationStore.localizedString("announcements.regionHelp", defaultValue: "Регіон застосовується до всіх вибраних акаунтів.") }
     static var headline: String { LocalizationStore.localizedString("announcements.headline", defaultValue: "Заголовок") }
     static var body: String { LocalizationStore.localizedString("announcements.body", defaultValue: "Текст повідомлення") }
     static var translate: String { LocalizationStore.localizedString("announcements.translate", defaultValue: "Перекласти на іншу мову") }
@@ -51,12 +50,9 @@ enum AnnouncementStrings {
     static var pushFailed: String { LocalizationStore.localizedString("announcements.pushFailed", defaultValue: "Помилки push") }
     static var count: String { LocalizationStore.localizedString("announcements.count", defaultValue: "Акаунтів за поточним вибором") }
     static var countAudience: String { LocalizationStore.localizedString("announcements.countAudience", defaultValue: "Порахувати одержувачів") }
-    static var guestsUnknown: String { LocalizationStore.localizedString("announcements.guestsUnknown", defaultValue: "Кількість гостей заздалегідь невідома.") }
     static var sent: String { LocalizationStore.localizedString("announcements.sent", defaultValue: "Повідомлення збережено для надсилання.") }
     static var tested: String { LocalizationStore.localizedString("announcements.tested", defaultValue: "Тест створено для вашого акаунту.") }
     static var retry: String { LocalizationStore.localizedString("announcements.retry", defaultValue: "Оновити") }
-    static var guestPush: String { LocalizationStore.localizedString("announcements.guestPush", defaultValue: "Дозволити push-повідомлення UAC") }
-    static var guestPushHelp: String { LocalizationStore.localizedString("announcements.guestPushHelp", defaultValue: "Вікна в застосунку доступні і без дозволу на push.") }
     static var signIn: String { LocalizationStore.localizedString("announcements.signIn", defaultValue: "Увійти, щоб написати звернення") }
     static var draft: String { LocalizationStore.localizedString("announcements.draft", defaultValue: "Чернетка") }
     static var published: String { LocalizationStore.localizedString("announcements.published", defaultValue: "Опубліковано / заплановано") }
@@ -64,7 +60,7 @@ enum AnnouncementStrings {
     static var search: String { LocalizationStore.localizedString("announcements.search", defaultValue: "Пошук серед завантажених користувачів") }
     static var sendConfirm: String { LocalizationStore.localizedString("announcements.sendConfirm", defaultValue: "Надіслати повідомлення вибраній аудиторії?") }
     static var saved: String { LocalizationStore.localizedString("announcements.saved", defaultValue: "Чернетку збережено") }
-    static var guestShown: String { LocalizationStore.localizedString("announcements.guestShown", defaultValue: "Показано гостям (пристрої)") }
-    static var guestAck: String { LocalizationStore.localizedString("announcements.guestAck", defaultValue: "Підтверджено гостями (пристрої)") }
+    static var guestShown: String { LocalizationStore.localizedString("announcements.guestShown", defaultValue: "Показано без входу (попередні версії)") }
+    static var guestAck: String { LocalizationStore.localizedString("announcements.guestAck", defaultValue: "Підтверджено без входу (попередні версії)") }
     static func group(_ key: String) -> String { LocalizationStore.localizedString("announcements.\(key)", defaultValue: key) }
 }

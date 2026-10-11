@@ -1460,9 +1460,6 @@ enum AppStrings {
         static var analyticsConsentRejected: String { text("profile.analytics_consent.rejected", "Consent to optional analytics could not be confirmed. Collection remains off. Check your account and try again.") }
         static var activityHistoryLimitNotice: String { text("profile.activity_history.limit_notice", "Showing your latest 100 activities.") }
         static var title: String { text("profile.title", "Profile") }
-        static var guestOverline: String { text("profile.guest.overline", "Guest Access") }
-        static var guestTitle: String { text("profile.guest.title", "Use more with an account") }
-        static var guestMessage: String { text("profile.guest.message", "Sign in to save likes and register for events.") }
         static var accountSection: String { text("profile.account_section", "Account") }
         static var accountSummary: String { text("profile.account_summary", "Personal account") }
         static var appManagement: String { text("profile.app_management", "App Management") }
@@ -1586,32 +1583,11 @@ enum AppStrings {
         static var manageOrganizations: String { text("profile.manage_organizations", "Manage organizations") }
         static var signOut: String { text("profile.sign_out", "Sign Out") }
         static var signOutConfirmTitle: String { text("profile.sign_out.confirm_title", "Sign out?") }
-        static var signOutConfirmMessage: String { text("profile.sign_out.confirm_message", "You will return to guest browsing and protected actions will require sign-in again.") }
+        static var signOutConfirmMessage: String { text("profile.sign_out.confirm_message", "You will need to sign in again to use the app.") }
         static var signOutFailed: String { text("profile.sign_out.failed", "We couldn’t sign you out right now.") }
         static var accountSectionSummary: String { text("profile.account.section_summary", "Your personal details, account state, and photo live here.") }
-        static var guestSectionSummary: String { text("profile.guest.section_summary", "Browse publicly now, then sign in only when you need an account feature.") }
-        static var guestPlatformDescription: String { text("profile.guest.platform_description", "Новини, події та організації доступні для перегляду. Акаунт відкриває збереження, реєстрації та участь у спільнотах.") }
-        static var guestWelcomeTitle: String { text("profile.guest.welcome_title", "Ласкаво просимо") }
-        static var guestWelcomeSubtitle: String { text("profile.guest.welcome_subtitle", "Створіть акаунт, щоб зберігати події, підписуватись на організації та отримувати сповіщення.") }
-        static var continueAsGuest: String { text("profile.guest.continue", "Продовжити як гість") }
-        static var afterRegistrationTitle: String { text("profile.guest.after_registration.title", "Після реєстрації") }
-        static var afterRegistrationSubtitle: String { text("profile.guest.after_registration.subtitle", "Особистий профіль відкриває збереження, підписки та персональні оновлення.") }
-        static var afterRegistrationEventsSubtitle: String { text("profile.guest.after_registration.events", "Реєстрації та історія участі в одному місці.") }
-        static var afterRegistrationSavedSubtitle: String { text("profile.guest.after_registration.saved", "Новини, події та організації для швидкого повернення.") }
-        static var personalRegion: String { text("profile.guest.personal_region", "Персональний регіон") }
-        static var personalRegionSubtitle: String { text("profile.guest.personal_region.subtitle", "Локальні події та організації у вашій федеральній землі.") }
-        static var guestAvailableTitle: String { text("profile.guest.available.title", "Доступно без акаунта") }
-        static var guestAvailableSubtitle: String { text("profile.guest.available.subtitle", "Основний контент можна переглядати одразу.") }
-        static var guestBrowseNews: String { text("profile.guest.available.news", "Перегляд новин") }
-        static var guestBrowseEvents: String { text("profile.guest.available.events", "Перегляд подій") }
-        static var guestBrowseOrganizations: String { text("profile.guest.available.organizations", "Перегляд організацій") }
-        static var guestSettingsSupportTitle: String { text("profile.guest.settings_support.title", "Налаштування і підтримка") }
-        static var guestSettingsSupportSubtitle: String { text("profile.guest.settings_support.subtitle", "Базові параметри застосунку та юридична інформація.") }
-        static var platformPreviewTitle: String { text("profile.platform_preview.title", "Платформа") }
-        static var platformPreviewSubtitle: String { text("profile.platform_preview.subtitle", "Основні розділи залишаються доступними для перегляду.") }
-        static var previewNewsSubtitle: String { text("profile.preview.news", "Оновлення громади та важливі повідомлення.") }
-        static var previewEventsSubtitle: String { text("profile.preview.events", "Зустрічі, консультації та події поруч.") }
-        static var previewOrganizationsSubtitle: String { text("profile.preview.organizations", "Перевірені організації та ініціативи.") }
+        static var personalRegion: String { text("profile.personal_region", "Персональний регіон") }
+        static var personalRegionSubtitle: String { text("profile.personal_region.subtitle", "Локальні події та організації у вашій федеральній землі.") }
         static var statRegistrations: String { text("profile.stat.registrations", "Реєстрації") }
         static var statLiked: String { text("profile.stat.liked", "Вподобано") }
         static var statOrganizations: String { text("profile.stat.organizations", "Організації") }
@@ -2450,7 +2426,7 @@ enum AppStrings {
         static var legalSection: String { text("settings.legal_section", "Legal") }
         static var legalSectionSubtitle: String { text("settings.legal_section.subtitle", "Review the current product terms and privacy information.") }
         static var sessionSection: String { text("settings.session_section", "Session") }
-        static var sessionSubtitle: String { text("settings.session.subtitle", "You can sign out at any time and return to guest browsing.") }
+        static var sessionSubtitle: String { text("settings.session.subtitle", "You can sign out at any time. Sign in again to use the app.") }
         static var german: String { text("settings.language.german", "German") }
         static var ukrainian: String { text("settings.language.ukrainian", "Ukrainian") }
         static var system: String { text("settings.appearance.system", "System") }
@@ -2496,7 +2472,7 @@ enum AppStrings {
         static var accepting: String { text("legal_compliance.accepting", "Accepting…") }
         static var decline: String { text("legal_compliance.decline", "Decline and sign out") }
         static var declineConfirmTitle: String { text("legal_compliance.decline.confirm.title", "Decline updated terms?") }
-        static var declineConfirmMessage: String { text("legal_compliance.decline.confirm.message", "Without accepting the updated terms, you cannot use your registered account. You will be signed out and returned to guest mode.") }
+        static var declineConfirmMessage: String { text("legal_compliance.decline.confirm.message", "Without accepting the updated terms, you cannot use the app. You will be signed out.") }
         static var declineConfirmAction: String { text("legal_compliance.decline.confirm.action", "Sign out") }
         static var loadFailed: String { text("legal_compliance.error.load_failed", "Unable to check the current legal documents right now.") }
         static var acceptFailed: String { text("legal_compliance.error.accept_failed", "Unable to save your acceptance. Check your connection and try again.") }
@@ -2807,7 +2783,6 @@ enum AppStrings {
         static var signInInstead: String { text("auth.sign_in_instead", "Already have an account? Sign In") }
         static var createAccountInstead: String { text("auth.create_account_instead", "Need an account? Create one") }
         static var registerSubtitle: String { text("auth.register.subtitle", "Create an account with the essentials. You can complete your profile later.") }
-        static var continueAsGuest: String { text("auth.continue_as_guest", "Continue as Guest") }
         static var consentTitle: String { text("auth.consent.title", "Terms & Privacy") }
         static var analyticsConsentTitle: String { text("auth.consent.analytics_title", "Allow optional usage analytics") }
         static var analyticsConsentHelp: String { text("auth.consent.analytics_help", "Your choice does not affect registration. Analytics can start on this device only after email verification. You can change your choice in Profile → Settings.") }
@@ -2917,7 +2892,7 @@ enum AppStrings {
     static func authRequiredMessage(for capability: String) -> String {
         LocalizationStore.localizedFormat(
             "auth.required.message",
-            defaultValue: "%1$@ requires an account. You can keep browsing as a guest for now.",
+            defaultValue: "Sign in or create an account to use %1$@.",
             arguments: [capability]
         )
     }

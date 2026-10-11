@@ -2341,64 +2341,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Von Gästen bestätigt (Geräte)"
+            "value" : "Ohne Anmeldung bestätigt (frühere Versionen)"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Підтверджено гостями (пристрої)"
-          }
-        }
-      }
-    },
-    "announcements.guestPush" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "UAC-Push-Mitteilungen erlauben"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Дозволити push-повідомлення UAC"
-          }
-        }
-      }
-    },
-    "announcements.guestPushHelp" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mitteilungen in der App sind auch ohne Push-Erlaubnis verfügbar."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Вікна в застосунку доступні і без дозволу на push."
-          }
-        }
-      }
-    },
-    "announcements.guests" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Alle Gäste (ohne Regionsfilter)"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Усі гості (без обмеження регіону)"
+            "value" : "Підтверджено без входу (попередні версії)"
           }
         }
       }
@@ -2409,30 +2358,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bei Gästen angezeigt (Geräte)"
+            "value" : "Ohne Anmeldung angezeigt (frühere Versionen)"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Показано гостям (пристрої)"
-          }
-        }
-      }
-    },
-    "announcements.guestsUnknown" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die Anzahl der Gäste ist vorab unbekannt."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Кількість гостей заздалегідь невідома."
+            "value" : "Показано без входу (попередні версії)"
           }
         }
       }
@@ -2715,13 +2647,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Der Regionsfilter gilt für alle ausgewählten Konten. Gäste erhalten die Mitteilung unabhängig von der Region."
+            "value" : "Der Regionsfilter gilt für alle ausgewählten Konten."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Регіон застосовується до всіх вибраних акаунтів. Гості отримають повідомлення незалежно від регіону."
+            "value" : "Регіон застосовується до всіх вибраних акаунтів."
           }
         }
       }
@@ -3811,23 +3743,6 @@
         }
       }
     },
-    "auth.continue_as_guest" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Als Gast fortfahren"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Продовжити як гість"
-          }
-        }
-      }
-    },
     "auth.create_account" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4905,13 +4820,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ ist nur mit einem Konto verfügbar. Sie können weiterhin als Gast stöbern."
+            "value" : "Melden Sie sich an oder erstellen Sie ein Konto, um %1$@ zu nutzen."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ доступно лише з обліковим записом. Ви можете й далі переглядати вміст як гість."
+            "value" : "Увійдіть або створіть акаунт, щоб користуватися функцією «%1$@»."
           }
         }
       }
@@ -15770,13 +15685,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ohne Zustimmung zu den aktualisierten Bedingungen können Sie Ihr registriertes Konto nicht verwenden. Sie werden abgemeldet und kehren in den Gastmodus zurück."
+            "value" : "Ohne Zustimmung zu den aktualisierten Bedingungen können Sie die App nicht nutzen. Sie werden abgemeldet."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Без прийняття оновлених умов ви не зможете користуватися зареєстрованим обліковим записом. Ви вийдете з акаунта й повернетеся в гостьовий режим."
+            "value" : "Без прийняття оновлених умов ви не зможете користуватися застосунком. Ви вийдете з акаунта."
           }
         }
       }
@@ -31999,211 +31914,7 @@
         }
       }
     },
-    "profile.guest.after_registration.events" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Registrierungen und Teilnahmeverlauf an einem Ort."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Реєстрації та історія участі в одному місці."
-          }
-        }
-      }
-    },
-    "profile.guest.after_registration.saved" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "News, Veranstaltungen und Organisationen für den schnellen Zugriff."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новини, події та організації для швидкого повернення."
-          }
-        }
-      }
-    },
-    "profile.guest.after_registration.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ein persönliches Profil ermöglicht gespeicherte Inhalte, gefolgte Organisationen und persönliche Updates."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Особистий профіль відкриває збереження, підписки та персональні оновлення."
-          }
-        }
-      }
-    },
-    "profile.guest.after_registration.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nach der Registrierung"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Після реєстрації"
-          }
-        }
-      }
-    },
-    "profile.guest.available.events" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Veranstaltungen ansehen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перегляд подій"
-          }
-        }
-      }
-    },
-    "profile.guest.available.news" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "News ansehen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перегляд новин"
-          }
-        }
-      }
-    },
-    "profile.guest.available.organizations" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Organisationen ansehen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перегляд організацій"
-          }
-        }
-      }
-    },
-    "profile.guest.available.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die wichtigsten Inhalte können Sie sofort ansehen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Основний контент можна переглядати одразу."
-          }
-        }
-      }
-    },
-    "profile.guest.available.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ohne Account verfügbar"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Доступно без акаунта"
-          }
-        }
-      }
-    },
-    "profile.guest.continue" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Als Gast fortfahren"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Продовжити як гість"
-          }
-        }
-      }
-    },
-    "profile.guest.message" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Melden Sie sich an, um Likes zu speichern und sich für Veranstaltungen anzumelden."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Увійдіть, щоб зберігати вподобання й реєструватися на події."
-          }
-        }
-      }
-    },
-    "profile.guest.overline" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gastzugang"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Гостьовий доступ"
-          }
-        }
-      }
-    },
-    "profile.guest.personal_region" : {
+    "profile.personal_region" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -32220,7 +31931,7 @@
         }
       }
     },
-    "profile.guest.personal_region.subtitle" : {
+    "profile.personal_region.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
         "de" : {
@@ -32233,125 +31944,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Локальні події та організації у вашій федеральній землі."
-          }
-        }
-      }
-    },
-    "profile.guest.platform_description" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "News, Veranstaltungen und Organisationen sind frei einsehbar. Ein Account ermöglicht Speichern, Registrierungen und Community-Teilnahme."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Новини, події та організації доступні для перегляду. Акаунт відкриває збереження, реєстрації та участь у спільнотах."
-          }
-        }
-      }
-    },
-    "profile.guest.section_summary" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sie können jetzt öffentlich stöbern und sich erst anmelden, wenn Sie eine Kontofunktion brauchen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Поки що можна переглядати все публічно, а входити лише тоді, коли потрібна функція облікового запису."
-          }
-        }
-      }
-    },
-    "profile.guest.settings_support.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Grundlegende App-Einstellungen und rechtliche Informationen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Базові параметри застосунку та юридична інформація."
-          }
-        }
-      }
-    },
-    "profile.guest.settings_support.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Einstellungen und Support"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Налаштування і підтримка"
-          }
-        }
-      }
-    },
-    "profile.guest.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mehr mit Konto nutzen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Більше з обліковим записом"
-          }
-        }
-      }
-    },
-    "profile.guest.welcome_subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Erstellen Sie einen Account, um Veranstaltungen zu speichern, Organisationen zu folgen und Benachrichtigungen zu erhalten."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Створіть акаунт, щоб зберігати події, підписуватись на організації та отримувати сповіщення."
-          }
-        }
-      }
-    },
-    "profile.guest.welcome_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Willkommen"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ласкаво просимо"
           }
         }
       }
@@ -36843,40 +36435,6 @@
         }
       }
     },
-    "profile.platform_preview.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Die wichtigsten Bereiche bleiben zum Ansehen verfügbar."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Основні розділи залишаються доступними для перегляду."
-          }
-        }
-      }
-    },
-    "profile.platform_preview.title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Plattform"
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Платформа"
-          }
-        }
-      }
-    },
     "profile.platform.administration.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -37281,57 +36839,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ролі, блокування та стан акаунтів."
-          }
-        }
-      }
-    },
-    "profile.preview.events" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Treffen, Beratungen und Veranstaltungen in Ihrer Nähe."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Зустрічі, консультації та події поруч."
-          }
-        }
-      }
-    },
-    "profile.preview.news" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Community-Updates und wichtige Mitteilungen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Оновлення громади та важливі повідомлення."
-          }
-        }
-      }
-    },
-    "profile.preview.organizations" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Geprüfte Organisationen und Initiativen."
-          }
-        },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Перевірені організації та ініціативи."
           }
         }
       }
@@ -38501,13 +38008,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sie kehren zur Gastansicht zurück und geschützte Aktionen erfordern danach wieder eine Anmeldung."
+            "value" : "Nach dem Abmelden müssen Sie sich erneut anmelden, um die App zu nutzen."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ви повернетеся до гостьового режиму, а захищені дії знову вимагатимуть входу."
+            "value" : "Після виходу вам потрібно буде знову увійти, щоб користуватися застосунком."
           }
         }
       }
@@ -41630,13 +41137,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sie können sich jederzeit abmelden und zur Gastansicht zurückkehren."
+            "value" : "Sie können sich jederzeit abmelden. Um die App weiter zu nutzen, melden Sie sich erneut an."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ви можете будь-коли вийти та повернутися до гостьового режиму."
+            "value" : "Ви можете будь-коли вийти. Щоб знову користуватися застосунком, увійдіть повторно."
           }
         }
       }

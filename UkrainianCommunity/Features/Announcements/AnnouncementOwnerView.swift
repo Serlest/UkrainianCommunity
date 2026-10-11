@@ -68,7 +68,6 @@ struct AnnouncementEditorView: View {
                     Button(AnnouncementStrings.preview) { preview = true }.accessibilityIdentifier("announcements.preview")
                     Button(AnnouncementStrings.countAudience) { run { try await countAudience() } }
                     if let count { Text("\(AnnouncementStrings.count): \(count)") }
-                    if draft.groups.contains("guests") { Text(AnnouncementStrings.guestsUnknown).font(.caption) }
                     Toggle(AnnouncementStrings.review, isOn: $reviewed).accessibilityIdentifier("announcements.review")
                     Button(AnnouncementStrings.save) { run { try await save(); dismiss() } }.appActionButtonStyle(.secondary).accessibilityIdentifier("announcements.save").accessibilityValue(message == AnnouncementStrings.saved ? AnnouncementStrings.saved : "")
                     Button(AnnouncementStrings.test) { run { _ = try await repository.call("manageAnnouncements", AnnouncementRequest(operation: "test", draft: draft)); message = AnnouncementStrings.tested } }
@@ -93,8 +92,12 @@ struct AnnouncementEditorView: View {
                         stat(AnnouncementStrings.action, statistics.action)
                         stat(AnnouncementStrings.pushSent, statistics.pushSuccess)
                         stat(AnnouncementStrings.pushFailed, statistics.pushFailure)
-                        stat(AnnouncementStrings.guestShown, statistics.guestPresented)
-                        stat(AnnouncementStrings.guestAck, statistics.guestAcknowledged)
+                        if let guestPresented = statistics.guestPresented, guestPresented > 0 {
+                            stat(AnnouncementStrings.guestShown, guestPresented)
+                        }
+                        if let guestAcknowledged = statistics.guestAcknowledged, guestAcknowledged > 0 {
+                            stat(AnnouncementStrings.guestAck, guestAcknowledged)
+                        }
                     }
                 }.disabled(busy)
             }
@@ -103,6 +106,9 @@ struct AnnouncementEditorView: View {
         .navigationTitle(AnnouncementStrings.title)
         .interactiveDismissDisabled(busy)
         .onChange(of: draft) { _, _ in reviewed = false; count = nil }
+        .onAppear {
+            if editable { draft.groups.removeAll { $0 == "guests" } }
+        }
         .sheet(isPresented: $preview) { AnnouncementPreviewView(item: draft) }
         .sheet(isPresented: $users) { NavigationStack { AnnouncementUserPicker(repository: repository, selected: $draft.userIds) } }
         .confirmationDialog(AnnouncementStrings.sendConfirm, isPresented: $confirmSend) {
@@ -128,7 +134,7 @@ struct AnnouncementEditorView: View {
     }
     private var audienceSection: some View {
         AnnouncementSection(AnnouncementStrings.audience) {
-            ForEach(["registered", "guests", "organizationOwners", "appAdmins", "organizationAdmins", "organizationModerators"], id: \.self) { group in
+            ForEach(["registered", "organizationOwners", "appAdmins", "organizationAdmins", "organizationModerators"], id: \.self) { group in
                 Toggle(AnnouncementStrings.group(group), isOn: selection(group, in: $draft.groups))
             }
             Button("\(AnnouncementStrings.people) (\(draft.userIds.count))") { users = true }

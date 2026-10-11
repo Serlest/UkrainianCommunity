@@ -299,6 +299,17 @@ final class UkrainianCommunityUITests: XCTestCase {
         return app
     }
 
+    private func launchSignedOutApp(language: String = "de", appLockScenario: String? = nil) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestForceSignedOutSession"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = language
+        app.launchEnvironment["UITestAppLockScenario"] = appLockScenario
+        app.launch()
+        return app
+    }
+
     private func launchAuthenticatedApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments.append("-ui-testing")
@@ -1734,14 +1745,15 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
-    func testGuestProfileShowsAuthEntryPoints() throws {
-        let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
+    func testSignedOutScreenShowsAuthEntryPoints() throws {
+        let app = launchSignedOutApp()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "auth.landing.screen").firstMatch.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.tabBars.firstMatch.exists)
 
-        let signInButton = app.buttons["Anmelden"].firstMatch
+        let signInButton = app.buttons["auth.landing.signIn"].firstMatch
         XCTAssertTrue(signInButton.waitForExistence(timeout: 10))
         signInButton.tap()
-        XCTAssertTrue(app.navigationBars["Anmelden"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["auth.login.submit"].waitForExistence(timeout: 10))
     }
 
     @MainActor
@@ -1765,11 +1777,9 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
-    func testGuestCreateAccountOpensRegistrationScreen() throws {
-        let app = launchApp()
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
-
-        let createAccountButton = app.buttons["Konto erstellen"].firstMatch
+    func testSignedOutCreateAccountOpensRegistrationScreen() throws {
+        let app = launchSignedOutApp()
+        let createAccountButton = app.buttons["auth.landing.register"].firstMatch
         XCTAssertTrue(createAccountButton.waitForExistence(timeout: 10))
         createAccountButton.tap()
         let submit = app.buttons["auth.register.submit"]
@@ -1791,10 +1801,9 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testRegistrationShowsConsentControls() throws {
-        let app = launchApp(appLockScenario: "success")
-        assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
-
-        app.buttons["Konto erstellen"].firstMatch.tap()
+        let app = launchSignedOutApp(appLockScenario: "success")
+        XCTAssertTrue(app.buttons["auth.landing.register"].waitForExistence(timeout: 20))
+        app.buttons["auth.landing.register"].tap()
         XCTAssertTrue(app.buttons["auth.register.submit"].waitForExistence(timeout: 10))
         let termsSwitch = app.switches[AppStringsPlaceholder.acceptTermsDE]
         scrollToElement(termsSwitch, in: app)
@@ -1833,12 +1842,11 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
-        app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launchEnvironment["UITestForceSignedOutSession"] = "1"
         app.launchEnvironment["UITestAppAppearance"] = "dark"
         app.launchEnvironment["UITestAppLockScenario"] = "success"
         app.launch()
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
-        let create = app.buttons["Створити обліковий запис"].firstMatch
+        let create = app.buttons["auth.landing.register"].firstMatch
         scrollToElement(create, in: app, maxSwipes: 12)
         XCTAssertTrue(create.waitForExistence(timeout: 10))
         create.tap()
@@ -1865,9 +1873,9 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testRegistrationExplainsUnavailableBiometrics() throws {
-        let app = launchApp(appLockScenario: "unavailable")
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
-        app.buttons["Konto erstellen"].firstMatch.tap()
+        let app = launchSignedOutApp(appLockScenario: "unavailable")
+        XCTAssertTrue(app.buttons["auth.landing.register"].waitForExistence(timeout: 20))
+        app.buttons["auth.landing.register"].tap()
         let appLock = app.switches["auth.register.appLock"]
         scrollToElement(appLock, in: app, maxSwipes: 15)
         XCTAssertTrue(appLock.exists)

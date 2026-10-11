@@ -70,11 +70,11 @@ Run `python3 scripts/validate_release_configuration.py` and `python3 scripts/val
 ## Functional release gate
 
 - [ ] Test registration, email verification, login, password reset and logout.
-- [ ] Test guest and authenticated permissions plus owner/admin/organization role boundaries.
+- [ ] Test the signed-out registration gate, authenticated permissions, and owner/admin/organization role boundaries.
 - [ ] Test create/read/update/delete flows for content, uploads, comments, reports and feedback.
 - [ ] Test push registration, mixed legacy-token/FID delivery, opt-out, permanent-registration cleanup and immediate sign-out before the first Messaging callback on physical devices. Confirm cleanup failure blocks Auth sign-out and a retry succeeds.
 - [ ] Confirm the signed app does not embed Google/Firebase Analytics; test optional first-party aggregate analytics disabled on a fresh install, then explicit opt-in and opt-out for a verified account.
-- [ ] Confirm the analytics switch is unavailable for guests and anonymous/unverified accounts and becomes available after verification.
+- [ ] Confirm the analytics switch is unavailable before sign-in and for anonymous/unverified accounts, then becomes available after verification.
 - [ ] With optional analytics disabled, verify that requested account features still create their disclosed operational records and work correctly: lifetime news/event view deduplication and public counters, likes, bookmarks, organization follows and event registrations. Verify the switch explains that these App Functionality records are outside its scope.
 - [ ] Test account A opt-in → logout/account B login: B remains opted out, A's queued events are not attributed to B, and opt-out prevents in-flight or delayed delivery.
 - [ ] Test offline analytics delivery, bounded backoff, 48-hour expiry, app restart, and recovery without blocking newer eligible events.

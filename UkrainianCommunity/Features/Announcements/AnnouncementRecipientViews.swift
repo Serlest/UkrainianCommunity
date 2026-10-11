@@ -37,21 +37,11 @@ struct AnnouncementPopup: View {
 }
 
 struct AnnouncementHistoryView: View {
-    @EnvironmentObject private var authState: AuthState
-    @AppStorage("announcements.guestPushEnabled") private var guestPushEnabled = false
     @ObservedObject var coordinator: AnnouncementCoordinator
     var body: some View {
         ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: AnnouncementStrings.subtitle) {
             if let error = coordinator.error { InlineMessageCard(style: .error, message: error) }
             if coordinator.isLoading { ProgressView() }
-            if authState.isGuest {
-                Toggle(AnnouncementStrings.guestPush, isOn: $guestPushEnabled)
-                    .onChange(of: guestPushEnabled) { _, enabled in Task {
-                        if enabled { await AnnouncementPushBridge.shared.requestPermission() }
-                        else { await AnnouncementPushBridge.shared.disableGuestPush() }
-                    } }
-                Text(AnnouncementStrings.guestPushHelp).font(.caption)
-            }
             if coordinator.items.isEmpty && !coordinator.isLoading { Text(AnnouncementStrings.empty) }
             ForEach(coordinator.items) { item in
                 NavigationLink {

@@ -122,7 +122,7 @@ struct ContentView: View {
                 directoryContentStore.configure(user: authState.user)
             }
             .modifier(AnnouncementLifecycle(coordinator: announcementCoordinator,
-                userID: authState.user?.id, available: authState.isGuest || authState.isAuthenticated,
+                userID: authState.user?.id, available: authState.isAuthenticated,
                 ready: isReadyForUpdatePrompt, feedback: openAnnouncementFeedback))
             .onChange(of: announcementCoordinator.requestedFeedback) { _, item in
                 if let item { announcementCoordinator.requestedFeedback = nil; openAnnouncementFeedback(item) }
@@ -677,7 +677,6 @@ struct ContentView: View {
                 userBlockingCoordinator: userBlockingCoordinator,
                 localEventReminderService: container.localEventReminderService,
                 onNotificationTap: handleNotificationTap,
-                onBrowseDestinationSelected: handleProfileBrowseDestination,
                 navigationPath: $profileNavigationPath,
                 scrollResetToken: profileScrollResetToken
             )
@@ -1207,17 +1206,6 @@ struct ContentView: View {
 
     private func notificationTargetID(_ notification: AppNotification) -> String? {
         notification.destinationTargetID
-    }
-
-    private func handleProfileBrowseDestination(_ destination: ProfileBrowseDestination) {
-        switch destination {
-        case .home:
-            selectTabIfNeeded(.home)
-        case .events:
-            selectTabIfNeeded(.events)
-        case .organizations:
-            selectTabIfNeeded(.organizations)
-        }
     }
 
     private func showNotificationRouteUnavailable() {

@@ -3,9 +3,9 @@
 ## Ready-to-use notes
 
 UAC (UkrainianCommunity) is a German/Ukrainian community app for people in Austria.
-Guests can browse published news, events and organizations. An email/password
-account is required for account features such as comments, bookmarks, following
-organizations, event registration and submitting an organization for moderation.
+The app opens with sign-in or account creation. An account is required to use
+the content sections and account features. Email/password, Sign in with Apple,
+and Google sign-in are available.
 
 On the first sign-in with the review account, the app presents the current Terms
 of Use for acceptance. This is the same onboarding gate shown to every account;
@@ -22,8 +22,8 @@ It does not control essential account-feature records or all Firebase technical
 diagnostics. No advertising SDK, IDFA or cross-app advertising tracking is used.
 
 Optional Face ID / Touch ID locks an existing signed-in session on the device,
-with device-passcode fallback. It is not Sign in with Apple. Registration and
-ordinary email/password sign-in remain available without enabling biometrics.
+with device-passcode fallback. This lock is separate from Sign in with Apple;
+registration and sign-in do not require biometrics.
 
 User content can be reported from its action menu. Users can block other users
 and manage their block list in Profile. Administrators moderate reports and

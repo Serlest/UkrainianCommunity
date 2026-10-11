@@ -32,10 +32,6 @@ final class AnnouncementPushBridge: ObservableObject {
     func registerIfAllowed() async {
         guard let repository, FirebaseApp.app() != nil, identity != "unavailable" else { return }
         let version = generation
-        if identity == "guest" && !UserDefaults.standard.bool(forKey: "announcements.guestPushEnabled") {
-            _ = try? await repository.call("registerAnnouncementDevice", AnnouncementRequest(operation: "disable", secret: installationSecret))
-            return
-        }
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard version == generation else { return }
         guard [.authorized, .provisional, .ephemeral].contains(settings.authorizationStatus) else {
@@ -46,7 +42,6 @@ final class AnnouncementPushBridge: ObservableObject {
     func registrationReady() async {
         guard let repository, FirebaseApp.app() != nil, identity != "unavailable" else { return }
         let version = generation
-        if identity == "guest" && !UserDefaults.standard.bool(forKey: "announcements.guestPushEnabled") { return }
         do {
             let fid = try await Installations.installations().installationID()
             guard generation == version else { return }
@@ -64,15 +59,6 @@ final class AnnouncementPushBridge: ObservableObject {
         if let id { pendingID = id; return true }
         return false
     }
-    func disableGuestPush() async {
-        UserDefaults.standard.set(false, forKey: "announcements.guestPushEnabled")
-        if let repository { _ = try? await repository.call("registerAnnouncementDevice", AnnouncementRequest(operation: "disable", secret: installationSecret)) }
-    }
-    func requestPermission() async {
-        UserDefaults.standard.set(true, forKey: "announcements.guestPushEnabled")
-        _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge])
-        await registerIfAllowed()
-    }
 }
 
 struct AnnouncementLifecycle: ViewModifier {
@@ -83,7 +69,10 @@ struct AnnouncementLifecycle: ViewModifier {
     let feedback: (UserAnnouncement) -> Void
     @Environment(\.scenePhase) private var scenePhase
     @ObservedObject private var push = AnnouncementPushBridge.shared
-    private var identity: String { available ? userID ?? "guest" : "unavailable" }
+    private var identity: String {
+        guard available, let userID else { return "unavailable" }
+        return userID
+    }
     func body(content: Content) -> some View {
         content
             .onChange(of: identity, initial: true) { _, _ in coordinator.configure(userID: userID, available: available) }

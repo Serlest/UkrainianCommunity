@@ -1,44 +1,5 @@
 import SwiftUI
 
-struct GuestPlatformHeroCard: View {
-    let onSignIn: () -> Void
-    let onCreateAccount: () -> Void
-
-    var body: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(AppStrings.Profile.guestWelcomeTitle)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("profile.guest.card")
-
-                    Text(AppStrings.Profile.guestWelcomeSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Button(AppStrings.Auth.signIn, action: onSignIn)
-                        .frame(maxWidth: .infinity)
-                        .appActionButtonStyle(.primary)
-                        .accessibilityIdentifier("profile.guest.signIn")
-
-                    Button(action: onCreateAccount) {
-                        Text(AppStrings.Auth.createAccount)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .appActionButtonStyle(.secondary)
-                    .accessibilityIdentifier("profile.guest.createAccount")
-                }
-            }
-        }
-    }
-}
 struct ProfileHeroCard: View {
     let user: AppUser
     let readableFederalState: String?
