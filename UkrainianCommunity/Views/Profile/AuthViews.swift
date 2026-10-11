@@ -142,9 +142,7 @@ struct LoginView: View {
 
     var body: some View {
         AuthScreenScaffold {
-            AuthHeaderView(title: AppStrings.Auth.loginTitle, subtitle: AppStrings.Auth.loginSubtitle)
-
-            FederatedSignInButtons()
+            AuthHeaderView(title: nil, subtitle: AppStrings.Auth.loginSubtitle)
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
@@ -191,6 +189,8 @@ struct LoginView: View {
                     .frame(maxWidth: .infinity)
                 }
             }
+
+            FederatedSignInButtons()
         }
         .navigationTitle(AppStrings.Auth.loginTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -285,7 +285,7 @@ struct RegisterView: View {
     var body: some View {
         AuthScreenScaffold {
             AuthHeaderView(
-                title: federated ? AppStrings.Auth.finishRegistrationTitle : AppStrings.Auth.registerTitle,
+                title: nil,
                 subtitle: federated ? AppStrings.Auth.finishRegistrationSubtitle : AppStrings.Auth.registerSubtitle
             )
 
@@ -313,8 +313,6 @@ struct RegisterView: View {
                         EditorSecureField(AppStrings.Auth.password, text: $password, textContentType: .newPassword)
                         EditorSecureField(AppStrings.Auth.passwordRepeat, text: $repeatedPassword, systemImage: "lock.fill", textContentType: .newPassword)
                     }
-                    EditorTextField(AppStrings.Auth.telegramUsername, text: $telegramUsername, systemImage: "paperplane", autocapitalization: .never, autocorrectionDisabled: true)
-
                     Picker(AppStrings.Auth.federalState, selection: $selectedFederalState) {
                         Text(AppStrings.Auth.selectFederalState).tag(Optional<AustrianFederalState>.none)
                         ForEach(AustrianFederalState.allCases) { state in
@@ -323,6 +321,8 @@ struct RegisterView: View {
                     }
                     .font(.subheadline)
                     .accessibilityIdentifier("auth.register.federalState")
+
+                    EditorTextField(AppStrings.Auth.telegramUsername, text: $telegramUsername, systemImage: "paperplane", autocapitalization: .never, autocorrectionDisabled: true)
                 }
             }
 

@@ -188,22 +188,24 @@ struct AppCenteredBrandHeader<LeadingContent: View, TrailingContent: View>: View
 }
 
 struct AuthHeaderView: View {
-    let title: String
+    let title: String?
     let subtitle: String
 
     var body: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.pushedScreenHeaderTextSpacing) {
+        VStack(alignment: .leading, spacing: AppTheme.pushedScreenHeaderTextSpacing) {
+            if let title {
                 Text(title)
                     .font(AppTheme.authHeaderTitleFont)
                     .foregroundStyle(AppTheme.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
-
-                Text(subtitle)
-                    .font(AppTheme.authHeaderSubtitleFont)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+
+            Text(subtitle)
+                .font(AppTheme.authHeaderSubtitleFont)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, AppTheme.eventsMetadataSpacing)
     }
 }

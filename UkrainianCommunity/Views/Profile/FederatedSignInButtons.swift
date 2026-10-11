@@ -27,44 +27,42 @@ struct FederatedSignInButtons: View {
 
     var body: some View {
         if isAppleAvailable || isGoogleAvailable {
-            AppEditorSectionCard {
-                VStack(spacing: 12) {
-                    Text(AppStrings.Auth.otherSignInMethods)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(spacing: 12) {
+                Text(AppStrings.Auth.otherSignInMethods)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(AppTheme.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    if isAppleAvailable {
-                        SignInWithAppleButton(.signIn, onRequest: configureAppleRequest, onCompletion: finishAppleRequest)
-                            .signInWithAppleButtonStyle(.black)
-                            .frame(height: 50)
-                            .disabled(isSigningIn)
-                            .accessibilityIdentifier("auth.provider.apple")
-                    }
-
-                    if isGoogleAvailable {
-                        Button(action: startGoogleSignIn) {
-                            HStack(spacing: 10) {
-                                Image("GoogleSignInIcon")
-                                    .resizable()
-                                    .frame(width: 18, height: 18)
-                                Text(AppStrings.Auth.continueWithGoogle)
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            .foregroundStyle(Color.black)
-                            .frame(maxWidth: .infinity, minHeight: 50)
-                            .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0.18)))
-                        }
-                        .buttonStyle(.plain)
+                if isAppleAvailable {
+                    SignInWithAppleButton(.signIn, onRequest: configureAppleRequest, onCompletion: finishAppleRequest)
+                        .signInWithAppleButtonStyle(.black)
+                        .frame(height: 50)
                         .disabled(isSigningIn)
-                        .accessibilityIdentifier("auth.provider.google")
-                    }
+                        .accessibilityIdentifier("auth.provider.apple")
+                }
 
-                    if isSigningIn { ProgressView() }
-                    if let errorMessage {
-                        InlineMessageCard(style: .error, message: errorMessage)
+                if isGoogleAvailable {
+                    Button(action: startGoogleSignIn) {
+                        HStack(spacing: 10) {
+                            Image("GoogleSignInIcon")
+                                .resizable()
+                                .frame(width: 18, height: 18)
+                            Text(AppStrings.Auth.continueWithGoogle)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .foregroundStyle(Color.black)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0.18)))
                     }
+                    .buttonStyle(.plain)
+                    .disabled(isSigningIn)
+                    .accessibilityIdentifier("auth.provider.google")
+                }
+
+                if isSigningIn { ProgressView() }
+                if let errorMessage {
+                    InlineMessageCard(style: .error, message: errorMessage)
                 }
             }
         }
