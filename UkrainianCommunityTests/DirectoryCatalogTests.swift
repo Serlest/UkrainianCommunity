@@ -3,6 +3,42 @@ import Testing
 @testable import UkrainianCommunity
 
 struct DirectoryCatalogTests {
+    @Test func editorDeletionKeepsParentsPublishableAndRemovesGroupArticles() throws {
+        let safety = try #require(DirectoryCatalog.categories.first { $0.id == "safety" })
+        var category = DirectoryManagedCategory.bundled(safety)
+        let removedGroup = try #require(category.groups.first?.id)
+        let removedTopicIDs = Set(category.topics.filter { $0.groupID == removedGroup }.map(\.id))
+        #expect(!removedTopicIDs.isEmpty)
+        #expect(DirectoryEditorDeletion.canDeleteGroup(removedGroup, from: category))
+        DirectoryEditorDeletion.deleteGroup(removedGroup, from: &category)
+        #expect(category.groups.allSatisfy { $0.id != removedGroup })
+        #expect(category.topics.allSatisfy { !removedTopicIDs.contains($0.id) })
+        _ = try DirectoryManagedValidation.validate(category)
+
+        let remainingTopic = try #require(category.topics.first?.id)
+        #expect(DirectoryEditorDeletion.canDeleteTopic(remainingTopic, from: category))
+        DirectoryEditorDeletion.deleteTopic(remainingTopic, from: &category)
+        #expect(category.topics.allSatisfy { $0.id != remainingTopic })
+        _ = try DirectoryManagedValidation.validate(category)
+
+        var single = DirectoryManagedCategory.bundled(safety)
+        single.groups = [single.groups[0]]
+        single.topics = [single.topics[0]]
+        #expect(!DirectoryEditorDeletion.canDeleteGroup(single.groups[0].id, from: single))
+        #expect(!DirectoryEditorDeletion.canDeleteTopic(single.topics[0].id, from: single))
+        var onlySectionTopic = single.topics[0]
+        onlySectionTopic.sections = [onlySectionTopic.sections[0]]
+        #expect(!DirectoryEditorDeletion.canDeleteSection(onlySectionTopic.sections[0].id,
+                                                         from: onlySectionTopic))
+        var multiSectionTopic = try #require(DirectoryManagedCategory.bundled(safety).topics.first {
+            $0.sections.filter { !$0.isHidden }.count > 1
+        })
+        let deletedSectionID = multiSectionTopic.sections[0].id
+        #expect(DirectoryEditorDeletion.canDeleteSection(deletedSectionID, from: multiSectionTopic))
+        DirectoryEditorDeletion.deleteSection(deletedSectionID, from: &multiSectionTopic)
+        #expect(multiSectionTopic.sections.allSatisfy { $0.id != deletedSectionID })
+    }
+
     @Test func editorAddsCategoriesToChosenBlockAndMovesRowsByVisiblePosition() throws {
         let categories = DirectoryCatalog.categories.map(DirectoryManagedCategory.bundled)
         for placement in DirectoryManagedCategory.Placement.allCases {

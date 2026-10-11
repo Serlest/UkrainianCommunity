@@ -4,6 +4,7 @@ struct DirectoryTopicEditorView: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var topic: DirectoryManagedTopic
     let groups: [DirectoryManagedGroup]
+    @State private var pendingSectionID: String?
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
     var body: some View {
@@ -19,7 +20,7 @@ struct DirectoryTopicEditorView: View {
                         Text(group.title.value(for: language)).tag(group.id)
                     }
                 }
-                Toggle(DirectoryEditorText.value("Прибрати статтю з довідника", "Beitrag aus Ratgeber entfernen"),
+                Toggle(DirectoryEditorText.value("Тимчасово приховати статтю", "Beitrag vorübergehend ausblenden"),
                        isOn: $topic.isHidden)
             }
             Section(DirectoryEditorText.value("Блоки інформації", "Informationsabschnitte")) {
@@ -41,9 +42,13 @@ struct DirectoryTopicEditorView: View {
                                     }
                                 }
                             }
-                            DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
-                                              moveUp: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: -1) },
-                                              moveDown: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: 1) })
+                            DirectoryMoveMenu(
+                                canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
+                                moveUp: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: -1) },
+                                moveDown: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: 1) },
+                                onDelete: DirectoryEditorDeletion.canDeleteSection(id, from: topic)
+                                    ? { pendingSectionID = id } : nil
+                            )
                         }
                     }
                 }
@@ -79,6 +84,17 @@ struct DirectoryTopicEditorView: View {
         }
         .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Стаття", "Beitrag"))
+        .confirmationDialog(
+            DirectoryEditorText.value("Видалити інформаційний блок?", "Informationsabschnitt löschen?"),
+            isPresented: Binding(get: { pendingSectionID != nil },
+                                 set: { if !$0 { pendingSectionID = nil } })
+        ) {
+            Button(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"), role: .destructive) {
+                guard let id = pendingSectionID else { return }
+                DirectoryEditorDeletion.deleteSection(id, from: &topic)
+                pendingSectionID = nil
+            }
+        }
     }
 }
 
@@ -123,6 +139,7 @@ private struct DirectoryRegionEditorView: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var topic: DirectoryManagedTopic
     let state: AustrianFederalState
+    @State private var pendingSectionID: String?
 
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
     private var sections: Binding<[DirectoryManagedSection]> {
@@ -162,7 +179,8 @@ private struct DirectoryRegionEditorView: View {
                             }
                             DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
                                               moveUp: { moveRegionSection(id, by: -1) },
-                                              moveDown: { moveRegionSection(id, by: 1) })
+                                              moveDown: { moveRegionSection(id, by: 1) },
+                                              onDelete: { pendingSectionID = id })
                         }
                     }
                 }
@@ -184,6 +202,19 @@ private struct DirectoryRegionEditorView: View {
         }
         .directoryEditorChrome()
         .navigationTitle(state.displayName)
+        .confirmationDialog(
+            DirectoryEditorText.value("Видалити регіональний блок?", "Regionalen Abschnitt löschen?"),
+            isPresented: Binding(get: { pendingSectionID != nil },
+                                 set: { if !$0 { pendingSectionID = nil } })
+        ) {
+            Button(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"), role: .destructive) {
+                guard let id = pendingSectionID else { return }
+                var current = sections.wrappedValue
+                current.removeAll { $0.id == id }
+                sections.wrappedValue = current
+                pendingSectionID = nil
+            }
+        }
     }
 
     private func moveRegionSection(_ id: String, by offset: Int) {

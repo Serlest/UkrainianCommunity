@@ -10,6 +10,36 @@ import XCTest
 
 final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
+    func testDirectoryOwnerCreatesCategoryInsideChosenBlock() throws {
+        let app = launchOwnerApp(language: "uk")
+        let directoryTab = app.buttons["Довідник"].firstMatch
+        XCTAssertTrue(directoryTab.waitForExistence(timeout: 20))
+        directoryTab.tap()
+
+        let manage = element("directory.manage", in: app)
+        scrollToElement(manage, in: app, maxSwipes: 10)
+        XCTAssertTrue(manage.waitForExistence(timeout: 10))
+        manage.tap()
+
+        let add = element("directory.category.add.start", in: app)
+        scrollToElement(add, in: app, maxSwipes: 10)
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(
+            format: "label CONTAINS %@", "Початок в Австрії"
+        )).firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons.matching(NSPredicate(
+            format: "label CONTAINS %@", "Іконка категорії"
+        )).firstMatch.exists)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "Порядок:"
+        )).firstMatch.exists)
+        XCTAssertFalse(app.textFields["Системна іконка"].exists)
+        attachScreenshot(named: "directory-category-editor-ukrainian", from: app)
+    }
+
+    @MainActor
     func testNewsBrowseUkrainianPeriodAndTopicNavigation() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]

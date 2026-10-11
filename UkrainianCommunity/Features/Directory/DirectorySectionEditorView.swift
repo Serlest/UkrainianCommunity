@@ -23,7 +23,7 @@ struct DirectorySectionEditorView: View {
                     Label(DirectoryEditorText.value("Іконка блока", "Symbol des Abschnitts"),
                           systemImage: section.symbol)
                 }
-                Toggle(DirectoryEditorText.value("Прибрати блок з довідника", "Abschnitt aus Ratgeber entfernen"),
+                Toggle(DirectoryEditorText.value("Тимчасово приховати блок", "Abschnitt vorübergehend ausblenden"),
                        isOn: $section.isHidden)
             }
             Section(DirectoryEditorText.value("Офіційне джерело", "Amtliche Quelle")) {

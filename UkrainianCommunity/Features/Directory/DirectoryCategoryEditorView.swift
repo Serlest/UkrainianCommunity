@@ -2,7 +2,10 @@ import FirebaseFunctions
 import SwiftUI
 
 struct DirectoryCategoryEditorView: View {
-    private enum Confirmation { case publish, discard }
+    private enum Confirmation: Equatable {
+        case publish, discard, deleteCategory
+        case deleteGroup(String), deleteTopic(String)
+    }
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @EnvironmentObject private var contentStore: DirectoryContentStore
     @EnvironmentObject private var authState: AuthState
@@ -35,149 +38,18 @@ struct DirectoryCategoryEditorView: View {
         _draft = State(initialValue: initial)
     }
 
-    private var categoryForm: some View {
-        Form {
-            Section {
-                Text(DirectoryEditorText.value(
-                    "Зміни з’являться для всіх після публікації. Приховування прибирає матеріал з довідника, але зберігає його для відновлення.",
-                    "Änderungen erscheinen nach Veröffentlichung für alle. Ausblenden entfernt Inhalte aus dem Ratgeber, bewahrt sie aber zur Wiederherstellung."
-                ))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                if expectedRevision == 0 && original.title.ukrainian.isEmpty {
-                    Text(DirectoryEditorText.value(
-                        "Перед публікацією додайте статтю, інформаційний блок і офіційне джерело обома мовами.",
-                        "Fügen Sie vor der Veröffentlichung einen Beitrag, einen Informationsabschnitt und eine amtliche Quelle in beiden Sprachen hinzu."
-                    ))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                }
-            }
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Назва категорії", "Name des Bereichs"),
-                                     text: $draft.title)
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Короткий опис", "Kurzbeschreibung"),
-                                     text: $draft.summary)
-            Section {
-                LabeledContent(DirectoryEditorText.value("Блок", "Block"),
-                               value: placementTitle(draft.placement))
-                if !isNewCategory {
-                    Menu {
-                        ForEach(DirectoryManagedCategory.Placement.allCases, id: \.self) { placement in
-                            Button(placementTitle(placement)) {
-                                guard placement != draft.placement else { return }
-                                draft.placement = placement
-                                draft.order = DirectoryEditorOrdering.nextOrder(
-                                    in: placement, categories: contentStore.allManagedCategories)
-                            }
-                        }
-                    } label: {
-                        Label(DirectoryEditorText.value("Перемістити в інший блок", "In anderen Block verschieben"),
-                              systemImage: "rectangle.2.swap")
-                    }
-                }
-                NavigationLink {
-                    DirectorySymbolPicker(selection: $draft.symbol)
-                } label: {
-                    Label(DirectoryEditorText.value("Іконка категорії", "Symbol des Bereichs"),
-                          systemImage: draft.symbol)
-                }
-                Toggle(DirectoryEditorText.value("Прибрати категорію з довідника", "Bereich aus Ratgeber entfernen"),
-                       isOn: $draft.isHidden)
-            } header: {
-                Text(DirectoryEditorText.value("На головному екрані", "Auf der Startseite"))
-            } footer: {
-                Text(isNewCategory
-                     ? DirectoryEditorText.value("Після публікації категорія з’явиться наприкінці цього блока.",
-                                                 "Nach der Veröffentlichung erscheint der Bereich am Ende dieses Blocks.")
-                     : DirectoryEditorText.value("Переміщення в інший блок також опублікується разом із вашими змінами.",
-                                                 "Der Wechsel in einen anderen Block wird mit Ihren Änderungen veröffentlicht."))
-            }
-            Section(DirectoryEditorText.value("Підкатегорії", "Unterbereiche")) {
-                let ids = DirectoryEditorOrdering.groupIDs(draft.groups)
-                ForEach(ids, id: \.self) { id in
-                    if let index = draft.groups.firstIndex(where: { $0.id == id }),
-                       let rank = ids.firstIndex(of: id) {
-                        HStack {
-                            NavigationLink {
-                                DirectoryGroupEditorView(group: $draft.groups[index])
-                            } label: {
-                                Text(draft.groups[index].title.value(for: language).isEmpty
-                                     ? DirectoryEditorText.value("Нова підкатегорія", "Neuer Unterbereich")
-                                     : draft.groups[index].title.value(for: language))
-                            }
-                            DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
-                                              moveUp: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: id, by: -1) },
-                                              moveDown: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: id, by: 1) })
-                        }
-                    }
-                }
-                Button {
-                    draft.groups.append(.init(
-                        id: "group-" + UUID().uuidString.lowercased(),
-                        title: .init(ukrainian: "", german: ""),
-                        order: min(1000, (draft.groups.map(\.order).max() ?? -1) + 1), isHidden: false
-                    ))
-                } label: {
-                    Label(DirectoryEditorText.value("Додати підкатегорію", "Unterbereich hinzufügen"),
-                          systemImage: "plus")
-                }
-            }
-            ForEach(DirectoryEditorOrdering.groupIDs(draft.groups), id: \.self) { groupID in
-                if let group = draft.groups.first(where: { $0.id == groupID }) {
-                    Section(group.title.value(for: language).isEmpty
-                            ? DirectoryEditorText.value("Нова підкатегорія", "Neuer Unterbereich")
-                            : group.title.value(for: language)) {
-                        let ids = DirectoryEditorOrdering.topicIDs(draft.topics, groupID: groupID)
-                        ForEach(ids, id: \.self) { id in
-                            if let index = draft.topics.firstIndex(where: { $0.id == id }),
-                               let rank = ids.firstIndex(of: id) {
-                                HStack {
-                                    NavigationLink {
-                                        DirectoryTopicEditorView(topic: $draft.topics[index], groups: draft.groups)
-                                    } label: {
-                                        VStack(alignment: .leading) {
-                                            Text(draft.topics[index].title.value(for: language).isEmpty
-                                                 ? DirectoryEditorText.value("Нова стаття", "Neuer Beitrag")
-                                                 : draft.topics[index].title.value(for: language))
-                                            if draft.topics[index].isHidden {
-                                                Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
-                                                    .font(.caption).foregroundStyle(.secondary)
-                                            }
-                                        }
-                                    }
-                                    DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
-                                                      moveUp: { DirectoryEditorOrdering.moveTopic(&draft.topics, id: id, groupID: groupID, by: -1) },
-                                                      moveDown: { DirectoryEditorOrdering.moveTopic(&draft.topics, id: id, groupID: groupID, by: 1) })
-                                }
-                            }
-                        }
-                        Button {
-                            let nextOrder = min(1000, (draft.topics.filter { $0.groupID == groupID }
-                                .map(\.order).max() ?? -1) + 1)
-                            draft.topics.append(.init(
-                                id: "topic-" + UUID().uuidString.lowercased(),
-                                groupID: groupID, order: nextOrder, isHidden: false,
-                                title: .init(ukrainian: "", german: ""),
-                                summary: .init(ukrainian: "", german: ""),
-                                sections: [], sources: [], regionalSections: [:]
-                            ))
-                        } label: {
-                            Label(DirectoryEditorText.value("Додати статтю сюди", "Beitrag hier hinzufügen"),
-                                  systemImage: "plus")
-                        }
-                    }
-                }
-            }
-        }
-        .directoryEditorChrome()
-    }
-
     var body: some View {
         Group {
             if let focusTopicID, let index = draft.topics.firstIndex(where: { $0.id == focusTopicID }) {
                 DirectoryTopicEditorView(topic: $draft.topics[index], groups: draft.groups)
             } else {
-                categoryForm
+                DirectoryCategoryFormView(
+                    draft: $draft, isNewCategory: isNewCategory, expectedRevision: expectedRevision,
+                    isSaving: isSaving,
+                    onDeleteCategory: { confirmation = .deleteCategory },
+                    onDeleteGroup: { confirmation = .deleteGroup($0) },
+                    onDeleteTopic: { confirmation = .deleteTopic($0) }
+                )
             }
         }
         .navigationBarBackButtonHidden()
@@ -210,24 +82,41 @@ struct DirectoryCategoryEditorView: View {
             }
         }
         .confirmationDialog(
-            confirmation == .publish
-                ? DirectoryEditorText.value("Опублікувати для всіх читачів?", "Für alle Leser veröffentlichen?")
-                : DirectoryEditorText.value("Вийти без збереження змін?", "Änderungen verwerfen?"),
+            confirmationTitle,
             isPresented: Binding(
                 get: { confirmation != nil },
                 set: { if !$0 { confirmation = nil } }
             )
         ) {
-            if confirmation == .publish {
+            switch confirmation {
+            case .publish:
                 Button(DirectoryEditorText.value("Опублікувати", "Veröffentlichen")) {
                     confirmation = nil
                     Task { await save() }
                 }
-            } else {
+            case .discard:
                 Button(DirectoryEditorText.value("Відкинути зміни", "Änderungen verwerfen"), role: .destructive) {
                     confirmation = nil
                     dismiss()
                 }
+            case .deleteCategory:
+                Button(DirectoryEditorText.value("Видалити категорію", "Bereich löschen"), role: .destructive) {
+                    confirmation = nil
+                    Task { await deleteCategory() }
+                }
+            case let .deleteGroup(id):
+                Button(DirectoryEditorText.value("Видалити підкатегорію зі статтями", "Unterbereich mit Beiträgen löschen"),
+                       role: .destructive) {
+                    confirmation = nil
+                    DirectoryEditorDeletion.deleteGroup(id, from: &draft)
+                }
+            case let .deleteTopic(id):
+                Button(DirectoryEditorText.value("Видалити статтю", "Beitrag löschen"), role: .destructive) {
+                    confirmation = nil
+                    DirectoryEditorDeletion.deleteTopic(id, from: &draft)
+                }
+            case nil:
+                EmptyView()
             }
         }
         .alert(DirectoryEditorText.value("Не вдалося зберегти", "Speichern fehlgeschlagen"),
@@ -246,42 +135,55 @@ struct DirectoryCategoryEditorView: View {
             try await contentStore.save(draft, expectedRevision: expectedRevision, actorID: actorID)
             dismiss()
         } catch {
-            let firebaseError = error as NSError
-            if firebaseError.domain == FunctionsErrorDomain,
-               firebaseError.code == FunctionsErrorCode.aborted.rawValue {
-                errorMessage = DirectoryManagedValidation.Failure.conflict.localizedDescription
-            } else if firebaseError.domain == FunctionsErrorDomain,
-                      firebaseError.code == FunctionsErrorCode.permissionDenied.rawValue {
-                errorMessage = DirectoryManagedValidation.Failure.permissionDenied.localizedDescription
-            } else {
-                errorMessage = error.localizedDescription
-            }
+            errorMessage = message(for: error)
         }
     }
 
-    private func placementTitle(_ placement: DirectoryManagedCategory.Placement) -> String {
-        switch placement {
-        case .start: DirectoryStrings.startHeading
-        case .life: DirectoryStrings.lifeHeading
-        case .support: DirectoryStrings.supportHeading
+    private var confirmationTitle: String {
+        switch confirmation {
+        case .publish:
+            DirectoryEditorText.value("Опублікувати для всіх читачів?", "Für alle Leser veröffentlichen?")
+        case .discard:
+            DirectoryEditorText.value("Вийти без збереження змін?", "Änderungen verwerfen?")
+        case .deleteCategory:
+            DirectoryEditorText.value("Видалити категорію для всіх читачів?",
+                                      "Bereich für alle Leser löschen?")
+        case .deleteGroup:
+            DirectoryEditorText.value("Видалити підкатегорію разом з усіма її статтями?",
+                                      "Unterbereich mit allen Beiträgen löschen?")
+        case .deleteTopic:
+            DirectoryEditorText.value("Видалити статтю для всіх читачів після публікації?",
+                                      "Beitrag nach Veröffentlichung für alle Leser löschen?")
+        case nil:
+            ""
         }
     }
-}
 
-private struct DirectoryGroupEditorView: View {
-    @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
-    @Binding var group: DirectoryManagedGroup
-
-    var body: some View {
-        Form {
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Назва підкатегорії", "Name des Unterbereichs"),
-                                     text: $group.title)
-            Section {
-                Toggle(DirectoryEditorText.value("Прибрати підкатегорію з довідника", "Unterbereich aus Ratgeber entfernen"),
-                       isOn: $group.isHidden)
-            }
+    private func deleteCategory() async {
+        guard let actorID = authState.user?.id else { return }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            try await contentStore.deleteCustomCategory(draft.id, expectedRevision: expectedRevision,
+                                                        actorID: actorID)
+            dismiss()
+        } catch {
+            errorMessage = message(for: error)
         }
-        .directoryEditorChrome()
-        .navigationTitle(DirectoryEditorText.value("Підкатегорія", "Unterbereich"))
     }
+
+    private func message(for error: Error) -> String {
+        let firebaseError = error as NSError
+        if firebaseError.domain == FunctionsErrorDomain,
+           (firebaseError.code == FunctionsErrorCode.aborted.rawValue ||
+            firebaseError.code == FunctionsErrorCode.failedPrecondition.rawValue) {
+            return DirectoryManagedValidation.Failure.conflict.localizedDescription
+        }
+        if firebaseError.domain == FunctionsErrorDomain,
+           firebaseError.code == FunctionsErrorCode.permissionDenied.rawValue {
+            return DirectoryManagedValidation.Failure.permissionDenied.localizedDescription
+        }
+        return error.localizedDescription
+    }
+
 }

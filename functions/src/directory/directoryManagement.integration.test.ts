@@ -1,15 +1,16 @@
 import {strict as assert} from "node:assert";
+import {randomUUID} from "node:crypto";
 import {test} from "node:test";
 
 import {db} from "../firebase/admin";
-import {saveDirectoryCategory} from "./directoryManagement";
+import {deleteDirectoryCategory, saveDirectoryCategory} from "./directoryManagement";
 
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const prefix = `directory-management-${Date.now()}`;
 const uid = (role: string) => `${prefix}-${role}`;
 const categoryId = `${prefix}-category`;
-const payload = (title: string) => JSON.stringify({
-  id: categoryId,
+const payload = (title: string, id = categoryId) => JSON.stringify({
+  id,
   placement: "start",
   order: 1,
   isHidden: false,
@@ -32,10 +33,18 @@ const payload = (title: string) => JSON.stringify({
   }],
 });
 
-function request(actor: string, content: string, expectedRevision: number, verified = true) {
+function request(actor: string, content: string, expectedRevision: number, verified = true,
+  id = categoryId) {
   return {
     auth: {uid: uid(actor), token: {email_verified: verified}},
-    data: {categoryId, payload: content, expectedRevision},
+    data: {categoryId: id, payload: content, expectedRevision},
+  } as never;
+}
+
+function deleteRequest(actor: string, id: string, expectedRevision: number) {
+  return {
+    auth: {uid: uid(actor), token: {email_verified: true}},
+    data: {categoryId: id, expectedRevision},
   } as never;
 }
 
@@ -94,3 +103,38 @@ test("directory publishing enforces grants, revisions, validation and history", 
     }
   }
 });
+
+test("directory deletion removes only custom categories with permission and revision checks",
+  {skip: !enabled}, async () => {
+    const id = `custom-${randomUUID()}`;
+    const category = db.collection("directoryCategories").doc(id);
+    try {
+      await db.collection("users").doc(uid("owner")).set({
+        globalRole: "owner", accountStatus: "active", blockState: "active",
+      });
+      await db.collection("users").doc(uid("reader")).set({
+        globalRole: "user", accountStatus: "active", blockState: "active",
+      });
+      await saveDirectoryCategory.run(request("owner", payload("Custom", id), 0, true, id));
+      await assert.rejects(deleteDirectoryCategory.run(deleteRequest("reader", id, 1)),
+        {code: "permission-denied"});
+      await assert.rejects(deleteDirectoryCategory.run(deleteRequest("owner", id, 0)),
+        {code: "invalid-argument"});
+      await assert.rejects(deleteDirectoryCategory.run(deleteRequest("owner", id, 2)),
+        {code: "aborted"});
+      await assert.rejects(deleteDirectoryCategory.run(deleteRequest("owner", categoryId, 3)),
+        {code: "invalid-argument"});
+      const deleted = await deleteDirectoryCategory.run(deleteRequest("owner", id, 1));
+      assert.equal(deleted.revision, 2);
+      assert.equal((await category.get()).data()?.isDeleted, true);
+      assert.equal((await category.get()).data()?.payload, undefined);
+      assert.equal((await category.collection("versions").doc("2").get()).data()?.action, "deleted");
+      await assert.rejects(saveDirectoryCategory.run(request("owner", payload("Revived", id), 2,
+        true, id)), {code: "failed-precondition"});
+    } finally {
+      await db.recursiveDelete(category);
+      for (const actor of ["owner", "reader"]) {
+        await db.recursiveDelete(db.collection("users").doc(uid(actor)));
+      }
+    }
+  });

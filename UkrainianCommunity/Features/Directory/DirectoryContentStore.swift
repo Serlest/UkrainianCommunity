@@ -23,6 +23,7 @@ final class DirectoryContentStore: ObservableObject {
     @Published private(set) var published: [String: PublishedCategory] = [:]
     @Published private(set) var isEditor = false
     @Published private(set) var loadError: String?
+    private var deletedCategoryIDs: Set<String> = []
 
     private let db = Firestore.firestore()
     private var contentListener: ListenerRegistration?
@@ -149,6 +150,11 @@ final class DirectoryContentStore: ObservableObject {
                     guard let snapshot else { return }
                     var decoded: [String: PublishedCategory] = [:]
                     for document in snapshot.documents {
+                        if document.data()["isDeleted"] as? Bool == true {
+                            self.deletedCategoryIDs.insert(document.documentID)
+                            continue
+                        }
+                        guard !self.deletedCategoryIDs.contains(document.documentID) else { continue }
                         guard let data = document.data()["payload"] as? String,
                               let revision = document.data()["revision"] as? Int,
                               let raw = data.data(using: .utf8),
@@ -162,6 +168,7 @@ final class DirectoryContentStore: ObservableObject {
                     // A cached query can arrive just after a successful callable save.
                     // Keep the acknowledged revision until Firestore delivers that revision.
                     for (id, current) in self.published where
+                        !self.deletedCategoryIDs.contains(id) &&
                         current.revision > (decoded[id]?.revision ?? -1) {
                         decoded[id] = current
                     }
@@ -191,6 +198,23 @@ final class DirectoryContentStore: ObservableObject {
                 content: category, revision: nextRevision, updatedAt: Date()
             )
         }
+    }
+
+    func deleteCustomCategory(_ id: String, expectedRevision: Int, actorID: String) async throws {
+        guard canEdit, observedUserID == actorID else { throw AppError.permissionDenied }
+        guard id.hasPrefix("custom-"), expectedRevision > 0 else {
+            throw DirectoryManagedValidation.Failure.invalidContent
+        }
+        let response = try await Functions.functions(region: "europe-west3")
+            .httpsCallable("deleteDirectoryCategory")
+            .call(["categoryId": id, "expectedRevision": expectedRevision])
+        guard let result = response.data as? [String: Any],
+              result["categoryId"] as? String == id,
+              result["revision"] as? Int == expectedRevision + 1 else {
+            throw AppError.validationFailed
+        }
+        deletedCategoryIDs.insert(id)
+        published.removeValue(forKey: id)
     }
 
     private func categories(in placement: DirectoryManagedCategory.Placement) -> [DirectoryCategory] {
