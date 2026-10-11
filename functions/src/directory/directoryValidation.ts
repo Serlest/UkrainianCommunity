@@ -187,14 +187,14 @@ export function validateDirectoryCategoryPayload(payload: string, categoryId: st
       return {id: sectionId, hidden: section.isHidden === true};
     });
     unique(sections.map((item) => item.id), "sections");
-    if (topic.isHidden !== true &&
-        (!activeGroups.has(groupID) || sections.every((item) => item.hidden))) {
-      invalid("Visible topic requires a visible group and section.");
+    if (topic.isHidden !== true && activeGroups.has(groupID) &&
+        sections.every((item) => item.hidden)) {
+      invalid("Visible topic requires a visible section.");
     }
     return {id: topicId, hidden: topic.isHidden === true};
   });
   unique(topics.map((item) => item.id), "topics");
-  if (category.isHidden !== true && topics.every((item) => item.hidden)) {
-    invalid("Visible category requires a visible topic.");
+  if (category.isHidden !== true && topics.length === 0) {
+    invalid("New visible category requires a topic.");
   }
 }

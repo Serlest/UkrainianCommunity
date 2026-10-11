@@ -48,13 +48,13 @@ enum DirectoryManagedValidation {
             for section in topic.sections {
                 try validateSection(section, inheritedSources: topic.sources)
             }
-            if !topic.isHidden && (!visibleGroupIDs.contains(topic.groupID) ||
-                                   topic.sections.allSatisfy(\.isHidden) ||
+            if !topic.isHidden && visibleGroupIDs.contains(topic.groupID) &&
+                (topic.sections.allSatisfy(\.isHidden) ||
                                    topic.summary.ukrainian.isEmpty || topic.summary.german.isEmpty) {
                 throw Failure.invalidContent
             }
         }
-        if !category.isHidden && category.topics.allSatisfy(\.isHidden) {
+        if !category.isHidden && category.topics.isEmpty {
             throw Failure.invalidContent
         }
         let data = try JSONEncoder().encode(category)

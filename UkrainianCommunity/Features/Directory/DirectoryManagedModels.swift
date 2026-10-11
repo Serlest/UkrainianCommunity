@@ -19,15 +19,20 @@ struct DirectoryManagedCategory: Codable, Identifiable, Equatable {
 
     var visibleCategory: DirectoryCategory? {
         guard !isHidden else { return nil }
+        let visibleGroups = Set(groups.filter { !$0.isHidden }.map(\.id))
+        let visibleTopics = topics.filter { !$0.isHidden && visibleGroups.contains($0.groupID) }
+            .sorted { $0.order < $1.order }
+        guard !visibleTopics.isEmpty else { return nil }
         return DirectoryCategory(
             id: id, title: title, summary: summary, symbol: symbol,
-            topics: topics.filter { !$0.isHidden }.sorted { $0.order < $1.order }
-                .map { DirectoryTopic(id: $0.id, title: $0.title) }
+            topics: visibleTopics.map { DirectoryTopic(id: $0.id, title: $0.title) }
         )
     }
 
     func topic(_ id: String) -> DirectoryManagedTopic? {
-        topics.first { $0.id == id && !$0.isHidden }
+        topics.first { topic in
+            topic.id == id && !topic.isHidden && groups.contains { $0.id == topic.groupID && !$0.isHidden }
+        }
     }
 
     static func bundled(_ category: DirectoryCategory) -> Self {

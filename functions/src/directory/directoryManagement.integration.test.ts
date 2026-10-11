@@ -76,7 +76,11 @@ test("directory publishing enforces grants, revisions, validation and history", 
     await db.collection("directoryEditors").doc(uid("editor")).delete();
     await assert.rejects(saveDirectoryCategory.run(request("editor", payload("Revoked"), 2)),
       {code: "permission-denied"});
-    assert.equal((await category.get()).data()?.revision, 2);
+    const hiddenGroup = JSON.parse(payload("Hidden group"));
+    hiddenGroup.groups[0].isHidden = true;
+    const third = await saveDirectoryCategory.run(request("owner", JSON.stringify(hiddenGroup), 2));
+    assert.equal(third.revision, 3);
+    assert.equal((await category.get()).data()?.revision, 3);
   } finally {
     await db.recursiveDelete(category);
     for (const actor of actors) {

@@ -37,6 +37,12 @@ struct DirectoryCatalogTests {
         _ = try DirectoryManagedValidation.validate(managed)
         managed.topics[0].isHidden = false
         #expect(try #require(managed.visibleCategory).topics.count == visibleCount)
+        let firstGroupID = managed.topics[0].groupID
+        let groupIndex = try #require(managed.groups.firstIndex { $0.id == firstGroupID })
+        managed.groups[groupIndex].isHidden = true
+        #expect(managed.visibleCategory?.topics.contains { $0.id == managed.topics[0].id } == false)
+        _ = try DirectoryManagedValidation.validate(managed)
+        managed.groups[groupIndex].isHidden = false
         managed.isHidden = true
         #expect(managed.visibleCategory == nil)
         _ = try DirectoryManagedValidation.validate(managed)
