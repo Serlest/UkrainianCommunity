@@ -20,7 +20,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>UAC</string>
 	<key>UACAppleSignInEnabled</key>
-	<false/>
+	<true/>
 	<key>UACGoogleSignInEnabled</key>
 	<true/>
 	<key>CFBundleInfoDictionaryVersion</key>
