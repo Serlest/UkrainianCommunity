@@ -410,6 +410,24 @@ struct DirectoryCatalogTests {
         #expect(FinanceGuides.guide(for: "pension")?.sections.contains { $0.id == "ukrainian-pension" } == true)
     }
 
+    @Test func socialSupportGuidesSeparateEligibilityFamilyGrundversorgungAndEmergencyHelp() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "social-support" }?.topics ?? []
+        #expect(topics.map(\.id) == ["benefits", "family-benefits", "basic-support", "aid-organizations"])
+        for topic in topics {
+            guard let guide = SocialSupportGuides.guide(for: topic.id) else {
+                Issue.record("Missing social support guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        #expect(SocialSupportGuides.guide(for: "family-benefits")?.sections.contains { $0.id == "new-law" } == true)
+        #expect(SocialSupportGuides.guide(for: "basic-support")?.sections.contains { $0.id == "move" } == true)
+        #expect(SocialSupportGuides.guide(for: "aid-organizations")?.sections.contains { $0.id == "housing-crisis" } == true)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
