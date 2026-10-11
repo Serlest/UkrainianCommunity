@@ -350,6 +350,24 @@ struct DirectoryCatalogTests {
         #expect(language.contains("choice") && language.contains("certificate"))
     }
 
+    @Test func familyGuidesSeparateChildcareCounselingAndProtection() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "family" }?.topics ?? []
+        #expect(topics.count == 3)
+        for topic in topics {
+            guard let guide = FamilyGuides.guide(for: topic.id) else {
+                Issue.record("Missing family guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        #expect(FamilyGuides.guide(for: "childcare")?.sections.contains { $0.id == "ams" } == true)
+        #expect(FamilyGuides.guide(for: "parenting")?.sections.contains { $0.id == "child" } == true)
+        #expect(FamilyGuides.guide(for: "family-services")?.sections.contains { $0.id == "court-help" } == true)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
