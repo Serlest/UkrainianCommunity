@@ -4,7 +4,7 @@ Latest candidate (2026-09-09): **1.1 (82)**, source `0538963`, same application 
 
 Historical archive and authenticated App Privacy UI verification: 2026-09-02, version 1.0.1 (65). The 30 archive privacy manifests are unchanged from build 64. See `Docs/PrivacyPublication-2026-09-02.md`, `Docs/Build65ReleaseReadiness-2026-09-02.md` and the ignored release evidence `build65-privacy-readback.md`.
 
-Current candidate: 1.0.3 (69). Shared Simulator checks and a local Apple Development-signed device Release archive passed. See [release evidence](ReleaseEvidence-1.0.3.json) and [remaining gates](ReleaseGates-1.0.3.json). The final archive contains 30 privacy manifests and 14 collected-data categories; every manifest matches retained build68 byte-for-byte. First-party UserDefaults CA92.1 and SDK required reasons are unchanged. This is archive packaging evidence, not authenticated App Privacy answers, distribution export or physical-device behavior. Privacy2026.13 is published in Firestore/Hosting with read-back. Apple questionnaire login remains blocked.
+Historical candidate: 1.0.3 (69). Shared Simulator checks and a local Apple Development-signed device Release archive passed. See [release evidence](ReleaseEvidence-1.0.3.json) and [remaining gates](ReleaseGates-1.0.3.json). The final archive contains 30 privacy manifests and 14 collected-data categories; every manifest matches retained build68 byte-for-byte. First-party UserDefaults CA92.1 and SDK required reasons are unchanged. This is archive packaging evidence, not authenticated App Privacy answers, distribution export or physical-device behavior. Privacy 2026.15 and Terms 2026.11 were published in Firestore and Hosting with read-back on 2026-10-11. The App Store privacy questionnaire was not reread for the new sign-in flow.
 
 ## Tracking
 
@@ -71,6 +71,10 @@ The new private collection `users/{uid}/blockedOrganizations/{organizationId}` s
 ## Local Face ID / Touch ID protection
 
 `AppLockService` uses Apple's `LocalAuthentication` and permits device-passcode fallback. It protects an existing Firebase session whether the user signed in with email and password, Apple or Google; it does not replace those sign-in methods. The app receives an authentication result, never a face template, fingerprint or device passcode. Only a per-account local preference under a hashed UID is stored. No biometric data is uploaded, so Face ID alone does not add Sensitive Info to the App Store label. Registration choice is optional/off by default and Profile retains enable/disable controls.
+
+## Apple and Google sign-in
+
+The iOS client sends Apple identity credentials or Google sign-in tokens to Firebase Authentication. Firebase exposes the provider identity and available account profile fields, including email, name and possibly a profile photo. The registration flow still requires a chosen display name and federal state. These map to the already listed Email Address, Name, Photos or Videos and User ID categories; the provider flow does not by itself introduce advertising tracking. Recheck the signed archive privacy report and authenticated App Store Connect answers before distributing a new build.
 
 ## SDK diagnostics and optional analytics are different
 

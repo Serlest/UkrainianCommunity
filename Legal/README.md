@@ -5,9 +5,10 @@ its public website. The German text is the canonical legal text; the Ukrainian
 text is the user-facing translation. Neither language may be published
 independently.
 
-Current source versions: Terms `2026.11`, Privacy `2026.15`, and Organization Rules
-`2026.10`. Terms and Privacy are effective 11 October 2026. Verify Firebase
-active pointers and public pages before treating a source version as live.
+Current published versions: Terms `2026.11`, Privacy `2026.15`, and Organization
+Rules `2026.10`. Terms and Privacy are effective 11 October 2026. Firebase active
+pointers and both public pages were read back after publication. Recheck them
+before any later release.
 
 The operator identity, address and retention choices are filled. The public
 notice-and-action and appeal workflow is implemented. Any future `{{...}}`

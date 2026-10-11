@@ -109,7 +109,9 @@ def inventory(transport, version):
             break
         require(token not in seen and len(seen) < 100, "Unexpected file pagination")
         seen.add(token)
-    require(len(files) == int(metadata["fileCount"]) and SELECTED in files, "Incomplete Hosting filemap")
+    # Newly finalized versions can omit fileCount even though the files API is complete.
+    require(len(files) == int(metadata.get("fileCount", len(files))) and SELECTED in files,
+            "Incomplete Hosting filemap")
     return {"config": metadata["config"], "files": dict(sorted(files.items()))}
 
 

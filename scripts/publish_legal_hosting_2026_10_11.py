@@ -141,17 +141,37 @@ def apply(transport, plan, pages, state_path):
     return result
 
 
+def resume_finalized(transport, plan, state, state_path):
+    require(state["phase"] == "finalize-intent", "Candidate is not at the finalized checkpoint")
+    candidate = state["candidateVersion"]
+    hosting.validate_version(candidate)
+    require(hosting.inventory(transport, candidate)
+            == {"config": plan["config"], "files": plan["afterFiles"]}, "Finalized candidate differs")
+    guard(transport, plan)
+    hosting.journal(state_path, state, "release-intent")
+    try:
+        transport.api("POST", hosting.LIVE + "/releases?" + urlencode({"versionName": candidate}),
+                      {"message": "Terms 2026.11 and Privacy 2026.15: two legal pages only"})
+    except Exception:
+        hosting.journal(state_path, state, "release-response-uncertain")
+        raise ValueError("Release response uncertain; use --verify, never repeat release.") from None
+    result = verify(transport, plan, state)
+    hosting.journal(state_path, state, "verified", publishedRelease=result["release"])
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--apply", action="store_true")
     mode.add_argument("--verify", action="store_true")
+    mode.add_argument("--resume-finalized", action="store_true")
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--state", type=Path)
     parser.add_argument("--control", type=Path, default=legal.common.CONTROL)
     args = parser.parse_args()
     transport = hosting.Transport(args.control)
-    if not args.apply and not args.verify:
+    if not args.apply and not args.verify and not args.resume_finalized:
         plan = prepare(transport, local_payload())
         hosting.save_new(args.plan, plan)
         print(json.dumps({"result": "dry-run-no-writes", "plan": str(args.plan),
@@ -165,7 +185,7 @@ def main():
     else:
         state = json.loads(args.state.read_text())
         require(state["planHash"] == legal.digest(plan), "State does not belong to plan")
-        result = verify(transport, plan, state)
+        result = resume_finalized(transport, plan, state, args.state) if args.resume_finalized else verify(transport, plan, state)
     print(json.dumps(result, indent=2))
 
 
