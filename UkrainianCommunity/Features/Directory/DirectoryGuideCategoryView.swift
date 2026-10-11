@@ -1,10 +1,11 @@
 import SwiftUI
 
 struct DirectoryGuideCategoryView: View {
+    @EnvironmentObject private var contentStore: DirectoryContentStore
     let category: DirectoryCategory
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
-    private var groups: [DirectoryTopicGroup] { DirectoryTopicGroups.forCategory(category) }
+    private var groups: [DirectoryTopicGroup] { contentStore.groups(for: category) }
 
     var body: some View {
         ScrollView {
@@ -43,6 +44,15 @@ struct DirectoryGuideCategoryView: View {
         .background(AppBackgroundView())
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if contentStore.canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: DirectoryRoute.edit(category.id)) {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
+        }
     }
 
     private var emergencyCard: some View {
@@ -96,10 +106,12 @@ struct DirectoryGuideCategoryView: View {
 
     private func topicLink(_ topic: DirectoryTopic) -> some View {
         let guide = DirectoryGuideCatalog.guide(categoryID: category.id, topicID: topic.id)
+        let managed = contentStore.managedTopic(categoryID: category.id, topicID: topic.id)
         let safetyGuide = DirectorySafetyContent.guides[topic.id]
         return NavigationLink(value: DirectoryRoute.topic(categoryID: category.id, topicID: topic.id)) {
             HStack(spacing: 12) {
-                Image(systemName: guide?.sections.first?.symbol ?? safetyGuide?.sections.first?.symbol ?? category.symbol)
+                Image(systemName: managed?.sections.first(where: { !$0.isHidden })?.symbol
+                      ?? guide?.sections.first?.symbol ?? safetyGuide?.sections.first?.symbol ?? category.symbol)
                     .font(.body)
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: 24)
@@ -129,7 +141,7 @@ struct DirectoryGuideCategoryView: View {
                 .foregroundStyle(AppTheme.textPrimary)
             AppGlassCard(padding: 0, spacing: 0) {
                 ForEach(Array(["registration", "housing", "social-support", "insurance", "education", "work"].enumerated()), id: \.element) { index, id in
-                    if let destination = DirectoryCatalog.categories.first(where: { $0.id == id }) {
+                    if let destination = contentStore.categories.first(where: { $0.id == id }) {
                         if index > 0 { Divider().padding(.leading, 56) }
                         NavigationLink(value: DirectoryRoute.category(id)) {
                             HStack(spacing: 12) {

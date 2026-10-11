@@ -14,13 +14,17 @@ struct DirectorySearchMatch: Identifiable {
 }
 
 enum DirectorySearchIndex {
-    static func search(_ rawQuery: String, language: AppLanguage) -> [DirectorySearchMatch] {
+    static func search(
+        _ rawQuery: String, language: AppLanguage,
+        categories: [DirectoryCategory] = DirectoryCatalog.categories,
+        managedTopic: (String, String) -> DirectoryManagedTopic? = { _, _ in nil }
+    ) -> [DirectorySearchMatch] {
         let query = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard query.count >= 2 else { return [] }
 
         var matches: [DirectorySearchMatch] = []
         var order = 0
-        for category in DirectoryCatalog.categories {
+        for category in categories {
             if category.title.value(for: language).compare(query, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame {
                 matches.append(.init(category: category, topic: nil, score: 110, order: order))
                 order += 1
@@ -32,7 +36,13 @@ enum DirectorySearchIndex {
                 let startsWithQuery = title.range(of: query, options: [.anchored, .caseInsensitive, .diacriticInsensitive]) != nil
                 var score = startsWithQuery ? 100 : (title.localizedStandardContains(query) ? 80 : 0)
 
-                if let guide = DirectoryGuideCatalog.guide(categoryID: category.id, topicID: topic.id) {
+                if let managed = managedTopic(category.id, topic.id) {
+                    if managed.sections.contains(where: { !$0.isHidden &&
+                        $0.title.value(for: language).localizedStandardContains(query) }) { score = max(score, 60) }
+                    if managed.summary.value(for: language).localizedStandardContains(query) { score = max(score, 40) }
+                    if managed.sections.contains(where: { !$0.isHidden &&
+                        $0.body.value(for: language).localizedStandardContains(query) }) { score = max(score, 20) }
+                } else if let guide = DirectoryGuideCatalog.guide(categoryID: category.id, topicID: topic.id) {
                     if guide.sections.contains(where: { $0.title.value(for: language).localizedStandardContains(query) }) { score = max(score, 60) }
                     if guide.introduction.value(for: language).localizedStandardContains(query) { score = max(score, 40) }
                     if guide.sections.contains(where: { $0.body.value(for: language).localizedStandardContains(query) }) { score = max(score, 20) }

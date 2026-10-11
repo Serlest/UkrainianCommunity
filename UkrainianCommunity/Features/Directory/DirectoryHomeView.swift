@@ -5,6 +5,7 @@ private let directoryCategoriesID = "directoryCategories"
 
 struct DirectoryHomeView: View {
     @EnvironmentObject private var authState: AuthState
+    @EnvironmentObject private var contentStore: DirectoryContentStore
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var selectedFederalState: AustrianFederalState?
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
@@ -41,7 +42,10 @@ struct DirectoryHomeView: View {
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
     private var query: String { searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var searchMatches: [DirectorySearchMatch] {
-        DirectorySearchIndex.search(query, language: language)
+        DirectorySearchIndex.search(
+            query, language: language, categories: contentStore.categories,
+            managedTopic: { contentStore.managedTopic(categoryID: $0, topicID: $1) }
+        )
     }
 
     var body: some View {
@@ -116,12 +120,23 @@ struct DirectoryHomeView: View {
 
     private var introductoryContent: some View {
         VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
-            Text(DirectoryStrings.categoriesHeading)
-                .font(.title2.bold())
-                .foregroundStyle(AppTheme.textPrimary)
-                .id(directoryCategoriesID)
+            HStack {
+                Text(DirectoryStrings.categoriesHeading)
+                    .font(.title2.bold())
+                    .foregroundStyle(AppTheme.textPrimary)
+                Spacer()
+                if contentStore.canEdit {
+                    NavigationLink(value: DirectoryRoute.manage) {
+                        Label(DirectoryText(ukrainian: "Керувати", german: "Bearbeiten").value(for: language),
+                              systemImage: "square.and.pencil")
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .accessibilityIdentifier("directory.manage")
+                }
+            }
+            .id(directoryCategoriesID)
 
-            if let safety = DirectoryCatalog.categories.first {
+            if let safety = contentStore.startCategories.first(where: { $0.id == "safety" }) {
                 NavigationLink(value: DirectoryRoute.category(safety.id)) {
                     DirectorySafetyCard(category: safety, language: language)
                 }
@@ -129,9 +144,9 @@ struct DirectoryHomeView: View {
                 .accessibilityIdentifier("directory.category.safety")
             }
 
-            categorySection(DirectoryStrings.startHeading, items: Array(DirectoryCatalog.startCategories.dropFirst()))
-            categorySection(DirectoryStrings.lifeHeading, items: DirectoryCatalog.lifeCategories)
-            categorySection(DirectoryStrings.supportHeading, items: DirectoryCatalog.supportCategories)
+            categorySection(DirectoryStrings.startHeading, items: contentStore.startCategories.filter { $0.id != "safety" })
+            categorySection(DirectoryStrings.lifeHeading, items: contentStore.lifeCategories)
+            categorySection(DirectoryStrings.supportHeading, items: contentStore.supportCategories)
             DirectoryFeedbackView(kind: .question(categoryID: nil, title: DirectoryText(ukrainian: "Довідник", german: "Ratgeber").value(for: language)), repository: feedbackRepository)
         }
     }
@@ -182,17 +197,30 @@ struct DirectoryHomeView: View {
 
     @ViewBuilder private func destination(for route: DirectoryRoute) -> some View {
         switch route {
+        case .manage:
+            if contentStore.canEdit { DirectoryManagementView() }
+        case let .edit(categoryID):
+            if contentStore.canEdit, let category = contentStore.category(categoryID) {
+                DirectoryCategoryEditorView(category: category,
+                                            expectedRevision: contentStore.revision(categoryID))
+            }
+        case .create:
+            if contentStore.canEdit { DirectoryCategoryEditorView(category: nil) }
         case let .category(id):
-            if let category = DirectoryCatalog.categories.first(where: { $0.id == id }) {
-                if DirectoryTopicGroups.isComplete(categoryID: id) {
+            if let category = contentStore.categories.first(where: { $0.id == id }) {
+                if contentStore.published[id] != nil || DirectoryTopicGroups.isComplete(categoryID: id) {
                     DirectoryGuideCategoryView(category: category)
                 } else {
                     DirectoryCategoryView(category: category)
                 }
             }
         case let .topic(categoryID, topicID):
-            if let topic = DirectoryCatalog.categories.first(where: { $0.id == categoryID })?.topics.first(where: { $0.id == topicID }) {
-                if categoryID == "safety", let guide = DirectorySafetyContent.guides[topicID] {
+            if let topic = contentStore.categories.first(where: { $0.id == categoryID })?.topics.first(where: { $0.id == topicID }) {
+                if let managed = contentStore.managedTopic(categoryID: categoryID, topicID: topicID) {
+                    DirectoryManagedTopicView(categoryID: categoryID, topic: managed,
+                                              selectedFederalState: $selectedFederalState,
+                                              feedbackRepository: feedbackRepository)
+                } else if categoryID == "safety", let guide = DirectorySafetyContent.guides[topicID] {
                     DirectorySafetyTopicView(topic: topic, guide: guide,
                                              selectedFederalState: $selectedFederalState, feedbackRepository: feedbackRepository)
                 } else if let guide = DirectoryGuideCatalog.guide(categoryID: categoryID, topicID: topicID) {

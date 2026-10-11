@@ -35,6 +35,7 @@ struct ContentView: View {
     @StateObject private var contentReportCoordinator: ContentReportCoordinator
     @StateObject private var userBlockingCoordinator: UserBlockingCoordinator
     @StateObject private var organizationBlockingCoordinator: OrganizationBlockingCoordinator
+    @StateObject private var directoryContentStore = DirectoryContentStore()
     @State private var tabSelectionCoordinator = AppTabSelectionCoordinator()
     @State private var selectedTab: AppTab = .home
     @State private var selectedPublicFederalState: AustrianFederalState?
@@ -113,6 +114,13 @@ struct ContentView: View {
         presentedContent
             .environmentObject(organizationBlockingCoordinator)
             .environmentObject(announcementCoordinator)
+            .environmentObject(directoryContentStore)
+            .task {
+                directoryContentStore.startObserving()
+            }
+            .task(id: directoryAccessKey) {
+                directoryContentStore.configure(user: authState.user)
+            }
             .modifier(AnnouncementLifecycle(coordinator: announcementCoordinator,
                 userID: authState.user?.id, available: authState.isGuest || authState.isAuthenticated,
                 ready: isReadyForUpdatePrompt, feedback: openAnnouncementFeedback))
@@ -132,6 +140,11 @@ struct ContentView: View {
             && !isShowingNotificationInbox && contentReportCoordinator.target == nil
             && userBlockingCoordinator.pendingTarget == nil && organizationBlockingCoordinator.pendingTarget == nil
             && userBlockingCoordinator.errorMessage == nil && notificationRouteErrorMessage == nil
+    }
+
+    private var directoryAccessKey: String {
+        guard let user = authState.user else { return "guest" }
+        return "\(user.id)|\(user.globalRole.rawValue)|\(user.accountStatus.rawValue)|\(user.blockState.rawValue)"
     }
 
     private var baseContent: some View {

@@ -3,6 +3,44 @@ import Testing
 @testable import UkrainianCommunity
 
 struct DirectoryCatalogTests {
+    @Test func bundledDirectoryCanBeOpenedInEditorWithoutLosingExistingContent() throws {
+        #expect(DirectoryCatalog.categories.count == 25)
+        for category in DirectoryCatalog.categories {
+            let managed = DirectoryManagedCategory.bundled(category)
+            #expect(managed.topics.map(\.id) == category.topics.map(\.id), "\(category.id)")
+            #expect(managed.topics.allSatisfy { !$0.sections.isEmpty }, "\(category.id)")
+            _ = try DirectoryManagedValidation.validate(managed)
+        }
+        let safety = try #require(DirectoryManagedCategory.bundled(
+            DirectoryCatalog.categories[0]
+        ).topics.first { $0.id == "emergency" })
+        #expect(safety.sections.contains { !$0.contacts.isEmpty })
+    }
+
+    @Test func directoryEditorRejectsUnsourcedOrIncompletePublication() throws {
+        let base = try #require(DirectoryCatalog.categories.first { $0.id == "seniors" })
+        var managed = DirectoryManagedCategory.bundled(base)
+        managed.topics[0].sources = []
+        managed.topics[0].sections[0].source = nil
+        #expect(throws: DirectoryManagedValidation.Failure.self) {
+            _ = try DirectoryManagedValidation.validate(managed)
+        }
+    }
+
+    @Test func directoryEditorCanHideAndRestorePublishedContent() throws {
+        let base = try #require(DirectoryCatalog.categories.first { $0.id == "safety" })
+        var managed = DirectoryManagedCategory.bundled(base)
+        #expect(managed.topics.contains { !$0.regionalSections.isEmpty })
+        let visibleCount = try #require(managed.visibleCategory).topics.count
+        managed.topics[0].isHidden = true
+        #expect(try #require(managed.visibleCategory).topics.count == visibleCount - 1)
+        _ = try DirectoryManagedValidation.validate(managed)
+        managed.topics[0].isHidden = false
+        #expect(try #require(managed.visibleCategory).topics.count == visibleCount)
+        managed.isHidden = true
+        #expect(managed.visibleCategory == nil)
+        _ = try DirectoryManagedValidation.validate(managed)
+    }
     @Test func articleFormattingKeepsDatesAndNumberedStepsTogether() {
         #expect(DirectoryReadingBlocks.from("Seit 16. Januar 2026 gilt die Regel. Prüfen Sie den Antrag.") == [
             "Seit 16. Januar 2026 gilt die Regel.", "Prüfen Sie den Antrag."

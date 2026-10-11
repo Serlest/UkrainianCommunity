@@ -1,11 +1,15 @@
 import SwiftUI
 
 enum DirectoryRoute: Hashable {
+    case manage
+    case edit(String)
+    case create
     case category(String)
     case topic(categoryID: String, topicID: String)
 }
 
 struct DirectoryCategoryView: View {
+    @EnvironmentObject private var contentStore: DirectoryContentStore
     let category: DirectoryCategory
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
 
@@ -66,6 +70,15 @@ struct DirectoryCategoryView: View {
         .background(AppBackgroundView())
         .navigationTitle(category.title.value(for: language))
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if contentStore.canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: DirectoryRoute.edit(category.id)) {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
+        }
     }
 }
 

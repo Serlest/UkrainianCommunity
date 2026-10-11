@@ -2944,6 +2944,32 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /directoryEditors/{uid} {
+      allow read: if isAppOwner() || (isVerifiedActiveUser() && request.auth.uid == uid);
+      allow create, update: if isAppOwner()
+        && existsUser(uid)
+        && hasActiveUserState(userData(uid))
+        && request.resource.data.keys().hasOnly(['enabled', 'grantedBy', 'grantedAt'])
+        && request.resource.data.keys().hasAll(['enabled', 'grantedBy', 'grantedAt'])
+        && request.resource.data.enabled == true
+        && request.resource.data.grantedBy == request.auth.uid
+        && request.resource.data.grantedAt == request.time;
+      allow delete: if isAppOwner();
+    }
+
+    match /directoryCategories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+
+      match /versions/{versionId} {
+        allow read: if isAppOwner() ||
+          (isVerifiedActiveUser()
+           && exists(/databases/$(database)/documents/directoryEditors/$(request.auth.uid))
+           && get(/databases/$(database)/documents/directoryEditors/$(request.auth.uid)).data.enabled == true);
+        allow write: if false;
+      }
+    }
+
     match /appConfig/{configId} {
       allow read: if configId == 'donation';
       allow create, update: if configId == 'donation'

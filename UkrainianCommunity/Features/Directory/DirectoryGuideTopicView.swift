@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DirectoryGuideTopicView: View {
+    @EnvironmentObject private var contentStore: DirectoryContentStore
     let categoryID: String
     let topic: DirectoryTopic
     let guide: DirectoryGuide
@@ -59,5 +60,14 @@ struct DirectoryGuideTopicView: View {
         .background(AppBackgroundView())
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if contentStore.canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: DirectoryRoute.edit(categoryID)) {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
+        }
     }
 }

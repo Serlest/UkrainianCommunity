@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct DirectorySafetyTopicView: View {
+    @EnvironmentObject private var contentStore: DirectoryContentStore
     let topic: DirectoryTopic
     let guide: SafetyGuide
     @Binding var selectedFederalState: AustrianFederalState?
@@ -56,5 +57,14 @@ struct DirectorySafetyTopicView: View {
         .background(AppBackgroundView())
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if contentStore.canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: DirectoryRoute.edit("safety")) {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
+        }
     }
 }

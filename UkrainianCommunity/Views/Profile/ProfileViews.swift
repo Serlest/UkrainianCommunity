@@ -23,6 +23,7 @@ enum ProfileNavigationRoute: Hashable {
     case organizationRequestReview(organizationID: String)
     case moderationTools
     case userManagement
+    case directoryEditors
     case featuredBannerManagement
     case contentPlanning(draftID: String?)
     case contentPlanningNews(id: String)
@@ -583,6 +584,10 @@ struct ProfileView: View {
             )
         case .userManagement:
             UserManagementView(reads: MockContentBuilder.userManagementRefreshFixture() ?? .live)
+        case .directoryEditors:
+            if PermissionService.isAppOwner(user: permissionUser) {
+                DirectoryEditorsView()
+            }
         case .featuredBannerManagement:
             FeaturedBannerManagementView(
                 repository: featuredBannerRepository,
@@ -1192,6 +1197,18 @@ struct ProfileView: View {
                     }
 
                     if PermissionService.isAppOwner(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.directoryEditors) {
+                            ProfileModuleRow(
+                                title: DirectoryEditorText.value("Довідник", "Ratgeber"),
+                                subtitle: DirectoryEditorText.value(
+                                    "Хто може додавати й редагувати матеріали.",
+                                    "Zugriff auf die Bearbeitung der Inhalte."
+                                ),
+                                systemImage: "books.vertical"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.directoryEditors")
                         NavigationLink(value: ProfileNavigationRoute.announcementManagement) {
                             ProfileModuleRow(title: AnnouncementStrings.title, subtitle: AnnouncementStrings.subtitle, systemImage: "megaphone")
                         }.buttonStyle(.plain).accessibilityIdentifier("profile.announcements")

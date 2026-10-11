@@ -1,6 +1,6 @@
 import Foundation
 
-struct DirectoryText: Hashable {
+struct DirectoryText: Hashable, Codable {
     let ukrainian: String
     let german: String
 
