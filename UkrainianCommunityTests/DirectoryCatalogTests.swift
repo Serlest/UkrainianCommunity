@@ -500,6 +500,19 @@ struct DirectoryCatalogTests {
         #expect(CommunityGuides.guide(for: "volunteering")?.sections.contains { $0.id == "insurance" } == true)
     }
 
+    @Test func leisureGuideOffersDistinctPlacesAndVerifiedSources() throws {
+        let guide = try #require(LeisureGuides.guide(for: "leisure"))
+        #expect(guide.sections.count == 9)
+        #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+        #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+        #expect(guide.sections.allSatisfy { $0.body.ukrainian.count > 100 && $0.body.german.count > 100 })
+        #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+        #expect(guide.sections.contains { $0.id == "bathing" && $0.source?.url.host == "www.ages.at" })
+        #expect(guide.sections.contains { $0.id == "culture-pass" })
+        #expect(guide.sections.contains { $0.id == "hiking" })
+        #expect(DirectoryGuideCatalog.checkedOn(for: "leisure") == "11.10.2026")
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
