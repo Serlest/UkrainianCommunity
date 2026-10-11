@@ -15,7 +15,7 @@ extension FirstStepsGuides {
                   phoneNumber: "+43 1 2676 870 9460", source: bbu),
             .init("private", "house.fill", "Ви зупинилися у знайомих", "Sie wohnen vorerst privat",
                   "Домовтеся про фактичну адресу, дату заселення й контакт людини, яка надала житло. Запитайте, чи підпише вона Meldezettel для кожного члена родини. Не використовуйте адресу, за якою ви насправді не живете; строк і спосіб реєстрації адреси пояснені в наступному маршруті.",
-                  "Notieren Sie die tatsächliche Adresse, das Einzugsdatum und den Kontakt der Unterkunftgeberin oder des Unterkunftgebers. Klären Sie, ob diese Person für jedes Familienmitglied den Meldezettel unterschreibt. Verwenden Sie keine Adresse, an der Sie nicht wohnen; Frist und Ablauf stehen im nächsten Wegweiser.",
+                  "Notieren Sie die tatsächliche Adresse, das Einzugsdatum und den Kontakt der Unterkunftgeberin oder des Unterkunftgebers. Klären Sie, ob diese Person für jedes Familienmitglied den Meldezettel unterschreibt. Verwenden Sie keine Adresse, an der Sie nicht wohnen; Frist und Ablauf stehen im nächsten Thema.",
                   source: address),
             .init("hospital", "cross.case.fill", "Якщо лікування потрібне зараз", "Wenn Sie jetzt medizinische Hilfe brauchen",
                   "При тяжкому стані викликайте 144. Лікарня надасть невідкладну допомогу й до оформлення, але рахунок не покривається автоматично. Скажіть у лікарні, що ви щойно прибули з України, і попросіть допомогти з’ясувати можливість поліцейської реєстрації в лікарні та заяви на Grundversorgung, якщо ви маєте право на тимчасовий захист.",

@@ -10,10 +10,10 @@ struct DirectoryFeedbackView: View {
         func subject(_ language: AppLanguage) -> String {
             switch self {
             case let .question(categoryID, title):
-                let prefix = DirectoryText(ukrainian: "Довідник · питання", german: "Wegweiser · Frage").value(for: language)
+                let prefix = DirectoryText(ukrainian: "Довідник · питання", german: "Ratgeber · Frage").value(for: language)
                 return "\(prefix) · \(categoryID ?? "home") · \(title)"
             case let .correction(categoryID, topicID, title):
-                let prefix = DirectoryText(ukrainian: "Довідник · неточність", german: "Wegweiser · Unstimmigkeit").value(for: language)
+                let prefix = DirectoryText(ukrainian: "Довідник · неточність", german: "Ratgeber · Unstimmigkeit").value(for: language)
                 return "\(prefix) · \(categoryID)/\(topicID) · \(title)"
             }
         }
@@ -26,7 +26,7 @@ struct DirectoryFeedbackView: View {
         func explanation(_ language: AppLanguage) -> String {
             switch self {
             case .question:
-                DirectoryText(ukrainian: "Напишіть, якої відповіді бракує. Команда перевірить джерела й доповнить довідник; перебіг роботи видно у ваших зверненнях.", german: "Schreiben Sie, welche Antwort fehlt. Unser Team prüft Quellen und ergänzt den Wegweiser; den Stand sehen Sie in Ihren Anfragen.").value(for: language)
+                DirectoryText(ukrainian: "Напишіть, якої відповіді бракує. Команда перевірить джерела й доповнить довідник; перебіг роботи видно у ваших зверненнях.", german: "Schreiben Sie, welche Antwort fehlt. Unser Team prüft Quellen und ergänzt den Ratgeber; den Stand sehen Sie in Ihren Anfragen.").value(for: language)
             case .correction:
                 DirectoryText(ukrainian: "Опишіть, що саме слід перевірити в цій статті. Статус перевірки з’явиться у ваших зверненнях.", german: "Beschreiben Sie, was in diesem Beitrag überprüft werden soll. Den Stand sehen Sie in Ihren Anfragen.").value(for: language)
             }

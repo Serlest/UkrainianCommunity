@@ -13211,7 +13211,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Highlights für Nachrichten, Veranstaltungen, Organisationen und Wegweiser verwalten."
+            "value" : "Highlights für Nachrichten, Veranstaltungen, Organisationen und Ratgeber verwalten."
           }
         },
         "uk" : {
@@ -46676,7 +46676,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wegweiser"
+            "value" : "Ratgeber"
           }
         },
         "uk" : {

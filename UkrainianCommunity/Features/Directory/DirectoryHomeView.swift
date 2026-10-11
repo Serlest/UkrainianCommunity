@@ -132,7 +132,7 @@ struct DirectoryHomeView: View {
             categorySection(DirectoryStrings.startHeading, items: Array(DirectoryCatalog.startCategories.dropFirst()))
             categorySection(DirectoryStrings.lifeHeading, items: DirectoryCatalog.lifeCategories)
             categorySection(DirectoryStrings.supportHeading, items: DirectoryCatalog.supportCategories)
-            DirectoryFeedbackView(kind: .question(categoryID: nil, title: DirectoryText(ukrainian: "Довідник", german: "Wegweiser").value(for: language)), repository: feedbackRepository)
+            DirectoryFeedbackView(kind: .question(categoryID: nil, title: DirectoryText(ukrainian: "Довідник", german: "Ratgeber").value(for: language)), repository: feedbackRepository)
         }
     }
 

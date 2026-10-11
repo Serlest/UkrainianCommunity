@@ -7,8 +7,8 @@ enum DirectoryStrings {
 
     static var introduction: String { value("Важливі теми для життя в Австрії — від перших кроків до щоденних питань.", "Wichtige Themen für das Leben in Österreich – vom Ankommen bis zum Alltag.") }
     static var browseSections: String { value("Переглянути розділи", "Bereiche entdecken") }
-    static var searchPlaceholder: String { value("Пошук у довіднику", "Im Wegweiser suchen") }
-    static var categoriesHeading: String { value("Розділи довідника", "Bereiche im Wegweiser") }
+    static var searchPlaceholder: String { value("Пошук у довіднику", "Im Ratgeber suchen") }
+    static var categoriesHeading: String { value("Розділи довідника", "Bereiche im Ratgeber") }
     static var searchResults: String { value("Знайдені теми", "Gefundene Themen") }
     static var startHeading: String { value("Початок в Австрії", "Ankommen in Österreich") }
     static var lifeHeading: String { value("Повсякденне життя", "Alltag") }

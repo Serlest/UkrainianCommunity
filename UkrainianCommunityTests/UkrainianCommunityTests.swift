@@ -486,12 +486,16 @@ struct UkrainianCommunityTests {
         AppLanguage.stored = .german
         let germanHome = LocalizationStore.localizedString("tab.home", defaultValue: "Home")
         let repeatedGermanHome = LocalizationStore.localizedString("tab.home", defaultValue: "Home")
+        let germanDirectory = AppStrings.Tabs.directory
 
         AppLanguage.stored = .ukrainian
         let ukrainianHome = LocalizationStore.localizedString("tab.home", defaultValue: "Home")
+        let ukrainianDirectory = AppStrings.Tabs.directory
 
         #expect(germanHome == repeatedGermanHome)
         #expect(germanHome != ukrainianHome)
+        #expect(germanDirectory == "Ratgeber")
+        #expect(ukrainianDirectory == "Довідник")
     }
 
     @Test func languagePickerTitlesRemainCorrectDuringLocaleSwitch() {
