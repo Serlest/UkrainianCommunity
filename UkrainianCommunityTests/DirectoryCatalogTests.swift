@@ -447,6 +447,22 @@ struct DirectoryCatalogTests {
         #expect(LegalGuides.guide(for: "interpreting")?.sections.contains { $0.id == "oral" } == true)
     }
 
+    @Test func communicationGuidesSeparatePhoneInternetAndPostWithDirectSources() throws {
+        let topics = try #require(DirectoryCatalog.categories.first { $0.id == "communication" }?.topics)
+        #expect(topics.map(\.id) == ["phone", "internet", "postal"])
+        for topic in topics {
+            let guide = try #require(CommunicationGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { $0.body.ukrainian.count > 100 && $0.body.german.count > 100 })
+            #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+        }
+        #expect(CommunicationGuides.guide(for: "phone")?.sections.contains { $0.id == "ukraine" } == true)
+        #expect(CommunicationGuides.guide(for: "internet")?.sections.contains { $0.id == "move" } == true)
+        #expect(CommunicationGuides.guide(for: "postal")?.sections.contains { $0.id == "forward" } == true)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
