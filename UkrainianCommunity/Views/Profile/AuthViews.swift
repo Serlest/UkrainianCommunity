@@ -286,6 +286,10 @@ struct RegisterView: View {
                 subtitle: federated ? AppStrings.Auth.finishRegistrationSubtitle : AppStrings.Auth.registerSubtitle
             )
 
+            if !federated {
+                FederatedSignInButtons()
+            }
+
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     EditorTextField(AppStrings.Auth.displayName, text: $displayName, systemImage: "person", textContentType: .nickname, autocapitalization: .words)

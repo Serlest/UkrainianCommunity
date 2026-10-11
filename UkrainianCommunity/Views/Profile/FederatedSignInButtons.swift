@@ -9,12 +9,24 @@ struct FederatedSignInButtons: View {
     @State private var isSigningIn = false
     @State private var errorMessage: String?
 
-    private var isAvailable: Bool {
+    private var isAppleAvailable: Bool {
         Bundle.main.object(forInfoDictionaryKey: "UACAppleSignInEnabled") as? Bool == true
     }
 
+    private var isGoogleAvailable: Bool {
+        guard Bundle.main.object(forInfoDictionaryKey: "UACGoogleSignInEnabled") as? Bool == true else {
+            return false
+        }
+        #if DEBUG
+        return true
+        #else
+        // App Review 4.8 requires a privacy-preserving alternative alongside Google sign-in.
+        return isAppleAvailable
+        #endif
+    }
+
     var body: some View {
-        if isAvailable {
+        if isAppleAvailable || isGoogleAvailable {
             AppEditorSectionCard {
                 VStack(spacing: 12) {
                     Text(AppStrings.Auth.otherSignInMethods)
@@ -22,28 +34,32 @@ struct FederatedSignInButtons: View {
                         .foregroundStyle(AppTheme.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    SignInWithAppleButton(.signIn, onRequest: configureAppleRequest, onCompletion: finishAppleRequest)
-                        .signInWithAppleButtonStyle(.black)
-                        .frame(height: 50)
-                        .disabled(isSigningIn)
-                        .accessibilityIdentifier("auth.provider.apple")
-
-                    Button(action: startGoogleSignIn) {
-                        HStack(spacing: 10) {
-                            Image("GoogleSignInIcon")
-                                .resizable()
-                                .frame(width: 18, height: 18)
-                            Text(AppStrings.Auth.continueWithGoogle)
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .foregroundStyle(Color.black)
-                        .frame(maxWidth: .infinity, minHeight: 50)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0.18)))
+                    if isAppleAvailable {
+                        SignInWithAppleButton(.signIn, onRequest: configureAppleRequest, onCompletion: finishAppleRequest)
+                            .signInWithAppleButtonStyle(.black)
+                            .frame(height: 50)
+                            .disabled(isSigningIn)
+                            .accessibilityIdentifier("auth.provider.apple")
                     }
-                    .buttonStyle(.plain)
-                    .disabled(isSigningIn)
-                    .accessibilityIdentifier("auth.provider.google")
+
+                    if isGoogleAvailable {
+                        Button(action: startGoogleSignIn) {
+                            HStack(spacing: 10) {
+                                Image("GoogleSignInIcon")
+                                    .resizable()
+                                    .frame(width: 18, height: 18)
+                                Text(AppStrings.Auth.continueWithGoogle)
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                            .foregroundStyle(Color.black)
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0.18)))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isSigningIn)
+                        .accessibilityIdentifier("auth.provider.google")
+                    }
 
                     if isSigningIn { ProgressView() }
                     if let errorMessage {

@@ -13,13 +13,15 @@ final class RequiredRegistrationUITests: XCTestCase {
 
             XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "auth.landing.screen").firstMatch.waitForExistence(timeout: 20))
             XCTAssertFalse(app.tabBars.firstMatch.exists)
-            XCTAssertFalse(app.buttons["auth.provider.google"].firstMatch.exists)
+            XCTAssertTrue(app.buttons["auth.provider.google"].firstMatch.exists)
             XCTAssertFalse(app.buttons["auth.provider.apple"].firstMatch.exists)
 
             let createAccount = app.buttons["auth.landing.register"].firstMatch
             XCTAssertTrue(createAccount.exists)
             createAccount.tap()
             XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "auth.register.screen").firstMatch.waitForExistence(timeout: 10))
+            XCTAssertTrue(app.buttons["auth.provider.google"].firstMatch.exists)
+            XCTAssertFalse(app.buttons["auth.provider.apple"].firstMatch.exists)
             XCTAssertFalse(app.tabBars.firstMatch.exists)
             app.terminate()
         }

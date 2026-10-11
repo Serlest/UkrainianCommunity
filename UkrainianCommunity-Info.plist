@@ -21,6 +21,8 @@
 	<string>UAC</string>
 	<key>UACAppleSignInEnabled</key>
 	<false/>
+	<key>UACGoogleSignInEnabled</key>
+	<true/>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
