@@ -428,6 +428,25 @@ struct DirectoryCatalogTests {
         #expect(SocialSupportGuides.guide(for: "aid-organizations")?.sections.contains { $0.id == "housing-crisis" } == true)
     }
 
+    @Test func legalGuidesSeparateCounselAppealsConsumerClaimsAndInterpreting() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "legal" }?.topics ?? []
+        #expect(topics.map(\.id) == ["legal-aid", "authorities", "consumer-rights", "interpreting"])
+        for topic in topics {
+            guard let guide = LegalGuides.guide(for: topic.id) else {
+                Issue.record("Missing legal guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        #expect(LegalGuides.guide(for: "legal-aid")?.sections.contains { $0.id == "aid" } == true)
+        #expect(LegalGuides.guide(for: "authorities")?.sections.contains { $0.id == "next" } == true)
+        #expect(LegalGuides.guide(for: "consumer-rights")?.sections.contains { $0.id == "repair-new" } == true)
+        #expect(LegalGuides.guide(for: "interpreting")?.sections.contains { $0.id == "oral" } == true)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
