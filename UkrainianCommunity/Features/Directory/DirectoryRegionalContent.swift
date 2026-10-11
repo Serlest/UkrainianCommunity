@@ -85,11 +85,7 @@ enum DirectoryRegionalContent {
                           "Für \(state.displayName) die Bezirksverwaltungsbehörde des Wohnorts suchen. Vor Antrag klären, ob Ihr Status Anspruch auf die konkrete Leistung eröffnet oder Grundversorgung einschlägig ist, und Unterlagenliste verlangen.",
                           source: DirectorySource(name: "oesterreich.gv.at · Sozialhilfeantrag", url: "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/4/Seite.1693912"))]
         case "community": return CommunityRegionalContent.sections(for: state)
-        case "accessibility":
-            return [.init("regional-accessibility", "figure.roll", "Соціальне міністерство у вашій землі", "Sozialministeriumservice im Bundesland",
-                          "На офіційній сторінці виберіть Landesstelle \(state.displayName): тут уточнюють Behindertenpass, додаткові записи й заявку до фонду підтримки. Перед відвідуванням перевірте години й доступність.",
-                          "Auf der amtlichen Seite Landesstelle \(state.displayName) wählen: Dort Behindertenpass, Zusatzeintragungen und Unterstützungsfonds klären. Zeiten und Barrierefreiheit vor Besuch prüfen.",
-                          source: DirectorySource(name: "Sozialministeriumservice · Landesstellen", url: "https://www.sozialministeriumservice.gv.at/Ueber_uns/Sozialministeriumservice/Landesstellen/Landesstellen_des_Sozialministeriumservice.de.html"))]
+        case "accessibility": return AccessibilityRegionalContent.sections(for: state)
         case "care", "seniors":
             return [.init("regional-care", "house", "Догляд у вашій землі", "Pflege in Ihrem Bundesland",
                           "Для землі \(state.displayName) запитайте в Gemeinde, Bezirk або Magistrat про наявні мобільні служби, ціну після субсидії й місцеві заяви. Федеральна сторінка пояснює, хто відповідальний; конкретного постачальника перевіряйте за вашою адресою.",

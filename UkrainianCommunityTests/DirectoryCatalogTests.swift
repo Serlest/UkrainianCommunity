@@ -513,6 +513,33 @@ struct DirectoryCatalogTests {
         #expect(DirectoryGuideCatalog.checkedOn(for: "leisure") == "11.10.2026")
     }
 
+    @Test func accessibilityGuidesSeparatePassServicesAndDeviceFunding() throws {
+        let topics = try #require(DirectoryCatalog.categories.first { $0.id == "accessibility" }?.topics)
+        #expect(topics.map(\.id) == ["disability", "accessible-services", "assistive-devices"])
+        for topic in topics {
+            let guide = try #require(AccessibilityGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { $0.body.ukrainian.count > 100 && $0.body.german.count > 100 })
+            #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+        }
+        #expect(AccessibilityGuides.guide(for: "disability")?.sections.contains { $0.id == "employment-status" } == true)
+        #expect(AccessibilityGuides.guide(for: "accessible-services")?.sections.contains { $0.id == "mediation" } == true)
+        #expect(AccessibilityGuides.guide(for: "assistive-devices")?.sections.first?.source?.url.host == "www.gesundheit.gv.at")
+        #expect(DirectoryGuideCatalog.checkedOn(for: "accessibility") == "11.10.2026")
+        var officePages = Set<URL>()
+        for state in AustrianFederalState.allCases {
+            let regional = AccessibilityRegionalContent.sections(for: state)
+            #expect(regional.count == 1)
+            let url = try #require(regional.first?.source?.url)
+            #expect(url.scheme == "https")
+            #expect(url.path.contains("Landesstellen/"))
+            officePages.insert(url)
+        }
+        #expect(officePages.count == AustrianFederalState.allCases.count)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
