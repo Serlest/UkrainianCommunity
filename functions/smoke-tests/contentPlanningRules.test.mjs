@@ -1,4 +1,5 @@
-import {after, before, test} from "node:test";
+import {after, before, beforeEach, test} from "node:test";
+import {seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 import {readFileSync} from "node:fs";
 import {assertFails, assertSucceeds, initializeTestEnvironment} from "@firebase/rules-unit-testing";
 import {deleteDoc, doc, getDoc, setDoc, Timestamp, updateDoc} from "firebase/firestore";
@@ -42,6 +43,8 @@ before(async () => {
     });
   });
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(env); });
 
 after(async () => { await env?.cleanup(); });
 

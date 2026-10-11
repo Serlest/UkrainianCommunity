@@ -1,4 +1,5 @@
 import {after, before, beforeEach, describe, test} from "node:test";
+import {seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 
 import {
   assertFails,
@@ -35,6 +36,8 @@ beforeEach(async () => {
     });
   });
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(testEnv); });
 
 after(async () => {
   if (testEnv) await testEnv.cleanup();
@@ -263,6 +266,7 @@ describe("organization creation rules evidence", () => {
           });
         }
       });
+      await seedCurrentLegalVersions(testEnv);
       for (const uid of ["creator", "organization-admin"]) {
         const db = testEnv.authenticatedContext(uid, {email_verified: true}).firestore();
         const ref = doc(db, "organizations", id);

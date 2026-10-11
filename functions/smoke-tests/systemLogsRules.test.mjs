@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {after, before, beforeEach, describe, test} from "node:test";
+import {seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 
 import {
   assertFails,
@@ -39,6 +40,8 @@ beforeEach(async () => {
   await testEnv.clearFirestore();
   await seed();
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(testEnv); });
 
 after(async () => {
   await testEnv.cleanup();

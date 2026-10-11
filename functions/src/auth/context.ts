@@ -5,6 +5,7 @@ import {
   isActiveUser,
   type UserPermissionSnapshot,
 } from "../permissions/userPermissions";
+import {db} from "../firebase/admin";
 
 export interface AuthContext {
   uid: string;
@@ -71,10 +72,43 @@ export function assertPrivilegedMFA(
 export async function requireVerifiedActiveUser(
   request: CallableRequest
 ): Promise<VerifiedActiveUserContext> {
+  const auth = await requireVerifiedActiveUserWithoutLegal(request);
+  await assertCurrentLegalAcknowledgements(auth.permissions);
+  return auth;
+}
+
+export async function requireVerifiedActiveUserWithoutLegal(
+  request: CallableRequest
+): Promise<VerifiedActiveUserContext> {
   const auth = requireVerifiedAuth(request);
   const permissions = await getUserPermissions(auth.uid);
   assertActiveUser(permissions);
   assertPrivilegedMFA(auth.token, permissions);
 
   return {...auth, permissions};
+}
+
+export async function assertCurrentLegalAcknowledgements(
+  permissions: UserPermissionSnapshot
+): Promise<void> {
+  const [terms, privacy] = await db.getAll(
+    db.doc("legalDocuments/terms"),
+    db.doc("legalDocuments/privacy")
+  );
+  if (!terms.exists || !privacy.exists || !hasCurrentLegalAcknowledgements(permissions, {
+    terms: terms.get("activeVersion"),
+    privacy: privacy.get("activeVersion"),
+  })) {
+    throw new HttpsError("failed-precondition", "Current legal documents must be acknowledged.");
+  }
+}
+
+export function hasCurrentLegalAcknowledgements(
+  permissions: UserPermissionSnapshot,
+  versions: {terms: unknown; privacy: unknown}
+): boolean {
+  return typeof versions.terms === "string" && versions.terms.length > 0 &&
+    typeof versions.privacy === "string" && versions.privacy.length > 0 &&
+    permissions.acceptedTermsVersion === versions.terms &&
+    permissions.acceptedPrivacyVersion === versions.privacy;
 }

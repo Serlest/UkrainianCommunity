@@ -4,6 +4,7 @@ import {test, type TestContext} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
 import {File} from "@google-cloud/storage";
 import {adminStorage, db} from "../firebase/admin";
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {saveOrganizationPhoto, parsePhotoSave} from "./organizationPhotoSave";
 import {accessPolicyConfiguration, getOrganizationAccess, updateOrganizationInfo, organizationRevision} from "./organizationAccess";
 import {createOrganizationPhotoMetadata, deleteOrganizationPhotoMetadata} from "./organizationPhotoMutations";
@@ -20,6 +21,7 @@ async function fixture(t: TestContext) {
   const org = db.doc(`organizations/${id}`), profile = db.doc(`users/${uid}`);
   const config = db.doc(accessPolicyConfiguration), previous = await config.get();
   await profile.set({globalRole: "user", accountStatus: "active"});
+  await seedCurrentLegalForIntegration(uid);
   await org.set({id, ownerId: uid, name: "Fixture", city: "Wien", description: "Fixture", moderationStatus: "approved", photoCount: 0, updatedAt: Timestamp.now()});
   await config.set({mode: "enforced", commandsEnabled: true, commandModes: {updateOrganizationInfo: "enforced", saveOrganizationPhoto: "enforced"}});
   t.after(async () => {
@@ -109,6 +111,7 @@ test("rollout configuration never gives an unrelated account photo permissions",
   const f = await fixture(t);
   const outsider = db.doc(`users/outsider-${f.id}`);
   await outsider.set({globalRole: "admin", accountStatus: "active"});
+  await seedCurrentLegalForIntegration(outsider.id);
   t.after(() => outsider.delete());
   await assert.rejects(saveOrganizationPhoto.run(request(outsider.id, {...f.input, principalId: outsider.id})),
     (e: any) => e.details?.reasonCode === "role_missing");

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {after, before, beforeEach, describe, test} from "node:test";
+import {registerWithCurrentLegalEvidence, seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 
 import {
   assertFails,
@@ -34,6 +35,8 @@ beforeEach(async () => {
   await testEnv.clearFirestore();
   await seed();
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(testEnv); });
 
 after(async () => {
   if (testEnv) {
@@ -155,9 +158,8 @@ function user(uid, overrides = {}) {
 describe("email verification enforcement", () => {
   test("profile bootstrap requires server timestamps and rejects extra fields", async () => {
     const validDb = auth("strict-profile", false);
-    await assertSucceeds(setDoc(
-      doc(validDb, "users", "strict-profile"),
-      user("strict-profile")
+    await assertSucceeds(registerWithCurrentLegalEvidence(
+      validDb, "strict-profile", user("strict-profile")
     ));
 
     const forgedDb = auth("forged-profile", false);
@@ -200,7 +202,9 @@ describe("email verification enforcement", () => {
   test("unverified user can create profile bootstrap document, but cannot write interaction content", async () => {
     const unverifiedDb = auth("pending-user", false);
 
-    await assertSucceeds(setDoc(doc(unverifiedDb, "users", "pending-user"), user("pending-user")));
+    await assertSucceeds(registerWithCurrentLegalEvidence(
+      unverifiedDb, "pending-user", user("pending-user")
+    ));
 
     await assertFails(setDoc(doc(unverifiedDb, "likes", "news-1_pending-user"), {
       id: "news-1_pending-user",

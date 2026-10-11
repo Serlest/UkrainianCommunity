@@ -1,7 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import { requireVerifiedActiveUser } from "../auth/context";
+import { requireVerifiedActiveUserWithoutLegal } from "../auth/context";
 import { db } from "../firebase/admin";
 
 type LegalDocumentType = "terms" | "privacy";
@@ -112,7 +112,7 @@ function userAcceptanceUpdate(
 export const acceptLegalDocument = onCall(
   callableOptions,
   async (request): Promise<AcceptLegalDocumentResponse> => {
-    const auth = await requireVerifiedActiveUser(request);
+    const auth = await requireVerifiedActiveUserWithoutLegal(request);
     const legalRequest = parseAcceptLegalDocumentRequest(request.data);
     const userReference = db.collection("users").doc(auth.uid);
     const documentReference = db.collection("legalDocuments").doc(

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, before, beforeEach, describe, test } from "node:test";
+import {seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 
 import {
   assertFails,
@@ -34,6 +35,8 @@ beforeEach(async () => {
     });
   });
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(testEnv); });
 
 after(async () => {
   await testEnv?.cleanup();
@@ -94,6 +97,7 @@ for (const platform of ["ios", "android"]) {
           globalRole: "owner", accountStatus: "active", blockState: "active", requiresMultiFactorAuth: true,
         });
       });
+      await seedCurrentLegalVersions(testEnv);
       await assertFails(setDoc(reference(authenticated()), registration({platform})));
       const totp = testEnv.authenticatedContext("verified-user", {
         email_verified: true, firebase: {sign_in_second_factor: "totp"},

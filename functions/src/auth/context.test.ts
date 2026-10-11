@@ -7,6 +7,7 @@ import {
   type AuthContext,
   assertActiveUser,
   assertPrivilegedMFA,
+  hasCurrentLegalAcknowledgements,
   isTOTPAuthenticated,
   requireAuth,
   requireVerifiedAuth,
@@ -80,6 +81,15 @@ test("assertActiveUser rejects suspended and deactivated accounts", () => {
 test("assertActiveUser accepts active and warned accounts", () => {
   assert.doesNotThrow(() => assertActiveUser({uid: "user-1", accountStatus: "active"}));
   assert.doesNotThrow(() => assertActiveUser({uid: "user-1", blockState: "warned"}));
+});
+
+test("both current legal versions are required for account operations", () => {
+  const versions = {terms: "2026.11", privacy: "2026.15"};
+  const current = {uid: "user-1", acceptedTermsVersion: versions.terms, acceptedPrivacyVersion: versions.privacy};
+  assert.equal(hasCurrentLegalAcknowledgements(current, versions), true);
+  assert.equal(hasCurrentLegalAcknowledgements({...current, acceptedTermsVersion: "2026.10"}, versions), false);
+  assert.equal(hasCurrentLegalAcknowledgements({...current, acceptedPrivacyVersion: "2026.14"}, versions), false);
+  assert.equal(hasCurrentLegalAcknowledgements(current, {terms: undefined, privacy: versions.privacy}), false);
 });
 
 test("privileged MFA stays opt-in per account during rollout", () => {

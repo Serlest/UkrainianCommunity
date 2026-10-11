@@ -1,4 +1,5 @@
 import {after, before, beforeEach, describe, test} from "node:test";
+import {seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 
 import {
   assertFails,
@@ -83,6 +84,8 @@ beforeEach(async () => {
     ]);
   });
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(testEnv); });
 
 after(async () => {
   if (testEnv) await testEnv.cleanup();

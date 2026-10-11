@@ -2,6 +2,7 @@ import {strict as assert} from "node:assert";
 import {test} from "node:test";
 
 import {db} from "../firebase/admin";
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {saveComment} from "./commentModeration";
 
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
@@ -22,6 +23,7 @@ test("comment callable filters and creates approved content", {skip: !enabled}, 
       accountStatus: "active",
       blockState: "active",
     });
+    await seedCurrentLegalForIntegration(uid);
     await db.collection("news").doc(newsId).set({moderationStatus: "approved"});
 
     await assert.rejects(
@@ -39,7 +41,14 @@ test("comment callable filters and creates approved content", {skip: !enabled}, 
     assert.equal(stored.get("body"), "Дякую за інформацію!");
     assert.equal(stored.get("moderationStatus"), "approved");
 
+    await db.doc("legalDocuments/privacy").update({activeVersion: "2026.14"});
+    await assert.rejects(
+      saveComment.run(request(uid, {parentType: "news", parentId: newsId, text: "Another comment"})),
+      {code: "failed-precondition"}
+    );
+
   } finally {
+    await db.doc("legalDocuments/privacy").update({activeVersion: "2026.13"});
     await db.recursiveDelete(db.collection("news").doc(newsId));
     await db.recursiveDelete(db.collection("users").doc(uid));
   }

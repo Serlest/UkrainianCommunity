@@ -5,6 +5,7 @@ import {resolve} from "node:path";
 import {randomUUID} from "node:crypto";
 import {Timestamp} from "firebase-admin/firestore";
 import {db} from "../firebase/admin";
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {accessPolicyConfiguration, getOrganizationAccess, organizationActions, organizationRevision, parseOrganizationFields, updateOrganizationInfo} from "./organizationAccess";
 import {cancelEvent, finishEventCancellation} from "../notifications/backendWriters";
 import {mutateEventRegistration} from "../events/eventRegistration";
@@ -48,6 +49,7 @@ test("commands preserve protected fields, reject stale edits and revoked roles, 
   try {
     await profile.set({globalRole: "user", accountStatus: "active"});
     await other.set({globalRole: "admin", accountStatus: "active"});
+    await seedCurrentLegalForIntegration(uid, outsider);
     await org.set(base);
     await config.set({mode: "enforced", commandsEnabled: true});
     const capabilities = await getOrganizationAccess.run(request(uid, {organizationIds: [org.id]}));
@@ -99,6 +101,7 @@ test("cancellation is repeatable and photo metadata remains atomic under revoked
   try {
     await owner.set({globalRole: "user", accountStatus: "active"});
     await user.set({globalRole: "user", accountStatus: "active", language: "de"});
+    await seedCurrentLegalForIntegration(uid, attendee);
     await org.set({id: org.id, ownerId: uid, adminIds: [], moderatorIds: [], photoCount: 0});
     await event.set({id: event.id, sourceType: "organization", organizationId: org.id, title: "Event", moderationStatus: "approved", registeredCount: 1, startDate: Timestamp.fromMillis(Date.now() + 3600000)});
     await registration.set({eventId: event.id, userId: attendee});
@@ -129,6 +132,7 @@ test("empty cancellation recovers lost cleanup response and blocks later registr
   const owner = db.doc(`users/${uid}`), event = db.doc(`events/${id}`), op = db.doc(`eventCancellationOperations/${id}`);
   try {
     await owner.set({globalRole: "owner"});
+    await seedCurrentLegalForIntegration(uid);
     await event.set({title: "Empty event", sourceType: "community", moderationStatus: "approved", registeredCount: 0,
       startDate: Timestamp.fromMillis(Date.now() + 86400000), endDate: Timestamp.fromMillis(Date.now() + 90000000)});
     const first = await cancelEvent.run(request(uid, {eventId: id}));

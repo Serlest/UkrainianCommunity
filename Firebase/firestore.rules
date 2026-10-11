@@ -59,10 +59,21 @@ service cloud.firestore {
         && satisfiesPrivilegedMFARequirement(data);
     }
 
+    function hasCurrentLegalAcknowledgements(data) {
+      let termsPath = /databases/$(database)/documents/legalDocuments/terms;
+      let privacyPath = /databases/$(database)/documents/legalDocuments/privacy;
+      return data.get('acceptedTermsVersion', '') == get(termsPath).data.activeVersion
+        && data.get('acceptedPrivacyVersion', '') == get(privacyPath).data.activeVersion;
+    }
+
+    function isVerifiedActiveUserData(data) {
+      return hasVerifiedActiveUserState(data)
+        && hasCurrentLegalAcknowledgements(data);
+    }
+
     function isVerifiedActiveUser() {
       return isVerifiedEmailUser()
-        && existsUser(request.auth.uid)
-        && hasVerifiedActiveUserState(currentUserData());
+        && isVerifiedActiveUserData(currentUserData());
     }
 
     function isAppOwner() {
@@ -806,7 +817,7 @@ service cloud.firestore {
         && data.version.matches('^[0-9]{4}[.][1-9][0-9]?$')
         && logId == uid + '_' + data.documentType + '_' + data.version
         && data.acceptedAt == request.time
-        && data.acceptedFromPlatform == 'ios'
+        && data.acceptedFromPlatform in ['ios', 'android']
         && (data.appVersion == null || data.appVersion is string)
         && data.locale in ['de', 'uk']
         && isSha256(data.contentHash)
@@ -1458,6 +1469,7 @@ service cloud.firestore {
         && request.resource.data.createdAt == request.time
         && request.resource.data.updatedAt is timestamp
         && request.resource.data.updatedAt == request.time
+        && hasInitialLegalAcceptancePair(uid, request.resource.data)
         && (
           !('telegramUsername' in request.resource.data)
           || request.resource.data.telegramUsername == null
@@ -2127,6 +2139,7 @@ service cloud.firestore {
       return isSignedIn()
         && request.auth.token.email_verified == true
         && satisfiesPrivilegedMFARequirement(actor)
+        && hasCurrentLegalAcknowledgements(actor)
         && organizationId is string
         && organizationId.size() > 0
         && (
@@ -2312,6 +2325,7 @@ service cloud.firestore {
 
     function validNotificationUserUpdate(uid) {
       return isSelf(uid)
+        && isVerifiedActiveUser()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(notificationUserMutableFields())
         && request.resource.data.isRead is bool
         && validNotificationOptionalTimestamp('readAt')
@@ -2483,6 +2497,7 @@ service cloud.firestore {
 
         allow create, update: if validNotificationPushTokenWrite(uid, tokenId);
 
+        // Token cleanup remains possible when verification or legal review is pending.
         allow delete: if isSelf(uid);
       }
 

@@ -1,4 +1,5 @@
-import {after, before, test} from "node:test";
+import {after, before, beforeEach, test} from "node:test";
+import {seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 import {readFileSync} from "node:fs";
 
 import {
@@ -46,6 +47,8 @@ before(async () => {
     ]);
   });
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(testEnv); });
 
 after(async () => {
   await testEnv?.cleanup();

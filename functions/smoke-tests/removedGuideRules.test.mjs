@@ -1,4 +1,5 @@
 import {after, before, beforeEach, describe, test} from "node:test";
+import {registerWithCurrentLegalEvidence, seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 
 import {
   assertFails,
@@ -37,6 +38,8 @@ beforeEach(async () => {
   await testEnv.clearFirestore();
   await seedLegacyGuideData();
 });
+
+beforeEach(async () => { await seedCurrentLegalVersions(testEnv); });
 
 after(async () => {
   if (testEnv) {
@@ -251,7 +254,7 @@ describe("removed Guide interaction values", () => {
 
   test("new user bootstrap no longer requires the retired capability field", async () => {
     const db = auth("new-user");
-    await assertSucceeds(setDoc(doc(db, "users", "new-user"), profileBootstrap("new-user")));
+    await assertSucceeds(registerWithCurrentLegalEvidence(db, "new-user", profileBootstrap("new-user")));
   });
 
   test("new user bootstrap rejects the retired capability field for every value", async () => {
