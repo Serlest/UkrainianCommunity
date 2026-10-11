@@ -162,6 +162,7 @@ struct LoginView: View {
 
                     if let errorMessage {
                         InlineMessageCard(style: .error, message: errorMessage)
+                            .accessibilityIdentifier("auth.login.error")
                     } else if let validationHint {
                         InlineMessageCard(style: .info, message: validationHint)
                     }

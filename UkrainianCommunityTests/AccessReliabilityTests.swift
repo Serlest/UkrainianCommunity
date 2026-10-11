@@ -109,7 +109,7 @@ struct AccessReliabilityTests {
         restored.setAnalyticsEnabled(false, for: "a")
         restored.setAnalyticsEnabled(true, for: "a")
         #expect(restored.analyticsConsentID(for: "a") != originalID)
-        #expect(restored.analyticsConsentVersions(for: "a")?.privacyVersion == "2026.13")
+        #expect(restored.analyticsConsentVersions(for: "a")?.privacyVersion == AuthService.currentPrivacyVersion)
         #expect(restored.analyticsConsentVersions(for: "a")?.disclosureVersion == "2026-08-25.1")
     }
 

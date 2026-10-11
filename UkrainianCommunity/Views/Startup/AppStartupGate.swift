@@ -26,9 +26,7 @@ struct AppStartupGate: View {
 
     var body: some View {
         ZStack {
-            if authState.isRestoring
-                || (authState.isAuthenticating && authState.presentedAuthFlow == nil)
-                || isShowingSplash {
+            if authState.isRestoring || isShowingSplash {
                 SplashLoadingView()
             } else if authState.isAuthenticated,
                       let requirement = legalComplianceMonitor.activeRequirement,
