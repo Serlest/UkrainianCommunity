@@ -392,6 +392,24 @@ struct DirectoryCatalogTests {
         }
     }
 
+    @Test func financeGuidesSeparateBankingTaxesAndPensionSystems() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "finances" }?.topics ?? []
+        #expect(topics.map(\.id) == ["banking", "taxes", "pension"])
+        for topic in topics {
+            guard let guide = FinanceGuides.guide(for: topic.id) else {
+                Issue.record("Missing finance guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 6)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        #expect(FinanceGuides.guide(for: "banking")?.sections.contains { $0.id == "refusal" } == true)
+        #expect(FinanceGuides.guide(for: "taxes")?.sections.contains { $0.id == "abroad" } == true)
+        #expect(FinanceGuides.guide(for: "pension")?.sections.contains { $0.id == "ukrainian-pension" } == true)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
