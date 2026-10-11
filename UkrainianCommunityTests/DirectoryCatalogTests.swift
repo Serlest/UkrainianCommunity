@@ -463,6 +463,22 @@ struct DirectoryCatalogTests {
         #expect(CommunicationGuides.guide(for: "postal")?.sections.contains { $0.id == "forward" } == true)
     }
 
+    @Test func digitalGuidesSeparateServicesIdentityAndSafetyWithOfficialActions() throws {
+        let topics = try #require(DirectoryCatalog.categories.first { $0.id == "digital" }?.topics)
+        #expect(topics.map(\.id) == ["online-services", "digital-identity", "online-safety"])
+        for topic in topics {
+            let guide = try #require(DigitalGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 6)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { $0.body.ukrainian.count > 100 && $0.body.german.count > 100 })
+            #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+        }
+        #expect(DigitalGuides.guide(for: "online-services")?.sections.contains { $0.id == "finance-access" } == true)
+        #expect(DigitalGuides.guide(for: "digital-identity")?.sections.contains { $0.id == "lost" } == true)
+        #expect(DigitalGuides.guide(for: "online-safety")?.sections.contains { $0.id == "payment" } == true)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
