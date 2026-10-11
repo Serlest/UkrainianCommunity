@@ -1,9 +1,9 @@
 import {FieldValue} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireVerifiedActiveUser} from "../auth/context";
+import {assertActiveUser, assertPrivilegedMFA, requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
-import {isAppOwner} from "../permissions/userPermissions";
+import {isAppOwner, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {validateDirectoryCategoryPayload} from "./directoryValidation";
 
 const callableOptions = {
@@ -27,9 +27,16 @@ export const saveDirectoryCategory = onCall(callableOptions, async (request) => 
   const reference = db.collection("directoryCategories").doc(input.categoryId);
   const nextRevision = input.expectedRevision + 1;
   await db.runTransaction(async (transaction) => {
-    // Keep the grant check in the same transaction as publication, so a
-    // concurrent revocation cannot be bypassed with an in-flight save.
-    if (!isAppOwner(actor.permissions)) {
+    // Read account state and grant in the same transaction as publication.
+    // A concurrent suspension, role change or grant revocation retries it.
+    const user = await transaction.get(db.collection("users").doc(actor.uid));
+    if (!user.exists) {
+      throw new HttpsError("permission-denied", "User profile does not exist.");
+    }
+    const permissions = userPermissionSnapshotFromData(actor.uid, user.data());
+    assertActiveUser(permissions);
+    assertPrivilegedMFA(actor.token, permissions);
+    if (!isAppOwner(permissions)) {
       const editor = await transaction.get(db.collection("directoryEditors").doc(actor.uid));
       if (editor.data()?.enabled !== true) {
         throw new HttpsError("permission-denied", "Directory editor access is required.");

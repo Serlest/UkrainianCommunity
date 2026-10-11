@@ -4,6 +4,7 @@ struct DirectorySourceListView: View {
     let sources: [DirectorySource]
     let language: AppLanguage
     let checkedOn: String
+    var isPublicationDate = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -19,8 +20,8 @@ struct DirectorySourceListView: View {
                 }
             }
             Text(DirectoryText(
-                ukrainian: "Стан інформації: \(checkedOn).",
-                german: "Informationsstand: \(checkedOn)."
+                ukrainian: isPublicationDate ? "Остання публікація: \(checkedOn)." : "Стан інформації: \(checkedOn).",
+                german: isPublicationDate ? "Zuletzt veröffentlicht: \(checkedOn)." : "Informationsstand: \(checkedOn)."
             ).value(for: language))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)

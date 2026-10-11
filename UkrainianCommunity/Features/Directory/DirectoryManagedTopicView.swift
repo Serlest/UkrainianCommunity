@@ -56,7 +56,8 @@ struct DirectoryManagedTopicView: View {
                             !sections.contains { $0.source?.url == source.url }
                         }.compactMap(\.displaySource),
                         language: language,
-                        checkedOn: contentStore.publicationDate(categoryID)
+                        checkedOn: contentStore.publicationDate(categoryID),
+                        isPublicationDate: true
                     )
                     DirectoryFeedbackView(
                         kind: .correction(categoryID: categoryID, topicID: topic.id,
@@ -76,7 +77,7 @@ struct DirectoryManagedTopicView: View {
         .toolbar {
             if contentStore.canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: DirectoryRoute.edit(categoryID)) {
+                    NavigationLink(value: DirectoryRoute.editTopic(categoryID: categoryID, topicID: topic.id)) {
                         Image(systemName: "square.and.pencil")
                     }
                     .accessibilityLabel(DirectoryText(ukrainian: "Редагувати статтю", german: "Beitrag bearbeiten").value(for: language))
@@ -98,7 +99,7 @@ struct DirectoryManagedTopicView: View {
         } else {
             SafetyInfoCard(title: section.title.value(for: language), symbol: section.symbol) {
                 DirectoryGuideBodyView(text: section.body.value(for: language))
-                ForEach(section.contacts) { contact in
+                ForEach(Array(section.contacts.enumerated()), id: \.offset) { _, contact in
                     SafetyCallButton(
                         contact: SafetyContact(number: contact.number, title: contact.title,
                                                detail: contact.detail),

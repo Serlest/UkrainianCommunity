@@ -6,6 +6,38 @@ enum DirectoryEditorText {
     }
 }
 
+private struct DirectoryEditorAccessModifier: ViewModifier {
+    @EnvironmentObject private var contentStore: DirectoryContentStore
+    @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
+
+    func body(content: Content) -> some View {
+        content
+            .scrollContentBackground(.hidden)
+            .background(AppBackgroundView())
+            .tint(AppTheme.accentPrimaryForeground)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .tabBar)
+            .overlay {
+                if !contentStore.canEdit {
+                    ContentUnavailableView(
+                        DirectoryText(ukrainian: "Доступ до редагування закрито",
+                                      german: "Bearbeitungszugriff entzogen")
+                            .value(for: AppLanguage(rawValue: languageCode) ?? .german),
+                        systemImage: "lock.shield"
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(AppBackgroundView())
+                }
+            }
+    }
+}
+
+extension View {
+    func directoryEditorChrome() -> some View {
+        modifier(DirectoryEditorAccessModifier())
+    }
+}
+
 struct DirectoryBilingualFields: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     let title: String

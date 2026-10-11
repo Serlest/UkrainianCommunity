@@ -1,20 +1,26 @@
+import FirebaseFunctions
 import SwiftUI
 
 struct DirectoryCategoryEditorView: View {
+    private enum Confirmation { case publish, discard }
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @EnvironmentObject private var contentStore: DirectoryContentStore
     @EnvironmentObject private var authState: AuthState
     @Environment(\.dismiss) private var dismiss
+    private let focusTopicID: String?
+    @State private var original: DirectoryManagedCategory
     @State private var draft: DirectoryManagedCategory
     @State private var expectedRevision: Int = 0
     @State private var isSaving = false
     @State private var errorMessage: String?
-    @State private var showPublishConfirmation = false
+    @State private var confirmation: Confirmation?
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
+    private var hasUnsavedChanges: Bool { draft != original }
 
-    init(category: DirectoryManagedCategory?, expectedRevision: Int = 0) {
+    init(category: DirectoryManagedCategory?, expectedRevision: Int = 0, focusTopicID: String? = nil) {
+        self.focusTopicID = focusTopicID
         _expectedRevision = State(initialValue: expectedRevision)
-        _draft = State(initialValue: category ?? DirectoryManagedCategory(
+        let initial = category ?? DirectoryManagedCategory(
             id: "custom-" + UUID().uuidString.lowercased(),
             placement: .support, order: 500, isHidden: false,
             title: .init(ukrainian: "", german: ""),
@@ -22,10 +28,12 @@ struct DirectoryCategoryEditorView: View {
             groups: [.init(id: "general", title: .init(ukrainian: "Основне", german: "Allgemein"),
                            order: 0, isHidden: false)],
             topics: []
-        ))
+        )
+        _original = State(initialValue: initial)
+        _draft = State(initialValue: initial)
     }
 
-    var body: some View {
+    private var categoryForm: some View {
         Form {
             Section {
                 Text(DirectoryEditorText.value(
@@ -34,6 +42,14 @@ struct DirectoryCategoryEditorView: View {
                 ))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
+                if expectedRevision == 0 && original.title.ukrainian.isEmpty {
+                    Text(DirectoryEditorText.value(
+                        "Перед публікацією додайте статтю, інформаційний блок і офіційне джерело обома мовами.",
+                        "Fügen Sie vor der Veröffentlichung einen Beitrag, einen Informationsabschnitt und eine amtliche Quelle in beiden Sprachen hinzu."
+                    ))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                }
             }
             DirectoryBilingualFields(title: DirectoryEditorText.value("Назва категорії", "Name des Bereichs"),
                                      text: $draft.title)
@@ -99,27 +115,66 @@ struct DirectoryCategoryEditorView: View {
                           systemImage: "plus")
                 }
             }
-            Section {
-                Button {
-                    showPublishConfirmation = true
-                } label: {
-                    Label(DirectoryEditorText.value("Опублікувати зміни", "Änderungen veröffentlichen"),
-                          systemImage: "checkmark.circle.fill")
-                }
-                .disabled(isSaving || !contentStore.canEdit)
+        }
+        .directoryEditorChrome()
+    }
+
+    var body: some View {
+        Group {
+            if let focusTopicID, let index = draft.topics.firstIndex(where: { $0.id == focusTopicID }) {
+                DirectoryTopicEditorView(topic: $draft.topics[index], groups: draft.groups)
+            } else {
+                categoryForm
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AppBackgroundView())
-        .navigationTitle(draft.title.value(for: language).isEmpty
-                         ? DirectoryEditorText.value("Нова категорія", "Neuer Bereich")
-                         : draft.title.value(for: language))
+        .navigationBarBackButtonHidden()
+        .navigationTitle(focusTopicID.flatMap { id in
+            draft.topics.first { $0.id == id }?.title.value(for: language)
+        } ?? (draft.title.value(for: language).isEmpty
+               ? DirectoryEditorText.value("Нова категорія", "Neuer Bereich")
+               : draft.title.value(for: language)))
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    if hasUnsavedChanges { confirmation = .discard }
+                    else { dismiss() }
+                } label: {
+                    Label(DirectoryEditorText.value("Назад", "Zurück"), systemImage: "chevron.left")
+                }
+                .disabled(isSaving)
+            }
+            if contentStore.canEdit {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        confirmation = .publish
+                    } label: {
+                        if isSaving { ProgressView() }
+                        else { Text(DirectoryEditorText.value("Опублікувати", "Veröffentlichen")) }
+                    }
+                    .disabled(isSaving || !hasUnsavedChanges)
+                    .accessibilityIdentifier("directory.category.publish")
+                }
+            }
+        }
         .confirmationDialog(
-            DirectoryEditorText.value("Опублікувати для всіх читачів?", "Für alle Leser veröffentlichen?"),
-            isPresented: $showPublishConfirmation
+            confirmation == .publish
+                ? DirectoryEditorText.value("Опублікувати для всіх читачів?", "Für alle Leser veröffentlichen?")
+                : DirectoryEditorText.value("Вийти без збереження змін?", "Änderungen verwerfen?"),
+            isPresented: Binding(
+                get: { confirmation != nil },
+                set: { if !$0 { confirmation = nil } }
+            )
         ) {
-            Button(DirectoryEditorText.value("Опублікувати", "Veröffentlichen")) {
-                Task { await save() }
+            if confirmation == .publish {
+                Button(DirectoryEditorText.value("Опублікувати", "Veröffentlichen")) {
+                    confirmation = nil
+                    Task { await save() }
+                }
+            } else {
+                Button(DirectoryEditorText.value("Відкинути зміни", "Änderungen verwerfen"), role: .destructive) {
+                    confirmation = nil
+                    dismiss()
+                }
             }
         }
         .alert(DirectoryEditorText.value("Не вдалося зберегти", "Speichern fehlgeschlagen"),
@@ -138,7 +193,16 @@ struct DirectoryCategoryEditorView: View {
             try await contentStore.save(draft, expectedRevision: expectedRevision, actorID: actorID)
             dismiss()
         } catch {
-            errorMessage = error.localizedDescription
+            let firebaseError = error as NSError
+            if firebaseError.domain == FunctionsErrorDomain,
+               firebaseError.code == FunctionsErrorCode.aborted.rawValue {
+                errorMessage = DirectoryManagedValidation.Failure.conflict.localizedDescription
+            } else if firebaseError.domain == FunctionsErrorDomain,
+                      firebaseError.code == FunctionsErrorCode.permissionDenied.rawValue {
+                errorMessage = DirectoryManagedValidation.Failure.permissionDenied.localizedDescription
+            } else {
+                errorMessage = error.localizedDescription
+            }
         }
     }
 }
@@ -159,8 +223,7 @@ private struct DirectoryGroupEditorView: View {
                        isOn: $group.isHidden)
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AppBackgroundView())
+        .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Підкатегорія", "Unterbereich"))
     }
 }

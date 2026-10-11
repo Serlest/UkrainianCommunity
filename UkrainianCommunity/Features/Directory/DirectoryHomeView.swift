@@ -204,6 +204,13 @@ struct DirectoryHomeView: View {
                 DirectoryCategoryEditorView(category: category,
                                             expectedRevision: contentStore.revision(categoryID))
             }
+        case let .editTopic(categoryID, topicID):
+            if contentStore.canEdit, let category = contentStore.category(categoryID),
+               category.topics.contains(where: { $0.id == topicID }) {
+                DirectoryCategoryEditorView(category: category,
+                                            expectedRevision: contentStore.revision(categoryID),
+                                            focusTopicID: topicID)
+            }
         case .create:
             if contentStore.canEdit { DirectoryCategoryEditorView(category: nil) }
         case let .category(id):

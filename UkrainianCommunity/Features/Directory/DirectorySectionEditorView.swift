@@ -3,6 +3,12 @@ import SwiftUI
 struct DirectorySectionEditorView: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var section: DirectoryManagedSection
+    @State private var contactRowIDs: [UUID]
+
+    init(section: Binding<DirectoryManagedSection>) {
+        _section = section
+        _contactRowIDs = State(initialValue: section.wrappedValue.contacts.map { _ in UUID() })
+    }
 
     var body: some View {
         Form {
@@ -46,7 +52,7 @@ struct DirectorySectionEditorView: View {
                     .keyboardType(.phonePad)
             }
             Section(DirectoryEditorText.value("Екстрені контакти", "Notrufkontakte")) {
-                ForEach(section.contacts.indices, id: \.self) { index in
+                ForEach(Array(contactRowIDs.enumerated()), id: \.element) { index, _ in
                     VStack(alignment: .leading, spacing: 8) {
                         TextField(DirectoryEditorText.value("Номер", "Nummer"),
                                   text: $section.contacts[index].number)
@@ -61,20 +67,23 @@ struct DirectorySectionEditorView: View {
                         )
                     }
                 }
-                .onDelete { indices in section.contacts.remove(atOffsets: indices) }
+                .onDelete { indices in
+                    section.contacts.remove(atOffsets: indices)
+                    contactRowIDs.remove(atOffsets: indices)
+                }
                 Button {
                     section.contacts.append(.init(
                         number: "", title: .init(ukrainian: "", german: ""),
                         detail: .init(ukrainian: "", german: "")
                     ))
+                    contactRowIDs.append(UUID())
                 } label: {
                     Label(DirectoryEditorText.value("Додати контакт", "Kontakt hinzufügen"),
                           systemImage: "plus")
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AppBackgroundView())
+        .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Блок інформації", "Informationsabschnitt"))
     }
 }

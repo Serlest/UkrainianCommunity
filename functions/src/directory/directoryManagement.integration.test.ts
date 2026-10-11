@@ -67,6 +67,11 @@ test("directory publishing enforces grants, revisions, validation and history", 
     assert.equal(second.revision, 2);
     assert.equal((await category.collection("versions").doc("2").get()).data()?.updatedBy, uid("editor"));
 
+    await db.collection("users").doc(uid("editor")).update({accountStatus: "deactivated"});
+    await assert.rejects(saveDirectoryCategory.run(request("editor", payload("Suspended"), 2)),
+      {code: "permission-denied"});
+    await db.collection("users").doc(uid("editor")).update({accountStatus: "active"});
+
     await assert.rejects(saveDirectoryCategory.run(request("editor", payload("Stale"), 1)),
       {code: "aborted"});
     const withoutSource = JSON.parse(payload("Invalid"));

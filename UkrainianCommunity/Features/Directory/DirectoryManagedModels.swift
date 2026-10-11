@@ -85,9 +85,9 @@ struct DirectoryManagedTopic: Codable, Identifiable, Equatable {
                     .init(id: section.id, order: index, isHidden: false,
                           title: section.title, body: section.body, symbol: section.symbol,
                           phoneNumber: nil, source: nil,
-                          contacts: section.contacts.map(DirectoryManagedContact.init))
+                          contacts: section.contacts.map { DirectoryManagedContact($0) })
                 },
-                sources: guide.sources.map(DirectoryManagedSource.init),
+                sources: guide.sources.map { DirectoryManagedSource($0) },
                 regionalSections: bundledRegionalSections(categoryID: categoryID, topicID: topic.id)
             )
         }
@@ -99,9 +99,9 @@ struct DirectoryManagedTopic: Codable, Identifiable, Equatable {
                 .init(id: section.id, order: index, isHidden: false,
                       title: section.title, body: section.body, symbol: section.symbol,
                       phoneNumber: section.phoneNumber,
-                      source: section.source.map(DirectoryManagedSource.init), contacts: [])
+                      source: section.source.map { DirectoryManagedSource($0) }, contacts: [])
             },
-            sources: (guide?.sources ?? []).map(DirectoryManagedSource.init),
+            sources: (guide?.sources ?? []).map { DirectoryManagedSource($0) },
             regionalSections: bundledRegionalSections(categoryID: categoryID, topicID: topic.id)
         )
     }
@@ -115,7 +115,7 @@ struct DirectoryManagedTopic: Codable, Identifiable, Equatable {
                     id: section.id, order: index, isHidden: false,
                     title: section.title, body: section.body, symbol: section.symbol,
                     phoneNumber: section.phoneNumber,
-                    source: section.source.map(DirectoryManagedSource.init), contacts: []
+                    source: section.source.map { DirectoryManagedSource($0) }, contacts: []
                 )
             })
         })

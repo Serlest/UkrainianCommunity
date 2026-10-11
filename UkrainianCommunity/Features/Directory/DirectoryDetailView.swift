@@ -1,11 +1,28 @@
 import SwiftUI
 
-enum DirectoryRoute: Hashable {
+nonisolated enum DirectoryRoute: Hashable {
     case manage
     case edit(String)
+    case editTopic(categoryID: String, topicID: String)
     case create
     case category(String)
     case topic(categoryID: String, topicID: String)
+
+    static func visiblePrefix(_ path: [DirectoryRoute], categories: [DirectoryCategory]) -> [DirectoryRoute] {
+        let firstUnavailable = path.firstIndex { route in
+            switch route {
+            case let .category(id):
+                !categories.contains { $0.id == id }
+            case let .topic(categoryID, topicID):
+                !categories.contains { category in
+                    category.id == categoryID && category.topics.contains { $0.id == topicID }
+                }
+            case .manage, .edit, .editTopic, .create:
+                false
+            }
+        }
+        return firstUnavailable.map { Array(path.prefix($0)) } ?? path
+    }
 }
 
 struct DirectoryCategoryView: View {

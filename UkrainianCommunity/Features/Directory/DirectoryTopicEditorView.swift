@@ -67,29 +67,47 @@ struct DirectoryTopicEditorView: View {
                     }
                 }
             }
-            Section {
-                ForEach(topic.sources.indices, id: \.self) { index in
-                    DirectorySourceFields(source: $topic.sources[index])
-                }
-                .onDelete { indices in topic.sources.remove(atOffsets: indices) }
-                Button {
-                    topic.sources.append(.init(name: "", url: ""))
-                } label: {
-                    Label(DirectoryEditorText.value("Додати джерело статті", "Beitragsquelle hinzufügen"),
-                          systemImage: "plus")
-                }
-            } header: {
-                Text(DirectoryEditorText.value("Додаткові джерела", "Weitere Quellen"))
-            } footer: {
-                Text(DirectoryEditorText.value(
-                    "Для кожного опублікованого блока потрібне HTTPS-джерело: у самому блоці або тут.",
-                    "Jeder veröffentlichte Abschnitt benötigt eine HTTPS-Quelle: im Abschnitt oder hier."
-                ))
-            }
+            DirectorySourcesEditorView(sources: $topic.sources)
         }
-        .scrollContentBackground(.hidden)
-        .background(AppBackgroundView())
+        .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Стаття", "Beitrag"))
+    }
+}
+
+private struct DirectorySourcesEditorView: View {
+    @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
+    @Binding var sources: [DirectoryManagedSource]
+    @State private var rowIDs: [UUID]
+
+    init(sources: Binding<[DirectoryManagedSource]>) {
+        _sources = sources
+        _rowIDs = State(initialValue: sources.wrappedValue.map { _ in UUID() })
+    }
+
+    var body: some View {
+        Section {
+            ForEach(Array(rowIDs.enumerated()), id: \.element) { index, _ in
+                DirectorySourceFields(source: $sources[index])
+            }
+            .onDelete { offsets in
+                sources.remove(atOffsets: offsets)
+                rowIDs.remove(atOffsets: offsets)
+            }
+            Button {
+                sources.append(.init(name: "", url: ""))
+                rowIDs.append(UUID())
+            } label: {
+                Label(DirectoryEditorText.value("Додати джерело статті", "Beitragsquelle hinzufügen"),
+                      systemImage: "plus")
+            }
+        } header: {
+            Text(DirectoryEditorText.value("Додаткові джерела", "Weitere Quellen"))
+        } footer: {
+            Text(DirectoryEditorText.value(
+                "Для кожного опублікованого блока потрібне HTTPS-джерело: у самому блоці або тут.",
+                "Jeder veröffentlichte Abschnitt benötigt eine HTTPS-Quelle: im Abschnitt oder hier."
+            ))
+        }
     }
 }
 
@@ -144,8 +162,7 @@ private struct DirectoryRegionEditorView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AppBackgroundView())
+        .directoryEditorChrome()
         .navigationTitle(state.displayName)
     }
 }

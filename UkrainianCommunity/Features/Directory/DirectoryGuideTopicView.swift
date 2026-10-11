@@ -63,7 +63,7 @@ struct DirectoryGuideTopicView: View {
         .toolbar {
             if contentStore.canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: DirectoryRoute.edit(categoryID)) {
+                    NavigationLink(value: DirectoryRoute.editTopic(categoryID: categoryID, topicID: topic.id)) {
                         Image(systemName: "square.and.pencil")
                     }
                 }

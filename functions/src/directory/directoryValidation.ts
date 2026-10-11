@@ -158,6 +158,7 @@ export function validateDirectoryCategoryPayload(payload: string, categoryId: st
     bilingual(topic.summary, 800, "topic.summary", topic.isHidden !== true);
     const sources = array(topic.sources, 80, "topic.sources");
     sources.forEach(source);
+    unique(sources.map((value) => (value as RecordValue).url as string), "topic.sources");
     validateRegionalSections(topic.regionalSections);
     const sections = array(topic.sections, 80, "topic.sections").map((value) => {
       const section = record(value, [

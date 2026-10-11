@@ -4,16 +4,17 @@ import SwiftUI
 struct DirectoryEditorsView: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @EnvironmentObject private var authState: AuthState
-    @StateObject private var users = UserManagementViewModel()
+    @StateObject private var users = DirectoryEditorCandidatesStore()
     @State private var editorIDs = Set<String>()
     @State private var editorNames: [String: String] = [:]
     @State private var searchText = ""
     @State private var busyIDs = Set<String>()
     @State private var errorMessage: String?
     @State private var isLoading = true
+    @State private var pendingRevocation: String?
 
     private var actor: AppUser? { authState.user }
-    private var isOwner: Bool { actor?.globalRole.authorizationRole == .owner }
+    private var isOwner: Bool { PermissionService.isAppOwner(user: actor) }
     private var normalizedSearch: String {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
@@ -57,7 +58,7 @@ struct DirectoryEditorsView: View {
                             }
                             Spacer()
                             Button(role: .destructive) {
-                                Task { await setAccess(false, userID: id) }
+                                pendingRevocation = id
                             } label: {
                                 Text(DirectoryEditorText.value("Зняти", "Entziehen"))
                             }
@@ -71,6 +72,7 @@ struct DirectoryEditorsView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     if users.isSearching { ProgressView() }
+                    if users.isLoading { ProgressView() }
                     ForEach(candidates) { user in
                         if user.id != actor?.id && user.globalRole.authorizationRole != .owner {
                             userRow(user)
@@ -78,7 +80,7 @@ struct DirectoryEditorsView: View {
                     }
                     if normalizedSearch.isEmpty && users.canLoadMore {
                         Button(DirectoryEditorText.value("Показати ще", "Weitere anzeigen")) {
-                            Task { await users.loadMore(actor: actor) }
+                            Task { await users.loadMore() }
                         }
                         .disabled(users.isLoadingMore)
                     }
@@ -86,16 +88,24 @@ struct DirectoryEditorsView: View {
                         Text(DirectoryEditorText.value("Пошук не вдався", "Suche fehlgeschlagen"))
                             .foregroundStyle(.red)
                     }
+                    if users.loadFailed {
+                        Button(DirectoryEditorText.value("Не вдалося завантажити. Повторити", "Laden fehlgeschlagen. Erneut versuchen")) {
+                            Task { await users.load() }
+                        }
+                    }
                 }
             }
         }
         .scrollContentBackground(.hidden)
         .background(AppBackgroundView())
+        .tint(AppTheme.accentPrimaryForeground)
+        .navigationBarTitleDisplayMode(.inline)
         .navigationTitle(DirectoryEditorText.value("Редактори довідника", "Ratgeberredakteure"))
         .task(id: actor?.id) {
             guard isOwner else { return }
-            await users.load(actor: actor)
-            await loadEditors()
+            async let candidates: Void = users.load()
+            async let grants: Void = loadEditors()
+            _ = await (candidates, grants)
         }
         .task(id: normalizedSearch) {
             guard isOwner else { return }
@@ -105,7 +115,21 @@ struct DirectoryEditorsView: View {
             }
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
-            await users.search(query: normalizedSearch, actor: actor)
+            await users.search(normalizedSearch)
+        }
+        .confirmationDialog(
+            DirectoryEditorText.value("Забрати доступ до довідника?", "Ratgeberzugriff entziehen?"),
+            isPresented: Binding(
+                get: { pendingRevocation != nil },
+                set: { if !$0 { pendingRevocation = nil } }
+            )
+        ) {
+            if let pendingRevocation {
+                Button(DirectoryEditorText.value("Забрати доступ", "Zugriff entziehen"), role: .destructive) {
+                    self.pendingRevocation = nil
+                    Task { await setAccess(false, userID: pendingRevocation) }
+                }
+            }
         }
         .alert(DirectoryEditorText.value("Помилка доступу", "Zugriffsfehler"),
                isPresented: Binding(get: { errorMessage != nil },

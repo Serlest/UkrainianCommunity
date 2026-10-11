@@ -60,7 +60,7 @@ struct DirectorySafetyTopicView: View {
         .toolbar {
             if contentStore.canEdit {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: DirectoryRoute.edit("safety")) {
+                    NavigationLink(value: DirectoryRoute.editTopic(categoryID: "safety", topicID: topic.id)) {
                         Image(systemName: "square.and.pencil")
                     }
                 }

@@ -704,6 +704,11 @@ struct ContentView: View {
                 feedbackRepository: container.feedbackRepository
             )
         }
+        .onChange(of: directoryContentStore.visibleRouteSignature) { _, _ in
+            directoryNavigationPath = DirectoryRoute.visiblePrefix(
+                directoryNavigationPath, categories: directoryContentStore.categories
+            )
+        }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.directory")
         .tabItem {

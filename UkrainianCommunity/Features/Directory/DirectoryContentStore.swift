@@ -7,6 +7,13 @@ import Combine
 final class DirectoryContentStore: ObservableObject {
     private static let bundledCategories = DirectoryCatalog.categories.map(DirectoryManagedCategory.bundled)
     private static let bundledIDs = Set(DirectoryCatalog.categories.map(\.id))
+    private static let startIDs = Set(DirectoryCatalog.startCategories.map(\.id))
+    private static let lifeIDs = Set(DirectoryCatalog.lifeCategories.map(\.id))
+    private struct DisplayEntry {
+        let category: DirectoryCategory
+        let placement: DirectoryManagedCategory.Placement
+        let order: Int
+    }
     struct PublishedCategory {
         let content: DirectoryManagedCategory
         let revision: Int
@@ -22,10 +29,16 @@ final class DirectoryContentStore: ObservableObject {
     private var accessListener: ListenerRegistration?
     private var observedUserID: String?
     private var isOwner = false
+    private var isAccountUsable = false
 
     var canEdit: Bool { isOwner || isEditor }
     var categories: [DirectoryCategory] {
-        allManagedCategories.compactMap(\.visibleCategory)
+        displayEntries.map(\.category)
+    }
+    var visibleRouteSignature: String {
+        categories.map { category in
+            "\(category.id):\(category.topics.map(\.id).joined(separator: ","))"
+        }.joined(separator: "|")
     }
     var startCategories: [DirectoryCategory] { categories(in: .start) }
     var lifeCategories: [DirectoryCategory] { categories(in: .life) }
@@ -44,8 +57,34 @@ final class DirectoryContentStore: ObservableObject {
         }
     }
 
+    private var displayEntries: [DisplayEntry] {
+        let builtIn = DirectoryCatalog.categories.enumerated().compactMap { index, category -> DisplayEntry? in
+            if let content = published[category.id]?.content {
+                guard let visible = content.visibleCategory else { return nil }
+                return DisplayEntry(category: visible, placement: content.placement, order: content.order)
+            }
+            let placement: DirectoryManagedCategory.Placement = Self.startIDs.contains(category.id)
+                ? .start : (Self.lifeIDs.contains(category.id) ? .life : .support)
+            return DisplayEntry(category: category, placement: placement, order: index * 10)
+        }
+        let added = published.values.compactMap { item -> DisplayEntry? in
+            guard !Self.bundledIDs.contains(item.content.id),
+                  let visible = item.content.visibleCategory else { return nil }
+            return DisplayEntry(category: visible, placement: item.content.placement, order: item.content.order)
+        }
+        return (builtIn + added).sorted {
+            if $0.placement != $1.placement {
+                return Self.placementOrder($0.placement) < Self.placementOrder($1.placement)
+            }
+            return $0.order == $1.order
+                ? $0.category.id < $1.category.id : $0.order < $1.order
+        }
+    }
+
     func category(_ id: String) -> DirectoryManagedCategory? {
-        allManagedCategories.first { $0.id == id }
+        if let published = published[id] { return published.content }
+        guard let bundled = DirectoryCatalog.categories.first(where: { $0.id == id }) else { return nil }
+        return .bundled(bundled)
     }
 
     func revision(_ id: String) -> Int { published[id]?.revision ?? 0 }
@@ -77,15 +116,16 @@ final class DirectoryContentStore: ObservableObject {
 
     func configure(user: AppUser?) {
         let uid = user?.id
-        let owner = user?.globalRole.authorizationRole == .owner &&
-            (user?.blockState == .active || user?.blockState == .warned)
-        guard observedUserID != uid || isOwner != owner else { return }
+        let owner = PermissionService.isAppOwner(user: user)
+        let usable = PermissionService.isUsableAccount(user: user)
+        guard observedUserID != uid || isOwner != owner || isAccountUsable != usable else { return }
         observedUserID = uid
         isOwner = owner
+        isAccountUsable = usable
         isEditor = false
         accessListener?.remove()
         accessListener = nil
-        guard let uid, !owner else { return }
+        guard let uid, usable, !owner else { return }
         accessListener = db.collection("directoryEditors").document(uid)
             .addSnapshotListener { [weak self] snapshot, _ in
                 Task { @MainActor in
@@ -119,6 +159,12 @@ final class DirectoryContentStore: ObservableObject {
                             updatedAt: (document.data()["updatedAt"] as? Timestamp)?.dateValue()
                         )
                     }
+                    // A cached query can arrive just after a successful callable save.
+                    // Keep the acknowledged revision until Firestore delivers that revision.
+                    for (id, current) in self.published where
+                        current.revision > (decoded[id]?.revision ?? -1) {
+                        decoded[id] = current
+                    }
                     self.published = decoded
                 }
             }
@@ -139,10 +185,16 @@ final class DirectoryContentStore: ObservableObject {
               result["revision"] as? Int == expectedRevision + 1 else {
             throw AppError.validationFailed
         }
+        let nextRevision = expectedRevision + 1
+        if (published[category.id]?.revision ?? 0) <= nextRevision {
+            published[category.id] = PublishedCategory(
+                content: category, revision: nextRevision, updatedAt: Date()
+            )
+        }
     }
 
     private func categories(in placement: DirectoryManagedCategory.Placement) -> [DirectoryCategory] {
-        allManagedCategories.filter { $0.placement == placement }.compactMap(\.visibleCategory)
+        displayEntries.filter { $0.placement == placement }.map(\.category)
     }
 
     private static func placementOrder(_ value: DirectoryManagedCategory.Placement) -> Int {

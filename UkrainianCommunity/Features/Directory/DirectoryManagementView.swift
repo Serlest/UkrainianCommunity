@@ -6,6 +6,7 @@ struct DirectoryManagementView: View {
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
     var body: some View {
+        let categories = contentStore.allManagedCategories
         List {
             Section {
                 Text(DirectoryEditorText.value(
@@ -16,7 +17,7 @@ struct DirectoryManagementView: View {
             }
             ForEach(DirectoryManagedCategory.Placement.allCases, id: \.self) { placement in
                 Section(placementTitle(placement)) {
-                    ForEach(contentStore.allManagedCategories.filter { $0.placement == placement }) { category in
+                    ForEach(categories.filter { $0.placement == placement }) { category in
                         NavigationLink(value: DirectoryRoute.edit(category.id)) {
                             Label {
                                 VStack(alignment: .leading) {
@@ -34,15 +35,16 @@ struct DirectoryManagementView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(AppBackgroundView())
+        .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Керування довідником", "Ratgeber verwalten"))
         .toolbar {
-            NavigationLink(value: DirectoryRoute.create) {
-                Label(DirectoryEditorText.value("Додати категорію", "Bereich hinzufügen"),
-                      systemImage: "plus")
+            if contentStore.canEdit {
+                NavigationLink(value: DirectoryRoute.create) {
+                    Label(DirectoryEditorText.value("Додати категорію", "Bereich hinzufügen"),
+                          systemImage: "plus")
+                }
+                .accessibilityIdentifier("directory.category.add")
             }
-            .accessibilityIdentifier("directory.category.add")
         }
     }
 

@@ -47,6 +47,27 @@ struct DirectoryCatalogTests {
         #expect(managed.visibleCategory == nil)
         _ = try DirectoryManagedValidation.validate(managed)
     }
+
+    @Test func hiddenDirectoryRoutesReturnToTheNearestVisibleScreen() throws {
+        let safety = try #require(DirectoryCatalog.categories.first { $0.id == "safety" })
+        let topic = try #require(safety.topics.first)
+        let route: [DirectoryRoute] = [
+            .category(safety.id),
+            .topic(categoryID: safety.id, topicID: topic.id),
+            .edit(safety.id)
+        ]
+        #expect(DirectoryRoute.visiblePrefix(route, categories: DirectoryCatalog.categories) == route)
+
+        let withoutTopic = DirectoryCatalog.categories.map { category in
+            category.id == safety.id
+                ? DirectoryCategory(id: category.id, title: category.title, summary: category.summary,
+                                    symbol: category.symbol, topics: category.topics.filter { $0.id != topic.id })
+                : category
+        }
+        #expect(DirectoryRoute.visiblePrefix(route, categories: withoutTopic) == [.category(safety.id)])
+        #expect(DirectoryRoute.visiblePrefix(route,
+                                             categories: withoutTopic.filter { $0.id != safety.id }).isEmpty)
+    }
     @Test func articleFormattingKeepsDatesAndNumberedStepsTogether() {
         #expect(DirectoryReadingBlocks.from("Seit 16. Januar 2026 gilt die Regel. Prüfen Sie den Antrag.") == [
             "Seit 16. Januar 2026 gilt die Regel.", "Prüfen Sie den Antrag."
