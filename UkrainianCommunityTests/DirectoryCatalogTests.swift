@@ -479,6 +479,27 @@ struct DirectoryCatalogTests {
         #expect(DigitalGuides.guide(for: "online-safety")?.sections.contains { $0.id == "payment" } == true)
     }
 
+    @Test func communityGuidesSeparateLocalContactsGroupsAndVolunteering() throws {
+        let topics = try #require(DirectoryCatalog.categories.first { $0.id == "community" }?.topics)
+        #expect(topics.map(\.id) == ["local-services", "community", "volunteering"])
+        for topic in topics {
+            let guide = try #require(CommunityGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { $0.body.ukrainian.count > 100 && $0.body.german.count > 100 })
+            #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+        }
+        for state in AustrianFederalState.allCases {
+            let regional = DirectoryRegionalContent.sections(categoryID: "community", topicID: "local-services", state: state)
+            #expect(regional.count == 1)
+            #expect(regional[0].source?.url.scheme == "https")
+            #expect(regional[0].source?.url.absoluteString.contains("/standorte/\(state.rawValue)/") == true)
+        }
+        #expect(CommunityGuides.guide(for: "community")?.sections.contains { $0.id == "association" } == true)
+        #expect(CommunityGuides.guide(for: "volunteering")?.sections.contains { $0.id == "insurance" } == true)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),

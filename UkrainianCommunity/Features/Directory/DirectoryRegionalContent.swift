@@ -84,12 +84,7 @@ enum DirectoryRegionalContent {
                           "Для землі \(state.displayName) знайдіть компетентну Bezirksverwaltungsbehörde за адресою проживання. Перед поданням уточніть, чи ваш статус дає право на конкретну виплату, чи замість неї діє Grundversorgung, і попросіть перелік документів.",
                           "Für \(state.displayName) die Bezirksverwaltungsbehörde des Wohnorts suchen. Vor Antrag klären, ob Ihr Status Anspruch auf die konkrete Leistung eröffnet oder Grundversorgung einschlägig ist, und Unterlagenliste verlangen.",
                           source: DirectorySource(name: "oesterreich.gv.at · Sozialhilfeantrag", url: "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/4/Seite.1693912"))]
-        case "community":
-            return [.init("regional-integration", "person.2", "Інтеграційний центр вашої землі", "Integrationszentrum Ihres Bundeslandes",
-                          "У списку ÖIF знайдіть центр землі \(state.displayName), перевірте адресу й запис. Загальна лінія 050 46 80 допоможе визначити відповідний центр.",
-                          "In der ÖIF-Liste das Zentrum für \(state.displayName) suchen und Anschrift sowie Termin prüfen. Die Hotline 050 46 80 hilft bei der Zuordnung.",
-                          phoneNumber: "050 46 80",
-                          source: DirectorySource(name: "ÖIF · Standorte", url: "https://www.integrationsfonds.at/der-oeif/standorte/uebersicht-standorte/"))]
+        case "community": return CommunityRegionalContent.sections(for: state)
         case "accessibility":
             return [.init("regional-accessibility", "figure.roll", "Соціальне міністерство у вашій землі", "Sozialministeriumservice im Bundesland",
                           "На офіційній сторінці виберіть Landesstelle \(state.displayName): тут уточнюють Behindertenpass, додаткові записи й заявку до фонду підтримки. Перед відвідуванням перевірте години й доступність.",
