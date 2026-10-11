@@ -208,6 +208,7 @@ struct NewsHomeView: View {
         case .guest: "guest"
         case .authenticated: "authenticated:\(authState.user?.id ?? "pending")"
         case .verificationPending: "verificationPending:\(authState.pendingVerificationEmail ?? "pending")"
+        case .registrationPending: "registrationPending:\(authState.pendingSessionUserID ?? "pending")"
         case .sessionUnavailable: "sessionUnavailable:\(authState.pendingSessionUserID ?? "pending")"
         }
     }

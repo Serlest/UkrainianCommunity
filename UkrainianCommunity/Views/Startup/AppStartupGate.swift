@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import GoogleSignIn
 
 struct AppStartupGate: View {
     let container: AppContainer
@@ -15,15 +16,19 @@ struct AppStartupGate: View {
 
     var body: some View {
         ZStack {
-            ContentView(container: container, isStartupReady: !isShowingSplash)
-                .environmentObject(authState)
-                .opacity(isShowingSplash ? 0 : 1)
-                .accessibilityHidden(isShowingSplash)
-
-            if isShowingSplash {
+            if authState.isRestoring
+                || (authState.isAuthenticating && authState.presentedAuthFlow == nil)
+                || isShowingSplash {
                 SplashLoadingView()
-                    .opacity(1)
-                    .transition(.opacity)
+            } else if authState.isAuthenticated || usesGuestUITestFixture {
+                ContentView(container: container)
+                    .environmentObject(authState)
+            } else {
+                AuthFlowContainerView(initialDestination: requiredAuthDestination, allowsDismissal: false)
+                    .id(requiredAuthDestination)
+                    .environmentObject(authState)
+                    .preferredColorScheme(AppAppearance.stored.colorScheme)
+                    .environment(\.locale, Locale(identifier: AppLanguage.stored.rawValue))
             }
         }
         .background(AppLockShield(authState: authState).frame(width: 0, height: 0))
@@ -33,6 +38,28 @@ struct AppStartupGate: View {
         .onChange(of: authState.isRestoring) { _, _ in
             evaluateStartupState()
         }
+        .onOpenURL { url in
+            _ = GIDSignIn.sharedInstance.handle(url)
+        }
+    }
+
+    private var requiredAuthDestination: AuthFlowDestination {
+        if let presented = authState.presentedAuthFlow { return presented }
+        switch authState.sessionState {
+        case .verificationPending: return .emailVerification
+        case .registrationPending: return .socialRegistration
+        case .sessionUnavailable: return .sessionRecovery
+        default: return .landing
+        }
+    }
+
+    private var usesGuestUITestFixture: Bool {
+#if DEBUG && targetEnvironment(simulator)
+        ProcessInfo.processInfo.arguments.contains("-ui-testing")
+            && ProcessInfo.processInfo.environment["UITestForceGuestSession"] == "1"
+#else
+        false
+#endif
     }
 
     private func evaluateStartupState() {

@@ -1247,6 +1247,8 @@ enum ContentAuthLifecyclePolicy {
             return "loading:authenticated"
         case .verificationPending:
             return "verificationPending:\(pendingVerificationEmail ?? "pending")"
+        case .registrationPending:
+            return "registrationPending:\(pendingSessionUserID ?? "pending")"
         case .sessionUnavailable:
             return "sessionUnavailable:\(pendingSessionUserID ?? "pending")"
         }
@@ -1265,7 +1267,7 @@ enum ContentAuthLifecyclePolicy {
         switch sessionState {
         case .guest, .authenticated:
             return true
-        case .restoring, .authenticating, .verificationPending, .sessionUnavailable:
+        case .restoring, .authenticating, .verificationPending, .registrationPending, .sessionUnavailable:
             return false
         }
     }

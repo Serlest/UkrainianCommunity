@@ -25,11 +25,12 @@ struct AuthValidationService {
         selectedFederalState: AustrianFederalState?,
         acceptedTerms: Bool,
         acceptedPrivacy: Bool,
-        confirmedMinimumAge: Bool
+        confirmedMinimumAge: Bool,
+        requiresPassword: Bool = true
     ) -> [String] {
         var errors = validateEmail(email)
 
-        if let passwordError = passwordPolicy.validationError(for: password) {
+        if requiresPassword, let passwordError = passwordPolicy.validationError(for: password) {
             errors.append(passwordError)
         }
 
@@ -37,7 +38,7 @@ struct AuthValidationService {
             errors.append(AppStrings.Validation.authDisplayNameRequired)
         }
 
-        if password != repeatedPassword {
+        if requiresPassword && password != repeatedPassword {
             errors.append(AppStrings.Validation.authPasswordMismatch)
         }
 

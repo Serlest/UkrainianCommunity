@@ -4259,13 +4259,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erstellen Sie ein Konto oder melden Sie sich an, um Likes zu speichern, sich für Veranstaltungen anzumelden, Feedback zu senden und Inhalte zu verwalten, sofern Ihre Rolle das erlaubt."
+            "value" : "Melden Sie sich an oder erstellen Sie ein Konto, um UAC zu nutzen."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Створіть обліковий запис або увійдіть, щоб зберігати вподобання, реєструватися на події, надсилати відгуки та керувати вмістом, якщо це дозволяє ваша роль."
+            "value" : "Увійдіть або створіть обліковий запис, щоб користуватися UAC."
           }
         }
       }
@@ -4310,13 +4310,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwenden Sie Ihre Konto-E-Mail und Ihr Passwort."
+            "value" : "Wählen Sie aus, wie Sie sich bei Ihrem Konto anmelden möchten."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Використайте електронну пошту й пароль облікового запису."
+            "value" : "Оберіть спосіб входу до свого облікового запису."
           }
         }
       }
@@ -4538,6 +4538,159 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Увійдіть, щоб продовжити"
+          }
+        }
+      }
+    },
+    "auth.provider.account_exists" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese E-Mail-Adresse wird bereits mit einer anderen Anmeldemethode verwendet. Melden Sie sich mit der bisherigen Methode an."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ця адреса вже прив’язана до іншого способу входу. Увійдіть попереднім способом."
+          }
+        }
+      }
+    },
+    "auth.provider.change_account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem anderen Konto anmelden"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Увійти в інший обліковий запис"
+          }
+        }
+      }
+    },
+    "auth.provider.email_missing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dieses Konto hat keine E-Mail-Adresse übermittelt. Melden Sie sich auf andere Weise an."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Цей обліковий запис не передав адресу електронної пошти. Увійдіть іншим способом."
+          }
+        }
+      }
+    },
+    "auth.provider.failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung fehlgeschlagen. Bitte versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося ввійти. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "auth.provider.finish_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geben Sie Ihren Namen und Ihr Bundesland an und stimmen Sie den Nutzungsbedingungen zu."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вкажіть ім’я та федеральну землю, потім підтвердьте умови користування."
+          }
+        }
+      }
+    },
+    "auth.provider.finish_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Registrierung abschließen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершіть реєстрацію"
+          }
+        }
+      }
+    },
+    "auth.provider.google" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit Google fortfahren"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продовжити з Google"
+          }
+        }
+      }
+    },
+    "auth.provider.google_unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google-Anmeldung ist derzeit nicht verfügbar. Bitte wählen Sie eine andere Anmeldemethode."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вхід через Google поки недоступний. Скористайтеся іншим способом входу."
+          }
+        }
+      }
+    },
+    "auth.provider.methods" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oder anmelden mit"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Або увійдіть за допомогою"
           }
         }
       }

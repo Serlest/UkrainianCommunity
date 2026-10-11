@@ -174,11 +174,12 @@ struct UkrainianCommunityApp: App {
         }
 
         let shouldForceGuestSession = environment["UITestForceGuestSession"] == "1"
+        let shouldForceSignedOutSession = isUITesting && environment["UITestForceSignedOutSession"] == "1"
         let shouldForceAuthenticatedSession = environment["UITestForceAuthenticatedSession"] == "1"
         let shouldForceOwnerSession = environment["UITestForceOwnerSession"] == "1"
         let sharedAuthState = AuthService.shared.authState
 
-        if shouldForceGuestSession {
+        if shouldForceGuestSession || shouldForceSignedOutSession {
             try? Auth.auth().signOut()
         }
 
@@ -192,7 +193,7 @@ struct UkrainianCommunityApp: App {
                 sharedAuthState.setAuthenticatedSession(user: owner)
             } else if shouldForceAuthenticatedSession {
                 sharedAuthState.setAuthenticatedSession(user: MockContentBuilder.currentUser())
-            } else if shouldForceGuestSession {
+            } else if shouldForceGuestSession || shouldForceSignedOutSession {
                 sharedAuthState.setGuestSession()
             } else {
                 await AuthService.shared.restoreSession()

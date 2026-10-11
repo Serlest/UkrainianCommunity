@@ -1,4 +1,13 @@
 {
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "UAC — Ukrainian Community",
+        "supportEmail": "ukrainian.community@outlook.com"
+      }
+    }
+  },
   "firestore": {
     "rules": "Firebase/firestore.rules",
     "indexes": "Firebase/firestore.indexes.json"

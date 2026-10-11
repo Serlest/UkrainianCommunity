@@ -2753,7 +2753,7 @@ enum AppStrings {
     enum Auth {
         static var title: String { text("auth.title", "Account") }
         static var landingTitle: String { text("auth.landing.title", "Welcome") }
-        static var landingSubtitle: String { text("auth.landing.subtitle", "Create an account or sign in to save likes, register for events, send feedback, and manage content if your role allows it.") }
+        static var landingSubtitle: String { text("auth.landing.subtitle", "Увійдіть або створіть обліковий запис, щоб користуватися UAC.") }
         static var signIn: String { text("auth.sign_in", "Sign In") }
         static var createAccount: String { text("auth.create_account", "Create Account") }
         static var email: String { text("auth.email", "Email") }
@@ -2767,6 +2767,15 @@ enum AppStrings {
         static var resetPasswordSubtitle: String { text("auth.reset_password.subtitle", "Enter the email linked to your account and we will send a reset link.") }
         static var resetPasswordSuccess: String { text("auth.reset_password.success", "The reset link has been sent.") }
         static var registerTitle: String { text("auth.register.title", "Create Account") }
+        static var finishRegistrationTitle: String { text("auth.provider.finish_title", "Завершіть реєстрацію") }
+        static var finishRegistrationSubtitle: String { text("auth.provider.finish_subtitle", "Вкажіть ім’я та федеральну землю, потім підтвердьте умови користування.") }
+        static var otherSignInMethods: String { text("auth.provider.methods", "Або увійдіть за допомогою") }
+        static var continueWithGoogle: String { text("auth.provider.google", "Продовжити з Google") }
+        static var changeAccount: String { text("auth.provider.change_account", "Увійти в інший обліковий запис") }
+        static var providerSignInFailed: String { text("auth.provider.failed", "Не вдалося ввійти. Спробуйте ще раз.") }
+        static var googleConfigurationMissing: String { text("auth.provider.google_unavailable", "Вхід через Google поки недоступний. Скористайтеся іншим способом входу.") }
+        static var providerEmailMissing: String { text("auth.provider.email_missing", "Цей обліковий запис не передав адресу електронної пошти. Увійдіть іншим способом.") }
+        static var accountUsesAnotherSignInMethod: String { text("auth.provider.account_exists", "Ця адреса вже прив’язана до іншого способу входу. Увійдіть попереднім способом.") }
         static var emailVerificationTitle: String { text("auth.email_verification.title", "Verify your email") }
         static var emailVerificationDescription: String { text("auth.email_verification.description", "We sent a verification link. Check your inbox and open it to activate your account.") }
         static var emailVerificationSent: String { text("auth.email_verification.sent", "Account created. Verification email sent.") }
@@ -2785,7 +2794,7 @@ enum AppStrings {
         static var emailVerificationResendFailed: String { text("auth.email_verification.resend_failed", "Could not send verification email now. Try again later.") }
         static var emailVerificationChangeAccount: String { text("auth.email_verification.change_account", "Sign out and change account") }
         static var loginTitle: String { text("auth.login.title", "Sign In") }
-        static var loginSubtitle: String { text("auth.login.subtitle", "Use your account email and password.") }
+        static var loginSubtitle: String { text("auth.login.subtitle", "Оберіть спосіб входу до свого облікового запису.") }
         static var signInAction: String { text("auth.sign_in.action", "Sign In") }
         static var createAccountAction: String { text("auth.create_account.action", "Create Account") }
         static var signingIn: String { text("auth.signing_in", "Signing In...") }

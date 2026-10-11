@@ -4,11 +4,12 @@ import SwiftUI
 
 struct AuthFlowContainerView: View {
     let initialDestination: AuthFlowDestination
+    var allowsDismissal = true
     @EnvironmentObject private var authState: AuthState
 
     private var requiresResolvedSession: Bool {
         switch initialDestination {
-        case .emailVerification, .sessionRecovery, .multiFactorChallenge,
+        case .emailVerification, .socialRegistration, .sessionRecovery, .multiFactorChallenge,
              .privilegedMultiFactorRequirement:
             return true
         case .landing, .login, .register, .passwordReset:
@@ -20,7 +21,7 @@ struct AuthFlowContainerView: View {
         NavigationStack {
             destinationView(for: initialDestination)
                 .toolbar {
-                    if !requiresResolvedSession {
+                    if allowsDismissal && !requiresResolvedSession {
                         ToolbarItem(placement: .topBarLeading) {
                             Button(AppStrings.Common.cancel) {
                                 authState.dismissAuthFlow()
@@ -29,7 +30,7 @@ struct AuthFlowContainerView: View {
                     }
                 }
         }
-        .interactiveDismissDisabled(requiresResolvedSession)
+        .interactiveDismissDisabled(!allowsDismissal || requiresResolvedSession)
     }
 
     @ViewBuilder
@@ -41,6 +42,8 @@ struct AuthFlowContainerView: View {
             LoginView()
         case .register:
             RegisterView()
+        case .socialRegistration:
+            RegisterView(federated: true)
         case .emailVerification:
             EmailVerificationView()
         case .sessionRecovery:
@@ -122,6 +125,7 @@ struct AuthLandingView: View {
                     .accessibilityIdentifier("auth.landing.register")
                 }
             }
+            FederatedSignInButtons()
         }
         .navigationTitle(AppStrings.Auth.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -139,6 +143,8 @@ struct LoginView: View {
     var body: some View {
         AuthScreenScaffold {
             AuthHeaderView(title: AppStrings.Auth.loginTitle, subtitle: AppStrings.Auth.loginSubtitle)
+
+            FederatedSignInButtons()
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
@@ -265,14 +271,20 @@ struct RegisterView: View {
     @State private var errorMessage: String?
     @State private var isSubmitting = false
     private let validationService = AuthValidationService()
+    private let federated: Bool
 
-    init(prefilledEmail: String = "") {
-        _email = State(initialValue: prefilledEmail)
+    init(prefilledEmail: String = "", federated: Bool = false) {
+        self.federated = federated
+        _email = State(initialValue: federated ? AuthService.shared.currentUser?.email ?? "" : prefilledEmail)
+        _displayName = State(initialValue: federated ? AuthService.shared.currentUser?.displayName ?? "" : "")
     }
 
     var body: some View {
         AuthScreenScaffold {
-            AuthHeaderView(title: AppStrings.Auth.registerTitle, subtitle: AppStrings.Auth.registerSubtitle)
+            AuthHeaderView(
+                title: federated ? AppStrings.Auth.finishRegistrationTitle : AppStrings.Auth.registerTitle,
+                subtitle: federated ? AppStrings.Auth.finishRegistrationSubtitle : AppStrings.Auth.registerSubtitle
+            )
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
@@ -286,8 +298,14 @@ struct RegisterView: View {
                         autocapitalization: .never,
                         autocorrectionDisabled: true
                     )
-                    EditorSecureField(AppStrings.Auth.password, text: $password, textContentType: .newPassword)
-                    EditorSecureField(AppStrings.Auth.passwordRepeat, text: $repeatedPassword, systemImage: "lock.fill", textContentType: .newPassword)
+                    .disabled(federated)
+                    if federated && email.isEmpty {
+                        InlineMessageCard(style: .error, message: AppStrings.Auth.providerEmailMissing)
+                    }
+                    if !federated {
+                        EditorSecureField(AppStrings.Auth.password, text: $password, textContentType: .newPassword)
+                        EditorSecureField(AppStrings.Auth.passwordRepeat, text: $repeatedPassword, systemImage: "lock.fill", textContentType: .newPassword)
+                    }
                     EditorTextField(AppStrings.Auth.telegramUsername, text: $telegramUsername, systemImage: "paperplane", autocapitalization: .never, autocorrectionDisabled: true)
 
                     Picker(AppStrings.Auth.federalState, selection: $selectedFederalState) {
@@ -343,11 +361,19 @@ struct RegisterView: View {
                     }
                     .accessibilityIdentifier("auth.register.submit")
 
-                    NavigationLink(AppStrings.Auth.signInInstead) {
-                        LoginView()
+                    if federated {
+                        Button(AppStrings.Auth.changeAccount) {
+                            Task { _ = await AuthService.shared.signOut() }
+                        }
+                        .font(.footnote.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                    } else {
+                        NavigationLink(AppStrings.Auth.signInInstead) {
+                            LoginView()
+                        }
+                        .font(.footnote.weight(.semibold))
+                        .frame(maxWidth: .infinity)
                     }
-                    .font(.footnote.weight(.semibold))
-                    .frame(maxWidth: .infinity)
                 }
             }
         }
@@ -364,7 +390,7 @@ struct RegisterView: View {
         .task {
             await legalDocuments.load()
         }
-        .navigationTitle(AppStrings.Auth.registerTitle)
+        .navigationTitle(federated ? AppStrings.Auth.finishRegistrationTitle : AppStrings.Auth.registerTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.register.screen")
     }
@@ -407,7 +433,11 @@ struct RegisterView: View {
             defer { isSubmitting = false }
 
             do {
-                try await AuthService.shared.register(draft: draft, password: password)
+                if federated {
+                    try await AuthService.shared.completeFederatedRegistration(draft: draft)
+                } else {
+                    try await AuthService.shared.register(draft: draft, password: password)
+                }
             } catch {
                 errorMessage = readableRegistrationErrorMessage(error)
             }
@@ -423,7 +453,8 @@ struct RegisterView: View {
             selectedFederalState: selectedFederalState,
             acceptedTerms: acceptedTerms,
             acceptedPrivacy: acceptedPrivacy,
-            confirmedMinimumAge: confirmedMinimumAge
+            confirmedMinimumAge: confirmedMinimumAge,
+            requiresPassword: !federated
         )
     }
 

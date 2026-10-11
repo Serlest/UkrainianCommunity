@@ -107,6 +107,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testNewsBrowseUkrainianPeriodAndTopicNavigation() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestForceGuestSession"] = "1"
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launch()
@@ -144,6 +145,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testNewsBrowseTopicAndSortFilters() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestForceGuestSession"] = "1"
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launch()

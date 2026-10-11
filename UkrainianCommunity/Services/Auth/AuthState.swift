@@ -7,6 +7,7 @@ enum AuthSessionState: Equatable {
     case guest
     case authenticated
     case verificationPending
+    case registrationPending
     /// Firebase still owns a non-anonymous session, but the app cannot safely
     /// construct an `AppUser` yet. This state deliberately fails closed instead
     /// of presenting an authenticated Firebase client as an app guest.
@@ -17,6 +18,7 @@ enum AuthFlowDestination: String, Identifiable {
     case landing
     case login
     case register
+    case socialRegistration
     case passwordReset
     case emailVerification
     case sessionRecovery
@@ -75,6 +77,10 @@ final class AuthState: ObservableObject {
 
     var isVerificationPending: Bool {
         sessionState == .verificationPending
+    }
+
+    var isRegistrationPending: Bool {
+        sessionState == .registrationPending
     }
 
     var isRestoring: Bool {
@@ -164,6 +170,20 @@ final class AuthState: ObservableObject {
         pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
         emailVerificationNotice = notice
         sessionState = .verificationPending
+        errorMessage = nil
+    }
+
+    @MainActor
+    func setRegistrationPendingSession(userID: String, email: String?) {
+        OrganizationAccessStore.shared.transition(to: nil)
+        LocalReminderSession.shared.transition(to: nil)
+        appLock.updateSession(userID: nil)
+        invalidateUserLoad()
+        user = nil
+        pendingSessionUserID = userID
+        pendingVerificationEmail = email
+        emailVerificationNotice = nil
+        sessionState = .registrationPending
         errorMessage = nil
     }
 

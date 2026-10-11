@@ -45,11 +45,18 @@ enum AuthSessionTransitionError: Error {
     case signOutFailed
 }
 
+enum FederatedAuthError: Error {
+    case registrationRequired
+    case emailUnavailable
+    case providerMismatch
+}
+
 protocol AuthSessionUserProviding: AnyObject {
     var uid: String { get }
     var email: String? { get }
     var isAnonymous: Bool { get }
     var isEmailVerified: Bool { get }
+    var isFederatedAccount: Bool { get }
 
     func reload() async throws
     func refreshIDToken() async throws
@@ -66,10 +73,21 @@ protocol AuthBackendProviding: AnyObject {
     ) -> (any AuthMultiFactorSignInChallengeProviding)?
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool
     func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding
+    func signIn(credential: AuthCredential) async throws -> any AuthSessionUserProviding
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding
     func signInAnonymously() async throws -> any AuthSessionUserProviding
     func sendPasswordReset(email: String) async throws
     func signOut() throws
+}
+
+extension AuthSessionUserProviding {
+    var isFederatedAccount: Bool { false }
+}
+
+extension AuthBackendProviding {
+    func signIn(credential: AuthCredential) async throws -> any AuthSessionUserProviding {
+        throw RegistrationError.operationNotAllowed
+    }
 }
 
 protocol AuthProfileProviding: AnyObject {
@@ -93,6 +111,10 @@ protocol AuthNotificationRegistrationProviding: AnyObject {
 }
 
 extension User: AuthSessionUserProviding {
+    var isFederatedAccount: Bool {
+        providerData.contains { $0.providerID == "google.com" || $0.providerID == "apple.com" }
+    }
+
     func refreshIDToken() async throws {
         _ = try await getIDTokenResult(forcingRefresh: true)
     }
@@ -122,6 +144,10 @@ final class FirebaseAuthBackend: AuthBackendProviding {
 
     func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding {
         (try await Auth.auth().signIn(withEmail: email, password: password)).user
+    }
+
+    func signIn(credential: AuthCredential) async throws -> any AuthSessionUserProviding {
+        (try await Auth.auth().signIn(with: credential)).user
     }
 
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
@@ -277,6 +303,11 @@ final class AuthService {
             guard isCurrentTransition(transition) else { return }
 
             if isMissingProfileError(error) {
+                if sessionUser.isFederatedAccount {
+                    authState.setRegistrationPendingSession(userID: sessionUser.uid, email: sessionUser.email)
+                    authState.presentAuthFlow(.socialRegistration)
+                    return
+                }
                 let didRollback = await rollbackSessionToGuest(
                     sessionUser,
                     fallbackMessage: AppStrings.Auth.loadUserProfileFailed,
@@ -482,6 +513,31 @@ final class AuthService {
     }
 
     @MainActor
+    func signIn(credential: AuthCredential) async throws {
+        let transition = beginTransition()
+        try await prepareForInteractiveAuthentication(transition: transition)
+
+        let sessionUser: any AuthSessionUserProviding
+        do {
+            sessionUser = try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await backend.signIn(credential: credential)
+            }
+            authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email)
+        } catch {
+            guard isCurrentTransition(transition) else { throw error }
+            reconcileAfterFailedAuthenticationStart(error, transition: transition)
+            throw error
+        }
+
+        do {
+            _ = try await finishInteractiveSignIn(sessionUser, transition: transition)
+        } catch FederatedAuthError.registrationRequired {
+            // The provider identity is retained until the user accepts the
+            // current legal documents and completes the local profile.
+        }
+    }
+
+    @MainActor
     func resolveMultiFactorSignIn(
         oneTimeCode: String,
         factorID: String
@@ -643,6 +699,10 @@ final class AuthService {
             throw AuthVerificationError.emailNotVerified
         } catch AuthVerificationError.accountDeletionCompleted {
             throw AuthVerificationError.accountDeletionCompleted
+        } catch where isMissingProfileError(error) && sessionUser.isFederatedAccount {
+            authState.setRegistrationPendingSession(userID: sessionUser.uid, email: sessionUser.email)
+            authState.presentAuthFlow(.socialRegistration)
+            throw FederatedAuthError.registrationRequired
         } catch {
             guard isCurrentTransition(transition) else { throw error }
             _ = await rollbackSessionToGuest(
@@ -652,6 +712,42 @@ final class AuthService {
             )
             throw error
         }
+    }
+
+    @MainActor
+    func completeFederatedRegistration(draft: RegistrationProfileDraft) async throws {
+        let transition = beginTransition()
+        guard let sessionUser = backend.currentSessionUser,
+              sessionUser.isFederatedAccount,
+              authState.pendingSessionUserID == sessionUser.uid,
+              authState.isRegistrationPending else {
+            throw AuthSessionTransitionError.backendSessionChanged
+        }
+        guard let providerEmail = sessionUser.email,
+              !providerEmail.isEmpty else { throw FederatedAuthError.emailUnavailable }
+        guard draft.email.caseInsensitiveCompare(providerEmail) == .orderedSame else {
+            throw FederatedAuthError.providerMismatch
+        }
+
+        guard try await isCurrentUserEmailVerified(sessionUser, transition: transition) else {
+            throw AuthVerificationError.emailNotVerified
+        }
+        try validateCurrentBackendUser(sessionUser, transition: transition)
+        let user: AppUser
+        do {
+            user = try await loadExistingUserProfile(uid: sessionUser.uid)
+        } catch {
+            guard isMissingProfileError(error) else { throw error }
+            try await profileProvider.createRegisteredUserDocument(for: sessionUser.uid, draft: draft)
+            user = try await loadExistingUserProfile(uid: sessionUser.uid)
+        }
+        try validateCurrentBackendUser(sessionUser, transition: transition)
+        analyticsConsent.setAnalyticsEnabled(draft.analyticsConsentEnabled, for: sessionUser.uid)
+        if let authorization = draft.appLockAuthorization {
+            authState.appLock.enableAfterRegistration(authorization, userID: sessionUser.uid)
+        }
+        try validateAuthenticatedProfile(user, sessionUser: sessionUser, transition: transition)
+        await publishAuthenticatedSession(user: user)
     }
 
     @MainActor

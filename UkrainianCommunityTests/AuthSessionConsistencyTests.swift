@@ -1,10 +1,61 @@
 import Foundation
+import FirebaseAuth
 import Testing
 @testable import UkrainianCommunity
 
 @MainActor
 @Suite("Auth session consistency")
 struct AuthSessionConsistencyTests {
+    @Test
+    func federatedAccountWithoutProfileMustCompleteRegistrationBeforeAccess() async throws {
+        let state = AuthState()
+        state.setGuestSession()
+        let identity = FakeAuthSessionUser(
+            uid: "new", email: "new@example.com", isEmailVerified: true,
+            isFederatedAccount: true
+        )
+        let backend = FakeAuthBackend(signInUser: identity)
+        let profiles = FakeAuthProfileProvider()
+        let consent = RecordingRegistrationConsent()
+        let service = makeService(state: state, backend: backend, profiles: profiles, consent: consent)
+        let credential = GoogleAuthProvider.credential(withIDToken: "test-token", accessToken: "test-token")
+
+        try await service.signIn(credential: credential)
+
+        #expect(state.isRegistrationPending)
+        #expect(!state.isAuthenticated)
+        #expect(state.user == nil)
+        #expect(state.presentedAuthFlow == .socialRegistration)
+        #expect(backend.signOutCallCount == 0)
+
+        let registeredUser = makeUser(id: "new")
+        profiles.createHandler = { profiles.profiles["new"] = registeredUser }
+        try await service.completeFederatedRegistration(draft: makeDraft(analyticsEnabled: true))
+
+        #expect(profiles.createCallCount == 1)
+        #expect(state.isAuthenticated)
+        #expect(state.user?.id == "new")
+        #expect(consent.choices["new"] == true)
+    }
+
+    @Test
+    func restoredFederatedIdentityWithoutProfileRemainsBehindRegistration() async {
+        let identity = FakeAuthSessionUser(
+            uid: "new", email: "new@example.com", isEmailVerified: true,
+            isFederatedAccount: true
+        )
+        let state = AuthState()
+        let backend = FakeAuthBackend(currentUser: identity)
+        let service = makeService(state: state, backend: backend, profiles: FakeAuthProfileProvider())
+
+        await service.restoreSession()
+
+        #expect(state.isRegistrationPending)
+        #expect(state.presentedAuthFlow == .socialRegistration)
+        #expect(state.user == nil)
+        #expect(backend.currentSessionUser?.uid == "new")
+    }
+
     @Test
     func failedProfileLoadAfterSignInRollsBackFirebaseSession() async {
         let state = AuthState()
@@ -1250,6 +1301,7 @@ private final class FakeAuthSessionUser: AuthSessionUserProviding {
     let uid: String
     let email: String?
     let isAnonymous: Bool
+    let isFederatedAccount: Bool
     var isEmailVerified: Bool
     var reloadError: Error?
     var tokenRefreshError: Error?
@@ -1264,12 +1316,14 @@ private final class FakeAuthSessionUser: AuthSessionUserProviding {
         uid: String,
         email: String?,
         isAnonymous: Bool = false,
-        isEmailVerified: Bool
+        isEmailVerified: Bool,
+        isFederatedAccount: Bool = false
     ) {
         self.uid = uid
         self.email = email
         self.isAnonymous = isAnonymous
         self.isEmailVerified = isEmailVerified
+        self.isFederatedAccount = isFederatedAccount
     }
 
     func reload() async throws {
@@ -1332,6 +1386,12 @@ private final class FakeAuthBackend: AuthBackendProviding {
         }
         currentSessionUser = resolvedUser
         return resolvedUser
+    }
+
+    func signIn(credential: AuthCredential) async throws -> any AuthSessionUserProviding {
+        guard let signInUser else { throw FakeAuthError.expected }
+        currentSessionUser = signInUser
+        return signInUser
     }
 
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding {
