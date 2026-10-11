@@ -540,6 +540,33 @@ struct DirectoryCatalogTests {
         #expect(officePages.count == AustrianFederalState.allCases.count)
     }
 
+    @Test func careGuidesExplainAllowanceServicesAndRegionalContacts() throws {
+        let topics = try #require(DirectoryCatalog.categories.first { $0.id == "care" }?.topics)
+        #expect(topics.map(\.id) == ["home-care", "care-services"])
+        for topic in topics {
+            let guide = try #require(CareGuides.guide(for: topic.id))
+            #expect(guide.sections.count >= 9)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { $0.body.ukrainian.count > 100 && $0.body.german.count > 100 })
+            #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+        }
+        #expect(CareGuides.guide(for: "home-care")?.sections.contains { $0.id == "appeal" } == true)
+        #expect(CareGuides.guide(for: "care-services")?.sections.contains { $0.id == "children" } == true)
+        #expect(DirectoryGuideCatalog.checkedOn(for: "care") == "11.10.2026")
+        var destinations = Set<URL>()
+        for state in AustrianFederalState.allCases {
+            let regional = CareRegionalContent.sections(for: state)
+            #expect(regional.count == 1)
+            let section = try #require(regional.first)
+            #expect(section.phoneNumber?.isEmpty == false)
+            let url = try #require(section.source?.url)
+            #expect(url.scheme == "https")
+            destinations.insert(url)
+        }
+        #expect(destinations.count == AustrianFederalState.allCases.count)
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),

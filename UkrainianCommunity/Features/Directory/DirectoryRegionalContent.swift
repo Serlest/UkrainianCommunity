@@ -86,7 +86,8 @@ enum DirectoryRegionalContent {
                           source: DirectorySource(name: "oesterreich.gv.at · Sozialhilfeantrag", url: "https://www.oesterreich.gv.at/de/themen/hilfe_und_finanzielle_unterstuetzung_erhalten/4/Seite.1693912"))]
         case "community": return CommunityRegionalContent.sections(for: state)
         case "accessibility": return AccessibilityRegionalContent.sections(for: state)
-        case "care", "seniors":
+        case "care": return CareRegionalContent.sections(for: state)
+        case "seniors":
             return [.init("regional-care", "house", "Догляд у вашій землі", "Pflege in Ihrem Bundesland",
                           "Для землі \(state.displayName) запитайте в Gemeinde, Bezirk або Magistrat про наявні мобільні служби, ціну після субсидії й місцеві заяви. Федеральна сторінка пояснює, хто відповідальний; конкретного постачальника перевіряйте за вашою адресою.",
                           "Für \(state.displayName) Gemeinde, Bezirk oder Magistrat nach mobilen Diensten, gefördertem Preis und örtlichem Antrag fragen. Die Bundesseite erklärt die Zuständigkeit; Anbieter am Wohnort prüfen.",
