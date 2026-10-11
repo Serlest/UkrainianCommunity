@@ -8,6 +8,15 @@ struct LegalComplianceView: View {
     let decline: () -> Void
 
     @State private var isConfirmingDecline = false
+    @State private var reviewedVersions: Set<String> = []
+
+    private var hasReviewedRequiredDocuments: Bool {
+        requirement.requiredDocuments.allSatisfy { reviewedVersions.contains(reviewKey(for: $0)) }
+    }
+
+    private func reviewKey(for document: LegalDocument) -> String {
+        "\(document.type.rawValue):\(document.version)"
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,6 +25,13 @@ struct LegalComplianceView: View {
                     AppGlassCard(spacing: 16) {
                         header
                         changedDocumentRows
+
+                        if !requirement.verificationUnavailable && !hasReviewedRequiredDocuments {
+                            Text(AppStrings.LegalCompliance.reviewInstruction)
+                                .font(.footnote)
+                                .foregroundStyle(AppTheme.textSecondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
 
                         if let errorMessage {
                             InlineMessageCard(style: .error, message: errorMessage)
@@ -28,6 +44,7 @@ struct LegalComplianceView: View {
                             loadingTitle: requirement.verificationUnavailable
                                 ? AppStrings.Action.retry
                                 : AppStrings.LegalCompliance.accepting,
+                            isEnabled: requirement.verificationUnavailable || hasReviewedRequiredDocuments,
                             isLoading: isAccepting,
                             systemImage: requirement.verificationUnavailable
                                 ? "arrow.clockwise"
@@ -54,6 +71,7 @@ struct LegalComplianceView: View {
             .navigationTitle(AppStrings.LegalCompliance.title)
             .navigationBarTitleDisplayMode(.inline)
         }
+        .onChange(of: requirement.id) { _, _ in reviewedVersions = [] }
         .interactiveDismissDisabled(true)
         .alert(AppStrings.LegalCompliance.declineConfirmTitle, isPresented: $isConfirmingDecline) {
             Button(AppStrings.Common.cancel, role: .cancel) {}
@@ -91,9 +109,14 @@ struct LegalComplianceView: View {
         VStack(spacing: 10) {
             ForEach(requirement.requiredDocuments) { document in
                 NavigationLink {
-                    LegalMarkdownDocumentView(document: document)
+                    LegalMarkdownDocumentView(document: document) {
+                        reviewedVersions.insert(reviewKey(for: document))
+                    }
                 } label: {
-                    LegalComplianceDocumentRow(document: document)
+                    LegalComplianceDocumentRow(
+                        document: document,
+                        isReviewed: reviewedVersions.contains(reviewKey(for: document))
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -103,6 +126,7 @@ struct LegalComplianceView: View {
 
 private struct LegalComplianceDocumentRow: View {
     let document: LegalDocument
+    let isReviewed: Bool
 
     var body: some View {
         HStack(spacing: 12) {
@@ -124,7 +148,10 @@ private struct LegalComplianceDocumentRow: View {
 
             Spacer(minLength: 0)
 
-            Label(AppStrings.LegalCompliance.readDocument, systemImage: "chevron.right")
+            Label(
+                isReviewed ? AppStrings.LegalCompliance.reviewComplete : AppStrings.LegalCompliance.readDocument,
+                systemImage: isReviewed ? "checkmark.circle.fill" : "chevron.right"
+            )
                 .labelStyle(.iconOnly)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
@@ -139,7 +166,9 @@ private struct LegalComplianceDocumentRow: View {
 }
 
 struct LegalMarkdownDocumentView: View {
+    @Environment(\.dismiss) private var dismiss
     let document: LegalDocument
+    var onReviewed: (() -> Void)? = nil
 
     private var content: LegalDocumentLocaleContent {
         document.content(preferredLocale: AppLanguage.stored.rawValue)
@@ -170,6 +199,17 @@ struct LegalMarkdownDocumentView: View {
                         markdown: content.contentMarkdown,
                         fallbackText: content.contentText
                     )
+                }
+
+                if let onReviewed {
+                    PrimaryActionButton(
+                        title: AppStrings.LegalCompliance.reviewComplete,
+                        loadingTitle: AppStrings.LegalCompliance.reviewComplete,
+                        systemImage: "checkmark.circle.fill"
+                    ) {
+                        onReviewed()
+                        dismiss()
+                    }
                 }
             }
         }

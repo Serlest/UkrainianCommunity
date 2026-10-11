@@ -6,9 +6,19 @@ struct AppStartupGate: View {
     let container: AppContainer
 
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.scenePhase) private var scenePhase
+    @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @State private var isShowingSplash = true
 
     private let transitionDuration = 0.25
+
+    init(container: AppContainer) {
+        self.container = container
+        _legalComplianceMonitor = StateObject(wrappedValue: LegalComplianceMonitorService(
+            legalDocumentRepository: container.legalDocumentRepository,
+            userRepository: container.userRepository
+        ))
+    }
 
     private var reduceMotionEnabled: Bool {
         UIAccessibility.isReduceMotionEnabled
@@ -19,6 +29,25 @@ struct AppStartupGate: View {
             if authState.isRestoring
                 || (authState.isAuthenticating && authState.presentedAuthFlow == nil)
                 || isShowingSplash {
+                SplashLoadingView()
+            } else if authState.isAuthenticated,
+                      let requirement = legalComplianceMonitor.activeRequirement,
+                      requirement.userID == authState.user?.id {
+                LegalComplianceView(
+                    requirement: requirement,
+                    isAccepting: legalComplianceMonitor.isAccepting,
+                    errorMessage: legalComplianceMonitor.errorMessage,
+                    accept: {
+                        Task { await legalComplianceMonitor.acceptRequiredDocuments(authState: authState) }
+                    },
+                    decline: {
+                        Task { await legalComplianceMonitor.declineAndSignOut() }
+                    }
+                )
+                .preferredColorScheme(AppAppearance.stored.colorScheme)
+                .environment(\.locale, Locale(identifier: AppLanguage.stored.rawValue))
+            } else if authState.isAuthenticated
+                        && legalComplianceMonitor.verifiedKey != legalComplianceKey {
                 SplashLoadingView()
             } else if authState.isAuthenticated || usesGuestUITestFixture {
                 ContentView(container: container)
@@ -38,6 +67,13 @@ struct AppStartupGate: View {
         .onChange(of: authState.isRestoring) { _, _ in
             evaluateStartupState()
         }
+        .task(id: legalComplianceKey) {
+            await legalComplianceMonitor.configure(user: authState.isAuthenticated ? authState.user : nil)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, authState.isAuthenticated else { return }
+            Task { await legalComplianceMonitor.refresh(user: authState.user) }
+        }
         .onOpenURL { url in
             _ = GIDSignIn.sharedInstance.handle(url)
         }
@@ -51,6 +87,12 @@ struct AppStartupGate: View {
         case .sessionUnavailable: return .sessionRecovery
         default: return .landing
         }
+    }
+
+    private var legalComplianceKey: String {
+        guard authState.isAuthenticated, let user = authState.user else { return "signed-out" }
+        return [user.id, user.acceptedTermsVersion ?? "", user.acceptedPrivacyVersion ?? ""]
+            .joined(separator: ":")
     }
 
     private var usesGuestUITestFixture: Bool {

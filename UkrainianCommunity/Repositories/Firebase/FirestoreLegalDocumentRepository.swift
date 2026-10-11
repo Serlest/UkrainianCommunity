@@ -33,6 +33,23 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
         try await fetchActiveDocumentFromFirestore(type: type, serverOnly: true)
     }
 
+    func listenActiveVersion(
+        type: LegalDocumentType,
+        onChange: @escaping @MainActor (String?) -> Void,
+        onError: @escaping @MainActor () -> Void
+    ) -> AppRealtimeListener? {
+        let registration = database.collection("legalDocuments").document(type.rawValue)
+            .addSnapshotListener { snapshot, error in
+                if error != nil {
+                    Task { @MainActor in onError() }
+                } else {
+                    let version = snapshot?.data()?["activeVersion"] as? String
+                    Task { @MainActor in onChange(version) }
+                }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
     private func fetchActiveDocumentFromFirestore(
         type: LegalDocumentType,
         serverOnly: Bool = false

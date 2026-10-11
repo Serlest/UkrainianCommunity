@@ -18,7 +18,6 @@ struct ContentView: View {
     @AppStorage("selectedAppAppearance") private var selectedAppearanceCode = AppAppearance.stored.rawValue
     private let container: AppContainer
     private let isStartupReady: Bool
-    @State private var updateLegalCheckKey: String?
     @State private var updateMFACheckKey: String?
     @State private var updateAppLockIsLocked = true
     @StateObject private var newsViewModel: NewsViewModel
@@ -31,7 +30,6 @@ struct ContentView: View {
     @StateObject private var notificationPopupCoordinator: NotificationPopupCoordinatorService
     @StateObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
     @StateObject private var accountStatusMonitor = AccountStatusMonitorService()
-    @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @StateObject private var contentReportCoordinator: ContentReportCoordinator
     @StateObject private var userBlockingCoordinator: UserBlockingCoordinator
     @StateObject private var organizationBlockingCoordinator: OrganizationBlockingCoordinator
@@ -94,10 +92,6 @@ struct ContentView: View {
         _notificationPopupCoordinator = StateObject(wrappedValue: NotificationPopupCoordinatorService(
             repository: container.notificationInboxRepository
         ))
-        _legalComplianceMonitor = StateObject(wrappedValue: LegalComplianceMonitorService(
-            legalDocumentRepository: container.legalDocumentRepository,
-            userRepository: container.userRepository
-        ))
         _contentReportCoordinator = StateObject(wrappedValue: ContentReportCoordinator(
             repository: container.contentSafetyRepository
         ))
@@ -133,9 +127,8 @@ struct ContentView: View {
     private var isReadyForUpdatePrompt: Bool {
         isStartupReady && !authState.isRestoring && !authState.isAuthenticating
             && !updateAppLockIsLocked && authState.presentedAuthFlow == nil
-            && updateLegalCheckKey == legalComplianceKey
             && updateMFACheckKey == privilegedMFARequirementKey
-            && legalComplianceMonitor.activeRequirement == nil && accountStatusMonitor.activeNotice == nil
+            && accountStatusMonitor.activeNotice == nil
             && notificationPopupCoordinator.activeNotification == nil && quickCreation == nil
             && !isShowingNotificationInbox && contentReportCoordinator.target == nil
             && userBlockingCoordinator.pendingTarget == nil && organizationBlockingCoordinator.pendingTarget == nil
@@ -227,11 +220,6 @@ struct ContentView: View {
             await configureRemoteNotifications(for: notificationInboxUserID)
             await userBlockingCoordinator.configure(userID: notificationInboxUserID)
             handlePendingRemoteNotificationRouteIfReady()
-        }
-        .task(id: legalComplianceKey) {
-            let key = legalComplianceKey
-            await legalComplianceMonitor.configure(user: authState.user)
-            if !Task.isCancelled, key == legalComplianceKey { updateLegalCheckKey = key }
         }
         .task(id: privilegedMFARequirementKey) {
             let key = privilegedMFARequirementKey
@@ -397,23 +385,6 @@ struct ContentView: View {
             )
             .interactiveDismissDisabled(true)
         }
-        .fullScreenCover(item: $legalComplianceMonitor.activeRequirement) { requirement in
-            LegalComplianceView(
-                requirement: requirement,
-                isAccepting: legalComplianceMonitor.isAccepting,
-                errorMessage: legalComplianceMonitor.errorMessage,
-                accept: {
-                    Task {
-                        await legalComplianceMonitor.acceptRequiredDocuments(authState: authState)
-                    }
-                },
-                decline: {
-                    Task {
-                        await legalComplianceMonitor.declineAndSignOut()
-                    }
-                }
-            )
-        }
         .sheet(item: Binding(
             get: { notificationPopupCoordinator.activeNotification },
             set: { _ in }
@@ -503,18 +474,6 @@ struct ContentView: View {
     private var notificationInboxUserID: String? {
         guard authState.isAuthenticated else { return nil }
         return authState.user?.id
-    }
-
-    private var legalComplianceKey: String {
-        guard authState.isAuthenticated, let user = authState.user else {
-            return "guest"
-        }
-
-        return [
-            user.id,
-            user.acceptedTermsVersion ?? "",
-            user.acceptedPrivacyVersion ?? ""
-        ].joined(separator: ":")
     }
 
     private var privilegedMFARequirementKey: String {

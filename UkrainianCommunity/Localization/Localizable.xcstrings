@@ -15617,13 +15617,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Erforderliche Dokumente akzeptieren"
+            "value" : "Bestätigen und fortfahren"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Прийняти необхідні документи"
+            "value" : "Підтвердити й продовжити"
           }
         }
       }
@@ -15753,13 +15753,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bitte lesen und akzeptieren Sie die aktualisierten Nutzungsbedingungen oder die Datenschutzrichtlinie, um Ihr registriertes Konto weiter zu verwenden."
+            "value" : "Lesen Sie die aktualisierten Dokumente, akzeptieren Sie die Nutzungsbedingungen und bestätigen Sie die Kenntnisnahme der Datenschutzerklärung."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Будь ласка, перегляньте й прийміть оновлені Умови або Політику конфіденційності, щоб продовжити користуватися зареєстрованим обліковим записом."
+            "value" : "Прочитайте оновлені документи, прийміть Умови та підтвердьте ознайомлення з Політикою конфіденційності."
           }
         }
       }
@@ -15787,13 +15787,47 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lesen Sie die aktuell gültige Version vor der Zustimmung."
+            "value" : "Lesen Sie die aktuelle Version vor der Bestätigung."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Перегляньте поточну чинну версію перед прийняттям."
+            "value" : "Прочитайте чинну версію перед підтвердженням."
+          }
+        }
+      }
+    },
+    "legal_compliance.review_complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ich habe dieses Dokument gelesen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Я прочитав(-ла) цей документ"
+          }
+        }
+      }
+    },
+    "legal_compliance.review_instruction" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Öffnen Sie jedes Dokument und bestätigen Sie das Lesen am Ende."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкрийте кожен документ і підтвердьте ознайомлення в кінці."
           }
         }
       }
@@ -17321,6 +17355,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Політика конфіденційності, яку бачать зареєстровані користувачі."
+          }
+        }
+      }
+    },
+    "legal_management.privacy_acknowledgement" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesebestätigung erforderlich"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібне підтвердження ознайомлення"
           }
         }
       }

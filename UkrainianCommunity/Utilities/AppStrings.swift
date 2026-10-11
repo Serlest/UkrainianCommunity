@@ -2465,10 +2465,12 @@ enum AppStrings {
 
     enum LegalCompliance {
         static var title: String { text("legal_compliance.title", "Updated legal documents") }
-        static var message: String { text("legal_compliance.message", "Please review and accept the updated Terms or Privacy Policy to continue using your registered account.") }
+        static var message: String { text("legal_compliance.message", "Read the updated documents, accept the Terms, and acknowledge the Privacy Policy to continue.") }
         static var readDocument: String { text("legal_compliance.read_document", "Read document") }
-        static var readDocumentSubtitle: String { text("legal_compliance.read_document.subtitle", "Review the current active version before accepting.") }
-        static var acceptAll: String { text("legal_compliance.accept_all", "Accept required documents") }
+        static var reviewComplete: String { text("legal_compliance.review_complete", "I have reviewed this document") }
+        static var reviewInstruction: String { text("legal_compliance.review_instruction", "Open each document and confirm reading at the end.") }
+        static var readDocumentSubtitle: String { text("legal_compliance.read_document.subtitle", "Read the current version before confirming.") }
+        static var acceptAll: String { text("legal_compliance.accept_all", "Confirm and continue") }
         static var accepting: String { text("legal_compliance.accepting", "Accepting…") }
         static var decline: String { text("legal_compliance.decline", "Decline and sign out") }
         static var declineConfirmTitle: String { text("legal_compliance.decline.confirm.title", "Decline updated terms?") }
@@ -2488,6 +2490,7 @@ enum AppStrings {
         static var privacySubtitle: String { text("legal_management.privacy.subtitle", "Privacy Policy shown to registered users.") }
         static var organizationRulesSubtitle: String { text("legal_management.organization_rules.subtitle", "Rules that must be accepted before creating an organization.") }
         static var requiresAcceptance: String { text("legal_management.requires_acceptance", "Requires acceptance") }
+        static var privacyAcknowledgement: String { text("legal_management.privacy_acknowledgement", "Reading acknowledgement required") }
         static var acceptanceNotRequired: String { text("legal_management.acceptance_not_required", "Acceptance not required") }
         static var draftExists: String { text("legal_management.draft_exists", "Draft exists") }
         static var createDraft: String { text("legal_management.create_draft", "Create draft") }

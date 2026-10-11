@@ -266,6 +266,8 @@ struct RegisterView: View {
     @State private var selectedFederalState: AustrianFederalState? = nil
     @State private var acceptedTerms = false
     @State private var acceptedPrivacy = false
+    @State private var reviewedTermsVersion: String?
+    @State private var reviewedPrivacyVersion: String?
     @State private var confirmedMinimumAge = false
     @State private var analyticsConsentEnabled = false
     @State private var errorMessage: String?
@@ -327,6 +329,8 @@ struct RegisterView: View {
                 TermsPrivacyConsentView(
                     acceptedTerms: $acceptedTerms,
                     acceptedPrivacy: $acceptedPrivacy,
+                    reviewedTermsVersion: $reviewedTermsVersion,
+                    reviewedPrivacyVersion: $reviewedPrivacyVersion,
                     confirmedMinimumAge: $confirmedMinimumAge,
                     termsDocument: legalDocuments.terms,
                     privacyDocument: legalDocuments.privacy,
@@ -390,6 +394,8 @@ struct RegisterView: View {
         .onChange(of: legalDocuments.versionKey) { _, _ in
             acceptedTerms = false
             acceptedPrivacy = false
+            reviewedTermsVersion = nil
+            reviewedPrivacyVersion = nil
         }
         .task {
             await legalDocuments.load()
@@ -405,11 +411,13 @@ struct RegisterView: View {
         guard errors.isEmpty,
               let selectedFederalState,
               let termsDocument = legalDocuments.terms,
-              let privacyDocument = legalDocuments.privacy else {
-            errorMessage = errors.first ?? AppStrings.Validation.authFederalStateRequired
-            if legalDocuments.terms == nil || legalDocuments.privacy == nil {
-                errorMessage = AppStrings.LegalCompliance.loadFailed
-            }
+              let privacyDocument = legalDocuments.privacy,
+              reviewedTermsVersion == termsDocument.version,
+              reviewedPrivacyVersion == privacyDocument.version else {
+            errorMessage = errors.first
+                ?? (legalDocuments.terms == nil || legalDocuments.privacy == nil
+                    ? AppStrings.LegalCompliance.loadFailed
+                    : AppStrings.LegalCompliance.reviewInstruction)
             return
         }
 
@@ -463,7 +471,10 @@ struct RegisterView: View {
     }
 
     private var canSubmit: Bool {
-        validationErrors.isEmpty && legalDocuments.isReady
+        validationErrors.isEmpty
+            && legalDocuments.isReady
+            && reviewedTermsVersion == legalDocuments.terms?.version
+            && reviewedPrivacyVersion == legalDocuments.privacy?.version
     }
 
     private var validationHint: String? {
@@ -856,6 +867,8 @@ struct PasswordResetView: View {
 struct TermsPrivacyConsentView: View {
     @Binding var acceptedTerms: Bool
     @Binding var acceptedPrivacy: Bool
+    @Binding var reviewedTermsVersion: String?
+    @Binding var reviewedPrivacyVersion: String?
     @Binding var confirmedMinimumAge: Bool
     let termsDocument: LegalDocument?
     let privacyDocument: LegalDocument?
@@ -874,6 +887,11 @@ struct TermsPrivacyConsentView: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
 
+            Text(AppStrings.LegalCompliance.reviewInstruction)
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
             if isLoadingDocuments {
                 ProgressView()
                     .frame(maxWidth: .infinity)
@@ -888,11 +906,11 @@ struct TermsPrivacyConsentView: View {
 
             Toggle(AppStrings.Auth.acceptTerms, isOn: $acceptedTerms)
                 .accessibilityLabel(AppStrings.Auth.acceptTerms)
-                .disabled(termsDocument == nil)
+                .disabled(termsDocument == nil || reviewedTermsVersion != termsDocument?.version)
 
             Toggle(AppStrings.Auth.acceptPrivacy, isOn: $acceptedPrivacy)
                 .accessibilityLabel(AppStrings.Auth.acceptPrivacy)
-                .disabled(privacyDocument == nil)
+                .disabled(privacyDocument == nil || reviewedPrivacyVersion != privacyDocument?.version)
 
             Toggle(AppStrings.Auth.confirmMinimumAge, isOn: $confirmedMinimumAge)
                 .accessibilityLabel(AppStrings.Auth.confirmMinimumAge)
@@ -900,7 +918,9 @@ struct TermsPrivacyConsentView: View {
             VStack(alignment: .leading, spacing: 8) {
                 if let termsDocument {
                     NavigationLink {
-                        LegalMarkdownDocumentView(document: termsDocument)
+                        LegalMarkdownDocumentView(document: termsDocument) {
+                            reviewedTermsVersion = termsDocument.version
+                        }
                     } label: {
                         Label(AppStrings.Auth.reviewTerms, systemImage: "doc.text")
                             .font(.subheadline.weight(.medium))
@@ -910,7 +930,9 @@ struct TermsPrivacyConsentView: View {
 
                 if let privacyDocument {
                     NavigationLink {
-                        LegalMarkdownDocumentView(document: privacyDocument)
+                        LegalMarkdownDocumentView(document: privacyDocument) {
+                            reviewedPrivacyVersion = privacyDocument.version
+                        }
                     } label: {
                         Label(AppStrings.Auth.reviewPrivacy, systemImage: "lock.doc")
                             .font(.subheadline.weight(.medium))

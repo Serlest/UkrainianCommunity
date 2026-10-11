@@ -6,6 +6,51 @@ import Testing
 @Suite("Legal compliance account races")
 struct LegalComplianceMonitorRaceTests {
     @Test
+    func publishedPrivacyVersionClosesAnAlreadyVerifiedSession() async {
+        let terms = makeDocument(type: .terms)
+        let privacy = makeDocument(type: .privacy)
+        let user = makeUser(
+            id: "user-a",
+            acceptedTermsVersion: terms.version,
+            acceptedPrivacyVersion: privacy.version
+        )
+        let repository = ControlledLegalDocumentRepository(documents: [terms, privacy])
+        let service = LegalComplianceMonitorService(
+            legalDocumentRepository: repository,
+            userRepository: ControlledLegalUserRepository(currentUser: user)
+        )
+
+        await service.configure(user: user)
+        #expect(service.verifiedKey != nil)
+
+        repository.publish(makeDocument(type: .privacy, version: "2026.2"))
+        #expect(await eventually {
+            service.verifiedKey == nil
+                && service.activeRequirement?.requiredDocuments.map(\.type) == [.privacy]
+        })
+    }
+
+    @Test
+    func privacyUpdateRequiresAcknowledgementEvenWithoutProcessingConsent() async {
+        let terms = makeDocument(type: .terms)
+        let privacy = makeDocument(type: .privacy, requiresAcceptance: false)
+        let user = makeUser(
+            id: "user-a",
+            acceptedTermsVersion: terms.version,
+            acceptedPrivacyVersion: "older"
+        )
+        let service = LegalComplianceMonitorService(
+            legalDocumentRepository: ControlledLegalDocumentRepository(documents: [terms, privacy]),
+            userRepository: ControlledLegalUserRepository(currentUser: user)
+        )
+
+        await service.configure(user: user)
+
+        #expect(service.activeRequirement?.requiredDocuments.map(\.type) == [.privacy])
+        #expect(service.verifiedKey == nil)
+    }
+
+    @Test
     func staleConfigurationCannotOverwriteNewAccountRequirement() async {
         let terms = makeDocument(type: .terms)
         let privacy = makeDocument(type: .privacy)
@@ -150,7 +195,11 @@ struct LegalComplianceMonitorRaceTests {
         #expect(service.errorMessage == AppStrings.LegalCompliance.acceptFailed)
     }
 
-    private func makeDocument(type: LegalDocumentType, version: String = "2026.1") -> LegalDocument {
+    private func makeDocument(
+        type: LegalDocumentType,
+        version: String = "2026.1",
+        requiresAcceptance: Bool = true
+    ) -> LegalDocument {
         LegalDocument(
             id: type.rawValue,
             type: type,
@@ -161,7 +210,7 @@ struct LegalComplianceMonitorRaceTests {
             canonicalLocale: AppLanguage.german.rawValue,
             contentHash: nil,
             changeSummary: nil,
-            requiresAcceptance: true,
+            requiresAcceptance: requiresAcceptance,
             status: .published,
             updatedAt: nil,
             updatedBy: nil,
@@ -208,7 +257,8 @@ private enum LegalComplianceTestError: Error {
 
 @MainActor
 private final class ControlledLegalDocumentRepository: LegalDocumentRepository {
-    private let documentsByType: [LegalDocumentType: LegalDocument]
+    private var documentsByType: [LegalDocumentType: LegalDocument]
+    private var versionObservers: [LegalDocumentType: @MainActor (String?) -> Void] = [:]
     private let suspendsFetches: Bool
     private var fetchCounts: [LegalDocumentType: Int] = [:]
     private var fetchContinuations: [String: CheckedContinuation<LegalDocument, Error>] = [:]
@@ -243,6 +293,20 @@ private final class ControlledLegalDocumentRepository: LegalDocumentRepository {
         return try await withCheckedThrowingContinuation { continuation in
             fetchContinuations[fetchKey(type: type, requestNumber: requestNumber)] = continuation
         }
+    }
+
+    func listenActiveVersion(
+        type: LegalDocumentType,
+        onChange: @escaping @MainActor (String?) -> Void,
+        onError: @escaping @MainActor () -> Void
+    ) -> AppRealtimeListener? {
+        versionObservers[type] = onChange
+        return ControlledLegalListener()
+    }
+
+    func publish(_ document: LegalDocument) {
+        documentsByType[document.type] = document
+        versionObservers[document.type]?(document.version)
     }
 
     func acceptDocument(
@@ -313,6 +377,10 @@ private final class ControlledLegalDocumentRepository: LegalDocumentRepository {
     private func fetchKey(type: LegalDocumentType, requestNumber: Int) -> String {
         "\(type.rawValue):\(requestNumber)"
     }
+}
+
+private final class ControlledLegalListener: AppRealtimeListener {
+    func cancel() {}
 }
 
 @MainActor

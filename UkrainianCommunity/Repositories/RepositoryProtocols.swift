@@ -11,6 +11,11 @@ protocol LegalDocumentRepository {
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument
     func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument
     func fetchAuthoritativeActiveDocument(type: LegalDocumentType) async throws -> LegalDocument
+    func listenActiveVersion(
+        type: LegalDocumentType,
+        onChange: @escaping @MainActor (String?) -> Void,
+        onError: @escaping @MainActor () -> Void
+    ) -> AppRealtimeListener?
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws
     func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) async throws
@@ -24,6 +29,11 @@ protocol LegalDocumentRepository {
 }
 
 extension LegalDocumentRepository {
+    func listenActiveVersion(
+        type: LegalDocumentType,
+        onChange: @escaping @MainActor (String?) -> Void,
+        onError: @escaping @MainActor () -> Void
+    ) -> AppRealtimeListener? { nil }
     func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument {
         try await fetchActiveDocument(type: type)
     }

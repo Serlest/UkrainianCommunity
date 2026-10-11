@@ -1833,7 +1833,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         appLock.tap()
         XCTAssertEqual(appLock.value as? String, "0")
         scrollToElement(termsSwitch, in: app)
-        termsSwitch.tap()
+        XCTAssertFalse(termsSwitch.isEnabled, "Terms require opening and reviewing the document")
         XCTAssertEqual(analytics.value as? String, "0", "Terms acceptance must not opt in to analytics")
     }
 

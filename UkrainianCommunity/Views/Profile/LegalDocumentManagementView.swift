@@ -135,8 +135,13 @@ private struct LegalDocumentManagementCard: View {
                     if let activeDocument = state?.activeDocument {
                         AppInfoChip(title: AppStrings.legalVersionLabel(activeDocument.version), systemImage: "number")
                         AppInfoChip(
-                            title: activeDocument.requiresAcceptance ? AppStrings.LegalManagement.requiresAcceptance : AppStrings.LegalManagement.acceptanceNotRequired,
-                            systemImage: activeDocument.requiresAcceptance ? "checkmark.seal" : "minus.circle"
+                            title: type == .privacy
+                                ? AppStrings.LegalManagement.privacyAcknowledgement
+                                : type == .terms || activeDocument.requiresAcceptance
+                                    ? AppStrings.LegalManagement.requiresAcceptance
+                                    : AppStrings.LegalManagement.acceptanceNotRequired,
+                            systemImage: type == .terms || type == .privacy || activeDocument.requiresAcceptance
+                                ? "checkmark.seal" : "minus.circle"
                         )
                         if let publishedAt = activeDocument.publishedAt {
                             AppInfoChip(
@@ -218,9 +223,12 @@ private struct LegalDocumentEditorView: View {
         if existingDraft?.supersedesVersion == nil {
             existingDraft?.supersedesVersion = activeDocument.version
         }
-        let initialDraft = existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument)
+        let loadedDraft = existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument)
+        var initialDraft = loadedDraft
+        if type == .terms { initialDraft.requiresAcceptance = true }
+        if type == .privacy { initialDraft.requiresAcceptance = false }
         _draft = State(initialValue: initialDraft)
-        _lastSavedDraft = State(initialValue: initialDraft)
+        _lastSavedDraft = State(initialValue: loadedDraft)
         _hasPersistedDraft = State(initialValue: existingDraft != nil)
     }
 
@@ -272,9 +280,21 @@ private struct LegalDocumentEditorView: View {
 
                     AppInfoChip(title: AppStrings.legalVersionLabel(draft.version), systemImage: "number")
 
-                    Toggle(AppStrings.LegalManagement.requiresAcceptance, isOn: $draft.requiresAcceptance)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
+                    if type == .privacy {
+                        AppInfoChip(
+                            title: AppStrings.LegalManagement.privacyAcknowledgement,
+                            systemImage: "checkmark.seal"
+                        )
+                    } else if type == .terms {
+                        AppInfoChip(
+                            title: AppStrings.LegalManagement.requiresAcceptance,
+                            systemImage: "checkmark.seal"
+                        )
+                    } else {
+                        Toggle(AppStrings.LegalManagement.requiresAcceptance, isOn: $draft.requiresAcceptance)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                    }
 
                     TextField(AppStrings.LegalManagement.changeSummary, text: changeSummaryBinding, axis: .vertical)
                         .lineLimit(2...4)

@@ -9,7 +9,7 @@ Use this matrix before merging any product or backend change and again before an
 3. Update the canonical German draft in `Legal/` and the Ukrainian translation in the same change.
 4. Obtain operator approval and qualified Austrian/EU legal review for material changes.
 5. Generate/update the public website, then verify both languages and all links.
-6. Publish a new versioned Firestore legal document. Terms require renewed acceptance when material; the privacy notice itself is not “accepted,” while separate consent is versioned independently.
+6. Publish a new versioned Firestore legal document. Every new Terms version requires renewed acceptance. Every new privacy notice version requires acknowledgement of reading, not consent to all processing; optional analytics consent remains separate and can be withdrawn.
 7. Update in-app fallback text/version so an offline or backend failure does not show contradictory rules.
 8. Reconcile App Store Connect privacy labels, privacy URL, support URL, description and review notes.
 9. Archive the exact release commit and compare the signed archive privacy report with the inventory and public policy.
