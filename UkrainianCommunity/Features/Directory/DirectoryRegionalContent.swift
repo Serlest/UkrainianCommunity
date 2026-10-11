@@ -62,12 +62,14 @@ enum DirectoryRegionalContent {
         case "residence": topicID == "temporary-protection"
         case "citizenship": ["overview", "documents", "application"].contains(topicID)
         case "safety": ["domestic-violence", "women", "children", "assault"].contains(topicID)
+        case "transport": topicID == "local-transport"
         default: false
         }
     }
 
     static func sections(categoryID: String, topicID: String, state: AustrianFederalState) -> [DirectoryGuideSection] {
         switch categoryID {
+        case "transport": return TransportRegionalContent.sections(for: state)
         case "housing": return HousingRegionalContent.sections(for: topicID, state: state)
         case "health": return HealthRegionalContent.sections(for: topicID, state: state)
         case "mental-health":

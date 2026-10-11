@@ -368,6 +368,30 @@ struct DirectoryCatalogTests {
         #expect(FamilyGuides.guide(for: "family-services")?.sections.contains { $0.id == "court-help" } == true)
     }
 
+    @Test func transportGuidesCoverTicketsDisruptionsAndEveryRegionalProvider() {
+        let topics = DirectoryCatalog.categories.first { $0.id == "transport" }?.topics ?? []
+        #expect(topics.count == 5)
+        for topic in topics {
+            guard let guide = TransportGuides.guide(for: topic.id) else {
+                Issue.record("Missing transport guide: \(topic.id)")
+                continue
+            }
+            #expect(guide.sections.count >= 5)
+            #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+            #expect(guide.sections.allSatisfy { $0.source?.url.scheme == "https" })
+            #expect(guide.sections.allSatisfy { !$0.body.ukrainian.isEmpty && !$0.body.german.isEmpty })
+        }
+        #expect(TransportGuides.guide(for: "rail")?.sections.contains { $0.id == "compensation" } == true)
+        #expect(TransportGuides.guide(for: "bus")?.sections.contains { $0.id == "rights" } == true)
+        #expect(TransportGuides.guide(for: "accessible-travel")?.sections.contains { $0.id == "deadline" } == true)
+        #expect(DirectoryRegionalContent.applies(categoryID: "transport", topicID: "local-transport"))
+        for state in AustrianFederalState.allCases {
+            let sections = DirectoryRegionalContent.sections(categoryID: "transport", topicID: "local-transport", state: state)
+            #expect(sections.count == 1)
+            #expect(sections.first?.source?.url.scheme == "https")
+        }
+    }
+
     @Test func regionalEntriesCoverEveryFederalStateWithOfficialDestinations() {
         let regionalTopics = [
             ("safety", "domestic-violence"),
