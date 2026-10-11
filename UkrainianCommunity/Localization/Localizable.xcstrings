@@ -4559,6 +4559,40 @@
         }
       }
     },
+    "auth.provider.choose_another" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Methode wählen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обрати інший спосіб"
+          }
+        }
+      }
+    },
+    "auth.provider.email" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit E-Mail fortfahren"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Продовжити з email"
+          }
+        }
+      }
+    },
     "auth.provider.google" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4606,6 +4640,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Або увійдіть за допомогою"
+          }
+        }
+      }
+    },
+    "auth.register.methods_subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wählen Sie eine Methode zum Erstellen Ihres Kontos."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Оберіть спосіб створення облікового запису."
           }
         }
       }

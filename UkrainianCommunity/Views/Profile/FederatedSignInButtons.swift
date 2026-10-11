@@ -5,6 +5,7 @@ import GoogleSignIn
 import SwiftUI
 
 struct FederatedSignInButtons: View {
+    var showsHeading = true
     @State private var appleNonce: String?
     @State private var isSigningIn = false
     @State private var errorMessage: String?
@@ -28,10 +29,12 @@ struct FederatedSignInButtons: View {
     var body: some View {
         if isAppleAvailable || isGoogleAvailable {
             VStack(spacing: 12) {
-                Text(AppStrings.Auth.otherSignInMethods)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if showsHeading {
+                    Text(AppStrings.Auth.otherSignInMethods)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
                 if isAppleAvailable {
                     SignInWithAppleButton(.signIn, onRequest: configureAppleRequest, onCompletion: finishAppleRequest)
@@ -43,17 +46,10 @@ struct FederatedSignInButtons: View {
 
                 if isGoogleAvailable {
                     Button(action: startGoogleSignIn) {
-                        HStack(spacing: 10) {
-                            Image("GoogleSignInIcon")
-                                .resizable()
-                                .frame(width: 18, height: 18)
-                            Text(AppStrings.Auth.continueWithGoogle)
-                                .font(.subheadline.weight(.semibold))
-                        }
-                        .foregroundStyle(Color.black)
-                        .frame(maxWidth: .infinity, minHeight: 50)
-                        .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0.18)))
+                        AuthMethodButtonLabel(
+                            title: AppStrings.Auth.continueWithGoogle,
+                            icon: .asset("GoogleSignInIcon")
+                        )
                     }
                     .buttonStyle(.plain)
                     .disabled(isSigningIn)

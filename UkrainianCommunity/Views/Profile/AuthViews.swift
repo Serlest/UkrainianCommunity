@@ -88,44 +88,27 @@ struct AuthLandingView: View {
                 subtitle: AppStrings.Auth.landingSubtitle
             )
 
-            AppEditorSectionCard {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    NavigationLink {
-                        LoginView()
-                    } label: {
-                        Text(AppStrings.Auth.signIn)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: AppTheme.iconButtonSize)
-                            .background(AppTheme.accentPrimary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("auth.landing.signIn")
+            VStack(spacing: 12) {
+                FederatedSignInButtons(showsHeading: false)
 
-                    NavigationLink {
-                        RegisterView()
-                    } label: {
-                        Text(AppStrings.Auth.createAccount)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.accentPrimaryForeground)
-                            .multilineTextAlignment(.center)
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .frame(minHeight: AppTheme.iconButtonSize)
-                            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius, style: .continuous)
-                                    .strokeBorder(AppTheme.borderSubtle)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("auth.landing.register")
+                NavigationLink {
+                    LoginView()
+                } label: {
+                    AuthMethodButtonLabel(
+                        title: AppStrings.Auth.continueWithEmail,
+                        icon: .system("envelope")
+                    )
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("auth.landing.signIn")
             }
-            FederatedSignInButtons()
+
+            NavigationLink(AppStrings.Auth.createAccountInstead) {
+                RegisterView()
+            }
+            .font(.subheadline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier("auth.landing.register")
         }
         .navigationTitle(AppStrings.Auth.title)
         .navigationBarTitleDisplayMode(.inline)
@@ -182,7 +165,7 @@ struct LoginView: View {
                         }
 
                         NavigationLink(AppStrings.Auth.createAccountInstead) {
-                            RegisterView(prefilledEmail: email)
+                            RegisterView(prefilledEmail: email, startWithEmail: true)
                         }
                     }
                     .font(.footnote.weight(.semibold))
@@ -273,26 +256,79 @@ struct RegisterView: View {
     @State private var analyticsConsentEnabled = false
     @State private var errorMessage: String?
     @State private var isSubmitting = false
+    @State private var isEmailMethodSelected: Bool
     private let validationService = AuthValidationService()
     private let federated: Bool
 
-    init(prefilledEmail: String = "", federated: Bool = false) {
+    init(prefilledEmail: String = "", federated: Bool = false, startWithEmail: Bool = false) {
         self.federated = federated
         _email = State(initialValue: federated ? AuthService.shared.currentUser?.email ?? "" : prefilledEmail)
         _displayName = State(initialValue: federated ? AuthService.shared.currentUser?.displayName ?? "" : "")
+        _isEmailMethodSelected = State(initialValue: federated || startWithEmail || !prefilledEmail.isEmpty)
     }
 
     var body: some View {
         AuthScreenScaffold {
             AuthHeaderView(
                 title: nil,
-                subtitle: federated ? AppStrings.Auth.finishRegistrationSubtitle : AppStrings.Auth.registerSubtitle
+                subtitle: federated
+                    ? AppStrings.Auth.finishRegistrationSubtitle
+                    : (isEmailMethodSelected ? AppStrings.Auth.registerSubtitle : AppStrings.Auth.registerMethodsSubtitle)
             )
 
-            if !federated {
-                FederatedSignInButtons()
-            }
+            if !federated && !isEmailMethodSelected {
+                FederatedSignInButtons(showsHeading: false)
 
+                Button {
+                    isEmailMethodSelected = true
+                } label: {
+                    AuthMethodButtonLabel(
+                        title: AppStrings.Auth.continueWithEmail,
+                        icon: .system("envelope")
+                    )
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("auth.register.emailMethod")
+
+                NavigationLink(AppStrings.Auth.signInInstead) {
+                    LoginView()
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+            } else {
+                if !federated {
+                    Button(AppStrings.Auth.chooseAnotherMethod) {
+                        isEmailMethodSelected = false
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .accessibilityIdentifier("auth.register.changeMethod")
+                }
+
+                registrationForm
+            }
+        }
+        .disabled(isSubmitting || appLockChoice.isAuthenticating)
+        .onDisappear { appLockChoice.cancelPendingAuthentication() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { appLockChoice.cancelPendingAuthentication() }
+            if phase == .active { appLockChoice.refreshAvailability() }
+        }
+        .onChange(of: legalDocuments.versionKey) { _, _ in
+            acceptedTerms = false
+            acceptedPrivacy = false
+            reviewedTermsVersion = nil
+            reviewedPrivacyVersion = nil
+        }
+        .task {
+            await legalDocuments.load()
+        }
+        .navigationTitle(federated ? AppStrings.Auth.finishRegistrationTitle : AppStrings.Auth.registerTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier("auth.register.screen")
+    }
+
+    private var registrationForm: some View {
+        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     EditorTextField(AppStrings.Auth.displayName, text: $displayName, systemImage: "person", textContentType: .nickname, autocapitalization: .words)
@@ -386,24 +422,6 @@ struct RegisterView: View {
                 }
             }
         }
-        .disabled(isSubmitting || appLockChoice.isAuthenticating)
-        .onDisappear { appLockChoice.cancelPendingAuthentication() }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .background { appLockChoice.cancelPendingAuthentication() }
-            if phase == .active { appLockChoice.refreshAvailability() }
-        }
-        .onChange(of: legalDocuments.versionKey) { _, _ in
-            acceptedTerms = false
-            acceptedPrivacy = false
-            reviewedTermsVersion = nil
-            reviewedPrivacyVersion = nil
-        }
-        .task {
-            await legalDocuments.load()
-        }
-        .navigationTitle(federated ? AppStrings.Auth.finishRegistrationTitle : AppStrings.Auth.registerTitle)
-        .navigationBarTitleDisplayMode(.inline)
-        .accessibilityIdentifier("auth.register.screen")
     }
 
     private func submit() {

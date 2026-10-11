@@ -2751,6 +2751,8 @@ enum AppStrings {
         static var finishRegistrationTitle: String { text("auth.provider.finish_title", "Завершіть реєстрацію") }
         static var finishRegistrationSubtitle: String { text("auth.provider.finish_subtitle", "Вкажіть ім’я та федеральну землю, потім підтвердьте умови користування.") }
         static var otherSignInMethods: String { text("auth.provider.methods", "Або увійдіть за допомогою") }
+        static var continueWithEmail: String { text("auth.provider.email", "Продовжити з email") }
+        static var chooseAnotherMethod: String { text("auth.provider.choose_another", "Обрати інший спосіб") }
         static var continueWithGoogle: String { text("auth.provider.google", "Продовжити з Google") }
         static var changeAccount: String { text("auth.provider.change_account", "Увійти в інший обліковий запис") }
         static var providerSignInFailed: String { text("auth.provider.failed", "Не вдалося ввійти. Спробуйте ще раз.") }
@@ -2786,6 +2788,7 @@ enum AppStrings {
         static var signInInstead: String { text("auth.sign_in_instead", "Already have an account? Sign In") }
         static var createAccountInstead: String { text("auth.create_account_instead", "Need an account? Create one") }
         static var registerSubtitle: String { text("auth.register.subtitle", "Create an account with the essentials. You can complete your profile later.") }
+        static var registerMethodsSubtitle: String { text("auth.register.methods_subtitle", "Оберіть спосіб створення облікового запису.") }
         static var consentTitle: String { text("auth.consent.title", "Terms & Privacy") }
         static var analyticsConsentTitle: String { text("auth.consent.analytics_title", "Allow optional usage analytics") }
         static var analyticsConsentHelp: String { text("auth.consent.analytics_help", "Your choice does not affect registration. Analytics can start on this device only after email verification. You can change your choice in Profile → Settings.") }
