@@ -12,6 +12,10 @@ final class AnnouncementPushBridge: ObservableObject {
     private var repository: (any AnnouncementRepository)?
     private var identity: String?
     private var generation = 0
+    private var isSigningOut = false
+    var canPresentNotification: Bool {
+        identity != nil && identity != "unavailable" && !isSigningOut
+    }
     var installationSecret: String {
         let key = "announcements.installationSecret"
         if let existing = UserDefaults.standard.string(forKey: key) { return existing }
@@ -29,8 +33,25 @@ final class AnnouncementPushBridge: ObservableObject {
         guard identity != "unavailable" else { return }
         await registerIfAllowed()
     }
+    func prepareForSignOut() async {
+        isSigningOut = true
+        generation += 1
+        guard let repository else { return }
+        _ = try? await repository.call("registerAnnouncementDevice", AnnouncementRequest(operation: "disable", secret: installationSecret))
+    }
+    func completeSignOut() {
+        generation += 1
+        isSigningOut = false
+        identity = "unavailable"
+        pendingID = nil
+        repository = nil
+    }
+    func resumeAfterFailedSignOut() async {
+        isSigningOut = false
+        await registerIfAllowed()
+    }
     func registerIfAllowed() async {
-        guard let repository, FirebaseApp.app() != nil, identity != "unavailable" else { return }
+        guard let repository, FirebaseApp.app() != nil, identity != "unavailable", !isSigningOut else { return }
         let version = generation
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard version == generation else { return }
@@ -40,7 +61,7 @@ final class AnnouncementPushBridge: ObservableObject {
         UIApplication.shared.registerForRemoteNotifications()
     }
     func registrationReady() async {
-        guard let repository, FirebaseApp.app() != nil, identity != "unavailable" else { return }
+        guard let repository, FirebaseApp.app() != nil, identity != "unavailable", !isSigningOut else { return }
         let version = generation
         do {
             let fid = try await Installations.installations().installationID()
@@ -52,6 +73,7 @@ final class AnnouncementPushBridge: ObservableObject {
         await receive(id: data["announcementId"] as? String, challenge: data["announcementChallenge"] as? String)
     }
     func receive(id: String?, challenge: String?) async -> Bool {
+        if identity == "unavailable" || isSigningOut { return id != nil || challenge != nil }
         if let challenge {
             if let repository { _ = try? await repository.call("registerAnnouncementDevice", AnnouncementRequest(operation: "confirm", secret: installationSecret, challenge: challenge)) }
             return true

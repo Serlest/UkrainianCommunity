@@ -86,7 +86,9 @@ private final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotifica
     ) async -> UNNotificationPresentationOptions {
         guard !AppTestHost.isUnitTesting else { return [] }
         if await AnnouncementPushBridge.shared.receive(notification.request.content.userInfo) {
-            return notification.request.content.userInfo["announcementChallenge"] != nil ? [] : [.banner, .list, .sound]
+            let canPresent = await AnnouncementPushBridge.shared.canPresentNotification
+            return canPresent && notification.request.content.userInfo["announcementChallenge"] == nil
+                ? [.banner, .list, .sound] : []
         }
         return [.banner, .list, .sound]
     }

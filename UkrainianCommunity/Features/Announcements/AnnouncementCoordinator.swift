@@ -22,9 +22,15 @@ final class AnnouncementCoordinator: ObservableObject {
         self.repository = repository; self.defaults = defaults
     }
     func configure(userID: String?, available: Bool) {
-        let next = available ? userID ?? "guest" : "unavailable"
+        let accountID: String?
+        if available, let id = userID?.trimmingCharacters(in: .whitespacesAndNewlines), !id.isEmpty {
+            accountID = id
+        } else {
+            accountID = nil
+        }
+        let next = accountID ?? "unavailable"
         guard next != identity else { return }
-        generation += 1; identity = next; self.userID = userID
+        generation += 1; identity = next; self.userID = accountID
         active = nil; items = []; error = nil; isLoading = false; policy = AnnouncementPresentationPolicy(); lastLoadedAt = nil
     }
     func background() { policy.background(at: Date()); active = nil }
@@ -68,17 +74,19 @@ final class AnnouncementCoordinator: ObservableObject {
         if acknowledge { await mark(item, event: "acknowledged") }
     }
     func mark(_ item: UserAnnouncement, event: String) async {
+        guard let userID, identity == userID else { return }
         let key = receiptKey(item.id, event)
         defaults.set(true, forKey: key)
         defaults.set(true, forKey: key + ".pending")
         let version = generation
         do {
-            _ = try await repository.call("acknowledgeAnnouncement", AnnouncementRequest(id: item.id, event: event, secret: userID == nil ? AnnouncementPushBridge.shared.installationSecret : nil))
+            _ = try await repository.call("acknowledgeAnnouncement", AnnouncementRequest(id: item.id, event: event))
             guard generation == version else { return }
             defaults.removeObject(forKey: key + ".pending")
         } catch { if generation == version { self.error = AnnouncementStrings.syncPending } }
     }
     private func flushPending() async throws {
+        guard let userID, identity == userID else { return }
         let prefix = "announcements.receipt.\(identity)."
         let version = generation
         for key in defaults.dictionaryRepresentation().keys where key.hasPrefix(prefix) && key.hasSuffix(".pending") {
@@ -86,7 +94,7 @@ final class AnnouncementCoordinator: ObservableObject {
             guard let separator = suffix.lastIndex(of: ".") else { continue }
             let id = String(suffix[..<separator]), event = String(suffix[suffix.index(after: separator)...])
             do {
-                _ = try await repository.call("acknowledgeAnnouncement", AnnouncementRequest(id: id, event: event, secret: userID == nil ? AnnouncementPushBridge.shared.installationSecret : nil))
+                _ = try await repository.call("acknowledgeAnnouncement", AnnouncementRequest(id: id, event: event))
             } catch {
                 let code = FunctionsErrorCode(rawValue: (error as NSError).code)
                 if ![.permissionDenied, .notFound].contains(code) { throw error }

@@ -1253,9 +1253,9 @@ enum ContentAuthLifecyclePolicy {
 
     static func canHandlePendingRoute(in sessionState: AuthSessionState) -> Bool {
         switch sessionState {
-        case .guest, .authenticated:
+        case .authenticated:
             return true
-        case .restoring, .authenticating, .verificationPending, .registrationPending, .sessionUnavailable:
+        case .guest, .restoring, .authenticating, .verificationPending, .registrationPending, .sessionUnavailable:
             return false
         }
     }

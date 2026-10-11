@@ -117,6 +117,7 @@ final class RemoteNotificationRegistrationService: NSObject {
 
     func prepareForSignOut() async throws {
         userConfigurationGeneration &+= 1
+        await AnnouncementPushBridge.shared.prepareForSignOut()
         try await registrationOwnership.prepareForSignOut { [weak self] in
             guard let self else { return nil }
             return try await self.currentFirebaseInstallationRegistration()
@@ -127,6 +128,7 @@ final class RemoteNotificationRegistrationService: NSObject {
         userConfigurationGeneration &+= 1
         lastAuthorizationRequestUserID = nil
         registrationOwnership.completeSignOut()
+        AnnouncementPushBridge.shared.completeSignOut()
         invalidateLocalPushIdentity()
     }
 
@@ -151,6 +153,7 @@ final class RemoteNotificationRegistrationService: NSObject {
 
     func resumeAfterFailedSignOut() async {
         await registrationOwnership.resumeAfterFailedSignOut()
+        await AnnouncementPushBridge.shared.resumeAfterFailedSignOut()
     }
 
     func didRegisterForRemoteNotifications(deviceToken: Data) {

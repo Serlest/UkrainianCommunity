@@ -236,7 +236,7 @@ struct AuthUIIntegrationTests {
     }
 
     @Test func pendingNotificationRoutesWaitForStableAuthPhases() {
-        #expect(ContentAuthLifecyclePolicy.canHandlePendingRoute(in: .guest))
+        #expect(!ContentAuthLifecyclePolicy.canHandlePendingRoute(in: .guest))
         #expect(ContentAuthLifecyclePolicy.canHandlePendingRoute(in: .authenticated))
         #expect(!ContentAuthLifecyclePolicy.canHandlePendingRoute(in: .restoring))
         #expect(!ContentAuthLifecyclePolicy.canHandlePendingRoute(in: .authenticating))

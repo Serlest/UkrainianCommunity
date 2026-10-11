@@ -194,7 +194,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launch()
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let entry = app.buttons["profile.announcements"].firstMatch
         scrollToElement(entry, in: app, maxSwipes: 24)
         XCTAssertTrue(entry.isHittable); entry.tap()
@@ -249,10 +249,10 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
-    func testAnnouncementGuestPopupAndHistory() throws {
+    func testAnnouncementAccountPopupAndHistory() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
-        app.launchEnvironment["UITestForceGuestSession"] = "1"
+        app.launchEnvironment["UITestForceAuthenticatedSession"] = "1"
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launchEnvironment["UITestAnnouncements"] = "1"
@@ -260,9 +260,9 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launch()
         let acknowledge = app.buttons["announcements.acknowledge"].firstMatch
         XCTAssertTrue(acknowledge.waitForExistence(timeout: 30))
-        attachScreenshot(named: "announcements-guest-popup-uk-dark", from: app)
+        attachScreenshot(named: "announcements-account-popup-uk-dark", from: app)
         acknowledge.tap()
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let history = app.buttons["profile.announcementHistory"].firstMatch
         scrollToElement(history, in: app)
         history.tap()
@@ -274,6 +274,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         MainTabSpec(screenIdentifier: "screen.home", tabIdentifier: "tab.home", tabLabel: "Nachrichten"),
         MainTabSpec(screenIdentifier: "screen.events", tabIdentifier: "tab.events", tabLabel: "Veranstaltungen"),
         MainTabSpec(screenIdentifier: "screen.organizations", tabIdentifier: "tab.organizations", tabLabel: "Organisationen"),
+        MainTabSpec(screenIdentifier: "screen.directory", tabIdentifier: "tab.directory", tabLabel: "Ratgeber"),
         MainTabSpec(screenIdentifier: "screen.profile", tabIdentifier: "tab.profile", tabLabel: "Profil")
     ]
 
@@ -593,7 +594,7 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     private func enableAppLock(in app: XCUIApplication) {
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let settings = app.buttons["profile.settings.open"].firstMatch
         scrollToElement(settings, in: app, maxSwipes: 24)
         settings.tap()
@@ -703,7 +704,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testNotificationDetailsReadCloseDeleteAndNavigate() throws {
         let app = launchNotificationDetailsApp()
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let bell = app.buttons["notificationInbox.bell"].firstMatch
         XCTAssertTrue(bell.waitForExistence(timeout: 20))
         bell.tap()
@@ -750,7 +751,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testNotificationDetailsFromProfileSupportUkrainianDarkLargeText() throws {
         let app = launchNotificationDetailsApp(largeText: true)
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let bell = app.buttons["notificationInbox.bell"].firstMatch
         XCTAssertTrue(bell.waitForExistence(timeout: 10))
         bell.tap()
@@ -774,7 +775,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testUserManagementListStaysAlignedAndSearchFailureIsExplicit() throws {
         let app = launchUserRefreshApp(failing: false, longContent: true)
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let users = element("profile.userManagement", in: app)
         scrollToElement(users, in: app, maxSwipes: 12)
         users.tap()
@@ -852,7 +853,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testOwnerDetailHidesImpossibleManagementActions() throws {
         let app = launchUserRefreshApp(failing: false)
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let users = element("profile.userManagement", in: app)
         scrollToElement(users, in: app, maxSwipes: 12)
         users.tap()
@@ -886,7 +887,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testOwnerContentPlanningExposesFourStableSections() throws {
         let app = launchOwnerApp()
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let planning = element("profile.contentPlanning", in: app)
         scrollToElement(planning, in: app, maxSwipes: 14)
         XCTAssertTrue(planning.waitForExistence(timeout: 8))
@@ -941,7 +942,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     private func openRefreshTestUser(in app: XCUIApplication) {
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let users = element("profile.userManagement", in: app)
         scrollToElement(users, in: app, maxSwipes: 12)
         XCTAssertTrue(users.waitForExistence(timeout: 5))
@@ -1079,7 +1080,7 @@ final class UkrainianCommunityUITests: XCTestCase {
             back.tap()
         }
 
-        openRootTab(rootTabs[3], in: app, timeout: 30)
+        openRootTab(rootTabs[4], in: app, timeout: 30)
         sleep(3)
         attachScreenshot(named: "appstore-live-\(language)-06-profile", from: app)
         app.terminate()
@@ -1208,7 +1209,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     private func openOwnerAnalytics(in app: XCUIApplication) {
-        tapRootTab(rootTabs[3], in: app)
+        tapRootTab(rootTabs[4], in: app)
 
         let analyticsLink = element("profile.owner.analytics", in: app)
         scrollToElement(analyticsLink, in: app, maxSwipes: 14)
@@ -1406,7 +1407,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         }
 
         tapRootTab(rootTabs[2], in: app)
-        tapRootTab(rootTabs[3], in: app)
+        tapRootTab(rootTabs[4], in: app)
         tapRootTab(rootTabs[0], in: app)
 
         XCTAssertEqual(app.state, .runningForeground)
@@ -1691,7 +1692,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         confirm.tap()
         XCTAssertTrue(confirm.waitForNonExistence(timeout: 10))
 
-        openRootTab(rootTabs[3], in: app, timeout: 15)
+        openRootTab(rootTabs[4], in: app, timeout: 15)
         let settings = app.buttons["profile.settings.open"].firstMatch
         scrollToElement(settings, in: app, maxSwipes: 24)
         settings.tap()
@@ -1893,7 +1894,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launchEnvironment["UITestLegalEvidence"] = "1"
         app.launch()
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let legal = app.buttons["profile.owner.legalEvidence"].firstMatch
         scrollToElement(legal, in: app, maxSwipes: 24)
         XCTAssertTrue(legal.isHittable)
@@ -1929,7 +1930,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestGallery"] = "1"
         if conflict { app.launchEnvironment["UITestGalleryConflict"] = "1" }
         app.launch()
-        tapRootTab(rootTabs[3], in: app, timeout: 20)
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
         let organizations = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Meine Organisationen")).firstMatch
         scrollToElement(organizations, in: app)
         XCTAssertTrue(organizations.waitForExistence(timeout: 10)); organizations.tap()

@@ -53,6 +53,7 @@ struct AnnouncementTests {
         #expect(coordinator.active != nil)
         coordinator.configure(userID: nil, available: true)
         #expect(coordinator.items.isEmpty); #expect(coordinator.active == nil)
+        await coordinator.refresh(); #expect(coordinator.items.isEmpty)
         coordinator.configure(userID: "second", available: false)
         await coordinator.refresh(); #expect(coordinator.items.isEmpty)
     }
