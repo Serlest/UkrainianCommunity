@@ -55,6 +55,18 @@ struct DirectorySectionEditorView: View {
             Section(DirectoryEditorText.value("Екстрені контакти", "Notrufkontakte")) {
                 ForEach(Array(contactRowIDs.enumerated()), id: \.element) { index, _ in
                     VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(DirectoryEditorText.value("Контакт", "Kontakt"))
+                                .font(.subheadline.weight(.semibold))
+                            Spacer()
+                            Button(role: .destructive) {
+                                section.contacts.remove(at: index)
+                                contactRowIDs.remove(at: index)
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel(DirectoryEditorText.value("Видалити контакт", "Kontakt löschen"))
+                        }
                         TextField(DirectoryEditorText.value("Номер", "Nummer"),
                                   text: $section.contacts[index].number)
                             .keyboardType(.phonePad)
@@ -67,10 +79,6 @@ struct DirectorySectionEditorView: View {
                             text: $section.contacts[index].detail
                         )
                     }
-                }
-                .onDelete { indices in
-                    section.contacts.remove(atOffsets: indices)
-                    contactRowIDs.remove(atOffsets: indices)
                 }
                 Button {
                     section.contacts.append(.init(

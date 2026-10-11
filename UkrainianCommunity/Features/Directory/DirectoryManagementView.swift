@@ -8,13 +8,6 @@ struct DirectoryManagementView: View {
     var body: some View {
         let categories = contentStore.allManagedCategories
         List {
-            Section {
-                Text(DirectoryEditorText.value(
-                    "Оберіть категорію для редагування або додайте нову в потрібний блок. Публікація робить зміни видимими для читачів.",
-                    "Wählen Sie einen Bereich zum Bearbeiten oder fügen Sie ihn im passenden Block hinzu. Nach der Veröffentlichung sind Änderungen für Leser sichtbar."
-                ))
-                .font(.subheadline)
-            }
             ForEach(DirectoryManagedCategory.Placement.allCases, id: \.self) { placement in
                 Section(placementTitle(placement)) {
                     ForEach(categories.filter { $0.placement == placement }) { category in
@@ -23,18 +16,20 @@ struct DirectoryManagementView: View {
                                 VStack(alignment: .leading) {
                                     Text(category.title.value(for: language))
                                     if category.isHidden {
-                                        Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
-                                            .font(.caption).foregroundStyle(.secondary)
+                                        Text(DirectoryEditorText.value("Прибрано з довідника", "Aus dem Ratgeber entfernt"))
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
                                     }
                                 }
                             } icon: {
                                 Image(systemName: category.symbol)
                             }
                         }
+                        .accessibilityIdentifier("directory.category.manage.\(category.id)")
                     }
                     if contentStore.canEdit {
                         NavigationLink(value: DirectoryRoute.create(placement)) {
-                            Label(DirectoryEditorText.value("Додати категорію в цей блок", "Bereich in diesem Block hinzufügen"),
+                            Label(DirectoryEditorText.value("Додати категорію", "Bereich hinzufügen"),
                                   systemImage: "plus.circle.fill")
                         }
                         .accessibilityIdentifier("directory.category.add.\(placement.rawValue)")

@@ -5,7 +5,6 @@ struct DirectoryMoveMenu: View {
     let canMoveDown: Bool
     let moveUp: () -> Void
     let moveDown: () -> Void
-    var onDelete: (() -> Void)? = nil
 
     var body: some View {
         Menu {
@@ -23,18 +22,10 @@ struct DirectoryMoveMenu: View {
                       systemImage: "arrow.down")
             }
             .disabled(!canMoveDown)
-            if let onDelete {
-                Divider()
-                Button(role: .destructive) {
-                    onDelete()
-                } label: {
-                    Label(DirectoryEditorText.value("Видалити", "Löschen"), systemImage: "trash")
-                }
-            }
         } label: {
             Image(systemName: "ellipsis.circle")
-                .accessibilityLabel(DirectoryEditorText.value("Порядок і видалення", "Reihenfolge und Löschen"))
+                .accessibilityLabel(DirectoryEditorText.value("Змінити порядок", "Reihenfolge ändern"))
         }
-        .disabled(!canMoveUp && !canMoveDown && onDelete == nil)
+        .disabled(!canMoveUp && !canMoveDown)
     }
 }

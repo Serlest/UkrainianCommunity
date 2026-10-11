@@ -20,6 +20,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         scrollToElement(manage, in: app, maxSwipes: 10)
         XCTAssertTrue(manage.waitForExistence(timeout: 10))
         manage.tap()
+        attachScreenshot(named: "directory-management-ukrainian", from: app)
 
         let add = element("directory.category.add.start", in: app)
         scrollToElement(add, in: app, maxSwipes: 10)
@@ -30,13 +31,76 @@ final class UkrainianCommunityUITests: XCTestCase {
             format: "label CONTAINS %@", "Початок в Австрії"
         )).firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons.matching(NSPredicate(
-            format: "label CONTAINS %@", "Іконка категорії"
+            format: "label CONTAINS %@", "Зображення категорії"
         )).firstMatch.exists)
+        attachScreenshot(named: "directory-category-creation-top-ukrainian", from: app)
+        let articleTitle = app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "Назва статті"
+        )).firstMatch
+        scrollToElement(articleTitle, in: app, maxSwipes: 8)
+        XCTAssertTrue(articleTitle.exists)
+        let source = app.staticTexts["Офіційне джерело"].firstMatch
+        scrollToElement(source, in: app, maxSwipes: 12)
+        XCTAssertTrue(source.exists)
         XCTAssertFalse(app.staticTexts.matching(NSPredicate(
             format: "label BEGINSWITH %@", "Порядок:"
         )).firstMatch.exists)
         XCTAssertFalse(app.textFields["Системна іконка"].exists)
-        attachScreenshot(named: "directory-category-editor-ukrainian", from: app)
+        attachScreenshot(named: "directory-category-creation-ukrainian", from: app)
+    }
+
+    @MainActor
+    func testDirectoryOwnerSeesReversibleRemovalForBundledCategory() throws {
+        let app = launchOwnerApp(language: "uk")
+        app.buttons["Довідник"].firstMatch.tap()
+        let manage = element("directory.manage", in: app)
+        scrollToElement(manage, in: app, maxSwipes: 10)
+        manage.tap()
+
+        let safety = element("directory.category.manage.safety", in: app)
+        XCTAssertTrue(safety.waitForExistence(timeout: 8))
+        safety.tap()
+        XCTAssertTrue(app.switches["Прибрати з довідника"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(element("directory.category.delete", in: app).exists)
+        attachScreenshot(named: "directory-bundled-category-actions-ukrainian", from: app)
+    }
+
+    @MainActor
+    func testDirectoryCancelingNewArticleLeavesNoEmptyDraft() throws {
+        let app = launchOwnerApp(language: "uk")
+        app.buttons["Довідник"].firstMatch.tap()
+        let manage = element("directory.manage", in: app)
+        scrollToElement(manage, in: app, maxSwipes: 10)
+        manage.tap()
+        element("directory.category.manage.first-steps", in: app).tap()
+
+        let addArticle = app.buttons["Додати статтю сюди"].firstMatch
+        scrollToElement(addArticle, in: app, maxSwipes: 10)
+        XCTAssertTrue(addArticle.waitForExistence(timeout: 5))
+        addArticle.tap()
+        XCTAssertTrue(element("directory.editor.language", in: app).waitForExistence(timeout: 5))
+        app.buttons["Скасувати"].firstMatch.tap()
+        XCTAssertFalse(app.staticTexts["Нова стаття"].firstMatch.exists)
+    }
+
+    @MainActor
+    func testDirectoryCreationUsesGermanInterfaceAndBothContentLanguages() throws {
+        let app = launchOwnerApp(language: "de")
+        app.buttons["Ratgeber"].firstMatch.tap()
+        let manage = element("directory.manage", in: app)
+        scrollToElement(manage, in: app, maxSwipes: 10)
+        manage.tap()
+        let add = element("directory.category.add.start", in: app)
+        scrollToElement(add, in: app, maxSwipes: 10)
+        add.tap()
+
+        XCTAssertTrue(app.staticTexts["Neuer Bereich"].firstMatch.waitForExistence(timeout: 5))
+        let picker = element("directory.editor.language", in: app)
+        XCTAssertTrue(picker.exists)
+        app.buttons["Deutsch"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "Name des Bereichs · Deutsch"
+        )).firstMatch.exists)
     }
 
     @MainActor

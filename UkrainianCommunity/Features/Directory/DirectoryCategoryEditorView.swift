@@ -17,6 +17,7 @@ struct DirectoryCategoryEditorView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var confirmation: Confirmation?
+    @State private var editingLanguage: AppLanguage = .ukrainian
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
     private var hasUnsavedChanges: Bool { draft != original }
     private var isNewCategory: Bool { original.title.ukrainian.isEmpty && original.title.german.isEmpty }
@@ -25,15 +26,7 @@ struct DirectoryCategoryEditorView: View {
          newPlacement: DirectoryManagedCategory.Placement = .support, newOrder: Int = 0) {
         self.focusTopicID = focusTopicID
         _expectedRevision = State(initialValue: expectedRevision)
-        let initial = category ?? DirectoryManagedCategory(
-            id: "custom-" + UUID().uuidString.lowercased(),
-            placement: newPlacement, order: newOrder, isHidden: false,
-            title: .init(ukrainian: "", german: ""),
-            summary: .init(ukrainian: "", german: ""), symbol: "books.vertical.fill",
-            groups: [.init(id: "general", title: .init(ukrainian: "Основне", german: "Allgemein"),
-                           order: 0, isHidden: false)],
-            topics: []
-        )
+        let initial = category ?? DirectoryEditorDrafts.category(placement: newPlacement, order: newOrder)
         _original = State(initialValue: initial)
         _draft = State(initialValue: initial)
     }
@@ -42,10 +35,11 @@ struct DirectoryCategoryEditorView: View {
         Group {
             if let focusTopicID, let index = draft.topics.firstIndex(where: { $0.id == focusTopicID }) {
                 DirectoryTopicEditorView(topic: $draft.topics[index], groups: draft.groups)
+            } else if isNewCategory {
+                DirectoryNewCategoryFormView(draft: $draft, editingLanguage: $editingLanguage)
             } else {
                 DirectoryCategoryFormView(
-                    draft: $draft, isNewCategory: isNewCategory, expectedRevision: expectedRevision,
-                    isSaving: isSaving,
+                    draft: $draft, hasUnsavedChanges: hasUnsavedChanges, isSaving: isSaving,
                     onDeleteCategory: { confirmation = .deleteCategory },
                     onDeleteGroup: { confirmation = .deleteGroup($0) },
                     onDeleteTopic: { confirmation = .deleteTopic($0) }
@@ -129,6 +123,18 @@ struct DirectoryCategoryEditorView: View {
 
     private func save() async {
         guard let actorID = authState.user?.id else { return }
+        if isNewCategory, let first = draft.topics.first,
+           let section = first.sections.first,
+           let missing = DirectoryEditorDrafts.firstMissingLanguage(in: [
+               draft.title, draft.summary, first.title, first.summary, section.title, section.body
+           ]) {
+            editingLanguage = missing
+            errorMessage = DirectoryEditorText.value(
+                "Заповніть усі поля мовою, що відкрита зараз, а потім перевірте джерело.",
+                "Füllen Sie alle Felder in der jetzt geöffneten Sprache aus und prüfen Sie danach die Quelle."
+            )
+            return
+        }
         isSaving = true
         defer { isSaving = false }
         do {
@@ -146,29 +152,18 @@ struct DirectoryCategoryEditorView: View {
         case .discard:
             DirectoryEditorText.value("Вийти без збереження змін?", "Änderungen verwerfen?")
         case .deleteCategory:
-            DirectoryEditorText.value("Видалити категорію для всіх читачів?",
-                                      "Bereich für alle Leser löschen?")
+            DirectoryEditorText.value(
+                "Видалити «\(draft.title.ukrainian)» разом з усіма статтями? Це відбудеться одразу.",
+                "„\(draft.title.german)“ mit allen Beiträgen löschen? Das geschieht sofort."
+            )
         case .deleteGroup:
-            DirectoryEditorText.value("Видалити підкатегорію разом з усіма її статтями?",
-                                      "Unterbereich mit allen Beiträgen löschen?")
+            DirectoryEditorText.value("Видалити підкатегорію з усіма статтями? Зміна стане видимою після публікації.",
+                                      "Unterbereich mit allen Beiträgen löschen? Die Änderung wird nach Veröffentlichung sichtbar.")
         case .deleteTopic:
             DirectoryEditorText.value("Видалити статтю для всіх читачів після публікації?",
                                       "Beitrag nach Veröffentlichung für alle Leser löschen?")
         case nil:
             ""
-        }
-    }
-
-    private func deleteCategory() async {
-        guard let actorID = authState.user?.id else { return }
-        isSaving = true
-        defer { isSaving = false }
-        do {
-            try await contentStore.deleteCustomCategory(draft.id, expectedRevision: expectedRevision,
-                                                        actorID: actorID)
-            dismiss()
-        } catch {
-            errorMessage = message(for: error)
         }
     }
 
@@ -184,6 +179,20 @@ struct DirectoryCategoryEditorView: View {
             return DirectoryManagedValidation.Failure.permissionDenied.localizedDescription
         }
         return error.localizedDescription
+    }
+
+    private func deleteCategory() async {
+        guard let actorID = authState.user?.id else { return }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            try await contentStore.deleteCustomCategory(draft.id,
+                                                        expectedRevision: expectedRevision,
+                                                        actorID: actorID)
+            dismiss()
+        } catch {
+            errorMessage = message(for: error)
+        }
     }
 
 }

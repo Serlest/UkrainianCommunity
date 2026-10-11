@@ -3,6 +3,21 @@ import Testing
 @testable import UkrainianCommunity
 
 struct DirectoryCatalogTests {
+    @Test func newCategoryStartsWithOneArticleAndCanBePublishedAfterFillingIt() throws {
+        var category = DirectoryEditorDrafts.category(placement: .start, order: 0)
+        #expect(category.topics.count == 1)
+        #expect(category.topics[0].sections.count == 1)
+        #expect(category.topics[0].sources.count == 1)
+        category.title = .init(ukrainian: "Нова категорія", german: "Neuer Bereich")
+        category.summary = .init(ukrainian: "Короткий опис", german: "Kurzbeschreibung")
+        category.topics[0].title = .init(ukrainian: "Перша стаття", german: "Erster Beitrag")
+        category.topics[0].summary = .init(ukrainian: "Короткий вступ", german: "Kurze Einleitung")
+        category.topics[0].sections[0].title = .init(ukrainian: "Крок", german: "Schritt")
+        category.topics[0].sections[0].body = .init(ukrainian: "Детальна інформація", german: "Ausführliche Information")
+        category.topics[0].sources[0] = .init(name: "Amt", url: "https://www.oesterreich.gv.at/")
+        _ = try DirectoryManagedValidation.validate(category)
+    }
+
     @Test func editorDeletionKeepsParentsPublishableAndRemovesGroupArticles() throws {
         let safety = try #require(DirectoryCatalog.categories.first { $0.id == "safety" })
         var category = DirectoryManagedCategory.bundled(safety)

@@ -1,57 +1,74 @@
 import SwiftUI
 
 struct DirectoryCategoryFormView: View {
+    private enum Addition: Identifiable {
+        case group
+        case topic(String)
+
+        var id: String {
+            switch self {
+            case .group: "group"
+            case let .topic(groupID): "topic-\(groupID)"
+            }
+        }
+    }
     @EnvironmentObject private var contentStore: DirectoryContentStore
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var draft: DirectoryManagedCategory
-    let isNewCategory: Bool
-    let expectedRevision: Int
+    let hasUnsavedChanges: Bool
     let isSaving: Bool
     let onDeleteCategory: () -> Void
     let onDeleteGroup: (String) -> Void
     let onDeleteTopic: (String) -> Void
+    @State private var deletionLimitMessage: String?
+    @State private var addition: Addition?
 
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
     var body: some View {
         Form {
             Section {
-                Text(DirectoryEditorText.value(
-                    "Зміни з’являться для всіх після публікації. Приховування прибирає матеріал з довідника, але зберігає його для відновлення.",
-                    "Änderungen erscheinen nach Veröffentlichung für alle. Ausblenden entfernt Inhalte aus dem Ratgeber, bewahrt sie aber zur Wiederherstellung."
-                ))
+                Label(hasUnsavedChanges
+                      ? DirectoryEditorText.value("Зміни ще не опубліковані", "Änderungen noch nicht veröffentlicht")
+                      : DirectoryEditorText.value("Зміни з’являться після публікації", "Änderungen erscheinen nach Veröffentlichung"),
+                      systemImage: hasUnsavedChanges ? "pencil.circle" : "checkmark.circle")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-                if isNewCategory {
-                    Text(DirectoryEditorText.value(
-                        "Перед публікацією додайте статтю, інформаційний блок і офіційне джерело обома мовами.",
-                        "Fügen Sie vor der Veröffentlichung einen Beitrag, einen Informationsabschnitt und eine amtliche Quelle in beiden Sprachen hinzu."
-                    ))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Toggle(DirectoryEditorText.value("Прибрати з довідника", "Aus dem Ratgeber entfernen"),
+                       isOn: $draft.isHidden)
+                if draft.id.hasPrefix("custom-") {
+                    Button(role: .destructive, action: onDeleteCategory) {
+                        Label(DirectoryEditorText.value("Видалити категорію назавжди", "Bereich endgültig löschen"),
+                              systemImage: "trash")
+                    }
+                    .disabled(isSaving)
+                    .accessibilityIdentifier("directory.category.delete")
                 }
+            } footer: {
+                Text(draft.id.hasPrefix("custom-")
+                     ? DirectoryEditorText.value(
+                        "Прибрати можна тимчасово; видалення одразу прибере категорію з усіма статтями.",
+                        "Entfernen ist vorübergehend; Löschen entfernt den Bereich mit allen Beiträgen sofort."
+                     )
+                     : DirectoryEditorText.value(
+                        "Вбудовану категорію можна прибрати й згодом відновити. Зміну потрібно опублікувати.",
+                        "Ein integrierter Bereich kann entfernt und später wiederhergestellt werden. Veröffentlichen Sie die Änderung."
+                     ))
             }
             DirectoryBilingualFields(title: DirectoryEditorText.value("Назва категорії", "Name des Bereichs"),
                                      text: $draft.title)
             DirectoryBilingualFields(title: DirectoryEditorText.value("Короткий опис", "Kurzbeschreibung"),
                                      text: $draft.summary)
             Section {
-                LabeledContent(DirectoryEditorText.value("Блок", "Block"),
-                               value: placementTitle(draft.placement))
-                if !isNewCategory {
-                    Menu {
-                        ForEach(DirectoryManagedCategory.Placement.allCases, id: \.self) { placement in
-                            Button(placementTitle(placement)) {
-                                guard placement != draft.placement else { return }
-                                draft.placement = placement
-                                draft.order = DirectoryEditorOrdering.nextOrder(
-                                    in: placement, categories: contentStore.allManagedCategories)
-                            }
-                        }
-                    } label: {
-                        Label(DirectoryEditorText.value("Перемістити в інший блок", "In anderen Block verschieben"),
-                              systemImage: "rectangle.2.swap")
+                Picker(DirectoryEditorText.value("Розділ довідника", "Ratgeber-Rubrik"),
+                       selection: $draft.placement) {
+                    ForEach(DirectoryManagedCategory.Placement.allCases, id: \.self) { placement in
+                        Text(placementTitle(placement)).tag(placement)
                     }
+                }
+                .onChange(of: draft.placement) { _, newValue in
+                    draft.order = DirectoryEditorOrdering.nextOrder(
+                        in: newValue, categories: contentStore.allManagedCategories)
                 }
                 NavigationLink {
                     DirectorySymbolPicker(selection: $draft.symbol)
@@ -59,56 +76,41 @@ struct DirectoryCategoryFormView: View {
                     Label(DirectoryEditorText.value("Іконка категорії", "Symbol des Bereichs"),
                           systemImage: draft.symbol)
                 }
-                Toggle(DirectoryEditorText.value("Тимчасово приховати категорію", "Bereich vorübergehend ausblenden"),
-                       isOn: $draft.isHidden)
             } header: {
                 Text(DirectoryEditorText.value("На головному екрані", "Auf der Startseite"))
-            } footer: {
-                Text(isNewCategory
-                     ? DirectoryEditorText.value("Після публікації категорія з’явиться наприкінці цього блока.",
-                                                 "Nach der Veröffentlichung erscheint der Bereich am Ende dieses Blocks.")
-                     : DirectoryEditorText.value("Переміщення в інший блок також опублікується разом із вашими змінами.",
-                                                 "Der Wechsel in einen anderen Block wird mit Ihren Änderungen veröffentlicht."))
-            }
-            Section(DirectoryEditorText.value("Підкатегорії", "Unterbereiche")) {
-                let ids = DirectoryEditorOrdering.groupIDs(draft.groups)
-                ForEach(ids, id: \.self) { id in
-                    if let index = draft.groups.firstIndex(where: { $0.id == id }),
-                       let rank = ids.firstIndex(of: id) {
-                        HStack {
-                            NavigationLink {
-                                DirectoryGroupEditorView(group: $draft.groups[index])
-                            } label: {
-                                Text(draft.groups[index].title.value(for: language).isEmpty
-                                     ? DirectoryEditorText.value("Нова підкатегорія", "Neuer Unterbereich")
-                                     : draft.groups[index].title.value(for: language))
-                            }
-                            DirectoryMoveMenu(
-                                canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
-                                moveUp: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: id, by: -1) },
-                                moveDown: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: id, by: 1) },
-                                onDelete: DirectoryEditorDeletion.canDeleteGroup(id, from: draft)
-                                    ? { onDeleteGroup(id) } : nil
-                            )
-                        }
-                    }
-                }
-                Button {
-                    draft.groups.append(.init(
-                        id: "group-" + UUID().uuidString.lowercased(),
-                        title: .init(ukrainian: "", german: ""),
-                        order: min(1000, (draft.groups.map(\.order).max() ?? -1) + 1), isHidden: false
-                    ))
-                } label: {
-                    Label(DirectoryEditorText.value("Додати підкатегорію", "Unterbereich hinzufügen"),
-                          systemImage: "plus")
-                }
             }
             ForEach(DirectoryEditorOrdering.groupIDs(draft.groups), id: \.self) { groupID in
-                if let group = draft.groups.first(where: { $0.id == groupID }) {
-                    Section(group.title.value(for: language).isEmpty
-                            ? DirectoryEditorText.value("Нова підкатегорія", "Neuer Unterbereich")
-                            : group.title.value(for: language)) {
+                if let groupIndex = draft.groups.firstIndex(where: { $0.id == groupID }) {
+                    Section {
+                        HStack {
+                            NavigationLink {
+                                DirectoryGroupEditorView(group: $draft.groups[groupIndex])
+                            } label: {
+                                Label(DirectoryEditorText.value("Назва та видимість", "Name und Sichtbarkeit"),
+                                      systemImage: "square.and.pencil")
+                            }
+                            if draft.groups.count > 1,
+                               let rank = DirectoryEditorOrdering.groupIDs(draft.groups).firstIndex(of: groupID) {
+                                DirectoryMoveMenu(
+                                    canMoveUp: rank > 0, canMoveDown: rank < draft.groups.count - 1,
+                                    moveUp: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: groupID, by: -1) },
+                                    moveDown: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: groupID, by: 1) }
+                                )
+                            }
+                            Button(role: .destructive) {
+                                if DirectoryEditorDeletion.canDeleteGroup(groupID, from: draft) {
+                                    onDeleteGroup(groupID)
+                                } else {
+                                    deletionLimitMessage = DirectoryEditorText.value(
+                                        "Це остання підкатегорія зі статтями. Спершу додайте іншу або приберіть усю категорію з довідника.",
+                                        "Dies ist der letzte Unterbereich mit Beiträgen. Legen Sie zuerst einen weiteren an oder entfernen Sie den gesamten Bereich aus dem Ratgeber."
+                                    )
+                                }
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel(DirectoryEditorText.value("Видалити підкатегорію", "Unterbereich löschen"))
+                        }
                         let ids = DirectoryEditorOrdering.topicIDs(draft.topics, groupID: groupID)
                         ForEach(ids, id: \.self) { id in
                             if let index = draft.topics.firstIndex(where: { $0.id == id }),
@@ -127,49 +129,78 @@ struct DirectoryCategoryFormView: View {
                                             }
                                         }
                                     }
-                                    DirectoryMoveMenu(
-                                        canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
-                                        moveUp: { DirectoryEditorOrdering.moveTopic(&draft.topics, id: id, groupID: groupID, by: -1) },
-                                        moveDown: { DirectoryEditorOrdering.moveTopic(&draft.topics, id: id, groupID: groupID, by: 1) },
-                                        onDelete: DirectoryEditorDeletion.canDeleteTopic(id, from: draft)
-                                            ? { onDeleteTopic(id) } : nil
-                                    )
+                                    if ids.count > 1 {
+                                        DirectoryMoveMenu(
+                                            canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
+                                            moveUp: { DirectoryEditorOrdering.moveTopic(&draft.topics, id: id, groupID: groupID, by: -1) },
+                                            moveDown: { DirectoryEditorOrdering.moveTopic(&draft.topics, id: id, groupID: groupID, by: 1) }
+                                        )
+                                    }
+                                    Button(role: .destructive) {
+                                        if DirectoryEditorDeletion.canDeleteTopic(id, from: draft) {
+                                            onDeleteTopic(id)
+                                        } else {
+                                            deletionLimitMessage = DirectoryEditorText.value(
+                                                "Це остання видима стаття. Спершу додайте іншу або приберіть усю категорію з довідника.",
+                                                "Dies ist der letzte sichtbare Beitrag. Legen Sie zuerst einen weiteren an oder entfernen Sie den gesamten Bereich aus dem Ratgeber."
+                                            )
+                                        }
+                                    } label: {
+                                        Image(systemName: "trash")
+                                    }
+                                    .accessibilityLabel(DirectoryEditorText.value("Видалити статтю", "Beitrag löschen"))
                                 }
                             }
                         }
                         Button {
-                            let nextOrder = min(1000, (draft.topics.filter { $0.groupID == groupID }
-                                .map(\.order).max() ?? -1) + 1)
-                            draft.topics.append(.init(
-                                id: "topic-" + UUID().uuidString.lowercased(),
-                                groupID: groupID, order: nextOrder, isHidden: false,
-                                title: .init(ukrainian: "", german: ""),
-                                summary: .init(ukrainian: "", german: ""),
-                                sections: [], sources: [], regionalSections: [:]
-                            ))
+                            addition = .topic(groupID)
                         } label: {
                             Label(DirectoryEditorText.value("Додати статтю сюди", "Beitrag hier hinzufügen"),
                                   systemImage: "plus")
                         }
+                    } header: {
+                        Text(draft.groups[groupIndex].title.value(for: language).isEmpty
+                             ? DirectoryEditorText.value("Нова підкатегорія", "Neuer Unterbereich")
+                             : draft.groups[groupIndex].title.value(for: language))
                     }
                 }
             }
-            if !isNewCategory && draft.id.hasPrefix("custom-") && expectedRevision > 0 {
-                Section {
-                    Button(role: .destructive) { onDeleteCategory() } label: {
-                        Label(DirectoryEditorText.value("Видалити категорію", "Bereich löschen"),
-                              systemImage: "trash")
-                    }
-                    .disabled(isSaving)
-                } footer: {
-                    Text(DirectoryEditorText.value(
-                        "Категорія зникне з довідника й редактора. Історія публікацій збережеться для перевірки.",
-                        "Der Bereich verschwindet aus Ratgeber und Redaktion. Die Veröffentlichungshistorie bleibt zur Prüfung erhalten."
-                    ))
+            Section {
+                Button {
+                    addition = .group
+                } label: {
+                    Label(DirectoryEditorText.value("Додати підкатегорію", "Unterbereich hinzufügen"),
+                          systemImage: "plus")
                 }
             }
         }
         .directoryEditorChrome()
+        .sheet(item: $addition) { item in
+            switch item {
+            case .group:
+                DirectoryAddGroupView { title in
+                    draft.groups.append(.init(
+                        id: "group-" + UUID().uuidString.lowercased(), title: title,
+                        order: min(1000, (draft.groups.map(\.order).max() ?? -1) + 1), isHidden: false
+                    ))
+                }
+            case let .topic(groupID):
+                DirectoryAddTopicView(
+                    groupID: groupID,
+                    order: min(1000, (draft.topics.filter { $0.groupID == groupID }
+                        .map(\.order).max() ?? -1) + 1)
+                ) { topic in
+                    draft.topics.append(topic)
+                }
+            }
+        }
+        .alert(DirectoryEditorText.value("Видалення недоступне", "Löschen nicht möglich"),
+               isPresented: Binding(get: { deletionLimitMessage != nil },
+                                    set: { if !$0 { deletionLimitMessage = nil } })) {
+            Button(DirectoryEditorText.value("Гаразд", "OK")) { deletionLimitMessage = nil }
+        } message: {
+            Text(deletionLimitMessage ?? "")
+        }
     }
 
     private func placementTitle(_ placement: DirectoryManagedCategory.Placement) -> String {

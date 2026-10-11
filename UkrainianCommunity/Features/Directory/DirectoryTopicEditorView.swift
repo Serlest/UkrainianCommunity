@@ -5,6 +5,8 @@ struct DirectoryTopicEditorView: View {
     @Binding var topic: DirectoryManagedTopic
     let groups: [DirectoryManagedGroup]
     @State private var pendingSectionID: String?
+    @State private var showAddSection = false
+    @State private var deletionLimitMessage: String?
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
     var body: some View {
@@ -45,22 +47,26 @@ struct DirectoryTopicEditorView: View {
                             DirectoryMoveMenu(
                                 canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
                                 moveUp: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: -1) },
-                                moveDown: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: 1) },
-                                onDelete: DirectoryEditorDeletion.canDeleteSection(id, from: topic)
-                                    ? { pendingSectionID = id } : nil
+                                moveDown: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: 1) }
                             )
+                            Button(role: .destructive) {
+                                if DirectoryEditorDeletion.canDeleteSection(id, from: topic) {
+                                    pendingSectionID = id
+                                } else {
+                                    deletionLimitMessage = DirectoryEditorText.value(
+                                        "Це останній видимий блок. Додайте новий перед видаленням цього.",
+                                        "Dies ist der letzte sichtbare Abschnitt. Legen Sie zuerst einen neuen an."
+                                    )
+                                }
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"))
                         }
                     }
                 }
                 Button {
-                    topic.sections.append(.init(
-                        id: "section-" + UUID().uuidString.lowercased(),
-                        order: min(1000, (topic.sections.map(\.order).max() ?? -1) + 1), isHidden: false,
-                        title: .init(ukrainian: "", german: ""),
-                        body: .init(ukrainian: "", german: ""),
-                        symbol: "text.book.closed.fill",
-                        phoneNumber: nil, source: nil, contacts: []
-                    ))
+                    showAddSection = true
                 } label: {
                     Label(DirectoryEditorText.value("Додати блок", "Abschnitt hinzufügen"),
                           systemImage: "plus")
@@ -84,6 +90,11 @@ struct DirectoryTopicEditorView: View {
         }
         .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Стаття", "Beitrag"))
+        .sheet(isPresented: $showAddSection) {
+            DirectoryAddSectionView(order: min(1000, (topic.sections.map(\.order).max() ?? -1) + 1)) {
+                topic.sections.append($0)
+            }
+        }
         .confirmationDialog(
             DirectoryEditorText.value("Видалити інформаційний блок?", "Informationsabschnitt löschen?"),
             isPresented: Binding(get: { pendingSectionID != nil },
@@ -94,6 +105,13 @@ struct DirectoryTopicEditorView: View {
                 DirectoryEditorDeletion.deleteSection(id, from: &topic)
                 pendingSectionID = nil
             }
+        }
+        .alert(DirectoryEditorText.value("Видалення недоступне", "Löschen nicht möglich"),
+               isPresented: Binding(get: { deletionLimitMessage != nil },
+                                    set: { if !$0 { deletionLimitMessage = nil } })) {
+            Button(DirectoryEditorText.value("Гаразд", "OK")) { deletionLimitMessage = nil }
+        } message: {
+            Text(deletionLimitMessage ?? "")
         }
     }
 }
@@ -111,11 +129,16 @@ private struct DirectorySourcesEditorView: View {
     var body: some View {
         Section {
             ForEach(Array(rowIDs.enumerated()), id: \.element) { index, _ in
-                DirectorySourceFields(source: $sources[index])
-            }
-            .onDelete { offsets in
-                sources.remove(atOffsets: offsets)
-                rowIDs.remove(atOffsets: offsets)
+                HStack(alignment: .top) {
+                    DirectorySourceFields(source: $sources[index])
+                    Button(role: .destructive) {
+                        sources.remove(at: index)
+                        rowIDs.remove(at: index)
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .accessibilityLabel(DirectoryEditorText.value("Видалити джерело", "Quelle löschen"))
+                }
             }
             Button {
                 sources.append(.init(name: "", url: ""))
@@ -140,6 +163,7 @@ private struct DirectoryRegionEditorView: View {
     @Binding var topic: DirectoryManagedTopic
     let state: AustrianFederalState
     @State private var pendingSectionID: String?
+    @State private var showAddSection = false
 
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
     private var sections: Binding<[DirectoryManagedSection]> {
@@ -179,21 +203,16 @@ private struct DirectoryRegionEditorView: View {
                             }
                             DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
                                               moveUp: { moveRegionSection(id, by: -1) },
-                                              moveDown: { moveRegionSection(id, by: 1) },
-                                              onDelete: { pendingSectionID = id })
+                                              moveDown: { moveRegionSection(id, by: 1) })
+                            Button(role: .destructive) { pendingSectionID = id } label: {
+                                Image(systemName: "trash")
+                            }
+                            .accessibilityLabel(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"))
                         }
                     }
                 }
                 Button {
-                    var current = sections.wrappedValue
-                    current.append(.init(
-                        id: "region-" + UUID().uuidString.lowercased(),
-                        order: min(1000, (current.map(\.order).max() ?? -1) + 1),
-                        isHidden: false, title: .init(ukrainian: "", german: ""),
-                        body: .init(ukrainian: "", german: ""), symbol: "building.columns",
-                        phoneNumber: nil, source: nil, contacts: []
-                    ))
-                    sections.wrappedValue = current
+                    showAddSection = true
                 } label: {
                     Label(DirectoryEditorText.value("Додати блок", "Abschnitt hinzufügen"),
                           systemImage: "plus")
@@ -202,6 +221,13 @@ private struct DirectoryRegionEditorView: View {
         }
         .directoryEditorChrome()
         .navigationTitle(state.displayName)
+        .sheet(isPresented: $showAddSection) {
+            DirectoryAddSectionView(order: min(1000, (sections.wrappedValue.map(\.order).max() ?? -1) + 1)) {
+                var current = sections.wrappedValue
+                current.append($0)
+                sections.wrappedValue = current
+            }
+        }
         .confirmationDialog(
             DirectoryEditorText.value("Видалити регіональний блок?", "Regionalen Abschnitt löschen?"),
             isPresented: Binding(get: { pendingSectionID != nil },
