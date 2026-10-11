@@ -584,8 +584,7 @@ struct DirectoryCatalogTests {
             ("social-support", "benefits"),
             ("community", "local-services"),
             ("accessibility", "disability"),
-            ("care", "care-services"),
-            ("seniors", "seniors")
+            ("care", "care-services")
         ]
         for state in AustrianFederalState.allCases {
             for (categoryID, topicID) in regionalTopics {
@@ -693,5 +692,21 @@ struct DirectoryCatalogTests {
             #expect(sections.count == 1)
             #expect(sections[0].id != "regional-care")
         }
+    }
+
+    @Test func seniorsGuideSeparatesDailyLifeFromCareAndKeepsDistinctSources() throws {
+        let guide = try #require(SeniorsGuides.guide(for: "seniors"))
+        #expect(guide.sections.count == 10)
+        #expect(Set(guide.sections.map(\.id)).count == guide.sections.count)
+        #expect(Set(guide.sources.map(\.url)).count == guide.sources.count)
+        for section in guide.sections {
+            #expect(section.body.ukrainian.count >= 100, "\(section.id)")
+            #expect(section.body.german.count >= 100, "\(section.id)")
+            #expect(section.source?.url.scheme == "https", "\(section.id)")
+        }
+        #expect(guide.sections.contains { $0.id == "living-options" })
+        #expect(guide.sections.contains { $0.id == "trusted-person" })
+        #expect(guide.sections.contains { $0.id == "treatment-wishes" })
+        #expect(!DirectoryRegionalContent.applies(categoryID: "seniors", topicID: "seniors"))
     }
 }

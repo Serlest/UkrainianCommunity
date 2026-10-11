@@ -56,7 +56,6 @@ enum DirectoryRegionalContent {
         case "community": topicID == "local-services"
         case "accessibility": ["disability", "assistive-devices"].contains(topicID)
         case "care": ["home-care", "care-services"].contains(topicID)
-        case "seniors": topicID == "seniors"
         case "first-steps": topicID == "arrival"
         case "registration": ["housing-types", "protection-registration", "after-registration"].contains(topicID)
         case "residence": topicID == "temporary-protection"
@@ -87,11 +86,6 @@ enum DirectoryRegionalContent {
         case "community": return CommunityRegionalContent.sections(for: state)
         case "accessibility": return AccessibilityRegionalContent.sections(for: state)
         case "care": return CareRegionalContent.sections(for: state)
-        case "seniors":
-            return [.init("regional-care", "house", "Догляд у вашій землі", "Pflege in Ihrem Bundesland",
-                          "Для землі \(state.displayName) запитайте в Gemeinde, Bezirk або Magistrat про наявні мобільні служби, ціну після субсидії й місцеві заяви. Федеральна сторінка пояснює, хто відповідальний; конкретного постачальника перевіряйте за вашою адресою.",
-                          "Für \(state.displayName) Gemeinde, Bezirk oder Magistrat nach mobilen Diensten, gefördertem Preis und örtlichem Antrag fragen. Die Bundesseite erklärt die Zuständigkeit; Anbieter am Wohnort prüfen.",
-                          source: DirectorySource(name: "oesterreich.gv.at · Soziale Dienste", url: "https://www.oesterreich.gv.at/themen/pflege/soziale_dienste/Seite.1210200.html"))]
         case "first-steps", "registration":
             if topicID == "after-registration" { return [bfaSection(state)] }
             if topicID == "protection-registration" { return [policeRegistrationSection(state)] }
