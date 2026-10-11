@@ -1,9 +1,11 @@
-# Registration wording for the next legal-document versions
+# Registration wording review for Terms 2026.11 and Privacy 2026.15
 
-This is a review draft, not an active legal document. The bundled fallback currently
-identifies Terms `2026.10` and Privacy `2026.13`; the active Firebase versions must be
-read back before creating successor drafts. Published versions and their content hashes
-must remain immutable.
+This is the operator-approved wording review, not an active legal document.
+The canonical German and Ukrainian text is in `Legal/`; the iOS fallback is
+generated from it. Terms 2026.11 succeeds active 2026.10, and Privacy 2026.15
+succeeds active 2026.14. The privacy successor preserves every disclosure
+introduced in 2026.14 for Android. Publication requires separate Firestore and
+Hosting read-back; source files alone do not prove that it happened.
 
 ## Terms, section 3
 

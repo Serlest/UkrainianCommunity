@@ -70,7 +70,7 @@ The new private collection `users/{uid}/blockedOrganizations/{organizationId}` s
 
 ## Local Face ID / Touch ID protection
 
-`AppLockService` uses Apple's `LocalAuthentication` and permits device-passcode fallback. It protects access to an existing password-authenticated session; it is not Sign in with Apple and does not replace Firebase Authentication. The app receives an authentication result, never a face template, fingerprint or device passcode. Only a per-account local preference under a hashed UID is stored. No biometric data is uploaded, so Face ID alone does not add Sensitive Info to the App Store label. Registration choice is optional/off by default and Profile retains enable/disable controls.
+`AppLockService` uses Apple's `LocalAuthentication` and permits device-passcode fallback. It protects an existing Firebase session whether the user signed in with email and password, Apple or Google; it does not replace those sign-in methods. The app receives an authentication result, never a face template, fingerprint or device passcode. Only a per-account local preference under a hashed UID is stored. No biometric data is uploaded, so Face ID alone does not add Sensitive Info to the App Store label. Registration choice is optional/off by default and Profile retains enable/disable controls.
 
 ## SDK diagnostics and optional analytics are different
 
