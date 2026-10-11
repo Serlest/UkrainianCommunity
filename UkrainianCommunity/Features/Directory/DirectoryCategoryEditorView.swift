@@ -179,7 +179,7 @@ struct DirectoryCategoryEditorView: View {
         }
         .alert(DirectoryEditorText.value("Не вдалося зберегти", "Speichern fehlgeschlagen"),
                isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
-            Button("OK") { errorMessage = nil }
+            Button(DirectoryEditorText.value("Гаразд", "OK")) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }

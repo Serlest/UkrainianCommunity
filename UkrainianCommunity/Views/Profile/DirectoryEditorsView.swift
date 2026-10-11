@@ -134,7 +134,7 @@ struct DirectoryEditorsView: View {
         .alert(DirectoryEditorText.value("Помилка доступу", "Zugriffsfehler"),
                isPresented: Binding(get: { errorMessage != nil },
                                     set: { if !$0 { errorMessage = nil } })) {
-            Button("OK") { errorMessage = nil }
+            Button(DirectoryEditorText.value("Гаразд", "OK")) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
