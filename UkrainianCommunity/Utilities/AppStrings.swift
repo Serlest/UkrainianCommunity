@@ -1876,6 +1876,8 @@ enum AppStrings {
         static var deleteAccountCleanupFailed: String { text("profile.settings.delete_account.cleanup_failed", "Не вдалося очистити дані акаунта. Акаунт не видалено. Спробуйте ще раз.") }
         static var deleteAccountPermissionFailed: String { text("profile.settings.delete_account.permission_failed", "Немає доступу для завершення видалення акаунта. Акаунт не видалено. Спробуйте вийти й увійти знову.") }
         static var deleteAccountRequiresRecentLogin: String { text("profile.settings.delete_account.requires_recent_login", "Для видалення акаунта потрібно повторно увійти.") }
+        static var deleteAccountAppleConfirmation: String { text("profile.settings.delete_account.apple_confirmation", "Щоб видалити акаунт, ще раз підтвердьте Apple ID. Це потрібно, щоб відкликати доступ Apple перед видаленням.") }
+        static var deleteAccountAppleFailed: String { text("profile.settings.delete_account.apple_failed", "Не вдалося підтвердити Apple ID або відкликати доступ. Акаунт не видалено. Спробуйте ще раз.") }
         static var deleteAccountOrganizationOwnerBlocked: String { text("profile.settings.delete_account.owner_blocked", "Неможливо видалити акаунт, поки ви є власником організації. Передайте організацію іншому власнику.") }
         static var deleteAccountPlatformOwnerBlocked: String { text("profile.settings.delete_account.platform_owner_blocked", "Platform owner акаунт не можна видалити з профілю.") }
         static var deletedUserDisplayName: String { text("profile.deleted_user.display_name", "Видалений користувач") }

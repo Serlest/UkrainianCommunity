@@ -1,9 +1,7 @@
 import AuthenticationServices
-import CryptoKit
 import FirebaseAuth
 import FirebaseCore
 import GoogleSignIn
-import Security
 import SwiftUI
 
 struct FederatedSignInButtons: View {
@@ -11,42 +9,46 @@ struct FederatedSignInButtons: View {
     @State private var isSigningIn = false
     @State private var errorMessage: String?
 
-    var body: some View {
-        AppEditorSectionCard {
-            VStack(spacing: 12) {
-                Text(AppStrings.Auth.otherSignInMethods)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+    private var isAvailable: Bool {
+        Bundle.main.object(forInfoDictionaryKey: "UACAppleSignInEnabled") as? Bool == true
+    }
 
-                if Bundle.main.object(forInfoDictionaryKey: "UACAppleSignInEnabled") as? Bool == true {
+    var body: some View {
+        if isAvailable {
+            AppEditorSectionCard {
+                VStack(spacing: 12) {
+                    Text(AppStrings.Auth.otherSignInMethods)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
                     SignInWithAppleButton(.signIn, onRequest: configureAppleRequest, onCompletion: finishAppleRequest)
                         .signInWithAppleButtonStyle(.black)
                         .frame(height: 50)
                         .disabled(isSigningIn)
                         .accessibilityIdentifier("auth.provider.apple")
-                }
 
-                Button(action: startGoogleSignIn) {
-                    HStack(spacing: 10) {
-                        Image("GoogleSignInIcon")
-                            .resizable()
-                            .frame(width: 18, height: 18)
-                        Text(AppStrings.Auth.continueWithGoogle)
-                            .font(.subheadline.weight(.semibold))
+                    Button(action: startGoogleSignIn) {
+                        HStack(spacing: 10) {
+                            Image("GoogleSignInIcon")
+                                .resizable()
+                                .frame(width: 18, height: 18)
+                            Text(AppStrings.Auth.continueWithGoogle)
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        .foregroundStyle(Color.black)
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0.18)))
                     }
-                    .foregroundStyle(Color.black)
-                    .frame(maxWidth: .infinity, minHeight: 50)
-                    .background(Color.white, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(Color.black.opacity(0.18)))
-                }
-                .buttonStyle(.plain)
-                .disabled(isSigningIn)
-                .accessibilityIdentifier("auth.provider.google")
+                    .buttonStyle(.plain)
+                    .disabled(isSigningIn)
+                    .accessibilityIdentifier("auth.provider.google")
 
-                if isSigningIn { ProgressView() }
-                if let errorMessage {
-                    InlineMessageCard(style: .error, message: errorMessage)
+                    if isSigningIn { ProgressView() }
+                    if let errorMessage {
+                        InlineMessageCard(style: .error, message: errorMessage)
+                    }
                 }
             }
         }
@@ -54,10 +56,12 @@ struct FederatedSignInButtons: View {
 
     private func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
         errorMessage = nil
-        let nonce = Self.randomNonce()
-        appleNonce = nonce
-        request.requestedScopes = [.fullName, .email]
-        request.nonce = Self.sha256(nonce)
+        do {
+            appleNonce = try AppleSignInCredentialFactory.prepare(request)
+        } catch {
+            appleNonce = nil
+            errorMessage = AppStrings.Auth.providerSignInFailed
+        }
     }
 
     private func finishAppleRequest(_ result: Result<ASAuthorization, Error>) {
@@ -68,21 +72,19 @@ struct FederatedSignInButtons: View {
                 errorMessage = AppStrings.Auth.providerSignInFailed
             }
         case .success(let authorization):
-            guard let account = authorization.credential as? ASAuthorizationAppleIDCredential,
-                  let token = account.identityToken,
-                  let tokenString = String(data: token, encoding: .utf8),
-                  let nonce = appleNonce else {
+            guard let nonce = appleNonce else {
                 appleNonce = nil
                 errorMessage = AppStrings.Auth.providerSignInFailed
                 return
             }
             appleNonce = nil
-            let credential = OAuthProvider.appleCredential(
-                withIDToken: tokenString,
-                rawNonce: nonce,
-                fullName: account.fullName
-            )
-            finishSignIn(with: credential)
+            do {
+                finishSignIn(with: try AppleSignInCredentialFactory.firebaseCredential(
+                    from: authorization, nonce: nonce
+                ))
+            } catch {
+                errorMessage = AppStrings.Auth.providerSignInFailed
+            }
         }
     }
 
@@ -154,20 +156,5 @@ struct FederatedSignInButtons: View {
         var current = windows.first(where: \.isKeyWindow)?.rootViewController
         while let presented = current?.presentedViewController { current = presented }
         return current
-    }
-
-    private static func randomNonce() -> String {
-        let alphabet = Array("0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._")
-        var bytes = [UInt8](repeating: 0, count: 32)
-        guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
-            return UUID().uuidString.replacingOccurrences(of: "-", with: "")
-        }
-        return String(bytes.map { alphabet[Int($0) % alphabet.count] })
-    }
-
-    private static func sha256(_ value: String) -> String {
-        SHA256.hash(data: Data(value.utf8))
-            .map { String(format: "%02x", $0) }
-            .joined()
     }
 }

@@ -38086,6 +38086,40 @@
         }
       }
     },
+    "profile.settings.delete_account.apple_confirmation" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bestätigen Sie Ihre Apple-ID erneut, um den Account zu löschen. So kann der Apple-Zugriff vor der Löschung widerrufen werden."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Щоб видалити акаунт, ще раз підтвердьте Apple ID. Це потрібно, щоб відкликати доступ Apple перед видаленням."
+          }
+        }
+      }
+    },
+    "profile.settings.delete_account.apple_failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Apple-ID konnte nicht bestätigt oder der Zugriff nicht widerrufen werden. Der Account wurde nicht gelöscht. Bitte versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося підтвердити Apple ID або відкликати доступ. Акаунт не видалено. Спробуйте ще раз."
+          }
+        }
+      }
+    },
     "profile.settings.delete_account.cleanup_failed" : {
       "extractionState" : "manual",
       "localizations" : {
