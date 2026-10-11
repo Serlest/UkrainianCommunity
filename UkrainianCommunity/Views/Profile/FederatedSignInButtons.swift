@@ -6,23 +6,40 @@ import SwiftUI
 
 struct FederatedSignInButtons: View {
     var showsHeading = true
+
+    var body: some View {
+        FederatedCredentialButtons(showsHeading: showsHeading) { credential in
+            try await AuthService.shared.signIn(credential: credential)
+        }
+    }
+}
+
+struct FederatedCredentialButtons: View {
+    var showsHeading = true
+    var allowedProviderIDs: Set<String> = ["apple.com", "google.com"]
+    var appleButtonEnabled = true
+    var isLinking = false
+    let onCredential: @MainActor (AuthCredential) async throws -> Void
+
     @State private var appleNonce: String?
     @State private var isSigningIn = false
     @State private var errorMessage: String?
 
     private var isAppleAvailable: Bool {
-        Bundle.main.object(forInfoDictionaryKey: "UACAppleSignInEnabled") as? Bool == true
+        allowedProviderIDs.contains("apple.com")
+            && Bundle.main.object(forInfoDictionaryKey: "UACAppleSignInEnabled") as? Bool == true
     }
 
     private var isGoogleAvailable: Bool {
-        guard Bundle.main.object(forInfoDictionaryKey: "UACGoogleSignInEnabled") as? Bool == true else {
+        guard allowedProviderIDs.contains("google.com"),
+              Bundle.main.object(forInfoDictionaryKey: "UACGoogleSignInEnabled") as? Bool == true else {
             return false
         }
         #if DEBUG
         return true
         #else
         // App Review 4.8 requires a privacy-preserving alternative alongside Google sign-in.
-        return isAppleAvailable
+        return Bundle.main.object(forInfoDictionaryKey: "UACAppleSignInEnabled") as? Bool == true
         #endif
     }
 
@@ -37,23 +54,29 @@ struct FederatedSignInButtons: View {
                 }
 
                 if isAppleAvailable {
-                    SignInWithAppleButton(.signIn, onRequest: configureAppleRequest, onCompletion: finishAppleRequest)
+                    SignInWithAppleButton(
+                        isLinking ? .continue : .signIn,
+                        onRequest: configureAppleRequest,
+                        onCompletion: finishAppleRequest
+                    )
                         .signInWithAppleButtonStyle(.black)
                         .frame(height: 50)
-                        .disabled(isSigningIn)
-                        .accessibilityIdentifier("auth.provider.apple")
+                        .disabled(isSigningIn || !appleButtonEnabled)
+                        .accessibilityIdentifier(isLinking ? "accountSecurity.provider.apple" : "auth.provider.apple")
                 }
 
                 if isGoogleAvailable {
                     Button(action: startGoogleSignIn) {
                         AuthMethodButtonLabel(
-                            title: AppStrings.Auth.continueWithGoogle,
+                            title: isLinking
+                                ? AppStrings.AccountSecurity.linkGoogle
+                                : AppStrings.Auth.continueWithGoogle,
                             icon: .asset("GoogleSignInIcon")
                         )
                     }
                     .buttonStyle(.plain)
                     .disabled(isSigningIn)
-                    .accessibilityIdentifier("auth.provider.google")
+                    .accessibilityIdentifier(isLinking ? "accountSecurity.provider.google" : "auth.provider.google")
                 }
 
                 if isSigningIn { ProgressView() }
@@ -70,7 +93,9 @@ struct FederatedSignInButtons: View {
             appleNonce = try AppleSignInCredentialFactory.prepare(request)
         } catch {
             appleNonce = nil
-            errorMessage = AppStrings.Auth.providerSignInFailed
+            errorMessage = isLinking
+                ? AppStrings.AccountSecurity.linkFailed
+                : AppStrings.Auth.providerSignInFailed
         }
     }
 
@@ -79,12 +104,16 @@ struct FederatedSignInButtons: View {
         case .failure(let error):
             appleNonce = nil
             if (error as? ASAuthorizationError)?.code != .canceled {
-                errorMessage = AppStrings.Auth.providerSignInFailed
+                errorMessage = isLinking
+                    ? AppStrings.AccountSecurity.linkFailed
+                    : AppStrings.Auth.providerSignInFailed
             }
         case .success(let authorization):
             guard let nonce = appleNonce else {
                 appleNonce = nil
-                errorMessage = AppStrings.Auth.providerSignInFailed
+                errorMessage = isLinking
+                    ? AppStrings.AccountSecurity.linkFailed
+                    : AppStrings.Auth.providerSignInFailed
                 return
             }
             appleNonce = nil
@@ -93,7 +122,9 @@ struct FederatedSignInButtons: View {
                     from: authorization, nonce: nonce
                 ))
             } catch {
-                errorMessage = AppStrings.Auth.providerSignInFailed
+                errorMessage = isLinking
+                    ? AppStrings.AccountSecurity.linkFailed
+                    : AppStrings.Auth.providerSignInFailed
             }
         }
     }
@@ -114,14 +145,18 @@ struct FederatedSignInButtons: View {
                 isSigningIn = false
                 let googleError = error as NSError
                 if googleError.domain != kGIDSignInErrorDomain || googleError.code != -5 {
-                    errorMessage = AppStrings.Auth.providerSignInFailed
+                    errorMessage = isLinking
+                        ? AppStrings.AccountSecurity.linkFailed
+                        : AppStrings.Auth.providerSignInFailed
                 }
                 return
             }
             guard let user = result?.user,
                   let idToken = user.idToken?.tokenString else {
                 isSigningIn = false
-                errorMessage = AppStrings.Auth.providerSignInFailed
+                errorMessage = isLinking
+                    ? AppStrings.AccountSecurity.linkFailed
+                    : AppStrings.Auth.providerSignInFailed
                 return
             }
             let credential = GoogleAuthProvider.credential(
@@ -138,8 +173,16 @@ struct FederatedSignInButtons: View {
         Task { @MainActor in
             defer { isSigningIn = false }
             do {
-                try await AuthService.shared.signIn(credential: credential)
+                try await onCredential(credential)
             } catch {
+                if !isLinking,
+                   error as? AuthMultiFactorFlowError == .secondFactorRequired {
+                    return
+                }
+                if isLinking {
+                    errorMessage = providerLinkErrorMessage(error)
+                    return
+                }
                 if let verification = error as? AuthVerificationError {
                     switch verification {
                     case .emailNotVerified:
@@ -156,6 +199,36 @@ struct FederatedSignInButtons: View {
                     ? AppStrings.Auth.accountUsesAnotherSignInMethod
                     : AppStrings.Auth.providerSignInFailed
             }
+        }
+    }
+
+    private func providerLinkErrorMessage(_ error: Error) -> String {
+        if let linkError = error as? AccountProviderLinkError {
+            switch linkError {
+            case .protectedSessionRequired:
+                return AppStrings.AccountSecurity.linkTOTPRequired
+            case .recentSignInRequired:
+                return AppStrings.AccountSecurity.linkRecentSignInRequired
+            case .alreadyLinked:
+                return AppStrings.AccountSecurity.linkAlreadyConnected
+            case .sessionChanged, .unavailable:
+                return AppStrings.AccountSecurity.linkSessionChanged
+            case .emailNotVerified:
+                return AppStrings.Auth.emailVerificationStillPending
+            case .unsupportedProvider, .linkNotConfirmed:
+                return AppStrings.AccountSecurity.linkFailed
+            }
+        }
+        let code = AuthErrorCode(rawValue: (error as NSError).code)
+        switch code {
+        case .credentialAlreadyInUse, .emailAlreadyInUse, .accountExistsWithDifferentCredential:
+            return AppStrings.AccountSecurity.linkBelongsToAnotherAccount
+        case .providerAlreadyLinked:
+            return AppStrings.AccountSecurity.linkAlreadyConnected
+        case .requiresRecentLogin:
+            return AppStrings.AccountSecurity.linkRecentSignInRequired
+        default:
+            return AppStrings.AccountSecurity.linkFailed
         }
     }
 

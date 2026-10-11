@@ -287,6 +287,7 @@ struct AccountSecurityView: View {
             }
 
             passwordSection
+            LinkedAccountProvidersView(account: authState.user)
             multiFactorSection
         }
         .task(id: authState.user?.id) {

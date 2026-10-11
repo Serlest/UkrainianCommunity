@@ -1247,6 +1247,278 @@
         }
       }
     },
+    "account_security.providers.already_connected" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Anmeldemethode ist bereits verbunden."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цей спосіб входу вже підключено."
+          }
+        }
+      }
+    },
+    "account_security.providers.apple_consent" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ich stimme zu, meine Apple-ID mit diesem Konto zu verknüpfen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Я погоджуюся пов’язати Apple ID з цим обліковим записом"
+          }
+        }
+      }
+    },
+    "account_security.providers.apple_disclosure" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple kann Ihre E-Mail-Adresse mit Private Relay verbergen. Die Verknüpfung verbindet Ihre Apple-ID mit den Daten dieses Kontos."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apple може приховати вашу адресу через Private Relay. Підключення пов’яже Apple ID з даними цього облікового запису."
+          }
+        }
+      }
+    },
+    "account_security.providers.connected" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbunden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підключено"
+          }
+        }
+      }
+    },
+    "account_security.providers.email_password" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "E-Mail und Passwort"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Email і пароль"
+          }
+        }
+      }
+    },
+    "account_security.providers.failed" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Anmeldemethode konnte nicht verbunden werden. Versuchen Sie es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося підключити спосіб входу. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "account_security.providers.link_google" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Google verbinden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підключити Google"
+          }
+        }
+      }
+    },
+    "account_security.providers.load_failed" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die verbundenen Anmeldemethoden konnten nicht geprüft werden. Öffnen Sie diese Seite erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося перевірити підключені способи входу. Спробуйте відкрити екран ще раз."
+          }
+        }
+      }
+    },
+    "account_security.providers.other_account" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Apple- oder Google-Konto gehört bereits zu einem anderen UAC-Konto. Es wurden keine Daten geändert."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цей Apple або Google акаунт уже належить іншому обліковому запису UAC. Дані не змінено."
+          }
+        }
+      }
+    },
+    "account_security.providers.privileged_hint" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Melden Sie sich zum Verknüpfen mit Ihrem Authenticator-Code an und verbinden Sie das Konto innerhalb von 10 Minuten. Der Code bleibt auch danach bei der Anmeldung erforderlich."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для підключення увійдіть із кодом автентифікатора та виконайте дію протягом 10 хвилин. Після підключення код і надалі буде потрібен при вході."
+          }
+        }
+      }
+    },
+    "account_security.providers.recent_sign_in" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melden Sie sich für die Verknüpfung erneut bei diesem Konto an und wiederholen Sie den Vorgang innerhalb von 10 Minuten."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для підключення знову увійдіть у цей обліковий запис і повторіть дію протягом 10 хвилин."
+          }
+        }
+      }
+    },
+    "account_security.providers.session_changed" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Sitzung hat sich geändert. Melden Sie sich erneut bei Ihrem Konto an."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сеанс змінився. Увійдіть у свій обліковий запис ще раз."
+          }
+        }
+      }
+    },
+    "account_security.providers.subtitle" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verbinden Sie Apple oder Google mit diesem Konto. Ihre Daten und Berechtigungen bleiben erhalten."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підключіть Apple або Google до цього облікового запису. Ваші дані та права залишаться з ним."
+          }
+        }
+      }
+    },
+    "account_security.providers.success" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Anmeldemethode ist verbunden. Ihr Konto und Ihre Berechtigungen bleiben erhalten."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спосіб входу підключено. Ваш обліковий запис і права збережено."
+          }
+        }
+      }
+    },
+    "account_security.providers.title" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldemethoden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Способи входу"
+          }
+        }
+      }
+    },
+    "account_security.providers.totp_required" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melden Sie sich zuerst mit einem Code aus Ihrer Authenticator-App bei diesem Konto an."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спочатку увійдіть у цей обліковий запис з кодом автентифікатора."
+          }
+        }
+      }
+    },
     "account_security.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -1031,6 +1031,45 @@ struct AuthSessionConsistencyTests {
     }
 
     @Test
+    func federatedSecondFactorKeepsPendingAuthenticationAndResolvesSameAccount() async throws {
+        let appUser = makeUser(id: "owner-a")
+        let sessionUser = FakeAuthSessionUser(
+            uid: appUser.id,
+            email: appUser.email,
+            isEmailVerified: true,
+            isFederatedAccount: true
+        )
+        let state = AuthState()
+        state.setGuestSession()
+        let backend = FakeAuthBackend()
+        let challenge = FakeMultiFactorChallenge()
+        backend.signInError = FakeAuthError.expected
+        backend.multiFactorChallenge = challenge
+        challenge.resolveHandler = { _, _ in
+            backend.currentSessionUser = sessionUser
+            return sessionUser
+        }
+        let profiles = FakeAuthProfileProvider(profiles: [appUser.id: appUser])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+        let credential = GoogleAuthProvider.credential(withIDToken: "test-token", accessToken: "test-token")
+
+        do {
+            try await service.signIn(credential: credential)
+            Issue.record("Expected a second factor challenge")
+        } catch AuthMultiFactorFlowError.secondFactorRequired {
+        }
+
+        #expect(state.presentedAuthFlow == .multiFactorChallenge)
+        let signedInUser = try await service.resolveMultiFactorSignIn(
+            oneTimeCode: "123456",
+            factorID: challenge.factors[0].id
+        )
+        #expect(signedInUser.id == appUser.id)
+        #expect(state.sessionState == .authenticated)
+        #expect(backend.signOutCallCount == 0)
+    }
+
+    @Test
     func validSecondFactorCompletesTheOriginalSignInTransaction() async throws {
         let appUser = makeUser(id: "owner-a")
         let sessionUser = FakeAuthSessionUser(
@@ -1389,6 +1428,7 @@ private final class FakeAuthBackend: AuthBackendProviding {
     }
 
     func signIn(credential: AuthCredential) async throws -> any AuthSessionUserProviding {
+        if let signInError { throw signInError }
         guard let signInUser else { throw FakeAuthError.expected }
         currentSessionUser = signInUser
         return signInUser

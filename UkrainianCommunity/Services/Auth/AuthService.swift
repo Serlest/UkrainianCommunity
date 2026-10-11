@@ -491,14 +491,7 @@ final class AuthService {
         } catch {
             guard isCurrentTransition(transition) else { throw error }
 
-            if let challenge = backend.multiFactorSignInChallenge(from: error) {
-                pendingMultiFactorSignIn = PendingMultiFactorSignIn(
-                    transition: transition,
-                    challenge: challenge
-                )
-                multiFactorSignIn.begin(factors: challenge.factors)
-                authState.beginAuthenticatingSession(email: email)
-                authState.presentAuthFlow(.multiFactorChallenge)
+            if presentMultiFactorChallenge(from: error, transition: transition, email: email) {
                 throw AuthMultiFactorFlowError.secondFactorRequired
             }
 
@@ -525,6 +518,9 @@ final class AuthService {
             authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email)
         } catch {
             guard isCurrentTransition(transition) else { throw error }
+            if presentMultiFactorChallenge(from: error, transition: transition, email: nil) {
+                throw AuthMultiFactorFlowError.secondFactorRequired
+            }
             reconcileAfterFailedAuthenticationStart(error, transition: transition)
             throw error
         }
@@ -535,6 +531,23 @@ final class AuthService {
             // The provider identity is retained until the user accepts the
             // current legal documents and completes the local profile.
         }
+    }
+
+    @MainActor
+    private func presentMultiFactorChallenge(
+        from error: Error,
+        transition: UInt,
+        email: String?
+    ) -> Bool {
+        guard let challenge = backend.multiFactorSignInChallenge(from: error) else { return false }
+        pendingMultiFactorSignIn = PendingMultiFactorSignIn(
+            transition: transition,
+            challenge: challenge
+        )
+        multiFactorSignIn.begin(factors: challenge.factors)
+        authState.beginAuthenticatingSession(email: email)
+        authState.presentAuthFlow(.multiFactorChallenge)
+        return true
     }
 
     @MainActor

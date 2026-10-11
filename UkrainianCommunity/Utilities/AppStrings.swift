@@ -2829,6 +2829,22 @@ enum AppStrings {
     enum AccountSecurity {
         static var title: String { text("account_security.title", "Account security") }
         static var subtitle: String { text("account_security.subtitle", "Manage password recovery and protection with an authenticator app.") }
+        static var linkedMethodsTitle: String { text("account_security.providers.title", "Способи входу") }
+        static var linkedMethodsSubtitle: String { text("account_security.providers.subtitle", "Підключіть Apple або Google до цього облікового запису. Ваші дані та права залишаться з ним.") }
+        static var privilegedLinkHint: String { text("account_security.providers.privileged_hint", "Для підключення увійдіть із кодом автентифікатора та виконайте дію протягом 10 хвилин. Після підключення код і надалі буде потрібен при вході.") }
+        static var emailPasswordMethod: String { text("account_security.providers.email_password", "Email і пароль") }
+        static var methodConnected: String { text("account_security.providers.connected", "Підключено") }
+        static var linkGoogle: String { text("account_security.providers.link_google", "Підключити Google") }
+        static var appleLinkDisclosure: String { text("account_security.providers.apple_disclosure", "Apple може приховати вашу адресу через Private Relay. Підключення пов’яже Apple ID з даними цього облікового запису.") }
+        static var appleLinkConsent: String { text("account_security.providers.apple_consent", "Я погоджуюся пов’язати Apple ID з цим обліковим записом") }
+        static var linkSucceeded: String { text("account_security.providers.success", "Спосіб входу підключено. Ваш обліковий запис і права збережено.") }
+        static var linkFailed: String { text("account_security.providers.failed", "Не вдалося підключити спосіб входу. Спробуйте ще раз.") }
+        static var linkLoadFailed: String { text("account_security.providers.load_failed", "Не вдалося перевірити підключені способи входу. Спробуйте відкрити екран ще раз.") }
+        static var linkTOTPRequired: String { text("account_security.providers.totp_required", "Спочатку увійдіть у цей обліковий запис з кодом автентифікатора.") }
+        static var linkRecentSignInRequired: String { text("account_security.providers.recent_sign_in", "Для підключення знову увійдіть у цей обліковий запис і повторіть дію протягом 10 хвилин.") }
+        static var linkAlreadyConnected: String { text("account_security.providers.already_connected", "Цей спосіб входу вже підключено.") }
+        static var linkSessionChanged: String { text("account_security.providers.session_changed", "Сеанс змінився. Увійдіть у свій обліковий запис ще раз.") }
+        static var linkBelongsToAnotherAccount: String { text("account_security.providers.other_account", "Цей Apple або Google акаунт уже належить іншому обліковому запису UAC. Дані не змінено.") }
         static var passwordSection: String { text("account_security.password.section", "Password") }
         static var passwordSubtitle: String { text("account_security.password.subtitle", "We will send a secure password-change link to your verified email address.") }
         static var sendPasswordLink: String { text("account_security.password.send_link", "Send password-change link") }
