@@ -15,6 +15,7 @@ import * as logger from "firebase-functions/logger";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import {defineBoolean} from "firebase-functions/params";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import {transientSchedulerRetry} from "../scheduling/transientRetry";
 
 import {assertActiveUser} from "../auth/context";
 import {requireVerifiedActiveUser} from "../auth/context";
@@ -181,6 +182,7 @@ const callableOptions = {
 };
 
 const analyticsRollupScheduleOptions = {
+  ...transientSchedulerRetry,
   // Anchor materialization to the Vienna clock. A relative hourly schedule can
   // otherwise leave the new dated "today" documents missing for most of the
   // first hour after midnight while seven/thirty-day rollups still look valid.

@@ -3,6 +3,7 @@ import {FieldPath, type DocumentData} from "firebase-admin/firestore";
 import {db} from "../firebase/admin";
 import {HttpsError, onCall, type CallableRequest} from "firebase-functions/v2/https";
 import {onSchedule} from "firebase-functions/v2/scheduler";
+import {transientSchedulerRetry} from "../scheduling/transientRetry";
 import {requireAuth, requireVerifiedActiveUser} from "../auth/context";
 import {assertOwner, isActiveUser} from "../permissions/userPermissions";
 import {sendPushToRegistrationDocuments, isStrictFirebaseInstallationID} from "../notifications/pushRegistrations";
@@ -289,7 +290,10 @@ export async function dispatchAnnouncements(send: typeof sendPushToRegistrationD
     }
   }
 }
-export const deliverAnnouncements = onSchedule({region: "europe-west3", schedule: "every 1 minutes", timeoutSeconds: 540, maxInstances: 1}, () => dispatchAnnouncements());
+export const deliverAnnouncements = onSchedule({
+  region: "europe-west3", schedule: "every 1 minutes", timeoutSeconds: 540, maxInstances: 1,
+  ...transientSchedulerRetry,
+}, () => dispatchAnnouncements());
 
 export async function cleanupAnnouncementData(now = Date.now()) {
   const cutoff = now - 180 * 86400000;

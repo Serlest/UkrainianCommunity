@@ -1,6 +1,7 @@
 import { FieldValue, Timestamp, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
+import {transientSchedulerRetry} from "../scheduling/transientRetry";
 
 import { type AuditActionType, auditLogRef, buildAuditLog } from "../audit/auditLog";
 import { requireVerifiedActiveUser } from "../auth/context";
@@ -65,6 +66,7 @@ const callableOptions = {
 };
 
 const schedulerOptions = {
+  ...transientSchedulerRetry,
   schedule: "every 1 hours",
   timeZone: "Europe/Vienna",
   region: "europe-west3",
@@ -469,105 +471,103 @@ export const restoreUser = createAccountStatusCallable({
   },
 });
 
-export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, async () => {
-  const now = Timestamp.now();
+export async function restoreExpiredTemporarySuspensionsOnce(now = Timestamp.now()): Promise<number> {
   const committedAt = new Date().toISOString();
-  const expiredUsersSnapshot = await db.collection("users")
+  const expiredUsersQuery = db.collection("users")
     .where("accountStatus", "==", "suspendedUntil")
     .where("blockState", "==", "suspendedUntil")
     .where("banExpiresAt", "<=", now)
     .orderBy("banExpiresAt", "asc")
-    .limit(expiredSuspensionBatchSize)
-    .get();
+    .limit(expiredSuspensionBatchSize);
 
-  if (expiredUsersSnapshot.empty) {
-    return;
-  }
+  return db.runTransaction(async (transaction) => {
+    const expiredUsersSnapshot = await transaction.get(expiredUsersQuery);
+    let restoredCount = 0;
 
-  const batch = db.batch();
-  let restoredCount = 0;
+    for (const userSnapshot of expiredUsersSnapshot.docs) {
+      const target = accountStatusSnapshotFromData(userSnapshot.id, userSnapshot.data());
 
-  for (const userSnapshot of expiredUsersSnapshot.docs) {
-    const target = accountStatusSnapshotFromData(userSnapshot.id, userSnapshot.data());
+      if (
+        target.accountStatus !== "suspendedUntil"
+        || target.blockState !== "suspendedUntil"
+        || !target.banExpiresAt
+        || target.banExpiresAt.toMillis() > now.toMillis()
+      ) {
+        continue;
+      }
 
-    if (
-      target.accountStatus !== "suspendedUntil"
-      || target.blockState !== "suspendedUntil"
-      || !target.banExpiresAt
-      || target.banExpiresAt.toMillis() > now.toMillis()
-    ) {
-      continue;
-    }
-
-    batch.update(userSnapshot.ref, {
-      accountStatus: "active",
-      blockState: "active",
-      banExpiresAt: null,
-      isBlocked: false,
-      statusReason: temporarySuspensionExpiredReason,
-      statusMessage: `Your account access has been restored. Reason: ${
-        temporarySuspensionExpiredReason
-      }`,
-      statusUpdatedAt: FieldValue.serverTimestamp(),
-      statusUpdatedBy: systemActor,
-      statusAcknowledgedAt: null,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
-
-    batch.set(auditLogRef(), buildAuditLog({
-      actionType: "userSuspensionExpired",
-      targetUserId: userSnapshot.id,
-      performedBy: systemActor,
-      reason: temporarySuspensionExpiredReason,
-      previousValue: {
-        accountStatus: target.accountStatus,
-        blockState: target.blockState,
-        warningCount: target.warningCount,
-        banExpiresAt: timestampToISO(target.banExpiresAt),
-      },
-      newValue: {
+      transaction.update(userSnapshot.ref, {
         accountStatus: "active",
         blockState: "active",
-        warningCount: target.warningCount,
         banExpiresAt: null,
-        statusUpdatedAt: committedAt,
+        isBlocked: false,
+        statusReason: temporarySuspensionExpiredReason,
+        statusMessage: `Your account access has been restored. Reason: ${
+          temporarySuspensionExpiredReason
+        }`,
+        statusUpdatedAt: FieldValue.serverTimestamp(),
         statusUpdatedBy: systemActor,
-      },
-    }));
+        statusAcknowledgedAt: null,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
 
-    const notificationReference = userNotificationRef(userSnapshot.id);
-    batch.set(notificationReference, buildUserNotificationDocument({
-      notificationId: notificationReference.id,
-      targetUserId: userSnapshot.id,
-      type: "accountStatusChanged",
-      title: accountStatusNotificationTitle("active"),
-      message: `Your account access has been restored. Reason: ${
-        temporarySuspensionExpiredReason
-      }`,
-      severity: "success",
-      actionType: "openProfile",
-      actionTargetId: userSnapshot.id,
-      requiresPopup: false,
-      actorUserId: systemActor,
-      sourceType: "account",
-      sourceId: userSnapshot.id,
-      metadata: {
-        previousAccountStatus: "suspendedUntil",
-        newAccountStatus: "active",
-        previousBlockState: "suspendedUntil",
-        newBlockState: "active",
-        warningCount: target.warningCount,
-        banExpiresAt: null,
+      transaction.set(auditLogRef(), buildAuditLog({
+        actionType: "userSuspensionExpired",
+        targetUserId: userSnapshot.id,
+        performedBy: systemActor,
         reason: temporarySuspensionExpiredReason,
-        updatedAt: committedAt,
-      },
-      dedupeKey: `accountStatus:${notificationReference.id}`,
-    }));
+        previousValue: {
+          accountStatus: target.accountStatus,
+          blockState: target.blockState,
+          warningCount: target.warningCount,
+          banExpiresAt: timestampToISO(target.banExpiresAt),
+        },
+        newValue: {
+          accountStatus: "active",
+          blockState: "active",
+          warningCount: target.warningCount,
+          banExpiresAt: null,
+          statusUpdatedAt: committedAt,
+          statusUpdatedBy: systemActor,
+        },
+      }));
 
-    restoredCount += 1;
-  }
+      const notificationReference = userNotificationRef(userSnapshot.id);
+      transaction.set(notificationReference, buildUserNotificationDocument({
+        notificationId: notificationReference.id,
+        targetUserId: userSnapshot.id,
+        type: "accountStatusChanged",
+        title: accountStatusNotificationTitle("active"),
+        message: `Your account access has been restored. Reason: ${
+          temporarySuspensionExpiredReason
+        }`,
+        severity: "success",
+        actionType: "openProfile",
+        actionTargetId: userSnapshot.id,
+        requiresPopup: false,
+        actorUserId: systemActor,
+        sourceType: "account",
+        sourceId: userSnapshot.id,
+        metadata: {
+          previousAccountStatus: "suspendedUntil",
+          newAccountStatus: "active",
+          previousBlockState: "suspendedUntil",
+          newBlockState: "active",
+          warningCount: target.warningCount,
+          banExpiresAt: null,
+          reason: temporarySuspensionExpiredReason,
+          updatedAt: committedAt,
+        },
+        dedupeKey: `accountStatus:${notificationReference.id}`,
+      }));
 
-  if (restoredCount > 0) {
-    await batch.commit();
-  }
+      restoredCount += 1;
+    }
+
+    return restoredCount;
+  });
+}
+
+export const restoreExpiredTemporarySuspensions = onSchedule(schedulerOptions, async () => {
+  await restoreExpiredTemporarySuspensionsOnce();
 });
