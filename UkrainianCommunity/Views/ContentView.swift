@@ -6,6 +6,7 @@ struct ContentView: View {
     @State private var announcementFeedback: UserAnnouncement?
     @State private var isShowingPasskeyOffer = false
     @State private var offeredPasskeyUserID: String?
+    @State private var passkeyOfferRetryToken = 0
     @EnvironmentObject private var authState: AuthState
     @Environment(\.openURL) private var openURL
     private enum AppTab: Hashable {
@@ -127,9 +128,13 @@ struct ContentView: View {
                 if let item { announcementCoordinator.requestedFeedback = nil; openAnnouncementFeedback(item) }
             }
             .modifier(AppUpdatePrompt(isReady: isReadyForUpdatePrompt && announcementCoordinator.active == nil))
-            .task(id: "\(authState.passkeyOfferForUserID ?? "")|\(authState.presentedAuthFlow?.rawValue ?? "")|\(updateAppLockIsLocked)") {
+            .task(id: passkeyOfferTaskKey) {
                 guard isStartupReady, authState.isAuthenticated,
                       authState.presentedAuthFlow == nil, !updateAppLockIsLocked,
+                      accountStatusMonitor.activeNotice == nil,
+                      notificationPopupCoordinator.activeNotification == nil,
+                      announcementCoordinator.active == nil,
+                      quickCreation == nil, !isShowingNotificationInbox,
                       let userID = authState.passkeyOfferForUserID,
                       userID == authState.user?.id else { return }
                 guard let passkeys = try? await PasskeyService.shared.listPasskeys(),
@@ -153,12 +158,29 @@ struct ContentView: View {
             .onChange(of: authState.user?.id) { _, newUserID in
                 if newUserID == nil { isShowingPasskeyOffer = false }
             }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                passkeyOfferRetryToken &+= 1
+            }
+    }
+
+    private var passkeyOfferTaskKey: String {
+        [
+            authState.passkeyOfferForUserID ?? "",
+            authState.presentedAuthFlow?.rawValue ?? "",
+            String(updateAppLockIsLocked),
+            String(accountStatusMonitor.activeNotice != nil),
+            String(notificationPopupCoordinator.activeNotification != nil),
+            String(announcementCoordinator.active != nil),
+            String(quickCreation != nil),
+            String(isShowingNotificationInbox),
+            String(passkeyOfferRetryToken)
+        ].joined(separator: "|")
     }
 
     private var isReadyForUpdatePrompt: Bool {
         isStartupReady && !authState.isRestoring && !authState.isAuthenticating
             && !updateAppLockIsLocked && authState.presentedAuthFlow == nil
-            && !isShowingPasskeyOffer
+            && !isShowingPasskeyOffer && authState.passkeyOfferForUserID == nil
             && updateMFACheckKey == privilegedMFARequirementKey
             && accountStatusMonitor.activeNotice == nil
             && notificationPopupCoordinator.activeNotification == nil && quickCreation == nil
