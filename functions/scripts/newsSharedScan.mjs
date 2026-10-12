@@ -218,6 +218,13 @@ export async function runNewsSharedScan(outputRoot, runId, {fetchImpl = fetch, n
   try {
     await writeFile(join(lock, "owner.json"), JSON.stringify({runId, token, startedAt: now.toISOString()}));
     ownerWritten = true;
+    const sharedPath = join(outputRoot, "shared-source-state.json");
+    const sharedState = JSON.parse(await readFile(sharedPath, "utf8"));
+    for (const source of planUniqueSourceFetches(registry)) {
+      if (!sharedState.sources[source.sourceId]) {
+        throw new Error(`Missing shared source state: ${source.sourceId}`);
+      }
+    }
     const results = await scanNewsSources(registry, {fetchImpl, now});
     await mkdir(snapshots, {recursive: true});
     const temporary = join(snapshots, `.${runId}.${token}.tmp`);
@@ -227,8 +234,6 @@ export async function runNewsSharedScan(outputRoot, runId, {fetchImpl = fetch, n
     } finally {
       await unlink(temporary).catch(() => {});
     }
-    const sharedPath = join(outputRoot, "shared-source-state.json");
-    const sharedState = JSON.parse(await readFile(sharedPath, "utf8"));
     for (const row of results) {
       const state = sharedState.sources[row.sourceId];
       if (!state) throw new Error(`Missing shared source state: ${row.sourceId}`);

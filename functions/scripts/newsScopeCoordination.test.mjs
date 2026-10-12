@@ -122,6 +122,28 @@ test("shared scan fetches a multi-scope source once and preserves immutable snap
   }
 });
 
+test("shared scan rejects missing source state before fetching or creating a snapshot", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "uac-news-scan-state-"));
+  try {
+    const input = join(directory, "legacy.json");
+    const output = join(directory, "news-v3");
+    await writeFile(input, JSON.stringify(fixture));
+    await prepareNewsScopeLayout(input, output, {write: true});
+    const statePath = join(output, "shared-source-state.json");
+    const state = JSON.parse(await readFile(statePath, "utf8"));
+    delete state.sources.ministry;
+    await writeFile(statePath, JSON.stringify(state));
+    let fetched = false;
+    await assert.rejects(() => runNewsSharedScan(output, "news-2026-10-12T22", {
+      fetchImpl: async () => { fetched = true; throw new Error("should-not-fetch"); },
+    }), /Missing shared source state: ministry/);
+    assert.equal(fetched, false);
+    await assert.rejects(() => readFile(join(output, "snapshots", "news-2026-10-12T22.json")));
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
+
 test("dated RIS source requests use the current window while identity stays stable", () => {
   const url = requestURLForSource({url: "https://www.ris.bka.gv.at/Ergebnis.wxe?Abfrage=BgblAuth&VonDatum=30.08.2026&BisDatum=03.09.2026"},
     new Date("2026-10-12T11:00:00Z"));
