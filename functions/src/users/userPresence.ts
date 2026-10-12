@@ -1,7 +1,7 @@
 import {type DocumentData} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireVerifiedAuth, requireVerifiedActiveUser} from "../auth/context";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
 import {assertCanManageUsers, isActiveUser, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 
@@ -102,7 +102,7 @@ const options = {
 };
 
 export const updateUserPresence = onCall(options, async (request) => {
-  const auth = requireVerifiedAuth(request);
+  const auth = await requireVerifiedActiveUser(request);
   const update = parsePresenceUpdate(request.data, auth.uid);
   await writeUserPresence(auth.uid, update);
   return {accepted: true};

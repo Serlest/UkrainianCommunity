@@ -58,10 +58,18 @@ service firebase.storage {
       ) || isTOTPAuthenticated();
     }
 
+    function hasCurrentLegalAcknowledgements(data) {
+      let termsPath = /databases/(default)/documents/legalDocuments/terms;
+      let privacyPath = /databases/(default)/documents/legalDocuments/privacy;
+      return data.get('acceptedTermsVersion', '') == firestore.get(termsPath).data.activeVersion
+        && data.get('acceptedPrivacyVersion', '') == firestore.get(privacyPath).data.activeVersion;
+    }
+
     function isVerifiedActiveUser() {
       return isVerifiedEmailUser()
         && isActiveUser()
-        && satisfiesPrivilegedMFARequirement(currentUserData());
+        && satisfiesPrivilegedMFARequirement(currentUserData())
+        && hasCurrentLegalAcknowledgements(currentUserData());
     }
 
     function isOwner() {

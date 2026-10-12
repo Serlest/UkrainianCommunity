@@ -195,6 +195,11 @@ jobs:
         working-directory: functions
         run: npm run test:platform-roles:integration
 
+      - name: Run presence and legal gate integration test
+        if: needs.changes.outputs.functions == 'true'
+        working-directory: functions
+        run: npm run test:presence:integration
+
       - name: Run counter migration and reconciliation integration test
         if: needs.changes.outputs.functions == 'true'
         working-directory: functions

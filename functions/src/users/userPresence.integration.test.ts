@@ -1,6 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {db} from "../firebase/admin";
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {getManagedUserPresence, updateUserPresence} from "./userPresence";
 
 // Hard safety gate: these tests must never write to a real Firebase project.
@@ -25,6 +26,7 @@ test("presence callable access, multiple devices, account deletion and blocked u
         blockState: "active",
       });
     }
+    await seedCurrentLegalForIntegration(...ids.map(uid));
     await assert.rejects(getManagedUserPresence.run({data: {targetUserId: uid("user")}} as never), {code: "unauthenticated"});
     await assert.rejects(updateUserPresence.run(request(uid("user"), {userId: uid("user"), sessionId, sequence: 1, active: true}, false)), {code: "permission-denied"});
     for (const actor of ["user", "org-owner", "org-admin", "org-moderator", "blocked"]) {
@@ -56,5 +58,35 @@ test("presence callable access, multiple devices, account deletion and blocked u
   } finally {
     await db.collection("organizations").doc(prefix).delete();
     for (const id of ids) await db.recursiveDelete(db.collection("users").doc(uid(id)));
+  }
+});
+
+test("presence stops when legal acceptance is stale or privileged TOTP is missing", {skip: !enabled}, async () => {
+  const uid = `presence-legal-${Date.now()}`;
+  const profile = db.doc(`users/${uid}`);
+  const update = {userId: uid, sessionId, sequence: 1, active: true};
+  try {
+    await profile.set({globalRole: "user", accountStatus: "active"});
+    await seedCurrentLegalForIntegration(uid);
+    const acceptedTermsVersion = (await profile.get()).get("acceptedTermsVersion");
+    const acceptedPrivacyVersion = (await profile.get()).get("acceptedPrivacyVersion");
+
+    await profile.update({acceptedTermsVersion: "outdated"});
+    await assert.rejects(updateUserPresence.run(request(uid, update)), {code: "failed-precondition"});
+    assert.equal((await profile.collection("privatePresence").doc("current").get()).exists, false);
+
+    await profile.update({acceptedTermsVersion, acceptedPrivacyVersion: "outdated"});
+    await assert.rejects(updateUserPresence.run(request(uid, update)), {code: "failed-precondition"});
+
+    await profile.update({acceptedPrivacyVersion, globalRole: "admin", requiresMultiFactorAuth: true});
+    await assert.rejects(updateUserPresence.run(request(uid, update)), {code: "failed-precondition"});
+    const totpRequest = {
+      auth: {uid, token: {email_verified: true, firebase: {sign_in_second_factor: "totp"}}},
+      data: update,
+    } as never;
+    await updateUserPresence.run(totpRequest);
+    assert.equal((await profile.collection("privatePresence").doc("current").get()).get("sessions")[sessionId].active, true);
+  } finally {
+    await db.recursiveDelete(profile);
   }
 });

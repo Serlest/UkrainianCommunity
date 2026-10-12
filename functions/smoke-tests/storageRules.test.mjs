@@ -385,6 +385,35 @@ describe("organization media permissions", () => {
 });
 
 describe("profile and public read boundaries", () => {
+  test("stale legal acceptance blocks private media and uploads, while published media stays public", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await imageUpload(context.storage(), "news/org-news/cover.jpg");
+      await imageUpload(context.storage(), "news/pending-news/cover.jpg");
+      const db = context.firestore();
+      await Promise.all(["owner", "org-owner", "profile-user"].map(uid =>
+        setDoc(doc(db, "users", uid), {acceptedTermsVersion: "outdated"}, {merge: true})
+      ));
+    });
+
+    await assertFails(imageUpload(storage("owner"), "featuredBanners/legal-stale/hero.jpg"));
+    await assertFails(imageUpload(storage("profile-user"), "profileImages/profile-user/avatar.jpg"));
+    await assertFails(getBytes(ref(storage("org-owner"), "news/pending-news/cover.jpg")));
+    await assertSucceeds(getBytes(ref(storage("org-owner"), "news/org-news/cover.jpg")));
+    await assertSucceeds(getBytes(ref(guestStorage(), "news/org-news/cover.jpg")));
+
+    await seedCurrentLegalVersions(testEnv);
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "users", "profile-user"), {
+        acceptedPrivacyVersion: "outdated",
+      }, {merge: true});
+    });
+    await assertFails(imageUpload(storage("profile-user"), "profileImages/profile-user/avatar.jpg"));
+
+    await seedCurrentLegalVersions(testEnv);
+    await assertSucceeds(imageUpload(storage("profile-user"), "profileImages/profile-user/avatar.jpg"));
+    await assertSucceeds(getBytes(ref(storage("org-owner"), "news/pending-news/cover.jpg")));
+  });
+
   test("allows only the verified user or owner to manage the fixed avatar path", async () => {
     const profileStorage = storage("profile-user");
 
