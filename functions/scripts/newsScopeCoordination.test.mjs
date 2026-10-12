@@ -12,7 +12,7 @@ import {
   prepareNewsScopeLayout,
   routeNewsCandidate,
 } from "./newsScopeCoordination.mjs";
-import {extractAMSNewsLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {extractAMSNewsLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -137,6 +137,13 @@ test("AMS escaped index yields recent direct articles instead of old embedded re
   assert.deepEqual(extractAMSNewsLinks(html, "https://www.ams.at/", new Date("2026-10-12T12:00:00Z")), [
     {url: "https://www.ams.at/regionen/wien/news/2026/10/new", title: "New"},
   ]);
+});
+
+test("a source article after a long navigation menu is retained", () => {
+  const navigation = Array.from({length: 300}, (_, i) => `<a href="/menu/${i}">Menu</a>`).join("");
+  const links = extractSourceLinks(`${navigation}<a href="/presse/meldung/heute">Aktuelle Meldung</a>`,
+    "https://example.gv.at/");
+  assert.equal(links.at(-1).url, "https://example.gv.at/presse/meldung/heute");
 });
 
 test("editorial policy replaces stale AMS regional feeds and shares official national sources", () => {

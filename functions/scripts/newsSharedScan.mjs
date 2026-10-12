@@ -8,6 +8,7 @@ import {pathToFileURL} from "node:url";
 import {planUniqueSourceFetches} from "./newsScopeCoordination.mjs";
 
 const maximumSourceBytes = 8_000_000;
+const maximumSourceLinks = 3_500;
 
 export function requestURLForSource(source, now = new Date()) {
   const url = new URL(source.url);
@@ -50,7 +51,7 @@ export function extractSourceLinks(html, baseURL) {
     if (seen.has(url.href)) continue;
     seen.add(url.href);
     links.push({url: url.href, title: match[2].replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240)});
-    if (links.length === 230) break;
+    if (links.length === maximumSourceLinks) break;
   }
   return links;
 }
@@ -72,7 +73,7 @@ export function extractAMSNewsLinks(html, baseURL, now = new Date()) {
     const nearby = decoded.slice(match.index, match.index + 2_000);
     const title = nearby.match(/"header"\s*:\s*"([^"\n]+)"/)?.[1] ?? "AMS Nachricht";
     links.push({url, title: title.slice(0, 240)});
-    if (links.length === 230) break;
+    if (links.length === maximumSourceLinks) break;
   }
   return links;
 }
