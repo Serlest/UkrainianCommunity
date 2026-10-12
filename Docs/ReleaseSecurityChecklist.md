@@ -40,7 +40,7 @@ Run `python3 scripts/validate_release_configuration.py` and `python3 scripts/val
 - [ ] For the Firebase Messaging FID migration, deploy the dual token/FID Functions and compatible Rules before releasing the FID-enabled iOS client; follow `Docs/PushRegistrationMigration.md` and retain staging delivery evidence.
 - [ ] Verify callable account deletion and scheduled retention jobs in production logs with non-destructive test accounts/data.
 - [ ] Confirm scheduled retention policy, region, time zone, runtime identity, permissions, monitoring and alerting.
-- [ ] Confirm the agreed retention period remains six months after content completion, subject to legally required exceptions.
+- [ ] Confirm news are removed after 30 days from publication and events after six calendar months from completion, subject to legally required exceptions.
 - [ ] Deploy and verify the 1,095-day `auditLogs` cleanup and six-month cleanup of closed feedback/report conversations, including the required feedback index.
 - [ ] Before deploying Rules that reject `canManageGuide`, confirm no supported older build still sends the field during registration or stage a temporary `false`-only compatibility rule.
 

@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.19 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.18.
+Version 2026.20 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.19.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -97,7 +97,7 @@ Es findet keine ausschließlich automatisierte Entscheidung mit rechtlicher oder
 
 - Unvollständige Registrierungen werden drei Tage nach Erstellung des Firebase-Anmeldekontos bei der nächsten täglichen Bereinigung gelöscht: wenn die E-Mail-Adresse bei E-Mail/Passwort nicht bestätigt wurde oder unabhängig von der Anmeldemethode kein App-Profil angelegt wurde. Gelöscht werden Anmeldekonto, anfängliches Profil, anfängliche Zustimmungsbelege und zugehörige technische Mitteilungen. Werden weitere Daten oder Unstimmigkeiten festgestellt, wird die automatische Löschung zur Prüfung angehalten. Die nachstehend beschriebenen Sicherungs- und Providerfristen bleiben davon unberührt.
 - Kontodaten werden grundsätzlich bis zur Kontolöschung gespeichert. Eine dauerhafte Sperrung bewirkt nicht automatisch eine Löschung; begrenzte Nachweise können danach für gesetzliche Pflichten und Rechtsansprüche verbleiben.
-- Veröffentlichte Inhalte und Funktionsdatensätze folgen grundsätzlich dem Lebenszyklus des Inhalts, Kontos oder der Organisation. Die planmäßige Bereinigung berücksichtigt veröffentlichte Nachrichten sechs Kalendermonate nach ihrem Veröffentlichungsdatum und Veranstaltungen sechs Kalendermonate nach ihrem Enddatum. Begrenzte Verarbeitungsläufe können die tatsächliche Bereinigung verzögern; Fehlschläge müssen überwacht und behoben werden. Frühere Löschungen und gesetzlich erforderliche Sicherungen bleiben möglich.
+- Veröffentlichte Inhalte und Funktionsdatensätze folgen grundsätzlich dem Lebenszyklus des Inhalts, Kontos oder der Organisation. Die planmäßige Bereinigung berücksichtigt veröffentlichte Nachrichten 30 Tage nach ihrer Veröffentlichung und Veranstaltungen sechs Kalendermonate nach ihrem Enddatum. Begrenzte Verarbeitungsläufe können die tatsächliche Bereinigung verzögern; Fehlschläge müssen überwacht und behoben werden. Frühere Löschungen und gesetzlich erforderliche Sicherungen bleiben möglich.
 - Abgeschlossene oder archivierte Planungseinträge werden sechs Kalendermonate nach Abschluss beziehungsweise Archivierung zur Löschung fällig. Nicht mehr benötigte Bildkopien werden erst nach Prüfung bestehender Verknüpfungen bereinigt. Aus dem Posteingang gelöschte Mitteilungen werden nach 30 Tagen zur endgültigen Löschung berücksichtigt. Diese Bereinigungen laufen asynchron.
 - Für die Wiederherstellung der Firestore-Datenbank bestehen ein siebentägiges Wiederherstellungsfenster, tägliche Sicherungen mit 14 Tagen und wöchentliche Sicherungen mit 98 Tagen Aufbewahrung. Gelöschte Storage-Dateien können während der siebentägigen Soft-Delete-Frist wiederherstellbar bleiben. Sicherungen dienen der Notfallwiederherstellung, nicht der gewöhnlichen Nutzung; Löschanforderungen sind auch bei einer Wiederherstellung zu berücksichtigen.
 - Firebase-Authentifizierungsdaten werden nach Kontolöschung gemäß dem technischen Lösch- und Backup-Zyklus des Dienstleisters entfernt; Sicherungskopien können nach Anbieterangaben bis zu 180 Tage benötigen. Authentifizierungs-IP-Adressen können nach Anbieterangaben für einige Wochen gespeichert werden.
@@ -171,3 +171,5 @@ Inhaber und Administratoren können nach einer Anmeldung mit dem Authenticator f
 Challenges sind nach fünf Minuten ungültig und werden regelmäßig entfernt. Beim Entfernen eines Passkeys wird sein serverseitiger Datensatz gelöscht; bereits bestehende geschützte Passkey-Sitzungen verlieren durch einen neuen Sitzungsmarker die Berechtigung. Bei Kontolöschung werden auch die Passkey-Datensätze entfernt. Diese Verarbeitung dient der sicheren, nutzerfreundlichen Kontoverwaltung gemäß Art. 6 Abs. 1 lit. b und f DSGVO. Sie ist von der freiwilligen lokalen App-Sperre aus Abschnitt 19 getrennt.
 
 Änderung gegenüber 2026.18: Der Inhalt bleibt unverändert. Diese Version stellt sicher, dass die aktualisierte Datenschutzerklärung vor der weiteren Nutzung ausdrücklich bestätigt wird.
+
+Änderung gegenüber 2026.19: Veröffentlichte Nachrichten werden bereits 30 Tage nach der Veröffentlichung für die planmäßige Löschung berücksichtigt. Die Aufbewahrungsfrist für Veranstaltungen bleibt unverändert.

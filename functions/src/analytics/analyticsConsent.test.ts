@@ -64,7 +64,7 @@ test("server receipt versions match the current iOS disclosure contract", () => 
 
 
 test("privacy correction accepts both released and new explicit consent versions without relabeling", () => {
-  for (const privacyVersion of ["2026.12", "2026.13", "2026.14", "2026.15", "2026.16", "2026.17", "2026.18", "2026.19"]) {
+  for (const privacyVersion of ["2026.12", "2026.13", "2026.14", "2026.15", "2026.16", "2026.17", "2026.18", "2026.19", "2026.20"]) {
     for (const enabled of [true, false]) {
       const input = parseAnalyticsConsentMutation({
         enabled, consentID, locale: "uk", appVersion: "1.0.3",
@@ -84,7 +84,7 @@ test("privacy correction accepts both released and new explicit consent versions
   // Never infer evidence for the new release from its app version alone.
   assert.throws(() => consentPrivacyVersion({...input, appVersion: "1.0.3"}));
   for (const versions of [
-    {privacyVersion: "2026.20", disclosureVersion: analyticsConsentDisclosureVersion},
+    {privacyVersion: "2026.21", disclosureVersion: analyticsConsentDisclosureVersion},
     {privacyVersion: "2026.13", disclosureVersion: "unknown"},
     {privacyVersion: "2026.13"},
     {disclosureVersion: analyticsConsentDisclosureVersion},

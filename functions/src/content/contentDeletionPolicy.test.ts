@@ -32,6 +32,11 @@ test("deletion covers canonical and legacy organization draft media", () => {
     "events/event-1/",
     "organizations/org-1/draftUploads/events/event-1_cover.jpg",
   ]);
+  assert.deepEqual(contentStoragePrefixes("news", "news-1", "org-1"), [
+    "news/news-1/",
+    "organizations/org-1/draftUploads/news/news-1_cover.jpg",
+    "organizations/org-1/news/news-1/",
+  ]);
 });
 
 test("reference policies include every interaction owned by news and events", () => {

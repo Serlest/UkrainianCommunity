@@ -14,7 +14,8 @@ import {
   analyticsCleanupPageSize,
   auditLogRetentionDays,
   closedFeedbackRetentionMonths,
-  contentRetentionMonths,
+  newsRetentionDays,
+  eventRetentionMonths,
   contentRetentionStatuses,
   deletedNotificationRetentionDays,
   isContentRetentionEligible,
@@ -25,10 +26,15 @@ import {
   systemLogRetentionDays,
 } from "./dataRetention";
 
-test("content retention is six calendar months", () => {
-  assert.equal(contentRetentionMonths, 6);
+test("news expire after 30 days while events retain six calendar months", () => {
+  assert.equal(newsRetentionDays, 30);
+  assert.equal(eventRetentionMonths, 6);
   assert.deepEqual(contentRetentionStatuses, ["approved", "archived"]);
   assert.equal(closedFeedbackRetentionMonths, 6);
+  assert.equal(
+    subtractUtcDays(new Date("2026-10-12T12:30:00.000Z"), newsRetentionDays).toISOString(),
+    "2026-09-12T12:30:00.000Z",
+  );
   assert.equal(
     subtractUtcMonths(new Date("2026-08-31T12:30:00.000Z"), 6).toISOString(),
     "2026-02-28T12:30:00.000Z",
@@ -39,28 +45,33 @@ test("content retention is six calendar months", () => {
   );
 });
 
-test("content retention accepts only terminal published records older than the cutoff", () => {
-  const cutoff = new Date("2026-02-28T12:30:00.000Z");
+test("content retention accepts only terminal published records older than the relevant cutoff", () => {
+  const newsCutoff = new Date("2026-09-12T12:30:00.000Z");
+  const eventCutoff = new Date("2026-02-28T12:30:00.000Z");
   assert.equal(isContentRetentionEligible("news", {
     moderationStatus: "approved",
-    publishedAt: Timestamp.fromDate(cutoff),
-  }, cutoff), true);
+    publishedAt: Timestamp.fromDate(newsCutoff),
+  }, newsCutoff), true);
+  assert.equal(isContentRetentionEligible("news", {
+    moderationStatus: "approved",
+    publishedAt: Timestamp.fromDate(new Date("2026-09-12T12:30:00.001Z")),
+  }, newsCutoff), false);
   assert.equal(isContentRetentionEligible("news", {
     moderationStatus: "pendingReview",
     publishedAt: Timestamp.fromDate(new Date("2025-01-01T00:00:00.000Z")),
-  }, cutoff), false);
+  }, newsCutoff), false);
   assert.equal(isContentRetentionEligible("events", {
     moderationStatus: "archived",
     endDate: Timestamp.fromDate(new Date("2026-02-27T00:00:00.000Z")),
-  }, cutoff), true);
+  }, eventCutoff), true);
   assert.equal(isContentRetentionEligible("events", {
     moderationStatus: "approved",
     endDate: Timestamp.fromDate(new Date("2026-03-01T00:00:00.000Z")),
-  }, cutoff), false);
+  }, eventCutoff), false);
   assert.equal(isContentRetentionEligible("events", {
     moderationStatus: "approved",
     endDate: "2026-01-01",
-  }, cutoff), false);
+  }, eventCutoff), false);
 });
 
 test("analytics guard retention remains short-lived", () => {

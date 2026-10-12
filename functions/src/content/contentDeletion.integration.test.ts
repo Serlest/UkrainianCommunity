@@ -3,8 +3,8 @@ import {after, beforeEach, test} from "node:test";
 
 import {Timestamp} from "firebase-admin/firestore";
 
-import {db} from "../firebase/admin";
-import {cleanupDeletedContentReferences} from "./contentDeletion";
+import {adminStorage, db} from "../firebase/admin";
+import {cleanupDeletedContentReferences, deleteNewsContent} from "./contentDeletion";
 
 const live = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 const contentId = "content-lifecycle-shared-id";
@@ -121,10 +121,44 @@ test("news lifecycle removes only news references and safely retires its banner"
   assert.equal(eventBanner.get("actionType"), "event");
 });
 
+test("expired news deletion removes its comments, likes, saved records and cover", {
+  skip: !live || !process.env.FIREBASE_STORAGE_EMULATOR_HOST,
+}, async () => {
+  const cover = adminStorage.bucket().file(`news/${contentId}/cover.jpg`);
+  const organizationCover = adminStorage.bucket().file(`organizations/org-1/news/${contentId}/cover.png`);
+  await Promise.all([
+    newsReference.update({organizationId: "org-1"}),
+    newsReference.collection("comments").doc("comment-1").set({text: "Old comment"}),
+    cover.save(Buffer.from("old-cover")),
+    organizationCover.save(Buffer.from("old-organization-cover")),
+  ]);
+
+  await deleteNewsContent(contentId);
+
+  const [news, comment, like, bookmark, view, event, coverExists, organizationCoverExists] = await Promise.all([
+    newsReference.get(),
+    newsReference.collection("comments").doc("comment-1").get(),
+    db.collection("likes").doc(`${contentId}_${userId}`).get(),
+    userReference.collection("newsBookmarks").doc(contentId).get(),
+    userReference.collection("newsViews").doc(contentId).get(),
+    eventReference.get(),
+    cover.exists(),
+    organizationCover.exists(),
+  ]);
+  assert.equal(news.exists, false);
+  assert.equal(comment.exists, false);
+  assert.equal(like.exists, false);
+  assert.equal(bookmark.exists, false);
+  assert.equal(view.exists, false);
+  assert.equal(coverExists[0], false);
+  assert.equal(organizationCoverExists[0], false);
+  assert.equal(event.exists, true);
+});
+
 async function cleanup(): Promise<void> {
   await Promise.all([
     db.recursiveDelete(userReference),
-    newsReference.delete(),
+    db.recursiveDelete(newsReference),
     eventReference.delete(),
     db.collection("likes").doc(`${contentId}_${userId}`).delete(),
     db.collection("likes").doc(`event_${contentId}_${userId}`).delete(),

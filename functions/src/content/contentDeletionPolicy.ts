@@ -113,6 +113,9 @@ export function contentStoragePrefixes(
   const prefixes = [canonicalContentStoragePrefix(kind, contentId)];
   if (organizationId?.trim()) {
     prefixes.push(legacyDraftStoragePath(kind, organizationId, contentId));
+    if (kind === "news") {
+      prefixes.push(`organizations/${normalizedResourceId(organizationId, "organizationId")}/news/${normalizedResourceId(contentId, "contentId")}/`);
+    }
   }
   return prefixes;
 }

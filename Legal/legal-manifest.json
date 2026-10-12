@@ -43,10 +43,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.19",
+      "version": "2026.20",
       "effectiveDate": "2026-10-12",
-      "supersedesVersion": "2026.18",
-      "changeSummary": "Оновлено політику конфіденційності. Прочитайте й підтвердьте її, щоб продовжити. / Datenschutzerklärung aktualisiert. Bitte lesen und bestätigen Sie sie."
+      "supersedesVersion": "2026.19",
+      "changeSummary": "Новини видаляються через 30 днів після публікації; строк для заходів не змінено. / Nachrichten werden 30 Tage nach der Veröffentlichung gelöscht; die Frist für Veranstaltungen bleibt unverändert."
     },
     "organizationRules": {
       "requiresAcceptance": true,

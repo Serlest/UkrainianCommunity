@@ -36,7 +36,8 @@ export const analyticsCleanupPageSize = 500;
 export const maxAnalyticsCleanupPagesPerRun = 20;
 const mutableCleanupConcurrency = 40;
 
-export const contentRetentionMonths = 6;
+export const newsRetentionDays = 30;
+export const eventRetentionMonths = 6;
 export const closedFeedbackRetentionMonths = 6;
 export const auditLogRetentionDays = 1_095;
 export const deletedNotificationRetentionDays = 30;
@@ -84,10 +85,11 @@ export const cleanupExpiredData = onSchedule(
   },
   async () => {
     const now = new Date();
-    const contentCutoff = subtractUtcMonths(now, contentRetentionMonths);
+    const newsCutoff = subtractUtcDays(now, newsRetentionDays);
+    const eventCutoff = subtractUtcMonths(now, eventRetentionMonths);
     const summary: CleanupSummary = {
-      news: await cleanupExpiredContent("news", "publishedAt", contentCutoff),
-      events: await cleanupExpiredContent("events", "endDate", contentCutoff),
+      news: await cleanupExpiredContent("news", "publishedAt", newsCutoff),
+      events: await cleanupExpiredContent("events", "endDate", eventCutoff),
       systemLogs: await cleanupExpiredSystemLogs(now),
       closedFeedback: await cleanupExpiredClosedFeedback(now),
       auditLogs: await cleanupExpiredAuditLogs(now),
@@ -134,10 +136,12 @@ export const cleanupExpiredData = onSchedule(
 
     logger.info("Scheduled data retention cleanup completed.", {
       ...summary,
-      contentRetentionMonths,
+      newsRetentionDays,
+      eventRetentionMonths,
       closedFeedbackRetentionMonths,
       auditLogRetentionDays,
-      contentCutoff: contentCutoff.toISOString(),
+      newsCutoff: newsCutoff.toISOString(),
+      eventCutoff: eventCutoff.toISOString(),
     });
   },
 );
