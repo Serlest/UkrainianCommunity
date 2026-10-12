@@ -303,6 +303,7 @@ jobs:
           -only-testing:UkrainianCommunityTests
           "-skip-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/latestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-skip-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
+          "-skip-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
 
       - name: Run timeout-sensitive analytics unit tests in isolation
         if: needs.changes.outputs.ios_unit == 'true'
@@ -318,6 +319,7 @@ jobs:
           test
           "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/latestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
+          "-only-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
 
       - name: Verify Swift unit tests were discovered
         if: ${{ always() && needs.changes.outputs.ios_unit == 'true' }}
@@ -342,8 +344,8 @@ jobs:
               if not isinstance(count, int) or count < 1:
                   raise SystemExit(f"Expected at least one Swift unit test in {summary_path}, found {count!r}")
               counts.append(count)
-          if counts[1] != 2:
-              raise SystemExit(f"Expected exactly two isolated Swift unit tests, found {counts[1]}")
+          if counts[1] != 3:
+              raise SystemExit(f"Expected exactly three isolated Swift unit tests, found {counts[1]}")
           print(f"Verified {sum(counts)} discovered Swift unit tests across both runs")
           PY
 
