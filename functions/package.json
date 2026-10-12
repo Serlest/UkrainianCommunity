@@ -39,6 +39,7 @@
     "test:rules:all": "firebase emulators:exec --project demo-ukrainian-community-rules --only firestore,storage \"node --test --test-concurrency=1 smoke-tests/*.test.mjs\"",
     "test:rules:directory": "firebase emulators:exec --project demo-uac-directory-management --only firestore \"node --test smoke-tests/directoryManagementRules.test.mjs\"",
     "test:directory:integration": "npm run build && firebase emulators:exec --project demo-uac-directory-management-functions --only firestore \"node --test lib/directory/directoryManagement.integration.test.js\"",
+    "test:translation:integration": "npm run build && firebase emulators:exec --project demo-uac-translation-access --only firestore \"node --test lib/translation/service.test.js\"",
     "test:rules:storage": "firebase emulators:exec --project demo-ukrainian-community-rules --only firestore,storage \"node --test smoke-tests/storageRules.test.mjs\"",
     "test:rules:contentDeletion": "firebase emulators:exec --project demo-ukrainian-community-content-deletion --only firestore \"node --test smoke-tests/contentDeletionRules.test.mjs\"",
     "test:rules:systemLogs": "firebase emulators:exec --only firestore \"node --test smoke-tests/systemLogsRules.test.mjs\"",

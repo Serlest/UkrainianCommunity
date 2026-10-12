@@ -31,6 +31,7 @@ jobs:
       ios_unit: ${{ steps.classify.outputs.ios_unit }}
       ios_ui_required: ${{ steps.classify.outputs.ios_ui_required }}
       ios_release: ${{ steps.classify.outputs.ios_release }}
+      integrations: ${{ steps.classify.outputs.integrations }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -161,54 +162,64 @@ jobs:
         run: npm install --global firebase-tools@15.28.1
 
       - name: Run retention race integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'retention')
         working-directory: functions
         run: npm run test:retention:integration
 
       - name: Run push registration cleanup integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'notifications')
         working-directory: functions
         run: npm run test:notifications:integration
 
       - name: Run comment moderation integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'comments')
         working-directory: functions
         run: npm run test:comments:integration
 
       - name: Run system log management integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'system-logs')
         working-directory: functions
         run: npm run test:system-logs:integration
 
       - name: Run scheduled publishing integration tests
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'scheduled-publishing')
         working-directory: functions
         run: npm run test:scheduled-publishing:integration
 
       - name: Run organization moderation integration tests
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'organizations')
         working-directory: functions
         run: npm run test:organizations:integration
 
       - name: Run platform role and MFA integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'platform-roles')
         working-directory: functions
         run: npm run test:platform-roles:integration
 
       - name: Run presence and legal gate integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'presence')
         working-directory: functions
         run: npm run test:presence:integration
 
       - name: Run counter migration and reconciliation integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'counters')
         working-directory: functions
         run: npm run test:counters:integration
 
       - name: Run analytics v1 to v2 cutover integration test
-        if: needs.changes.outputs.functions == 'true'
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'analytics-cutover')
         working-directory: functions
         run: npm run test:analytics-cutover:integration
+
+      - name: Run directory management integration test
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'directory')
+        working-directory: functions
+        run: npm run test:directory:integration
+
+      - name: Run paid translation access integration test
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'translation')
+        working-directory: functions
+        run: npm run test:translation:integration
 
       - name: Test Firestore and Storage rules
         if: needs.changes.outputs.rules == 'true'

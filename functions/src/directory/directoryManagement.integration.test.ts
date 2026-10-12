@@ -2,6 +2,7 @@ import {strict as assert} from "node:assert";
 import {randomUUID} from "node:crypto";
 import {test} from "node:test";
 
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {db} from "../firebase/admin";
 import {deleteDirectoryCategory, saveDirectoryCategory} from "./directoryManagement";
 
@@ -59,6 +60,7 @@ test("directory publishing enforces grants, revisions, validation and history", 
         blockState: "active",
       });
     }
+    await seedCurrentLegalForIntegration(...actors.map(uid));
     await assert.rejects(saveDirectoryCategory.run(request("reader", payload("Original"), 0)),
       {code: "permission-denied"});
     await assert.rejects(saveDirectoryCategory.run(request("inactive", payload("Original"), 0)),
@@ -72,6 +74,10 @@ test("directory publishing enforces grants, revisions, validation and history", 
     assert.equal((await category.collection("versions").doc("1").get()).data()?.revision, 1);
 
     await db.collection("directoryEditors").doc(uid("editor")).set({enabled: true});
+    await db.collection("users").doc(uid("editor")).update({acceptedTermsVersion: "outdated"});
+    await assert.rejects(saveDirectoryCategory.run(request("editor", payload("Outdated consent"), 1)),
+      {code: "failed-precondition"});
+    await seedCurrentLegalForIntegration(uid("editor"));
     const second = await saveDirectoryCategory.run(request("editor", payload("Updated"), 1));
     assert.equal(second.revision, 2);
     assert.equal((await category.collection("versions").doc("2").get()).data()?.updatedBy, uid("editor"));
@@ -115,6 +121,7 @@ test("directory deletion removes only custom categories with permission and revi
       await db.collection("users").doc(uid("reader")).set({
         globalRole: "user", accountStatus: "active", blockState: "active",
       });
+      await seedCurrentLegalForIntegration(uid("owner"), uid("reader"));
       await saveDirectoryCategory.run(request("owner", payload("Custom", id), 0, true, id));
       await assert.rejects(deleteDirectoryCategory.run(deleteRequest("reader", id, 1)),
         {code: "permission-denied"});

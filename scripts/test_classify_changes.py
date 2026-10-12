@@ -6,7 +6,7 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from classify_changes import changed_paths, classify
+from classify_changes import FUNCTION_INTEGRATIONS, changed_paths, classify
 
 
 class ClassifyChangesTests(unittest.TestCase):
@@ -63,6 +63,30 @@ class ClassifyChangesTests(unittest.TestCase):
         self.assertTrue(lanes.functions)
         self.assertFalse(lanes.rules)
         self.assertFalse(lanes.ios)
+        self.assertEqual(lanes.integrations, ["analytics-cutover"])
+
+    def test_translation_and_directory_run_only_their_integration_suites(self) -> None:
+        lanes = classify([
+            "functions/src/translation/service.ts",
+            "functions/src/directory/directoryManagement.ts",
+        ])
+        self.assertEqual(lanes.integrations, ["directory", "translation"])
+        self.assertFalse(lanes.full)
+
+    def test_organization_access_changes_also_test_translation_permissions(self) -> None:
+        lanes = classify(["functions/src/organizations/organizationAccess.ts"])
+        self.assertEqual(lanes.integrations, ["organizations", "translation"])
+
+    def test_shared_functions_and_dependencies_keep_full_integration_coverage(self) -> None:
+        for path in ["functions/src/index.ts", "functions/package.json"]:
+            with self.subTest(path=path):
+                lanes = classify([path])
+                self.assertEqual(lanes.integrations, list(FUNCTION_INTEGRATIONS))
+
+    def test_security_change_keeps_full_integration_coverage(self) -> None:
+        lanes = classify(["functions/src/auth/context.ts"])
+        self.assertTrue(lanes.full)
+        self.assertEqual(lanes.integrations, list(FUNCTION_INTEGRATIONS))
 
     def test_rule_tests_start_only_the_firebase_rules_lane(self) -> None:
         lanes = classify(["functions/smoke-tests/storageRules.test.mjs"])

@@ -7,11 +7,29 @@ import argparse
 import json
 import subprocess
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path, PurePosixPath
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
+
+FUNCTION_INTEGRATIONS = (
+    "retention", "notifications", "comments", "system-logs",
+    "scheduled-publishing", "organizations", "platform-roles",
+    "presence", "counters", "analytics-cutover", "directory", "translation",
+)
+FUNCTION_INTEGRATION_ROOTS = {
+    "functions/src/analytics/": ("analytics-cutover",),
+    "functions/src/content/": ("scheduled-publishing",),
+    "functions/src/contentPlanning/": ("scheduled-publishing",),
+    "functions/src/counters/": ("counters",),
+    "functions/src/directory/": ("directory",),
+    "functions/src/notifications/": ("notifications",),
+    "functions/src/organizations/": ("organizations", "translation"),
+    "functions/src/safety/": ("comments",),
+    "functions/src/systemLogs/": ("system-logs",),
+    "functions/src/translation/": ("translation",),
+}
 
 
 @dataclass
@@ -24,6 +42,7 @@ class Lanes:
     ios_ui_required: bool = False
     ios_release: bool = False
     full: bool = False
+    integrations: list[str] = field(default_factory=list)
 
     def enable_full(self) -> None:
         self.firebase = True
@@ -34,6 +53,7 @@ class Lanes:
         self.ios_ui_required = True
         self.ios_release = True
         self.full = True
+        self.integrations = list(FUNCTION_INTEGRATIONS)
 
 
 STATIC_ROOTS = ("Docs/", "Documentation/")
@@ -144,6 +164,15 @@ def classify(paths: list[str], force_full: bool = False) -> Lanes:
                 lanes.rules = True
             else:
                 lanes.functions = True
+                suites = next(
+                    (names for root, names in FUNCTION_INTEGRATION_ROOTS.items()
+                     if path.startswith(root)),
+                    None,
+                )
+                if suites is None:
+                    lanes.integrations = list(FUNCTION_INTEGRATIONS)
+                else:
+                    lanes.integrations = sorted(set(lanes.integrations).union(suites))
             if path in {"functions/package.json", "functions/package-lock.json"}:
                 lanes.rules = True
             continue
@@ -245,7 +274,7 @@ def main() -> int:
     if args.github_output:
         with open(args.github_output, "a", encoding="utf-8") as output:
             for name, value in values.items():
-                output.write(f"{name}={boolean(value)}\n")
+                output.write(f"{name}={json.dumps(value, separators=(',', ':')) if isinstance(value, list) else boolean(value)}\n")
 
     return 0
 
