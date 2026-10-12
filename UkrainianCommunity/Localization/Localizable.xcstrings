@@ -5000,6 +5000,23 @@
         }
       }
     },
+    "auth.registration.legal_changed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Dokumente wurden während der Registrierung aktualisiert. Lesen und bestätigen Sie die neuen Versionen erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Під час реєстрації документи оновилися. Прочитайте нові версії та підтвердьте їх ще раз."
+          }
+        }
+      }
+    },
     "auth.registration.email_in_use" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16024,13 +16041,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ohne Zustimmung zu den aktualisierten Bedingungen können Sie die App nicht nutzen. Sie werden abgemeldet."
+            "value" : "Ohne Bestätigung der aktualisierten Dokumente können Sie die App nicht nutzen. Sie werden abgemeldet."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Без прийняття оновлених умов ви не зможете користуватися застосунком. Ви вийдете з акаунта."
+            "value" : "Без підтвердження оновлених документів ви не зможете користуватися застосунком. Ви вийдете з акаунта."
           }
         }
       }
@@ -16041,13 +16058,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aktualisierte Bedingungen ablehnen?"
+            "value" : "Aktualisierte Dokumente ablehnen?"
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Відхилити оновлені умови?"
+            "value" : "Відхилити оновлені документи?"
           }
         }
       }
@@ -16092,13 +16109,30 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Lesen Sie die aktualisierten Dokumente, akzeptieren Sie die Nutzungsbedingungen und bestätigen Sie die Kenntnisnahme der Datenschutzerklärung."
+            "value" : "Lesen und bestätigen Sie jedes aktualisierte Dokument, um fortzufahren."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Прочитайте оновлені документи, прийміть Умови та підтвердьте ознайомлення з Політикою конфіденційності."
+            "value" : "Прочитайте та підтвердьте кожен оновлений документ, щоб продовжити."
+          }
+        }
+      }
+    },
+    "legal_compliance.change_summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was sich geändert hat"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Що змінилося"
           }
         }
       }
@@ -17375,6 +17409,40 @@
         }
       }
     },
+    "legal_management.change_summary.de" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was hat sich geändert? (Deutsch)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Що змінилося? (німецькою)"
+          }
+        }
+      }
+    },
+    "legal_management.change_summary.uk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Was hat sich geändert? (Ukrainisch)"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Що змінилося? (українською)"
+          }
+        }
+      }
+    },
     "legal_management.create_draft" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -17490,6 +17558,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Редагувати %@"
+          }
+        }
+      }
+    },
+    "legal_management.error.missing_change_summaries" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreiben Sie die Änderungen auf Deutsch und Ukrainisch, bevor Sie veröffentlichen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перед публікацією опишіть зміни німецькою та українською."
           }
         }
       }

@@ -6,7 +6,7 @@ import {
   assertSucceeds,
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
-import {deleteField, doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
+import {deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc} from "firebase/firestore";
 import {readFileSync} from "node:fs";
 
 const PROJECT_ID = "ukrainian-community-organization-creation-proof-rules";
@@ -33,6 +33,7 @@ beforeEach(async () => {
     await setDoc(doc(db, "legalDocuments", "organizationRules"), {
       activeVersion: "2026.10",
       requiresAcceptance: true,
+      status: "published",
     });
   });
 });
@@ -142,6 +143,20 @@ function populatedRequest(id) {
 }
 
 describe("organization creation rules evidence", () => {
+  test("missing or disabled organization rules never waive the proof", async () => {
+    const db = creatorDb();
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await deleteDoc(doc(context.firestore(), "legalDocuments", "organizationRules"));
+    });
+    await assertFails(setDoc(doc(db, "organizations", "no-rules"), request("no-rules")));
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), "legalDocuments", "organizationRules"), {
+        activeVersion: "2026.10", requiresAcceptance: false, status: "published",
+      });
+    });
+    await assertFails(setDoc(doc(db, "organizations", "disabled-rules"), request("disabled-rules")));
+  });
+
   test("requires a current organization-bound proof", async () => {
     const db = creatorDb();
     await assertFails(setDoc(doc(db, "organizations", "missing-proof"), request("missing-proof")));

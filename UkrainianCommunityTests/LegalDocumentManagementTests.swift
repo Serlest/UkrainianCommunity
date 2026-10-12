@@ -35,6 +35,21 @@ private final class LegalManagementRepositoryStub: LegalDocumentRepository {
 
 @MainActor
 struct LegalDocumentManagementTests {
+    @Test func changeSummaryKeepsLanguagesSeparateAndReadsOlderSummaries() {
+        var summary = LegalChangeSummary(raw: nil)
+        summary.german = "Neue Frist"
+        summary.ukrainian = "Новий строк"
+        let saved = LegalChangeSummary(raw: summary.encoded)
+        #expect(saved.localized("de") == "Neue Frist")
+        #expect(saved.localized("uk") == "Новий строк")
+        #expect(saved.hasBothLanguages)
+
+        let older = LegalChangeSummary(raw: "Previous update")
+        #expect(older.localized("uk") == "Previous update")
+        #expect(!older.hasBothLanguages)
+        #expect(!LegalChangeSummary(raw: "DE:Only German\nUK:").hasBothLanguages)
+    }
+
     @Test func offlineDocumentsContainFullDistinctTranslationsAndCorrectAcceptance() throws {
         let url = try #require(Bundle.main.url(forResource: "LegalDocuments", withExtension: "json"))
         let data = try Data(contentsOf: url)

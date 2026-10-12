@@ -24,6 +24,7 @@ export * from "./featured/featuredBannerCleanup";
 export * from "./featured/featuredBannerMutations";
 export * from "./feedback/feedbackManagement";
 export * from "./legal/legalDocuments";
+export * from "./legal/legalPublicPage";
 export * from "./legal/legalEvidence";
 export * from "./legal/organizationRulesAcceptance";
 export * from "./notifications/backendWriters";

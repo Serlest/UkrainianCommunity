@@ -33,6 +33,9 @@
       "*.local"
     ]
   },
+  "emulators": {
+    "hosting": {"port": 5057}
+  },
   "hosting": {
     "public": "website",
     "cleanUrls": true,
@@ -41,9 +44,18 @@
       "firebase.json",
       "**/.DS_Store",
       "**/.git/**",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "terms/**",
+      "privacy/**",
+      "organization-rules/**"
     ],
     "rewrites": [
+      {"source": "/terms", "function": {"functionId": "serveLegalDocument", "region": "europe-west3"}},
+      {"source": "/terms/**", "function": {"functionId": "serveLegalDocument", "region": "europe-west3"}},
+      {"source": "/privacy", "function": {"functionId": "serveLegalDocument", "region": "europe-west3"}},
+      {"source": "/privacy/**", "function": {"functionId": "serveLegalDocument", "region": "europe-west3"}},
+      {"source": "/organization-rules", "function": {"functionId": "serveLegalDocument", "region": "europe-west3"}},
+      {"source": "/organization-rules/**", "function": {"functionId": "serveLegalDocument", "region": "europe-west3"}},
       {
         "source": "/api/dsa",
         "function": {

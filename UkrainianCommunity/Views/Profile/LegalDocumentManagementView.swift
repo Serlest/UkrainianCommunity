@@ -226,6 +226,9 @@ private struct LegalDocumentEditorView: View {
         let loadedDraft = existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument)
         var initialDraft = loadedDraft
         initialDraft.requiresAcceptance = true
+        if !LegalChangeSummary(raw: initialDraft.changeSummary).hasBothLanguages {
+            initialDraft.changeSummary = nil
+        }
         _draft = State(initialValue: initialDraft)
         _lastSavedDraft = State(initialValue: loadedDraft)
         _hasPersistedDraft = State(initialValue: existingDraft != nil)
@@ -284,7 +287,10 @@ private struct LegalDocumentEditorView: View {
                         systemImage: "checkmark.seal"
                     )
 
-                    TextField(AppStrings.LegalManagement.changeSummary, text: changeSummaryBinding, axis: .vertical)
+                    TextField(AppStrings.LegalManagement.changeSummaryGerman, text: changeSummaryBinding(locale: "de"), axis: .vertical)
+                        .lineLimit(2...4)
+                        .appEditorInputStyle(minHeight: 72)
+                    TextField(AppStrings.LegalManagement.changeSummaryUkrainian, text: changeSummaryBinding(locale: "uk"), axis: .vertical)
                         .lineLimit(2...4)
                         .appEditorInputStyle(minHeight: 72)
                 }
@@ -351,10 +357,14 @@ private struct LegalDocumentEditorView: View {
         }
     }
 
-    private var changeSummaryBinding: Binding<String> {
+    private func changeSummaryBinding(locale: String) -> Binding<String> {
         Binding(
-            get: { draft.changeSummary ?? "" },
-            set: { draft.changeSummary = $0.isEmpty ? nil : $0 }
+            get: { LegalChangeSummary(raw: draft.changeSummary).localized(locale) },
+            set: { value in
+                var summary = LegalChangeSummary(raw: draft.changeSummary)
+                if locale == "uk" { summary.ukrainian = value } else { summary.german = value }
+                draft.changeSummary = summary.encoded
+            }
         )
     }
 
@@ -504,6 +514,10 @@ private struct LegalDocumentEditorView: View {
 
         if ukrainianContent?.contentMarkdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
             errors.append(AppStrings.LegalManagement.missingUkrainianContent)
+        }
+
+        if !LegalChangeSummary(raw: draft.changeSummary).hasBothLanguages {
+            errors.append(AppStrings.LegalManagement.missingChangeSummaries)
         }
 
         return errors

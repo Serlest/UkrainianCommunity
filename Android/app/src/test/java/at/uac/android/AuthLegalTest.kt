@@ -184,7 +184,10 @@ class AuthLegalTest {
     @Test
     fun lostResponseDoesNotInventReceiptOrReplayConfirmedServerAcceptance() = runTest {
         val profiles =
-            Profiles().apply { documents = listOf(terms, privacy.copy(requiresAcceptance = false)) }
+            Profiles().apply {
+                documents = listOf(terms, privacy)
+                result = result.copy(acceptedPrivacyVersion = privacy.version)
+            }
         val acceptor =
             Acceptor(profiles).apply {
                 failType = "terms"
@@ -199,6 +202,21 @@ class AuthLegalTest {
         store.refresh().join()
         assertTrue(store.state.value.readyForActions)
         assertEquals(listOf("terms"), acceptor.calls)
+    }
+
+    @Test
+    fun publishedPrivacyVersionAlwaysRequiresAcknowledgement() {
+        val outdated = Profiles().result.copy(
+            acceptedTermsVersion = terms.version,
+            acceptedPrivacyVersion = "older",
+        )
+        val documents = listOf(terms, privacy.copy(requiresAcceptance = false))
+        assertEquals(AuthGate.LEGAL_REQUIRED, gateFor(outdated, false, documents))
+        assertEquals(listOf("privacy"), AuthSession(
+            identity = identity,
+            profile = outdated,
+            legalDocuments = documents,
+        ).requiredLegalDocuments().map { it.type })
     }
 
     @Test

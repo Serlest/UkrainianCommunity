@@ -142,8 +142,7 @@ private fun legalProblem(error: Throwable): AuthProblem =
 
 fun AuthSession.requiredLegalDocuments(): List<AuthLegalDocument> =
     legalDocuments.filter { document ->
-        document.requiresAcceptance &&
-            document.version !=
+        document.version !=
                 when (document.type) {
                     "terms" -> profile?.acceptedTermsVersion
                     "privacy" -> profile?.acceptedPrivacyVersion

@@ -313,7 +313,10 @@ struct RegisterView: View {
         .onDisappear { appLockChoice.cancelPendingAuthentication() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { appLockChoice.cancelPendingAuthentication() }
-            if phase == .active { appLockChoice.refreshAvailability() }
+            if phase == .active {
+                appLockChoice.refreshAvailability()
+                Task { await legalDocuments.load() }
+            }
         }
         .onChange(of: legalDocuments.versionKey) { _, _ in
             acceptedTerms = false
@@ -446,26 +449,43 @@ struct RegisterView: View {
 
         isSubmitting = true
         errorMessage = nil
-        let now = Date()
-        let draft = RegistrationProfileDraft(
-            email: email.trimmingCharacters(in: .whitespacesAndNewlines),
-            displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
-            telegramUsername: telegramUsername,
-            selectedFederalState: selectedFederalState,
-            acceptedTermsAt: now,
-            acceptedPrivacyAt: now,
-            termsVersion: termsDocument.version,
-            privacyVersion: privacyDocument.version,
-            termsContentHash: termsDocument.contentHash,
-            privacyContentHash: privacyDocument.contentHash,
-            minimumAgeConfirmedAt: now,
-            minimumAgeVersion: AuthService.currentMinimumAgeVersion,
-            analyticsConsentEnabled: analyticsConsentEnabled,
-            appLockAuthorization: appLockChoice.authorization
-        )
-
         Task {
             defer { isSubmitting = false }
+
+            // A legal version may change while the registration form is open.
+            // Keep the form, but require review of the newly published text.
+            let currentDocuments: (terms: LegalDocument, privacy: LegalDocument)
+            do {
+                currentDocuments = try await legalDocuments.refreshForSubmission()
+            } catch {
+                errorMessage = AppStrings.LegalCompliance.loadFailed
+                return
+            }
+            let currentTerms = currentDocuments.terms
+            let currentPrivacy = currentDocuments.privacy
+            guard currentTerms.version == termsDocument.version,
+                  currentPrivacy.version == privacyDocument.version else {
+                errorMessage = AppStrings.Auth.registrationLegalChanged
+                return
+            }
+
+            let now = Date()
+            let draft = RegistrationProfileDraft(
+                email: email.trimmingCharacters(in: .whitespacesAndNewlines),
+                displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines),
+                telegramUsername: telegramUsername,
+                selectedFederalState: selectedFederalState,
+                acceptedTermsAt: now,
+                acceptedPrivacyAt: now,
+                termsVersion: currentTerms.version,
+                privacyVersion: currentPrivacy.version,
+                termsContentHash: currentTerms.contentHash,
+                privacyContentHash: currentPrivacy.contentHash,
+                minimumAgeConfirmedAt: now,
+                minimumAgeVersion: AuthService.currentMinimumAgeVersion,
+                analyticsConsentEnabled: analyticsConsentEnabled,
+                appLockAuthorization: appLockChoice.authorization
+            )
 
             do {
                 if federated {
@@ -474,7 +494,15 @@ struct RegisterView: View {
                     try await AuthService.shared.register(draft: draft, password: password)
                 }
             } catch {
-                errorMessage = readableRegistrationErrorMessage(error)
+                if let registrationError = error as? RegistrationError,
+                   case .profilePermission = registrationError {
+                    await legalDocuments.load()
+                    errorMessage = legalDocuments.versionKey != "\(currentTerms.version)|\(currentPrivacy.version)"
+                        ? AppStrings.Auth.registrationLegalChanged
+                        : readableRegistrationErrorMessage(error)
+                } else {
+                    errorMessage = readableRegistrationErrorMessage(error)
+                }
             }
         }
     }
@@ -983,6 +1011,7 @@ private final class RegistrationLegalDocumentsViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private let repository: LegalDocumentRepository
+    private var loadGeneration = 0
 
     init(repository: LegalDocumentRepository? = nil) {
         self.repository = repository ?? FirestoreLegalDocumentRepository()
@@ -995,29 +1024,61 @@ private final class RegistrationLegalDocumentsViewModel: ObservableObject {
     }
 
     func load() async {
-        guard !isLoading else { return }
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
         errorMessage = nil
 
         do {
-            async let termsDocument = repository.fetchAuthoritativeActiveDocument(type: .terms)
-            async let privacyDocument = repository.fetchAuthoritativeActiveDocument(type: .privacy)
-            let documents = try await (termsDocument, privacyDocument)
-            guard documents.0.type == .terms,
-                  documents.1.type == .privacy,
-                  documents.0.contentHash != nil,
-                  documents.1.contentHash != nil else {
-                throw AppError.validationFailed
-            }
-            terms = documents.0
-            privacy = documents.1
+            let documents = try await fetchLatest()
+            guard generation == loadGeneration else { return }
+            terms = documents.terms
+            privacy = documents.privacy
         } catch {
+            guard generation == loadGeneration else { return }
             terms = nil
             privacy = nil
             errorMessage = AppStrings.LegalCompliance.loadFailed
         }
 
-        isLoading = false
+        if generation == loadGeneration { isLoading = false }
+    }
+
+    func refreshForSubmission() async throws -> (terms: LegalDocument, privacy: LegalDocument) {
+        loadGeneration += 1
+        let generation = loadGeneration
+        isLoading = true
+        errorMessage = nil
+        do {
+            let documents = try await fetchLatest()
+            if generation == loadGeneration {
+                terms = documents.terms
+                privacy = documents.privacy
+                isLoading = false
+            }
+            return documents
+        } catch {
+            if generation == loadGeneration {
+                terms = nil
+                privacy = nil
+                errorMessage = AppStrings.LegalCompliance.loadFailed
+                isLoading = false
+            }
+            throw error
+        }
+    }
+
+    private func fetchLatest() async throws -> (terms: LegalDocument, privacy: LegalDocument) {
+        async let termsDocument = repository.fetchAuthoritativeActiveDocument(type: .terms)
+        async let privacyDocument = repository.fetchAuthoritativeActiveDocument(type: .privacy)
+        let documents = try await (termsDocument, privacyDocument)
+        guard documents.0.type == .terms,
+              documents.1.type == .privacy,
+              documents.0.contentHash != nil,
+              documents.1.contentHash != nil else {
+            throw AppError.validationFailed
+        }
+        return (documents.0, documents.1)
     }
 }
 

@@ -144,6 +144,17 @@ private struct LegalComplianceDocumentRow: View {
                 Text(AppStrings.legalVersionLabel(document.version))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
+
+                if let summary = document.changeSummary.map({ LegalChangeSummary(raw: $0).localized(AppLanguage.stored.rawValue) }),
+                   !summary.isEmpty {
+                    Text(AppStrings.LegalCompliance.changeSummary)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+                    Text(summary)
+                        .font(.footnote)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Spacer(minLength: 0)

@@ -2465,7 +2465,8 @@ enum AppStrings {
 
     enum LegalCompliance {
         static var title: String { text("legal_compliance.title", "Updated legal documents") }
-        static var message: String { text("legal_compliance.message", "Read the updated documents, accept the Terms, and acknowledge the Privacy Policy to continue.") }
+        static var message: String { text("legal_compliance.message", "Read and confirm each updated document to continue.") }
+        static var changeSummary: String { text("legal_compliance.change_summary", "What changed") }
         static var readDocument: String { text("legal_compliance.read_document", "Read document") }
         static var reviewComplete: String { text("legal_compliance.review_complete", "I have reviewed this document") }
         static var reviewInstruction: String { text("legal_compliance.review_instruction", "Open each document and confirm reading at the end.") }
@@ -2473,8 +2474,8 @@ enum AppStrings {
         static var acceptAll: String { text("legal_compliance.accept_all", "Confirm and continue") }
         static var accepting: String { text("legal_compliance.accepting", "Accepting…") }
         static var decline: String { text("legal_compliance.decline", "Decline and sign out") }
-        static var declineConfirmTitle: String { text("legal_compliance.decline.confirm.title", "Decline updated terms?") }
-        static var declineConfirmMessage: String { text("legal_compliance.decline.confirm.message", "Without accepting the updated terms, you cannot use the app. You will be signed out.") }
+        static var declineConfirmTitle: String { text("legal_compliance.decline.confirm.title", "Decline the updated documents?") }
+        static var declineConfirmMessage: String { text("legal_compliance.decline.confirm.message", "Without confirming the updated documents, you cannot use the app. You will be signed out.") }
         static var declineConfirmAction: String { text("legal_compliance.decline.confirm.action", "Sign out") }
         static var loadFailed: String { text("legal_compliance.error.load_failed", "Unable to check the current legal documents right now.") }
         static var acceptFailed: String { text("legal_compliance.error.accept_failed", "Unable to save your acceptance. Check your connection and try again.") }
@@ -2507,6 +2508,9 @@ enum AppStrings {
         static var versionSection: String { text("legal_management.version.section", "Version and acceptance") }
         static var versionSectionSubtitle: String { text("legal_management.version.section.subtitle", "Publishing this draft creates the next active legal version.") }
         static var changeSummary: String { text("legal_management.change_summary", "Change summary") }
+        static var changeSummaryGerman: String { text("legal_management.change_summary.de", "What changed (German)") }
+        static var changeSummaryUkrainian: String { text("legal_management.change_summary.uk", "What changed (Ukrainian)") }
+        static var missingChangeSummaries: String { text("legal_management.error.missing_change_summaries", "Explain the changes in German and Ukrainian before publishing.") }
         static var localizedContent: String { text("legal_management.localized_content", "Localized content") }
         static var localizedContentSubtitle: String { text("legal_management.localized_content.subtitle", "Edit the title and Markdown body for each supported language.") }
         static var localePicker: String { text("legal_management.locale_picker", "Language") }
@@ -2806,6 +2810,7 @@ enum AppStrings {
         static var placeholderMessage: String { text("auth.placeholder.message", "Create an account or sign in to access personal features.") }
         static var signInFailed: String { text("auth.sign_in_failed", "We couldn’t sign you in right now.") }
         static var registrationFailed: String { text("auth.registration_failed", "We couldn’t create your account right now.") }
+        static var registrationLegalChanged: String { text("auth.registration.legal_changed", "The documents changed while you were registering. Read the new versions and confirm them again.") }
         static var registrationInvalidEmail: String { text("auth.registration.invalid_email", "Please enter a valid email address.") }
         static var registrationEmailAlreadyInUse: String { text("auth.registration.email_in_use", "This email address is already in use.") }
         static var registrationWeakPassword: String { text("auth.registration.weak_password", "Choose a stronger password with at least 10 characters.") }

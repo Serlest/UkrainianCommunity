@@ -1253,8 +1253,7 @@ fun gateFor(profile: AuthProfile, totp: Boolean, documents: List<AuthLegalDocume
         documents == null || documents.map { it.type }.toSet() != setOf("terms", "privacy") ->
             AuthGate.LEGAL_UNAVAILABLE
         documents.any {
-            it.requiresAcceptance &&
-                it.version !=
+            it.version !=
                     when (it.type) {
                         "terms" -> profile.acceptedTermsVersion
                         "privacy" -> profile.acceptedPrivacyVersion

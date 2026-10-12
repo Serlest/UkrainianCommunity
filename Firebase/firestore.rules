@@ -1912,14 +1912,16 @@ service cloud.firestore {
     function hasValidOrganizationCreationProof(organizationId, organizationName) {
       let rulesPath = /databases/$(database)/documents/legalDocuments/organizationRules;
       let proofPath = /databases/$(database)/documents/organizationCreationProofs/$(organizationId);
-      return !exists(rulesPath)
-        || get(rulesPath).data.requiresAcceptance != true
-        || (exists(proofPath) && organizationCreationProofMatches(
+      return exists(rulesPath)
+        && get(rulesPath).data.status == 'published'
+        && get(rulesPath).data.requiresAcceptance == true
+        && exists(proofPath)
+        && organizationCreationProofMatches(
           proofPath,
           rulesPath,
           organizationId,
           organizationName
-        ));
+        );
     }
 
     function organizationCreationProofMatches(proofPath, rulesPath, organizationId, organizationName) {
