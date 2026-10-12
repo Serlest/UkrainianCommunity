@@ -194,6 +194,13 @@ service firebase.storage {
         );
     }
 
+    function legacyCoverBelongsToOrganization(organizationId, collection, contentId) {
+      let path = /databases/(default)/documents/$(collection)/$(contentId);
+      return firestore.exists(path)
+        && firestore.get(path).data.sourceType == 'organization'
+        && firestore.get(path).data.organizationId == organizationId;
+    }
+
     match /news/{newsId}/cover.jpg {
       allow read: if canReadNewsCover(newsId);
       allow create, update: if (canManageContentImages('news') || canManageNewsCover(newsId))
@@ -237,7 +244,8 @@ service firebase.storage {
     }
 
     match /organizations/{organizationId}/photos/{fileName} {
-      allow read: if canReadOrganizationMedia(organizationId);
+      allow read: if fileName.matches('^.+\\.jpg$')
+        && canReadOrganizationMedia(organizationId);
       // Storage CREATE includes replacement file contents; UPDATE is metadata-only.
       allow create: if resource == null
         && canManageOrganizationPhotos(organizationId)
@@ -247,6 +255,27 @@ service firebase.storage {
         && fileName.matches('^.+\\.jpg$');
     }
 
+    match /organizations/{organizationId}/photoVersions/{fileName} {
+      // New photo commands publish immutable versioned JPEGs via the backend.
+      allow read: if fileName.matches('^[a-f0-9]{64}\\.jpg$')
+        && canReadOrganizationMedia(organizationId);
+      allow write: if false;
+    }
+
+    // Existing content still references these immutable legacy PNG covers.
+    // Tie access to the matching content document instead of every org object.
+    match /organizations/{organizationId}/news/{newsId}/cover.png {
+      allow read: if legacyCoverBelongsToOrganization(organizationId, 'news', newsId)
+        && canReadNewsCover(newsId);
+      allow write: if false;
+    }
+
+    match /organizations/{organizationId}/events/{eventId}/cover.png {
+      allow read: if legacyCoverBelongsToOrganization(organizationId, 'events', eventId)
+        && canReadEventCover(eventId);
+      allow write: if false;
+    }
+
     match /organizations/{organizationId}/draftUploads/news/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
       allow write: if false;
@@ -254,11 +283,6 @@ service firebase.storage {
 
     match /organizations/{organizationId}/draftUploads/events/{fileName} {
       allow read: if canEditOrganizationContent(organizationId);
-      allow write: if false;
-    }
-
-    match /organizations/{organizationId}/{filePath=**} {
-      allow read: if canReadOrganizationMedia(organizationId);
       allow write: if false;
     }
 

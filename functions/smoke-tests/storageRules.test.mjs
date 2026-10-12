@@ -231,6 +231,51 @@ describe("account state enforcement", () => {
 });
 
 describe("organization media permissions", () => {
+  test("approved organizations do not expose draft uploads or unknown objects", async () => {
+    const privatePaths = [
+      "organizations/approved-org/draftUploads/news/legacy_cover.jpg",
+      "organizations/approved-org/draftUploads/events/legacy_cover.jpg",
+      "organizations/approved-org/photoVersions/not-a-version.jpg",
+      "organizations/approved-org/photos/private.txt",
+      "organizations/approved-org/internal/private.jpg",
+    ];
+    await testEnv.withSecurityRulesDisabled(async context => {
+      for (const path of privatePaths) await imageUpload(context.storage(), path);
+    });
+
+    for (const path of privatePaths) {
+      await assertFails(getBytes(ref(guestStorage(), path)), path);
+      await assertFails(getBytes(ref(storage("outsider"), path)), path);
+    }
+    for (const path of privatePaths.slice(0, 2)) {
+      await assertSucceeds(getBytes(ref(storage("org-owner"), path)));
+    }
+  });
+
+  test("legacy PNG covers follow their linked news and event visibility", async () => {
+    const approvedNews = "organizations/approved-org/news/org-news/cover.png";
+    const approvedEvent = "organizations/approved-org/events/org-event/cover.png";
+    const pendingNews = "organizations/approved-org/news/pending-news/cover.png";
+    const pendingEvent = "organizations/approved-org/events/pending-event/cover.png";
+    const wrongOrganization = "organizations/pending-org/news/org-news/cover.png";
+    await testEnv.withSecurityRulesDisabled(async context => {
+      for (const path of [approvedNews, approvedEvent, pendingNews, pendingEvent, wrongOrganization]) {
+        await imageUpload(context.storage(), path);
+      }
+    });
+
+    for (const path of [approvedNews, approvedEvent]) {
+      await assertSucceeds(getBytes(ref(guestStorage(), path)));
+      await assertFails(imageUpload(storage("org-owner"), path));
+    }
+    for (const path of [pendingNews, pendingEvent]) {
+      await assertFails(getBytes(ref(guestStorage(), path)));
+      await assertFails(getBytes(ref(storage("outsider"), path)));
+      await assertSucceeds(getBytes(ref(storage("org-owner"), path)));
+    }
+    await assertFails(getBytes(ref(guestStorage(), wrongOrganization)));
+  });
+
   test("versioned photo objects stay readable but every client is denied create, overwrite and delete", async () => {
     const path = "organizations/approved-org/photoVersions/" + "a".repeat(64) + ".jpg";
     await testEnv.withSecurityRulesDisabled(async context => { await imageUpload(context.storage(), path); });
