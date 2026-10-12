@@ -664,7 +664,7 @@ struct ContentView: View {
                 onFeaturedBannerTap: handleFeaturedBannerTap,
                 scrollResetToken: directoryScrollResetToken,
                 searchResetToken: directorySearchResetToken,
-                isActive: selectedTab == .directory,
+                isActive: selectedTab == .directory && directoryNavigationPath.isEmpty,
                 feedbackRepository: container.feedbackRepository
             )
         }

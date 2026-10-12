@@ -4,13 +4,16 @@ import UIKit
 struct FeaturedBannerCardView: View {
     let banner: FeaturedBanner
     let previewImage: UIImage?
+    let onArtworkLoadStateChanged: ((Bool) -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locale) private var locale
 
-    init(banner: FeaturedBanner, previewImage: UIImage? = nil) {
+    init(banner: FeaturedBanner, previewImage: UIImage? = nil,
+         onArtworkLoadStateChanged: ((Bool) -> Void)? = nil) {
         self.banner = banner
         self.previewImage = previewImage
+        self.onArtworkLoadStateChanged = onArtworkLoadStateChanged
     }
 
     var body: some View {
@@ -40,6 +43,7 @@ struct FeaturedBannerCardView: View {
                 AdaptiveBannerImage(image: previewImage)
                     .frame(width: proxy.size.width, height: proxy.size.height)
                     .clipped()
+                    .onAppear { onArtworkLoadStateChanged?(true) }
             } else if let imageURL = banner.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty {
                 RemoteImageView(
                     imageURL: imageURL,
@@ -47,13 +51,15 @@ struct FeaturedBannerCardView: View {
                     cornerRadius: AppTheme.heroRadius,
                     source: "FeaturedBannerCardView",
                     placeholderStyle: .glassSkeleton,
-                    presentationStyle: .adaptiveBanner
+                    presentationStyle: .adaptiveBanner,
+                    onImageLoadStateChanged: onArtworkLoadStateChanged
                 )
                 .frame(width: proxy.size.width, height: proxy.size.height)
                 .clipped()
             } else {
                 fallbackBackground
                     .frame(width: proxy.size.width, height: proxy.size.height)
+                    .onAppear { onArtworkLoadStateChanged?(true) }
             }
         }
     }

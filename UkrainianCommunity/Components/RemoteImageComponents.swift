@@ -148,6 +148,7 @@ struct RemoteImageView: View {
     let source: String
     let placeholderStyle: RemoteImagePlaceholderStyle
     let presentationStyle: RemoteImagePresentationStyle
+    let onImageLoadStateChanged: ((Bool) -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.displayScale) private var displayScale
@@ -160,7 +161,8 @@ struct RemoteImageView: View {
         cornerRadius: CGFloat = 18,
         source: String = "unknown",
         placeholderStyle: RemoteImagePlaceholderStyle = .icon,
-        presentationStyle: RemoteImagePresentationStyle = .fill
+        presentationStyle: RemoteImagePresentationStyle = .fill,
+        onImageLoadStateChanged: ((Bool) -> Void)? = nil
     ) {
         self.imageURL = imageURL
         self.height = height
@@ -168,6 +170,7 @@ struct RemoteImageView: View {
         self.source = source
         self.placeholderStyle = placeholderStyle
         self.presentationStyle = presentationStyle
+        self.onImageLoadStateChanged = onImageLoadStateChanged
     }
 
     var body: some View {
@@ -294,6 +297,7 @@ struct RemoteImageView: View {
     private func loadImage(maximumPixelSize: CGFloat) async {
         loadedImage = nil
         loadFailed = false
+        onImageLoadStateChanged?(false)
 
         guard let imageURL, let url = URL(string: imageURL) else {
             return
@@ -302,6 +306,7 @@ struct RemoteImageView: View {
         let cacheKey = "\(imageURL)#content-\(Int(maximumPixelSize))" as NSString
         if let cachedImage = RemoteImageCache.shared.object(forKey: cacheKey) {
             loadedImage = cachedImage
+            onImageLoadStateChanged?(true)
             return
         }
 
@@ -323,6 +328,7 @@ struct RemoteImageView: View {
                 cost: RemoteImageDecoder.memoryCost(of: image)
             )
             loadedImage = image
+            onImageLoadStateChanged?(true)
         } catch {
             guard !Task.isCancelled else { return }
             let nsError = error as NSError

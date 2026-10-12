@@ -1,4 +1,13 @@
 import SwiftUI
+import UIKit
+
+private struct FeaturedBannerFramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGRect = .zero
+
+    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
+        value = nextValue()
+    }
+}
 
 enum FeaturedBannerCarouselSizing {
     case fixedHeight(CGFloat)
@@ -60,24 +69,40 @@ struct FeaturedBannerCarouselView: View {
 
     let banners: [FeaturedBanner]
     let sizing: FeaturedBannerCarouselSizing
+    let section: FeaturedBannerVisibleSection
+    let isActive: Bool
+    let viewportFrame: CGRect
     let onBannerTap: (FeaturedBanner) -> Void
+    let onMeasurement: (FeaturedBannerMeasurement) -> Void
     private let actionResolver = FeaturedBannerActionResolver()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.accessibilityVoiceOverEnabled) private var voiceOverEnabled
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selectedBannerID: FeaturedBanner.ID?
     @State private var isUserInteracting = false
     @State private var isRestartingCarousel = false
+    @State private var bannerFrame: CGRect = .zero
+    @State private var readyArtworkIDs: Set<String> = []
+    @State private var exposureTracker = FeaturedBannerExposureTracker()
 
     init(
         banners: [FeaturedBanner],
         sizing: FeaturedBannerCarouselSizing = .responsiveHero,
-        onBannerTap: @escaping (FeaturedBanner) -> Void
+        section: FeaturedBannerVisibleSection,
+        isActive: Bool,
+        viewportFrame: CGRect,
+        onBannerTap: @escaping (FeaturedBanner) -> Void,
+        onMeasurement: @escaping (FeaturedBannerMeasurement) -> Void = { _ in }
     ) {
         self.banners = banners
         self.sizing = sizing
+        self.section = section
+        self.isActive = isActive
+        self.viewportFrame = viewportFrame
         self.onBannerTap = onBannerTap
+        self.onMeasurement = onMeasurement
         _selectedBannerID = State(initialValue: banners.first?.id)
     }
 
@@ -100,27 +125,60 @@ struct FeaturedBannerCarouselView: View {
             .onChange(of: banners.map(\.id)) { _, _ in
                 normalizeSelection()
             }
+            .onChange(of: banners.map { "\($0.id):\($0.imageURL ?? "")" }) { _, _ in
+                readyArtworkIDs.removeAll()
+            }
             .task(id: rotationTaskID) {
                 await runRotationLoop()
+            }
+            .task(id: exposureTaskID) {
+                let bannerID = selectedBannerID
+                _ = exposureTracker.observe(
+                    bannerID: bannerID,
+                    section: section,
+                    visibleFraction: visibleFraction,
+                    isEligible: canMeasureExposure
+                )
+                guard canMeasureExposure else { return }
+                try? await Task.sleep(nanoseconds: UInt64(FeaturedBannerExposureTracker.minimumDuration * 1_000_000_000))
+                guard !Task.isCancelled, bannerID == selectedBannerID, canMeasureExposure else { return }
+                if let measurement = exposureTracker.observe(
+                    bannerID: bannerID,
+                    section: section,
+                    visibleFraction: visibleFraction,
+                    isEligible: true
+                ) {
+                    onMeasurement(measurement)
+                }
             }
         }
     }
 
-    @ViewBuilder
     private var carouselFrame: some View {
-        switch sizing {
-        case let .fixedHeight(height):
-            carouselContent
-                .frame(height: resolvedMinimumHeight(for: height))
-        case let .aspectRatio(aspectRatio, maxHeight):
-            FeaturedBannerAspectLayout(
-                aspectRatio: aspectRatio,
-                minimumHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
-                maximumHeight: resolvedMaximumHeight(maxHeight)
-            ) {
+        Group {
+            switch sizing {
+            case let .fixedHeight(height):
                 carouselContent
+                    .frame(height: resolvedMinimumHeight(for: height))
+            case let .aspectRatio(aspectRatio, maxHeight):
+                FeaturedBannerAspectLayout(
+                    aspectRatio: aspectRatio,
+                    minimumHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
+                    maximumHeight: resolvedMaximumHeight(maxHeight)
+                ) {
+                    carouselContent
+                }
             }
         }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: FeaturedBannerFramePreferenceKey.self,
+                    value: proxy.frame(in: .global)
+                )
+            }
+        }
+        .onPreferenceChange(FeaturedBannerFramePreferenceKey.self) { bannerFrame = $0 }
     }
 
     private func resolvedMaximumHeight(_ configuredMaximum: CGFloat?) -> CGFloat? {
@@ -150,6 +208,22 @@ struct FeaturedBannerCarouselView: View {
     private func bannerSlide(for banner: FeaturedBanner, size: CGSize) -> some View {
         if isActionable(banner) {
             Button {
+                if let measurement = exposureTracker.observe(
+                    bannerID: banner.id,
+                    section: section,
+                    visibleFraction: visibleFraction,
+                    isEligible: canMeasureExposure
+                ) {
+                    onMeasurement(measurement)
+                }
+                for measurement in exposureTracker.click(
+                    bannerID: banner.id,
+                    section: section,
+                    visibleFraction: visibleFraction,
+                    isEligible: canMeasureExposure
+                ) {
+                    onMeasurement(measurement)
+                }
                 onBannerTap(banner)
             } label: {
                 bannerContent(for: banner, size: size)
@@ -161,8 +235,37 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func bannerContent(for banner: FeaturedBanner, size: CGSize) -> some View {
-        FeaturedBannerCardView(banner: banner)
+        FeaturedBannerCardView(banner: banner) { isReady in
+            if isReady {
+                readyArtworkIDs.insert(banner.id)
+            } else {
+                readyArtworkIDs.remove(banner.id)
+            }
+        }
             .frame(width: size.width, height: size.height)
+    }
+
+    private var visibleFraction: Double {
+        FeaturedBannerExposureTracker.visibleFraction(of: bannerFrame, within: viewportFrame)
+    }
+
+    private var canMeasureExposure: Bool {
+        isActive && scenePhase == .active && !isRestartingCarousel && !hasCoveringModal
+            && selectedBannerID.map(readyArtworkIDs.contains) == true
+            && visibleFraction >= FeaturedBannerExposureTracker.minimumVisibleFraction
+    }
+
+    private var hasCoveringModal: Bool {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .filter { $0.activationState == .foregroundActive }
+            .flatMap(\.windows)
+            .filter(\.isKeyWindow)
+            .contains { $0.rootViewController?.presentedViewController != nil }
+    }
+
+    private var exposureTaskID: String {
+        "\(selectedBannerID ?? "none"):\(canMeasureExposure)"
     }
 
     private func isActionable(_ banner: FeaturedBanner) -> Bool {

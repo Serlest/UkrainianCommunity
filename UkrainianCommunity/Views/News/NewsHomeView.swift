@@ -22,6 +22,7 @@ struct NewsHomeView: View {
     @State private var referenceDate = Date()
     @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var bannerViewport: CGRect = .zero
 
     init(
         newsViewModel: NewsViewModel,
@@ -85,6 +86,7 @@ struct NewsHomeView: View {
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
                 .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
+            .featuredBannerViewport($bannerViewport)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
                 var transaction = Transaction()
@@ -128,7 +130,10 @@ struct NewsHomeView: View {
     @ViewBuilder private var featuredBanners: some View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(banners: featuredBannerViewModel.banners,
-                                       sizing: .responsiveHero, onBannerTap: onFeaturedBannerTap)
+                                       sizing: .responsiveHero, section: .home,
+                                       isActive: isActive && navigationPath.isEmpty,
+                                       viewportFrame: bannerViewport,
+                                       onBannerTap: onFeaturedBannerTap)
         } else if let error = featuredBannerViewModel.error {
             FeaturedBannerLoadFailureView(error: error) {
                 await featuredBannerViewModel.refresh(for: .home, federalState: selectedFederalState)

@@ -60,6 +60,7 @@ struct OrganizationsListView: View {
     @State private var savedFilterMode: OrganizationSavedFilterMode = .none
     @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var bannerViewport: CGRect = .zero
     @State private var isShowingCreateOrganization = false
 
     init(
@@ -157,6 +158,7 @@ struct OrganizationsListView: View {
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
                 .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
+            .featuredBannerViewport($bannerViewport)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
                 scrollToTop(with: scrollProxy)
@@ -298,6 +300,9 @@ struct OrganizationsListView: View {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
                 sizing: .responsiveHero,
+                section: .organizations,
+                isActive: isActive && navigationPath.isEmpty,
+                viewportFrame: bannerViewport,
                 onBannerTap: onFeaturedBannerTap
             )
         } else if let error = featuredBannerViewModel.error {

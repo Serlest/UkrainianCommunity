@@ -170,6 +170,7 @@ struct EventsListView: View {
     @State private var guestAccessAction: GuestAccessAction?
     @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var bannerViewport: CGRect = .zero
 
     init(
         viewModel: EventsViewModel,
@@ -374,6 +375,7 @@ struct EventsListView: View {
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
                 .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
+            .featuredBannerViewport($bannerViewport)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) {
                 scrollToTop(with: scrollProxy)
@@ -519,6 +521,9 @@ struct EventsListView: View {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
                 sizing: .responsiveHero,
+                section: .events,
+                isActive: isActive && navigationPath.isEmpty,
+                viewportFrame: bannerViewport,
                 onBannerTap: onFeaturedBannerTap
             )
         } else if let error = featuredBannerViewModel.error {

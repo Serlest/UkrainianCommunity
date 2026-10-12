@@ -17,6 +17,7 @@ struct DirectoryHomeView: View {
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
     @State private var isSearchPresented = false
     @State private var searchText = ""
+    @State private var bannerViewport: CGRect = .zero
 
     init(
         featuredBannerRepository: FeaturedBannerRepository,
@@ -79,6 +80,7 @@ struct DirectoryHomeView: View {
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
                 .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
             }
+            .featuredBannerViewport($bannerViewport)
             .scrollDismissesKeyboard(.interactively)
             .onChange(of: scrollResetToken) { _, _ in
                 var transaction = Transaction()
@@ -106,6 +108,9 @@ struct DirectoryHomeView: View {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
                 sizing: .responsiveHero,
+                section: .directory,
+                isActive: isActive && query.isEmpty,
+                viewportFrame: bannerViewport,
                 onBannerTap: onFeaturedBannerTap
             )
         } else if let error = featuredBannerViewModel.error {
