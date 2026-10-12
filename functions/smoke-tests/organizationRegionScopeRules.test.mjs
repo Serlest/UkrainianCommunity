@@ -21,6 +21,11 @@ const PROJECT_ID = "ukrainian-community-organization-region-scope-rules";
 const RULES_PATH = "../../Firebase/firestore.rules";
 const APPROVED_ORGANIZATION_ID = "approved-organization";
 const REQUEST_ORGANIZATION_ID = "request-organization";
+const creationProofIDs = [
+  "valid-business-directory-profile", "invalid-business-kind",
+  "too-many-secondary-categories", "too-many-services",
+  "valid-region-request", "invalid-region-request",
+];
 
 let testEnv;
 
@@ -128,6 +133,21 @@ async function seed() {
       doc(db, "organizations", REQUEST_ORGANIZATION_ID),
       organizationRequest(REQUEST_ORGANIZATION_ID)
     );
+
+    // Creation rules require a short-lived, name-bound acceptance proof.
+    // Seed it for every candidate so the assertions test region/profile
+    // validation instead of failing early on missing legal evidence.
+    await setDoc(doc(db, "legalDocuments", "organizationRules"), {
+      status: "published", requiresAcceptance: true, activeVersion: "2026.13",
+    });
+    await Promise.all(creationProofIDs.map((id) => setDoc(
+      doc(db, "organizationCreationProofs", id), {
+        userId: "request-submitter", documentType: "organizationRules",
+        organizationId: id, organizationName: "Requested Organization",
+        version: "2026.13", acceptedAt: new Date(Date.now() - 60_000),
+        expiresAt: new Date(Date.now() + 60 * 60_000),
+      }
+    )));
   });
 }
 
