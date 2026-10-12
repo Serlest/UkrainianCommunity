@@ -315,6 +315,12 @@ describe("verified content publisher core", () => {
   });
 
   test("requires two unique canonical HTTP(S) news sources", () => {
+    const oneSource = newsManifest();
+    oneSource.sources = [oneSource.sources[0]];
+    assert.throws(
+      () => normalizeAndValidateManifestItem(oneSource, "wien"),
+      /at least 2 verified sources/
+    );
     const duplicate = newsManifest();
     duplicate.sources[1].url = `${duplicate.sources[0].url}/?utm_source=second#context`;
     assert.throws(
@@ -332,19 +338,35 @@ describe("verified content publisher core", () => {
     );
   });
 
-  test("requires an independent event source on a different site", () => {
-    const organizerOnly = eventManifest();
-    organizerOnly.sources[1].verificationRole = "ticketing";
+  test("accepts one official event source while rejecting false or duplicate corroboration", () => {
+    const officialOnly = eventManifest();
+    officialOnly.sources = [officialOnly.sources[0]];
+    assert.equal(normalizeAndValidateManifestItem(officialOnly, "wien").sources.length, 1);
+
+    const noSources = eventManifest();
+    noSources.sources = [];
     assert.throws(
-      () => normalizeAndValidateManifestItem(organizerOnly, "wien"),
-      /event requires an independent secondary source/
+      () => normalizeAndValidateManifestItem(noSources, "wien"),
+      /at least 1 verified source/
     );
+
+    const extraTicketingSource = eventManifest();
+    extraTicketingSource.sources[1].verificationRole = "ticketing";
+    assert.equal(normalizeAndValidateManifestItem(extraTicketingSource, "wien").sources.length, 2);
 
     const sameHost = eventManifest();
     sameHost.sources[1].url = "https://example.at/events/independent-calendar";
     assert.throws(
       () => normalizeAndValidateManifestItem(sameHost, "wien"),
       /independent event source must be hosted on a different site/
+    );
+
+    const duplicate = eventManifest();
+    duplicate.sources[1].url = `${duplicate.sources[0].url}/?utm_source=second`;
+    duplicate.sources[1].verificationRole = "ticketing";
+    assert.throws(
+      () => normalizeAndValidateManifestItem(duplicate, "wien"),
+      /distinct canonical URLs/
     );
   });
 
