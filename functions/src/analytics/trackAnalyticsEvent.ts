@@ -189,6 +189,8 @@ const analyticsRollupScheduleOptions = {
   schedule: "1 * * * *",
   timeZone: "Europe/Vienna",
   region: "europe-west3",
+  // These hourly rollups were rejected with 429 before a cold instance became ready.
+  minInstances: 1,
   maxInstances: 1,
   // A detail generation rewrites and then prunes a shared materialized view.
   // Never allow two invocations to interleave inside the single instance.
