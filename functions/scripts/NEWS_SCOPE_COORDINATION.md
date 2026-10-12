@@ -21,6 +21,8 @@ The existing `contentPublishingLocalBridge.mjs` remains the only publisher. It a
 
 Discovery must distinguish article candidates from menus, images, and other non-content links before handing the batch to the recorder. A partial source fetch or uncertain publication is a **partial/failed run**, not a successful empty pass. Keep the affected source cursor unchanged and reconcile any uncertain production write before the next attempt. The scope state contains only final URL decisions and a small run summary; full article text and images are not copied into it. Old v2 pending records remain historical and are never imported into v3. The active nationwide chat has separately been instructed not to process that old backlog.
 
+Major transport disruptions affecting connections across several federal states belong in the `austria` news scope. Publish one nationwide article rather than separate copies for each state; the app includes Austria-wide news in every state's feed. A regional publisher identity used for the write does not change the article's `regionScope` or `federalState`.
+
 The ten territorial chats and coordinator scan run on the schedule below. `manifest.json` must report `active`; if it does not, stop the pass and investigate rather than falling back to v2.
 
 ## Editorial gate for a fresh news article
