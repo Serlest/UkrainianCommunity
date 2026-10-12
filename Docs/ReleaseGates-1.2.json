@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "candidate": {
+    "version": "1.2",
+    "build": "107"
+  },
+  "baseline": {
+    "version": "1.1",
+    "build": "82",
+    "evidence": "App Store Connect distribution read-back, 2026-10-12",
+    "note": "The public version remains 1.1 (82); this candidate is for TestFlight and release preparation."
+  },
+  "gates": [
+    {
+      "id": "app-privacy",
+      "status": "open",
+      "requirement": "Compare the authenticated App Privacy answers with the final 1.2 archive privacy report, optional content analytics, separate banner measurement, account data and all bundled SDKs. The published questionnaire currently lists Product Interaction for Analytics, but the final archive comparison is pending.",
+      "evidence": []
+    },
+    {
+      "id": "privacy-publication",
+      "status": "passed",
+      "requirement": "Read back the active Privacy 2026.21 pointer and exact German/Ukrainian content hashes from production; confirm the public privacy page serves both banner-measurement clauses.",
+      "evidence": [
+        "Legal/privacy.de.md",
+        "Legal/privacy.uk.md",
+        "Read-only Firestore and public-page verification on 2026-10-12"
+      ]
+    },
+    {
+      "id": "candidate-validation",
+      "status": "open",
+      "requirement": "Record the final source commit, full GitHub quality run, local banner SDK journey, iOS unit tests and registration/analytics UI results. No skipped or interrupted run counts as a pass.",
+      "evidence": []
+    },
+    {
+      "id": "archive-testflight",
+      "status": "open",
+      "requirement": "Archive and upload 1.2 (107), verify the signed app and export compliance, then confirm internal and external TestFlight group assignment and Beta App Review state.",
+      "evidence": []
+    },
+    {
+      "id": "physical-device",
+      "status": "open",
+      "requirement": "Test the installed candidate on a physical iPhone, including Apple and Google sign-in, passkey, push delivery, App Attest, legal reacceptance, consent withdrawal and privileged access.",
+      "evidence": []
+    },
+    {
+      "id": "content-rights",
+      "status": "open",
+      "requirement": "The operator must confirm rights and licenses for content and images included in the public release.",
+      "evidence": []
+    },
+    {
+      "id": "final-comments",
+      "status": "open",
+      "requirement": "Verify accepted and rejected comment flows in the installed candidate with an ordinary account.",
+      "evidence": []
+    },
+    {
+      "id": "review-metadata",
+      "status": "open",
+      "requirement": "Prepare 1.2 product text, screenshots and App Review notes for required registration, Apple/Google/passkey sign-in and current analytics choices; the 1.1 review notes describe obsolete guest access.",
+      "evidence": []
+    },
+    {
+      "id": "release-authorization",
+      "status": "open",
+      "requirement": "Obtain a separate user decision before submitting 1.2 for public App Review or changing public availability. TestFlight authorization does not publish the app.",
+      "evidence": []
+    }
+  ]
+}

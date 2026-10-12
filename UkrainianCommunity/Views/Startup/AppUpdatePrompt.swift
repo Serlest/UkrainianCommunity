@@ -32,7 +32,10 @@ struct AppUpdatePrompt: ViewModifier {
             }
             .alert(AppStrings.AppUpdate.title, isPresented: Binding(
                 get: { controller.isPresented && canOfferUpdate },
-                set: { controller.isPresented = $0 }
+                set: { isPresented in
+                    // SwiftUI can update this binding while dismissing UIKit's alert.
+                    DispatchQueue.main.async { controller.isPresented = isPresented }
+                }
             )) {
                 Button(AppStrings.AppUpdate.updateNow) {
                     openURL(controller.openStore()) { accepted in
@@ -40,7 +43,10 @@ struct AppUpdatePrompt: ViewModifier {
                     }
                 }
                     .accessibilityIdentifier("appUpdate.now")
-                Button(AppStrings.AppUpdate.later, role: .cancel) { controller.later() }
+                Button(AppStrings.AppUpdate.later, role: .cancel) {
+                    // UIKit may still be updating the alert when its action fires.
+                    DispatchQueue.main.async { controller.later() }
+                }
                     .accessibilityIdentifier("appUpdate.later")
             } message: {
                 Text(AppStrings.AppUpdate.message(controller.update?.version ?? ""))

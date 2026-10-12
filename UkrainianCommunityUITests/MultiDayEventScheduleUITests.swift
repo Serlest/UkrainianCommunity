@@ -40,7 +40,7 @@ final class MultiDayEventScheduleUITests: XCTestCase {
         if tab.waitForExistence(timeout: 10) && tab.isHittable {
             tab.tap()
         } else {
-            let fallback = app.tabBars.buttons[language == "de" ? "Veranstaltungen" : "Події"].firstMatch
+            let fallback = app.tabBars.buttons[language == "de" ? "Termine" : "Події"].firstMatch
             XCTAssertTrue(fallback.waitForExistence(timeout: 10))
             fallback.tap()
         }
@@ -117,7 +117,8 @@ final class MultiDayEventScheduleUITests: XCTestCase {
     @MainActor
     private func scrollContent(upBy displacement: CGFloat, in app: XCUIApplication) {
         let viewport = captureViewport(in: app)
-        let distance = min(abs(displacement), viewport.height * 0.4)
+        // A drag of only a few points may not cross UIKit's pan threshold.
+        let distance = min(max(abs(displacement), 30), viewport.height * 0.4)
         let startY = displacement > 0 ? viewport.midY + distance / 2 : viewport.midY - distance / 2
         let endY = displacement > 0 ? startY - distance : startY + distance
         let origin = app.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0))

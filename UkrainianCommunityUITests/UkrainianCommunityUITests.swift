@@ -1248,7 +1248,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testDiscoveryFiltersPinRegionAndPromoteActiveFiltersAcrossTabs() throws {
         let app = launchAuthenticatedApp()
         let configurations: [(tab: MainTabSpec, namespace: String, order: [String])] = [
-            (rootTabs[0], "home", ["type", "region", "subscribed", "saved"]),
+            (rootTabs[0], "home", ["topic", "region", "subscribed", "saved", "options"]),
             (rootTabs[1], "events", ["period", "region", "category", "audience", "age", "registered", "saved"]),
             (rootTabs[2], "organizations", ["category", "region", "subscribed", "bookmarked"])
         ]
@@ -1288,7 +1288,7 @@ final class UkrainianCommunityUITests: XCTestCase {
             XCTAssertTrue(region.isHittable)
             XCTAssertLessThan(first.frame.minX, region.frame.minX)
 
-            let savedName = configuration.order.last!
+            let savedName = namespace == "home" ? "saved" : configuration.order.last!
             let saved = chip(savedName)
             reveal(saved)
             saved.tap()
@@ -1296,7 +1296,7 @@ final class UkrainianCommunityUITests: XCTestCase {
             // filters still move after the two pinned controls in every catalog.
             let promoted = Array(configuration.order.prefix(2))
                 + [savedName]
-                + configuration.order.dropFirst(2).dropLast()
+                + configuration.order.dropFirst(2).filter { $0 != savedName }
             expectOrder(promoted)
             XCTAssertTrue(first.isHittable, "Row should return to its leading controls after reordering")
             XCTAssertTrue(region.isHittable)
@@ -1780,11 +1780,8 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testSignedOutCreateAccountOpensRegistrationScreen() throws {
         let app = launchSignedOutApp()
-        let createAccountButton = app.buttons["auth.landing.register"].firstMatch
-        XCTAssertTrue(createAccountButton.waitForExistence(timeout: 10))
-        createAccountButton.tap()
+        openEmailRegistration(in: app)
         let submit = app.buttons["auth.register.submit"]
-        XCTAssertTrue(submit.waitForExistence(timeout: 10))
         let region = app.buttons["auth.register.federalState"]
         scrollToElement(region, in: app)
         XCTAssertTrue(region.exists)
@@ -1803,9 +1800,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testRegistrationShowsConsentControls() throws {
         let app = launchSignedOutApp(appLockScenario: "success")
-        XCTAssertTrue(app.buttons["auth.landing.register"].waitForExistence(timeout: 20))
-        app.buttons["auth.landing.register"].tap()
-        XCTAssertTrue(app.buttons["auth.register.submit"].waitForExistence(timeout: 10))
+        openEmailRegistration(in: app)
         let termsSwitch = app.switches[AppStringsPlaceholder.acceptTermsDE]
         scrollToElement(termsSwitch, in: app)
         XCTAssertTrue(termsSwitch.exists)
@@ -1847,10 +1842,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestAppAppearance"] = "dark"
         app.launchEnvironment["UITestAppLockScenario"] = "success"
         app.launch()
-        let create = app.buttons["auth.landing.register"].firstMatch
-        scrollToElement(create, in: app, maxSwipes: 12)
-        XCTAssertTrue(create.waitForExistence(timeout: 10))
-        create.tap()
+        openEmailRegistration(in: app)
         let analytics = app.switches["auth.register.analyticsConsent"]
         scrollToElement(analytics, in: app, maxSwipes: 35)
         XCTAssertTrue(analytics.isHittable)
@@ -1875,14 +1867,25 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testRegistrationExplainsUnavailableBiometrics() throws {
         let app = launchSignedOutApp(appLockScenario: "unavailable")
-        XCTAssertTrue(app.buttons["auth.landing.register"].waitForExistence(timeout: 20))
-        app.buttons["auth.landing.register"].tap()
+        openEmailRegistration(in: app)
         let appLock = app.switches["auth.register.appLock"]
         scrollToElement(appLock, in: app, maxSwipes: 15)
         XCTAssertTrue(appLock.exists)
         XCTAssertFalse(appLock.isEnabled)
         XCTAssertEqual(appLock.value as? String, "0")
         attachScreenshot(named: "registration-faceid-unavailable-de", from: app)
+    }
+
+    @MainActor
+    private func openEmailRegistration(in app: XCUIApplication) {
+        let create = app.buttons["auth.landing.register"].firstMatch
+        scrollToElement(create, in: app, maxSwipes: 12)
+        XCTAssertTrue(create.waitForExistence(timeout: 20))
+        create.tap()
+        let emailMethod = app.buttons["auth.register.emailMethod"].firstMatch
+        XCTAssertTrue(emailMethod.waitForExistence(timeout: 10))
+        emailMethod.tap()
+        XCTAssertTrue(app.buttons["auth.register.submit"].firstMatch.waitForExistence(timeout: 10))
     }
 
     @MainActor
@@ -1950,7 +1953,14 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(app.frame.intersects(cell.frame))
         cell.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
         let caption = app.textFields.firstMatch
-        XCTAssertTrue(caption.waitForExistence(timeout: 10)); caption.tap()
+        XCTAssertTrue(caption.waitForExistence(timeout: 10))
+        XCTAssertTrue(caption.isHittable)
+        caption.tap()
+        if !app.keyboards.firstMatch.waitForExistence(timeout: 2) {
+            // The picker dismissal can consume the first focus tap on Simulator.
+            caption.tap()
+        }
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
         caption.typeText(" replacement")
         let editedCaption = try XCTUnwrap(caption.value as? String)
         XCTAssertTrue(editedCaption.contains("replacement"))
@@ -1980,7 +1990,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     @MainActor
     func testProfileSettingsContainsLegalRows() throws {
         for kind in ["terms", "privacy"] {
-            let app = launchApp()
+            let app = launchAuthenticatedApp()
             assertRootScreen(screenIdentifier: "screen.profile", tabLabel: "Profil", in: app)
             let settings = app.buttons["profile.settings.open"].firstMatch
             scrollToElement(settings, in: app)
@@ -2042,7 +2052,7 @@ final class UkrainianCommunityUITests: XCTestCase {
 
     @MainActor
     func testLanguageChangeKeepsSettingsNavigationAndUpdatesVisibleText() throws {
-        let app = launchApp()
+        let app = launchAuthenticatedApp()
 
         let firstGermanBanner = element("featuredBanner.card.featured-emergency-support", in: app)
         XCTAssertTrue(firstGermanBanner.waitForExistence(timeout: 15))

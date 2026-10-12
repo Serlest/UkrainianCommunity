@@ -63,11 +63,11 @@
     }
   },
   "unresolvedReleaseBlocks": [
-    "1.0.3 (69): one held event and final operator content/image-rights confirmation remain open; three German event translations have publication/read-back proof. Agreed external work is authorized; public App Store publication is outside the current scope.",
-    "1.0.3 (69): installed final-build live accepted/rejected comment smoke remains open; local UI/SDK and historical production probes do not close this gate."
+    "1.2 (107): final App Privacy, archive, TestFlight, physical-device and review-metadata checks remain open before public release.",
+    "1.2 (107): operator content/image-rights confirmation and installed-build comment checks remain open; public App Store submission requires separate authorization."
   ],
   "releaseRecommendations": [
     "qualified Austrian legal review before launch and after material legal changes"
   ],
-  "releaseGateManifest": "Docs/ReleaseGates-1.0.3.json"
+  "releaseGateManifest": "Docs/ReleaseGates-1.2.json"
 }
