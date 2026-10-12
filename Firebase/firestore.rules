@@ -461,6 +461,16 @@ service cloud.firestore {
         || (data[field] is string && data[field].size() <= maximumLength);
     }
 
+    function validProfileAvatarURL(uid, value) {
+      return value is string
+        && value.size() <= 512
+        && uid.matches('^[A-Za-z0-9_-]{1,128}$')
+        && value.matches(
+          '^https://firebasestorage[.]googleapis[.]com/v0/b/ukrainiancommunity-dbd5f[.]firebasestorage[.]app/o/profileImages%2F'
+          + uid + '%2Favatar[.]jpg[?]alt=media&token=[A-Za-z0-9_-]{20,128}$'
+        );
+    }
+
     function validContentMediaMetadata(data) {
       return !('mediaMetadata' in data)
         || data.mediaMetadata == null
@@ -1499,7 +1509,11 @@ service cloud.firestore {
         && request.resource.data.selectedFederalState is string
         && request.resource.data.updatedAt is timestamp
         && validOptionalString(request.resource.data, 'telegramUsername', 80)
-        && validOptionalString(request.resource.data, 'avatarURL', 2048);
+        && (
+          !('avatarURL' in request.resource.data)
+          || request.resource.data.avatarURL == null
+          || validProfileAvatarURL(uid, request.resource.data.avatarURL)
+        );
     }
 
     function safeSelfStatusAcknowledgement(uid) {
@@ -2358,10 +2372,15 @@ service cloud.firestore {
         && request.resource.data.id == uid
         && request.resource.data.displayName is string
         && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 160
         && request.resource.data.city is string
+        && request.resource.data.city.size() <= 160
         && request.resource.data.updatedAt is timestamp
-        && (!('avatarURL' in request.resource.data) || request.resource.data.avatarURL is string)
-        && (!('federalState' in request.resource.data) || request.resource.data.federalState is string);
+        && (!('avatarURL' in request.resource.data)
+          || validProfileAvatarURL(uid, request.resource.data.avatarURL))
+        && (!('federalState' in request.resource.data)
+          || (request.resource.data.federalState is string
+            && request.resource.data.federalState.size() <= 40));
     }
 
     match /publicProfiles/{uid} {
