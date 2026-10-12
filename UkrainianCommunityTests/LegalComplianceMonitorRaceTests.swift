@@ -169,7 +169,8 @@ struct LegalComplianceMonitorRaceTests {
         )
         let service = LegalComplianceMonitorService(
             legalDocumentRepository: legalRepository,
-            userRepository: ControlledLegalUserRepository(currentUser: makeUser(id: "user-b"))
+            userRepository: ControlledLegalUserRepository(currentUser: makeUser(id: "user-b")),
+            documentFetchTimeout: .seconds(120)
         )
         let oldUser = makeUser(id: "user-a")
         let newUser = makeUser(id: "user-b", acceptedTermsVersion: terms.version)
