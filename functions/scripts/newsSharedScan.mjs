@@ -145,6 +145,8 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       headers: {"user-agent": "UAC News source monitor"},
     });
     const body = await boundedText(response);
+    const botBlocked = response.ok && source.sourceId === "https://www.wienerlinien.at/news" &&
+      /<title>\s*Radware Page\s*<\/title>/i.test(body);
     const text = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
       .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
       .replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -159,7 +161,7 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       etag: response.headers.get("etag"),
       lastModified: response.headers.get("last-modified"),
       contentHash: createHash("sha256").update(text).digest("hex"),
-      links: response.ok ? (
+      links: response.ok && !botBlocked ? (
         requestedURL === "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de"
           ? extractSalzburgTrafficLinks(body)
           : new URL(requestedURL).hostname === "presse-oebb.com" &&
@@ -172,7 +174,7 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
           ? extractAMSNewsLinks(body, response.url || requestedURL, now)
           : extractSourceLinks(body, response.url || requestedURL)
       ) : [],
-      error: response.ok ? null : `http-${response.status}`,
+      error: botBlocked ? "source-bot-protection-page" : response.ok ? null : `http-${response.status}`,
     };
   } catch (error) {
     return {
