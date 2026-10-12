@@ -12,7 +12,7 @@ import {
   prepareNewsScopeLayout,
   routeNewsCandidate,
 } from "./newsScopeCoordination.mjs";
-import {extractAMSNewsLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -162,6 +162,17 @@ test("ÖBB traffic listing exposes a clean direct article and fails on a changed
   ]);
   assert.throws(() => extractOEBBTrafficLinks('<a href="/menu">Menu</a>',
     "https://presse-oebb.com/News.aspx"), /invalid-oebb-traffic-listing/);
+});
+
+test("ÖBB live service listing excludes sharing links and fails when notices vanish", () => {
+  const html = '<a href="/de/verkehrsmeldungen~st%C3%B6rfall_wienerneustadt~">Wiener Neustadt</a>' +
+    '<a href="https://www.facebook.com/share?u=https://www.unsereoebb.at/de/verkehrsmeldungen~foo~">Share</a>';
+  assert.deepEqual(extractOEBBLiveLinks(html, "https://www.unsereoebb.at/de/verkehrsmeldungen"), [
+    {url: "https://www.unsereoebb.at/de/verkehrsmeldungen~st%C3%B6rfall_wienerneustadt~",
+      title: "Wiener Neustadt"},
+  ]);
+  assert.throws(() => extractOEBBLiveLinks('<a href="/de">Menu</a>',
+    "https://www.unsereoebb.at/de/verkehrsmeldungen"), /invalid-oebb-live-listing/);
 });
 
 test("a source article after a long navigation menu is retained", () => {

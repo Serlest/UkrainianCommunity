@@ -22,7 +22,7 @@ export const NEWS_EDITORIAL_SOURCES = Object.freeze([
   {url: "https://www.oebb.at/de/fahrplan/baustelleninformation", scopes: all, mode: "scan", topics: ["rail_planned_works"]},
   {url: "https://presse.oebb.at/de/", scopes: all, mode: "adapter", topics: ["rail_service"]},
   {url: "https://presse-oebb.com/News.aspx?l=deutsch&menueid=27022", scopes: all, mode: "scan", topics: ["rail_service", "rail_disruptions"]},
-  {url: "https://www.unsereoebb.at/de/verkehrsmeldungen", scopes: all, mode: "adapter", topics: ["rail_disruptions"]},
+  {url: "https://www.unsereoebb.at/de/verkehrsmeldungen", scopes: all, mode: "scan", topics: ["rail_disruptions"]},
   {url: "https://www.ages.at/mensch/produktwarnungen-produktrueckrufe", scopes: all, mode: "scan", topics: ["product_safety"]},
   {url: "https://www.geosphere.at/de/karten/aktuelle-erdbeben/erdbeben-karten-und-listen", scopes: all, mode: "adapter", topics: ["earthquakes"]},
   {url: "https://www.ris.bka.gv.at/LgblAuth/", scopes: states, mode: "adapter", topics: ["effective_regional_law"]},

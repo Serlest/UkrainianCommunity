@@ -125,6 +125,16 @@ export function extractOEBBTrafficLinks(html, baseURL) {
   return links;
 }
 
+export function extractOEBBLiveLinks(html, baseURL) {
+  const links = extractSourceLinks(html, baseURL).filter(({url}) => {
+    const parsed = new URL(url);
+    return parsed.hostname === "www.unsereoebb.at" &&
+      parsed.pathname.startsWith("/de/verkehrsmeldungen~");
+  });
+  if (!links.length) throw new Error("invalid-oebb-live-listing");
+  return links;
+}
+
 export async function inspectNewsSource(source, fetchImpl = fetch, now = new Date()) {
   const requestedURL = requestURLForSource(source, now);
   const checkedAt = now.toISOString();
@@ -155,6 +165,9 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
           : new URL(requestedURL).hostname === "presse-oebb.com" &&
             new URL(requestedURL).pathname === "/News.aspx"
           ? extractOEBBTrafficLinks(body, response.url || requestedURL)
+          : new URL(requestedURL).hostname === "www.unsereoebb.at" &&
+            new URL(requestedURL).pathname === "/de/verkehrsmeldungen"
+          ? extractOEBBLiveLinks(body, response.url || requestedURL)
           : new URL(requestedURL).hostname === "www.ams.at"
           ? extractAMSNewsLinks(body, response.url || requestedURL, now)
           : extractSourceLinks(body, response.url || requestedURL)
