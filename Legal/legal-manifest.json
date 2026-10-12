@@ -45,10 +45,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.20",
+      "version": "2026.21",
       "effectiveDate": "2026-10-12",
-      "supersedesVersion": "2026.19",
-      "changeSummary": "Новини видаляються через 30 днів після публікації; строк для заходів не змінено. / Nachrichten werden 30 Tage nach der Veröffentlichung gelöscht; die Frist für Veranstaltungen bleibt unverändert."
+      "supersedesVersion": "2026.20",
+      "changeSummary": "Окрема добровільна згода на зведений підрахунок показів і натискань банерів; відмову та відкликання дозволено без обмеження доступу. / Gesonderte freiwillige Einwilligung für zusammengefasste Banner-Einblendungen und Aufrufe; Ablehnung und Widerruf ohne Zugangsbeschränkung."
     },
     "organizationRules": {
       "requiresAcceptance": true,

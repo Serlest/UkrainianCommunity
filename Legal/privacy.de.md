@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.20 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.19.
+Version 2026.21 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.20.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -31,6 +31,7 @@ Je nach Nutzung verarbeiten wir:
 - **Benachrichtigungen:** Firebase Installation ID, APNs-/FCM-Registrierungstoken, Gerätezustand für die Zustellung, Themen oder Präferenzen und Zustellergebnis. Für optionale Mitteilungen können ein aus einem Installationsgeheimnis abgeleiteter Dokumentbezeichner, eine kurzlebige Challenge sowie Präsentations-, Bestätigungs- und Aktionsnachweise mit Plattform, Sprache, Konto- und Zeitbezug verarbeitet werden. Ein während der Migration vorhandenes älteres Token kann bis zur sicheren Bereinigung parallel gespeichert sein.
 - **Sicherheit und Technik:** App Check mit Apple App Attest beziehungsweise Google Play Integrity, IP-Adresse und technische Anfragedaten bei Firebase, Zeitstempel, Versions- und Geräteinformationen, Fehlerdiagnose sowie System-, Sicherheits- und Auditprotokolle. Der Gerätename kann in einer Push-Registrierung erscheinen, wenn die App ihn dafür bereitstellt.
 - **Optionale Erstanbieter-Analyse:** nach ausdrücklicher Einwilligung minimale tägliche Signale zu Aufrufen und Aktionen, Inhalts-ID, Zeitpunkt, Zustimmungs-Generation und gegebenenfalls ein einmaliger Aktionsnachweis. Während der Deduplizierung sind diese Signale kontobezogen; Betreiberberichte enthalten zusammengefasste Werte, keine Teilnehmerlisten.
+- **Freiwillige Banner-Messung:** nach gesonderter Einwilligung Banner-ID, App-Bereich, sichtbare Einblendung oder Tippen und Zeitpunkt. Konto-, Zustimmungs- und Ereignis-ID dienen der Autorisierung und Deduplizierung. Die täglichen Berichte enthalten zusammengefasste Werte je Banner und App-Bereich, keine Besucherlisten.
 
 Wir verwenden keine Werbe-ID (IDFA), kein App Tracking Transparency für Werbung, keine Werbenetzwerke und kein Google/Firebase Analytics-Produkt. Wir verkaufen keine personenbezogenen Daten und nutzen sie nicht für app- oder unternehmensübergreifendes Werbetracking.
 
@@ -47,6 +48,7 @@ Wir verwenden keine Werbe-ID (IDFA), kein App Tracking Transparency für Werbung
 | Erforderliche servicebezogene In-App-Mitteilungen | Kontosicherheit, Moderationsentscheidungen und Vertragserfüllung | Art. 6 Abs. 1 lit. b, c oder f DSGVO |
 | Optionale Push-Benachrichtigungen | Zustellung ausgewählter Hinweise auf das Gerät | Art. 6 Abs. 1 lit. a DSGVO; technisch notwendige Tokenverwaltung zusätzlich lit. b/f bis zur Abmeldung |
 | Optionale Erstanbieter-Analyse | Zusammengefasste Reichweiten- und Nutzungsberichte für Inhaltsverantwortliche | Art. 6 Abs. 1 lit. a DSGVO |
+| Freiwillige Banner-Messung | Zusammengefasste Berichte über sichtbare Einblendungen und Aufrufe für den Plattforminhaber | Art. 6 Abs. 1 lit. a DSGVO (gesonderte Einwilligung) |
 | Rechtsverteidigung | Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen | Art. 6 Abs. 1 lit. f DSGVO und gegebenenfalls Art. 9 Abs. 2 lit. f DSGVO |
 
 Soweit wir uns auf berechtigte Interessen stützen, bestehen diese in Plattform- und Kontosicherheit, Betrugsprävention, nachvollziehbarer Moderation, Schutz anderer Personen und Abwehr von Ansprüchen. Betroffene können aus Gründen ihrer besonderen Situation widersprechen; wir prüfen dann die Interessenabwägung.
@@ -85,6 +87,8 @@ Die optionale Erstanbieter-Analyse ist standardmäßig nicht aufgrund der bloße
 
 Notwendige Funktionsdatensätze – etwa der Zustand eines Likes, Lesezeichens, Abos oder einer Veranstaltungsregistrierung sowie Deduplizierung öffentlicher Aufrufzähler – sind davon getrennt. Sie entstehen nur durch die angeforderte Funktion und werden nicht durch das Abschalten der optionalen Analyse rückgängig gemacht. Die Analyse wird nicht als anonym bezeichnet, solange serverseitige Deduplizierung kontobezogen erfolgt.
 
+Die Banner-Messung ist standardmäßig ausgeschaltet und von der Einwilligung in die Inhaltsanalyse unabhängig. Eine Einblendung zählt nach mindestens einer Sekunde bei mindestens 50 % Sichtbarkeit; ein bewusstes Tippen zählt als Aufruf. Nur für angemeldete Konten mit einer gesonderten, versionierten und serverseitig bestätigten Einwilligung werden Ereignisse übertragen. Die Wahl gilt für das Konto auf allen angemeldeten Geräten und kann jederzeit in den Einstellungen für die Zukunft widerrufen werden. Ablehnung oder Widerruf beeinträchtigen weder das Basiskonto noch die Anzeige der Banner. Nach dem Widerruf werden lokal wartende Ereignisse verworfen und eine noch nicht bestätigte Widerrufsanfrage erneut gesendet. Wir verwenden dafür keine Werbe-ID, keine Drittanbieter-Werbenetzwerke und kein appübergreifendes Tracking. Der Plattforminhaber sieht nur zusammengefasste Zahlen; Werbepartner erhalten keine Besucherlisten.
+
 ## 11. App Check, Sicherheit und Protokolle
 
 App Check mit Apple App Attest beziehungsweise Google Play Integrity hilft zu prüfen, ob Anfragen von einer echten App-Instanz stammen. Sicherheits- und Auditprotokolle dokumentieren unter anderem Anmelde-, Rollen-, Moderations-, Lösch- und Administrationsvorgänge. Zugriff erhalten nur berechtigte Rollen. Wir verwenden technische und organisatorische Maßnahmen wie Zugriffskontrollen, serverseitige Prüfungen, Transportverschlüsselung, minimale Berechtigungen und protokollierte Verwaltungsaktionen. Absolute Sicherheit kann nicht garantiert werden.
@@ -103,6 +107,7 @@ Es findet keine ausschließlich automatisierte Entscheidung mit rechtlicher oder
 - Firebase-Authentifizierungsdaten werden nach Kontolöschung gemäß dem technischen Lösch- und Backup-Zyklus des Dienstleisters entfernt; Sicherungskopien können nach Anbieterangaben bis zu 180 Tage benötigen. Authentifizierungs-IP-Adressen können nach Anbieterangaben für einige Wochen gespeichert werden.
 - Ungültige Push-Token werden bei Abmeldung, Kontolöschung oder erkannten Zustellfehlern bereinigt; ein noch vorhandener Migrationseintrag wird nur bis zur abgeschlossenen Migration gespeichert.
 - Optionale Analysebelege zur Deduplizierung werden 72 Stunden gespeichert; zugehörige Aktivitäts-, Registrierungs-, Lösch- und Migrationsmarker 60 Tage. Zeitbezogene Detailaggregate werden 60 Tage gehalten; feste zusammengefasste Berichte bleiben bis zur planmäßigen Ersetzung oder Löschung erhalten.
+- Banner-Ereignisbelege werden nach 72 Stunden und technische Anfragelimits nach zwei Stunden zur Löschung fällig; planmäßige Löschung kann sich verzögern. Tägliche Banner-Zusammenfassungen werden 395 Tage aufbewahrt. Lokal wartende Ereignisse werden nach 48 Stunden nicht mehr gesendet und beim nächsten Verarbeitungslauf entfernt. Zustimmungsnachweise bleiben während der Kontobeziehung und danach nur soweit für gesetzliche Pflichten oder Rechtsansprüche erforderlich; bei Kontolöschung wird die Konto-ID darin anonymisiert.
 - Geschlossene Support-, Feedback- und Meldungsvorgänge samt Nachrichten werden grundsätzlich sechs Monate nach Abschluss gelöscht.
 - Ein pseudonymer Tageszähler begrenzt missbräuchliche Anfragen an das öffentliche DSA-Portal und wird nach höchstens zwei Tagen gelöscht; die rohe Netzwerkkennung wird dafür nicht im Zählerdokument gespeichert. Übliche technische Providerprotokolle können unabhängig davon nach deren Sicherheitsfristen bestehen.
 - Technische Systemprotokolle werden je nach gekennzeichneter Schutzklasse 90 Tage, normale Auditprotokolle 365 Tage, Sicherheitsprotokolle 730 Tage und Nachweise zu Moderationsstreitigkeiten bis zu 1.095 Tage gespeichert. Gesonderte `auditLogs` werden höchstens 1.095 Tage gespeichert.
@@ -166,10 +171,12 @@ Für geschützte Inhaber- und Administratorzugriffe wird ein zeitbasiertes Einma
 
 ## 22. Passkeys für geschützte Konten
 
-Inhaber und Administratoren können nach einer Anmeldung mit dem Authenticator freiwillig einen Passkey einrichten. Das Gerät erzeugt ein Schlüsselpaar. Der private Schlüssel und die biometrischen Merkmale beziehungsweise der Gerätecode bleiben beim Geräte- und Passkey-Anbieter; UAC erhält sie nicht. UAC speichert in Firebase Firestore die öffentliche Schlüsselkomponente, eine technische Kennung des Passkeys, den Signaturzähler, die Zuordnung zur Konto-ID sowie Erstellungs- und letzte Nutzungszeit. Bei der Anmeldung prüft unser Server eine signierte, einmalige Challenge und übergibt Firebase Authentication einen zeitlich begrenzten Anmeldetoken für dieselbe bestehende Konto-ID. Dadurch kann die geschützte Sitzung ohne TOTP-Code beginnen. TOTP bleibt als alternativer Anmeldeweg bestehen.
+Personen mit bestätigtem Konto können freiwillig einen Passkey einrichten. Für Inhaber und Administratoren ist vor dem Hinzufügen oder Entfernen eines Passkeys eine frische Anmeldung mit dem Authenticator erforderlich; für andere Konten eine frische Anmeldung. Das Gerät erzeugt ein Schlüsselpaar. Der private Schlüssel und die biometrischen Merkmale beziehungsweise der Gerätecode bleiben beim Geräte- und Passkey-Anbieter; UAC erhält sie nicht. UAC speichert in Firebase Firestore die öffentliche Schlüsselkomponente, eine technische Kennung des Passkeys, den Signaturzähler, die Zuordnung zur Konto-ID sowie Erstellungs- und letzte Nutzungszeit. Bei der Anmeldung prüft unser Server eine signierte, einmalige Challenge und übergibt Firebase Authentication einen zeitlich begrenzten Anmeldetoken für dieselbe bestehende Konto-ID. Dadurch kann die geschützte Sitzung ohne TOTP-Code beginnen. TOTP bleibt als alternativer Anmeldeweg bestehen.
 
 Challenges sind nach fünf Minuten ungültig und werden regelmäßig entfernt. Beim Entfernen eines Passkeys wird sein serverseitiger Datensatz gelöscht; bereits bestehende geschützte Passkey-Sitzungen verlieren durch einen neuen Sitzungsmarker die Berechtigung. Bei Kontolöschung werden auch die Passkey-Datensätze entfernt. Diese Verarbeitung dient der sicheren, nutzerfreundlichen Kontoverwaltung gemäß Art. 6 Abs. 1 lit. b und f DSGVO. Sie ist von der freiwilligen lokalen App-Sperre aus Abschnitt 19 getrennt.
 
 Änderung gegenüber 2026.18: Der Inhalt bleibt unverändert. Diese Version stellt sicher, dass die aktualisierte Datenschutzerklärung vor der weiteren Nutzung ausdrücklich bestätigt wird.
 
 Änderung gegenüber 2026.19: Veröffentlichte Nachrichten werden bereits 30 Tage nach der Veröffentlichung für die planmäßige Löschung berücksichtigt. Die Aufbewahrungsfrist für Veranstaltungen bleibt unverändert.
+
+Änderung gegenüber 2026.20: Eine gesonderte freiwillige Einwilligung ermöglicht zusammengefasste Berichte über sichtbare Banner-Einblendungen und Aufrufe. Die Passkey-Beschreibung berücksichtigt die Verfügbarkeit für alle bestätigten Konten.

@@ -35,3 +35,37 @@ test("2026.13 preserves historical receipt evidence and authorizes a new choice"
     await Promise.all([profile, state, oldReceipt, newReceipt].map(ref => ref.delete()));
   }
 });
+
+test("2026.21 keeps an existing content-analytics grant and allows a separate new choice", {
+  skip: !process.env.FIRESTORE_EMULATOR_HOST,
+}, async () => {
+  assert.match(process.env.GCLOUD_PROJECT ?? "", /^demo-/);
+  const uid = "privacy-banner-" + randomUUID();
+  const existingID = randomUUID();
+  const newID = randomUUID();
+  const profile = db.doc(`users/${uid}`);
+  const state = db.doc(`analyticsConsentStates/${uid}`);
+  const existingReceipt = db.doc(`analyticsConsentReceipts/${analyticsConsentReceiptID(uid, existingID)}`);
+  const newReceipt = db.doc(`analyticsConsentReceipts/${analyticsConsentReceiptID(uid, newID)}`);
+  const mutate = (consentID: string, privacyVersion: string, enabled = true) =>
+    persistAnalyticsConsentMutation(uid, parseAnalyticsConsentMutation({
+      consentID, privacyVersion, enabled, locale: "uk", appVersion: "1.2",
+      disclosureVersion: "2026-08-25.1",
+    }));
+  try {
+    await profile.set({accountStatus: "active", acceptedPrivacyVersion: "2026.20"});
+    assert.equal(await mutate(existingID, "2026.20"), true);
+    await profile.update({acceptedPrivacyVersion: "2026.21"});
+    await requireCurrentAnalyticsConsent(uid, existingID);
+    assert.equal((await existingReceipt.get()).get("privacyVersion"), "2026.20");
+    assert.equal(await mutate(existingID, "2026.21"), true);
+    assert.equal((await state.get()).get("privacyVersion"), "2026.20");
+    assert.equal(await mutate(existingID, "2026.20", false), false);
+    assert.equal(await mutate(newID, "2026.21"), true);
+    await requireCurrentAnalyticsConsent(uid, newID);
+    assert.equal((await newReceipt.get()).get("privacyVersion"), "2026.21");
+    await assert.rejects(requireCurrentAnalyticsConsent(uid, existingID), {code: "failed-precondition"});
+  } finally {
+    await Promise.all([profile, state, existingReceipt, newReceipt].map(ref => ref.delete()));
+  }
+});
