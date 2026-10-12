@@ -319,16 +319,43 @@ final class RemoteNotificationRouteCoordinator: ObservableObject {
     static let shared = RemoteNotificationRouteCoordinator()
 
     @Published private(set) var pendingRoute: RemoteNotificationRoute?
+    private var legalRouteHandledByRequiredReview: RemoteNotificationRoute?
+    private var legalRouteDocumentWasReviewed = false
 
-    private init() {}
+    init() {}
 
     func receive(_ route: RemoteNotificationRoute) {
+        guard pendingRoute != route else { return }
         pendingRoute = route
+        legalRouteHandledByRequiredReview = nil
+        legalRouteDocumentWasReviewed = false
+    }
+
+    func markLegalRouteHandledByRequiredReview(
+        reviewedDocumentTypes: Set<LegalDocumentType>
+    ) {
+        guard let pendingRoute,
+              pendingRoute.type == .legalDocumentsUpdated,
+              pendingRoute.destination == .openLegalDocuments else { return }
+        legalRouteHandledByRequiredReview = pendingRoute
+        let target = pendingRoute.resolvedTargetID ?? LegalDocumentType.terms.rawValue
+        legalRouteDocumentWasReviewed = LegalDocumentType(rawValue: target)
+            .map(reviewedDocumentTypes.contains) ?? false
+    }
+
+    func shouldSkipNavigation(for route: RemoteNotificationRoute) -> Bool {
+        legalRouteHandledByRequiredReview == route
+    }
+
+    func shouldMarkRead(for route: RemoteNotificationRoute) -> Bool {
+        !shouldSkipNavigation(for: route) || legalRouteDocumentWasReviewed
     }
 
     func consume(_ route: RemoteNotificationRoute) {
         if pendingRoute == route {
             pendingRoute = nil
+            legalRouteHandledByRequiredReview = nil
+            legalRouteDocumentWasReviewed = false
         }
     }
 }

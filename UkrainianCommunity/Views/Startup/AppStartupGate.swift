@@ -8,6 +8,7 @@ struct AppStartupGate: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
+    @ObservedObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
     @State private var isShowingSplash = true
 
     private let transitionDuration = 0.25
@@ -68,6 +69,12 @@ struct AppStartupGate: View {
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.isAuthenticated ? authState.user : nil)
         }
+        .onChange(of: legalComplianceMonitor.activeRequirement, initial: true) { _, _ in
+            markPendingLegalRouteHandledByRequiredReview()
+        }
+        .onChange(of: remoteNotificationRouteCoordinator.pendingRoute) { _, _ in
+            markPendingLegalRouteHandledByRequiredReview()
+        }
         .onChange(of: scenePhase) { _, phase in
             guard phase == .active, authState.isAuthenticated else { return }
             Task { await legalComplianceMonitor.refresh(user: authState.user) }
@@ -100,6 +107,16 @@ struct AppStartupGate: View {
 #else
         false
 #endif
+    }
+
+    private func markPendingLegalRouteHandledByRequiredReview() {
+        guard authState.isAuthenticated,
+              let requirement = legalComplianceMonitor.activeRequirement,
+              requirement.userID == authState.user?.id,
+              !requirement.requiredDocuments.isEmpty else { return }
+        remoteNotificationRouteCoordinator.markLegalRouteHandledByRequiredReview(
+            reviewedDocumentTypes: Set(requirement.requiredDocuments.map(\.type))
+        )
     }
 
     private func evaluateStartupState() {

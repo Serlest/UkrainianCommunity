@@ -1098,12 +1098,17 @@ struct ContentView: View {
 
         // Tapping a delivered inbox push is equivalent to opening that inbox
         // item. Diagnostic pushes intentionally have no Firestore inbox record.
-        if let notificationID = route.notificationId,
+        if remoteNotificationRouteCoordinator.shouldMarkRead(for: route),
+           let notificationID = route.notificationId,
            !notificationID.hasPrefix("pushTest_") {
             Task {
                 await notificationInboxViewModel.markRead(notificationID: notificationID)
             }
         }
+
+        // A required legal review takes precedence over a legal push deep link.
+        // Unreviewed documents remain in the inbox for deliberate reading.
+        if remoteNotificationRouteCoordinator.shouldSkipNavigation(for: route) { return }
 
         switch route.destination {
         case .openNews(let newsId):
