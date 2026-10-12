@@ -34,6 +34,16 @@ if (!command || !["list", "save"].includes(command)) {
   fail("Usage: node scripts/contentPlanningLocalBridge.mjs list|save [manifest.json]");
 }
 
+let saveItems;
+if (command === "save") {
+  if (!argument) fail("The save command requires a manifest JSON path.");
+  const manifest = JSON.parse(await readFile(resolve(argument), "utf8"));
+  saveItems = Array.isArray(manifest) ? manifest : [manifest];
+  if (saveItems.some((item) => item?.kind === "event")) {
+    fail("Automated event candidates must receive a publication or rejection decision; this bridge cannot create event drafts.");
+  }
+}
+
 const accessToken = await contentAutomationAccessToken();
 const owner = await resolveOwner();
 
@@ -50,11 +60,8 @@ if (command === "list") {
     events: events.map((document) => contentSummary(document, "event")),
   });
 } else {
-  if (!argument) fail("The save command requires a manifest JSON path.");
-  const manifest = JSON.parse(await readFile(resolve(argument), "utf8"));
-  const items = Array.isArray(manifest) ? manifest : [manifest];
   const results = [];
-  for (const item of items) results.push(await saveDraft(owner.id, item));
+  for (const item of saveItems) results.push(await saveDraft(owner.id, item));
   await writeContentPlanningBridgeOutput({owner: {id: owner.id, email: owner.email}, results});
 }
 
