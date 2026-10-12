@@ -7,6 +7,14 @@ enum AnalyticsPeriod: String, CaseIterable, Codable, Identifiable {
 
     var id: String { rawValue }
 
+    var analyticsTitle: String {
+        switch self {
+        case .today: AppStrings.OwnerAnalytics.periodToday
+        case .sevenDays: AppStrings.OwnerAnalytics.periodSevenDays
+        case .thirtyDays: AppStrings.OwnerAnalytics.periodThirtyDays
+        }
+    }
+
     var dayCount: Int {
         switch self {
         case .today:

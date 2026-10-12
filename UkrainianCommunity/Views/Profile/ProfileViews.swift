@@ -31,6 +31,7 @@ enum ProfileNavigationRoute: Hashable {
     case legalDocumentManagement
     case legalEvidence
     case ownerAnalytics
+    case bannerAnalytics(period: AnalyticsPeriod)
     case donationSettings
     case feedbackInbox
     case feedbackDetail(feedbackID: String)
@@ -644,6 +645,13 @@ struct ProfileView: View {
         case .ownerAnalytics:
             if PermissionService.isAppOwner(user: permissionUser) {
                 OwnerAnalyticsView(repository: ownerAnalyticsRepository)
+            }
+        case let .bannerAnalytics(period):
+            if PermissionService.isAppOwner(user: permissionUser) {
+                BannerMeasurementReportView(
+                    bannerRepository: featuredBannerRepository,
+                    initialPeriod: period
+                )
             }
         case .donationSettings:
             DonationSettingsView(viewModel: donationConfigViewModel)

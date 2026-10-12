@@ -1280,6 +1280,38 @@ enum AppStrings {
         static var submittedSuccessfully: String { text("content_publishing.success.review", "Новину надіслано на перевірку.") }
     }
 
+    enum BannerReport {
+        static var title: String { text("banner_report.title", "Банери") }
+        static var subtitle: String { text("banner_report.subtitle", "Покази та натискання за банерами") }
+        static var entrySubtitle: String { text("banner_report.entry_subtitle", "Покази, натискання та розділи") }
+        static var emptyTitle: String { text("banner_report.empty.title", "Поки немає вимірювань") }
+        static var emptyMessage: String { text("banner_report.empty.message", "Показники з’являться після запуску добровільного вимірювання банерів і згоди користувачів.") }
+        static var overview: String { text("banner_report.overview", "Загалом") }
+        static var bySection: String { text("banner_report.by_section", "За розділами") }
+        static var byBanner: String { text("banner_report.by_banner", "За банерами") }
+        static var impressions: String { text("banner_report.impressions", "Покази") }
+        static var clicks: String { text("banner_report.clicks", "Натискання") }
+        static var total: String { text("banner_report.total", "Усього") }
+        static var home: String { text("banner_report.section.home", "Новини") }
+        static var events: String { text("banner_report.section.events", "Події") }
+        static var organizations: String { text("banner_report.section.organizations", "Організації") }
+        static var directory: String { text("banner_report.section.directory", "Довідник") }
+        static var namesUnavailable: String { text("banner_report.names_unavailable", "Назви банерів зараз недоступні. Показано їхні ID; лічильники завантажені.") }
+        static var methodology: String { text("banner_report.methodology", "Ураховано лише банери користувачів, які окремо погодилися на вимірювання. Показ зараховується, коли видно щонайменше половину банера протягом секунди; натискання — після дії користувача. Частка натискань = натискання / покази. Це кількість дій, а не унікальних людей. Дні рахуються за UTC, дані поточного дня можуть доповнюватися.") }
+        static func row(impressions: String, clicks: String, rate: String) -> String {
+            LocalizationStore.localizedFormat(
+                "banner_report.row", defaultValue: "%1$@ показів · %2$@ натискань · %3$@",
+                arguments: [impressions, clicks, rate]
+            )
+        }
+        static func rateExplanation(_ rate: String) -> String {
+            LocalizationStore.localizedFormat(
+                "banner_report.rate", defaultValue: "Частка натискань: %@",
+                arguments: [rate]
+            )
+        }
+    }
+
     enum OwnerAnalytics {
         static var title: String { text("owner_analytics.title", "Analytics") }
         static var subtitle: String { text("owner_analytics.subtitle", "Views, popular content and regions") }

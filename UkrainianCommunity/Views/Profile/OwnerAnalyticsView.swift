@@ -19,6 +19,15 @@ struct OwnerAnalyticsView: View {
             scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize
         ) {
             periodPicker
+            NavigationLink(value: ProfileNavigationRoute.bannerAnalytics(period: viewModel.selectedPeriod)) {
+                ProfileModuleRow(
+                    title: AppStrings.BannerReport.title,
+                    subtitle: AppStrings.BannerReport.entrySubtitle,
+                    systemImage: "rectangle.on.rectangle"
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("ownerAnalytics.bannerReport")
             searchField
             content
         }
@@ -400,17 +409,6 @@ extension OwnerAnalyticsOverviewMetricItem: OwnerAnalyticsMetricDisplayable {}
 extension OwnerAnalyticsUserMetricItem: OwnerAnalyticsMetricDisplayable {}
 
 private extension AnalyticsPeriod {
-    var analyticsTitle: String {
-        switch self {
-        case .today:
-            AppStrings.OwnerAnalytics.periodToday
-        case .sevenDays:
-            AppStrings.OwnerAnalytics.periodSevenDays
-        case .thirtyDays:
-            AppStrings.OwnerAnalytics.periodThirtyDays
-        }
-    }
-
     var analyticsSummarySubtitle: String {
         switch self {
         case .today:

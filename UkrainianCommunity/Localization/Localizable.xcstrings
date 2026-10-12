@@ -28552,6 +28552,310 @@
         }
       }
     },
+    "banner_report.by_banner" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Banner"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За банерами"
+          }
+        }
+      }
+    },
+    "banner_report.by_section" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Bereich"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "За розділами"
+          }
+        }
+      }
+    },
+    "banner_report.clicks" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klicks"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Натискання"
+          }
+        }
+      }
+    },
+    "banner_report.empty.message" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Werte erscheinen nach dem Start der freiwilligen Banner-Messung und mit Einwilligung der Nutzer."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показники з’являться після запуску добровільного вимірювання банерів і згоди користувачів."
+          }
+        }
+      }
+    },
+    "banner_report.empty.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noch keine Messwerte"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поки немає вимірювань"
+          }
+        }
+      }
+    },
+    "banner_report.entry_subtitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufrufe, Klicks und Bereiche"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покази, натискання та розділи"
+          }
+        }
+      }
+    },
+    "banner_report.impressions" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sichtbare Aufrufe"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покази"
+          }
+        }
+      }
+    },
+    "banner_report.methodology" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gezählt werden nur Banner bei Nutzern mit gesonderter Einwilligung. Ein Aufruf zählt, wenn mindestens die Hälfte des Banners eine Sekunde sichtbar ist; ein Klick nach einer Nutzeraktion. Klickrate = Klicks / Aufrufe. Dies sind Aktionen, keine einzelnen Personen. Tage werden in UTC gezählt; der aktuelle Tag kann noch wachsen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ураховано лише банери користувачів, які окремо погодилися на вимірювання. Показ зараховується, коли видно щонайменше половину банера протягом секунди; натискання — після дії користувача. Частка натискань = натискання / покази. Це кількість дій, а не унікальних людей. Дні рахуються за UTC, дані поточного дня можуть доповнюватися."
+          }
+        }
+      }
+    },
+    "banner_report.names_unavailable" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannernamen sind gerade nicht verfügbar. Die IDs werden angezeigt; die Zählwerte wurden geladen."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Назви банерів зараз недоступні. Показано їхні ID; лічильники завантажені."
+          }
+        }
+      }
+    },
+    "banner_report.overview" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Загалом"
+          }
+        }
+      }
+    },
+    "banner_report.rate" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klickrate: %@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Частка натискань: %@"
+          }
+        }
+      }
+    },
+    "banner_report.row" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ Aufrufe · %2$@ Klicks · %3$@"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ показів · %2$@ натискань · %3$@"
+          }
+        }
+      }
+    },
+    "banner_report.section.directory" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ratgeber"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Довідник"
+          }
+        }
+      }
+    },
+    "banner_report.section.events" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltungen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Події"
+          }
+        }
+      }
+    },
+    "banner_report.section.home" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachrichten"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Новини"
+          }
+        }
+      }
+    },
+    "banner_report.section.organizations" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationen"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Організації"
+          }
+        }
+      }
+    },
+    "banner_report.subtitle" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aufrufe und Klicks nach Banner"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Покази та натискання за банерами"
+          }
+        }
+      }
+    },
+    "banner_report.title" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Банери"
+          }
+        }
+      }
+    },
+    "banner_report.total" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gesamt"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Усього"
+          }
+        }
+      }
+    },
     "owner_analytics.actions.cancelled_event_registrations" : {
       "extractionState" : "manual",
       "localizations" : {

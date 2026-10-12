@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import {after, before, beforeEach, describe, test} from "node:test";
 import {seedCurrentLegalVersions} from "./legalRuleFixtures.mjs";
 
@@ -7,12 +8,18 @@ import {
   initializeTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
   serverTimestamp,
   setDoc,
   Timestamp,
+  where,
   writeBatch,
 } from "firebase/firestore";
 import {readFileSync} from "node:fs";
@@ -321,5 +328,22 @@ describe("analytics access contract", () => {
     await assertFails(getDoc(doc(auth("user"), "bannerMeasurementDailyShards", "test")));
     await assertFails(setDoc(doc(auth("owner"), "bannerMeasurementDailyShards", "test"),
       {impressions: 2}));
+  });
+
+  test("owner can page a banner report by UTC day; other roles cannot", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "bannerMeasurementDailyShards", "2026-10-12_a_home_0"), {
+        day: "2026-10-12", bannerID: "a", section: "home", impressions: 3, clicks: 1,
+      });
+    });
+    const reportQuery = (database) => query(
+      collection(database, "bannerMeasurementDailyShards"),
+      where("day", ">=", "2026-10-06"), where("day", "<=", "2026-10-12"),
+      orderBy("day"), limit(500)
+    );
+    const ownerPage = await assertSucceeds(getDocs(reportQuery(auth("owner"))));
+    assert.equal(ownerPage.size, 1);
+    await assertFails(getDocs(reportQuery(auth("admin"))));
+    await assertFails(getDocs(reportQuery(auth("user"))));
   });
 });
