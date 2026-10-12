@@ -11,7 +11,7 @@ export const NEWS_SCOPES = Object.freeze([
 const scopeSet = new Set(NEWS_SCOPES);
 const trackingKeys = new Set(["ref", "sessionid", "fbclid", "gclid", "dclid"]);
 
-function sourceIdentity(value) {
+export function canonicalNewsURL(value) {
   const url = new URL(value);
   if (!new Set(["https:", "http:"]).has(url.protocol)) {
     throw new Error(`Unsupported source URL: ${value}`);
@@ -43,7 +43,7 @@ export function buildNewsScopeLayout(legacyProgress, initializedAt = new Date().
     }
     let identity;
     try {
-      identity = sourceIdentity(url);
+      identity = canonicalNewsURL(url);
     } catch {
       warnings.push({sourceId, reason: "invalid-url"});
       continue;
@@ -103,6 +103,7 @@ export function buildNewsScopeLayout(legacyProgress, initializedAt = new Date().
       activeSourceCount: sources.filter((source) => source.active).length,
       sharedSourceCount: sources.filter((source) => source.scopes.length > 1).length,
       legacyPendingImported: 0,
+      candidateDisposition: "terminal_same_pass_or_run_partial",
       publisher: "functions/scripts/contentPublishingLocalBridge.mjs",
       publisherNote: "Use the existing publisher and its Firestore identity locks under the shared content-work lock.",
       warnings,
@@ -128,7 +129,7 @@ export function planUniqueSourceFetches(registry, requestedScopes = NEWS_SCOPES)
 export function applyNewsEditorialSources(registry, entries = NEWS_EDITORIAL_SOURCES) {
   const byURL = new Map();
   for (const entry of entries) {
-    const identity = sourceIdentity(entry.url);
+    const identity = canonicalNewsURL(entry.url);
     if (byURL.has(identity)) throw new Error(`Duplicate editorial source: ${identity}`);
     if (!new Set(["scan", "adapter", "reference"]).has(entry.mode)) {
       throw new Error(`Unknown editorial source mode: ${entry.mode}`);
@@ -139,7 +140,7 @@ export function applyNewsEditorialSources(registry, entries = NEWS_EDITORIAL_SOU
     byURL.set(identity, {...entry, url: identity});
   }
   const sources = registry.sources.map((source) => {
-    const entry = byURL.get(sourceIdentity(source.url));
+    const entry = byURL.get(canonicalNewsURL(source.url));
     if (entry) byURL.delete(entry.url);
     return entry ? {...source, scopes: [...entry.scopes], active: entry.mode === "scan",
       editorialMode: entry.mode, topics: [...entry.topics]} :
