@@ -26,7 +26,7 @@ struct LegalComplianceView: View {
                         header
                         changedDocumentRows
 
-                        if !requirement.verificationUnavailable && !hasReviewedRequiredDocuments {
+                        if !hasReviewedRequiredDocuments {
                             Text(AppStrings.LegalCompliance.reviewInstruction)
                                 .font(.footnote)
                                 .foregroundStyle(AppTheme.textSecondary)
@@ -38,17 +38,11 @@ struct LegalComplianceView: View {
                         }
 
                         PrimaryActionButton(
-                            title: requirement.verificationUnavailable
-                                ? AppStrings.Action.retry
-                                : AppStrings.LegalCompliance.acceptAll,
-                            loadingTitle: requirement.verificationUnavailable
-                                ? AppStrings.Action.retry
-                                : AppStrings.LegalCompliance.accepting,
-                            isEnabled: requirement.verificationUnavailable || hasReviewedRequiredDocuments,
+                            title: AppStrings.LegalCompliance.acceptAll,
+                            loadingTitle: AppStrings.LegalCompliance.accepting,
+                            isEnabled: hasReviewedRequiredDocuments,
                             isLoading: isAccepting,
-                            systemImage: requirement.verificationUnavailable
-                                ? "arrow.clockwise"
-                                : "checkmark.circle.fill",
+                            systemImage: "checkmark.circle.fill",
                             action: accept
                         )
 

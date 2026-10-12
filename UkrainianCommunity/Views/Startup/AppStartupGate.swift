@@ -31,6 +31,13 @@ struct AppStartupGate: View {
             if authState.isRestoring || isShowingSplash {
                 SplashLoadingView()
             } else if authState.isAuthenticated,
+                      let failure = legalComplianceMonitor.verificationFailure {
+                StartupAccessFailureView(failure: failure) {
+                    await legalComplianceMonitor.retryVerification(user: authState.user)
+                }
+                .preferredColorScheme(AppAppearance.stored.colorScheme)
+                .environment(\.locale, Locale(identifier: AppLanguage.stored.rawValue))
+            } else if authState.isAuthenticated,
                       let requirement = legalComplianceMonitor.activeRequirement,
                       requirement.userID == authState.user?.id {
                 LegalComplianceView(

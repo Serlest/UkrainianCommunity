@@ -36,12 +36,12 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
     func listenActiveVersion(
         type: LegalDocumentType,
         onChange: @escaping @MainActor (String?) -> Void,
-        onError: @escaping @MainActor () -> Void
+        onError: @escaping @MainActor (Error) -> Void
     ) -> AppRealtimeListener? {
         let registration = database.collection("legalDocuments").document(type.rawValue)
             .addSnapshotListener { snapshot, error in
-                if error != nil {
-                    Task { @MainActor in onError() }
+                if let error {
+                    Task { @MainActor in onError(error) }
                 } else {
                     let version = snapshot?.data()?["activeVersion"] as? String
                     Task { @MainActor in onChange(version) }

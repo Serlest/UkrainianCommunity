@@ -41759,6 +41759,40 @@
         }
       }
     },
+    "startup.connection.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Verbindung zum Server ist fehlgeschlagen. Prüfen Sie WLAN oder mobile Daten und versuchen Sie es erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося з’єднатися із сервером. Перевірте інтернет або мобільний зв’язок і спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "startup.connection.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Verbindung"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Немає з’єднання"
+          }
+        }
+      }
+    },
     "startup.loading" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -41772,6 +41806,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Завантаження UAC…"
+          }
+        }
+      }
+    },
+    "startup.service.message" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die benötigten Daten konnten nicht geladen werden. Versuchen Sie es bitte etwas später erneut."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося отримати потрібні дані. Спробуйте ще раз трохи пізніше."
+          }
+        }
+      }
+    },
+    "startup.service.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dienst vorübergehend nicht verfügbar"
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервіс тимчасово недоступний"
           }
         }
       }

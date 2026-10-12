@@ -14,7 +14,7 @@ protocol LegalDocumentRepository {
     func listenActiveVersion(
         type: LegalDocumentType,
         onChange: @escaping @MainActor (String?) -> Void,
-        onError: @escaping @MainActor () -> Void
+        onError: @escaping @MainActor (Error) -> Void
     ) -> AppRealtimeListener?
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws
@@ -32,7 +32,7 @@ extension LegalDocumentRepository {
     func listenActiveVersion(
         type: LegalDocumentType,
         onChange: @escaping @MainActor (String?) -> Void,
-        onError: @escaping @MainActor () -> Void
+        onError: @escaping @MainActor (Error) -> Void
     ) -> AppRealtimeListener? { nil }
     func fetchActiveDocumentForReader(type: LegalDocumentType) async throws -> LegalDocument {
         try await fetchActiveDocument(type: type)

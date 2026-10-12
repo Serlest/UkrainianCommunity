@@ -42,6 +42,10 @@ enum AppStrings {
 
     enum Startup {
         static var loading: String { text("startup.loading", "Завантаження UAC…") }
+        static var connectionTitle: String { text("startup.connection.title", "Немає з’єднання") }
+        static var connectionMessage: String { text("startup.connection.message", "Не вдалося з’єднатися із сервером. Перевірте інтернет або мобільний зв’язок і спробуйте ще раз.") }
+        static var serviceTitle: String { text("startup.service.title", "Сервіс тимчасово недоступний") }
+        static var serviceMessage: String { text("startup.service.message", "Не вдалося отримати потрібні дані. Спробуйте ще раз трохи пізніше.") }
     }
 
     enum DetailState {

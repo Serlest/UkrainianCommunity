@@ -4,6 +4,7 @@ import Foundation
 @MainActor
 final class LegalComplianceMonitorService: ObservableObject {
     @Published var activeRequirement: LegalComplianceRequirement?
+    @Published private(set) var verificationFailure: StartupVerificationFailure?
     @Published private(set) var verifiedKey: String?
     @Published var isAccepting = false
     @Published var errorMessage: String?
@@ -18,7 +19,7 @@ final class LegalComplianceMonitorService: ObservableObject {
     private var latestUser: AppUser?
     private var checkedDocumentVersions: [LegalDocumentType: String] = [:]
     private var observedDocumentVersions: [LegalDocumentType: String] = [:]
-    private var versionListenerFailed = false
+    private var versionListenerFailure: StartupVerificationFailure?
     private var lastVerifiedAt: Date?
     private static let foregroundVerificationInterval: TimeInterval = 15 * 60
     private var versionListenerGeneration: UInt = 0
@@ -41,12 +42,13 @@ final class LegalComplianceMonitorService: ObservableObject {
             latestUser = nil
             checkedDocumentVersions = [:]
             observedDocumentVersions = [:]
-            versionListenerFailed = false
+            versionListenerFailure = nil
             lastVerifiedAt = nil
             activeVersionListeners.removeAll()
             invalidateAcceptance()
             evaluatedKey = nil
             activeRequirement = nil
+            verificationFailure = nil
             verifiedKey = nil
             locallyAcceptedUserID = nil
             locallyAcceptedVersions = [:]
@@ -59,11 +61,12 @@ final class LegalComplianceMonitorService: ObservableObject {
         if identityChanged {
             invalidateAcceptance()
             activeRequirement = nil
+            verificationFailure = nil
             verifiedKey = nil
             errorMessage = nil
             checkedDocumentVersions = [:]
             observedDocumentVersions = [:]
-            versionListenerFailed = false
+            versionListenerFailure = nil
             lastVerifiedAt = nil
             activeVersionListeners.removeAll()
         }
@@ -83,26 +86,27 @@ final class LegalComplianceMonitorService: ObservableObject {
         let userID = user.id
         configuredUserID = userID
         evaluatedKey = key
+        verificationFailure = nil
         errorMessage = nil
         if identityChanged { observeActiveVersions() }
 
         do {
             try Task.checkCancellation()
-            async let termsDocument = legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .terms)
-            async let privacyDocument = legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .privacy)
+            async let termsDocument = RefreshRequest.run(timeout: .seconds(15)) {
+                try await self.legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .terms)
+            }
+            async let privacyDocument = RefreshRequest.run(timeout: .seconds(15)) {
+                try await self.legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .privacy)
+            }
             let documents = try await [termsDocument, privacyDocument]
             try Task.checkCancellation()
             guard isCurrentConfiguration(generation: generation, userID: userID, key: key) else {
                 return
             }
             checkedDocumentVersions = Dictionary(uniqueKeysWithValues: documents.map { ($0.type, $0.version) })
-            if versionListenerFailed {
-                activeRequirement = LegalComplianceRequirement(
-                    userID: userID,
-                    requiredDocuments: [],
-                    verificationUnavailable: true
-                )
-                errorMessage = AppStrings.LegalCompliance.loadFailed
+            if let versionListenerFailure {
+                activeRequirement = nil
+                verificationFailure = versionListenerFailure
                 return
             }
             if observedDocumentVersions.contains(where: { type, version in
@@ -134,6 +138,7 @@ final class LegalComplianceMonitorService: ObservableObject {
                 userID: userID,
                 requiredDocuments: requiredDocuments
             )
+            verificationFailure = nil
             verifiedKey = requiredDocuments.isEmpty ? key : nil
             lastVerifiedAt = requiredDocuments.isEmpty ? Date() : nil
         } catch is CancellationError {
@@ -148,12 +153,8 @@ final class LegalComplianceMonitorService: ObservableObject {
             }
             evaluatedKey = nil
             verifiedKey = nil
-            activeRequirement = LegalComplianceRequirement(
-                userID: userID,
-                requiredDocuments: [],
-                verificationUnavailable: true
-            )
-            errorMessage = AppStrings.LegalCompliance.loadFailed
+            activeRequirement = nil
+            verificationFailure = StartupVerificationFailure(error: error)
         }
     }
 
@@ -172,11 +173,25 @@ final class LegalComplianceMonitorService: ObservableObject {
     /// listener update without dismantling the app on every brief interruption.
     func verifyAfterBackgroundIfNeeded(user: AppUser?) async {
         guard let user else { return }
-        if verifiedKey != nil, !versionListenerFailed,
+        if verifiedKey != nil, versionListenerFailure == nil,
            let lastVerifiedAt,
            Date().timeIntervalSince(lastVerifiedAt) < Self.foregroundVerificationInterval {
             return
         }
+        if verificationFailure != nil {
+            await retryVerification(user: user)
+            return
+        }
+        await refresh(user: user)
+    }
+
+    func retryVerification(user: AppUser?) async {
+        guard let user, configuredUserID == user.id else { return }
+        activeVersionListeners.removeAll()
+        checkedDocumentVersions = [:]
+        observedDocumentVersions = [:]
+        versionListenerFailure = nil
+        observeActiveVersions()
         await refresh(user: user)
     }
 
@@ -198,18 +213,14 @@ final class LegalComplianceMonitorService: ObservableObject {
                         Task { await self.refresh(user: user) }
                     }
                 },
-                onError: { [weak self] in
-                    guard let self, let user = self.latestUser,
+                onError: { [weak self] error in
+                    guard let self, self.latestUser != nil,
                           self.configuredUserID == observingUserID,
                           self.versionListenerGeneration == observingGeneration else { return }
-                    self.versionListenerFailed = true
+                    self.versionListenerFailure = StartupVerificationFailure(error: error)
                     self.verifiedKey = nil
-                    self.activeRequirement = LegalComplianceRequirement(
-                        userID: user.id,
-                        requiredDocuments: [],
-                        verificationUnavailable: true
-                    )
-                    self.errorMessage = AppStrings.LegalCompliance.loadFailed
+                    self.activeRequirement = nil
+                    self.verificationFailure = self.versionListenerFailure
                 }
             ) else { continue }
             activeVersionListeners.set(listener, for: type.rawValue)
@@ -222,19 +233,6 @@ final class LegalComplianceMonitorService: ObservableObject {
               configuredUserID == requirement.userID,
               authState.isAuthenticated,
               authState.user?.id == requirement.userID else {
-            return
-        }
-
-        if requirement.verificationUnavailable {
-            isAccepting = true
-            acceptingUserID = nil
-            evaluatedKey = nil
-            activeVersionListeners.removeAll()
-            observedDocumentVersions = [:]
-            versionListenerFailed = false
-            observeActiveVersions()
-            await configure(user: authState.user)
-            isAccepting = false
             return
         }
 
@@ -498,14 +496,21 @@ final class LegalComplianceMonitorService: ObservableObject {
     }
 }
 
+enum StartupVerificationFailure: Equatable {
+    case connection
+    case service
+
+    init(error: Error) {
+        self = FirebaseReadErrorMapper.map(error) == .network ? .connection : .service
+    }
+}
+
 struct LegalComplianceRequirement: Identifiable, Equatable {
     let userID: String
     let requiredDocuments: [LegalDocument]
-    var verificationUnavailable = false
 
     var id: String {
-        ([userID, verificationUnavailable ? "unavailable" : "ready"]
-            + requiredDocuments.map { "\($0.type.rawValue):\($0.version)" })
+        ([userID] + requiredDocuments.map { "\($0.type.rawValue):\($0.version)" })
             .joined(separator: "|")
     }
 

@@ -6,6 +6,95 @@ import Testing
 @Suite("Legal compliance account races")
 struct LegalComplianceMonitorRaceTests {
     @Test
+    func offlineVerificationShowsConnectionFailureAndRetryRestoresAccess() async {
+        let terms = makeDocument(type: .terms)
+        let privacy = makeDocument(type: .privacy)
+        let user = makeUser(id: "user-a", acceptedTermsVersion: terms.version,
+                            acceptedPrivacyVersion: privacy.version)
+        let repository = ControlledLegalDocumentRepository(documents: [terms, privacy])
+        repository.fetchError = .network
+        let service = LegalComplianceMonitorService(
+            legalDocumentRepository: repository,
+            userRepository: ControlledLegalUserRepository(currentUser: user)
+        )
+
+        await service.configure(user: user)
+        #expect(service.verificationFailure == .connection)
+        #expect(service.activeRequirement == nil)
+        #expect(service.verifiedKey == nil)
+
+        repository.fetchError = nil
+        await service.retryVerification(user: user)
+        #expect(service.verificationFailure == nil)
+        #expect(service.activeRequirement == nil)
+        #expect(service.verifiedKey != nil)
+    }
+
+    @Test
+    func retryAfterOfflineShowsActualUnacceptedDocuments() async {
+        let terms = makeDocument(type: .terms)
+        let privacy = makeDocument(type: .privacy)
+        let user = makeUser(id: "user-a")
+        let repository = ControlledLegalDocumentRepository(documents: [terms, privacy])
+        repository.fetchError = .network
+        let service = LegalComplianceMonitorService(
+            legalDocumentRepository: repository,
+            userRepository: ControlledLegalUserRepository(currentUser: user)
+        )
+
+        await service.configure(user: user)
+        #expect(service.verificationFailure == .connection)
+        #expect(service.activeRequirement == nil)
+
+        repository.fetchError = nil
+        await service.retryVerification(user: user)
+        #expect(service.verificationFailure == nil)
+        #expect(service.activeRequirement?.requiredDocuments.map(\.type) == [.terms, .privacy])
+        #expect(service.verifiedKey == nil)
+    }
+
+    @Test
+    func invalidLegalDataShowsServiceFailureInsteadOfConsentRequest() async {
+        let terms = makeDocument(type: .terms)
+        let privacy = makeDocument(type: .privacy)
+        let user = makeUser(id: "user-a")
+        let repository = ControlledLegalDocumentRepository(documents: [terms, privacy])
+        repository.fetchError = .validationFailed
+        let service = LegalComplianceMonitorService(
+            legalDocumentRepository: repository,
+            userRepository: ControlledLegalUserRepository(currentUser: user)
+        )
+
+        await service.configure(user: user)
+        #expect(service.verificationFailure == .service)
+        #expect(service.activeRequirement == nil)
+        #expect(service.verifiedKey == nil)
+    }
+
+    @Test
+    func listenerConnectionFailureClosesSessionUntilRetrySucceeds() async {
+        let terms = makeDocument(type: .terms)
+        let privacy = makeDocument(type: .privacy)
+        let user = makeUser(id: "user-a", acceptedTermsVersion: terms.version,
+                            acceptedPrivacyVersion: privacy.version)
+        let repository = ControlledLegalDocumentRepository(documents: [terms, privacy])
+        let service = LegalComplianceMonitorService(
+            legalDocumentRepository: repository,
+            userRepository: ControlledLegalUserRepository(currentUser: user)
+        )
+
+        await service.configure(user: user)
+        #expect(service.verifiedKey != nil)
+        repository.failListener(type: .privacy, error: AppError.network)
+        #expect(service.verificationFailure == .connection)
+        #expect(service.verifiedKey == nil)
+
+        await service.retryVerification(user: user)
+        #expect(service.verificationFailure == nil)
+        #expect(service.verifiedKey != nil)
+    }
+
+    @Test
     func briefBackgroundReturnKeepsVerifiedSessionWithoutAnotherServerRead() async {
         let terms = makeDocument(type: .terms)
         let privacy = makeDocument(type: .privacy)
@@ -279,7 +368,9 @@ private enum LegalComplianceTestError: Error {
 private final class ControlledLegalDocumentRepository: LegalDocumentRepository {
     private var documentsByType: [LegalDocumentType: LegalDocument]
     private var versionObservers: [LegalDocumentType: @MainActor (String?) -> Void] = [:]
+    private var versionErrorObservers: [LegalDocumentType: @MainActor (Error) -> Void] = [:]
     private let suspendsFetches: Bool
+    var fetchError: AppError?
     private var fetchCounts: [LegalDocumentType: Int] = [:]
     private var fetchContinuations: [String: CheckedContinuation<LegalDocument, Error>] = [:]
     private var acceptanceContinuations: [Int: CheckedContinuation<LegalAcceptanceReceipt, Error>] = [:]
@@ -307,6 +398,7 @@ private final class ControlledLegalDocumentRepository: LegalDocumentRepository {
             throw AppError.notFound
         }
         fetchCounts[type, default: 0] += 1
+        if let fetchError { throw fetchError }
         guard suspendsFetches else { return document }
 
         let requestNumber = fetchCounts[type, default: 0]
@@ -318,10 +410,15 @@ private final class ControlledLegalDocumentRepository: LegalDocumentRepository {
     func listenActiveVersion(
         type: LegalDocumentType,
         onChange: @escaping @MainActor (String?) -> Void,
-        onError: @escaping @MainActor () -> Void
+        onError: @escaping @MainActor (Error) -> Void
     ) -> AppRealtimeListener? {
         versionObservers[type] = onChange
+        versionErrorObservers[type] = onError
         return ControlledLegalListener()
+    }
+
+    func failListener(type: LegalDocumentType, error: Error) {
+        versionErrorObservers[type]?(error)
     }
 
     func publish(_ document: LegalDocument) {
