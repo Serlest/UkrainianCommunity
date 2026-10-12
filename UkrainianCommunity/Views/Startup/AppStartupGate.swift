@@ -10,6 +10,7 @@ struct AppStartupGate: View {
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @ObservedObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
     @State private var isShowingSplash = true
+    @State private var hasEnteredBackground = false
 
     private let transitionDuration = 0.25
 
@@ -76,8 +77,12 @@ struct AppStartupGate: View {
             markPendingLegalRouteHandledByRequiredReview()
         }
         .onChange(of: scenePhase) { _, phase in
-            guard phase == .active, authState.isAuthenticated else { return }
-            Task { await legalComplianceMonitor.refresh(user: authState.user) }
+            if phase == .background { hasEnteredBackground = true }
+            guard phase == .active else { return }
+            let resumedFromBackground = hasEnteredBackground
+            hasEnteredBackground = false
+            guard resumedFromBackground, authState.isAuthenticated else { return }
+            Task { await legalComplianceMonitor.verifyAfterBackgroundIfNeeded(user: authState.user) }
         }
         .onOpenURL { url in
             _ = GIDSignIn.sharedInstance.handle(url)

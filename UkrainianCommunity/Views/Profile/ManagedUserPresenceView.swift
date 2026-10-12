@@ -9,7 +9,7 @@ struct ManagedUserPresenceView: View {
     @State private var retry = 0
 
     private var loadKey: String {
-        "\(userID)|\(actor?.id ?? "")|\(PermissionService.canManageUsers(user: actor))|\(scenePhase)|\(retry)|\(refreshToken)"
+        "\(userID)|\(actor?.id ?? "")|\(PermissionService.canManageUsers(user: actor))|\(scenePhase == .background)|\(retry)|\(refreshToken)"
     }
 
     var body: some View {
@@ -38,7 +38,7 @@ struct ManagedUserPresenceView: View {
                 }
             }
             .task(id: loadKey) {
-                guard scenePhase == .active else { model.cancelPending(); return }
+                guard scenePhase != .background else { model.cancelPending(); return }
                 repeat {
                     await model.refresh(userID: userID, actor: actor)
                     guard !Task.isCancelled else { return }

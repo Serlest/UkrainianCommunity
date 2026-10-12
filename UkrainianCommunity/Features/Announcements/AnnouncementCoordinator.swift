@@ -58,6 +58,10 @@ final class AnnouncementCoordinator: ObservableObject {
             active = nil; lastLoadedAt = nil
         }
     }
+    func refreshIfStale() async {
+        guard lastLoadedAt.map({ Date().timeIntervalSince($0) < 60 }) != true else { return }
+        await refresh()
+    }
     var now: Double { Date().timeIntervalSince1970 * 1000 + serverOffset }
     func presentIfPossible(_ ready: Bool) {
         guard ready, active == nil, policy.seenThisSession.isEmpty, let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) < 120 else { return }

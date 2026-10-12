@@ -6,6 +6,26 @@ import Testing
 @Suite("Legal compliance account races")
 struct LegalComplianceMonitorRaceTests {
     @Test
+    func briefBackgroundReturnKeepsVerifiedSessionWithoutAnotherServerRead() async {
+        let terms = makeDocument(type: .terms)
+        let privacy = makeDocument(type: .privacy)
+        let user = makeUser(id: "user-a", acceptedTermsVersion: terms.version,
+                            acceptedPrivacyVersion: privacy.version)
+        let repository = ControlledLegalDocumentRepository(documents: [terms, privacy])
+        let service = LegalComplianceMonitorService(
+            legalDocumentRepository: repository,
+            userRepository: ControlledLegalUserRepository(currentUser: user)
+        )
+
+        await service.configure(user: user)
+        await service.verifyAfterBackgroundIfNeeded(user: user)
+
+        #expect(service.verifiedKey != nil)
+        #expect(repository.fetchRequestCount(for: .terms) == 1)
+        #expect(repository.fetchRequestCount(for: .privacy) == 1)
+    }
+
+    @Test
     func publishedPrivacyVersionClosesAnAlreadyVerifiedSession() async {
         let terms = makeDocument(type: .terms)
         let privacy = makeDocument(type: .privacy)
@@ -286,9 +306,9 @@ private final class ControlledLegalDocumentRepository: LegalDocumentRepository {
         guard let document = documentsByType[type] else {
             throw AppError.notFound
         }
+        fetchCounts[type, default: 0] += 1
         guard suspendsFetches else { return document }
 
-        fetchCounts[type, default: 0] += 1
         let requestNumber = fetchCounts[type, default: 0]
         return try await withCheckedThrowingContinuation { continuation in
             fetchContinuations[fetchKey(type: type, requestNumber: requestNumber)] = continuation

@@ -19,6 +19,8 @@ final class LegalComplianceMonitorService: ObservableObject {
     private var checkedDocumentVersions: [LegalDocumentType: String] = [:]
     private var observedDocumentVersions: [LegalDocumentType: String] = [:]
     private var versionListenerFailed = false
+    private var lastVerifiedAt: Date?
+    private static let foregroundVerificationInterval: TimeInterval = 15 * 60
     private var versionListenerGeneration: UInt = 0
     private let activeVersionListeners = RealtimeListenerBag()
     private var configurationGeneration: UInt = 0
@@ -40,6 +42,7 @@ final class LegalComplianceMonitorService: ObservableObject {
             checkedDocumentVersions = [:]
             observedDocumentVersions = [:]
             versionListenerFailed = false
+            lastVerifiedAt = nil
             activeVersionListeners.removeAll()
             invalidateAcceptance()
             evaluatedKey = nil
@@ -61,6 +64,7 @@ final class LegalComplianceMonitorService: ObservableObject {
             checkedDocumentVersions = [:]
             observedDocumentVersions = [:]
             versionListenerFailed = false
+            lastVerifiedAt = nil
             activeVersionListeners.removeAll()
         }
         latestUser = user
@@ -131,6 +135,7 @@ final class LegalComplianceMonitorService: ObservableObject {
                 requiredDocuments: requiredDocuments
             )
             verifiedKey = requiredDocuments.isEmpty ? key : nil
+            lastVerifiedAt = requiredDocuments.isEmpty ? Date() : nil
         } catch is CancellationError {
             guard isCurrentConfiguration(generation: generation, userID: userID, key: key) else {
                 return
@@ -160,6 +165,19 @@ final class LegalComplianceMonitorService: ObservableObject {
         verifiedKey = nil
         evaluatedKey = nil
         await configure(user: user)
+    }
+
+    /// The live version listeners close an already verified session as soon as
+    /// the active document changes. A periodic server read also covers a missed
+    /// listener update without dismantling the app on every brief interruption.
+    func verifyAfterBackgroundIfNeeded(user: AppUser?) async {
+        guard let user else { return }
+        if verifiedKey != nil, !versionListenerFailed,
+           let lastVerifiedAt,
+           Date().timeIntervalSince(lastVerifiedAt) < Self.foregroundVerificationInterval {
+            return
+        }
+        await refresh(user: user)
     }
 
     private func observeActiveVersions() {

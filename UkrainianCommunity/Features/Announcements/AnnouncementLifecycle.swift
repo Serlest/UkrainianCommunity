@@ -90,6 +90,7 @@ struct AnnouncementLifecycle: ViewModifier {
     let ready: Bool
     let feedback: (UserAnnouncement) -> Void
     @Environment(\.scenePhase) private var scenePhase
+    @State private var hasEnteredBackground = false
     @ObservedObject private var push = AnnouncementPushBridge.shared
     private var identity: String {
         guard available, let userID else { return "unavailable" }
@@ -104,12 +105,23 @@ struct AnnouncementLifecycle: ViewModifier {
                 await reload()
             }
             .task(id: scenePhase) {
-                guard scenePhase == .active else { coordinator.background(); return }
-                coordinator.foreground()
-                await push.registerIfAllowed()
+                guard scenePhase == .active else { return }
+                if hasEnteredBackground {
+                    hasEnteredBackground = false
+                    coordinator.foreground()
+                    await push.registerIfAllowed()
+                    await coordinator.refreshIfStale()
+                }
+                present()
                 while !Task.isCancelled {
-                    await reload()
                     do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                    await reloadIfStale()
+                }
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .background {
+                    hasEnteredBackground = true
+                    coordinator.background()
                 }
             }
             .onChange(of: ready) { _, value in if value { present() } else { coordinator.active = nil } }
@@ -128,6 +140,11 @@ struct AnnouncementLifecycle: ViewModifier {
             push.pendingID = nil
             if let item = coordinator.items.first(where: { $0.id == id && $0.active(at: coordinator.now) }) { coordinator.active = item; return }
         }
+        present()
+    }
+    private func reloadIfStale() async {
+        await coordinator.refreshIfStale()
+        guard !Task.isCancelled else { return }
         present()
     }
     private func present() { coordinator.presentIfPossible(ready && scenePhase == .active && canPresentModal) }

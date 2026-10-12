@@ -101,7 +101,7 @@ struct NewsHomeView: View {
         .appRefreshable { await refresh() }
         .task(id: browseLoadKey) {
             guard isActive, isAuthBootstrapReady else { return }
-            await newsBrowser.reload(browseQuery, visibility: newsViewModel.visibilityPolicy)
+            await newsBrowser.loadIfNeeded(browseQuery, visibility: newsViewModel.visibilityPolicy)
         }
         .task(id: bannerLoadKey) {
             guard isActive, isAuthBootstrapReady else { return }

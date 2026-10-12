@@ -12,6 +12,8 @@ final class NewsBrowseViewModel: ObservableObject {
     private var query: NewsBrowseQuery?
     private var generation = 0
     private var replacePending = false
+    private var lastLoadedAt: Date?
+    private let staleInterval: TimeInterval = 5 * 60
 
     init(repository: NewsRepository) {
         loadPage = { try await repository.fetchNewsBrowsePage(query: $0, limit: $1, after: $2) }
@@ -21,7 +23,12 @@ final class NewsBrowseViewModel: ObservableObject {
     }
     func clear() {
         generation += 1
-        posts = []; cursor = nil; query = nil; hasMore = false; loading = false; error = nil
+        posts = []; cursor = nil; query = nil; hasMore = false; loading = false; error = nil; lastLoadedAt = nil
+    }
+    func loadIfNeeded(_ query: NewsBrowseQuery, visibility: ContentVisibilityPolicy) async {
+        if self.query == query, !replacePending, error == nil, let lastLoadedAt,
+           Date().timeIntervalSince(lastLoadedAt) < staleInterval { return }
+        await reload(query, visibility: visibility)
     }
     func reload(_ query: NewsBrowseQuery, visibility: ContentVisibilityPolicy) async {
         let preserve = self.query.map {
@@ -53,6 +60,7 @@ final class NewsBrowseViewModel: ObservableObject {
                 posts += visible.filter { ids.insert($0.id).inserted }
                 cursor = page.nextCursor
                 hasMore = page.hasMore && page.nextCursor != nil
+                lastLoadedAt = Date()
                 if !visible.isEmpty || !hasMore { break }
             }
         } catch is CancellationError {

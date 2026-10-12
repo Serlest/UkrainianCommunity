@@ -54,6 +54,9 @@ struct ContentView: View {
     @State private var directorySearchResetToken = 0
     @State private var profileScrollResetToken = 0
     @State private var lastHandledAuthIdentityResetKey: String?
+    @State private var hasEnteredBackground = false
+    @State private var lastForegroundMaintenanceAt = Date()
+    private let foregroundMaintenanceInterval: TimeInterval = 5 * 60
     @State private var notificationRouteErrorMessage: String?
     private let featuredBannerActionResolver = FeaturedBannerActionResolver()
 
@@ -183,11 +186,8 @@ struct ContentView: View {
             applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
             await organizationBlockingCoordinator.configure(userID: notificationInboxUserID)
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            Task {
-                await organizationBlockingCoordinator.reload()
-                await userBlockingCoordinator.reload()
-            }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            hasEnteredBackground = true
         }
         .onChange(of: organizationBlockingCoordinator.visibilityPolicy) { oldPolicy, newPolicy in
             applyContentVisibility(blockedUserIDs: userBlockingCoordinator.blockedUserIDs)
@@ -268,7 +268,13 @@ struct ContentView: View {
             UserSettings.stored = profileViewModel.settings
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            guard hasEnteredBackground else { return }
+            hasEnteredBackground = false
+            guard Date().timeIntervalSince(lastForegroundMaintenanceAt) >= foregroundMaintenanceInterval else { return }
+            lastForegroundMaintenanceAt = Date()
             Task {
+                await organizationBlockingCoordinator.reload()
+                await userBlockingCoordinator.reload()
                 await configureRemoteNotifications(for: notificationInboxUserID)
                 await notificationInboxViewModel.refreshBadge()
             }

@@ -60,6 +60,8 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
 
     #if canImport(UIKit)
     private var foregroundObserver: NotificationHandleBox?
+    private var backgroundObserver: NotificationHandleBox?
+    private var hasEnteredBackground = false
     #endif
 
     #if canImport(FirebaseFunctions)
@@ -82,6 +84,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         #endif
         #if canImport(UIKit)
         self.foregroundObserver = nil
+        self.backgroundObserver = nil
         #endif
 
         let analyticsConsentID = Self.authorizedConsentID(
@@ -138,6 +141,15 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         #endif
 
         #if canImport(UIKit)
+        backgroundObserver = NotificationHandleBox(
+            NotificationCenter.default.addObserver(
+                forName: UIApplication.didEnterBackgroundNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.hasEnteredBackground = true
+            }
+        )
         foregroundObserver = NotificationHandleBox(
             NotificationCenter.default.addObserver(
                 forName: UIApplication.didBecomeActiveNotification,
@@ -145,6 +157,8 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
                 queue: .main
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in
+                    guard self?.hasEnteredBackground == true else { return }
+                    self?.hasEnteredBackground = false
                     self?.resumeAggregateDelivery()
                     self?.synchronizePendingWithdrawal()
                 }
@@ -162,6 +176,9 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         #if canImport(UIKit)
         if let foregroundObserver {
             NotificationCenter.default.removeObserver(foregroundObserver.value)
+        }
+        if let backgroundObserver {
+            NotificationCenter.default.removeObserver(backgroundObserver.value)
         }
         #endif
     }

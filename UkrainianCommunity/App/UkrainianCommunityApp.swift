@@ -235,6 +235,9 @@ struct UkrainianCommunityApp: App {
             }
         }
         .onChange(of: scenePhase) { _, phase in
+            // System overlays (including screenshots) can briefly make the
+            // scene inactive. Presence stays online until actual backgrounding.
+            guard phase != .inactive else { return }
             presence.update(userID: presenceUserID, isActive: phase == .active)
         }
     }

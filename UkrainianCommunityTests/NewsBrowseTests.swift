@@ -80,6 +80,22 @@ struct NewsBrowseTests {
         #expect(model.posts.map(\.id) == ["new"])
         #expect(!model.loading)
     }
+    @Test func returningToNewsTabUsesFreshPageAndFilterChangeReloads() async {
+        var calls = 0
+        let model = NewsBrowseViewModel { _, _, _ in
+            calls += 1
+            return NewsPage(items: [post("current")], nextCursor: nil, hasMore: false)
+        }
+        let query = NewsBrowseQuery(filter: .init(), region: nil, referenceDate: now)
+        await model.loadIfNeeded(query, visibility: .init())
+        await model.loadIfNeeded(query, visibility: .init())
+        #expect(calls == 1)
+
+        var changed = query
+        changed.filter.topic = .housing
+        await model.loadIfNeeded(changed, visibility: .init())
+        #expect(calls == 2)
+    }
     @Test func emptyScannedPagesDoNotClaimEndOfResults() async {
         var calls = 0
         let model = NewsBrowseViewModel { _, _, _ in

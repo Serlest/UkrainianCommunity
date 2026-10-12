@@ -242,6 +242,7 @@ struct LoginView: View {
 
 struct RegisterView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @State private var hasEnteredBackground = false
     @StateObject private var appLockChoice = RegistrationAppLockChoice()
     @StateObject private var legalDocuments = RegistrationLegalDocumentsViewModel()
     @State private var email: String
@@ -312,10 +313,14 @@ struct RegisterView: View {
         .disabled(isSubmitting || appLockChoice.isAuthenticating)
         .onDisappear { appLockChoice.cancelPendingAuthentication() }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .background { appLockChoice.cancelPendingAuthentication() }
-            if phase == .active {
+            if phase == .background {
+                hasEnteredBackground = true
+                appLockChoice.cancelPendingAuthentication()
+            }
+            if phase == .active, hasEnteredBackground {
+                hasEnteredBackground = false
                 appLockChoice.refreshAvailability()
-                Task { await legalDocuments.load() }
+                Task { await legalDocuments.refreshIfStale() }
             }
         }
         .onChange(of: legalDocuments.versionKey) { _, _ in
@@ -1012,6 +1017,7 @@ private final class RegistrationLegalDocumentsViewModel: ObservableObject {
 
     private let repository: LegalDocumentRepository
     private var loadGeneration = 0
+    private var lastLoadedAt: Date?
 
     init(repository: LegalDocumentRepository? = nil) {
         self.repository = repository ?? FirestoreLegalDocumentRepository()
@@ -1034,14 +1040,22 @@ private final class RegistrationLegalDocumentsViewModel: ObservableObject {
             guard generation == loadGeneration else { return }
             terms = documents.terms
             privacy = documents.privacy
+            lastLoadedAt = Date()
         } catch {
             guard generation == loadGeneration else { return }
             terms = nil
             privacy = nil
+            lastLoadedAt = nil
             errorMessage = AppStrings.LegalCompliance.loadFailed
         }
 
         if generation == loadGeneration { isLoading = false }
+    }
+
+    func refreshIfStale() async {
+        guard !isLoading,
+              lastLoadedAt.map({ Date().timeIntervalSince($0) < 5 * 60 }) != true else { return }
+        await load()
     }
 
     func refreshForSubmission() async throws -> (terms: LegalDocument, privacy: LegalDocument) {
