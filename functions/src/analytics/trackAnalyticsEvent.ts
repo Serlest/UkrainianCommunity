@@ -85,9 +85,11 @@ type AnalyticsEventName =
   | "news_bookmark"
   | "event_view"
   | "event_register"
+  | "event_cancel_registration"
   | "event_bookmark"
   | "organization_view"
   | "organization_follow"
+  | "organization_unfollow"
   | "organization_bookmark";
 
 type AnalyticsEventKind = "view" | "action";
@@ -338,6 +340,12 @@ const eventConfigs: Record<AnalyticsEventName, AnalyticsEventConfig> = {
     contentMetricField: "registrations",
     organizationMetricField: "eventRegistrations",
   },
+  event_cancel_registration: {
+    contentType: "event",
+    metricField: "cancelledEventRegistrations",
+    eventKind: "action",
+    contentMetricField: "cancelledRegistrations",
+  },
   event_bookmark: {
     contentType: "event",
     metricField: "eventBookmarks",
@@ -358,6 +366,13 @@ const eventConfigs: Record<AnalyticsEventName, AnalyticsEventConfig> = {
     eventKind: "action",
     contentMetricField: "follows",
     organizationMetricField: "follows",
+  },
+  organization_unfollow: {
+    contentType: "organization",
+    metricField: "organizationUnfollows",
+    eventKind: "action",
+    contentMetricField: "unfollows",
+    organizationMetricField: "unfollows",
   },
   organization_bookmark: {
     contentType: "organization",
@@ -442,6 +457,7 @@ export const trackAnalyticsEvent = onCall(
       analyticsRequest.parameters.content_id,
       "content_id"
     );
+    requireMatchingEventProof(analyticsRequest.name, contentID, analyticsRequest.actionProof);
     const canonicalContent = await resolveRateLimitedAnalyticsContent(
       actor.uid,
       config.contentType,
@@ -682,6 +698,8 @@ export function analyticsActionProofDescriptor(
     case "news_view":
     case "event_view":
     case "organization_view":
+    case "event_cancel_registration":
+    case "organization_unfollow":
       return undefined;
   }
 }
@@ -773,6 +791,22 @@ function parseEventName(value: unknown): AnalyticsEventName {
   }
 
   throw new HttpsError("invalid-argument", "Analytics event is not supported.");
+}
+
+export function requireMatchingEventProof(
+  eventName: AnalyticsEventName,
+  contentID: string,
+  actionProof: AnalyticsActionProofBinding | undefined
+): void {
+  if (actionProof === undefined) {
+    if (eventName === "event_cancel_registration" || eventName === "organization_unfollow") {
+      throw new HttpsError("failed-precondition", "A verified action proof is required.");
+    }
+    return;
+  }
+  if (actionProof.eventName !== eventName || actionProof.contentID !== contentID) {
+    throw new HttpsError("invalid-argument", "The analytics action proof does not match the event.");
+  }
 }
 
 function isAnalyticsEventName(value: string): value is AnalyticsEventName {
@@ -919,13 +953,21 @@ async function commitAnalyticsEvent(
     }
 
     const dailyDocumentID = dailyDocumentIDFor(occurredAt);
+    // A user may unsubscribe, subscribe, then unsubscribe again on one day.
+    // The verified mutation proof distinguishes those real occurrences while
+    // still deduplicating retries of the same delivery.
+    const occurrenceID = eventName === "event_cancel_registration"
+      || eventName === "organization_unfollow"
+      ? actionProof?.proofID
+      : undefined;
     const receiptReference = db.collection(schema.collections.eventReceipts).doc(
       analyticsReceiptID(
         uid,
         dailyDocumentID,
         eventName,
         analyticsEvent.contentType,
-        analyticsEvent.contentID
+        analyticsEvent.contentID,
+        occurrenceID
       )
     );
     const receiptSnapshot = await transaction.get(receiptReference);

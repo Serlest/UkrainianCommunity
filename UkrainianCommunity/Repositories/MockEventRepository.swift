@@ -74,7 +74,7 @@ struct MockEventRepository: EventRepository {
         try await store.setEventRegistration(id: id, isRegistered: true)
     }
 
-    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult {
+    func cancelEventRegistration(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult {
         try await store.setEventRegistration(id: id, isRegistered: false)
     }
 

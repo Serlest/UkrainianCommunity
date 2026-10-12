@@ -11,6 +11,7 @@ private struct AnalyticsTimestampedValue<Value> {
 private struct AnalyticsDailyStatsLoad {
     let stats: [AnalyticsDailyStats]
     let updatedAtByDocumentID: [String: Date]
+    let existingDocumentIDs: Set<String>
     let completeDocumentIDs: Set<String>
 }
 
@@ -298,6 +299,22 @@ enum AnalyticsFirestorePayloadResolver {
         return availableUpdates.min()
     }
 
+    static func areExistingDailyDocumentsComplete(
+        existingDocumentIDs: Set<String>,
+        completeDocumentIDs: Set<String>
+    ) -> Bool {
+        // No document is the normal representation of a day with no events.
+        // A document that exists but cannot be decoded is incomplete data.
+        existingDocumentIDs.isSubset(of: completeDocumentIDs)
+    }
+
+    static func latestDailyUpdate(
+        in currentDocumentIDs: Set<String>,
+        updates: [String: Date]
+    ) -> Date? {
+        updates.filter { currentDocumentIDs.contains($0.key) }.values.max()
+    }
+
     static func activeRegionKeys(from payload: Any?) -> Set<String> {
         Set(
             (payload as? [String: Any] ?? [:]).compactMap { key, value in
@@ -446,19 +463,19 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             let totalViews = summaryValue(for: .totalViews, in: dailyStats)
             let activeRegionCount = summaryValue(for: .activeRegions, in: dailyStats)
             let currentDailyDocumentIDs = Set(currentDates.map(documentID))
-            let previousDailyDocumentIDs = Set(previousDates.map(documentID))
-            let areDailyStatsAvailable = currentDailyDocumentIDs
-                .union(previousDailyDocumentIDs)
-                .isSubset(of: dailyLoad.completeDocumentIDs)
+            let areDailyStatsAvailable = AnalyticsFirestorePayloadResolver.areExistingDailyDocumentsComplete(
+                existingDocumentIDs: dailyLoad.existingDocumentIDs,
+                completeDocumentIDs: dailyLoad.completeDocumentIDs
+            )
             let isTopContentAvailable = topContent.isAvailable
                 && (totalViews == 0 || !topContent.value.isEmpty)
             let areContentRegionsAvailable = regionStats.isAvailable
                 && (activeRegionCount == 0 || !regionStats.value.isEmpty)
             let dailyUpdatedAt = areDailyStatsAvailable
-                ? dailyLoad.updatedAtByDocumentID
-                    .filter { currentDailyDocumentIDs.contains($0.key) }
-                    .values
-                    .min()
+                ? AnalyticsFirestorePayloadResolver.latestDailyUpdate(
+                    in: currentDailyDocumentIDs,
+                    updates: dailyLoad.updatedAtByDocumentID
+                )
                 : nil
             let generatedAt = AnalyticsFirestorePayloadResolver.oldestAvailableUpdate(
                 dailyUpdatedAt: dailyUpdatedAt,
@@ -711,6 +728,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             return AnalyticsDailyStatsLoad(
                 stats: [],
                 updatedAtByDocumentID: [:],
+                existingDocumentIDs: [],
                 completeDocumentIDs: []
             )
         }
@@ -738,6 +756,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         return AnalyticsDailyStatsLoad(
             stats: stats.sorted { $0.date < $1.date },
             updatedAtByDocumentID: updateDatesByDocumentID,
+            existingDocumentIDs: Set(snapshot.documents.map(\.documentID)),
             completeDocumentIDs: completeDocumentIDs
         )
     }

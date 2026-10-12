@@ -1030,7 +1030,7 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
     }
 
     func subscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {}
-    func unsubscribeOrganization(id: String) async throws {}
+    func unsubscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {}
     func fetchOrganizationSubscriberPage(
         organizationID: String,
         limit: Int,

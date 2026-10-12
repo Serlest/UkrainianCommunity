@@ -238,8 +238,10 @@ final class OrganizationsViewModel: ObservableObject {
         let previousSubscriberCount = organizations[index].subscriberCount
         let optimisticSubscriberCount = max(0, previousSubscriberCount + (shouldSubscribe ? 1 : -1))
         let organization = organizations[index]
-        let actionEvent = AppAnalyticsEvent.organizationFollow(organization: organization)
-        let actionCapture = shouldSubscribe ? analyticsService.actionCapture(for: actionEvent) : nil
+        let actionEvent = shouldSubscribe
+            ? AppAnalyticsEvent.organizationFollow(organization: organization)
+            : AppAnalyticsEvent.organizationUnfollow(organization: organization)
+        let actionCapture = analyticsService.actionCapture(for: actionEvent)
         let generation = authGeneration
         let requestFeedRevision = feedRevision
         let taskKey = "subscription:\(organizationID)"
@@ -263,7 +265,7 @@ final class OrganizationsViewModel: ObservableObject {
                 if shouldSubscribe {
                     try await repository.subscribeOrganization(id: organizationID, actionCapture: actionCapture)
                 } else {
-                    try await repository.unsubscribeOrganization(id: organizationID)
+                    try await repository.unsubscribeOrganization(id: organizationID, actionCapture: actionCapture)
                 }
 
                 guard isCurrentAuthGeneration(generation),
@@ -278,11 +280,7 @@ final class OrganizationsViewModel: ObservableObject {
                 }
                 let currentOrganization = organizations[currentIndex]
                 ActivityLogRecorder.recordOrganization(currentOrganization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
-                if shouldSubscribe {
-                    analyticsService.track(actionEvent, actionCapture: actionCapture)
-                } else {
-                    analyticsService.track(.organizationUnfollow(organization: currentOrganization))
-                }
+                analyticsService.track(actionEvent, actionCapture: actionCapture)
                 interactionError = nil
             } catch let appError as AppError {
                 guard isCurrentAuthGeneration(generation) else { return }

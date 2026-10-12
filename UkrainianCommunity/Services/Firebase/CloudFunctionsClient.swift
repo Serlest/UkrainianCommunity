@@ -770,8 +770,8 @@ final class CloudFunctionsClient {
         try await eventRegistrationMutation(.registerForEvent, eventID: id, actionCapture: actionCapture)
     }
 
-    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult {
-        try await eventRegistrationMutation(.unregisterFromEvent, eventID: id, actionCapture: nil)
+    func cancelEventRegistration(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult {
+        try await eventRegistrationMutation(.unregisterFromEvent, eventID: id, actionCapture: actionCapture)
     }
 
     func deleteNews(id: String) async throws -> ContentDeletionFunctionResponse {

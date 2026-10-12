@@ -480,14 +480,14 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
              .newsBookmark,
              .eventView,
              .eventRegister,
+             .eventCancelRegistration,
              .eventBookmark,
              .organizationView,
              .organizationFollow,
+             .organizationUnfollow,
              .organizationBookmark:
             true
-        case .eventCancelRegistration,
-             .organizationUnfollow,
-             .searchUsed,
+        case .searchUsed,
              .filterUsed,
              .languageChanged,
              .themeChanged,
@@ -527,8 +527,9 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
 
     private static func isImmutableActionEvent(_ eventName: AnalyticsEventName) -> Bool {
         switch eventName {
-        case .newsLike, .newsBookmark, .eventRegister, .eventBookmark,
-             .organizationFollow, .organizationBookmark:
+        case .newsLike, .newsBookmark, .eventRegister, .eventCancelRegistration,
+             .eventBookmark, .organizationFollow, .organizationUnfollow,
+             .organizationBookmark:
             true
         default:
             false

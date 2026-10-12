@@ -49,6 +49,15 @@ test("accepts only an exact privacy-minimized proof binding schema", () => {
   }
 });
 
+test("accepts cancellation and unfollow proof names while binding their exact content", () => {
+  for (const eventName of ["event_cancel_registration", "organization_unfollow"] as const) {
+    const value = binding({eventName, contentID: "target-1"});
+    assert.deepEqual(optionalAnalyticsActionProofBinding(value), value);
+    assert.deepEqual(requireMatchingAnalyticsActionProofBinding(value, eventName, "target-1"), value);
+    assert.throws(() => requireMatchingAnalyticsActionProofBinding(value, eventName, "other-target"));
+  }
+});
+
 test("rejects reuse for another event or content item", () => {
   const value = binding();
   assert.throws(

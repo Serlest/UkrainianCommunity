@@ -482,7 +482,7 @@ protocol EventRegistrationMutating {
     func registerForEvent(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult
 
     @MainActor
-    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult
+    func cancelEventRegistration(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult
 }
 
 struct OrganizationPageCursor: Equatable {
@@ -627,7 +627,7 @@ protocol OrganizationRepository {
     func likeOrganization(id: String) async throws
     func unlikeOrganization(id: String) async throws
     func subscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws
-    func unsubscribeOrganization(id: String) async throws
+    func unsubscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws
     func fetchOrganizationSubscriberPage(organizationID: String, limit: Int, after cursor: OrganizationSubscriberCursor?) async throws -> OrganizationSubscriberPage
     func fetchPublicUserProfiles(userIDs: [String]) async throws -> [PublicUserProfile]
     func fetchOrganizationComments(organizationID: String) async throws -> [Comment]

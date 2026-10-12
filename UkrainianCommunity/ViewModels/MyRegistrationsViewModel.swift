@@ -11,6 +11,7 @@ final class MyRegistrationsViewModel: ObservableObject {
 
     private let repository: EventRepository
     private let registrationMutator: EventRegistrationMutating
+    private let analyticsService: AnalyticsTracking
     private let localEventReminderService: LocalEventReminderServiceProtocol?
     private let reminderUserID: @MainActor () -> String?
     private var loadTask: Task<Void, Never>?
@@ -24,10 +25,12 @@ final class MyRegistrationsViewModel: ObservableObject {
         repository: EventRepository,
         localEventReminderService: LocalEventReminderServiceProtocol? = nil,
         registrationMutator: EventRegistrationMutating? = nil,
+        analyticsService: AnalyticsTracking = NoopAnalyticsService(),
         reminderUserID: @escaping @MainActor () -> String? = { AuthService.shared.currentUser?.uid }
     ) {
         self.repository = repository
         self.localEventReminderService = localEventReminderService
+        self.analyticsService = analyticsService
         self.reminderUserID = reminderUserID
         if let registrationMutator {
             self.registrationMutator = registrationMutator
@@ -112,12 +115,14 @@ final class MyRegistrationsViewModel: ObservableObject {
         guard !pendingCancellationIDs.contains(eventID) else { return }
 
         let event = events[index]
+        let actionEvent = AppAnalyticsEvent.eventCancelRegistration(event: event, sourceScreen: "my_registrations")
+        let actionCapture = analyticsService.actionCapture(for: actionEvent)
         let operationID = UUID()
         let generation = sessionGeneration
         pendingCancellationIDs.insert(eventID)
         cancellationOperationIDs[eventID] = operationID
         let task = Task<EventRegistrationMutationResult, Error> { [registrationMutator] in
-            try await registrationMutator.cancelEventRegistration(id: eventID)
+            try await registrationMutator.cancelEventRegistration(id: eventID, actionCapture: actionCapture)
         }
         cancellationTasks[eventID] = task
         defer { finishCancellation(eventID, operationID: operationID, generation: generation) }
@@ -139,6 +144,7 @@ final class MyRegistrationsViewModel: ObservableObject {
             }
             if result.didChange {
                 ActivityLogRecorder.recordEvent(event, actionType: .canceledEventRegistration)
+                analyticsService.track(actionEvent, actionCapture: actionCapture)
                 if let localEventReminderService, let userID = reminderUserID() {
                     localEventReminderService.cancelEventReminder(eventID: eventID, userID: userID)
                 }

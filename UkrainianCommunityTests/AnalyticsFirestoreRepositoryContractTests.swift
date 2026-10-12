@@ -342,6 +342,36 @@ struct AnalyticsFirestoreRepositoryContractTests {
         #expect(try #require(result) == availableOldestValue)
     }
 
+    @Test func missingQuietDaysAreCompleteButMalformedExistingDaysAreNot() {
+        #expect(AnalyticsFirestorePayloadResolver.areExistingDailyDocumentsComplete(
+            existingDocumentIDs: ["2026-10-10"],
+            completeDocumentIDs: ["2026-10-10"]
+        ))
+        #expect(AnalyticsFirestorePayloadResolver.areExistingDailyDocumentsComplete(
+            existingDocumentIDs: [],
+            completeDocumentIDs: []
+        ))
+        #expect(!AnalyticsFirestorePayloadResolver.areExistingDailyDocumentsComplete(
+            existingDocumentIDs: ["2026-10-10", "2026-10-11"],
+            completeDocumentIDs: ["2026-10-10"]
+        ))
+    }
+
+    @Test func dailyFreshnessUsesTheNewestUpdateWithinTheSelectedPeriod() throws {
+        let oldest = Date(timeIntervalSince1970: 10)
+        let newest = Date(timeIntervalSince1970: 30)
+        let outsidePeriod = Date(timeIntervalSince1970: 40)
+        let update = AnalyticsFirestorePayloadResolver.latestDailyUpdate(
+            in: ["2026-10-10", "2026-10-11"],
+            updates: [
+                "2026-10-10": oldest,
+                "2026-10-11": newest,
+                "2026-10-12": outsidePeriod,
+            ]
+        )
+        #expect(try #require(update) == newest)
+    }
+
     @Test func legacyArrayRemainsAValidFallback() throws {
         let payloads = AnalyticsFirestorePayloadResolver.preferredPayloads(
             array: [["contentID": "legacy", "viewCount": 3]],

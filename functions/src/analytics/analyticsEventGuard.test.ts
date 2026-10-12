@@ -56,6 +56,10 @@ test("builds stable opaque receipt and rate-limit identifiers", () => {
     receipt,
     analyticsReceiptID("user-secret", "2026-08-23", "news_view", "news", "news-1")
   );
+  assert.notEqual(
+    analyticsReceiptID("user-secret", "2026-08-23", "organization_unfollow", "organization", "org-1", "proof-1"),
+    analyticsReceiptID("user-secret", "2026-08-23", "organization_unfollow", "organization", "org-1", "proof-2")
+  );
 });
 
 test("uses deterministic five-minute rate-limit buckets", () => {

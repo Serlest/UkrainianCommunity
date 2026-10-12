@@ -149,7 +149,8 @@ struct ProfileView: View {
         _navigationPath = navigationPath
         _registrationsViewModel = StateObject(wrappedValue: MyRegistrationsViewModel(
             repository: eventRepository,
-            localEventReminderService: localEventReminderService
+            localEventReminderService: localEventReminderService,
+            analyticsService: analyticsService
         ))
         _myFeedbackViewModel = StateObject(wrappedValue: MyFeedbackViewModel(repository: feedbackRepository))
         _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: FirestoreRecentViewsRepository()))

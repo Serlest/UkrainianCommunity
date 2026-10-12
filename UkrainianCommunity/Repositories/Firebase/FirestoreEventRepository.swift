@@ -969,12 +969,12 @@ struct FirestoreEventRepository: EventRepository {
         return result
     }
 
-    func cancelEventRegistration(id: String) async throws -> EventRegistrationMutationResult {
+    func cancelEventRegistration(id: String, actionCapture: AnalyticsActionCapture?) async throws -> EventRegistrationMutationResult {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw EventRegistrationMutationError.permissionDenied
         }
 
-        let result = try await registrationMutator.cancelEventRegistration(id: id)
+        let result = try await registrationMutator.cancelEventRegistration(id: id, actionCapture: actionCapture)
         guard result.eventID == id, result.registeredCount >= 0 else {
             throw EventRegistrationMutationError.unavailable
         }

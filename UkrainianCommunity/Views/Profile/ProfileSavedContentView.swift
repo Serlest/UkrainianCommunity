@@ -877,7 +877,7 @@ struct FollowedOrganizationsView: View {
         defer { pendingUnavailableSubscriptionRemovalIDs.remove(id) }
 
         do {
-            try await organizationRepository.unsubscribeOrganization(id: id)
+            try await organizationRepository.unsubscribeOrganization(id: id, actionCapture: nil)
             subscriptions.removeAll { $0.id == id }
         } catch let error as AppError {
             subscriptionsError = error

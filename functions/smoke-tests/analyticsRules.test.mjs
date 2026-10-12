@@ -268,4 +268,36 @@ describe("analytics access contract", () => {
     await assertFails(getDoc(proofReference));
     await assertFails(deleteDoc(proofReference));
   });
+
+  test("unfollow proof requires deleting the caller's existing subscription in the same write", async () => {
+    const database = auth("user");
+    const subscriptionPath = "organization_follow_org-1_user";
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "likes", subscriptionPath), {
+        id: subscriptionPath,
+        subscribedOrganizationId: "org-1",
+        userId: "user",
+        createdAt: Timestamp.now(),
+      });
+    });
+
+    const proofID = "223e4567-e89b-42d3-a456-426614174000";
+    const proofReference = doc(database, "analyticsActionProofs", proofID);
+    const proof = {
+      proofId: proofID,
+      eventName: "organization_unfollow",
+      contentId: "org-1",
+      actorBinding: "a".repeat(64),
+      sessionBinding: "b".repeat(64),
+      createdAt: serverTimestamp(),
+      expiresAt: Timestamp.fromMillis(Date.now() + 48 * 60 * 60 * 1_000),
+    };
+    await assertFails(setDoc(proofReference, proof));
+
+    const batch = writeBatch(database);
+    batch.delete(doc(database, "likes", subscriptionPath));
+    batch.set(proofReference, proof);
+    await assertSucceeds(batch.commit());
+    await assertFails(getDoc(proofReference));
+  });
 });

@@ -17,6 +17,7 @@ import {
   resolveRateLimitedAnalyticsContent,
   sanitizeAnalyticsEvent,
   regionStatsItemsFromData,
+  requireMatchingEventProof,
   topContentItemsFromData,
 } from "./trackAnalyticsEvent";
 import {analyticsActivityWindowIndex} from "./analyticsUserActivity";
@@ -54,6 +55,37 @@ test("accepts only the canonical analytics request envelope", () => {
     consentID,
     occurredAtMilliseconds: "1700000000000",
   }));
+});
+
+test("supports cancellation and unfollow as distinct action counters", () => {
+  for (const [name, contentType, metricField] of [
+    ["event_cancel_registration", "event", "cancelledEventRegistrations"],
+    ["organization_unfollow", "organization", "organizationUnfollows"],
+  ] as const) {
+    const request = parseAnalyticsRequest({name, parameters: {content_id: "target-1"}, consentID});
+    const event = sanitizeAnalyticsEvent(request, {
+      contentID: "target-1",
+      contentType,
+      title: "Target",
+    });
+    assert.equal(event.metricField, metricField);
+    assert.equal(event.eventKind, "action");
+  }
+});
+
+test("requires a matching proof for cancellation and unfollow", () => {
+  const proof = {
+    proofID: "123e4567-e89b-42d3-a456-426614174000",
+    eventName: "event_cancel_registration" as const,
+    contentID: "event-1",
+    actorBinding: "a".repeat(64),
+    sessionBinding: "b".repeat(64),
+  };
+  assert.doesNotThrow(() => requireMatchingEventProof("event_cancel_registration", "event-1", proof));
+  assert.throws(() => requireMatchingEventProof("event_cancel_registration", "event-1", undefined));
+  assert.throws(() => requireMatchingEventProof("organization_unfollow", "org-1", undefined));
+  assert.throws(() => requireMatchingEventProof("event_register", "event-1", proof));
+  assert.throws(() => requireMatchingEventProof("event_cancel_registration", "event-2", proof));
 });
 
 test("uses bounded occurrence time for durable event delivery", () => {

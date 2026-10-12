@@ -29,9 +29,13 @@ export function analyticsReceiptID(
   analyticsDay: string,
   eventName: string,
   contentType: string,
-  contentID: string
+  contentID: string,
+  occurrenceID?: string
 ): string {
-  return digest(["receipt", uid, analyticsDay, eventName, contentType, contentID]);
+  return digest([
+    "receipt", uid, analyticsDay, eventName, contentType, contentID,
+    ...(occurrenceID === undefined ? [] : [occurrenceID]),
+  ]);
 }
 
 export function analyticsRateLimitID(uid: string, now: Date): string {

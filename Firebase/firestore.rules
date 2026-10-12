@@ -2098,6 +2098,7 @@ service cloud.firestore {
           'news_bookmark',
           'event_bookmark',
           'organization_follow',
+          'organization_unfollow',
           'organization_bookmark'
         ]
         && request.resource.data.contentId is string
@@ -2128,10 +2129,13 @@ service cloud.firestore {
             : eventName == 'organization_follow'
               ? !exists(/databases/$(database)/documents/likes/$('organization_follow_' + contentId + '_' + request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/likes/$('organization_follow_' + contentId + '_' + request.auth.uid))
-              : eventName == 'organization_bookmark'
-                ? !exists(/databases/$(database)/documents/users/$(request.auth.uid)/organizationBookmarks/$(contentId))
-                  && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/organizationBookmarks/$(contentId))
-                : false;
+              : eventName == 'organization_unfollow'
+                ? exists(/databases/$(database)/documents/likes/$('organization_follow_' + contentId + '_' + request.auth.uid))
+                  && !existsAfter(/databases/$(database)/documents/likes/$('organization_follow_' + contentId + '_' + request.auth.uid))
+                : eventName == 'organization_bookmark'
+                  ? !exists(/databases/$(database)/documents/users/$(request.auth.uid)/organizationBookmarks/$(contentId))
+                    && existsAfter(/databases/$(database)/documents/users/$(request.auth.uid)/organizationBookmarks/$(contentId))
+                  : false;
     }
 
     function isOrganizationContent(data) {

@@ -10,8 +10,10 @@ export type AnalyticsActionEventName =
   | "news_like"
   | "news_bookmark"
   | "event_register"
+  | "event_cancel_registration"
   | "event_bookmark"
   | "organization_follow"
+  | "organization_unfollow"
   | "organization_bookmark";
 
 export interface AnalyticsActionProofBinding {
@@ -38,8 +40,10 @@ const actionNames = new Set<AnalyticsActionEventName>([
   "news_like",
   "news_bookmark",
   "event_register",
+  "event_cancel_registration",
   "event_bookmark",
   "organization_follow",
+  "organization_unfollow",
   "organization_bookmark",
 ]);
 

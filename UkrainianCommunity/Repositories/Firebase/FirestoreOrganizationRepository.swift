@@ -583,13 +583,30 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         await sessionDataCache.updateSubscribedOrganizationID(id, isSubscribed: true, for: uid)
     }
 
-    func unsubscribeOrganization(id: String) async throws {
+    func unsubscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
         }
 
         let subscriptionReference = likesCollection.document(subscriptionDocumentID(organizationID: id, userID: uid))
-        try await subscriptionReference.delete()
+        let proofReference = actionCapture.map {
+            Firestore.firestore().collection("analyticsActionProofs").document($0.proofID)
+        }
+        _ = try await Firestore.firestore().runTransaction { transaction, errorPointer in
+            do {
+                guard try transaction.getDocument(subscriptionReference).exists else { return nil }
+                transaction.deleteDocument(subscriptionReference)
+                if let actionCapture,
+                   actionCapture.eventName == "organization_unfollow",
+                   actionCapture.contentID == id,
+                   let proofReference {
+                    transaction.setData(actionCapture.firestoreData, forDocument: proofReference)
+                }
+            } catch {
+                errorPointer?.pointee = error as NSError
+            }
+            return nil
+        }
         await sessionDataCache.updateSubscribedOrganizationID(id, isSubscribed: false, for: uid)
     }
 

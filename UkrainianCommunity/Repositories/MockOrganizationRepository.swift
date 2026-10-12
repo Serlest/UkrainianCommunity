@@ -49,7 +49,7 @@ struct MockOrganizationRepository: OrganizationRepository {
         try await store.toggleOrganizationSubscription(id: id, isSubscribed: true)
     }
 
-    func unsubscribeOrganization(id: String) async throws {
+    func unsubscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {
         try await store.toggleOrganizationSubscription(id: id, isSubscribed: false)
     }
 

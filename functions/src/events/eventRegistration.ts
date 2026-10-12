@@ -71,7 +71,12 @@ export const unregisterFromEvent = onCall(
   async (request): Promise<EventRegistrationMutationResponse> => {
     const auth = await requireVerifiedActiveUser(request);
     const eventId = eventDocumentId(request.data);
-    return mutateEventRegistration("unregister", eventId, auth.uid);
+    const actionProof = requireMatchingAnalyticsActionProofBinding(
+      isRecord(request.data) ? request.data.actionProof : undefined,
+      "event_cancel_registration",
+      eventId
+    );
+    return mutateEventRegistration("unregister", eventId, auth.uid, actionProof);
   }
 );
 
@@ -120,6 +125,12 @@ export async function mutateEventRegistration(
     }
     if (plan.deleteRegistration) {
       transaction.delete(registrationReference);
+      if (actionProof !== undefined) {
+        transaction.create(
+          db.collection(analyticsActionProofCollection).doc(actionProof.proofID),
+          analyticsActionProofDocumentData(actionProof, userId, now.toDate())
+        );
+      }
     }
     if (plan.nextRegisteredCount !== undefined) {
       transaction.update(eventReference, {

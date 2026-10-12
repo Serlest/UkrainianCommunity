@@ -284,8 +284,10 @@ final class EventsViewModel: ObservableObject {
         let shouldRegister = event.registrationState != .registered
         let operationID = UUID()
         let generation = sessionGeneration
-        let actionEvent = AppAnalyticsEvent.eventRegister(event: event)
-        let actionCapture = shouldRegister ? analyticsService.actionCapture(for: actionEvent) : nil
+        let actionEvent = shouldRegister
+            ? AppAnalyticsEvent.eventRegister(event: event)
+            : AppAnalyticsEvent.eventCancelRegistration(event: event)
+        let actionCapture = analyticsService.actionCapture(for: actionEvent)
 
         pendingEventRegistrationIDs.insert(eventID)
         registrationOperationIDs[eventID] = operationID
@@ -328,7 +330,7 @@ final class EventsViewModel: ObservableObject {
             let result = if shouldRegister {
                 try await registrationMutator.registerForEvent(id: eventID, actionCapture: actionCapture)
             } else {
-                try await registrationMutator.cancelEventRegistration(id: eventID)
+                try await registrationMutator.cancelEventRegistration(id: eventID, actionCapture: actionCapture)
             }
             guard result.eventID == eventID, result.registeredCount >= 0 else {
                 throw EventRegistrationMutationError.unavailable
@@ -355,7 +357,7 @@ final class EventsViewModel: ObservableObject {
                     actionCapture: actionCapture
                 )
             } else {
-                analyticsService.track(.eventCancelRegistration(event: eventBeforeMutation))
+                analyticsService.track(.eventCancelRegistration(event: eventBeforeMutation), actionCapture: actionCapture)
             }
             await updateLocalReminder(
                 for: eventBeforeMutation,
