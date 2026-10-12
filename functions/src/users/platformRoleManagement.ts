@@ -177,6 +177,11 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
         globalRole: nextRole,
         roleUpdatedAt: FieldValue.serverTimestamp(),
         roleUpdatedBy: auth.uid,
+        ...(nextRole === "admin" ? {
+          requiresMultiFactorAuth: true,
+          multiFactorAuthRequiredAt: FieldValue.serverTimestamp(),
+          multiFactorAuthRequiredMethod: "totp",
+        } : {}),
       });
 
       transaction.set(auditLogRef(), buildAuditLog({
@@ -193,6 +198,7 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
           globalRole: nextRole,
           roleUpdatedAt: committedAt,
           roleUpdatedBy: auth.uid,
+          ...(nextRole === "admin" ? {requiresMultiFactorAuth: true} : {}),
         },
       }));
 
@@ -210,6 +216,7 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
         metadata: {
           previousGlobalRole,
           newGlobalRole,
+          ...(nextRole === "admin" ? {requiresMultiFactorAuth: true} : {}),
           reason: roleRequest.reason ?? mutation.defaultReason,
           updatedAt: committedAt,
         },

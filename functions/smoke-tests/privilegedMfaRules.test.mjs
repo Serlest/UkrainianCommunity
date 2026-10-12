@@ -31,6 +31,11 @@ before(async () => {
         globalRole: "owner",
         requiresMultiFactorAuth: true,
       }),
+      setDoc(doc(db, "users", "protected-admin"), {
+        ...profileUser("protected-admin"),
+        globalRole: "admin",
+        requiresMultiFactorAuth: true,
+      }),
       setDoc(doc(db, "users", "protected-user"), {
         ...user("protected-user", true),
         globalRole: "user",
@@ -114,6 +119,11 @@ test("requires TOTP for an opted-in owner and accepts a TOTP-authenticated token
     "contentPlanningDrafts",
     "draft",
   )));
+});
+
+test("new protected admin cannot use management data without TOTP", async () => {
+  await assertFails(getDoc(doc(firestore("protected-admin"), "auditLogs", "example")));
+  await assertSucceeds(getDoc(doc(firestore("protected-admin", true), "auditLogs", "example")));
 });
 
 test("does not let a client disable its own MFA requirement", async () => {
