@@ -12,7 +12,7 @@ import {
   prepareNewsScopeLayout,
   routeNewsCandidate,
 } from "./newsScopeCoordination.mjs";
-import {requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {extractAMSNewsLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -127,6 +127,16 @@ test("dated RIS source requests use the current window while identity stays stab
     new Date("2026-10-12T11:00:00Z"));
   assert.match(url, /VonDatum=11\.10\.2026/);
   assert.match(url, /BisDatum=12\.10\.2026/);
+});
+
+test("AMS escaped index yields recent direct articles instead of old embedded records", () => {
+  const html = [
+    '&#34;path&#34;: &#34;/regionen/wien/news/2024/10/old&#34;, &#34;header&#34;: &#34;Old&#34;',
+    '&#34;path&#34;: &#34;/regionen/wien/news/2026/10/new&#34;, &#34;header&#34;: &#34;New&#34;',
+  ].join("\n");
+  assert.deepEqual(extractAMSNewsLinks(html, "https://www.ams.at/", new Date("2026-10-12T12:00:00Z")), [
+    {url: "https://www.ams.at/regionen/wien/news/2026/10/new", title: "New"},
+  ]);
 });
 
 test("editorial policy replaces stale AMS regional feeds and shares official national sources", () => {

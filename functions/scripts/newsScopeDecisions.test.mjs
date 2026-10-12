@@ -5,7 +5,7 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import test from "node:test";
 
-import {buildNewsScopeLayout, prepareNewsScopeLayout} from "./newsScopeCoordination.mjs";
+import {applyNewsEditorialSources, buildNewsScopeLayout, prepareNewsScopeLayout} from "./newsScopeCoordination.mjs";
 import {closeNewsCandidateBatch, recordNewsCandidateBatch} from "./newsScopeDecisions.mjs";
 
 const legacy = {sourceProgress: {
@@ -34,6 +34,15 @@ test("rejection closes the pass with a minimal terminal technical trace", () => 
   assert.deepEqual(Object.keys(result.candidateDecisions), ["https://example.gv.at/story"]);
   assert.equal(result.candidateDecisions["https://example.gv.at/story"].reason, "no_practical_effect");
   assert.equal("pending" in result.candidateDecisions["https://example.gv.at/story"], false);
+});
+
+test("a manually checked adapter source can be closed without adding it to shared scans", () => {
+  const layout = buildNewsScopeLayout(legacy);
+  const registry = applyNewsEditorialSources(layout.registry, [{url: "https://example.gv.at/news",
+    scopes: ["wien"], mode: "adapter", topics: ["services"]}]);
+  const result = closeNewsCandidateBatch(registry, layout.scopeStates.wien,
+    receipt([{url: candidate.url, outcome: "rejected", reason: "unverified"}]));
+  assert.equal(result.lastCandidateBatch.rejected, 1);
 });
 
 test("a published outcome needs a matching verified production receipt before durable closure", async () => {

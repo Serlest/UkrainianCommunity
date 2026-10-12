@@ -7,7 +7,7 @@ import {pathToFileURL} from "node:url";
 
 import {planUniqueSourceFetches} from "./newsScopeCoordination.mjs";
 
-const maximumSourceBytes = 2_000_000;
+const maximumSourceBytes = 8_000_000;
 
 export function requestURLForSource(source, now = new Date()) {
   const url = new URL(source.url);
@@ -55,6 +55,28 @@ export function extractSourceLinks(html, baseURL) {
   return links;
 }
 
+// AMS embeds its news index as HTML-escaped structured data rather than links.
+// Keep only recent article paths; every article still needs direct review.
+export function extractAMSNewsLinks(html, baseURL, now = new Date()) {
+  const decoded = html.replace(/&#34;|&quot;/g, '"');
+  const earliest = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 1, 1));
+  const links = [];
+  const seen = new Set();
+  const pattern = /"path"\s*:\s*"(\/regionen\/[^"\s]+\/news\/(\d{4})\/(\d{2})\/[^"\s]+)"/g;
+  for (const match of decoded.matchAll(pattern)) {
+    const month = new Date(Date.UTC(Number(match[2]), Number(match[3]) - 1, 1));
+    if (month < earliest || month > now) continue;
+    const url = new URL(match[1], baseURL).href;
+    if (seen.has(url)) continue;
+    seen.add(url);
+    const nearby = decoded.slice(match.index, match.index + 2_000);
+    const title = nearby.match(/"header"\s*:\s*"([^"\n]+)"/)?.[1] ?? "AMS Nachricht";
+    links.push({url, title: title.slice(0, 240)});
+    if (links.length === 230) break;
+  }
+  return links;
+}
+
 export async function inspectNewsSource(source, fetchImpl = fetch, now = new Date()) {
   const requestedURL = requestURLForSource(source, now);
   const checkedAt = now.toISOString();
@@ -79,7 +101,11 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       etag: response.headers.get("etag"),
       lastModified: response.headers.get("last-modified"),
       contentHash: createHash("sha256").update(text).digest("hex"),
-      links: response.ok ? extractSourceLinks(body, response.url || requestedURL) : [],
+      links: response.ok ? (
+        new URL(requestedURL).hostname === "www.ams.at"
+          ? extractAMSNewsLinks(body, response.url || requestedURL, now)
+          : extractSourceLinks(body, response.url || requestedURL)
+      ) : [],
       error: response.ok ? null : `http-${response.status}`,
     };
   } catch (error) {

@@ -25,7 +25,7 @@ export function closeNewsCandidateBatch(registry, state, input, decidedAt = new 
     throw new Error("Candidates and decisions must both be arrays.");
   }
   const sources = new Map(registry.sources
-    .filter((source) => source.active && source.scopes.includes(scope))
+    .filter((source) => (source.active || source.editorialMode === "adapter") && source.scopes.includes(scope))
     .map((source) => [source.sourceId, source]));
   const candidateByURL = new Map();
   for (const candidate of candidates) {
