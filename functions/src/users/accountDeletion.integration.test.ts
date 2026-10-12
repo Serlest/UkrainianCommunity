@@ -21,6 +21,11 @@ test("Build80 deletion resumes after Auth failure without losing canonical DSA e
     previousValue: {ownerId: uid, organizationId: "test-org"},
     newValue: {ownerId: "another-user", organizationId: "test-org"},
   });
+  await db.doc(`auditLogs/new-owner-history-${uid}`).set({
+    actionType: "organizationOwnerChanged", performedBy: "another-user",
+    previousValue: {ownerId: "another-user", organizationId: "test-org"},
+    newValue: {ownerId: uid, organizationId: "test-org"},
+  });
   const request = {auth: {uid, token: {email_verified: true, auth_time: Math.floor(Date.now() / 1000)}}, data: {}} as never;
   const original = adminAuth.deleteUser.bind(adminAuth);
   let failed = false;
@@ -37,6 +42,9 @@ test("Build80 deletion resumes after Auth failure without losing canonical DSA e
   const ownerHistory = await db.doc(`auditLogs/owner-history-${uid}`).get();
   assert.equal(ownerHistory.get("previousValue.ownerId"), "deleted");
   assert.equal(ownerHistory.get("newValue.ownerId"), "another-user");
+  const newOwnerHistory = await db.doc(`auditLogs/new-owner-history-${uid}`).get();
+  assert.equal(newOwnerHistory.get("previousValue.ownerId"), "another-user");
+  assert.equal(newOwnerHistory.get("newValue.ownerId"), "deleted");
   assert.equal((await adminAuth.getUser(uid)).uid, uid);
   const completed = await deleteOwnAccount.run(request);
   assert.equal(completed.status, "deleted");
