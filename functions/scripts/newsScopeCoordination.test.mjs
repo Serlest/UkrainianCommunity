@@ -12,7 +12,7 @@ import {
   prepareNewsScopeLayout,
   routeNewsCandidate,
 } from "./newsScopeCoordination.mjs";
-import {extractAMSNewsLinks, extractSalzburgTrafficLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {extractAMSNewsLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -150,6 +150,18 @@ test("Salzburg traffic scan reads the public feed and keeps only official articl
     {url: "https://salzburg-verkehr.at/linie-36-haltestellenaenderung/", title: "Linie 36 – Haltestellenänderung"},
   ]);
   assert.throws(() => extractSalzburgTrafficLinks("{}"), /invalid-salzburg-traffic-feed/);
+});
+
+test("ÖBB traffic listing exposes a clean direct article and fails on a changed layout", () => {
+  const html = '<a href="/menu">Menu</a><div class="isotope-item 2026 Oct" data-id="250046">' +
+    '<a href="news-zugverkehr?id=250046&amp;menueid=27022&amp;l=deutsch" aria-label="Details">' +
+    '<!-- old navigation --><div><h3>ÖBB Verkehrsmeldung: Zugverkehr wieder aufgenommen</h3></div></a></div>';
+  assert.deepEqual(extractOEBBTrafficLinks(html, "https://presse-oebb.com/News.aspx"), [
+    {url: "https://presse-oebb.com/news-zugverkehr?id=250046&menueid=27022&l=deutsch",
+      title: "ÖBB Verkehrsmeldung: Zugverkehr wieder aufgenommen"},
+  ]);
+  assert.throws(() => extractOEBBTrafficLinks('<a href="/menu">Menu</a>',
+    "https://presse-oebb.com/News.aspx"), /invalid-oebb-traffic-listing/);
 });
 
 test("a source article after a long navigation menu is retained", () => {

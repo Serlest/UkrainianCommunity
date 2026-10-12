@@ -33,7 +33,7 @@ The app's news detail screen displays the direct `sourceURL` as a clickable sour
 
 ## Scheduled operation (Europe/Vienna)
 
-The coordinator scans the 23 active, unique source listings once at 09:00, 14:00, 19:00 and 22:00. Nine state chats run at 09:20–09:36, 14:20–14:36 and 19:20–19:36, two minutes apart. The Austria-wide chat runs at 09:45, 14:45, 19:45 and 22:45. The chats search and evaluate independently; only a live write takes the shared `content-work.lock`. These are 27 regional and four nationwide editorial passes per day, with no publication quota. The scanner is a separate heartbeat in the coordinator chat, not an eleventh editorial territory.
+The coordinator scans the 24 active, unique source listings once at 09:00, 14:00, 19:00 and 22:00. Nine state chats run at 09:20–09:36, 14:20–14:36 and 19:20–19:36, two minutes apart. The Austria-wide chat runs at 09:45, 14:45, 19:45 and 22:45. The chats search and evaluate independently; only a live write takes the shared `content-work.lock`. These are 27 regional and four nationwide editorial passes per day, with no publication quota. The scanner is a separate heartbeat in the coordinator chat, not an eleventh editorial territory. The active ÖBB newsroom traffic listing is required coverage for short-notice rail disruptions; the ÖBB construction page covers planned works and cannot stand in for it. Check the live ÖBB disruption notice directly when a service disruption is found.
 
 ### Coordinator scan
 

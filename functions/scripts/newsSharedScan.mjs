@@ -102,6 +102,29 @@ export function extractSalzburgTrafficLinks(json) {
   return links;
 }
 
+// ÖBB's traffic newsroom wraps article cards in nested anchors and comments.
+// A generic anchor parser includes those comments in titles and can bury the
+// actual service notice among navigation links.
+export function extractOEBBTrafficLinks(html, baseURL) {
+  const links = [];
+  const seen = new Set();
+  const pattern = /<div\s+class="isotope-item[^\"]*"\s+data-id="\d+"[^>]*>\s*<a\s+href=['"]([^'"]+)['"][\s\S]*?<h3>([\s\S]*?)<\/h3>/gi;
+  for (const match of html.matchAll(pattern)) {
+    let url;
+    try { url = new URL(match[1].replace(/&amp;/g, "&"), baseURL); } catch { continue; }
+    if (url.hostname !== "presse-oebb.com" || !url.pathname.startsWith("/news-")) continue;
+    url.hash = "";
+    if (seen.has(url.href)) continue;
+    seen.add(url.href);
+    const title = match[2].replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&")
+      .replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim().slice(0, 240);
+    links.push({url: url.href, title});
+    if (links.length === maximumSourceLinks) break;
+  }
+  if (!links.length) throw new Error("invalid-oebb-traffic-listing");
+  return links;
+}
+
 export async function inspectNewsSource(source, fetchImpl = fetch, now = new Date()) {
   const requestedURL = requestURLForSource(source, now);
   const checkedAt = now.toISOString();
@@ -129,6 +152,9 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       links: response.ok ? (
         requestedURL === "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de"
           ? extractSalzburgTrafficLinks(body)
+          : new URL(requestedURL).hostname === "presse-oebb.com" &&
+            new URL(requestedURL).pathname === "/News.aspx"
+          ? extractOEBBTrafficLinks(body, response.url || requestedURL)
           : new URL(requestedURL).hostname === "www.ams.at"
           ? extractAMSNewsLinks(body, response.url || requestedURL, now)
           : extractSourceLinks(body, response.url || requestedURL)
