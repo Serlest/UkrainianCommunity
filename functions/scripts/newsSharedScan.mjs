@@ -12,6 +12,9 @@ const maximumSourceLinks = 3_500;
 
 export function requestURLForSource(source, now = new Date()) {
   const url = new URL(source.url);
+  if (url.hostname === "www.wienerlinien.at" && url.pathname.replace(/\/$/, "") === "/news") {
+    return "https://tramwm.wienerlinien.at/web/guest/news";
+  }
   if (url.hostname === "salzburg-verkehr.at" && url.pathname.replace(/\/$/, "") === "/aktuelles/verkehr") {
     return "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de";
   }
