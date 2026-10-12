@@ -11,7 +11,7 @@ const rejectionReasons = new Set([
   "not_article", "stale", "no_practical_effect", "excluded_topic", "wrong_scope",
   "unverified", "insufficient_facts", "duplicate", "unsupported_territory",
 ]);
-const runPattern = /^news-\d{4}-\d{2}-\d{2}T\d{2}$/;
+const runPattern = /^(?:news-\d{4}-\d{2}-\d{2}T\d{2}|emergency-\d{4}-\d{2}-\d{2}T\d{2}-(?:00|30))$/;
 
 // This closes an editorial candidate batch, not source coverage. A source
 // failure must still make the overall run partial, with its cursor unchanged.

@@ -45,6 +45,17 @@ test("a manually checked adapter source can be closed without adding it to share
   assert.equal(result.lastCandidateBatch.rejected, 1);
 });
 
+test("half-hour emergency decisions use a separate run ID from territorial passes", () => {
+  const layout = buildNewsScopeLayout(legacy);
+  const state = closeNewsCandidateBatch(layout.registry, layout.scopeStates.wien,
+    {...receipt([]), candidates: [], decisions: []});
+  const urgent = closeNewsCandidateBatch(layout.registry, state,
+    {...receipt([]), runId: "emergency-2026-10-12T14-30", candidates: [], decisions: []});
+  assert.equal(urgent.lastCandidateBatch.runId, "emergency-2026-10-12T14-30");
+  assert.throws(() => closeNewsCandidateBatch(layout.registry, state,
+    {...receipt([]), runId: "emergency-2026-10-12T14-15", candidates: [], decisions: []}), /valid scope and run ID/);
+});
+
 test("a published outcome needs a matching verified production receipt before durable closure", async () => {
   const directory = await mkdtemp(join(tmpdir(), "uac-news-decisions-"));
   try {
