@@ -7,6 +7,7 @@ import {
   type AuthContext,
   assertActiveUser,
   assertPrivilegedMFA,
+  canManagePasskeyCredentials,
   hasCurrentLegalAcknowledgements,
   isTOTPAuthenticated,
   isPrivilegedSessionAuthenticated,
@@ -62,6 +63,17 @@ test("passkey claim requires custom provider and current account epoch", () => {
     {...token, firebase: {identities: {}, sign_in_provider: "password"}}, permissions), false);
   assert.equal(isPrivilegedSessionAuthenticated(
     {...token, uac_passkey_verified: false}, permissions), false);
+});
+
+test("ordinary users may manage passkeys only after recent sign-in; privileged users need TOTP", () => {
+  const now = 1_700_000_500;
+  const user = {uid: "user", globalRole: "user" as const};
+  const owner = {uid: "owner", globalRole: "owner" as const};
+  assert.equal(canManagePasskeyCredentials(authToken(), user, now), true);
+  assert.equal(canManagePasskeyCredentials(authToken(), user, now + 100), false);
+  assert.equal(canManagePasskeyCredentials(authToken(), owner, now), false);
+  assert.equal(canManagePasskeyCredentials(authToken("totp"), owner, now), true);
+  assert.equal(canManagePasskeyCredentials(authToken("totp"), owner, now + 100), false);
 });
 
 test("requireVerifiedAuth rejects unverified authentication", () => {

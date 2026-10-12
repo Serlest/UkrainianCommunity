@@ -1111,19 +1111,19 @@
         }
       }
     },
-    "account_security.mfa.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ein wechselnder sechsstelliger Code schützt privilegierte Zugriffe auch dann, wenn das Passwort kompromittiert wurde."
+    "account_security.mfa.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für Inhaber und Admins erforderlich."
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Змінний шестизначний код захищає привілейований доступ, навіть якщо пароль було скомпрометовано."
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обов’язково для власника й адміністраторів."
           }
         }
       }
@@ -1230,19 +1230,19 @@
         }
       }
     },
-    "account_security.password.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Wir senden einen sicheren Link zum Ändern des Passworts an Ihre bestätigte E-Mail-Adresse."
+    "account_security.password.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link zum Ändern des Passworts per E-Mail erhalten."
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ми надішлемо безпечне посилання для зміни пароля на вашу підтверджену email-адресу."
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отримати посилання для зміни пароля на email."
           }
         }
       }
@@ -1451,19 +1451,19 @@
         }
       }
     },
-    "account_security.providers.subtitle" : {
+    "account_security.providers.subtitle": {
       "extractionState": "manual",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verbinden Sie Apple oder Google mit diesem Konto. Ihre Daten und Berechtigungen bleiben erhalten."
+            "value": "Apple, Google und E-Mail für dieses Konto."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Підключіть Apple або Google до цього облікового запису. Ваші дані та права залишаться з ним."
+            "value": "Apple, Google та email для цього акаунта."
           }
         }
       }
@@ -1519,19 +1519,19 @@
         }
       }
     },
-    "account_security.subtitle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Verwalten Sie Passwortwiederherstellung, Authenticator-Schutz und Passkeys."
+    "account_security.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wählen Sie, wie Sie sich anmelden und Ihr Konto schützen."
           }
         },
-        "uk" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Керуйте відновленням пароля, захистом через автентифікатор і ключами доступу."
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оберіть способи входу та захистіть свій акаунт."
           }
         }
       }
@@ -50499,18 +50499,19 @@
         }
       }
     },
-    "auth.passkey.sign_in" : {
+    "auth.passkey.sign_in": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Als Inhaber oder Admin mit Passkey anmelden"
+            "value": "Mit Passkey anmelden"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Власник або адміністратор: увійти з ключем доступу"
+            "value": "Увійти з ключем доступу"
           }
         }
       }
@@ -50547,18 +50548,19 @@
         }
       }
     },
-    "account_security.passkey.subtitle" : {
+    "account_security.passkey.subtitle": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Melden Sie sich mit dem Passkey Ihres Geräts an – per Face ID, Touch ID oder Gerätecode."
+            "value": "Sicher mit Face ID, Touch ID oder dem Gerätecode anmelden."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Увійдіть із ключем доступу свого пристрою через Face ID, Touch ID або код пристрою."
+            "value": "Безпечний вхід через Face ID, Touch ID або код пристрою."
           }
         }
       }
@@ -50627,18 +50629,19 @@
         }
       }
     },
-    "account_security.passkey.add_failed" : {
+    "account_security.passkey.add_failed": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Passkey konnte nicht erstellt werden. Melden Sie sich mit Ihrem Authenticator-Code an und versuchen Sie es erneut."
+            "value": "Passkey konnte nicht erstellt werden. Melden Sie sich erneut an und versuchen Sie es noch einmal."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не вдалося створити ключ доступу. Увійдіть із кодом автентифікатора та спробуйте ще раз."
+            "value": "Не вдалося створити ключ доступу. Увійдіть ще раз і повторіть спробу."
           }
         }
       }
@@ -50675,18 +50678,19 @@
         }
       }
     },
-    "account_security.passkey.remove_confirm" : {
+    "account_security.passkey.remove_confirm": {
+      "extractionState": "stale",
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Passkey funktioniert danach nicht mehr. Bestehende Passkey-Sitzungen verlieren den geschützten Zugriff. Ihre Authenticator-App bleibt verfügbar."
+            "value": "Dieser Passkey funktioniert danach nicht mehr. Ihre anderen Anmeldemethoden bleiben verfügbar."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Цей ключ доступу більше не працюватиме. Поточні сесії з ключем втратять захищений доступ. Автентифікатор залишиться доступним."
+            "value": "Цей ключ доступу більше не працюватиме. Інші способи входу залишаться доступними."
           }
         }
       }
@@ -50703,6 +50707,142 @@
           "stringUnit": {
             "state": "translated",
             "value": "Не вдалося видалити ключ доступу. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "account_security.mfa.manage": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authentifikator verwalten"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Керувати автентифікатором"
+          }
+        }
+      }
+    },
+    "account_security.passkey.offer_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nächstes Mal schneller anmelden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Наступного разу входьте швидше"
+          }
+        }
+      }
+    },
+    "account_security.passkey.offer_subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erstellen Sie einen Passkey für eine sichere Anmeldung mit Face ID, Touch ID oder Ihrem Gerätecode."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Створіть ключ доступу для безпечного входу через Face ID, Touch ID або код пристрою."
+          }
+        }
+      }
+    },
+    "account_security.passkey.later": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vielleicht später"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Можливо, пізніше"
+          }
+        }
+      }
+    },
+    "account_security.providers.add_method": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anmeldemethode hinzufügen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додати спосіб входу"
+          }
+        }
+      }
+    },
+    "profile.settings.analytics.summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Teilen Sie tägliche Nutzungssignale, um UAC zu verbessern."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Допоможіть покращити UAC, надаючи щоденні сигнали використання."
+          }
+        }
+      }
+    },
+    "profile.settings.analytics.details": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Was wird übermittelt?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Які дані передаються?"
+          }
+        }
+      }
+    },
+    "banner_report.by_day": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach Tagen (UTC)"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "За днями (UTC)"
           }
         }
       }

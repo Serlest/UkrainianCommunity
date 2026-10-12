@@ -1288,6 +1288,7 @@ enum AppStrings {
         static var emptyMessage: String { text("banner_report.empty.message", "Показники з’являться після запуску добровільного вимірювання банерів і згоди користувачів.") }
         static var overview: String { text("banner_report.overview", "Загалом") }
         static var bySection: String { text("banner_report.by_section", "За розділами") }
+        static var byDay: String { text("banner_report.by_day", "За днями (UTC)") }
         static var byBanner: String { text("banner_report.by_banner", "За банерами") }
         static var impressions: String { text("banner_report.impressions", "Покази") }
         static var clicks: String { text("banner_report.clicks", "Натискання") }
@@ -1866,6 +1867,8 @@ enum AppStrings {
         static var appAppearance: String { text("profile.settings.app_appearance", "Тема оформлення") }
         static var appearanceSettingsSubtitle: String { text("profile.settings.appearance.subtitle", "Системна, світла або темна тема.") }
         static var analyticsCollectionTitle: String { text("profile.settings.analytics.title", "Optional aggregate analytics") }
+        static var analyticsCollectionSummary: String { text("profile.settings.analytics.summary", "Share daily usage signals to help improve UAC.") }
+        static var analyticsCollectionDetails: String { text("profile.settings.analytics.details", "What is shared?") }
         static var analyticsCollectionSubtitle: String { text("profile.settings.analytics.subtitle", "Optional. Contributes daily view and action signals to protected aggregate reports for content owners. Turning this off stops only those analytics signals. Account-linked records needed for features you use—including persistent view deduplication/public counters, likes, bookmarks, follows, and registrations—are still created. Never used for advertising or cross-app tracking.") }
         static var analyticsCollectionUnavailableSubtitle: String { text("profile.settings.analytics.unavailable_subtitle", "Sign in with a verified account to choose whether to contribute optional aggregate analytics. Records needed to provide account features are separate from this choice.") }
         static var bannerMeasurementTitle: String { text("profile.settings.banner_measurement.title", "Banner measurement") }
@@ -2871,7 +2874,7 @@ enum AppStrings {
         static var multiFactorInvalidCode: String { text("auth.mfa.invalid_code", "The code is invalid or has expired. Enter the current six-digit code.") }
         static var multiFactorResolveFailed: String { text("auth.mfa.resolve_failed", "Two-factor verification could not be completed. Check your connection and try again.") }
         static var multiFactorChallengeExpired: String { text("auth.mfa.challenge_expired", "This sign-in attempt has expired. Sign in with your password again.") }
-        static var passkeySignIn: String { text("auth.passkey.sign_in", "Owner or admin: sign in with passkey") }
+        static var passkeySignIn: String { text("auth.passkey.sign_in", "Sign in with a passkey") }
         static var passkeyFailed: String { text("auth.passkey.failed", "Passkey sign-in could not be completed. Try again or use another sign-in method.") }
     }
 
@@ -2882,16 +2885,21 @@ enum AppStrings {
         static var passkeyAdd: String { text("account_security.passkey.add", "Create passkey") }
         static var passkeyAddAnother: String { text("account_security.passkey.add_another", "Add another passkey") }
         static var passkeyAdding: String { text("account_security.passkey.adding", "Creating passkey…") }
-        static var passkeyAddFailed: String { text("account_security.passkey.add_failed", "Could not create passkey. Try again after signing in with your authenticator.") }
+        static var passkeyAddFailed: String { text("account_security.passkey.add_failed", "Could not create a passkey. Sign in again and try once more.") }
         static var passkeyRequiresAuthenticator: String { text("account_security.passkey.requires_authenticator", "Sign in with your authenticator code once to add a passkey. Keep it as a backup.") }
         static var passkeyRemove: String { text("account_security.passkey.remove", "Remove passkey") }
-        static var passkeyRemoveConfirm: String { text("account_security.passkey.remove_confirm", "This passkey will no longer work. Existing passkey sessions will lose privileged access. Your authenticator remains available.") }
+        static var passkeyRemoveConfirm: String { text("account_security.passkey.remove_confirm", "This passkey will stop working. You can still use your other sign-in methods.") }
         static var passkeyRemoveFailed: String { text("account_security.passkey.remove_failed", "The passkey could not be removed. Try again.") }
         static var passkeyLoadFailed: String { text("account_security.passkey.load_failed", "Could not load your passkeys. Open this screen again to retry.") }
         static var title: String { text("account_security.title", "Account security") }
-        static var subtitle: String { text("account_security.subtitle", "Manage password recovery, authenticator protection and passkeys.") }
+        static var subtitle: String { text("account_security.subtitle", "Choose how you sign in and protect your account.") }
+        static var manageAuthenticator: String { text("account_security.mfa.manage", "Manage authenticator") }
+        static var passkeyOfferTitle: String { text("account_security.passkey.offer_title", "Sign in faster next time") }
+        static var passkeyOfferSubtitle: String { text("account_security.passkey.offer_subtitle", "Create a passkey for secure sign-in with Face ID, Touch ID or your device passcode.") }
+        static var passkeyLater: String { text("account_security.passkey.later", "Maybe later") }
         static var linkedMethodsTitle: String { text("account_security.providers.title", "Способи входу") }
-        static var linkedMethodsSubtitle: String { text("account_security.providers.subtitle", "Підключіть Apple або Google до цього облікового запису. Ваші дані та права залишаться з ним.") }
+        static var addSignInMethod: String { text("account_security.providers.add_method", "Add sign-in method") }
+        static var linkedMethodsSubtitle: String { text("account_security.providers.subtitle", "Apple, Google and email for this account.") }
         static var privilegedLinkHint: String { text("account_security.providers.privileged_hint", "Для підключення увійдіть із кодом автентифікатора та виконайте дію протягом 10 хвилин. Після підключення код і надалі буде потрібен при вході.") }
         static var emailPasswordMethod: String { text("account_security.providers.email_password", "Email і пароль") }
         static var methodConnected: String { text("account_security.providers.connected", "Підключено") }
@@ -2907,13 +2915,13 @@ enum AppStrings {
         static var linkSessionChanged: String { text("account_security.providers.session_changed", "Сеанс змінився. Увійдіть у свій обліковий запис ще раз.") }
         static var linkBelongsToAnotherAccount: String { text("account_security.providers.other_account", "Цей Apple або Google акаунт уже належить іншому обліковому запису UAC. Дані не змінено.") }
         static var passwordSection: String { text("account_security.password.section", "Password") }
-        static var passwordSubtitle: String { text("account_security.password.subtitle", "We will send a secure password-change link to your verified email address.") }
+        static var passwordSubtitle: String { text("account_security.password.subtitle", "Receive a password-change link by email.") }
         static var sendPasswordLink: String { text("account_security.password.send_link", "Send password-change link") }
         static var sendingPasswordLink: String { text("account_security.password.sending", "Sending…") }
         static var passwordLinkSent: String { text("account_security.password.sent", "The password-change link was sent to your email address.") }
         static var passwordLinkFailed: String { text("account_security.password.failed", "The password-change link could not be sent. Try again later.") }
         static var multiFactorSection: String { text("account_security.mfa.section", "Authenticator app") }
-        static var multiFactorSubtitle: String { text("account_security.mfa.subtitle", "A changing six-digit code protects privileged access even if the password is compromised.") }
+        static var multiFactorSubtitle: String { text("account_security.mfa.subtitle", "Required for owners and admins.") }
         static var multiFactorEnabled: String { text("account_security.mfa.enabled", "Two-factor protection is enabled.") }
         static var multiFactorDisabled: String { text("account_security.mfa.disabled", "Two-factor protection is not enabled yet.") }
         static var multiFactorRolloutPending: String { text("account_security.mfa.rollout_pending", "Authenticator setup will become available after server-side protection is activated.") }

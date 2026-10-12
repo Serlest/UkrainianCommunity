@@ -19,6 +19,8 @@ struct BannerMeasurementReportTests {
         #expect(report.totals == BannerMeasurementTotals(impressions: 22, clicks: 4))
         #expect(report.totals.clickRate == 4.0 / 22.0)
         #expect(report.sections[.home] == BannerMeasurementTotals(impressions: 16, clicks: 4))
+        #expect(report.days.map(\.id) == ["2026-10-12", "2026-10-11"])
+        #expect(report.days[0].totals == BannerMeasurementTotals(impressions: 8, clicks: 1))
         #expect(report.banners.map(\.id) == ["a", "b"])
         #expect(report.banners[0].sections[.events] == BannerMeasurementTotals(impressions: 6, clicks: 0))
         #expect(BannerMeasurementTotals().clickRate == nil)

@@ -2,6 +2,7 @@ import AuthenticationServices
 import SwiftUI
 
 struct PasskeyManagementView: View {
+    let isPrivileged: Bool
     let isTOTPAuthenticated: Bool
 
     @State private var passkeys: [PasskeyRecord] = []
@@ -10,16 +11,14 @@ struct PasskeyManagementView: View {
     @State private var isRemoving = false
     @State private var message: String?
 
+    private var requiresAuthenticator: Bool { isPrivileged && !isTOTPAuthenticated }
+
     var body: some View {
         ProfileSectionCard(
             title: AppStrings.AccountSecurity.passkeyTitle,
             subtitle: AppStrings.AccountSecurity.passkeySubtitle
         ) {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                if !passkeys.isEmpty {
-                    InlineMessageCard(style: .success, message: AppStrings.AccountSecurity.passkeyEnabled)
-                }
-
                 ForEach(passkeys) { passkey in
                     HStack(spacing: AppTheme.dashboardSpacing) {
                         Image(systemName: "key.fill")
@@ -29,7 +28,7 @@ struct PasskeyManagementView: View {
                             .font(.subheadline)
                             .foregroundStyle(AppTheme.textPrimary)
                         Spacer()
-                        if isTOTPAuthenticated {
+                        if !requiresAuthenticator {
                             Button(role: .destructive) {
                                 passkeyPendingRemoval = passkey
                             } label: {
@@ -53,7 +52,7 @@ struct PasskeyManagementView: View {
                         ? AppStrings.AccountSecurity.passkeyAdd
                         : AppStrings.AccountSecurity.passkeyAddAnother,
                     loadingTitle: AppStrings.AccountSecurity.passkeyAdding,
-                    isEnabled: isTOTPAuthenticated && !isRegistering,
+                    isEnabled: !requiresAuthenticator && !isRegistering,
                     isLoading: isRegistering,
                     systemImage: "person.badge.key.fill"
                 ) {
@@ -61,7 +60,7 @@ struct PasskeyManagementView: View {
                 }
                 .accessibilityIdentifier("accountSecurity.passkey.add")
 
-                if !isTOTPAuthenticated {
+                if requiresAuthenticator {
                     Text(AppStrings.AccountSecurity.passkeyRequiresAuthenticator)
                         .font(.footnote)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -118,5 +117,65 @@ struct PasskeyManagementView: View {
         } catch {
             message = AppStrings.AccountSecurity.passkeyRemoveFailed
         }
+    }
+}
+
+struct PasskeyEnrollmentOfferView: View {
+    let onFinish: () -> Void
+    @State private var isRegistering = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+            Image(systemName: "person.badge.key.fill")
+                .font(.largeTitle)
+                .foregroundStyle(AppTheme.primaryBlue)
+                .accessibilityHidden(true)
+
+            Text(AppStrings.AccountSecurity.passkeyOfferTitle)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(AppTheme.textPrimary)
+
+            Text(AppStrings.AccountSecurity.passkeyOfferSubtitle)
+                .font(.body)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let errorMessage {
+                InlineMessageCard(style: .error, message: errorMessage)
+            }
+
+            PrimaryActionButton(
+                title: AppStrings.AccountSecurity.passkeyAdd,
+                loadingTitle: AppStrings.AccountSecurity.passkeyAdding,
+                isEnabled: !isRegistering,
+                isLoading: isRegistering,
+                systemImage: "key.fill"
+            ) {
+                Task {
+                    isRegistering = true
+                    defer { isRegistering = false }
+                    do {
+                        try await PasskeyService.shared.register()
+                        onFinish()
+                    } catch {
+                        let nsError = error as NSError
+                        if nsError.domain == ASAuthorizationError.errorDomain,
+                           nsError.code == ASAuthorizationError.canceled.rawValue { return }
+                        errorMessage = AppStrings.AccountSecurity.passkeyAddFailed
+                    }
+                }
+            }
+
+            Button(AppStrings.AccountSecurity.passkeyLater, action: onFinish)
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity)
+                .disabled(isRegistering)
+        }
+        .padding(AppTheme.pageHorizontal)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(isRegistering)
     }
 }

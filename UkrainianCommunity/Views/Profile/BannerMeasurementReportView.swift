@@ -96,6 +96,12 @@ struct BannerMeasurementReportView: View {
                     }
                 }
 
+                OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byDay) {
+                    ForEach(report.days) { day in
+                        row(title: day.id, totals: day.totals)
+                    }
+                }
+
                 OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byBanner) {
                     if viewModel.namesUnavailable {
                         OwnerAnalyticsPartialDataBanner(message: AppStrings.BannerReport.namesUnavailable)

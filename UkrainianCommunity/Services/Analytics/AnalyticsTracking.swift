@@ -8,6 +8,7 @@ protocol AnalyticsTracking {
     /// Principal-scoped preflight for callers that reserve a view deduplication key.
     var isCollectionAvailable: Bool { get }
     var isCollectionEnabled: Bool { get }
+    var hasConsentSyncFailure: Bool { get }
     /// Opaque identifier for the currently authorized opt-in generation.
     /// It changes across opt-out/re-opt-in and never contains a principal ID.
     var collectionScopeID: String? { get }
@@ -25,6 +26,8 @@ protocol AnalyticsTracking {
 }
 
 extension AnalyticsTracking {
+    var hasConsentSyncFailure: Bool { false }
+
     func collectionChanges() -> AsyncStream<Void> {
         AsyncStream { continuation in
             continuation.yield(())

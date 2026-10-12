@@ -51,6 +51,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
     private let consentFailureNotifications = AnalyticsConsentFailures()
     private var authContext: AuthContext
     private var currentConsentAttempt: (principalBinding: String, consentID: String)?
+    private var failedConsentAttempt: (principalBinding: String, consentID: String)?
     private let pendingWithdrawalStorageKey = "analyticsPendingConsentWithdrawal.v1"
     private static let isDebugLoggingEnabled = false
 
@@ -73,6 +74,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
     init(consentService: AnalyticsConsentProviding = AnalyticsConsentService()) {
         self.consentService = consentService
         self.currentConsentAttempt = nil
+        self.failedConsentAttempt = nil
 
         #if canImport(FirebaseAuth)
         let initialAuthContext = Self.currentAuthContext()
@@ -193,6 +195,15 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         return authorizedConsentID(for: authContext) != nil
     }
 
+    var hasConsentSyncFailure: Bool {
+        refreshAuthContextIfNeeded()
+        guard let principalID = authContext.principalID,
+              let consentID = authorizedConsentID(for: authContext),
+              let failedConsentAttempt else { return false }
+        return failedConsentAttempt.principalBinding == Self.principalBinding(principalID)
+            && failedConsentAttempt.consentID == consentID
+    }
+
     var collectionScopeID: String? {
         refreshAuthContextIfNeeded()
         #if canImport(FirebaseFunctions)
@@ -272,13 +283,16 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
         // server journal confirms the exact consent generation.
         transitionAggregateDelivery(analyticsConsentID: nil)
         if let analyticsConsentID {
+            failedConsentAttempt = nil
             synchronizeConsent(enabled: true, consentID: analyticsConsentID)
         } else if let previousConsentID, let principalID {
+            failedConsentAttempt = nil
             currentConsentAttempt = nil
             persistPendingWithdrawal(principalID: principalID, consentID: previousConsentID)
             synchronizeConsent(enabled: false, consentID: previousConsentID)
         } else {
             currentConsentAttempt = nil
+            failedConsentAttempt = nil
         }
     }
 
@@ -416,6 +430,7 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
                 }
                 if enabled,
                    self.authorizedConsentID(for: self.authContext) == consentID {
+                    self.failedConsentAttempt = nil
                     self.transitionAggregateDelivery(analyticsConsentID: consentID)
                 } else if !enabled {
                     self.clearPendingWithdrawal(principalBinding: principalBinding, consentID: consentID)
@@ -429,7 +444,10 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
                 // Delivery stays suspended until the next successful sync.
                 guard failure.domain == FunctionsErrorDomain,
                       [.failedPrecondition, .invalidArgument, .permissionDenied].contains(FunctionsErrorCode(rawValue: failure.code)) else { return }
-                self.consentService.setAnalyticsEnabled(false, for: self.authContext.principalID)
+                // Keep the person's explicit choice when the server rejects a
+                // synchronization attempt. Delivery is already fenced off; the
+                // UI can offer a deliberate retry without silently opting out.
+                self.failedConsentAttempt = (principalBinding, consentID)
                 self.transitionAggregateDelivery(analyticsConsentID: nil)
                 self.consentFailureNotifications.notify(
                     AnalyticsConsentFailure(

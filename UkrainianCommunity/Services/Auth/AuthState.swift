@@ -44,6 +44,7 @@ final class AuthState: ObservableObject {
     @Published private(set) var pendingSessionUserID: String?
     @Published private(set) var sessionState: AuthSessionState = .restoring
     @Published var presentedAuthFlow: AuthFlowDestination?
+    @Published private(set) var passkeyOfferForUserID: String?
 
     private let userProfileLoader: UserProfileLoader
     let appLock: AppLockService
@@ -93,6 +94,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func beginRestoringSession() {
+        passkeyOfferForUserID = nil
         appLock.lock()
         invalidateUserLoad()
         user = nil
@@ -105,6 +107,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func beginAuthenticatingSession(userID: String? = nil, email: String? = nil) {
+        passkeyOfferForUserID = nil
         invalidateUserLoad()
         user = nil
         pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -116,6 +119,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     func setGuestSession() {
+        passkeyOfferForUserID = nil
         OrganizationAccessStore.shared.transition(to: nil)
         LocalReminderSession.shared.transition(to: nil)
         appLock.updateSession(userID: nil)
@@ -140,6 +144,18 @@ final class AuthState: ObservableObject {
         pendingSessionUserID = user.id
         sessionState = .authenticated
         errorMessage = nil
+    }
+
+    @MainActor
+    func offerPasskeyEnrollment(for userID: String) {
+        guard isAuthenticated, user?.id == userID else { return }
+        passkeyOfferForUserID = userID
+    }
+
+    @MainActor
+    func clearPasskeyEnrollmentOffer(for userID: String? = nil) {
+        if let userID, passkeyOfferForUserID != userID { return }
+        passkeyOfferForUserID = nil
     }
 
     @MainActor

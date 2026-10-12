@@ -535,7 +535,7 @@ final class AuthService {
                 try await backend.signIn(customToken: token)
             }
             authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email)
-            _ = try await finishInteractiveSignIn(sessionUser, transition: transition)
+            _ = try await finishInteractiveSignIn(sessionUser, transition: transition, offerPasskey: false)
         } catch {
             guard isCurrentTransition(transition) else { throw error }
             reconcileAfterFailedAuthenticationStart(error, transition: transition)
@@ -673,7 +673,8 @@ final class AuthService {
     @MainActor
     private func publishAuthenticatedSession(
         user: AppUser,
-        passwordAuthenticated: Bool = false
+        passwordAuthenticated: Bool = false,
+        offerPasskey: Bool = false
     ) async {
         authState.setAuthenticatedSession(
             user: user,
@@ -683,6 +684,9 @@ final class AuthService {
             for: user,
             dismissResolvedAuthFlow: true
         )
+        if offerPasskey {
+            authState.offerPasskeyEnrollment(for: user.id)
+        }
     }
 
     @MainActor
@@ -717,7 +721,8 @@ final class AuthService {
     @MainActor
     private func finishInteractiveSignIn(
         _ sessionUser: any AuthSessionUserProviding,
-        transition: UInt
+        transition: UInt,
+        offerPasskey: Bool = true
     ) async throws -> AppUser {
         do {
             let isEmailVerified = try await isCurrentUserEmailVerified(
@@ -746,7 +751,11 @@ final class AuthService {
                 sessionUser: sessionUser,
                 transition: transition
             )
-            await publishAuthenticatedSession(user: user, passwordAuthenticated: true)
+            await publishAuthenticatedSession(
+                user: user,
+                passwordAuthenticated: true,
+                offerPasskey: offerPasskey
+            )
             return user
         } catch AuthVerificationError.emailNotVerified {
             throw AuthVerificationError.emailNotVerified
@@ -800,7 +809,7 @@ final class AuthService {
             authState.appLock.enableAfterRegistration(authorization, userID: sessionUser.uid)
         }
         try validateAuthenticatedProfile(user, sessionUser: sessionUser, transition: transition)
-        await publishAuthenticatedSession(user: user)
+        await publishAuthenticatedSession(user: user, offerPasskey: true)
     }
 
     @MainActor
@@ -973,7 +982,7 @@ final class AuthService {
                 sessionUser: sessionUser,
                 transition: transition
             )
-            await publishAuthenticatedSession(user: user)
+            await publishAuthenticatedSession(user: user, offerPasskey: true)
             return user
         } catch {
             guard isCurrentTransition(transition) else { throw error }

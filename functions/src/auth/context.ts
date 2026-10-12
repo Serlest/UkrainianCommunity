@@ -50,6 +50,17 @@ export function isTOTPAuthenticated(token: AuthContext["token"]): boolean {
   return firebaseClaims?.sign_in_second_factor === "totp";
 }
 
+export function canManagePasskeyCredentials(
+  token: AuthContext["token"], permissions: UserPermissionSnapshot,
+  nowSeconds = Date.now() / 1000
+): boolean {
+  const recentlySignedIn = typeof token.auth_time === "number" &&
+    token.auth_time <= nowSeconds && nowSeconds - token.auth_time < 600;
+  if (!recentlySignedIn) return false;
+  return (permissions.globalRole !== "owner" && permissions.globalRole !== "admin") ||
+    isTOTPAuthenticated(token);
+}
+
 export function isPrivilegedSessionAuthenticated(
   token: AuthContext["token"], permissions: UserPermissionSnapshot
 ): boolean {

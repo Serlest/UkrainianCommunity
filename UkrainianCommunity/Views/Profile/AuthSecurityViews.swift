@@ -290,11 +290,13 @@ struct AccountSecurityView: View {
     @StateObject private var viewModel = AccountSecurityViewModel()
     @State private var isSendingPasswordLink = false
     @State private var factorPendingRemoval: AuthMultiFactorFactor?
+    @State private var showsAuthenticatorDetails = false
 
     var body: some View {
         PushedScreenShell(
             title: AppStrings.AccountSecurity.title,
-            subtitle: AppStrings.AccountSecurity.subtitle
+            subtitle: AppStrings.AccountSecurity.subtitle,
+            tabBarHidden: true
         ) {
             if let message = viewModel.message {
                 InlineMessageCard(style: .success, message: message)
@@ -303,12 +305,13 @@ struct AccountSecurityView: View {
                 InlineMessageCard(style: .error, message: errorMessage)
             }
 
-            passwordSection
+            PasskeyManagementView(
+                isPrivileged: AuthSecurityPolicy.isPrivilegedAccount(authState.user),
+                isTOTPAuthenticated: viewModel.isSessionTOTPAuthenticated
+            )
             LinkedAccountProvidersView(account: authState.user)
+            passwordSection
             multiFactorSection
-            if AuthSecurityPolicy.isPrivilegedAccount(authState.user) {
-                PasskeyManagementView(isTOTPAuthenticated: viewModel.isSessionTOTPAuthenticated)
-            }
         }
         .task(id: authState.user?.id) {
             await viewModel.load()
@@ -361,85 +364,99 @@ struct AccountSecurityView: View {
     private var multiFactorSection: some View {
         ProfileSectionCard(
             title: AppStrings.AccountSecurity.multiFactorSection,
-            subtitle: AppStrings.AccountSecurity.multiFactorSubtitle
+            subtitle: AuthSecurityPolicy.isPrivilegedAccount(authState.user)
+                ? AppStrings.AccountSecurity.multiFactorSubtitle : nil
         ) {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                if viewModel.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .accessibilityLabel(AppStrings.Common.loading)
-                } else if viewModel.factors.isEmpty {
-                    InlineMessageCard(
-                        style: .info,
-                        message: AuthSecurityRollout.allowsTOTPEnrollment
-                            ? AppStrings.AccountSecurity.multiFactorDisabled
-                            : AppStrings.AccountSecurity.multiFactorRolloutPending
-                    )
-
-                    PrimaryActionButton(
-                        title: AppStrings.AccountSecurity.enableMultiFactor,
-                        loadingTitle: AppStrings.AccountSecurity.enablingMultiFactor,
-                        isEnabled: AuthSecurityRollout.allowsTOTPEnrollment,
-                        isLoading: viewModel.isStartingEnrollment,
-                        systemImage: "qrcode"
-                    ) {
-                        Task { await viewModel.beginEnrollment() }
-                    }
-                    .accessibilityIdentifier("accountSecurity.mfa.enable")
-                } else {
-                    InlineMessageCard(
-                        style: .success,
-                        message: AppStrings.AccountSecurity.multiFactorEnabled
-                    )
-
-                    ForEach(viewModel.factors) { factor in
-                        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                            Label(
-                                factor.displayName ?? AppStrings.AccountSecurity.multiFactorSection,
-                                systemImage: "checkmark.shield.fill"
-                            )
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
-
-                            Text(factor.enrollmentDate.formatted(date: .abbreviated, time: .shortened))
-                                .font(.footnote)
-                                .foregroundStyle(AppTheme.textSecondary)
-
-                            if AuthSecurityPolicy.canRemoveLastTOTPFactor(for: authState.user)
-                                || viewModel.factors.count > 1 {
-                                Button(role: .destructive) {
-                                    factorPendingRemoval = factor
-                                } label: {
-                                    Label(
-                                        viewModel.removingFactorID == factor.id
-                                            ? AppStrings.AccountSecurity.removingMultiFactor
-                                            : AppStrings.AccountSecurity.removeMultiFactor,
-                                        systemImage: "trash"
-                                    )
-                                }
-                                .disabled(viewModel.removingFactorID != nil)
-                            } else {
-                                Label(
-                                    AppStrings.AccountSecurity.requiredFactorCannotBeRemoved,
-                                    systemImage: "lock.shield"
-                                )
-                                .font(.footnote)
-                                .foregroundStyle(AppTheme.textSecondary)
-                            }
-                        }
-                        .padding(AppTheme.cardPadding)
-                        .background(
-                            AppTheme.surfaceSecondary,
-                            in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
-                        )
-                    }
+                DisclosureGroup(
+                    AppStrings.AccountSecurity.manageAuthenticator,
+                    isExpanded: $showsAuthenticatorDetails
+                ) {
+                    authenticatorDetails
                 }
-
-                Text(AppStrings.AccountSecurity.recoveryNotice)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                .font(.subheadline.weight(.semibold))
+                .tint(AppTheme.primaryBlue)
             }
+        }
+    }
+
+    private var authenticatorDetails: some View {
+        VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(AppStrings.Common.loading)
+            } else if viewModel.factors.isEmpty {
+                InlineMessageCard(
+                    style: .info,
+                    message: AuthSecurityRollout.allowsTOTPEnrollment
+                        ? AppStrings.AccountSecurity.multiFactorDisabled
+                        : AppStrings.AccountSecurity.multiFactorRolloutPending
+                )
+
+                PrimaryActionButton(
+                    title: AppStrings.AccountSecurity.enableMultiFactor,
+                    loadingTitle: AppStrings.AccountSecurity.enablingMultiFactor,
+                    isEnabled: AuthSecurityRollout.allowsTOTPEnrollment,
+                    isLoading: viewModel.isStartingEnrollment,
+                    systemImage: "qrcode"
+                ) {
+                    Task { await viewModel.beginEnrollment() }
+                }
+                .accessibilityIdentifier("accountSecurity.mfa.enable")
+            } else {
+                InlineMessageCard(
+                    style: .success,
+                    message: AppStrings.AccountSecurity.multiFactorEnabled
+                )
+
+                ForEach(viewModel.factors) { factor in
+                    VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                        Label(
+                            factor.displayName ?? AppStrings.AccountSecurity.multiFactorSection,
+                            systemImage: "checkmark.shield.fill"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.textPrimary)
+
+                        Text(factor.enrollmentDate.formatted(date: .abbreviated, time: .shortened))
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textSecondary)
+
+                        if AuthSecurityPolicy.canRemoveLastTOTPFactor(for: authState.user)
+                            || viewModel.factors.count > 1 {
+                            Button(role: .destructive) {
+                                factorPendingRemoval = factor
+                            } label: {
+                                Label(
+                                    viewModel.removingFactorID == factor.id
+                                        ? AppStrings.AccountSecurity.removingMultiFactor
+                                        : AppStrings.AccountSecurity.removeMultiFactor,
+                                    systemImage: "trash"
+                                )
+                            }
+                            .disabled(viewModel.removingFactorID != nil)
+                        } else {
+                            Label(
+                                AppStrings.AccountSecurity.requiredFactorCannotBeRemoved,
+                                systemImage: "lock.shield"
+                            )
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textSecondary)
+                        }
+                    }
+                    .padding(AppTheme.cardPadding)
+                    .background(
+                        AppTheme.surfaceSecondary,
+                        in: RoundedRectangle(cornerRadius: AppTheme.cardRadius, style: .continuous)
+                    )
+                }
+            }
+
+            Text(AppStrings.AccountSecurity.recoveryNotice)
+                .font(.footnote)
+                .foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

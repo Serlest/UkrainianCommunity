@@ -35,6 +35,7 @@ struct AuthSessionConsistencyTests {
         #expect(profiles.createCallCount == 1)
         #expect(state.isAuthenticated)
         #expect(state.user?.id == "new")
+        #expect(state.passkeyOfferForUserID == "new")
         #expect(consent.choices["new"] == true)
     }
 

@@ -4,6 +4,8 @@ import UIKit
 struct ContentView: View {
     @StateObject private var announcementCoordinator: AnnouncementCoordinator
     @State private var announcementFeedback: UserAnnouncement?
+    @State private var isShowingPasskeyOffer = false
+    @State private var offeredPasskeyUserID: String?
     @EnvironmentObject private var authState: AuthState
     @Environment(\.openURL) private var openURL
     private enum AppTab: Hashable {
@@ -125,11 +127,38 @@ struct ContentView: View {
                 if let item { announcementCoordinator.requestedFeedback = nil; openAnnouncementFeedback(item) }
             }
             .modifier(AppUpdatePrompt(isReady: isReadyForUpdatePrompt && announcementCoordinator.active == nil))
+            .task(id: "\(authState.passkeyOfferForUserID ?? "")|\(authState.presentedAuthFlow?.rawValue ?? "")|\(updateAppLockIsLocked)") {
+                guard isStartupReady, authState.isAuthenticated,
+                      authState.presentedAuthFlow == nil, !updateAppLockIsLocked,
+                      let userID = authState.passkeyOfferForUserID,
+                      userID == authState.user?.id else { return }
+                guard let passkeys = try? await PasskeyService.shared.listPasskeys(),
+                      !Task.isCancelled, userID == authState.user?.id else { return }
+                if passkeys.isEmpty {
+                    offeredPasskeyUserID = userID
+                    isShowingPasskeyOffer = true
+                } else {
+                    authState.clearPasskeyEnrollmentOffer(for: userID)
+                }
+            }
+            .sheet(isPresented: $isShowingPasskeyOffer, onDismiss: {
+                authState.clearPasskeyEnrollmentOffer(for: offeredPasskeyUserID)
+                offeredPasskeyUserID = nil
+            }) {
+                PasskeyEnrollmentOfferView {
+                    isShowingPasskeyOffer = false
+                    authState.clearPasskeyEnrollmentOffer(for: offeredPasskeyUserID)
+                }
+            }
+            .onChange(of: authState.user?.id) { _, newUserID in
+                if newUserID == nil { isShowingPasskeyOffer = false }
+            }
     }
 
     private var isReadyForUpdatePrompt: Bool {
         isStartupReady && !authState.isRestoring && !authState.isAuthenticating
             && !updateAppLockIsLocked && authState.presentedAuthFlow == nil
+            && !isShowingPasskeyOffer
             && updateMFACheckKey == privilegedMFARequirementKey
             && accountStatusMonitor.activeNotice == nil
             && notificationPopupCoordinator.activeNotification == nil && quickCreation == nil
@@ -141,6 +170,7 @@ struct ContentView: View {
     private var canExposeRootBanners: Bool {
         isStartupReady && !authState.isRestoring && !authState.isAuthenticating
             && !updateAppLockIsLocked && authState.presentedAuthFlow == nil
+            && !isShowingPasskeyOffer
             && accountStatusMonitor.activeNotice == nil
             && !organizationBlockingCoordinator.requiresVisibilityGate
     }

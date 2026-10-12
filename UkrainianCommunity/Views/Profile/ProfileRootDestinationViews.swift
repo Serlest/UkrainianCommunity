@@ -53,7 +53,7 @@ struct ProfilePreferencesView: View {
                     ProfileSettingsToggleRow(
                         title: AppStrings.Profile.analyticsCollectionTitle,
                         subtitle: analyticsService.isCollectionAvailable
-                            ? AppStrings.Profile.analyticsCollectionSubtitle
+                            ? AppStrings.Profile.analyticsCollectionSummary
                             : AppStrings.Profile.analyticsCollectionUnavailableSubtitle,
                         systemImage: "chart.bar.xaxis",
                         isOn: Binding(
@@ -68,7 +68,16 @@ struct ProfilePreferencesView: View {
                     .disabled(!analyticsService.isCollectionAvailable)
                     .accessibilityIdentifier("profile.settings.analyticsConsent")
 
-                    if analyticsConsentWasRejected {
+                    DisclosureGroup(AppStrings.Profile.analyticsCollectionDetails) {
+                        Text(AppStrings.Profile.analyticsCollectionSubtitle)
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .font(.footnote.weight(.semibold))
+                    .tint(AppTheme.primaryBlue)
+
+                    if analyticsConsentWasRejected || analyticsService.hasConsentSyncFailure {
                         InlineMessageCard(
                             style: .error,
                             message: AppStrings.Profile.analyticsConsentRejected
@@ -78,6 +87,10 @@ struct ProfilePreferencesView: View {
                         Button {
                             analyticsConsentWasRejected = false
                             isAnalyticsCollectionEnabled = true
+                            // A server-side withdrawal can tombstone the old
+                            // consent ID. This explicit retry records a fresh
+                            // choice while leaving collection paused until ack.
+                            analyticsService.setCollectionEnabled(false)
                             analyticsService.setCollectionEnabled(true)
                         } label: {
                             Label(AppStrings.Action.retry, systemImage: "arrow.clockwise")

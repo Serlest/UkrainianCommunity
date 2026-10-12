@@ -15,8 +15,7 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 import {adminAuth, db} from "../firebase/admin";
 import {isActiveUser, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {
-  isPrivilegedSessionAuthenticated,
-  isTOTPAuthenticated,
+  canManagePasskeyCredentials,
   requireVerifiedActiveUser,
 } from "./context";
 
@@ -28,12 +27,6 @@ const challengeLifetimeMs = 5 * 60 * 1000;
 const options = {region: "europe-west3", maxInstances: 5, enforceAppCheck: true};
 const challenges = db.collection("passkeyChallenges");
 const credentials = db.collection("passkeyCredentials");
-
-function isPrivileged(data: FirebaseFirestore.DocumentData): boolean {
-  const permissions = userPermissionSnapshotFromData("", data);
-  return isActiveUser(permissions)
-    && (permissions.globalRole === "owner" || permissions.globalRole === "admin");
-}
 
 function stringField(value: unknown, maxLength = 4096): string {
   if (typeof value !== "string" || value.length === 0 || value.length > maxLength) {
@@ -97,12 +90,12 @@ function validChallenge(data: FirebaseFirestore.DocumentData | undefined, kind: 
 
 export const beginPasskeyRegistration = onCall(options, async (request) => {
   const auth = await requireVerifiedActiveUser(request);
-  if (!isTOTPAuthenticated(auth.token)) {
-    throw new HttpsError("permission-denied", "Confirm with your authenticator before adding a passkey.");
+  if (!canManagePasskeyCredentials(auth.token, auth.permissions)) {
+    throw new HttpsError("permission-denied", "Sign in again to add a passkey.");
   }
   const profile = await db.collection("users").doc(auth.uid).get();
-  if (!profile.exists || !isPrivileged(profile.data()!)) {
-    throw new HttpsError("permission-denied", "Privileged account required.");
+  if (!profile.exists || !isActiveUser(userPermissionSnapshotFromData(auth.uid, profile.data()!))) {
+    throw new HttpsError("permission-denied", "An active account is required.");
   }
   const record = await adminAuth.getUser(auth.uid);
   if (!record.emailVerified || record.disabled || !record.email) {
@@ -135,8 +128,8 @@ export const beginPasskeyRegistration = onCall(options, async (request) => {
 
 export const finishPasskeyRegistration = onCall(options, async (request) => {
   const auth = await requireVerifiedActiveUser(request);
-  if (!isTOTPAuthenticated(auth.token)) {
-    throw new HttpsError("permission-denied", "Authenticator verification is required.");
+  if (!canManagePasskeyCredentials(auth.token, auth.permissions)) {
+    throw new HttpsError("permission-denied", "Sign in again to add a passkey.");
   }
   const requestID = stringField(request.data?.requestID, 80);
   const response = registrationResponse(request.data?.credential);
@@ -169,7 +162,8 @@ export const finishPasskeyRegistration = onCall(options, async (request) => {
       tx.get(challengeRef), tx.get(credentialRef), tx.get(db.collection("users").doc(auth.uid)),
     ]);
     validChallenge(freshChallenge.data(), "registration");
-    if (freshChallenge.get("uid") !== auth.uid || !profile.exists || !isPrivileged(profile.data()!)) {
+    if (freshChallenge.get("uid") !== auth.uid || !profile.exists ||
+        !isActiveUser(userPermissionSnapshotFromData(auth.uid, profile.data()!))) {
       throw new HttpsError("permission-denied", "Account is no longer eligible.");
     }
     if (existingKey.exists) {
@@ -212,7 +206,8 @@ export const finishPasskeySignIn = onCall(options, async (request) => {
   const uid = stringField(key.get("uid"), 128);
   const profile = await db.collection("users").doc(uid).get();
   const account = await adminAuth.getUser(uid);
-  if (!profile.exists || !isPrivileged(profile.data()!) || account.disabled || !account.emailVerified) {
+  if (!profile.exists || !isActiveUser(userPermissionSnapshotFromData(uid, profile.data()!)) ||
+      account.disabled || !account.emailVerified) {
     throw new HttpsError("permission-denied", "Account is not available.");
   }
   const passkeyEpoch = stringField(profile.get("passkeyEpoch"), 80);
@@ -240,7 +235,7 @@ export const finishPasskeySignIn = onCall(options, async (request) => {
     validChallenge(freshChallenge.data(), "authentication");
     if (!freshKey.exists || freshKey.get("uid") !== uid ||
         freshKey.get("counter") !== key.get("counter") ||
-        !freshProfile.exists || !isPrivileged(freshProfile.data()!)) {
+        !freshProfile.exists || !isActiveUser(userPermissionSnapshotFromData(uid, freshProfile.data()!))) {
       throw new HttpsError("failed-precondition", "Passkey request changed. Try again.");
     }
     tx.update(credentialRef, {
@@ -259,10 +254,6 @@ export const finishPasskeySignIn = onCall(options, async (request) => {
 
 export const listMyPasskeys = onCall(options, async (request) => {
   const auth = await requireVerifiedActiveUser(request);
-  if (!isPrivilegedSessionAuthenticated(auth.token, auth.permissions)
-      || (auth.permissions.globalRole !== "owner" && auth.permissions.globalRole !== "admin")) {
-    throw new HttpsError("permission-denied", "Privileged account required.");
-  }
   const keys = await credentials.where("uid", "==", auth.uid).get();
   return {
     count: keys.size,
@@ -275,9 +266,8 @@ export const listMyPasskeys = onCall(options, async (request) => {
 
 export const removeMyPasskey = onCall(options, async (request) => {
   const auth = await requireVerifiedActiveUser(request);
-  if (!isTOTPAuthenticated(auth.token)
-      || (auth.permissions.globalRole !== "owner" && auth.permissions.globalRole !== "admin")) {
-    throw new HttpsError("permission-denied", "Sign in with the authenticator to remove a passkey.");
+  if (!canManagePasskeyCredentials(auth.token, auth.permissions)) {
+    throw new HttpsError("permission-denied", "Sign in again to remove a passkey.");
   }
   const id = stringField(request.data?.id, 64);
   if (!/^[0-9a-f]{64}$/.test(id)) {
@@ -287,7 +277,8 @@ export const removeMyPasskey = onCall(options, async (request) => {
   const userRef = db.collection("users").doc(auth.uid);
   await db.runTransaction(async (tx) => {
     const [key, user] = await Promise.all([tx.get(keyRef), tx.get(userRef)]);
-    if (!key.exists || key.get("uid") !== auth.uid || !user.exists || !isPrivileged(user.data()!)) {
+    if (!key.exists || key.get("uid") !== auth.uid || !user.exists ||
+        !isActiveUser(userPermissionSnapshotFromData(auth.uid, user.data()!))) {
       throw new HttpsError("not-found", "Passkey not found.");
     }
     tx.delete(keyRef);
