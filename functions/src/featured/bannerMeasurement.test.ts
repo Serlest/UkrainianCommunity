@@ -65,6 +65,8 @@ test("one consented measurement counts once and withdrawal stops further counts"
     privacyVersion: bannerConsentPrivacyVersion, disclosureVersion: bannerConsentDisclosureVersion});
   const event = parseBannerMeasurement({id: eventID, bannerID, section: "home", kind: "impression",
     occurredAtMilliseconds: now.getTime(), consentID}, now);
+  const click = parseBannerMeasurement({id: randomUUID(), bannerID, section: "home", kind: "click",
+    occurredAtMilliseconds: now.getTime(), consentID}, now);
   const policyBefore = await policyRef.get();
   try {
     await policyRef.set({activeVersion: "2026.20"});
@@ -79,6 +81,8 @@ test("one consented measurement counts once and withdrawal stops further counts"
     }, now), {code: "not-found"});
     assert.deepEqual(await persistBannerMeasurement(uid, event, now), {counted: true, duplicate: false});
     assert.deepEqual(await persistBannerMeasurement(uid, event, now), {counted: true, duplicate: true});
+    assert.deepEqual(await persistBannerMeasurement(uid, click, now), {counted: true, duplicate: false});
+    assert.deepEqual(await persistBannerMeasurement(uid, click, now), {counted: true, duplicate: true});
     await policyRef.set({activeVersion: "2026.22"});
     await assert.rejects(persistBannerMeasurement(uid, {...event, id: randomUUID()}, now),
       {code: "failed-precondition"});
@@ -86,8 +90,10 @@ test("one consented measurement counts once and withdrawal stops further counts"
     await assert.rejects(persistBannerMeasurement(uid, {...event, kind: "click"}, now),
       {code: "invalid-argument"});
     const shards = await db.collection(bannerMeasurementShardCollection).where("bannerID", "==", bannerID).get();
-    assert.equal(shards.size, 1);
-    assert.equal(shards.docs[0].get("impressions"), 1);
+    assert.equal(shards.docs.reduce((total, shard) => total + shard.get("impressions"), 0), 1);
+    assert.equal(shards.docs.reduce((total, shard) => total + shard.get("clicks"), 0), 1);
+    assert.ok(shards.docs.every(shard => shard.get("day") === "2026-10-12"
+      && shard.get("bannerID") === bannerID && shard.get("section") === "home"));
     await persistBannerMeasurementConsent(uid, {...consent, enabled: false});
     await assert.rejects(persistBannerMeasurement(uid, event, now), {code: "failed-precondition"});
     assert.equal(await persistBannerMeasurementConsent(uid, {...consent, consentID: laterConsentID}), true);
@@ -101,6 +107,7 @@ test("one consented measurement counts once and withdrawal stops further counts"
     await Promise.all([profileRef, bannerRef, stateRef, consentReceiptRef,
       db.collection(bannerConsentReceiptCollection).doc(bannerConsentReceiptID(uid, laterConsentID)),
       eventReceiptRef,
+      db.collection(bannerMeasurementReceiptCollection).doc(bannerMeasurementEventReceiptID(uid, click.id)),
       db.collection(bannerMeasurementRateLimitCollection).doc(analyticsRateLimitID(uid, now))
     ].map(ref => ref.delete()));
   }
