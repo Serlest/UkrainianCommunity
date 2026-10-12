@@ -11,6 +11,7 @@ final class LegalComplianceMonitorService: ObservableObject {
 
     private let legalDocumentRepository: LegalDocumentRepository
     private let userRepository: UserRepository
+    private let documentFetchTimeout: Duration
     private var evaluatedKey: String?
     private var acceptingUserID: String?
     private var locallyAcceptedUserID: String?
@@ -29,10 +30,12 @@ final class LegalComplianceMonitorService: ObservableObject {
 
     init(
         legalDocumentRepository: LegalDocumentRepository,
-        userRepository: UserRepository
+        userRepository: UserRepository,
+        documentFetchTimeout: Duration = .seconds(15)
     ) {
         self.legalDocumentRepository = legalDocumentRepository
         self.userRepository = userRepository
+        self.documentFetchTimeout = documentFetchTimeout
     }
 
     func configure(user: AppUser?) async {
@@ -92,10 +95,10 @@ final class LegalComplianceMonitorService: ObservableObject {
 
         do {
             try Task.checkCancellation()
-            async let termsDocument = RefreshRequest.run(timeout: .seconds(15)) {
+            async let termsDocument = RefreshRequest.run(timeout: documentFetchTimeout) {
                 try await self.legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .terms)
             }
-            async let privacyDocument = RefreshRequest.run(timeout: .seconds(15)) {
+            async let privacyDocument = RefreshRequest.run(timeout: documentFetchTimeout) {
                 try await self.legalDocumentRepository.fetchAuthoritativeActiveDocument(type: .privacy)
             }
             let documents = try await [termsDocument, privacyDocument]
