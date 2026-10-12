@@ -1,7 +1,7 @@
 import {FieldPath, Timestamp, type DocumentData, type DocumentSnapshot, type QueryDocumentSnapshot} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
 import {adminSearchDocuments, collectAdminSearch} from "../users/adminUserSearch";

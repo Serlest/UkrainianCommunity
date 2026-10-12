@@ -2,7 +2,7 @@ import {assertActiveUser} from "../auth/context";
 import {Timestamp, type DocumentData} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {storageObjectPathFromDownloadURL} from "../content/contentDeletionPolicy";
 import {db} from "../firebase/admin";
 import {isOwner, userPermissionSnapshotFromData, type UserPermissionSnapshot} from "../permissions/userPermissions";

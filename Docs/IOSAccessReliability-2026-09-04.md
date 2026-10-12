@@ -34,7 +34,9 @@
 
 `getOrganizationAccess`, `updateOrganizationInfo`, `updateAnalyticsConsent`, `updateAnalyticsConsentV2`, `trackAnalyticsEvent`, `listLegalEvidenceAccounts`, `getLegalEvidencePage`, `cancelEvent`, `completeEventCancellationOnCreate`, `createOrganizationPhotoMetadata`, `deleteOrganizationPhotoMetadata`, `deleteNews`, `deleteOrganization`, `clearMyFeedback`, `deleteFeedback`, `deleteMyFeedback`, `clearFeedbackInbox`, `clearSystemLogs`, `deleteSystemLog`, `cleanupExpiredData`, `deleteOwnAccount`.
 
-Условия аутентификации исправляемых v1-функций сохранены относительно выгруженного production-кода. Это явно зафиксировано `legacyCallableContext.ts`; для удаления своего аккаунта сохранены недавний вход и запрет удаления владельца платформы/организации. Нельзя заменять этот совместимый guard общим строгим helper без отдельного решения о MFA. Новая команда организации сохраняет требования существующих прямых Rules.
+На момент этого развёртывания условия аутентификации v1-функций сохранялись относительно production-кода через `legacyCallableContext.ts`. Для удаления своего аккаунта сохранялись недавний вход и запрет удаления владельца платформы/организации. Новая команда организации сохраняла требования существующих прямых Rules.
+
+Обновление 2026-10-12: отдельное решение по MFA принято при исправлении обхода защищённого аккаунта. Старый helper удалён; затронутые callable-функции используют общий `requireVerifiedActiveUser`, который требует TOTP для владельца и администратора с `requiresMultiFactorAuth: true`. Снятие согласия на аналитику по-прежнему проходит через `requireVerifiedAuth`, чтобы владелец аккаунта мог отозвать согласие.
 
 Новые запросы сохранения организации, фотографий и согласия привязаны к ожидаемому UID. При смене аккаунта во время ожидания сервер отвергает несовпадение; старые варианты запросов остаются совместимыми. В legacy fallback аналитики сохраняется старый четырёхполевой формат.
 

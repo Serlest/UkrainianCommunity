@@ -10,7 +10,7 @@ import {
 import * as logger from "firebase-functions/logger";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {auditLogRef, buildAuditLog} from "../audit/auditLog";
 import {adminStorage, db} from "../firebase/admin";
 import {getOrganizationRoles} from "../permissions/organizationPermissions";

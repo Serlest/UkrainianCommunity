@@ -6,8 +6,7 @@ import {
 } from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
-import {assertActiveUser, requireVerifiedAuth} from "../auth/context";
-import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {assertActiveUser, requireVerifiedActiveUser, requireVerifiedAuth} from "../auth/context";
 import {db} from "../firebase/admin";
 import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 

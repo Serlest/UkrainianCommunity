@@ -2,7 +2,6 @@ import {createHash} from "node:crypto";
 import {FieldValue, Timestamp, type DocumentData} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 import {requireVerifiedActiveUser, assertActiveUser, assertPrivilegedMFA} from "../auth/context";
-import {requireLegacyCallableUser} from "../auth/legacyCallableContext";
 import {db} from "../firebase/admin";
 import {isActiveUser, isOwner, userPermissionSnapshotFromData, type UserPermissionSnapshot} from "../permissions/userPermissions";
 
@@ -42,9 +41,7 @@ export function organizationRevision(data: DocumentData): string | null {
 }
 
 export const getOrganizationAccess = onCall(options, request => withAccessDiagnostics(request, "getOrganizationAccess", async correlationId => {
-  // Reading UI capabilities must not introduce another MFA challenge. Commands
-  // replacing direct writes retain the existing Rules MFA condition below.
-  const auth = await requireLegacyCallableUser(request);
+  const auth = await requireVerifiedActiveUser(request);
   const ids = request.data?.organizationIds;
   if (!Array.isArray(ids) || ids.length > 50 || ids.some(id => !validID(id))) {
     throw new HttpsError("invalid-argument", "Up to 50 organization IDs are required.");

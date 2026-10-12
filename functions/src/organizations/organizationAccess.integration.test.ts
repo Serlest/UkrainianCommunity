@@ -78,11 +78,15 @@ test("commands preserve protected fields, reject stale edits and revoked roles, 
     assert.equal((await org.get()).get("moderationStatus"), "pendingReview");
     assert.equal((await org.get()).get("reviewMessage"), undefined);
     await profile.update({globalRole: "owner", requiresMultiFactorAuth: true});
+    await assert.rejects(getOrganizationAccess.run(request(uid, {organizationIds: [org.id]})), {code: "failed-precondition"});
     const protectedUpdate = {...input, operationId: randomUUID(), targetStatus: "pendingReview",
       expectedRevision: organizationRevision((await org.get()).data()!)};
     await assert.rejects(updateOrganizationInfo.run(request(uid, protectedUpdate)), {code: "failed-precondition"});
     const totp = request(uid, protectedUpdate);
     totp.auth.token.firebase = {sign_in_second_factor: "totp"};
+    const protectedAccess = request(uid, {organizationIds: [org.id]});
+    protectedAccess.auth.token.firebase = {sign_in_second_factor: "totp"};
+    assert.equal((await getOrganizationAccess.run(protectedAccess)).records[0].organizationId, org.id);
     await updateOrganizationInfo.run(totp);
   } finally {
     const receipts = await db.collection("organizationMutationReceipts").where("organizationId", "==", org.id).get();

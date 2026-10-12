@@ -17,7 +17,7 @@ import {defineBoolean} from "firebase-functions/params";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 
 import {assertActiveUser} from "../auth/context";
-import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {requireVerifiedActiveUser} from "../auth/context";
 import { db } from "../firebase/admin";
 import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {

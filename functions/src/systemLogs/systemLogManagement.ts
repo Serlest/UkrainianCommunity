@@ -2,7 +2,7 @@ import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {auditLogRef, buildAuditLog} from "../audit/auditLog";
-import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {db} from "../firebase/admin";
 import {assertOwner} from "../permissions/userPermissions";
 

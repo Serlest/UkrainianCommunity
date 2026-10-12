@@ -8,7 +8,7 @@ import {
 } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
-import {requireLegacyCallableUser as requireVerifiedActiveUser} from "../auth/legacyCallableContext";
+import {requireVerifiedActiveUser} from "../auth/context";
 import {assertActiveUser} from "../auth/context";
 import {deleteEventContent} from "../content/contentDeletion";
 import { db } from "../firebase/admin";
