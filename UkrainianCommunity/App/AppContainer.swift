@@ -21,6 +21,7 @@ struct AppContainer {
     let legalDocumentRepository: LegalDocumentRepository
     let ownerAnalyticsRepository: OwnerAnalyticsRepository
     let analyticsService: AnalyticsTracking
+    let bannerMeasurementService: BannerMeasurementService
 
     /// Production dependency graph. Preview and UI-test code must use `uiTesting`.
     static var live: AppContainer {
@@ -44,7 +45,8 @@ struct AppContainer {
             featuredBannerCache: FeaturedBannerCache(),
             legalDocumentRepository: FirestoreLegalDocumentRepository(),
             ownerAnalyticsRepository: FirestoreOwnerAnalyticsRepository(),
-            analyticsService: FirstPartyAnalyticsService()
+            analyticsService: FirstPartyAnalyticsService(),
+            bannerMeasurementService: BannerMeasurementService()
         )
     }
 
@@ -68,7 +70,8 @@ struct AppContainer {
             featuredBannerCache: FeaturedBannerCache(),
             legalDocumentRepository: MockLegalDocumentRepository(),
             ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
-            analyticsService: NoopAnalyticsService()
+            analyticsService: NoopAnalyticsService(),
+            bannerMeasurementService: BannerMeasurementService(startsObservers: false)
         )
     }
 }

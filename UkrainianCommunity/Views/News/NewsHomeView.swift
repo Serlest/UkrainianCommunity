@@ -12,6 +12,7 @@ struct NewsHomeView: View {
     @Binding var selectedFederalState: AustrianFederalState?
 
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    let onFeaturedBannerMeasurement: (FeaturedBannerMeasurement) -> Void
     let scrollResetToken: Int
     let searchResetToken: Int
     let isActive: Bool
@@ -34,6 +35,7 @@ struct NewsHomeView: View {
         navigationPath: Binding<[HomeFeedDestinationReference]>,
         selectedFederalState: Binding<AustrianFederalState?> = .constant(nil),
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
+        onFeaturedBannerMeasurement: @escaping (FeaturedBannerMeasurement) -> Void = { _ in },
         scrollResetToken: Int = 0,
         searchResetToken: Int = 0,
         isActive: Bool = true
@@ -42,6 +44,7 @@ struct NewsHomeView: View {
         self.eventsViewModel = eventsViewModel
         self.organizationsViewModel = organizationsViewModel
         self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.onFeaturedBannerMeasurement = onFeaturedBannerMeasurement
         self.scrollResetToken = scrollResetToken
         self.searchResetToken = searchResetToken
         self.isActive = isActive
@@ -133,7 +136,8 @@ struct NewsHomeView: View {
                                        sizing: .responsiveHero, section: .home,
                                        isActive: isActive && navigationPath.isEmpty,
                                        viewportFrame: bannerViewport,
-                                       onBannerTap: onFeaturedBannerTap)
+                                       onBannerTap: onFeaturedBannerTap,
+                                       onMeasurement: onFeaturedBannerMeasurement)
         } else if let error = featuredBannerViewModel.error {
             FeaturedBannerLoadFailureView(error: error) {
                 await featuredBannerViewModel.refresh(for: .home, federalState: selectedFederalState)

@@ -37983,6 +37983,41 @@
         }
       }
     },
+    "profile.settings.banner_measurement.agree" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Messung zustimmen" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Погодитися на вимірювання" } }
+      }
+    },
+    "profile.settings.banner_measurement.disclosure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Optional: UAC zählt sichtbare Banner-Einblendungen (mindestens 50 % für eine Sekunde) und Tippen je Banner und App-Bereich. Der Plattforminhaber erhält zusammengefasste Werte. Die Wahl gilt für dieses Konto auf allen angemeldeten Geräten. Konto-, Zustimmungs- und Ereignis-IDs dienen der Berechtigungsprüfung und dem Schutz vor Doppelzählung. Ereignisbelege werden nach 72 Stunden zur Löschung fällig; Zustimmungsnachweise folgen der Datenschutzerklärung. Keine Werbe-ID und kein appübergreifendes Tracking. Sie können jederzeit in den Einstellungen widerrufen." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Необов’язково: UAC рахує видимі покази банерів (щонайменше 50 % протягом секунди) та натискання за банером і розділом застосунку. Власник платформи отримує зведені показники. Вибір діє для цього акаунта на всіх пристроях, де виконано вхід. ID акаунта, згоди та події потрібні для перевірки прав і захисту від повторного підрахунку. Квитанції подій підлягають видаленню через 72 години; докази згоди зберігаються відповідно до політики приватності. Без рекламного ID та відстеження між застосунками. Згоду можна відкликати в налаштуваннях будь-коли." } }
+      }
+    },
+    "profile.settings.banner_measurement.error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Auswahl zur Banner-Messung konnte nicht abgeglichen werden. Versuchen Sie es mit Internetverbindung erneut." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Не вдалося синхронізувати вибір щодо вимірювання банерів. Спробуйте ще раз за наявності інтернету." } }
+      }
+    },
+    "profile.settings.banner_measurement.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Freiwillige Messung sichtbarer Banner-Einblendungen und Aufrufe für zusammengefasste Berichte an den Plattforminhaber. Getrennt von der Inhaltsanalyse; kein appübergreifendes Tracking." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Добровільне вимірювання видимих показів і натискань банерів для зведених звітів власнику платформи. Окремо від аналітики вмісту; без відстеження між застосунками." } }
+      }
+    },
+    "profile.settings.banner_measurement.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Banner-Messung" } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Вимірювання банерів" } }
+      }
+    },
     "profile.settings.app_appearance" : {
       "extractionState" : "manual",
       "localizations" : {

@@ -55,6 +55,7 @@ struct ProfileView: View {
     private let ownerAnalyticsRepository: OwnerAnalyticsRepository
     private let ownerContentDraftRepository: OwnerContentDraftRepository
     private let analyticsService: AnalyticsTracking
+    private let bannerMeasurementService: BannerMeasurementService
     private let donationConfigRepository: DonationConfigRepository
     private let notificationInboxRepository: NotificationInboxRepository
     @ObservedObject private var userBlockingCoordinator: UserBlockingCoordinator
@@ -111,6 +112,7 @@ struct ProfileView: View {
         ownerAnalyticsRepository: OwnerAnalyticsRepository = FirestoreOwnerAnalyticsRepository(),
         ownerContentDraftRepository: OwnerContentDraftRepository = FirestoreOwnerContentDraftRepository(),
         analyticsService: AnalyticsTracking = NoopAnalyticsService(),
+        bannerMeasurementService: BannerMeasurementService,
         donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         notificationInboxViewModel: NotificationInboxViewModel? = nil,
@@ -137,6 +139,7 @@ struct ProfileView: View {
         self.ownerAnalyticsRepository = ownerAnalyticsRepository
         self.ownerContentDraftRepository = ownerContentDraftRepository
         self.analyticsService = analyticsService
+        self.bannerMeasurementService = bannerMeasurementService
         self.donationConfigRepository = donationConfigRepository
         self.notificationInboxRepository = notificationInboxRepository
         self.notificationInboxViewModel = notificationInboxViewModel ?? NotificationInboxViewModel(
@@ -526,6 +529,7 @@ struct ProfileView: View {
                 viewModel: viewModel,
                 userBlockingCoordinator: userBlockingCoordinator,
                 analyticsService: analyticsService,
+                bannerMeasurementService: bannerMeasurementService,
                 isAnalyticsCollectionEnabled: $isAnalyticsCollectionEnabled,
                 currentUser: displayUser
             )
@@ -1448,6 +1452,7 @@ private extension String {
             organizationRepository: MockOrganizationRepository(),
             featuredBannerRepository: MockFeaturedBannerRepository(),
             ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
+            bannerMeasurementService: BannerMeasurementService(startsObservers: false),
             notificationInboxRepository: MockNotificationInboxRepository(),
             notificationInboxViewModel: NotificationInboxViewModel(repository: MockNotificationInboxRepository()),
             userBlockingCoordinator: UserBlockingCoordinator(repository: MockUserBlockingRepository())

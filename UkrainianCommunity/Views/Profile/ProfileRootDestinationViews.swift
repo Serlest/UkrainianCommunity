@@ -6,10 +6,12 @@ struct ProfilePreferencesView: View {
     @ObservedObject var viewModel: ProfileViewModel
     @ObservedObject var userBlockingCoordinator: UserBlockingCoordinator
     let analyticsService: AnalyticsTracking
+    @ObservedObject var bannerMeasurementService: BannerMeasurementService
     @Binding var isAnalyticsCollectionEnabled: Bool
     let currentUser: AppUser?
     @State private var accountDeletionCandidate: AppUser?
     @State private var analyticsConsentWasRejected = false
+    @State private var isShowingBannerConsent = false
 
     var body: some View {
         PushedScreenShell(
@@ -82,6 +84,34 @@ struct ProfilePreferencesView: View {
                         }
                         .buttonStyle(.bordered)
                         .accessibilityIdentifier("profile.settings.analyticsConsent.retry")
+                    }
+
+                    if bannerMeasurementService.isAvailable {
+                        ProfileSettingsToggleRow(
+                            title: AppStrings.Profile.bannerMeasurementTitle,
+                            subtitle: AppStrings.Profile.bannerMeasurementSubtitle,
+                            systemImage: "rectangle.on.rectangle",
+                            isOn: Binding(
+                                get: { bannerMeasurementService.isEnabled },
+                                set: { enabled in
+                                    if enabled {
+                                        isShowingBannerConsent = true
+                                    } else {
+                                        Task { await bannerMeasurementService.setEnabled(false) }
+                                    }
+                                }
+                            )
+                        )
+                        .disabled(bannerMeasurementService.isBusy)
+                        .accessibilityIdentifier("profile.settings.bannerMeasurementConsent")
+
+                        if bannerMeasurementService.hasError {
+                            InlineMessageCard(style: .error, message: AppStrings.Profile.bannerMeasurementError)
+                            Button(AppStrings.Action.retry) {
+                                Task { await bannerMeasurementService.refresh() }
+                            }
+                            .buttonStyle(.bordered)
+                        }
                     }
                 }
             }
@@ -199,9 +229,17 @@ struct ProfilePreferencesView: View {
             }
         }
         .accessibilityIdentifier("screen.profile.preferences")
+        .sheet(isPresented: $isShowingBannerConsent) {
+            BannerMeasurementConsentSheet {
+                Task { await bannerMeasurementService.setEnabled(true) }
+            }
+        }
         .task(id: currentUser?.id) {
             guard let userID = currentUser?.id else { return }
             await viewModel.loadNotificationPreferencesIfNeeded(userID: userID)
+        }
+        .task(id: currentUser?.id) {
+            await bannerMeasurementService.refresh()
         }
         .task(id: currentUser?.id) {
             for await _ in analyticsService.collectionChanges() {

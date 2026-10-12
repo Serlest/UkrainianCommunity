@@ -6,6 +6,23 @@ import Testing
 struct FeaturedBannerMeasurementTests {
     private let start = Date(timeIntervalSince1970: 1_700_000_000)
 
+    @Test @MainActor func queuedEventsSurviveRestartButNeverCrossAccounts() {
+        let suite = "banner-measurement-test-\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let measurement = FeaturedBannerMeasurement(
+            id: UUID(), bannerID: "banner", section: .home,
+            kind: .impression, occurredAt: Date()
+        )
+        let eventID = measurement.id.uuidString.lowercased()
+        let first = BannerMeasurementQueueStore(defaults: defaults, principalID: "account-a")
+        first.append(BannerMeasurementQueuedEvent(measurement, consentID: "consent-a"))
+        #expect(BannerMeasurementQueueStore(defaults: defaults, principalID: "account-a").first?.id == eventID)
+        first.switchPrincipal(to: "account-b")
+        #expect(first.first == nil)
+        #expect(BannerMeasurementQueueStore(defaults: defaults, principalID: "account-a").first == nil)
+    }
+
     @Test func visibleFractionUsesActualScrollViewport() {
         let banner = CGRect(x: 20, y: 100, width: 300, height: 200)
         let viewport = CGRect(x: 0, y: 0, width: 400, height: 200)

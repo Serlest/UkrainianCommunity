@@ -300,4 +300,26 @@ describe("analytics access contract", () => {
     await assertSucceeds(batch.commit());
     await assertFails(getDoc(proofReference));
   });
+
+  test("banner consent and delivery guards stay private; only owner reads totals", async () => {
+    const collections = [
+      "bannerMeasurementConsentStates", "bannerMeasurementConsentReceipts",
+      "bannerMeasurementEventReceipts", "bannerMeasurementRateLimits",
+    ];
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      for (const name of [...collections, "bannerMeasurementDailyShards"]) {
+        await setDoc(doc(context.firestore(), name, "test"), {impressions: 1});
+      }
+    });
+    for (const name of collections) {
+      await assertFails(getDoc(doc(auth("owner"), name, "test")));
+      await assertFails(getDoc(doc(auth("user"), name, "test")));
+      await assertFails(setDoc(doc(auth("owner"), name, "test"), {impressions: 2}));
+    }
+    await assertSucceeds(getDoc(doc(auth("owner"), "bannerMeasurementDailyShards", "test")));
+    await assertFails(getDoc(doc(auth("admin"), "bannerMeasurementDailyShards", "test")));
+    await assertFails(getDoc(doc(auth("user"), "bannerMeasurementDailyShards", "test")));
+    await assertFails(setDoc(doc(auth("owner"), "bannerMeasurementDailyShards", "test"),
+      {impressions: 2}));
+  });
 });

@@ -154,6 +154,7 @@ struct EventsListView: View {
     let onEventDeleted: @MainActor @Sendable () -> Void
     let presentationMode: EventPresentationMode
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    let onFeaturedBannerMeasurement: (FeaturedBannerMeasurement) -> Void
     let scrollResetToken: Int
     let searchResetToken: Int
     let isActive: Bool
@@ -182,6 +183,7 @@ struct EventsListView: View {
         onEventDeleted: @escaping @MainActor @Sendable () -> Void,
         presentationMode: EventPresentationMode = .public,
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void = { _ in },
+        onFeaturedBannerMeasurement: @escaping (FeaturedBannerMeasurement) -> Void = { _ in },
         scrollResetToken: Int = 0,
         searchResetToken: Int = 0,
         isActive: Bool = true,
@@ -193,6 +195,7 @@ struct EventsListView: View {
         self.onEventDeleted = onEventDeleted
         self.presentationMode = presentationMode
         self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.onFeaturedBannerMeasurement = onFeaturedBannerMeasurement
         self.scrollResetToken = scrollResetToken
         self.searchResetToken = searchResetToken
         self.isActive = isActive
@@ -524,7 +527,8 @@ struct EventsListView: View {
                 section: .events,
                 isActive: isActive && navigationPath.isEmpty,
                 viewportFrame: bannerViewport,
-                onBannerTap: onFeaturedBannerTap
+                onBannerTap: onFeaturedBannerTap,
+                onMeasurement: onFeaturedBannerMeasurement
             )
         } else if let error = featuredBannerViewModel.error {
             FeaturedBannerLoadFailureView(error: error) {

@@ -25,6 +25,11 @@ import {
 } from "../content/contentDeletion";
 import {deleteFeedbackRecords} from "../feedback/feedbackManagement";
 import { db } from "../firebase/admin";
+import {
+  bannerMeasurementReceiptCollection,
+  bannerMeasurementRateLimitCollection,
+  bannerMeasurementShardCollection,
+} from "../featured/bannerMeasurementTracking";
 import {accountDeletionOperationCollection} from "../users/accountDeletion";
 
 const maxContentDocumentsPerRun = 200;
@@ -60,6 +65,9 @@ type CleanupSummary = {
   auditLogs: number;
   analyticsEventReceipts: number;
   analyticsRateLimits: number;
+  bannerMeasurementReceipts: number;
+  bannerMeasurementRateLimits: number;
+  bannerMeasurementDailyShards: number;
   analyticsUserActivity: number;
   analyticsUserRegistrationEvents: number;
   analyticsDeletedUserEvents: number;
@@ -100,6 +108,15 @@ export const cleanupExpiredData = onSchedule(
       analyticsRateLimits: await cleanupExpiredAnalyticsGuards(
         analyticsRateLimitCollection,
         now,
+      ),
+      bannerMeasurementReceipts: await cleanupExpiredAnalyticsGuards(
+        bannerMeasurementReceiptCollection, now,
+      ),
+      bannerMeasurementRateLimits: await cleanupExpiredAnalyticsGuards(
+        bannerMeasurementRateLimitCollection, now,
+      ),
+      bannerMeasurementDailyShards: await cleanupExpiredAnalyticsGuards(
+        bannerMeasurementShardCollection, now,
       ),
       analyticsUserActivity: await cleanupExpiredAnalyticsGuards(
         analyticsUserActivityCollection,

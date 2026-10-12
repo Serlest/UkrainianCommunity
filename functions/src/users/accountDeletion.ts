@@ -409,6 +409,7 @@ async function deleteOwnedPrivateData(uid: string): Promise<void> {
     deleteQuery(db.collection("passkeyChallenges").where("uid", "==", uid)),
     deleteFeedback(uid),
     db.collection("analyticsConsentStates").doc(uid).delete(),
+    db.collection("bannerMeasurementConsentStates").doc(uid).delete(),
   ]);
 }
 

@@ -9,6 +9,7 @@ struct DirectoryHomeView: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var selectedFederalState: AustrianFederalState?
     let onFeaturedBannerTap: (FeaturedBanner) -> Void
+    let onFeaturedBannerMeasurement: (FeaturedBannerMeasurement) -> Void
     let scrollResetToken: Int
     let searchResetToken: Int
     let isActive: Bool
@@ -24,6 +25,7 @@ struct DirectoryHomeView: View {
         featuredBannerCache: FeaturedBannerCache,
         selectedFederalState: Binding<AustrianFederalState?>,
         onFeaturedBannerTap: @escaping (FeaturedBanner) -> Void,
+        onFeaturedBannerMeasurement: @escaping (FeaturedBannerMeasurement) -> Void = { _ in },
         scrollResetToken: Int,
         searchResetToken: Int,
         isActive: Bool,
@@ -34,6 +36,7 @@ struct DirectoryHomeView: View {
         ))
         _selectedFederalState = selectedFederalState
         self.onFeaturedBannerTap = onFeaturedBannerTap
+        self.onFeaturedBannerMeasurement = onFeaturedBannerMeasurement
         self.scrollResetToken = scrollResetToken
         self.searchResetToken = searchResetToken
         self.isActive = isActive
@@ -111,7 +114,8 @@ struct DirectoryHomeView: View {
                 section: .directory,
                 isActive: isActive && query.isEmpty,
                 viewportFrame: bannerViewport,
-                onBannerTap: onFeaturedBannerTap
+                onBannerTap: onFeaturedBannerTap,
+                onMeasurement: onFeaturedBannerMeasurement
             )
         } else if let error = featuredBannerViewModel.error {
             FeaturedBannerLoadFailureView(error: error) {

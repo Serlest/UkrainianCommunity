@@ -256,6 +256,15 @@ export const accountDeletionReferencePolicies = [
     patch: "legalAcceptance",
   },
   {
+    name: "banner measurement consent receipts",
+    scope: "collection",
+    collection: "bannerMeasurementConsentReceipts",
+    field: "userId",
+    operator: "==",
+    action: "anonymize",
+    patch: "legalAcceptance",
+  },
+  {
     name: "legal acceptance records",
     scope: "collection",
     collection: "legalAcceptanceLogs",

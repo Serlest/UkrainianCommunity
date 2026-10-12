@@ -138,6 +138,13 @@ struct ContentView: View {
             && userBlockingCoordinator.errorMessage == nil && notificationRouteErrorMessage == nil
     }
 
+    private var canExposeRootBanners: Bool {
+        isStartupReady && !authState.isRestoring && !authState.isAuthenticating
+            && !updateAppLockIsLocked && authState.presentedAuthFlow == nil
+            && accountStatusMonitor.activeNotice == nil
+            && !organizationBlockingCoordinator.requiresVisibilityGate
+    }
+
     private var directoryAccessKey: String {
         guard let user = authState.user else { return "guest" }
         return "\(user.id)|\(user.globalRole.rawValue)|\(user.accountStatus.rawValue)|\(user.blockState.rawValue)"
@@ -553,9 +560,10 @@ struct ContentView: View {
                 navigationPath: $homeNavigationPath,
                 selectedFederalState: publicRegionBinding,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
+                onFeaturedBannerMeasurement: container.bannerMeasurementService.record,
                 scrollResetToken: homeScrollResetToken,
                 searchResetToken: homeSearchResetToken,
-                isActive: selectedTab == .home
+                isActive: selectedTab == .home && canExposeRootBanners
             )
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
@@ -578,9 +586,10 @@ struct ContentView: View {
                 onEventPublished: {},
                 onEventDeleted: {},
                 onFeaturedBannerTap: handleFeaturedBannerTap,
+                onFeaturedBannerMeasurement: container.bannerMeasurementService.record,
                 scrollResetToken: eventsScrollResetToken,
                 searchResetToken: eventsSearchResetToken,
-                isActive: selectedTab == .events,
+                isActive: selectedTab == .events && canExposeRootBanners,
                 selectedFederalState: publicRegionBinding
             )
         }
@@ -605,9 +614,10 @@ struct ContentView: View {
                 onOrganizationSaved: {},
                 onOrganizationDeleted: {},
                 onFeaturedBannerTap: handleFeaturedBannerTap,
+                onFeaturedBannerMeasurement: container.bannerMeasurementService.record,
                 scrollResetToken: organizationsScrollResetToken,
                 searchResetToken: organizationsSearchResetToken,
-                isActive: selectedTab == .organizations,
+                isActive: selectedTab == .organizations && canExposeRootBanners,
                 selectedFederalState: publicRegionBinding
             )
         }
@@ -637,6 +647,7 @@ struct ContentView: View {
                 ownerAnalyticsRepository: container.ownerAnalyticsRepository,
                 ownerContentDraftRepository: container.ownerContentDraftRepository,
                 analyticsService: container.analyticsService,
+                bannerMeasurementService: container.bannerMeasurementService,
                 notificationInboxRepository: container.notificationInboxRepository,
                 notificationInboxViewModel: notificationInboxViewModel,
                 userBlockingCoordinator: userBlockingCoordinator,
@@ -662,9 +673,11 @@ struct ContentView: View {
                 featuredBannerCache: container.featuredBannerCache,
                 selectedFederalState: publicRegionBinding,
                 onFeaturedBannerTap: handleFeaturedBannerTap,
+                onFeaturedBannerMeasurement: container.bannerMeasurementService.record,
                 scrollResetToken: directoryScrollResetToken,
                 searchResetToken: directorySearchResetToken,
-                isActive: selectedTab == .directory && directoryNavigationPath.isEmpty,
+                isActive: selectedTab == .directory && directoryNavigationPath.isEmpty
+                    && canExposeRootBanners,
                 feedbackRepository: container.feedbackRepository
             )
         }

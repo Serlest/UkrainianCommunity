@@ -2889,6 +2889,27 @@ service cloud.firestore {
       allow read, create, update, delete: if false;
     }
 
+    match /bannerMeasurementConsentStates/{userId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /bannerMeasurementConsentReceipts/{receiptId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /bannerMeasurementEventReceipts/{receiptId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /bannerMeasurementRateLimits/{rateId} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /bannerMeasurementDailyShards/{shardId} {
+      allow read: if isOwner();
+      allow create, update, delete: if false;
+    }
+
     match /analyticsTopContent/{periodId} {
       allow read: if isOwner();
       allow create, update, delete: if false;
