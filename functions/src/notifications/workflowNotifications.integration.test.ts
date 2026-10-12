@@ -133,6 +133,23 @@ test("provider credential failures remain visible and never delete a valid regis
   assert.equal(deletes, 0); assert.equal(calls, 1);
 });
 
+test("unregistered installation is removed without blocking the delivery receipt", {skip: !live}, async () => {
+  const ref = inbox(owner).doc("unregistered-fid-test");
+  await ref.set({createdAt: Timestamp.now(), isRead: false});
+  let deletes = 0;
+  const doc: PushRegistrationDocument = {
+    id: "stale-fid",
+    data: () => ({token: "a123456789012345678901", registrationType: "fid"}),
+    ref: {delete: async () => {deletes++;}},
+  };
+  await deliverPushDurably(ref, {}, [doc], async () => batch([
+    {success: false, error: {code: "messaging/installation-id-not-registered"} as SendResponse["error"]},
+  ]));
+
+  assert.equal(deletes, 1);
+  assert.equal((await ref.collection("privateDelivery").doc("push").get()).data()?.status, "complete");
+});
+
 test("concurrent delivery events cannot send through the same active lease", {skip: !live}, async () => {
   const ref = inbox(owner).doc("concurrent-test"); await ref.set({createdAt: Timestamp.now(), isRead: false});
   let entered!: () => void, release!: () => void;

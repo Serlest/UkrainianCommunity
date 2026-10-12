@@ -122,7 +122,8 @@ export function pushRegistrationBatches(
 export function isPermanentPushRegistrationFailure(response: SendResponse): boolean {
   const code = response.error?.code;
   return code === "messaging/invalid-registration-token"
-    || code === "messaging/registration-token-not-registered";
+    || code === "messaging/registration-token-not-registered"
+    || code === "messaging/installation-id-not-registered";
 }
 
 export type PushResultObserver = (documentIds: string[], response: SendResponse) => Promise<void>;

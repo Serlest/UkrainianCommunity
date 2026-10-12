@@ -2,7 +2,13 @@ import {createHash, randomUUID} from "node:crypto";
 import {FieldValue, Timestamp, type DocumentReference} from "firebase-admin/firestore";
 import type {BaseMessage, SendResponse} from "firebase-admin/messaging";
 import {db} from "../firebase/admin";
-import {isRetryablePushFailure, sendPushToRegistrationDocuments, type PushRegistrationDocument, type PushMulticastSender} from "./pushRegistrations";
+import {
+  isPermanentPushRegistrationFailure,
+  isRetryablePushFailure,
+  sendPushToRegistrationDocuments,
+  type PushRegistrationDocument,
+  type PushMulticastSender,
+} from "./pushRegistrations";
 
 import {unreadNotificationCount} from "./notificationBadge";
 
@@ -78,7 +84,7 @@ export async function deliverPushDurably(
       retry ||= retryable;
       const code = response.error?.code;
       configurationFailure ||= !response.success && !retryable
-        && !["messaging/invalid-registration-token", "messaging/registration-token-not-registered"].includes(code ?? "");
+        && !isPermanentPushRegistrationFailure(response);
       await db.runTransaction(async (tx) => {
         const [source, receipt] = await Promise.all([tx.get(notificationRef), tx.get(ref)]);
         if (!source.exists || receipt.data()?.attemptId !== attemptId) return;

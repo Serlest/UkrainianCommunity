@@ -276,8 +276,25 @@ describe("push registration compatibility", () => {
       response("messaging/registration-token-not-registered")
     ), true);
     assert.equal(isPermanentPushRegistrationFailure(
+      response("messaging/installation-id-not-registered")
+    ), true);
+    assert.equal(isPermanentPushRegistrationFailure(
       response("messaging/server-unavailable")
     ), false);
     assert.equal(isPermanentPushRegistrationFailure(response()), false);
+  });
+
+  test("removes an unregistered installation without deleting its legacy fallback", async () => {
+    const legacy = registrationDocument("legacy", `${fidA}:legacy-token`);
+    const fid = registrationDocument("fid", fidA, "fid");
+
+    await sendPushToRegistrationDocuments(
+      [legacy.snapshot, fid.snapshot],
+      notification,
+      recordingSender([response("messaging/installation-id-not-registered")], [])
+    );
+
+    assert.equal(fid.deleteCount, 1);
+    assert.equal(legacy.deleteCount, 0);
   });
 });
