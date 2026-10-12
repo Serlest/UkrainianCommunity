@@ -262,6 +262,19 @@ struct DirectorySourceFields: View {
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
+            if let link = source.displaySource {
+                Link(destination: link.url) {
+                    Label(DirectoryEditorText.value("Відкрити джерело", "Quelle öffnen"),
+                          systemImage: "arrow.up.right.square")
+                        .font(.subheadline)
+                }
+            }
+            Text(DirectoryEditorText.value(
+                "Перед публікацією перевірте, що сторінка відкривається і підтверджує написане. Система перевіряє лише формат посилання.",
+                "Prüfen Sie vor der Veröffentlichung, ob die Seite erreichbar ist und den Text belegt. Das System prüft nur das Linkformat."
+            ))
+                .font(.caption)
+                .foregroundStyle(AppTheme.textSecondary)
         }
     }
 }

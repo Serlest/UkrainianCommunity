@@ -148,7 +148,10 @@ struct DirectoryCategoryEditorView: View {
     private var confirmationTitle: String {
         switch confirmation {
         case .publish:
-            DirectoryEditorText.value("Опублікувати для всіх читачів?", "Für alle Leser veröffentlichen?")
+            DirectoryEditorText.value(
+                "Ви перевірили факти та посилання у змінених матеріалах? Опублікувати для всіх читачів?",
+                "Haben Sie Fakten und Links der geänderten Inhalte geprüft? Für alle Leser veröffentlichen?"
+            )
         case .discard:
             DirectoryEditorText.value("Вийти без збереження змін?", "Änderungen verwerfen?")
         case .deleteCategory:

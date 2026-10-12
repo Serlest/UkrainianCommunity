@@ -48,6 +48,7 @@ struct DirectoryCategoryView: View {
                 Text(category.summary.value(for: language))
                     .font(.body)
                     .foregroundStyle(AppTheme.textSecondary)
+                DirectorySyncNoticeView(language: language)
 
                 Text(DirectoryStrings.preparing)
                     .font(.footnote)
@@ -119,6 +120,7 @@ struct DirectoryTopicView: View {
                 Text(topic.title.value(for: language))
                     .font(.largeTitle.bold())
                     .foregroundStyle(AppTheme.textPrimary)
+                DirectorySyncNoticeView(language: language)
                 AppGlassCard {
                     Text(DirectoryStrings.topicPending)
                         .font(.headline)

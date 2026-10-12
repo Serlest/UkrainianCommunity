@@ -120,6 +120,7 @@ struct DirectoryHomeView: View {
 
     private var introductoryContent: some View {
         VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
+            DirectorySyncNoticeView(language: language)
             HStack {
                 Text(DirectoryStrings.categoriesHeading)
                     .font(.title2.bold())
@@ -153,6 +154,7 @@ struct DirectoryHomeView: View {
 
     private var searchContent: some View {
         VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
+            DirectorySyncNoticeView(language: language)
             if searchMatches.isEmpty {
                 ContentUnavailableView(
                     DirectoryStrings.noResults,

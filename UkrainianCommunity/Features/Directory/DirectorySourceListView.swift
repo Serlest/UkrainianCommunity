@@ -3,7 +3,7 @@ import SwiftUI
 struct DirectorySourceListView: View {
     let sources: [DirectorySource]
     let language: AppLanguage
-    let checkedOn: String
+    let checkedOn: String?
     var isPublicationDate = false
 
     var body: some View {
@@ -19,12 +19,30 @@ struct DirectorySourceListView: View {
                     }
                 }
             }
-            Text(DirectoryText(
-                ukrainian: isPublicationDate ? "Остання публікація: \(checkedOn)." : "Стан інформації: \(checkedOn).",
-                german: isPublicationDate ? "Zuletzt veröffentlicht: \(checkedOn)." : "Informationsstand: \(checkedOn)."
-            ).value(for: language))
+            Text(dateCaption.value(for: language))
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
+            if isPublicationDate {
+                Text(DirectoryText(
+                    ukrainian: "Дата публікації не означає повторну перевірку посилань. Перед дією звірте актуальні умови на сайті джерела.",
+                    german: "Das Veröffentlichungsdatum bestätigt keine erneute Prüfung der Links. Prüfen Sie aktuelle Bedingungen vorab auf der Quellseite."
+                ).value(for: language))
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+            }
         }
+    }
+
+    private var dateCaption: DirectoryText {
+        if isPublicationDate {
+            guard let checkedOn else {
+                return DirectoryText(ukrainian: "Дата оновлення категорії недоступна.",
+                                     german: "Das Aktualisierungsdatum des Bereichs ist nicht verfügbar.")
+            }
+            return DirectoryText(ukrainian: "Категорію оновлено: \(checkedOn).",
+                                 german: "Bereich aktualisiert: \(checkedOn).")
+        }
+        return DirectoryText(ukrainian: "Стан інформації: \(checkedOn ?? "—").",
+                             german: "Informationsstand: \(checkedOn ?? "—").")
     }
 }

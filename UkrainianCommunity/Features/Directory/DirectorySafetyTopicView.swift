@@ -16,6 +16,7 @@ struct DirectorySafetyTopicView: View {
                     DirectoryPageHeading(title: topic.title.value(for: language),
                                          summary: guide.summary.value(for: language),
                                          isArticle: true)
+                    DirectorySyncNoticeView(language: language)
 
                     if guide.sections.count > 5 {
                         DirectoryTopicOutlineView(

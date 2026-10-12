@@ -19,6 +19,7 @@ struct DirectoryManagedTopicView: View {
                 VStack(alignment: .leading, spacing: AppTheme.homeSectionSpacing) {
                     DirectoryPageHeading(title: topic.title.value(for: language),
                                          summary: topic.summary.value(for: language), isArticle: true)
+                    DirectorySyncNoticeView(language: language)
                     if sections.count > 5 {
                         DirectoryTopicOutlineView(
                             titles: sections.map { $0.title.value(for: language) },

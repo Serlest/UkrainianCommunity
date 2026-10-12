@@ -15,8 +15,8 @@ enum DirectoryManagedValidation {
                 return ukrainian ? "Заповніть назви обома мовами, розділи та статті."
                     : "Füllen Sie Namen, Bereiche und Beiträge in beiden Sprachen aus."
             case .invalidSource:
-                return ukrainian ? "Кожен видимий матеріал потребує офіційного HTTPS-джерела."
-                    : "Jeder sichtbare Inhalt benötigt eine amtliche HTTPS-Quelle."
+                return ukrainian ? "Кожен видимий матеріал потребує HTTPS-джерела. Перевірте адресу та актуальність інформації."
+                    : "Jeder sichtbare Inhalt benötigt eine HTTPS-Quelle. Prüfen Sie Adresse und Aktualität."
             case .tooLarge:
                 return ukrainian ? "Категорія завелика для збереження. Розділіть матеріал."
                     : "Der Bereich ist zu groß. Teilen Sie den Inhalt auf."

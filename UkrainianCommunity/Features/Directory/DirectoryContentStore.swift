@@ -5,6 +5,14 @@ import Combine
 
 @MainActor
 final class DirectoryContentStore: ObservableObject {
+    enum SyncState: Equatable {
+        case loading
+        case cached
+        case current
+        case failed
+        case invalidContent
+    }
+
     private static let bundledCategories = DirectoryCatalog.categories.map(DirectoryManagedCategory.bundled)
     private static let bundledIDs = Set(DirectoryCatalog.categories.map(\.id))
     private static let startIDs = Set(DirectoryCatalog.startCategories.map(\.id))
@@ -22,7 +30,7 @@ final class DirectoryContentStore: ObservableObject {
 
     @Published private(set) var published: [String: PublishedCategory] = [:]
     @Published private(set) var isEditor = false
-    @Published private(set) var loadError: String?
+    @Published private(set) var syncState: SyncState = .loading
     private var deletedCategoryIDs: Set<String> = []
 
     private let db = Firestore.firestore()
@@ -90,10 +98,9 @@ final class DirectoryContentStore: ObservableObject {
 
     func revision(_ id: String) -> Int { published[id]?.revision ?? 0 }
 
-    func publicationDate(_ id: String) -> String {
-        guard let date = published[id]?.updatedAt else {
-            return DirectoryGuideCatalog.checkedOn(for: id)
-        }
+    func publicationDate(_ id: String) -> String? {
+        guard let item = published[id] else { return DirectoryGuideCatalog.checkedOn(for: id) }
+        guard let date = item.updatedAt else { return nil }
         return date.formatted(.dateTime.day().month().year().locale(Locale(identifier: "de_AT")))
     }
 
@@ -139,16 +146,19 @@ final class DirectoryContentStore: ObservableObject {
     func startObserving() {
         guard contentListener == nil else { return }
         contentListener = db.collection("directoryCategories")
-            .addSnapshotListener { [weak self] snapshot, error in
+            .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, error in
                 Task { @MainActor in
                     guard let self else { return }
-                    if let error {
-                        self.loadError = error.localizedDescription
+                    if error != nil {
+                        self.syncState = .failed
                         return
                     }
-                    self.loadError = nil
-                    guard let snapshot else { return }
+                    guard let snapshot else {
+                        self.syncState = .failed
+                        return
+                    }
                     var decoded: [String: PublishedCategory] = [:]
+                    var hasInvalidContent = false
                     for document in snapshot.documents {
                         if document.data()["isDeleted"] as? Bool == true {
                             self.deletedCategoryIDs.insert(document.documentID)
@@ -159,22 +169,37 @@ final class DirectoryContentStore: ObservableObject {
                               let revision = document.data()["revision"] as? Int,
                               let raw = data.data(using: .utf8),
                               let content = try? JSONDecoder().decode(DirectoryManagedCategory.self, from: raw),
-                              content.id == document.documentID else { continue }
+                              content.id == document.documentID else {
+                            hasInvalidContent = true
+                            continue
+                        }
                         decoded[content.id] = PublishedCategory(
                             content: content, revision: revision,
                             updatedAt: (document.data()["updatedAt"] as? Timestamp)?.dateValue()
                         )
                     }
-                    // A cached query can arrive just after a successful callable save.
-                    // Keep the acknowledged revision until Firestore delivers that revision.
-                    for (id, current) in self.published where
-                        !self.deletedCategoryIDs.contains(id) &&
-                        current.revision > (decoded[id]?.revision ?? -1) {
-                        decoded[id] = current
+                    // Only a cached snapshot may lag behind an acknowledged save.
+                    // A server snapshot is authoritative, including missing documents.
+                    if snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites {
+                        for (id, current) in self.published where
+                            !self.deletedCategoryIDs.contains(id) &&
+                            current.revision > (decoded[id]?.revision ?? -1) {
+                            decoded[id] = current
+                        }
                     }
                     self.published = decoded
+                    self.syncState = hasInvalidContent ? .invalidContent
+                        : (snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites
+                            ? .cached : .current)
                 }
             }
+    }
+
+    func retryObserving() {
+        contentListener?.remove()
+        contentListener = nil
+        syncState = .loading
+        startObserving()
     }
 
     func save(_ category: DirectoryManagedCategory, expectedRevision: Int, actorID: String) async throws {

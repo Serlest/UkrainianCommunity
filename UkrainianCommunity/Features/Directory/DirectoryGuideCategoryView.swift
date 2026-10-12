@@ -13,6 +13,7 @@ struct DirectoryGuideCategoryView: View {
                 DirectoryPageHeading(title: category.title.value(for: language),
                                      summary: category.summary.value(for: language),
                                      symbol: category.symbol)
+                DirectorySyncNoticeView(language: language)
 
                 if category.id == "safety" { emergencyCard }
                 if category.id == "health" { healthHelpCard }
