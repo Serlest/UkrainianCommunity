@@ -4,14 +4,14 @@ import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
 import {randomUUID} from "node:crypto";
 import {Timestamp} from "firebase-admin/firestore";
-import {db} from "../firebase/admin";
+import {adminAuth, db} from "../firebase/admin";
 import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {accessPolicyConfiguration, getOrganizationAccess, organizationActions, organizationRevision, parseOrganizationFields, updateOrganizationInfo} from "./organizationAccess";
 import {cancelEvent, finishEventCancellation} from "../notifications/backendWriters";
 import {mutateEventRegistration} from "../events/eventRegistration";
 import {createOrganizationPhotoMetadata} from "./organizationPhotoMutations";
 
-const enabled = !!process.env.FIRESTORE_EMULATOR_HOST;
+const enabled = !!process.env.FIRESTORE_EMULATOR_HOST && !!process.env.FIREBASE_AUTH_EMULATOR_HOST;
 const request = (uid: string, data: unknown) => ({data, auth: {uid, token: {email_verified: true}}}) as any;
 
 test("action matrix preserves platform and organization role distinctions", () => {
@@ -103,6 +103,7 @@ test("cancellation is repeatable and photo metadata remains atomic under revoked
   const registration = db.doc(`registrations/${prefix}`);
   const op = db.doc(`eventCancellationOperations/${prefix}`);
   try {
+    await adminAuth.createUser({uid: attendee, email: `${attendee}@example.org`, emailVerified: true});
     await owner.set({globalRole: "user", accountStatus: "active"});
     await user.set({globalRole: "user", accountStatus: "active", language: "de"});
     await seedCurrentLegalForIntegration(uid, attendee);
@@ -125,6 +126,9 @@ test("cancellation is repeatable and photo metadata remains atomic under revoked
     await assert.rejects(createOrganizationPhotoMetadata.run(request(uid, {...photo, photoId: "denied"})), {code: "permission-denied"});
   } finally {
     for (const ref of [org, event, owner, user, registration, op]) await db.recursiveDelete(ref);
+    await adminAuth.deleteUser(attendee).catch((error: unknown) => {
+      if ((error as {code?: string}).code !== "auth/user-not-found") throw error;
+    });
   }
 });
 

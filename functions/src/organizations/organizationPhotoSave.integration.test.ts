@@ -94,10 +94,10 @@ test("account switch, reused operation and replay after deletion cannot create a
   assert.equal((await f.org.get()).get("photoCount"), 0);
 });
 
-test("expired reservation rejects late retries and preserves the existing Storage MFA condition", {skip: !enabled}, async t => {
+test("expired reservation rejects late retries and requires privileged authentication", {skip: !enabled}, async t => {
   const f = await fixture(t);
   await f.profile.update({globalRole: "owner", requiresMultiFactorAuth: true});
-  await assert.rejects(f.run(), (e: any) => e.details?.reasonCode === "session_refresh_required");
+  await assert.rejects(f.run(), {code: "failed-precondition", message: /passkey or authenticator-verified session/});
   await f.profile.update({globalRole: "user", requiresMultiFactorAuth: false});
   const mocked = t.mock.method(File.prototype, "save", async () => { throw new Error("Injected upload failure"); });
   await assert.rejects(f.run());
