@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import {randomUUID} from "node:crypto";
+import {createHash, randomUUID} from "node:crypto";
 import {open, readFile, rename, unlink, writeFile} from "node:fs/promises";
 import {isAbsolute, join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
@@ -47,7 +47,9 @@ export function closeNewsCandidateBatch(registry, state, input, decidedAt = new 
           decision.productionReadback?.verified !== true ||
           decision.productionReadback?.contentId !== decision.contentId ||
           typeof decision.productionReadback?.receiptPath !== "string" ||
-          !decision.productionReadback.receiptPath.trim()) {
+          !decision.productionReadback.receiptPath.trim() ||
+          typeof decision.editorialReceiptPath !== "string" ||
+          typeof decision.manifestPath !== "string") {
         throw new Error(`Publication needs matching production read-back evidence: ${url}`);
       }
     } else {
@@ -99,6 +101,19 @@ export async function recordNewsCandidateBatch(root, input, {write = false} = {}
     const next = closeNewsCandidateBatch(registry, await readJSON(statePath), input);
     for (const decision of input.decisions) {
       if (decision.outcome !== "published") continue;
+      if (!isAbsolute(decision.editorialReceiptPath) || !isAbsolute(decision.manifestPath)) {
+        throw new Error("Editorial receipt and manifest paths must be absolute.");
+      }
+      const editorial = await readJSON(decision.editorialReceiptPath);
+      const manifestHash = createHash("sha256").update(await readFile(decision.manifestPath)).digest("hex");
+      const reviewedAt = new Date(editorial.reviewedAt).getTime();
+      if (editorial.passed !== true || editorial.scope !== scope ||
+          editorial.canonicalURL !== canonicalNewsURL(decision.url) ||
+          editorial.manifestSHA256 !== manifestHash ||
+          !Number.isFinite(reviewedAt) || Date.now() - reviewedAt > 4 * 60 * 60 * 1000 ||
+          reviewedAt - Date.now() > 5 * 60 * 1000) {
+        throw new Error(`Editorial preflight receipt does not verify ${decision.contentId}.`);
+      }
       const path = decision.productionReadback.receiptPath;
       if (!isAbsolute(path)) throw new Error("Production read-back receipt path must be absolute.");
       const receipt = await readJSON(path);

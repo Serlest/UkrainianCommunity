@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import {createHash} from "node:crypto";
 import {mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
@@ -47,8 +48,19 @@ test("a published outcome needs a matching verified production receipt before du
     manifest.status = "active";
     await writeFile(manifestPath, JSON.stringify(manifest));
     const readbackPath = join(directory, "readback.json");
+    const manifestFile = join(directory, "manifest.json");
+    const editorialPath = join(directory, "editorial.json");
+    const manifestContent = '{"kind":"news"}';
+    await writeFile(manifestFile, manifestContent);
+    await writeFile(editorialPath, JSON.stringify({passed: true, scope: "wien",
+      canonicalURL: "https://example.gv.at/story", reviewedAt: new Date().toISOString(),
+      manifestSHA256: createHash("sha256").update(manifestContent).digest("hex")}));
     const publication = receipt([{url: candidate.url, outcome: "published", contentId: "news-1",
+      editorialReceiptPath: editorialPath, manifestPath: manifestFile,
       productionReadback: {verified: true, contentId: "news-1", receiptPath: readbackPath}}]);
+    await writeFile(manifestFile, '{"kind":"event"}');
+    await assert.rejects(() => recordNewsCandidateBatch(root, publication, {write: true}), /Editorial preflight receipt/);
+    await writeFile(manifestFile, manifestContent);
     await writeFile(readbackPath, JSON.stringify({allVerified: false, id: "news-1",
       moderationStatus: "approved", regionScope: "federalState", federalState: "wien"}));
     await assert.rejects(() => recordNewsCandidateBatch(root, publication, {write: true}), /does not verify/);
