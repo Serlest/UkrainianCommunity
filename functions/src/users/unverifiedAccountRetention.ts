@@ -8,9 +8,13 @@ import {analyticsUserActivityCollection} from "../analytics/analyticsUserActivit
 import {accountDeletionReferencePolicies, type AccountDeletionReferencePolicy} from "./accountDeletionPolicy";
 import {
   authRetentionSkipReason, type RetentionAuthIdentity,
-  unverifiedAccountQuietDays, unverifiedAccountRetentionDays,
+  unverifiedAccountRetentionDays,
 } from "./unverifiedAccountRetentionPolicy";
 import {UnverifiedRetentionStore} from "./unverifiedAccountRetentionStore";
+import {
+  deleteDisposablePrivateData, deleteInitialRegistrationLogs, hasDisqualifyingPrivateData,
+} from "./unverifiedAccountPrivateData";
+import type {DocumentData} from "firebase-admin/firestore";
 import {
   executeUnverifiedDeletion, inspectUnverifiedAccount,
   type UnverifiedRetentionDependencies,
@@ -49,12 +53,11 @@ async function getIdentity(uid: string): Promise<RetentionAuthIdentity | undefin
 }
 
 /** Errors (including missing indexes/permissions) propagate; never infer absence. */
-export async function hasUnverifiedAccountRelatedData(uid: string): Promise<boolean> {
+export async function hasUnverifiedAccountRelatedData(uid: string, profile?: DocumentData): Promise<boolean> {
   for (const collection of ["publicProfiles", analyticsUserActivityCollection]) {
     if ((await db.collection(collection).doc(uid).get()).exists) return true;
   }
-  // listCollections also finds child collections under an absent parent document.
-  if ((await db.collection("users").doc(uid).listCollections()).length > 0) return true;
+  if (await hasDisqualifyingPrivateData(db, uid, profile)) return true;
   const directReferences = [
     ["organizations", "ownerId"], ["organizationCreationProofs", "userId"],
     ["likes", "userId"], ["registrations", "userId"], ["feedback", "userId"],
@@ -63,6 +66,7 @@ export async function hasUnverifiedAccountRelatedData(uid: string): Promise<bool
     if (!(await db.collection(collection).where(field, "==", uid).limit(1).get()).empty) return true;
   }
   for (const policy of accountDeletionReferencePolicies as readonly AccountDeletionReferencePolicy[]) {
+    if (policy.collection === "legalAcceptanceLogs") continue;
     let query: Query = policy.scope === "collection" ? db.collection(policy.collection)
       : db.collectionGroup(policy.collection);
     query = query.where(policy.field, policy.operator, uid);
@@ -86,7 +90,9 @@ function dependencies(store: UnverifiedRetentionStore): UnverifiedRetentionDepen
       try { await adminAuth.deleteUser(uid); }
       catch (error) { if (!isMissingUser(error)) throw error; }
     },
+    deleteInitialRegistrationLogs: (uid, profile) => deleteInitialRegistrationLogs(db, uid, profile),
     deleteProfileIfUnchanged: (uid, version) => store.deleteProfileIfUnchanged(uid, version),
+    deleteDisposablePrivateData: (uid) => deleteDisposablePrivateData(db, uid),
   };
 }
 
@@ -171,7 +177,7 @@ export const cleanupUnverifiedAccounts = onSchedule({
   const result = await runUnverifiedAccountRetention(mode);
   const {continuationToken: _continuationToken, ...summary} = result;
   logger.info("Unverified account retention cycle", {
-    ...summary, retentionDays: unverifiedAccountRetentionDays, quietDays: unverifiedAccountQuietDays,
+    ...summary, retentionDays: unverifiedAccountRetentionDays,
   });
   if (result.manualReview > 0) logger.error("Unverified retention needs manual reconciliation", {
     count: result.manualReview,

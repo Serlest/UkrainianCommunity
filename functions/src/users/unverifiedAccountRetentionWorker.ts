@@ -21,15 +21,17 @@ export interface UnverifiedRetentionDependencies {
   now(): number;
   getIdentity(uid: string): Promise<RetentionAuthIdentity | undefined>;
   getProfile(uid: string): Promise<RetentionProfileSnapshot>;
-  hasRelatedData(uid: string): Promise<boolean>;
+  hasRelatedData(uid: string, profile: DocumentData | undefined): Promise<boolean>;
   /** Must atomically claim the job and compare the exact profile version. */
   claimJob(job: RetentionDeletionJob): Promise<boolean>;
   setJobStatus(uid: string, status: RetentionDeletionJob["status"]): Promise<void>;
   /** Rechecks the run lease before any destructive request. */
   assertLease(): Promise<void>;
   deleteIdentity(uid: string): Promise<void>;
+  deleteInitialRegistrationLogs(uid: string, profile: DocumentData | undefined): Promise<void>;
   /** Deletes only the unchanged root document, never recursively. */
   deleteProfileIfUnchanged(uid: string, version: string | null): Promise<boolean>;
+  deleteDisposablePrivateData(uid: string): Promise<boolean>;
 }
 
 export type RetentionInspection =
@@ -46,7 +48,7 @@ export async function inspectUnverifiedAccount(
   const profile = await dependencies.getProfile(uid);
   const profileReason = profileRetentionSkipReason(identity, profile.data, dependencies.now());
   if (profileReason) return {eligible: false, reason: profileReason};
-  if (await dependencies.hasRelatedData(uid)) return {eligible: false, reason: "relatedData"};
+  if (await dependencies.hasRelatedData(uid, profile.data)) return {eligible: false, reason: "relatedData"};
   return {eligible: true, job: {
     uid, identityFingerprint: retentionIdentityFingerprint(identity),
     profileVersion: profile.version, status: "authDeletePending",
@@ -91,9 +93,17 @@ export async function executeUnverifiedDeletion(
   if (await dependencies.getIdentity(job.uid)) throw new Error("Auth deletion read-back failed");
   await dependencies.setJobStatus(job.uid, "authDeleted");
   await dependencies.assertLease();
-  if (await dependencies.hasRelatedData(job.uid)
+  const currentProfile = await dependencies.getProfile(job.uid);
+  if ((currentProfile.data !== undefined && currentProfile.version !== job.profileVersion)
+      || await dependencies.hasRelatedData(job.uid, currentProfile.data)
+      || await dependencies.getIdentity(job.uid)) {
+    await dependencies.setJobStatus(job.uid, "manualReview");
+    return "manualReview";
+  }
+  await dependencies.deleteInitialRegistrationLogs(job.uid, currentProfile.data);
+  if (!await dependencies.deleteProfileIfUnchanged(job.uid, job.profileVersion)
       || await dependencies.getIdentity(job.uid)
-      || !await dependencies.deleteProfileIfUnchanged(job.uid, job.profileVersion)) {
+      || !await dependencies.deleteDisposablePrivateData(job.uid)) {
     await dependencies.setJobStatus(job.uid, "manualReview");
     return "manualReview";
   }

@@ -12,8 +12,10 @@ from zoneinfo import ZoneInfo
 import publish_privacy_2026_13 as common
 
 ROOT = Path(__file__).resolve().parent.parent
-ACTOR = "legal-2026-10-11-publisher"
-TARGETS = {"terms": ("2026.10", "2026.11"), "privacy": ("2026.14", "2026.15")}
+ACTOR = "legal-2026-10-12-publisher"
+TARGETS = {"terms": ("2026.12", "2026.13"), "privacy": ("2026.16", "2026.17")}
+PUBLICATION_DATE = "2026-10-12"
+PLAN_FORMAT = "uac-legal-2026-10-12-v2"
 require = common.require
 wire = common.wire
 digest = common.digest
@@ -31,7 +33,7 @@ def payload():
         definition = manifest["documents"][kind]
         require(definition.get("version", manifest["version"]) == version, f"Wrong {kind} version")
         require(definition["supersedesVersion"] == previous
-                and definition.get("effectiveDate", manifest["effectiveDate"]) == "2026-10-11",
+                and definition.get("effectiveDate", manifest["effectiveDate"]) == PUBLICATION_DATE,
                 f"Wrong {kind} version chain")
         require(f'current{kind.title()}Version = "{version}"' in swift, f"Wrong iOS {kind} version")
         sources = [(ROOT / definition["files"][locale]).read_text() for locale in ("de", "uk")]
@@ -81,7 +83,7 @@ def plan_for(data, documents):
         require(f"{path}/versions/{previous}" in documents, f"Missing {kind} predecessor")
         require(f"{path}/versions/{version}" not in documents, f"{kind} successor already exists")
     return {
-        "format": "uac-legal-2026-10-11-v1", "project": common.PROJECT,
+        "format": PLAN_FORMAT, "project": common.PROJECT,
         "beforeHashes": {path: digest(document) for path, document in sorted(documents.items())},
         "pointerUpdateTimes": {kind: documents[f"legalDocuments/{kind}"]["updateTime"] for kind in TARGETS},
         "inputHashes": {kind: data[kind]["inputHashes"] for kind in TARGETS},
@@ -111,7 +113,7 @@ def writes_for(data, plan):
 
 
 def verify(data, plan, after):
-    require(plan["format"] == "uac-legal-2026-10-11-v1" and plan["project"] == common.PROJECT, "Wrong plan")
+    require(plan["format"] == PLAN_FORMAT and plan["project"] == common.PROJECT, "Wrong plan")
     require(plan["inputHashes"] == {kind: data[kind]["inputHashes"] for kind in TARGETS}, "Local inputs changed")
     targets = {f"legalDocuments/{kind}/versions/{version}" for kind, (_, version) in TARGETS.items()}
     require(set(after) == set(plan["beforeHashes"]) | targets, "Legal document inventory changed")
@@ -155,7 +157,7 @@ def main():
         return
     plan = json.loads(args.plan.read_text())
     if args.apply:
-        require(datetime.now(ZoneInfo("Europe/Vienna")).date().isoformat() == "2026-10-11", "Publication date changed")
+        require(datetime.now(ZoneInfo("Europe/Vienna")).date().isoformat() == PUBLICATION_DATE, "Publication date changed")
         require(plan_for(data, common.snapshot(transport)) == plan, "Plan is stale; no write attempted")
         try:
             status, _ = transport.request(common.BASE + ":commit", writes_for(data, plan))

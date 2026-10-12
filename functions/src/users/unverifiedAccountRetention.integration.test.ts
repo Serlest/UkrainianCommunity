@@ -12,6 +12,7 @@ import type {RetentionAuthIdentity} from "./unverifiedAccountRetentionPolicy";
 import {adminStorage} from "../firebase/admin";
 import {hasUnverifiedAccountRelatedData} from "./unverifiedAccountRetention";
 import {accountDeletionReferencePolicies, type AccountDeletionReferencePolicy} from "./accountDeletionPolicy";
+import {deleteDisposablePrivateData, deleteInitialRegistrationLogs} from "./unverifiedAccountPrivateData";
 
 // Never run fixtures against a real project, or another task's emulator dataset.
 const projectId = "demo-uac-unverified-retention";
@@ -28,6 +29,10 @@ const job: RetentionDeletionJob = {uid, identityFingerprint: "a".repeat(64), pro
 const options = {skip: !enabled};
 
 async function cleanFixtures() {
+  await database.recursiveDelete(profile);
+  for (const type of ["terms", "privacy"]) {
+    await database.collection("legalAcceptanceLogs").doc(`${uid}_${type}_2026.1`).delete();
+  }
   await Promise.all([profile.delete(), jobs.doc(uid).delete(), control.delete(),
     ...["completed", "cancelled", "manualReview", "authDeletePending", "authDeleted", "recent"]
       .map((id) => jobs.doc(`retention-test-${id}`).delete())]);
@@ -40,6 +45,33 @@ test("Firestore allows only one concurrent retention run", options, async () => 
   const second = new UnverifiedRetentionStore(database, "second", () => now);
   const claims = await Promise.all([first.acquire(), second.acquire()]);
   assert.equal(claims.filter(Boolean).length, 1);
+});
+
+test("initial consent receipts and broadcast inbox are removed with an abandoned registration", options, async () => {
+  const createdAt = Timestamp.fromMillis(now - 40 * 86_400_000);
+  const registration = {id: uid, email: "synthetic@example.invalid", globalRole: "user",
+    accountStatus: "active", isBlocked: false, blockState: "active", warningCount: 0,
+    communityMemberships: [], acceptedTermsVersion: "2026.1", acceptedPrivacyVersion: "2026.1",
+    createdAt, updatedAt: createdAt};
+  await profile.set(registration);
+  for (const type of ["terms", "privacy"]) {
+    await database.collection("legalAcceptanceLogs").doc(`${uid}_${type}_2026.1`).set({
+      userId: uid, documentType: type, version: "2026.1", acceptedAt: createdAt,
+    });
+  }
+  await profile.collection("notificationInbox").doc("broadcast").set({type: "legalDocumentsUpdated"});
+  const storage = mock.method(adminStorage, "bucket", () => ({getFiles: async () => [[]]}) as never);
+  try {
+    assert.equal(await hasUnverifiedAccountRelatedData(uid, registration), false);
+    await deleteInitialRegistrationLogs(database, uid, registration);
+    await profile.delete();
+    assert.equal(await deleteDisposablePrivateData(database, uid), true);
+    assert.equal((await profile.listCollections()).length, 0);
+    for (const type of ["terms", "privacy"]) {
+      assert.equal((await database.collection("legalAcceptanceLogs")
+        .doc(`${uid}_${type}_2026.1`).get()).exists, false);
+    }
+  } finally { storage.mock.restore(); }
 });
 
 test("job claim is atomic and refuses changed profile versions", options, async () => {
@@ -120,7 +152,9 @@ test("a persisted journal resumes after Auth commits but its response is lost", 
       getProfile: (id) => store.getProfile(id), claimJob: (input) => store.claimJob(input),
       setJobStatus: (id, status) => store.setJobStatus(id, status), assertLease: () => store.assertLease(),
       deleteIdentity: async () => { identity = undefined; throw new Error("lost response"); },
-      deleteProfileIfUnchanged: (id, version) => store.deleteProfileIfUnchanged(id, version)};
+      deleteInitialRegistrationLogs: async () => {},
+      deleteProfileIfUnchanged: (id, version) => store.deleteProfileIfUnchanged(id, version),
+      deleteDisposablePrivateData: async () => true};
   }
   const inspection = await inspectUnverifiedAccount(uid, dependencies(first)); assert.ok(inspection.eligible);
   await assert.rejects(executeUnverifiedDeletion(inspection.job, dependencies(first)), /lost response/);
@@ -137,6 +171,9 @@ test("a persisted journal resumes after Auth commits but its response is lost", 
 
 test("real Firestore queries protect references, roles, public profiles and dangling children", options, async () => {
   const storage = mock.method(adminStorage, "bucket", () => ({getFiles: async () => [[]]}) as never);
+  function nestedField(path: string, value: unknown): Record<string, unknown> {
+    return path.split(".").reverse().reduce((result, key) => ({[key]: result}), value) as Record<string, unknown>;
+  }
   const fixtures: {path: string; data: Record<string, unknown>}[] = [
     {path: `publicProfiles/${uid}`, data: {id: uid}},
     {path: `analyticsUserActivity/${uid}`, data: {lastActiveAt: Timestamp.now()}},
@@ -144,10 +181,11 @@ test("real Firestore queries protect references, roles, public profiles and dang
     ...[["organizations", "ownerId"], ["organizationCreationProofs", "userId"],
       ["likes", "userId"], ["registrations", "userId"], ["feedback", "userId"]]
       .map(([collection, field]) => ({path: `${collection}/unverified-retention-reference`, data: {[field]: uid}})),
-    ...(accountDeletionReferencePolicies as readonly AccountDeletionReferencePolicy[]).map((policy) => ({
+    ...(accountDeletionReferencePolicies as readonly AccountDeletionReferencePolicy[])
+      .filter((policy) => policy.collection !== "legalAcceptanceLogs").map((policy) => ({
       path: policy.scope === "collection" ? `${policy.collection}/unverified-retention-reference`
         : `retentionTestParents/fixture/${policy.collection}/unverified-retention-reference`,
-      data: {[policy.field]: policy.operator === "array-contains" ? [uid] : uid,
+      data: {...nestedField(policy.field, policy.operator === "array-contains" ? [uid] : uid),
         ...Object.fromEntries((policy.filters ?? []).map((filter) =>
           [filter.field, filter.operator === "in" ? (filter.value as string[])[0] : filter.value]))},
     })),

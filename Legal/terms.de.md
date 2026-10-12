@@ -1,6 +1,6 @@
 # Nutzungsbedingungen für UkrainianCommunity
 
-Version 2026.11 · Veröffentlicht am 11. Oktober 2026 · Gültig ab 11. Oktober 2026 · ersetzt Version 2026.10.
+Version 2026.13 · Veröffentlicht am 12. Oktober 2026 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.12.
 
 ## 1. Anbieter und Geltungsbereich
 
@@ -15,6 +15,8 @@ Soweit nicht ausdrücklich anders gekennzeichnet, sind wir weder Betreiber einer
 ## 3. Registrierung, Alter und Konto
 
 Die Nutzung der App setzt ein persönliches Konto voraus. Für die Registrierung sind richtige und aktuelle Angaben erforderlich. Konten sind persönlich; Zugangsdaten dürfen nicht weitergegeben werden. Nutzerinnen und Nutzer müssen Zugriffe Dritter sowie Sicherheitsvorfälle unverzüglich melden.
+
+Bei Registrierung mit E-Mail und Passwort müssen Sie Ihre E-Mail-Adresse innerhalb von drei Tagen nach Erstellung des Anmeldekontos bestätigen. Unabhängig von der Anmeldemethode muss innerhalb derselben Frist ein App-Profil angelegt werden. Nicht abgeschlossene Anmeldekonten werden nach Ablauf der drei Tage bei der nächsten planmäßigen Bereinigung gelöscht; dazu gehören das Anmeldekonto, ein gegebenenfalls angelegtes anfängliches App-Profil und zugehörige technische Nachrichten. Danach ist eine neue Registrierung erforderlich. Konten mit abgeschlossenem Profil und bestätigter E-Mail sind von dieser Regel nicht betroffen.
 
 Die Plattform richtet sich nicht gezielt an Kinder unter 14 Jahren. Personen unter 14 Jahren dürfen kein eigenes Konto erstellen. Minderjährige ab 14 Jahren dürfen die Plattform nur nutzen, soweit sie die Bedeutung ihrer Handlungen verstehen und eine Zustimmung der gesetzlichen Vertretung nach anwendbarem Recht nicht erforderlich ist oder vorliegt. Für die Vertretung einer Organisation oder die Veröffentlichung geschäftlicher Angebote ist volle Berechtigung erforderlich.
 

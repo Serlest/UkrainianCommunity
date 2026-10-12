@@ -2761,6 +2761,7 @@ enum AppStrings {
         static var accountUsesAnotherSignInMethod: String { text("auth.provider.account_exists", "Ця адреса вже прив’язана до іншого способу входу. Увійдіть попереднім способом.") }
         static var emailVerificationTitle: String { text("auth.email_verification.title", "Verify your email") }
         static var emailVerificationDescription: String { text("auth.email_verification.description", "We sent a verification link. Check your inbox and open it to activate your account.") }
+        static var registrationExpiryNotice: String { text("auth.registration.expiry_notice", "Complete registration within 3 days: confirm your email if you use a password, and create your profile. Otherwise the unfinished account will be deleted.") }
         static var emailVerificationSent: String { text("auth.email_verification.sent", "Account created. Verification email sent.") }
         static var emailVerificationResent: String { text("auth.email_verification.resent", "Verification email has been resent.") }
         static var emailVerificationSentTo: String { text("auth.email_verification.sent_to", "Sent to") }

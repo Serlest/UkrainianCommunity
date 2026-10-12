@@ -1,6 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 
-import { db } from "../firebase/admin";
+import { adminAuth, db } from "../firebase/admin";
 
 export type NotificationType =
   | "organizationRequestSubmitted"
@@ -75,6 +75,7 @@ export interface NotificationRecipientOptions {
 
 export interface NotificationRecipientStateInput {
   userExists: boolean;
+  emailVerified: boolean;
   accountStatus: string;
   blockState: string;
   notificationsEnabled: boolean;
@@ -179,7 +180,16 @@ export async function resolveNotificationRecipients(
   options: NotificationRecipientOptions = {}
 ): Promise<NotificationRecipientResolution> {
   const uniqueUserIds = Array.from(new Set(candidateUserIds.filter((userId) => userId.length > 0)));
+  const verifiedUserIds = new Set<string>();
+  for (let offset = 0; offset < uniqueUserIds.length; offset += 100) {
+    const batch = await adminAuth.getUsers(uniqueUserIds.slice(offset, offset + 100)
+      .map((uid) => ({uid})));
+    for (const user of batch.users) {
+      if (user.emailVerified && !user.disabled) verifiedUserIds.add(user.uid);
+    }
+  }
   const recipientStates = await Promise.all(uniqueUserIds.map(async (userId) => {
+    if (!verifiedUserIds.has(userId)) return {userId, canReceiveInbox: false, canReceivePush: false};
     const [userSnapshot, preferencesSnapshot] = await Promise.all([
       db.collection("users").doc(userId).get(),
       db.collection("users")
@@ -198,6 +208,7 @@ export async function resolveNotificationRecipients(
       : accountStatus;
     const eligibility = notificationRecipientEligibility({
       userExists: userSnapshot.exists,
+      emailVerified: true,
       accountStatus,
       blockState,
       notificationsEnabled: preferencesSnapshot.data()?.notificationsEnabled === true,
@@ -226,11 +237,13 @@ export function notificationRecipientEligibility(input: NotificationRecipientSta
   canReceivePush: boolean;
 } {
   const canReceiveInbox = input.userExists
+    && input.emailVerified
     && ["active", "warned"].includes(input.accountStatus)
     && ["active", "warned"].includes(input.blockState);
   return {
     canReceiveInbox,
     canReceivePush: input.userExists
+      && input.emailVerified
       && input.notificationsEnabled
       && (canReceiveInbox || input.allowRestrictedPush === true),
   };

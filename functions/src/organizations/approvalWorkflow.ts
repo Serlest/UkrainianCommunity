@@ -317,6 +317,8 @@ export async function commitOrganizationReview(
       : accountStatus;
     const canReceiveInbox = notificationRecipientEligibility({
       userExists: submitterDocument.exists,
+      // An organization request is available only to a verified account.
+      emailVerified: true,
       accountStatus,
       blockState,
       notificationsEnabled: false,

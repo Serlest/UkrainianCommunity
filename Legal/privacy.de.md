@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.15 · Gültig ab 11. Oktober 2026 · ersetzt Version 2026.14.
+Version 2026.17 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.16.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -95,6 +95,7 @@ Es findet keine ausschließlich automatisierte Entscheidung mit rechtlicher oder
 
 ## 12. Speicherdauer
 
+- Unvollständige Registrierungen werden drei Tage nach Erstellung des Firebase-Anmeldekontos bei der nächsten täglichen Bereinigung gelöscht: wenn die E-Mail-Adresse bei E-Mail/Passwort nicht bestätigt wurde oder unabhängig von der Anmeldemethode kein App-Profil angelegt wurde. Gelöscht werden Anmeldekonto, anfängliches Profil, anfängliche Zustimmungsbelege und zugehörige technische Mitteilungen. Werden weitere Daten oder Unstimmigkeiten festgestellt, wird die automatische Löschung zur Prüfung angehalten. Die nachstehend beschriebenen Sicherungs- und Providerfristen bleiben davon unberührt.
 - Kontodaten werden grundsätzlich bis zur Kontolöschung gespeichert. Eine dauerhafte Sperrung bewirkt nicht automatisch eine Löschung; begrenzte Nachweise können danach für gesetzliche Pflichten und Rechtsansprüche verbleiben.
 - Veröffentlichte Inhalte und Funktionsdatensätze folgen grundsätzlich dem Lebenszyklus des Inhalts, Kontos oder der Organisation. Die planmäßige Bereinigung berücksichtigt veröffentlichte Nachrichten sechs Kalendermonate nach ihrem Veröffentlichungsdatum und Veranstaltungen sechs Kalendermonate nach ihrem Enddatum. Begrenzte Verarbeitungsläufe können die tatsächliche Bereinigung verzögern; Fehlschläge müssen überwacht und behoben werden. Frühere Löschungen und gesetzlich erforderliche Sicherungen bleiben möglich.
 - Abgeschlossene oder archivierte Planungseinträge werden sechs Kalendermonate nach Abschluss beziehungsweise Archivierung zur Löschung fällig. Nicht mehr benötigte Bildkopien werden erst nach Prüfung bestehender Verknüpfungen bereinigt. Aus dem Posteingang gelöschte Mitteilungen werden nach 30 Tagen zur endgültigen Löschung berücksichtigt. Diese Bereinigungen laufen asynchron.

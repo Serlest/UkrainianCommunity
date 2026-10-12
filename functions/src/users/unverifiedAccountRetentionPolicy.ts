@@ -1,8 +1,7 @@
 import {createHash} from "node:crypto";
 import {Timestamp, type DocumentData} from "firebase-admin/firestore";
 
-export const unverifiedAccountRetentionDays = 30;
-export const unverifiedAccountQuietDays = 7;
+export const unverifiedAccountRetentionDays = 3;
 const dayMilliseconds = 86_400_000;
 
 /** Deliberately excludes credentials, password hashes and OAuth tokens. */
@@ -22,18 +21,18 @@ export interface RetentionAuthIdentity {
 }
 
 export type RetentionSkipReason =
-  | "verified" | "tooYoung" | "recentSession" | "protectedIdentity"
+  | "completedRegistration" | "tooYoung" | "protectedIdentity"
   | "invalidMetadata" | "changedProfile" | "relatedData" | "missingIdentity";
 
 export function authRetentionSkipReason(
   user: RetentionAuthIdentity, now: number
 ): RetentionSkipReason | undefined {
-  if (user.emailVerified) return "verified";
   if (!user.uid || user.uid.length > 128 || /[\/\u0000]/.test(user.uid)
       || user.uid === "." || user.uid === ".." || /^__.*__$/.test(user.uid)
-      || !user.email?.trim()) return "invalidMetadata";
-  if (user.disabled || user.hasCustomClaims || user.hasMFA || user.hasPhone || user.hasPhoto
-      || user.providerIds.length !== 1 || user.providerIds[0] !== "password") return "protectedIdentity";
+      || (!user.email?.trim() && user.providerIds[0] === "password")) return "invalidMetadata";
+  if (user.disabled || user.hasCustomClaims || user.hasMFA || user.hasPhone
+      || user.providerIds.length !== 1
+      || !["password", "google.com", "apple.com"].includes(user.providerIds[0])) return "protectedIdentity";
   const created = Date.parse(user.createdAt);
   const sessionDates = [user.lastSignInAt, user.lastRefreshAt]
     .filter((value): value is string => value !== undefined).map(Date.parse);
@@ -41,7 +40,6 @@ export function authRetentionSkipReason(
       || sessionDates.some((value) => !Number.isFinite(value) || value > now
         || value < created - 1_000)) return "invalidMetadata";
   if (created > now - unverifiedAccountRetentionDays * dayMilliseconds) return "tooYoung";
-  if (sessionDates.some((value) => value > now - unverifiedAccountQuietDays * dayMilliseconds)) return "recentSession";
   return undefined;
 }
 
@@ -61,6 +59,9 @@ export function profileRetentionSkipReason(
   // An Auth identity whose registration never created a profile can also expire.
   // The adapter still checks dangling children, public profiles and references.
   if (data === undefined) return undefined;
+  // Verification alone is not registration; a finished profile is.
+  if (identity.emailVerified) return "completedRegistration";
+  if (identity.providerIds[0] !== "password" || identity.hasPhoto) return "protectedIdentity";
   const created = data.createdAt;
   const updated = data.updatedAt;
   if (Object.keys(data).some((key) => !initialProfileFields.has(key))

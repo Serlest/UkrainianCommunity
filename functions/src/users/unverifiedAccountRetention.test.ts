@@ -29,32 +29,29 @@ function profile() {
 
 afterEach(() => mock.restoreAll());
 
-test("30-day and 7-day boundaries are inclusive", () => {
+test("three-day boundary is inclusive even after a recent sign-in", () => {
   assert.equal(authRetentionSkipReason(identity(), now), undefined);
-  const boundary = identity({createdAt: new Date(now - 30 * day).toISOString(),
-    lastSignInAt: new Date(now - 7 * day).toISOString()});
+  const boundary = identity({createdAt: new Date(now - 3 * day).toISOString(),
+    lastSignInAt: new Date(now - day).toISOString()});
   assert.equal(authRetentionSkipReason(boundary, now), undefined);
-  assert.equal(authRetentionSkipReason({...boundary, createdAt: new Date(now - 30 * day + 1).toISOString()}, now), "tooYoung");
-  assert.equal(authRetentionSkipReason({...boundary, lastRefreshAt: new Date(now - 7 * day + 1).toISOString()}, now), "recentSession");
+  assert.equal(authRetentionSkipReason({...boundary, createdAt: new Date(now - 3 * day + 1).toISOString()}, now), "tooYoung");
 });
 
-test("verified accounts are never candidates even after years without activity", () => {
+test("verified accounts with completed profiles are retained even after years", () => {
   const inactiveButVerified = identity({emailVerified: true,
     createdAt: "2010-01-01T00:00:00Z", lastSignInAt: "2010-01-01T00:00:00Z"});
-  assert.equal(authRetentionSkipReason(inactiveButVerified, now), "verified");
+  assert.equal(authRetentionSkipReason(inactiveButVerified, now), undefined);
+  assert.equal(profileRetentionSkipReason(inactiveButVerified, profile(), now), "completedRegistration");
+  assert.equal(profileRetentionSkipReason(inactiveButVerified, undefined, now), undefined);
 });
 
 const excludedIdentities: [string, Partial<RetentionAuthIdentity>, string][] = [
-  ["verified email", {emailVerified: true}, "verified"],
   ["disabled", {disabled: true}, "protectedIdentity"],
   ["claims", {hasCustomClaims: true}, "protectedIdentity"],
   ["MFA", {hasMFA: true}, "protectedIdentity"],
   ["phone", {hasPhone: true}, "protectedIdentity"],
-  ["photo", {hasPhoto: true}, "protectedIdentity"],
   ["anonymous", {providerIds: []}, "protectedIdentity"],
-  ["Google", {providerIds: ["google.com"]}, "protectedIdentity"],
   ["linked providers", {providerIds: ["password", "apple.com"]}, "protectedIdentity"],
-  ["recent sign-in", {lastSignInAt: new Date(now - day).toISOString()}, "recentSession"],
   ["bad refresh date", {lastRefreshAt: "invalid"}, "invalidMetadata"],
   ["future timestamp", {createdAt: new Date(now + day).toISOString()}, "invalidMetadata"],
   ["invalid creation date", {createdAt: "invalid"}, "invalidMetadata"],
@@ -78,6 +75,16 @@ test("only an unchanged registration profile or absent root is eligible", () => 
   for (const patch of patches) assert.equal(profileRetentionSkipReason(identity(), {...profile(), ...patch}, now), "changedProfile");
 });
 
+test("uncompleted federated accounts expire, but completed ones stay", () => {
+  for (const providerId of ["google.com", "apple.com"]) {
+    const social = identity({emailVerified: true, providerIds: [providerId], hasPhoto: true});
+    assert.equal(authRetentionSkipReason(social, now), undefined);
+    assert.equal(profileRetentionSkipReason(social, undefined, now), undefined);
+    assert.equal(profileRetentionSkipReason(social, profile(), now), "completedRegistration");
+  }
+  assert.equal(profileRetentionSkipReason(identity({hasPhoto: true}), profile(), now), "protectedIdentity");
+});
+
 function fixture() {
   const state = {identity: identity() as RetentionAuthIdentity | undefined,
     profile: {data: profile(), version: "1:184433000"} as RetentionProfileSnapshot,
@@ -90,6 +97,8 @@ function fixture() {
     assertLease: async () => {},
     setJobStatus: async (_uid, status) => { state.job!.status = status; state.statuses.push(status); },
     deleteIdentity: async () => { state.authDeletes += 1; state.identity = undefined; },
+    deleteInitialRegistrationLogs: async () => {},
+    deleteDisposablePrivateData: async () => true,
     deleteProfileIfUnchanged: async (_uid, version) => {
       if (state.profile.version !== null && version !== state.profile.version) return false;
       state.profileDeletes += 1; state.profile = {version: null}; return true;
@@ -125,7 +134,7 @@ for (const changed of ["email", "signIn", "profile", "linkedData"] as const) {
   test(`fresh ${changed} change cancels deletion`, async () => {
     const {state, deps, candidate} = fixture(); const job = await candidate();
     if (changed === "email") state.identity!.emailVerified = true;
-    if (changed === "signIn") state.identity!.lastSignInAt = new Date(now).toISOString();
+    if (changed === "signIn") state.identity!.lastSignInAt = new Date(now - day).toISOString();
     if (changed === "profile") state.profile.version = "1:184433001";
     if (changed === "linkedData") state.related = true;
     assert.equal(await executeUnverifiedDeletion(job, deps), "skipped");

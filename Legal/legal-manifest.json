@@ -1,7 +1,7 @@
 {
-  "version": "2026.11",
+  "version": "2026.13",
   "status": "published",
-  "effectiveDate": "2026-10-11",
+  "effectiveDate": "2026-10-12",
   "canonicalLocale": "de",
   "supportedLocales": [
     "de",
@@ -30,8 +30,8 @@
   "documents": {
     "terms": {
       "requiresAcceptance": true,
-      "supersedesVersion": "2026.10",
-      "changeSummary": "Requires a personal app account and accurate registration details for the iOS sign-in flow.",
+      "supersedesVersion": "2026.12",
+      "changeSummary": "Clarifies that every sign-in method requires a completed app profile within three days.",
       "files": {
         "de": "Legal/terms.de.md",
         "uk": "Legal/terms.uk.md"
@@ -43,10 +43,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.15",
-      "effectiveDate": "2026-10-11",
-      "supersedesVersion": "2026.14",
-      "changeSummary": "Explains optional Apple and Google sign-in and provider data, password requirements and local app lock; preserves the iOS and Android processing disclosures and optional analytics terms."
+      "version": "2026.17",
+      "effectiveDate": "2026-10-12",
+      "supersedesVersion": "2026.16",
+      "changeSummary": "Clarifies that an absent app profile expires after three days for every sign-in method."
     },
     "organizationRules": {
       "requiresAcceptance": true,

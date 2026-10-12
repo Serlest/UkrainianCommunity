@@ -14,7 +14,7 @@ from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 import publish_privacy_hosting_2026_13 as hosting
-import publish_legal_2026_10_11 as legal
+import publish_legal_documents as legal
 
 KINDS = ("terms", "privacy")
 PATHS = {kind: f"/{kind}/index.html" for kind in KINDS}
@@ -65,7 +65,7 @@ def prepare(transport, pages):
     require(sorted(path for path in after if after[path] != inventory["files"][path]) == sorted(PATHS.values()),
             "Expected exactly two changed files")
     return {
-        "format": "uac-legal-hosting-2026-10-11-v1", "site": hosting.SITE,
+        "format": "uac-legal-hosting-2026-10-12-v2", "site": hosting.SITE,
         "beforeRelease": before, "config": inventory["config"],
         "beforeFiles": inventory["files"], "afterFiles": after,
         "beforeHtmlHashes": {kind: hosting.sha(old_pages[kind]) for kind in KINDS},
@@ -98,9 +98,9 @@ def verify(transport, plan, state):
 
 
 def apply(transport, plan, pages, state_path):
-    require(plan["format"] == "uac-legal-hosting-2026-10-11-v1"
+    require(plan["format"] == "uac-legal-hosting-2026-10-12-v2"
             and plan["site"] == hosting.SITE and plan["local"] == compact(pages), "Plan/local mismatch")
-    require(datetime.now(ZoneInfo("Europe/Vienna")).date().isoformat() == "2026-10-11", "Publication date changed")
+    require(datetime.now(ZoneInfo("Europe/Vienna")).date().isoformat() == legal.PUBLICATION_DATE, "Publication date changed")
     require(prepare(transport, pages) == plan, "Reviewed plan is stale")
     state = {"planHash": legal.digest(plan), "phase": "reserved"}
     hosting.save_new(state_path, state)
@@ -132,7 +132,7 @@ def apply(transport, plan, pages, state_path):
     hosting.journal(state_path, state, "release-intent")
     try:
         transport.api("POST", hosting.LIVE + "/releases?" + urlencode({"versionName": version}),
-                      {"message": "Terms 2026.11 and Privacy 2026.15: two legal pages only"})
+                      {"message": "Terms 2026.13 and Privacy 2026.17: two legal pages only"})
     except Exception:
         hosting.journal(state_path, state, "release-response-uncertain")
         raise ValueError("Release response uncertain; use --verify, never repeat apply.") from None
@@ -151,7 +151,7 @@ def resume_finalized(transport, plan, state, state_path):
     hosting.journal(state_path, state, "release-intent")
     try:
         transport.api("POST", hosting.LIVE + "/releases?" + urlencode({"versionName": candidate}),
-                      {"message": "Terms 2026.11 and Privacy 2026.15: two legal pages only"})
+                      {"message": "Terms 2026.13 and Privacy 2026.17: two legal pages only"})
     except Exception:
         hosting.journal(state_path, state, "release-response-uncertain")
         raise ValueError("Release response uncertain; use --verify, never repeat release.") from None

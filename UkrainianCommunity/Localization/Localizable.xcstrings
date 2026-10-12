@@ -4933,6 +4933,22 @@
         }
       }
     },
+    "auth.registration.expiry_notice" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schließen Sie die Registrierung innerhalb von 3 Tagen ab: Bestätigen Sie bei Anmeldung mit Passwort Ihre E-Mail-Adresse und erstellen Sie Ihr Profil. Andernfalls wird das unvollständige Konto gelöscht."
+          }
+        },
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершіть реєстрацію протягом 3 днів: підтвердьте електронну адресу, якщо входите з паролем, і створіть профіль. Інакше незавершений обліковий запис буде видалено."
+          }
+        }
+      }
+    },
     "auth.register.subtitle" : {
       "extractionState" : "manual",
       "localizations" : {

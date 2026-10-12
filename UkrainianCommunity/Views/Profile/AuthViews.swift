@@ -329,6 +329,8 @@ struct RegisterView: View {
 
     private var registrationForm: some View {
         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+            InlineMessageCard(style: .info, message: AppStrings.Auth.registrationExpiryNotice)
+
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     EditorTextField(AppStrings.Auth.displayName, text: $displayName, systemImage: "person", textContentType: .nickname, autocapitalization: .words)
@@ -609,6 +611,7 @@ struct EmailVerificationView: View {
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     InlineMessageCard(style: messageStyle, message: displayedMessage)
+                    InlineMessageCard(style: .info, message: AppStrings.Auth.registrationExpiryNotice)
 
                     if !pendingEmail.isEmpty {
                         if emailWasSent {
