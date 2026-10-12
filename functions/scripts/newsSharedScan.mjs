@@ -12,6 +12,9 @@ const maximumSourceLinks = 3_500;
 
 export function requestURLForSource(source, now = new Date()) {
   const url = new URL(source.url);
+  if (url.hostname === "salzburg-verkehr.at" && url.pathname.replace(/\/$/, "") === "/aktuelles/verkehr") {
+    return "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de";
+  }
   if (url.hostname.endsWith("ris.bka.gv.at") && url.pathname === "/Ergebnis.wxe") {
     const start = new Date(now.getTime() - 25 * 60 * 60 * 1000);
     const format = (date) => `${String(date.getUTCDate()).padStart(2, "0")}.${String(date.getUTCMonth() + 1).padStart(2, "0")}.${date.getUTCFullYear()}`;
@@ -78,6 +81,27 @@ export function extractAMSNewsLinks(html, baseURL, now = new Date()) {
   return links;
 }
 
+// Salzburg Verkehr renders its traffic listing from its own public JSON feed.
+// The HTML listing contains only navigation links before JavaScript runs.
+export function extractSalzburgTrafficLinks(json) {
+  const entries = JSON.parse(json);
+  if (!Array.isArray(entries)) throw new Error("invalid-salzburg-traffic-feed");
+  const links = [];
+  const seen = new Set();
+  for (const entry of entries) {
+    if (typeof entry?.link !== "string" || typeof entry?.title !== "string") continue;
+    let url;
+    try { url = new URL(entry.link); } catch { continue; }
+    if (url.protocol !== "https:" || url.hostname !== "salzburg-verkehr.at") continue;
+    url.hash = "";
+    if (seen.has(url.href)) continue;
+    seen.add(url.href);
+    links.push({url: url.href, title: entry.title.trim().slice(0, 240)});
+    if (links.length === maximumSourceLinks) break;
+  }
+  return links;
+}
+
 export async function inspectNewsSource(source, fetchImpl = fetch, now = new Date()) {
   const requestedURL = requestURLForSource(source, now);
   const checkedAt = now.toISOString();
@@ -103,7 +127,9 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       lastModified: response.headers.get("last-modified"),
       contentHash: createHash("sha256").update(text).digest("hex"),
       links: response.ok ? (
-        new URL(requestedURL).hostname === "www.ams.at"
+        requestedURL === "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de"
+          ? extractSalzburgTrafficLinks(body)
+          : new URL(requestedURL).hostname === "www.ams.at"
           ? extractAMSNewsLinks(body, response.url || requestedURL, now)
           : extractSourceLinks(body, response.url || requestedURL)
       ) : [],

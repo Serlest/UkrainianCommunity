@@ -12,7 +12,7 @@ import {
   prepareNewsScopeLayout,
   routeNewsCandidate,
 } from "./newsScopeCoordination.mjs";
-import {extractAMSNewsLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {extractAMSNewsLinks, extractSalzburgTrafficLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -137,6 +137,19 @@ test("AMS escaped index yields recent direct articles instead of old embedded re
   assert.deepEqual(extractAMSNewsLinks(html, "https://www.ams.at/", new Date("2026-10-12T12:00:00Z")), [
     {url: "https://www.ams.at/regionen/wien/news/2026/10/new", title: "New"},
   ]);
+});
+
+test("Salzburg traffic scan reads the public feed and keeps only official article links", () => {
+  assert.equal(requestURLForSource({url: "https://salzburg-verkehr.at/aktuelles/verkehr"}),
+    "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de");
+  assert.deepEqual(extractSalzburgTrafficLinks(JSON.stringify([
+    {title: "Linie 36 – Haltestellenänderung", link: "https://salzburg-verkehr.at/linie-36-haltestellenaenderung/"},
+    {title: "Duplicate", link: "https://salzburg-verkehr.at/linie-36-haltestellenaenderung/#details"},
+    {title: "External", link: "https://example.com/story"},
+  ])), [
+    {url: "https://salzburg-verkehr.at/linie-36-haltestellenaenderung/", title: "Linie 36 – Haltestellenänderung"},
+  ]);
+  assert.throws(() => extractSalzburgTrafficLinks("{}"), /invalid-salzburg-traffic-feed/);
 });
 
 test("a source article after a long navigation menu is retained", () => {
