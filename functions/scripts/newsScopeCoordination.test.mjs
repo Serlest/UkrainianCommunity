@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   buildScopeDiscoveryBatch,
   buildNewsScopeLayout,
+  applyNewsEditorialSources,
   planUniqueSourceFetches,
   prepareNewsScopeLayout,
   routeNewsCandidate,
@@ -126,4 +127,21 @@ test("dated RIS source requests use the current window while identity stays stab
     new Date("2026-10-12T11:00:00Z"));
   assert.match(url, /VonDatum=11\.10\.2026/);
   assert.match(url, /BisDatum=12\.10\.2026/);
+});
+
+test("editorial policy replaces stale AMS regional feeds and shares official national sources", () => {
+  const oldAMS = "https://www.ams.at/regionen/wien/news.html";
+  const {registry} = buildNewsScopeLayout({sourceProgress: {
+    oldAMS: {url: oldAMS, type: "official", scopes: ["wien"]},
+  }});
+  const curated = applyNewsEditorialSources(registry);
+  assert.equal(curated.sources.find((source) => source.url === oldAMS).active, false);
+  const plan = planUniqueSourceFetches(curated);
+  assert.equal(plan.some((source) => source.url === oldAMS), false);
+  assert.deepEqual(plan.find((source) => source.url ===
+    "https://www.oebb.at/de/fahrplan/baustelleninformation").recipients,
+    ["wien", "niederoesterreich", "oberoesterreich", "salzburg", "tirol",
+      "vorarlberg", "steiermark", "kaernten", "burgenland", "austria"]);
+  assert.equal(plan.some((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html"), true);
+  assert.equal(plan.some((source) => source.url === "https://www.vmobil.at/de"), false);
 });

@@ -1,6 +1,7 @@
 import {mkdir, readFile, rename, rm, writeFile} from "node:fs/promises";
 import {dirname, join} from "node:path";
 import {randomUUID} from "node:crypto";
+import {NEWS_EDITORIAL_SOURCES} from "./newsEditorialSources.mjs";
 
 export const NEWS_SCOPES = Object.freeze([
   "wien", "niederoesterreich", "oberoesterreich", "salzburg", "tirol",
@@ -122,6 +123,35 @@ export function planUniqueSourceFetches(registry, requestedScopes = NEWS_SCOPES)
     .map(({sourceId, url, type, scopes}) => ({
       sourceId, url, type, recipients: scopes.filter((scope) => wanted.has(scope)),
     }));
+}
+
+export function applyNewsEditorialSources(registry, entries = NEWS_EDITORIAL_SOURCES) {
+  const byURL = new Map();
+  for (const entry of entries) {
+    const identity = sourceIdentity(entry.url);
+    if (byURL.has(identity)) throw new Error(`Duplicate editorial source: ${identity}`);
+    if (!new Set(["scan", "adapter", "reference"]).has(entry.mode)) {
+      throw new Error(`Unknown editorial source mode: ${entry.mode}`);
+    }
+    if (!entry.scopes.length || entry.scopes.some((scope) => !scopeSet.has(scope))) {
+      throw new Error(`Invalid editorial source scopes: ${identity}`);
+    }
+    byURL.set(identity, {...entry, url: identity});
+  }
+  const sources = registry.sources.map((source) => {
+    const entry = byURL.get(sourceIdentity(source.url));
+    if (entry) byURL.delete(entry.url);
+    return entry ? {...source, scopes: [...entry.scopes], active: entry.mode === "scan",
+      editorialMode: entry.mode, topics: [...entry.topics]} :
+      {...source, active: false, editorialMode: "excluded", topics: []};
+  });
+  for (const entry of byURL.values()) {
+    sources.push({sourceId: entry.url, url: entry.url, type: "official",
+      scopes: [...entry.scopes], legacyIds: [], active: entry.mode === "scan",
+      editorialMode: entry.mode, topics: [...entry.topics]});
+  }
+  sources.sort((a, b) => a.sourceId.localeCompare(b.sourceId));
+  return {...registry, editorialPolicyVersion: 1, sources};
 }
 
 export function routeNewsCandidate(candidate) {
