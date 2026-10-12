@@ -3,6 +3,7 @@ import {test} from "node:test";
 import {randomUUID} from "node:crypto";
 import {Timestamp} from "firebase-admin/firestore";
 import {db} from "../firebase/admin";
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {persistAnalyticsConsentMutation, analyticsConsentReceiptID, isCurrentAnalyticsConsent, requireCurrentAnalyticsConsent, updateAnalyticsConsentV2} from "./analyticsConsent";
 import {getLegalEvidencePage, listLegalEvidenceAccounts} from "../legal/legalEvidence";
 
@@ -24,6 +25,7 @@ test("consent preserves receipts, rejects stale grants and withdrawal-before-gra
   });
   try {
     await profile.set({globalRole: "user"});
+    await seedCurrentLegalForIntegration(uid);
     await assert.rejects(updateAnalyticsConsentV2.run({auth: {uid, token: {email_verified: true}}, data: {
         enabled: true, consentID: ids[0], locale: "de", principalId: "different-user", privacyVersion: "2026.12", disclosureVersion: "2026-08-25.1",
       }} as any), {code: "permission-denied"});
@@ -85,9 +87,13 @@ test("legal history pages beyond 500 and exact account cursor survives deleted a
   const newer = db.doc(`users/${prefix}-newer`);
   const older = db.doc(`users/${prefix}-older`);
   const logs = Array.from({length: 501}, (_, i) => db.doc(`legalAcceptanceLogs/${prefix}-${String(i).padStart(4, "0")}`));
-  const request = (data: unknown) => ({data, auth: {uid: owner.id, token: {email_verified: true}}}) as any;
+  const request = (data: unknown) => ({data, auth: {uid: owner.id, token: {
+    email_verified: true,
+    firebase: {sign_in_second_factor: "totp"},
+  }}}) as any;
   try {
     await owner.set({globalRole: "owner", accountStatus: "active", createdAt: Timestamp.fromMillis(0), requiresMultiFactorAuth: true});
+    await seedCurrentLegalForIntegration(owner.id);
     await newer.set({createdAt: new Timestamp(1_800_000_000, 123456000)});
     await older.set({createdAt: new Timestamp(1_800_000_000, 123455000)});
     const first = await listLegalEvidenceAccounts.run(request({limit: 1}));
