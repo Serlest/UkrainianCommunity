@@ -14,27 +14,36 @@ struct ContentTranslationField {
 struct ContentTranslationPreview: Identifiable {
     let id = UUID()
     let userID: String?
+    let organizationID: String?
     let sources: [String]
     let previousTargets: [String]
     let indices: [Int]
     var translations: [String]
-    func isCurrent(userID: String?, sources: [String], targets: [String]) -> Bool {
-        self.userID == userID && self.sources == sources && previousTargets == targets
+    func isCurrent(userID: String?, organizationID: String?, sources: [String], targets: [String]) -> Bool {
+        self.userID == userID && self.organizationID == organizationID
+            && self.sources == sources && previousTargets == targets
     }
 }
 
 @MainActor
 enum ContentTranslationService {
-    static func translate(kind: String, texts: [String], sourceLanguage: AppLanguage) async throws -> [String] {
+    static func translate(kind: String, texts: [String], sourceLanguage: AppLanguage,
+                          organizationId: String?) async throws -> [String] {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
             return texts.map { (sourceLanguage == .ukrainian ? "DE: " : "UK: ") + $0 }
         }
         #endif
-        nonisolated struct Request: Encodable { let kind: String; let texts: [String]; let source: String }
+        nonisolated struct Request: Encodable {
+            let kind: String
+            let texts: [String]
+            let source: String
+            let organizationId: String?
+        }
         struct Response: Decodable { let texts: [String] }
         let call: Callable<Request, Response> = Functions.functions(region: "europe-west3").httpsCallable("translateContent")
-        return try await call.call(Request(kind: kind, texts: texts, source: sourceLanguage.rawValue)).texts
+        return try await call.call(Request(kind: kind, texts: texts, source: sourceLanguage.rawValue,
+                                           organizationId: organizationId)).texts
     }
 }
 
@@ -42,15 +51,22 @@ struct ContentTranslationButton: View {
     let kind: String
     let fields: [ContentTranslationField]
     let sourceLanguage: AppLanguage
+    let organizationId: String?
     private var targetLanguage: AppLanguage { sourceLanguage == .ukrainian ? .german : .ukrainian }
-    init(kind: String, fields: [ContentTranslationField], sourceLanguage: AppLanguage = .ukrainian) {
+    init(kind: String, fields: [ContentTranslationField], sourceLanguage: AppLanguage = .ukrainian,
+         organizationId: String? = nil) {
         self.kind = kind; self.fields = fields; self.sourceLanguage = sourceLanguage
+        self.organizationId = organizationId
     }
     @EnvironmentObject private var authState: AuthState
     @State private var preview: ContentTranslationPreview?
     @State private var error: String?
     @State private var busy = false
     @State private var task: Task<Void, Never>?
+    private var hasAccessContext: Bool {
+        !["news", "event", "organization"].contains(kind) || organizationId != nil
+            || PermissionService.isAppOwner(user: authState.user)
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: translate) {
@@ -59,14 +75,15 @@ struct ContentTranslationButton: View {
                     Text(targetLanguage == .german ? EditorTranslationStrings.translate : EditorTranslationStrings.translateToUkrainian)
                 }.frame(maxWidth: .infinity)
             }.appActionButtonStyle(.secondary)
-                .disabled(busy || fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+                .disabled(busy || !hasAccessContext || fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
                 .accessibilityIdentifier("translation.\(kind)")
             Text(EditorTranslationStrings.hint).font(.caption).foregroundStyle(AppTheme.textSecondary)
             if let error { InlineMessageCard(style: .error, message: error) }
         }
         .sheet(item: $preview) { draft in
             NavigationStack { ContentTranslationReview(draft: draft, fields: fields, targetLanguage: targetLanguage) { result in
-                guard result.isCurrent(userID: authState.user?.id, sources: fields.map(\.source), targets: fields.map { $0.target.wrappedValue }) else {
+                guard result.isCurrent(userID: authState.user?.id, organizationID: organizationId,
+                                       sources: fields.map(\.source), targets: fields.map { $0.target.wrappedValue }) else {
                     error = EditorTranslationStrings.changed; return false
                 }
                 for (offset, index) in result.indices.enumerated() { fields[index].target.wrappedValue = result.translations[offset] }
@@ -74,19 +91,27 @@ struct ContentTranslationButton: View {
             } }
         }
         .onChange(of: authState.user?.id) { _, _ in task?.cancel(); preview = nil; busy = false }
+        .onChange(of: organizationId) { _, _ in task?.cancel(); preview = nil; busy = false }
         .onDisappear { task?.cancel(); busy = false }
     }
     private func translate() {
         let sources = fields.map(\.source), targets = fields.map { $0.target.wrappedValue }
         let indices = fields.indices.filter { !sources[$0].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         let userID = authState.user?.id
+        let organizationID = organizationId
         busy = true; error = nil
         task = Task { @MainActor in
             defer { busy = false }
             do {
-                let result = try await ContentTranslationService.translate(kind: kind, texts: indices.map { sources[$0] }, sourceLanguage: sourceLanguage)
-                guard !Task.isCancelled, result.count == indices.count, userID == authState.user?.id else { return }
-                preview = ContentTranslationPreview(userID: userID, sources: sources, previousTargets: targets, indices: indices, translations: result)
+                let result = try await ContentTranslationService.translate(
+                    kind: kind, texts: indices.map { sources[$0] }, sourceLanguage: sourceLanguage,
+                    organizationId: organizationID
+                )
+                guard !Task.isCancelled, result.count == indices.count,
+                      userID == authState.user?.id, organizationID == organizationId else { return }
+                preview = ContentTranslationPreview(userID: userID, organizationID: organizationID,
+                                                    sources: sources, previousTargets: targets,
+                                                    indices: indices, translations: result)
             } catch {
                 guard !Task.isCancelled else { return }
                 self.error = (error as NSError).code == FunctionsErrorCode.resourceExhausted.rawValue ? EditorTranslationStrings.limit : EditorTranslationStrings.error

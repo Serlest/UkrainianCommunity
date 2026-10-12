@@ -7,7 +7,8 @@ extension NewsEditorView {
                 .init("title", AppStrings.NewsEditor.titleFieldRequired, source: viewModel.title, target: $viewModel.germanTitle, limit: 120),
                 .init("summary", AppStrings.NewsEditor.summaryFieldRequired, source: viewModel.summary, target: $viewModel.germanSummary, limit: 200),
                 .init("body", AppStrings.NewsEditor.bodySectionTitle, source: viewModel.body, target: $viewModel.germanBody, limit: 10000)
-            ]).padding(.bottom, AppTheme.dashboardSpacing)
+            ], organizationId: viewModel.selectedOrganizationId)
+                .padding(.bottom, AppTheme.dashboardSpacing)
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: editorCardSpacing) {
                     Text(ContentPublishingStrings.germanFallbackHint)
