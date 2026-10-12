@@ -1,6 +1,6 @@
 # Nutzungsbedingungen für UkrainianCommunity
 
-Version 2026.13 · Veröffentlicht am 12. Oktober 2026 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.12.
+Version 2026.14 · Veröffentlicht am 12. Oktober 2026 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.13.
 
 ## 1. Anbieter und Geltungsbereich
 
@@ -35,6 +35,8 @@ Organisationen und Anbieter sind allein dafür verantwortlich, ihre eigenen gese
 Die einstellende Person bleibt für ihren Inhalt verantwortlich und muss alle erforderlichen Rechte, Einwilligungen und Erlaubnisse besitzen. Dies gilt besonders für Fotos, Logos, Musik, Texte, personenbezogene Daten, Kontaktdaten und Aufnahmen von Minderjährigen.
 
 Mit dem Hochladen wird uns für die Dauer der Veröffentlichung ein nicht ausschließliches, unentgeltliches, räumlich unbeschränktes, auf den Betrieb der Plattform begrenztes Recht eingeräumt, den Inhalt technisch zu speichern, zu vervielfältigen, zu komprimieren, darzustellen und innerhalb der Plattform zu verbreiten. Das Recht endet nach Löschung, soweit keine Sicherungskopie, gesetzliche Aufbewahrung oder Beweissicherung erforderlich ist. Eine Nutzung zu fremder Werbung ist davon nicht umfasst.
+
+Veröffentlichte Nachrichten jeder Organisation werden 30 Tage nach ihrer Veröffentlichung für die planmäßige Löschung fällig. Dabei werden die Nachricht, ihre Kommentare, Likes, Lesezeichen und zugehörigen Bilddateien aus dem aktiven Dienst entfernt. Die Bereinigung läuft regelmäßig und kann sich bei Fehlern oder begrenzter Verarbeitung verzögern; für Sicherungskopien und gesetzlich erforderliche Nachweise gelten die Fristen der Datenschutzerklärung.
 
 ## 7. Unzulässige Inhalte und Handlungen
 

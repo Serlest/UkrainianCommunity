@@ -30,8 +30,10 @@
   "documents": {
     "terms": {
       "requiresAcceptance": true,
-      "supersedesVersion": "2026.12",
-      "changeSummary": "Clarifies that every sign-in method requires a completed app profile within three days.",
+      "version": "2026.14",
+      "effectiveDate": "2026-10-12",
+      "supersedesVersion": "2026.13",
+      "changeSummary": "Новини організацій видаляються через 30 днів разом із коментарями, вподобаннями та зображеннями. / Organisationsnachrichten werden nach 30 Tagen einschließlich Kommentaren, Likes und Bildern gelöscht.",
       "files": {
         "de": "Legal/terms.de.md",
         "uk": "Legal/terms.uk.md"
@@ -50,7 +52,10 @@
     },
     "organizationRules": {
       "requiresAcceptance": true,
-      "version": "2026.10",
+      "version": "2026.11",
+      "effectiveDate": "2026-10-12",
+      "supersedesVersion": "2026.10",
+      "changeSummary": "Новини організацій видаляються через 30 днів разом із пов’язаним вмістом. / Organisationsnachrichten werden nach 30 Tagen mit zugehörigen Inhalten gelöscht.",
       "files": {
         "de": "Legal/organization-rules.de.md",
         "uk": "Legal/organization-rules.uk.md"

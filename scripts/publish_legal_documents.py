@@ -30,14 +30,16 @@ def payload():
     swift = (ROOT / "UkrainianCommunity/Services/Auth/AuthService.swift").read_text()
     result = {}
     for kind, (previous, version) in TARGETS.items():
+        website_kind = "organization-rules" if kind == "organizationRules" else kind
         definition = manifest["documents"][kind]
         require(definition.get("version", manifest["version"]) == version, f"Wrong {kind} version")
         require(definition["supersedesVersion"] == previous
                 and definition.get("effectiveDate", manifest["effectiveDate"]) == PUBLICATION_DATE,
                 f"Wrong {kind} version chain")
-        require(f'current{kind.title()}Version = "{version}"' in swift, f"Wrong iOS {kind} version")
+        swift_kind = "OrganizationRules" if kind == "organizationRules" else kind.title()
+        require(f'current{swift_kind}Version = "{version}"' in swift, f"Wrong iOS {kind} version")
         sources = [(ROOT / definition["files"][locale]).read_text() for locale in ("de", "uk")]
-        require((ROOT / f"website/{kind}/index.html").read_text() == website.page_template(kind, *sources),
+        require((ROOT / f"website/{website_kind}/index.html").read_text() == website.page_template(website_kind, *sources),
                 f"{kind} website differs from sources")
         locales = {}
         for locale, source in zip(("de", "uk"), sources):
@@ -70,7 +72,7 @@ def payload():
         pointer["activeVersion"] = version
         result[kind] = {"version": document, "pointer": pointer, "inputHashes": {
             "definition": digest(definition), "sources": [digest(source) for source in sources],
-            "website": digest((ROOT / f"website/{kind}/index.html").read_text()),
+            "website": digest((ROOT / f"website/{website_kind}/index.html").read_text()),
         }}
     return result
 

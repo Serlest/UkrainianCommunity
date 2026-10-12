@@ -1,6 +1,6 @@
 # Regeln für Organisationen und Anbieter
 
-Version 2026.10 · Veröffentlicht am 25. August 2026 · Gültig ab 25. August 2026
+Version 2026.11 · Veröffentlicht am 12. Oktober 2026 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.10.
 
 ## 1. Berechtigung zur Vertretung
 
@@ -17,6 +17,8 @@ Die verantwortliche Organisation erfüllt alle für sie geltenden gewerbe-, steu
 ## 4. Inhalte, Rechte und personenbezogene Daten
 
 Für Texte, Logos, Fotos, Videos, Marken und sonstige Inhalte müssen alle erforderlichen Rechte und Einwilligungen vorliegen. Personenbezogene Daten Dritter dürfen nur mit gültiger Rechtsgrundlage veröffentlicht werden. Für Aufnahmen und Daten von Minderjährigen gilt besondere Sorgfalt. Ausweis-, Zahlungs-, Gesundheits- oder andere sensible Daten gehören nicht in öffentliche Felder.
+
+Veröffentlichte Nachrichten der Organisation werden 30 Tage nach ihrer Veröffentlichung für die planmäßige Löschung fällig. Mit der Nachricht entfernt UkrainianCommunity Kommentare, Likes, Lesezeichen und zugehörige Bilddateien aus dem aktiven Dienst. Die Bereinigung kann sich bei Fehlern oder begrenzter Verarbeitung verzögern; Sicherungskopien und rechtlich erforderliche Nachweise folgen der Datenschutzerklärung.
 
 ## 5. Waren, Dienstleistungen und Veranstaltungen
 
