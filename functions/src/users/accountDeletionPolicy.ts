@@ -5,6 +5,7 @@ export const deletedUserDisplayName = "Видалений користувач";
 
 export type AccountDeletionPatch =
   | "auditActor"
+  | "auditOwnerHistory"
   | "cancellationActor"
   | "auditTarget"
   | "commentAuthor"
@@ -280,6 +281,24 @@ export const accountDeletionReferencePolicies = [
     operator: "==",
     action: "anonymize",
     patch: "auditActor",
+  },
+  {
+    name: "audit previous owners",
+    scope: "collection",
+    collection: "auditLogs",
+    field: "previousValue.ownerId",
+    operator: "==",
+    action: "anonymize",
+    patch: "auditOwnerHistory",
+  },
+  {
+    name: "audit new owners",
+    scope: "collection",
+    collection: "auditLogs",
+    field: "newValue.ownerId",
+    operator: "==",
+    action: "anonymize",
+    patch: "auditOwnerHistory",
   },
   {
     name: "system log actors",

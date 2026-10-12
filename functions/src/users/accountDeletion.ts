@@ -299,6 +299,8 @@ function referenceAnonymizationUpdate(
       return retainedLogUpdate(data, personalReferences, {
         performedBy: deletedUserID,
       });
+    case "auditOwnerHistory":
+      return retainedLogUpdate(data, personalReferences, {});
     case "systemLogActor":
       return retainedLogUpdate(data, personalReferences, {
         actorUserId: deletedUserID,

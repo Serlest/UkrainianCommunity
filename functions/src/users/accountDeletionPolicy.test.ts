@@ -40,6 +40,8 @@ test("account deletion policy covers every cross-document user reference", () =>
       "legal acceptance records",
       "audit targets",
       "audit actors",
+      "audit previous owners",
+      "audit new owners",
       "system log actors",
       "system log reviewers",
       "system log account targets",

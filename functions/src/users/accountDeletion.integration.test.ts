@@ -16,6 +16,11 @@ test("Build80 deletion resumes after Auth failure without losing canonical DSA e
   await db.doc(`feedback/${uid}`).set({userId: uid, userDisplayName: "Deletion fixture"});
   await db.doc(`feedback/${uid}/messages/evidence`).set({body: "Retained evidence"});
   await db.doc(`dsaCases/${uid}`).set({reporterUserId: uid, status: "submitted"});
+  await db.doc(`auditLogs/owner-history-${uid}`).set({
+    actionType: "organizationOwnerChanged", performedBy: "another-user",
+    previousValue: {ownerId: uid, organizationId: "test-org"},
+    newValue: {ownerId: "another-user", organizationId: "test-org"},
+  });
   const request = {auth: {uid, token: {email_verified: true, auth_time: Math.floor(Date.now() / 1000)}}, data: {}} as never;
   const original = adminAuth.deleteUser.bind(adminAuth);
   let failed = false;
@@ -29,6 +34,9 @@ test("Build80 deletion resumes after Auth failure without losing canonical DSA e
   const receipt = await db.doc(`analyticsConsentReceipts/${uid}`).get();
   assert.equal(receipt.get("userId"), "deleted");
   assert.equal(receipt.get("privacyVersion"), "2026.13");
+  const ownerHistory = await db.doc(`auditLogs/owner-history-${uid}`).get();
+  assert.equal(ownerHistory.get("previousValue.ownerId"), "deleted");
+  assert.equal(ownerHistory.get("newValue.ownerId"), "another-user");
   assert.equal((await adminAuth.getUser(uid)).uid, uid);
   const completed = await deleteOwnAccount.run(request);
   assert.equal(completed.status, "deleted");
