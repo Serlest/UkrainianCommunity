@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.18 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.17.
+Version 2026.19 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.18.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -170,4 +170,4 @@ Inhaber und Administratoren können nach einer Anmeldung mit dem Authenticator f
 
 Challenges sind nach fünf Minuten ungültig und werden regelmäßig entfernt. Beim Entfernen eines Passkeys wird sein serverseitiger Datensatz gelöscht; bereits bestehende geschützte Passkey-Sitzungen verlieren durch einen neuen Sitzungsmarker die Berechtigung. Bei Kontolöschung werden auch die Passkey-Datensätze entfernt. Diese Verarbeitung dient der sicheren, nutzerfreundlichen Kontoverwaltung gemäß Art. 6 Abs. 1 lit. b und f DSGVO. Sie ist von der freiwilligen lokalen App-Sperre aus Abschnitt 19 getrennt.
 
-Änderung gegenüber 2026.17: Passkey-Anmeldung und die dabei verarbeiteten technischen Sicherheitsdaten werden beschrieben.
+Änderung gegenüber 2026.18: Der Inhalt bleibt unverändert. Diese Version stellt sicher, dass die aktualisierte Datenschutzerklärung vor der weiteren Nutzung ausdrücklich bestätigt wird.

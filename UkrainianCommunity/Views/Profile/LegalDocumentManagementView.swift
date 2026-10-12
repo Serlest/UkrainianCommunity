@@ -225,8 +225,7 @@ private struct LegalDocumentEditorView: View {
         }
         let loadedDraft = existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument)
         var initialDraft = loadedDraft
-        if type == .terms { initialDraft.requiresAcceptance = true }
-        if type == .privacy { initialDraft.requiresAcceptance = false }
+        initialDraft.requiresAcceptance = true
         _draft = State(initialValue: initialDraft)
         _lastSavedDraft = State(initialValue: loadedDraft)
         _hasPersistedDraft = State(initialValue: existingDraft != nil)
@@ -280,21 +279,10 @@ private struct LegalDocumentEditorView: View {
 
                     AppInfoChip(title: AppStrings.legalVersionLabel(draft.version), systemImage: "number")
 
-                    if type == .privacy {
-                        AppInfoChip(
-                            title: AppStrings.LegalManagement.privacyAcknowledgement,
-                            systemImage: "checkmark.seal"
-                        )
-                    } else if type == .terms {
-                        AppInfoChip(
-                            title: AppStrings.LegalManagement.requiresAcceptance,
-                            systemImage: "checkmark.seal"
-                        )
-                    } else {
-                        Toggle(AppStrings.LegalManagement.requiresAcceptance, isOn: $draft.requiresAcceptance)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
-                    }
+                    AppInfoChip(
+                        title: AppStrings.LegalManagement.requiresAcceptance,
+                        systemImage: "checkmark.seal"
+                    )
 
                     TextField(AppStrings.LegalManagement.changeSummary, text: changeSummaryBinding, axis: .vertical)
                         .lineLimit(2...4)

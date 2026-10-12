@@ -38,15 +38,15 @@
       }
     },
     "privacy": {
-      "requiresAcceptance": false,
+      "requiresAcceptance": true,
       "files": {
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.18",
+      "version": "2026.19",
       "effectiveDate": "2026-10-12",
-      "supersedesVersion": "2026.17",
-      "changeSummary": "Adds passkey sign-in, public-key storage, challenge retention and server-side revocation for privileged accounts."
+      "supersedesVersion": "2026.18",
+      "changeSummary": "Оновлено політику конфіденційності. Прочитайте й підтвердьте її, щоб продовжити. / Datenschutzerklärung aktualisiert. Bitte lesen und bestätigen Sie sie."
     },
     "organizationRules": {
       "requiresAcceptance": true,

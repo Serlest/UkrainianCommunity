@@ -43,7 +43,7 @@ struct LegalDocumentManagementTests {
             let document = LegalDocument.hardcodedFallback(type: kind)
             #expect(document == bundled[kind.rawValue])
             #expect(document.version == kind.legacyVersion)
-            #expect(document.requiresAcceptance == (kind != .privacy))
+            #expect(document.requiresAcceptance)
             let german = try #require(document.content(preferredLocale: "de"))
             let ukrainian = try #require(document.content(preferredLocale: "uk"))
             #expect(german.contentMarkdown != ukrainian.contentMarkdown)

@@ -694,7 +694,7 @@ service cloud.firestore {
         && request.resource.data.versionNumber is int
         && request.resource.data.versionNumber > 0
         && request.resource.data.status == 'published'
-        && request.resource.data.requiresAcceptance is bool
+        && request.resource.data.requiresAcceptance == true
         && request.resource.data.defaultLocale is string
         && request.resource.data.defaultLocale in ['de', 'uk']
         && request.resource.data.updatedAt is timestamp
@@ -895,6 +895,7 @@ service cloud.firestore {
       let previousPointer = get(pointerPath).data;
       let nextPointer = getAfter(pointerPath).data;
       return request.resource.data.status == 'published'
+        && request.resource.data.requiresAcceptance == true
         && request.resource.data.baseContentHash == resource.data.contentHash
         && request.resource.data.supersedesVersion == previousPointer.activeVersion
         && request.resource.data.versionNumber == previousPointer.versionNumber + 1

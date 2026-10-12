@@ -1,7 +1,7 @@
 import {before, after, test} from 'node:test';
 import {readFileSync} from 'node:fs';
 import {initializeTestEnvironment, assertSucceeds, assertFails} from '@firebase/rules-unit-testing';
-import {doc, setDoc, writeBatch, serverTimestamp, updateDoc} from 'firebase/firestore';
+import {doc, getDoc, setDoc, writeBatch, serverTimestamp, updateDoc} from 'firebase/firestore';
 let env;
 const hash = 'a'.repeat(64);
 before(async () => {
@@ -55,4 +55,30 @@ test('outdated terms or privacy blocks account writes until acknowledged', async
     await updateDoc(doc(context.firestore(), 'users/current'), {acceptedPrivacyVersion: '2026.14'});
   });
   await assertSucceeds(updateDoc(profile, {displayName: 'Both current', updatedAt: serverTimestamp()}));
+});
+
+test('accepting a required privacy update restores personal reads and notification state', async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await updateDoc(doc(db, 'legalDocuments/terms'), {activeVersion: '2026.13'});
+    await updateDoc(doc(db, 'legalDocuments/privacy'), {activeVersion: '2026.13', requiresAcceptance: false});
+  });
+  await assertSucceeds(registration('reader'));
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, 'likes/organization_org-1_reader'), {userId: 'reader', organizationId: 'org-1'});
+    await setDoc(doc(db, 'users/reader/notificationInbox/legal-update'), {isRead: false});
+    await updateDoc(doc(db, 'legalDocuments/privacy'), {activeVersion: '2026.14', requiresAcceptance: true});
+  });
+  const client = database('reader', true);
+  const ownLike = doc(client, 'likes/organization_org-1_reader');
+  const notification = doc(client, 'users/reader/notificationInbox/legal-update');
+  await assertFails(getDoc(ownLike));
+  await assertFails(updateDoc(notification, {isRead: true, readAt: serverTimestamp()}));
+
+  await env.withSecurityRulesDisabled(async context => {
+    await updateDoc(doc(context.firestore(), 'users/reader'), {acceptedPrivacyVersion: '2026.14'});
+  });
+  await assertSucceeds(getDoc(ownLike));
+  await assertSucceeds(updateDoc(notification, {isRead: true, readAt: serverTimestamp()}));
 });
