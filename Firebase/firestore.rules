@@ -47,11 +47,21 @@ service cloud.firestore {
         && request.auth.token.firebase.sign_in_second_factor == 'totp';
     }
 
+    function isPasskeyAuthenticated(data) {
+      return isSignedIn()
+        && ('firebase' in request.auth.token)
+        && ('sign_in_provider' in request.auth.token.firebase)
+        && request.auth.token.firebase.sign_in_provider == 'custom'
+        && request.auth.token.get('uac_passkey_verified', false) == true
+        && data.get('passkeyEpoch', '') != ''
+        && request.auth.token.get('uac_passkey_epoch', '') == data.get('passkeyEpoch', '');
+    }
+
     function satisfiesPrivilegedMFARequirement(data) {
       return !(
         data.get('requiresMultiFactorAuth', false) == true
         && data.get('globalRole', 'user') in ['owner', 'admin']
-      ) || isTOTPAuthenticated();
+      ) || isTOTPAuthenticated() || isPasskeyAuthenticated(data);
     }
 
     function hasVerifiedActiveUserState(data) {

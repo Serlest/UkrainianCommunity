@@ -30,6 +30,7 @@ before(async () => {
         ...profileUser("protected-owner"),
         globalRole: "owner",
         requiresMultiFactorAuth: true,
+        passkeyEpoch: "epoch-one",
       }),
       setDoc(doc(db, "users", "protected-admin"), {
         ...profileUser("protected-admin"),
@@ -94,6 +95,14 @@ function firestore(uid, usesTOTP = false) {
   }).firestore();
 }
 
+function passkeyFirestore(uid, epoch, provider = "custom") {
+  return testEnv.authenticatedContext(uid, {
+    email: `${uid}@example.com`, email_verified: true,
+    firebase: {sign_in_provider: provider},
+    uac_passkey_verified: true, uac_passkey_epoch: epoch,
+  }).firestore();
+}
+
 test("keeps existing privileged accounts working until their rollout flag is set", async () => {
   await assertSucceeds(getDoc(doc(
     firestore("owner"),
@@ -119,6 +128,13 @@ test("requires TOTP for an opted-in owner and accepts a TOTP-authenticated token
     "contentPlanningDrafts",
     "draft",
   )));
+});
+
+test("accepts only a current server-issued passkey session for a protected owner", async () => {
+  const path = ["users", "protected-owner", "contentPlanningDrafts", "draft"];
+  await assertSucceeds(getDoc(doc(passkeyFirestore("protected-owner", "epoch-one"), ...path)));
+  await assertFails(getDoc(doc(passkeyFirestore("protected-owner", "old-epoch"), ...path)));
+  await assertFails(getDoc(doc(passkeyFirestore("protected-owner", "epoch-one", "password"), ...path)));
 });
 
 test("new protected admin cannot use management data without TOTP", async () => {

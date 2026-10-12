@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "438S639937.at.serlest.UkrainianCommunity",
+        "paths": ["NOT /__/auth/action/", "NOT /__/auth/handler/", "NOT /_/*", "/*"]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["438S639937.at.serlest.UkrainianCommunity"]
+  }
+}

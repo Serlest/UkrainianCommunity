@@ -14,6 +14,44 @@ struct FederatedSignInButtons: View {
     }
 }
 
+struct PasskeySignInButton: View {
+    @State private var isSigningIn = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: AppTheme.eventsMetadataSpacing) {
+            Button {
+                isSigningIn = true
+                errorMessage = nil
+                Task {
+                    defer { isSigningIn = false }
+                    do {
+                        try await AuthService.shared.signInWithPasskey()
+                    } catch {
+                        let nsError = error as NSError
+                        if nsError.domain == ASAuthorizationError.errorDomain,
+                           nsError.code == ASAuthorizationError.canceled.rawValue { return }
+                        errorMessage = AppStrings.Auth.passkeyFailed
+                    }
+                }
+            } label: {
+                AuthMethodButtonLabel(
+                    title: AppStrings.Auth.passkeySignIn,
+                    icon: .system("person.badge.key.fill")
+                )
+            }
+            .buttonStyle(.plain)
+            .disabled(isSigningIn)
+            .accessibilityIdentifier("auth.passkey.signIn")
+
+            if isSigningIn { ProgressView() }
+            if let errorMessage {
+                InlineMessageCard(style: .error, message: errorMessage)
+            }
+        }
+    }
+}
+
 struct FederatedCredentialButtons: View {
     var showsHeading = true
     var allowedProviderIDs: Set<String> = ["apple.com", "google.com"]

@@ -90,6 +90,11 @@ struct AuthSecurityTests {
                 isTOTPAuthenticated: true
             )
         )
+        #expect(AuthSecurityPolicy.protectedSessionIsReady(
+            user: protectedOwner,
+            isTOTPAuthenticated: false,
+            isPasskeyAuthenticated: true
+        ))
         #expect(!AuthSecurityPolicy.canRemoveLastTOTPFactor(for: protectedOwner))
     }
 
@@ -106,6 +111,22 @@ struct AuthSecurityTests {
             ])
         )
         #expect(!AuthMultiFactorService.claimsContainTOTPSignIn([:]))
+    }
+
+    @Test
+    func passkeySessionClaimRequiresCustomProviderAndServerMarker() {
+        #expect(AuthMultiFactorService.claimsContainPasskeySignIn([
+            "firebase": ["sign_in_provider": "custom"],
+            "uac_passkey_verified": true,
+            "uac_passkey_epoch": "current"
+        ]))
+        #expect(!AuthMultiFactorService.claimsContainPasskeySignIn([
+            "firebase": ["sign_in_provider": "password"],
+            "uac_passkey_verified": true
+        ]))
+        #expect(!AuthMultiFactorService.claimsContainPasskeySignIn([
+            "firebase": ["sign_in_provider": "custom"]
+        ]))
     }
 
     private func makeUser(

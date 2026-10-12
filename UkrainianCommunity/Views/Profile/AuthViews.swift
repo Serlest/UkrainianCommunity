@@ -89,6 +89,7 @@ struct AuthLandingView: View {
             )
 
             VStack(spacing: 12) {
+                PasskeySignInButton()
                 FederatedSignInButtons(showsHeading: false)
 
                 NavigationLink {
@@ -174,6 +175,7 @@ struct LoginView: View {
             }
 
             FederatedSignInButtons()
+            PasskeySignInButton()
         }
         .navigationTitle(AppStrings.Auth.loginTitle)
         .navigationBarTitleDisplayMode(.inline)

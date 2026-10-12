@@ -50,6 +50,19 @@ export function isTOTPAuthenticated(token: AuthContext["token"]): boolean {
   return firebaseClaims?.sign_in_second_factor === "totp";
 }
 
+export function isPrivilegedSessionAuthenticated(
+  token: AuthContext["token"], permissions: UserPermissionSnapshot
+): boolean {
+  const firebaseClaims = token.firebase as
+    | {sign_in_provider?: unknown}
+    | undefined;
+  return isTOTPAuthenticated(token)
+    || (firebaseClaims?.sign_in_provider === "custom"
+      && token.uac_passkey_verified === true
+      && typeof permissions.passkeyEpoch === "string"
+      && token.uac_passkey_epoch === permissions.passkeyEpoch);
+}
+
 export function requiresPrivilegedMFA(
   permissions: UserPermissionSnapshot
 ): boolean {
@@ -61,10 +74,11 @@ export function assertPrivilegedMFA(
   token: AuthContext["token"],
   permissions: UserPermissionSnapshot
 ): void {
-  if (requiresPrivilegedMFA(permissions) && !isTOTPAuthenticated(token)) {
+  if (requiresPrivilegedMFA(permissions)
+      && !isPrivilegedSessionAuthenticated(token, permissions)) {
     throw new HttpsError(
       "failed-precondition",
-      "A TOTP-authenticated session is required for this privileged account."
+      "A passkey or authenticator-verified session is required for this privileged account."
     );
   }
 }

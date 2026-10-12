@@ -87,6 +87,7 @@ struct EditorTextField: View {
     let textContentType: UITextContentType?
     let autocapitalization: TextInputAutocapitalization
     let autocorrectionDisabled: Bool
+    let focus: FocusState<Bool>.Binding?
 
     init(
         _ title: String,
@@ -96,7 +97,8 @@ struct EditorTextField: View {
         keyboardType: UIKeyboardType = .default,
         textContentType: UITextContentType? = nil,
         autocapitalization: TextInputAutocapitalization = .sentences,
-        autocorrectionDisabled: Bool = false
+        autocorrectionDisabled: Bool = false,
+        focus: FocusState<Bool>.Binding? = nil
     ) {
         self.title = title
         self._text = text
@@ -106,6 +108,7 @@ struct EditorTextField: View {
         self.textContentType = textContentType
         self.autocapitalization = autocapitalization
         self.autocorrectionDisabled = autocorrectionDisabled
+        self.focus = focus
     }
 
     var body: some View {
@@ -125,13 +128,7 @@ struct EditorTextField: View {
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.metadataIconSize)
 
-            TextField(title, text: $text)
-                .font(.subheadline)
-                .textInputAutocapitalization(autocapitalization)
-                .textContentType(textContentType)
-                .keyboardType(keyboardType)
-                .autocorrectionDisabled(autocorrectionDisabled)
-                .accessibilityLabel(title)
+            inputField
         }
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
         .padding(.vertical, 10)
@@ -141,6 +138,25 @@ struct EditorTextField: View {
             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
                 .strokeBorder(AppTheme.borderSubtle)
         )
+    }
+
+    @ViewBuilder
+    private var inputField: some View {
+        if let focus {
+            baseField.focused(focus)
+        } else {
+            baseField
+        }
+    }
+
+    private var baseField: some View {
+        TextField(title, text: $text)
+            .font(.subheadline)
+            .textInputAutocapitalization(autocapitalization)
+            .textContentType(textContentType)
+            .keyboardType(keyboardType)
+            .autocorrectionDisabled(autocorrectionDisabled)
+            .accessibilityLabel(title)
     }
 }
 

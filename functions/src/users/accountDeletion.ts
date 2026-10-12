@@ -403,6 +403,8 @@ async function deleteOwnedPrivateData(uid: string): Promise<void> {
   await Promise.all([
     deleteQuery(db.collection("likes").where("userId", "==", uid)),
     deleteQuery(db.collection("registrations").where("userId", "==", uid)),
+    deleteQuery(db.collection("passkeyCredentials").where("uid", "==", uid)),
+    deleteQuery(db.collection("passkeyChallenges").where("uid", "==", uid)),
     deleteFeedback(uid),
     db.collection("analyticsConsentStates").doc(uid).delete(),
   ]);

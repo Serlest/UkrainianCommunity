@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.17 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.16.
+Version 2026.18 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.17.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -163,3 +163,11 @@ Die Gesamtzahl der Konten sowie Registrierungs-, Status- und Bundeslandstatistik
 Für geschützte Inhaber- und Administratorzugriffe wird ein zeitbasiertes Einmalpasswort (TOTP) über Firebase Authentication verwendet. Bei der Einrichtung werden ein technischer Einrichtungsschlüssel beziehungsweise ein QR-Code an die von Ihnen gewählte Authenticator-App übergeben. Firebase verarbeitet die Faktorzuordnung zum Konto und die zur Prüfung eingegebenen Einmalcodes. UAC speichert Einrichtungsschlüssel und Einmalcodes nicht in öffentlichen Profilen, Firestore-Inhalten oder Anwendungsprotokollen. Die Authenticator-App verarbeitet den Schlüssel nach ihren eigenen Bedingungen. Sicherheitsrelevante Verwaltungs- und Wiederherstellungsvorgänge können ohne Schlüssel oder Einmalcode im Auditprotokoll dokumentiert werden; dafür gelten die Fristen in Abschnitt 12. Dies dient dem Kontoschutz nach Abschnitt 4 und ist von der lokalen Face-ID-/Touch-ID-Sperre getrennt.
 
 Änderungen gegenüber 2026.11: freiwillige lokale Gerätesperre, Pflichtregion, technische Firebase-Diagnose, getrennte regionale Kontoberichte, TOTP-Anmeldeschutz sowie präzisere Lösch- und Sicherungsfristen. Die Bedingungen für optionale Inhaltsanalyse bleiben unverändert.
+
+## 22. Passkeys für geschützte Konten
+
+Inhaber und Administratoren können nach einer Anmeldung mit dem Authenticator freiwillig einen Passkey einrichten. Das Gerät erzeugt ein Schlüsselpaar. Der private Schlüssel und die biometrischen Merkmale beziehungsweise der Gerätecode bleiben beim Geräte- und Passkey-Anbieter; UAC erhält sie nicht. UAC speichert in Firebase Firestore die öffentliche Schlüsselkomponente, eine technische Kennung des Passkeys, den Signaturzähler, die Zuordnung zur Konto-ID sowie Erstellungs- und letzte Nutzungszeit. Bei der Anmeldung prüft unser Server eine signierte, einmalige Challenge und übergibt Firebase Authentication einen zeitlich begrenzten Anmeldetoken für dieselbe bestehende Konto-ID. Dadurch kann die geschützte Sitzung ohne TOTP-Code beginnen. TOTP bleibt als alternativer Anmeldeweg bestehen.
+
+Challenges sind nach fünf Minuten ungültig und werden regelmäßig entfernt. Beim Entfernen eines Passkeys wird sein serverseitiger Datensatz gelöscht; bereits bestehende geschützte Passkey-Sitzungen verlieren durch einen neuen Sitzungsmarker die Berechtigung. Bei Kontolöschung werden auch die Passkey-Datensätze entfernt. Diese Verarbeitung dient der sicheren, nutzerfreundlichen Kontoverwaltung gemäß Art. 6 Abs. 1 lit. b und f DSGVO. Sie ist von der freiwilligen lokalen App-Sperre aus Abschnitt 19 getrennt.
+
+Änderung gegenüber 2026.17: Passkey-Anmeldung und die dabei verarbeiteten technischen Sicherheitsdaten werden beschrieben.

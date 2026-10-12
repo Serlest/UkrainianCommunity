@@ -2825,11 +2825,25 @@ enum AppStrings {
         static var multiFactorInvalidCode: String { text("auth.mfa.invalid_code", "The code is invalid or has expired. Enter the current six-digit code.") }
         static var multiFactorResolveFailed: String { text("auth.mfa.resolve_failed", "Two-factor verification could not be completed. Check your connection and try again.") }
         static var multiFactorChallengeExpired: String { text("auth.mfa.challenge_expired", "This sign-in attempt has expired. Sign in with your password again.") }
+        static var passkeySignIn: String { text("auth.passkey.sign_in", "Owner or admin: sign in with passkey") }
+        static var passkeyFailed: String { text("auth.passkey.failed", "Passkey sign-in could not be completed. Try again or use another sign-in method.") }
     }
 
     enum AccountSecurity {
+        static var passkeyTitle: String { text("account_security.passkey.title", "Passkey") }
+        static var passkeySubtitle: String { text("account_security.passkey.subtitle", "Sign in securely with Face ID or Touch ID on your device.") }
+        static var passkeyEnabled: String { text("account_security.passkey.enabled", "A passkey is connected to this account.") }
+        static var passkeyAdd: String { text("account_security.passkey.add", "Create passkey") }
+        static var passkeyAddAnother: String { text("account_security.passkey.add_another", "Add another passkey") }
+        static var passkeyAdding: String { text("account_security.passkey.adding", "Creating passkey…") }
+        static var passkeyAddFailed: String { text("account_security.passkey.add_failed", "Could not create passkey. Try again after signing in with your authenticator.") }
+        static var passkeyRequiresAuthenticator: String { text("account_security.passkey.requires_authenticator", "Sign in with your authenticator code once to add a passkey. Keep it as a backup.") }
+        static var passkeyRemove: String { text("account_security.passkey.remove", "Remove passkey") }
+        static var passkeyRemoveConfirm: String { text("account_security.passkey.remove_confirm", "This passkey will no longer work. Existing passkey sessions will lose privileged access. Your authenticator remains available.") }
+        static var passkeyRemoveFailed: String { text("account_security.passkey.remove_failed", "The passkey could not be removed. Try again.") }
+        static var passkeyLoadFailed: String { text("account_security.passkey.load_failed", "Could not load your passkeys. Open this screen again to retry.") }
         static var title: String { text("account_security.title", "Account security") }
-        static var subtitle: String { text("account_security.subtitle", "Manage password recovery and protection with an authenticator app.") }
+        static var subtitle: String { text("account_security.subtitle", "Manage password recovery, authenticator protection and passkeys.") }
         static var linkedMethodsTitle: String { text("account_security.providers.title", "Способи входу") }
         static var linkedMethodsSubtitle: String { text("account_security.providers.subtitle", "Підключіть Apple або Google до цього облікового запису. Ваші дані та права залишаться з ним.") }
         static var privilegedLinkHint: String { text("account_security.providers.privileged_hint", "Для підключення увійдіть із кодом автентифікатора та виконайте дію протягом 10 хвилин. Після підключення код і надалі буде потрібен при вході.") }

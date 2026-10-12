@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish the approved Terms and Privacy successors atomically; dry-run by default."""
+"""Publish the approved Privacy successor; dry-run by default."""
 from __future__ import annotations
 
 import argparse
@@ -13,9 +13,9 @@ import publish_privacy_2026_13 as common
 
 ROOT = Path(__file__).resolve().parent.parent
 ACTOR = "legal-2026-10-12-publisher"
-TARGETS = {"terms": ("2026.12", "2026.13"), "privacy": ("2026.16", "2026.17")}
+TARGETS = {"privacy": ("2026.17", "2026.18")}
 PUBLICATION_DATE = "2026-10-12"
-PLAN_FORMAT = "uac-legal-2026-10-12-v2"
+PLAN_FORMAT = "uac-legal-2026-10-12-privacy18-v3"
 require = common.require
 wire = common.wire
 digest = common.digest
@@ -153,7 +153,7 @@ def main():
             json.dump(plan, output, indent=2)
             output.write("\n")
         print(json.dumps({"result": "dry-run-no-writes", "plan": str(args.plan), "writes": plan["writes"],
-                          "preservedDocumentCount": len(plan["beforeHashes"]) - 2}, indent=2))
+                          "preservedDocumentCount": len(plan["beforeHashes"]) - len(TARGETS)}, indent=2))
         return
     plan = json.loads(args.plan.read_text())
     if args.apply:

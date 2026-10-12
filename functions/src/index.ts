@@ -11,6 +11,7 @@ export * from "./counters/aggregation";
 export * from "./analytics/analyticsConsent";
 export * from "./analytics/trackAnalyticsEvent";
 export * from "./auth/privilegedMFA";
+export * from "./auth/passkeys";
 export * from "./content/contentDeletion";
 export * from "./content/contentCoverUpload";
 export * from "./content/legacyContentMediaMigration";

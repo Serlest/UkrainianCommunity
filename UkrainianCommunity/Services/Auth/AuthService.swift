@@ -72,8 +72,10 @@ protocol AuthBackendProviding: AnyObject {
         from error: Error
     ) -> (any AuthMultiFactorSignInChallengeProviding)?
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool
+    func isCurrentSessionPasskeyAuthenticated() async throws -> Bool
     func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding
     func signIn(credential: AuthCredential) async throws -> any AuthSessionUserProviding
+    func signIn(customToken: String) async throws -> any AuthSessionUserProviding
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding
     func signInAnonymously() async throws -> any AuthSessionUserProviding
     func sendPasswordReset(email: String) async throws
@@ -85,6 +87,12 @@ extension AuthSessionUserProviding {
 }
 
 extension AuthBackendProviding {
+    func isCurrentSessionPasskeyAuthenticated() async throws -> Bool { false }
+
+    func signIn(customToken: String) async throws -> any AuthSessionUserProviding {
+        throw RegistrationError.operationNotAllowed
+    }
+
     func signIn(credential: AuthCredential) async throws -> any AuthSessionUserProviding {
         throw RegistrationError.operationNotAllowed
     }
@@ -150,10 +158,20 @@ final class FirebaseAuthBackend: AuthBackendProviding {
         (try await Auth.auth().signIn(with: credential)).user
     }
 
+    func signIn(customToken: String) async throws -> any AuthSessionUserProviding {
+        (try await Auth.auth().signIn(withCustomToken: customToken)).user
+    }
+
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
         guard let user = Auth.auth().currentUser, user.isEmailVerified else { return false }
         let token = try await user.getIDTokenResult()
         return AuthMultiFactorService.claimsContainTOTPSignIn(token.claims)
+    }
+
+    func isCurrentSessionPasskeyAuthenticated() async throws -> Bool {
+        guard let user = Auth.auth().currentUser, user.isEmailVerified else { return false }
+        let token = try await user.getIDTokenResult()
+        return AuthMultiFactorService.claimsContainPasskeySignIn(token.claims)
     }
 
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding {
@@ -183,7 +201,7 @@ final class AuthService {
         return AuthService(authState: AuthState(), backend: FirebaseAuthBackend(), profileProvider: UserProfileService.shared)
     }()
     nonisolated static let currentTermsVersion = "2026.13"
-    nonisolated static let currentPrivacyVersion = "2026.17"
+    nonisolated static let currentPrivacyVersion = "2026.18"
     nonisolated static let currentOrganizationRulesVersion = "2026.10"
     nonisolated static let currentMinimumAgeVersion = "14+"
 
@@ -506,6 +524,26 @@ final class AuthService {
     }
 
     @MainActor
+    func signInWithPasskey() async throws {
+        let transition = beginTransition()
+        try await prepareForInteractiveAuthentication(transition: transition)
+
+        do {
+            let token = try await PasskeyService.shared.signInToken()
+            guard isCurrentTransition(transition) else { return }
+            let sessionUser = try await performSynchronizedBackendSessionOperation(transition: transition) {
+                try await backend.signIn(customToken: token)
+            }
+            authState.beginAuthenticatingSession(userID: sessionUser.uid, email: sessionUser.email)
+            _ = try await finishInteractiveSignIn(sessionUser, transition: transition)
+        } catch {
+            guard isCurrentTransition(transition) else { throw error }
+            reconcileAfterFailedAuthenticationStart(error, transition: transition)
+            throw error
+        }
+    }
+
+    @MainActor
     func signIn(credential: AuthCredential) async throws {
         let transition = beginTransition()
         try await prepareForInteractiveAuthentication(transition: transition)
@@ -661,9 +699,11 @@ final class AuthService {
         }
 
         let isTOTPAuthenticated = (try? await backend.isCurrentSessionTOTPAuthenticated()) == true
+        let isPasskeyAuthenticated = (try? await backend.isCurrentSessionPasskeyAuthenticated()) == true
         if AuthSecurityPolicy.protectedSessionIsReady(
             user: user,
-            isTOTPAuthenticated: isTOTPAuthenticated
+            isTOTPAuthenticated: isTOTPAuthenticated,
+            isPasskeyAuthenticated: isPasskeyAuthenticated
         ) {
             if dismissResolvedAuthFlow
                 || authState.presentedAuthFlow == .privilegedMultiFactorRequirement {

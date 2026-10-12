@@ -43,10 +43,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.17",
+      "version": "2026.18",
       "effectiveDate": "2026-10-12",
-      "supersedesVersion": "2026.16",
-      "changeSummary": "Clarifies that an absent app profile expires after three days for every sign-in method."
+      "supersedesVersion": "2026.17",
+      "changeSummary": "Adds passkey sign-in, public-key storage, challenge retention and server-side revocation for privileged accounts."
     },
     "organizationRules": {
       "requiresAcceptance": true,

@@ -3,6 +3,7 @@ import * as logger from "firebase-functions/logger";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
 import {
+  isPrivilegedSessionAuthenticated,
   isTOTPAuthenticated,
   requireVerifiedActiveUser,
 } from "./context";
@@ -22,7 +23,7 @@ const callableOptions = {
   region: "europe-west3",
   maxInstances: 5,
   // Keep aligned with the staged App Check rollout. The request is still
-  // protected by verified Auth, a TOTP sign-in token and a live role read.
+  // protected by verified Auth, TOTP or passkey session proof, and a live role read.
   enforceAppCheck: false,
 };
 
@@ -30,10 +31,10 @@ export const activatePrivilegedMFAProtection = onCall(
   callableOptions,
   async (request): Promise<PrivilegedMFAActivationResponse> => {
     const auth = await requireVerifiedActiveUser(request);
-    if (!isTOTPAuthenticated(auth.token)) {
+    if (!isPrivilegedSessionAuthenticated(auth.token, auth.permissions)) {
       throw new HttpsError(
         "failed-precondition",
-        "Sign in with the authenticator before activating privileged protection."
+        "Sign in with a passkey or authenticator before activating privileged protection."
       );
     }
     if (!isAppOwner(auth.permissions) && !isAppAdmin(auth.permissions)) {
@@ -45,6 +46,7 @@ export const activatePrivilegedMFAProtection = onCall(
 
     const userReference = db.collection("users").doc(auth.uid);
     const activatedAt = Timestamp.now();
+    const method = isTOTPAuthenticated(auth.token) ? "totp" : "passkey";
 
     await db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(userReference);
@@ -67,14 +69,14 @@ export const activatePrivilegedMFAProtection = onCall(
       transaction.update(userReference, {
         requiresMultiFactorAuth: true,
         multiFactorAuthRequiredAt: activatedAt,
-        multiFactorAuthRequiredMethod: "totp",
+        multiFactorAuthRequiredMethod: method,
         updatedAt: FieldValue.serverTimestamp(),
       });
     });
 
-    logger.info("Privileged TOTP protection activated", {
+    logger.info("Privileged sign-in protection activated", {
       actorUserId: auth.uid,
-      method: "totp",
+      method,
     });
 
     return {

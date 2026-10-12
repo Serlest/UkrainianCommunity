@@ -1525,13 +1525,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Verwalten Sie die Passwortwiederherstellung und den Schutz mit einer Authenticator-App."
+            "value" : "Verwalten Sie Passwortwiederherstellung, Authenticator-Schutz und Passkeys."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Керуйте відновленням пароля та захистом за допомогою застосунку-автентифікатора."
+            "value" : "Керуйте відновленням пароля, захистом через автентифікатор і ключами доступу."
           }
         }
       }
@@ -50003,6 +50003,230 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Прибрати із закладок"
+          }
+        }
+      }
+    },
+    "auth.passkey.sign_in" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Als Inhaber oder Admin mit Passkey anmelden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Власник або адміністратор: увійти з ключем доступу"
+          }
+        }
+      }
+    },
+    "auth.passkey.failed" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Anmeldung mit Passkey konnte nicht abgeschlossen werden. Versuche es erneut oder wähle eine andere Anmeldemethode."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося увійти з ключем доступу. Спробуйте ще раз або виберіть інший спосіб входу."
+          }
+        }
+      }
+    },
+    "account_security.passkey.title" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passkey"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ключ доступу"
+          }
+        }
+      }
+    },
+    "account_security.passkey.subtitle" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melde dich auf deinem Gerät sicher mit Face ID oder Touch ID an."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Безпечно входьте на своєму пристрої через Face ID або Touch ID."
+          }
+        }
+      }
+    },
+    "account_security.passkey.enabled" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Passkey ist mit diesem Konto verbunden."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "До цього облікового запису додано ключ доступу."
+          }
+        }
+      }
+    },
+    "account_security.passkey.add" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passkey erstellen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Створити ключ доступу"
+          }
+        }
+      }
+    },
+    "account_security.passkey.add_another" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiteren Passkey hinzufügen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додати ще один ключ доступу"
+          }
+        }
+      }
+    },
+    "account_security.passkey.adding" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passkey wird erstellt…"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Створення ключа доступу…"
+          }
+        }
+      }
+    },
+    "account_security.passkey.add_failed" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Passkey konnte nicht erstellt werden. Melde dich mit deinem Authenticator an und versuche es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося створити ключ доступу. Увійдіть із кодом автентифікатора та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "account_security.passkey.requires_authenticator" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melde dich einmal mit deinem Authenticator-Code an, um einen Passkey hinzuzufügen. Bewahre ihn als Reserve auf."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійдіть один раз із кодом автентифікатора, щоб додати ключ доступу. Збережіть його як резервний спосіб."
+          }
+        }
+      }
+    },
+    "account_security.passkey.remove" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passkey entfernen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалити ключ доступу"
+          }
+        }
+      }
+    },
+    "account_security.passkey.remove_confirm" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieser Passkey funktioniert danach nicht mehr. Bestehende Passkey-Sitzungen verlieren den geschützten Zugriff. Dein Authenticator bleibt verfügbar."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цей ключ доступу більше не працюватиме. Поточні сесії з ключем втратять захищений доступ. Автентифікатор залишиться доступним."
+          }
+        }
+      }
+    },
+    "account_security.passkey.remove_failed" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Passkey konnte nicht entfernt werden. Versuche es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося видалити ключ доступу. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "account_security.passkey.load_failed" : {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Passkeys konnten nicht geladen werden. Öffne diese Seite erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося завантажити ключі доступу. Відкрийте цей екран ще раз."
           }
         }
       }

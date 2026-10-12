@@ -83,6 +83,7 @@ async function seedFirestore() {
       setDoc(doc(db, "users", "protected-owner"), user("protected-owner", {
         globalRole: "owner",
         requiresMultiFactorAuth: true,
+        passkeyEpoch: "epoch-one",
       })),
       setDoc(doc(db, "users", "app-admin"), user("app-admin", {globalRole: "admin"})),
       setDoc(doc(db, "users", "blocked-owner"), user("blocked-owner", {
@@ -227,6 +228,18 @@ describe("account state enforcement", () => {
       storage("owner"),
       "featuredBanners/unprotected-owner/hero.jpg",
     ));
+  });
+
+  test("accepts a current passkey session and rejects a revoked one", async () => {
+    const context = (epoch) => testEnv.authenticatedContext("protected-owner", {
+      email: "protected-owner@example.com", email_verified: true,
+      firebase: {sign_in_provider: "custom"},
+      uac_passkey_verified: true, uac_passkey_epoch: epoch,
+    }).storage();
+    await assertSucceeds(imageUpload(
+      context("epoch-one"), "featuredBanners/passkey-current/hero.jpg"));
+    await assertFails(imageUpload(
+      context("old-epoch"), "featuredBanners/passkey-revoked/hero.jpg"));
   });
 });
 

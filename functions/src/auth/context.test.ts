@@ -9,6 +9,7 @@ import {
   assertPrivilegedMFA,
   hasCurrentLegalAcknowledgements,
   isTOTPAuthenticated,
+  isPrivilegedSessionAuthenticated,
   requireAuth,
   requireVerifiedAuth,
   requiresPrivilegedMFA,
@@ -47,6 +48,20 @@ test("requireAuth rejects missing authentication", () => {
     () => requireAuth(callableRequest(undefined)),
     (error) => assertHttpsErrorCode(error, "unauthenticated")
   );
+});
+
+test("passkey claim requires custom provider and current account epoch", () => {
+  const permissions = {uid: "owner", globalRole: "owner" as const,
+    requiresMultiFactorAuth: true, passkeyEpoch: "current"};
+  const token = {...authToken(), firebase: {identities: {}, sign_in_provider: "custom"},
+    uac_passkey_verified: true, uac_passkey_epoch: "current"};
+  assert.equal(isPrivilegedSessionAuthenticated(token, permissions), true);
+  assert.equal(isPrivilegedSessionAuthenticated(
+    {...token, uac_passkey_epoch: "revoked"}, permissions), false);
+  assert.equal(isPrivilegedSessionAuthenticated(
+    {...token, firebase: {identities: {}, sign_in_provider: "password"}}, permissions), false);
+  assert.equal(isPrivilegedSessionAuthenticated(
+    {...token, uac_passkey_verified: false}, permissions), false);
 });
 
 test("requireVerifiedAuth rejects unverified authentication", () => {

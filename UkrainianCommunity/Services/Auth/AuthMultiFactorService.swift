@@ -37,10 +37,12 @@ enum AuthSecurityPolicy {
 
     static func protectedSessionIsReady(
         user: AppUser?,
-        isTOTPAuthenticated: Bool
+        isTOTPAuthenticated: Bool,
+        isPasskeyAuthenticated: Bool = false
     ) -> Bool {
         guard requiresProtectedSession(user) else { return true }
-        return user?.requiresMultiFactorAuth == true && isTOTPAuthenticated
+        return user?.requiresMultiFactorAuth == true
+            && (isTOTPAuthenticated || isPasskeyAuthenticated)
     }
 
     static func canRemoveLastTOTPFactor(for user: AppUser?) -> Bool {
@@ -292,12 +294,24 @@ final class AuthMultiFactorService {
         return Self.claimsContainTOTPSignIn(token.claims)
     }
 
+    func isCurrentSessionPasskeyAuthenticated() async throws -> Bool {
+        let user = try currentVerifiedUser()
+        let token = try await user.getIDTokenResult()
+        return Self.claimsContainPasskeySignIn(token.claims)
+    }
+
     static func claimsContainTOTPSignIn(_ claims: [String: Any]) -> Bool {
         guard let firebaseClaims = claims["firebase"] as? [String: Any],
               let secondFactor = firebaseClaims["sign_in_second_factor"] as? String else {
             return false
         }
         return secondFactor == PhoneMultiFactorInfo.TOTPMultiFactorID
+    }
+
+    static func claimsContainPasskeySignIn(_ claims: [String: Any]) -> Bool {
+        guard let firebaseClaims = claims["firebase"] as? [String: Any],
+              firebaseClaims["sign_in_provider"] as? String == "custom" else { return false }
+        return claims["uac_passkey_verified"] as? Bool == true
     }
 
     static func normalizedCode(_ code: String) -> String {

@@ -39,7 +39,8 @@
     "trailingSlash": false,
     "ignore": [
       "firebase.json",
-      "**/.*",
+      "**/.DS_Store",
+      "**/.git/**",
       "**/node_modules/**"
     ],
     "rewrites": [
@@ -52,6 +53,13 @@
       }
     ],
     "headers": [
+      {
+        "source": "/.well-known/apple-app-site-association",
+        "headers": [
+          {"key": "Content-Type", "value": "application/json"},
+          {"key": "Cache-Control", "value": "public, max-age=3600"}
+        ]
+      },
       {
         "source": "**",
         "headers": [

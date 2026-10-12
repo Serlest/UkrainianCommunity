@@ -35,7 +35,7 @@
       <p><span data-lang="de">Wie UkrainianCommunity personenbezogene Daten verarbeitet.</span><span data-lang="uk">Як UkrainianCommunity обробляє персональні дані.</span></p>
     </div></header>
     <article class="document">
-      <div class="meta"><span data-lang="de">Version 2026.17 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.16.</span><span data-lang="uk">Версія 2026.17 · Чинна з 12 жовтня 2026 року · замінює версію 2026.16.</span></div>
+      <div class="meta"><span data-lang="de">Version 2026.18 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.17.</span><span data-lang="uk">Версія 2026.18 · Чинна з 12 жовтня 2026 року · замінює версію 2026.17.</span></div>
 
       <div data-lang="de"><section><h2>1. Verantwortlicher und Kontakt</h2>
 <p>Verantwortlicher gemäß Datenschutz-Grundverordnung (DSGVO) ist:</p>
@@ -125,6 +125,11 @@ E-Mail: <a href="mailto:ukrainian.community@outlook.com">ukrainian.community@out
 <section><h2>21. Zusätzlicher Anmeldeschutz mit einer Authenticator-App</h2>
 <p>Für geschützte Inhaber- und Administratorzugriffe wird ein zeitbasiertes Einmalpasswort (TOTP) über Firebase Authentication verwendet. Bei der Einrichtung werden ein technischer Einrichtungsschlüssel beziehungsweise ein QR-Code an die von Ihnen gewählte Authenticator-App übergeben. Firebase verarbeitet die Faktorzuordnung zum Konto und die zur Prüfung eingegebenen Einmalcodes. UAC speichert Einrichtungsschlüssel und Einmalcodes nicht in öffentlichen Profilen, Firestore-Inhalten oder Anwendungsprotokollen. Die Authenticator-App verarbeitet den Schlüssel nach ihren eigenen Bedingungen. Sicherheitsrelevante Verwaltungs- und Wiederherstellungsvorgänge können ohne Schlüssel oder Einmalcode im Auditprotokoll dokumentiert werden; dafür gelten die Fristen in Abschnitt 12. Dies dient dem Kontoschutz nach Abschnitt 4 und ist von der lokalen Face-ID-/Touch-ID-Sperre getrennt.</p>
 <p>Änderungen gegenüber 2026.11: freiwillige lokale Gerätesperre, Pflichtregion, technische Firebase-Diagnose, getrennte regionale Kontoberichte, TOTP-Anmeldeschutz sowie präzisere Lösch- und Sicherungsfristen. Die Bedingungen für optionale Inhaltsanalyse bleiben unverändert.</p>
+</section>
+<section><h2>22. Passkeys für geschützte Konten</h2>
+<p>Inhaber und Administratoren können nach einer Anmeldung mit dem Authenticator freiwillig einen Passkey einrichten. Das Gerät erzeugt ein Schlüsselpaar. Der private Schlüssel und die biometrischen Merkmale beziehungsweise der Gerätecode bleiben beim Geräte- und Passkey-Anbieter; UAC erhält sie nicht. UAC speichert in Firebase Firestore die öffentliche Schlüsselkomponente, eine technische Kennung des Passkeys, den Signaturzähler, die Zuordnung zur Konto-ID sowie Erstellungs- und letzte Nutzungszeit. Bei der Anmeldung prüft unser Server eine signierte, einmalige Challenge und übergibt Firebase Authentication einen zeitlich begrenzten Anmeldetoken für dieselbe bestehende Konto-ID. Dadurch kann die geschützte Sitzung ohne TOTP-Code beginnen. TOTP bleibt als alternativer Anmeldeweg bestehen.</p>
+<p>Challenges sind nach fünf Minuten ungültig und werden regelmäßig entfernt. Beim Entfernen eines Passkeys wird sein serverseitiger Datensatz gelöscht; bereits bestehende geschützte Passkey-Sitzungen verlieren durch einen neuen Sitzungsmarker die Berechtigung. Bei Kontolöschung werden auch die Passkey-Datensätze entfernt. Diese Verarbeitung dient der sicheren, nutzerfreundlichen Kontoverwaltung gemäß Art. 6 Abs. 1 lit. b und f DSGVO. Sie ist von der freiwilligen lokalen App-Sperre aus Abschnitt 19 getrennt.</p>
+<p>Änderung gegenüber 2026.17: Passkey-Anmeldung und die dabei verarbeiteten technischen Sicherheitsdaten werden beschrieben.</p>
 </section></div>
       <div data-lang="uk"><section><h2>1. Відповідальна особа та контакт</h2>
 <p>Відповідальною особою за Загальним регламентом захисту даних (GDPR) є:</p>
@@ -214,6 +219,11 @@ Egger-Lienz-Straße 47, 6020 Innsbruck<br>
 <section><h2>21. Додатковий захист входу через застосунок-автентифікатор</h2>
 <p>Для захищених дій власника й адміністратора використовується одноразовий код на основі часу (TOTP) через Firebase Authentication. Під час налаштування технічний ключ або QR-код передається вибраному вами застосунку-автентифікатору. Firebase обробляє прив’язку фактора до акаунта та введені для перевірки одноразові коди. UAC не зберігає ключі налаштування й одноразові коди в публічних профілях, вмісті Firestore або журналах застосунку. Застосунок-автентифікатор обробляє ключ за власними умовами. Безпекові дії адміністрування та відновлення можуть фіксуватися в аудиті без ключа й одноразового коду; діють строки з розділу 12. Це захищає акаунт відповідно до розділу 4 і є окремим від локального блокування Face ID / Touch ID.</p>
 <p>Зміни порівняно з 2026.11: добровільне локальне блокування, обов’язковий регіон, діагностика Firebase, окремі регіональні звіти, TOTP-захист входу та точніші строки видалення й резервного зберігання. Умови необов’язкової аналітики вмісту залишаються незмінними.</p>
+</section>
+<section><h2>22. Ключі доступу для захищених облікових записів</h2>
+<p>Власник і адміністратори можуть добровільно створити ключ доступу після входу з кодом автентифікатора. Пристрій створює пару ключів. Приватний ключ і біометричні дані або код пристрою залишаються у постачальника пристрою та ключів доступу; UAC їх не отримує. UAC зберігає у Firebase Firestore відкритий ключ, технічний ідентифікатор ключа доступу, лічильник підписів, зв’язок з ID облікового запису, час створення й останнього використання. Під час входу наш сервер перевіряє підписаний одноразовий запит і передає Firebase Authentication обмежений у часі токен входу для того самого наявного ID облікового запису. Це дає змогу розпочати захищену сесію без коду TOTP. TOTP залишається альтернативним способом входу.</p>
+<p>Запити стають недійсними через п’ять хвилин і регулярно видаляються. Після видалення ключа доступу його серверний запис видаляється, а наявні захищені сесії з ключем втрачають доступ завдяки новому маркеру сесії. Під час видалення облікового запису записи ключів доступу також видаляються. Мета обробки — безпечне й зручне керування обліковим записом відповідно до ст. 6(1)(b) і (f) GDPR. Це окрема функція від добровільного локального блокування застосунку, описаного в розділі 19.</p>
+<p>Зміна порівняно з 2026.17: описано вхід із ключем доступу та технічні дані безпеки, які при цьому обробляються.</p>
 </section></div>
     </article>
   </main>

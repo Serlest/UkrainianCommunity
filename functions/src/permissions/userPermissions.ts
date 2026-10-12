@@ -23,6 +23,7 @@ export interface UserPermissionSnapshot {
   blockState?: BlockState;
   globalRole?: GlobalRole;
   requiresMultiFactorAuth?: boolean;
+  passkeyEpoch?: string;
   acceptedTermsVersion?: string;
   acceptedPrivacyVersion?: string;
 }
@@ -39,6 +40,7 @@ export function userPermissionSnapshotFromData(
     blockState: data?.blockState,
     globalRole: data?.globalRole,
     requiresMultiFactorAuth: data?.requiresMultiFactorAuth === true,
+    passkeyEpoch: typeof data?.passkeyEpoch === "string" ? data.passkeyEpoch : undefined,
     acceptedTermsVersion: data?.acceptedTermsVersion,
     acceptedPrivacyVersion: data?.acceptedPrivacyVersion,
   };

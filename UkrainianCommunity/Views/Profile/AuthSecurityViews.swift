@@ -8,6 +8,8 @@ import UIKit
 struct MultiFactorSignInView: View {
     @ObservedObject var coordinator: AuthMultiFactorSignInCoordinator
     @State private var code = ""
+    @State private var isSubmitting = false
+    @FocusState private var codeFocused: Bool
 
     private var selectedFactorID: String? {
         coordinator.selectedFactorID ?? coordinator.factors.first?.id
@@ -41,13 +43,20 @@ struct MultiFactorSignInView: View {
                         keyboardType: .numberPad,
                         textContentType: .oneTimeCode,
                         autocapitalization: .never,
-                        autocorrectionDisabled: true
+                        autocorrectionDisabled: true,
+                        focus: $codeFocused
                     )
                     .onChange(of: code) { _, newValue in
                         let normalized = String(
                             AuthMultiFactorService.normalizedCode(newValue).prefix(6)
                         )
                         if normalized != newValue { code = normalized }
+                    }
+                    .task(id: code) {
+                        guard AuthMultiFactorService.isValidCode(code) else { return }
+                        try? await Task.sleep(for: .milliseconds(250))
+                        guard !Task.isCancelled, canSubmit else { return }
+                        submit()
                     }
                     .accessibilityIdentifier("auth.mfa.code")
 
@@ -79,6 +88,7 @@ struct MultiFactorSignInView: View {
         .navigationTitle(AppStrings.Auth.multiFactorTitle)
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled()
+        .onAppear { codeFocused = true }
         .accessibilityIdentifier("auth.mfa.screen")
     }
 
@@ -89,8 +99,10 @@ struct MultiFactorSignInView: View {
     }
 
     private func submit() {
-        guard let selectedFactorID else { return }
+        guard let selectedFactorID, canSubmit, !isSubmitting else { return }
+        isSubmitting = true
         Task {
+            defer { isSubmitting = false }
             do {
                 _ = try await AuthService.shared.resolveMultiFactorSignIn(
                     oneTimeCode: code,
@@ -100,6 +112,7 @@ struct MultiFactorSignInView: View {
                 coordinator.fail(message: AppStrings.Auth.multiFactorChallengeExpired)
             } catch {
                 // The coordinator publishes a precise recoverable error.
+                code = ""
             }
         }
     }
@@ -114,6 +127,7 @@ final class AccountSecurityViewModel: ObservableObject {
     @Published private(set) var removingFactorID: String?
     @Published private(set) var enrollmentSession: AuthTOTPEnrollmentSession?
     @Published private(set) var isSessionTOTPAuthenticated = false
+    @Published private(set) var isSessionPasskeyAuthenticated = false
     @Published private(set) var isActivatingRequirement = false
     @Published private(set) var message: String?
     @Published private(set) var errorMessage: String?
@@ -144,8 +158,11 @@ final class AccountSecurityViewModel: ObservableObject {
         do {
             isSessionTOTPAuthenticated = try await multiFactorService
                 .isCurrentSessionTOTPAuthenticated()
+            isSessionPasskeyAuthenticated = try await multiFactorService
+                .isCurrentSessionPasskeyAuthenticated()
         } catch {
             isSessionTOTPAuthenticated = false
+            isSessionPasskeyAuthenticated = false
         }
     }
 
@@ -289,9 +306,13 @@ struct AccountSecurityView: View {
             passwordSection
             LinkedAccountProvidersView(account: authState.user)
             multiFactorSection
+            if AuthSecurityPolicy.isPrivilegedAccount(authState.user) {
+                PasskeyManagementView(isTOTPAuthenticated: viewModel.isSessionTOTPAuthenticated)
+            }
         }
         .task(id: authState.user?.id) {
             await viewModel.load()
+            await viewModel.refreshSessionAuthentication()
         }
         .sheet(item: Binding(
             get: { viewModel.enrollmentSession },
@@ -427,6 +448,7 @@ struct PrivilegedMultiFactorRequirementView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel = AccountSecurityViewModel()
     @State private var isRestartingSignIn = false
+    @State private var didAttemptAutoActivation = false
 
     private var currentUser: AppUser? { authState.user }
 
@@ -467,6 +489,13 @@ struct PrivilegedMultiFactorRequirementView: View {
         .task(id: currentUser?.id) {
             await viewModel.load()
             await viewModel.refreshSessionAuthentication()
+            if !didAttemptAutoActivation,
+               !viewModel.factors.isEmpty,
+               viewModel.isSessionTOTPAuthenticated,
+               currentUser?.requiresMultiFactorAuth != true {
+                didAttemptAutoActivation = true
+                await activateRequirementIfPossible()
+            }
             await dismissIfRequirementIsSatisfied()
         }
         .sheet(item: Binding(
@@ -502,7 +531,8 @@ struct PrivilegedMultiFactorRequirementView: View {
             .accessibilityIdentifier("auth.mfa.privilegedRequirement.enroll")
 
             restartSignInButton
-        } else if !viewModel.isSessionTOTPAuthenticated {
+        } else if !viewModel.isSessionTOTPAuthenticated
+                    && !viewModel.isSessionPasskeyAuthenticated {
             InlineMessageCard(
                 style: .info,
                 message: AppStrings.AccountSecurity.privilegedSignInAgain
@@ -558,17 +588,22 @@ struct PrivilegedMultiFactorRequirementView: View {
 
     private func activateRequirement() {
         Task {
-            guard await viewModel.activatePrivilegedRequirement(),
-                  let userID = currentUser?.id else { return }
-            await authState.loadUser(uid: userID)
-            await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
+            await activateRequirementIfPossible()
         }
+    }
+
+    private func activateRequirementIfPossible() async {
+        guard await viewModel.activatePrivilegedRequirement(),
+              let userID = currentUser?.id else { return }
+        await authState.loadUser(uid: userID)
+        await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
     }
 
     private func dismissIfRequirementIsSatisfied() async {
         guard AuthSecurityPolicy.protectedSessionIsReady(
             user: currentUser,
-            isTOTPAuthenticated: viewModel.isSessionTOTPAuthenticated
+            isTOTPAuthenticated: viewModel.isSessionTOTPAuthenticated,
+            isPasskeyAuthenticated: viewModel.isSessionPasskeyAuthenticated
         ) else { return }
         await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
     }
