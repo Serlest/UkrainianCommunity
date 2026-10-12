@@ -36,7 +36,7 @@ GERMAN_INFORMAL_PRONOUN_PATTERN = re.compile(
 )
 GERMAN_INFORMAL_IMPERATIVE_PATTERN = re.compile(
     r"(?:^|[.!?]\s+)"
-    r"(?:Aktiviere|Ändere|Erstelle|Gib|Lade|Öffne|Passe|Teile|Verschiebe)\b"
+    r"(?:Aktiviere|Ändere|Bewahre|Behalte|Erstelle|Gib|Lade|Melde|Öffne|Passe|Teile|Versuche|Verschiebe|Wähle)\b"
 )
 
 

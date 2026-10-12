@@ -50028,7 +50028,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Anmeldung mit Passkey konnte nicht abgeschlossen werden. Versuche es erneut oder wähle eine andere Anmeldemethode."
+            "value": "Die Anmeldung mit Passkey konnte nicht abgeschlossen werden. Versuchen Sie es erneut oder wählen Sie eine andere Anmeldemethode."
           }
         },
         "uk": {
@@ -50060,13 +50060,13 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Melde dich auf deinem Gerät sicher mit Face ID oder Touch ID an."
+            "value": "Melden Sie sich mit dem Passkey Ihres Geräts an – per Face ID, Touch ID oder Gerätecode."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Безпечно входьте на своєму пристрої через Face ID або Touch ID."
+            "value": "Увійдіть із ключем доступу свого пристрою через Face ID, Touch ID або код пристрою."
           }
         }
       }
@@ -50140,7 +50140,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Passkey konnte nicht erstellt werden. Melde dich mit deinem Authenticator an und versuche es erneut."
+            "value": "Der Passkey konnte nicht erstellt werden. Melden Sie sich mit Ihrem Authenticator-Code an und versuchen Sie es erneut."
           }
         },
         "uk": {
@@ -50156,7 +50156,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Melde dich einmal mit deinem Authenticator-Code an, um einen Passkey hinzuzufügen. Bewahre ihn als Reserve auf."
+            "value": "Melden Sie sich einmal mit Ihrem Authenticator-Code an, um einen Passkey hinzuzufügen. Behalten Sie Ihre Authenticator-App als Reserve."
           }
         },
         "uk": {
@@ -50188,7 +50188,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieser Passkey funktioniert danach nicht mehr. Bestehende Passkey-Sitzungen verlieren den geschützten Zugriff. Dein Authenticator bleibt verfügbar."
+            "value": "Dieser Passkey funktioniert danach nicht mehr. Bestehende Passkey-Sitzungen verlieren den geschützten Zugriff. Ihre Authenticator-App bleibt verfügbar."
           }
         },
         "uk": {
@@ -50204,7 +50204,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Passkey konnte nicht entfernt werden. Versuche es erneut."
+            "value": "Der Passkey konnte nicht entfernt werden. Versuchen Sie es erneut."
           }
         },
         "uk": {
@@ -50220,7 +50220,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deine Passkeys konnten nicht geladen werden. Öffne diese Seite erneut."
+            "value": "Ihre Passkeys konnten nicht geladen werden. Öffnen Sie diese Seite erneut."
           }
         },
         "uk": {
