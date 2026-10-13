@@ -2,6 +2,14 @@
 
 This is a TestFlight candidate. The public App Store version remains 1.1 (82). Public submission and publication require a separate decision after the open gates in `Docs/ReleaseGates-1.2.json` are closed.
 
+## Verified candidate state (2026-10-13)
+
+- The signed 1.2 (107) archive was built from `release/1.2-107` at `1332693` and uploaded successfully. App Store Connect reports `VALID` processing; the internal group **Beta Tester** has access.
+- The external group **Tester Serlest EXT** includes build 107. Apple has not received 107 for Beta App Review: build 105 of the same version is still `WAITING_FOR_REVIEW`, and Apple allows one build of a version in review at a time. Therefore external testers cannot install 107 yet. Submit 107 after 105 leaves review; do not mistake group assignment for approval.
+- Final GitHub Quality checks run `38323711417` succeeded in all jobs. Local iOS UI tests passed 73 runnable scenarios; an opt-in live screenshot scenario was skipped. Node/Firebase/banner emulator checks passed with documented emulator-only skips; `npm audit` reported no vulnerabilities.
+- App Store 1.2 is a `PREPARE_FOR_SUBMISSION` draft with manual release and build 107 attached. Ukrainian and German descriptions, What's New text and review notes were updated. No public App Review submission was made.
+- Public release gates remain open for archive-to-App-Privacy reconciliation, physical iPhone sign-in/passkey/push/legal/consent checks, comment flows, image/content rights and verification of inherited screenshots. See the JSON gate file for the exact evidence.
+
 ## TestFlight: What to Test
 
 **Українська**

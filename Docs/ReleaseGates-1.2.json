@@ -14,8 +14,8 @@
     {
       "id": "app-privacy",
       "status": "open",
-      "requirement": "Compare the authenticated App Privacy answers with the final 1.2 archive privacy report, optional content analytics, separate banner measurement, account data and all bundled SDKs. The published questionnaire currently lists Product Interaction for Analytics, but the final archive comparison is pending.",
-      "evidence": []
+      "requirement": "Before public 1.2 submission, reconcile the authenticated App Privacy questionnaire with the final 107 archive and bundled SDK manifests. The published answers cover 14 data categories; the GoogleSignIn SDK manifest additionally declares Other Usage Data and Device ID for Analytics. Verify those answers and their purposes when transitioning from public 1.1 to 1.2.",
+      "evidence": ["Read-only 107 archive privacy-manifest inspection on 2026-10-13", "Published App Privacy questionnaire inspection on 2026-10-13"]
     },
     {
       "id": "privacy-publication",
@@ -29,15 +29,15 @@
     },
     {
       "id": "candidate-validation",
-      "status": "open",
+      "status": "passed",
       "requirement": "Record the final source commit, full GitHub quality run, local banner SDK journey, iOS unit tests and registration/analytics UI results. No skipped or interrupted run counts as a pass.",
-      "evidence": []
+      "evidence": ["Release branch release/1.2-107 at 1332693", "GitHub Quality checks run 38323711417: all jobs success", "Local iOS UI: 73 runnable scenarios passed; one opt-in live screenshot scenario intentionally skipped", "Node checks: 440 passed and 95 emulator-only skips; Firebase rules 203 passed and one skip; banner emulator 3 passed", "npm audit: zero vulnerabilities"]
     },
     {
       "id": "archive-testflight",
       "status": "open",
-      "requirement": "Archive and upload 1.2 (107), verify the signed app and export compliance, then confirm internal and external TestFlight group assignment and Beta App Review state.",
-      "evidence": []
+      "requirement": "Signed 1.2 (107) archive, upload and internal/external group assignment must be verified. External availability additionally requires Beta App Review approval; build 105 is currently WAITING_FOR_REVIEW and Apple allows only one 1.2 build in beta review at a time.",
+      "evidence": ["Signed archive build/UkrainianCommunity-107.xcarchive; app signature and dSYM verified", "Xcode account export/upload succeeded; App Store Connect build 107 processing VALID", "Internal Beta Tester group and external Tester Serlest EXT group both include build 107 by API read-back", "Build 107 is IN_BETA_TESTING internally and READY_FOR_BETA_SUBMISSION externally; 105 is WAITING_FOR_BETA_REVIEW"]
     },
     {
       "id": "physical-device",
@@ -60,8 +60,8 @@
     {
       "id": "review-metadata",
       "status": "open",
-      "requirement": "Prepare 1.2 product text, screenshots and App Review notes for required registration, Apple/Google/passkey sign-in and current analytics choices; the 1.1 review notes describe obsolete guest access.",
-      "evidence": []
+      "requirement": "Prepare and verify 1.2 product text, current screenshots and App Review notes for required registration, Apple/Google/passkey sign-in and analytics choices. Text and notes were updated, but inherited screenshots must still be checked against the installed 107 UI.",
+      "evidence": ["App Store Connect Ukrainian and German descriptions/What's New read back for draft 1.2", "App Review notes updated; review account remains in dedicated credential fields", "Six inherited iPhone and six inherited iPad screenshots per locale; visual currency not yet confirmed", "Build 107 attached to App Store 1.2 draft, PREPARE_FOR_SUBMISSION, MANUAL release"]
     },
     {
       "id": "release-authorization",

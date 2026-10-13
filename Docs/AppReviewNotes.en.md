@@ -5,12 +5,14 @@
 UAC (UkrainianCommunity) is a German/Ukrainian community app for people in Austria.
 The app opens with sign-in or account creation. An account is required to use
 the content sections and account features. Email/password, Sign in with Apple,
-and Google sign-in are available.
+Google sign-in and passkeys are available. Passkeys are optional for ordinary
+verified accounts. Owner and administrator access has additional protection.
 
 On the first sign-in with the review account, the app presents the current Terms
-of Use for acceptance. This is the same onboarding gate shown to every account;
-no administrator approval is required. The review account is email-verified and
-has the ordinary user role.
+of Use and Privacy Policy for acceptance. Material updates require a fresh
+review and acceptance before app access; declining signs the user out. This is
+the same gate shown to every account; no administrator approval is required.
+The review account is email-verified and has the ordinary user role.
 
 The registration form requires selection of an Austrian federal state and
 confirmation that the user is at least 14. The technical age confirmation is
@@ -18,12 +20,16 @@ self-declared; it is not document-based identity or age verification.
 
 Optional first-party content analytics is off by default. Users can choose it
 separately during registration and change their choice in Profile settings.
-It does not control essential account-feature records or all Firebase technical
-diagnostics. No advertising SDK, IDFA or cross-app advertising tracking is used.
+Banner impression and click measurement requires another, separate voluntary
+consent that can be withdrawn in Settings. The owner sees aggregate counts, not
+per-user reports. Neither choice controls essential account-feature records or
+all Firebase technical diagnostics. No advertising SDK, IDFA or cross-app
+advertising tracking is used.
 
 Optional Face ID / Touch ID locks an existing signed-in session on the device,
-with device-passcode fallback. This lock is separate from Sign in with Apple;
-registration and sign-in do not require biometrics.
+with device-passcode fallback. Passkeys can use Face ID, Touch ID or the device
+passcode. The session lock is separate from Sign in with Apple; registration
+does not require biometrics.
 
 User content can be reported from its action menu. Users can block other users
 and manage their block list in Profile. Administrators moderate reports and
