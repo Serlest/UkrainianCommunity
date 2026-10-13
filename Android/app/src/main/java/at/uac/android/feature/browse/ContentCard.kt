@@ -20,6 +20,7 @@ import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSymbol
 import java.time.ZoneId
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -152,7 +153,8 @@ private fun FeedCardDetails(
                 overflow = TextOverflow.Ellipsis,
             )
         val date =
-            if (item.kind == ContentKind.EVENTS) item.fields.time("startDate") else item.publishedAt
+            if (item.kind == ContentKind.EVENTS)
+                item.fields.displayEventOccurrence(Instant.now())?.start else item.publishedAt
         val metadata =
             listOfNotNull(
                     item.fields.string("city").takeIf(String::isNotBlank),
@@ -191,7 +193,8 @@ private fun FeedCardDetails(
 
 @Composable
 private fun EventDateBadge(item: Content, language: String) {
-    val date = item.fields.time("startDate")?.atZone(ZoneId.systemDefault()) ?: return
+    val date = item.fields.displayEventOccurrence(Instant.now())?.start
+        ?.atZone(ZoneId.systemDefault()) ?: return
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
         shape = RoundedCornerShape(12.dp),

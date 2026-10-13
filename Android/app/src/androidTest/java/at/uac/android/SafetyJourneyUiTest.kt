@@ -92,8 +92,7 @@ class SafetyJourneyUiTest {
     }
 
     private fun tab(route: String) {
-        // News is a Home action, not a fifth persistent tab. A tab switch may restore its
-        // previous destination, while a second explicit tap returns to the tab root.
+        // The news feed is the Home tab root. A second tap returns to that root.
         val primary = if (route == "news") "home" else route
         compose.waitUntil(10_000) { compose.onNodeWithTag("tab-$primary").isDisplayed() }
         compose.onNodeWithTag("tab-$primary").performClick()
@@ -103,12 +102,6 @@ class SafetyJourneyUiTest {
             ready()
         }
         assertEquals(primary, browse.state.value.route)
-        if (route == "news") {
-            detail("tab-news")
-            compose.onNodeWithTag("tab-news").assertIsDisplayed().performClick()
-            ready()
-            assertEquals("news", browse.state.value.route)
-        }
     }
 
     private fun openContent(kind: String, id: String, query: String) {

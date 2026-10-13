@@ -107,9 +107,6 @@ class PersonalJourneyUiTest {
             compose.waitUntil(10_000) { compose.onNodeWithTag("tab-home").isDisplayed() }
             compose.onNodeWithTag("tab-home").performClick()
             ready()
-            detail("tab-news")
-            compose.onNodeWithTag("tab-news").performClick()
-            ready()
             return
         }
         if (!browse.state.value.isAccountRoute)

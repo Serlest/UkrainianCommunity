@@ -223,9 +223,9 @@ class FirestoreContentSource(private val db: FirebaseFirestore) : ContentSource 
         }
         if (query.kind == ContentKind.EVENTS && !query.recommendations) {
             val time = Timestamp(query.now.epochSecond, query.now.nano)
-            ref =
-                if (query.past) ref.whereLessThan("endDate", time)
-                else ref.whereGreaterThanOrEqualTo("endDate", time)
+            // A cancelled future occurrence belongs in the past section, even if the
+            // document's maximum endDate is still ahead. Client validation classifies it.
+            if (!query.past) ref = ref.whereGreaterThanOrEqualTo("endDate", time)
         }
         val direction =
             if (query.ascending) Query.Direction.ASCENDING else Query.Direction.DESCENDING

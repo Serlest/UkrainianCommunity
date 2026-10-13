@@ -11,9 +11,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,6 +26,11 @@ data class BrowseData(
     val detail: Content? = null,
     val next: ContentCursor? = null,
     val hasMore: Boolean = false,
+    val pastItems: List<Content> = emptyList(),
+    val pastNext: ContentCursor? = null,
+    val pastHasMore: Boolean = false,
+    val pastLoading: Boolean = false,
+    val pastError: ReadFailure? = null,
     val invalid: Int = 0,
     val cachedAt: Instant? = null,
     val banners: List<Banner> = emptyList(),
@@ -49,6 +51,10 @@ data class BrowseState(
     val category: String = "",
     val audience: String = "",
     val past: Boolean = false,
+    val eventPeriod: EventPeriod = EventPeriod.ALL,
+    val eventAge: EventAge = EventAge.ANY,
+    val eventScope: EventScope = EventScope.ALL,
+    val organizationScope: OrganizationScope = OrganizationScope.ALL,
     val newsPeriod: NewsPeriod = NewsPeriod.ALL,
     val newsOrder: NewsOrder = NewsOrder.NEWEST,
     val newsSource: NewsSource = NewsSource.ALL,
@@ -66,7 +72,7 @@ data class BrowseState(
 ) {
     val kind
         get() =
-            ContentKind.entries.find {
+            if (route == "home") ContentKind.NEWS else ContentKind.entries.find {
                 it.collection == route.substringBefore('/').substringBefore(':')
             }
 
@@ -94,6 +100,14 @@ class BrowseViewModel(
     private val savePreference: (String, String) -> Unit,
     private val newsPersonalScope: NewsPersonalScopeSource = NewsPersonalScopeSource { source ->
         if (source == NewsSource.ALL) NewsPersonalScope()
+        else throw ReadException(ReadFailure.DENIED)
+    },
+    private val organizationPersonalScope: OrganizationPersonalScopeSource = OrganizationPersonalScopeSource { scope ->
+        if (scope == OrganizationScope.ALL) emptySet()
+        else throw ReadException(ReadFailure.DENIED)
+    },
+    private val eventPersonalScope: EventPersonalScopeSource = EventPersonalScopeSource { scope ->
+        if (scope == EventScope.ALL) emptySet()
         else throw ReadException(ReadFailure.DENIED)
     },
 ) : ViewModel() {
@@ -142,6 +156,7 @@ class BrowseViewModel(
         )
     val state = mutable.asStateFlow()
     private var job: Job? = null
+    private var pastJob: Job? = null
     private var generation = 0
     private var accountObserver: Job? = null
     private var accountBound = false
@@ -156,15 +171,23 @@ class BrowseViewModel(
         val legacy =
             "${s.mode}|${s.language}|${s.region}|${s.route}|${s.search}|${s.category}|${s.audience}|${s.past}"
         return if (
-            s.newsPeriod == NewsPeriod.ALL &&
+            s.eventPeriod == EventPeriod.ALL && s.eventAge == EventAge.ANY &&
+                s.eventScope == EventScope.ALL &&
+                s.organizationScope == OrganizationScope.ALL &&
+                s.newsPeriod == NewsPeriod.ALL &&
                 s.newsOrder == NewsOrder.NEWEST &&
                 s.newsSource == NewsSource.ALL &&
                 s.customStart == null &&
                 s.customEnd == null
         )
             legacy
-        else
-            "$legacy|${s.newsPeriod}|${s.newsOrder}|${s.newsSource}|${s.customStart}|${s.customEnd}"
+        else {
+            val newsKey = "$legacy|${s.newsPeriod}|${s.newsOrder}|${s.newsSource}|${s.customStart}|${s.customEnd}"
+            if (s.eventPeriod == EventPeriod.ALL && s.eventAge == EventAge.ANY &&
+                s.eventScope == EventScope.ALL &&
+                s.organizationScope == OrganizationScope.ALL) newsKey
+            else "$newsKey|${s.eventPeriod}|${s.eventAge}|${s.eventScope}|${s.organizationScope}"
+        }
     }
 
     init {
@@ -202,8 +225,14 @@ class BrowseViewModel(
         if (changed) {
             saved
                 .keys()
-                .filter { it.startsWith("news-source:") }
-                .forEach { saved[it] = NewsSource.ALL.name }
+                .filter { it.startsWith("news-source:") || it.startsWith("organization-scope:") || it.startsWith("event-scope:") }
+                .forEach { key ->
+                    saved[key] = when {
+                        key.startsWith("news-source:") -> NewsSource.ALL.name
+                        key.startsWith("event-scope:") -> EventScope.ALL.name
+                        else -> OrganizationScope.ALL.name
+                    }
+                }
             val keepReceipt =
                 nextHash == null &&
                     deletionAccountHash != null &&
@@ -219,6 +248,8 @@ class BrowseViewModel(
                     navigationEpoch = mutable.value.navigationEpoch + 1,
                     deletionCompleted = deletionAccountHash != null,
                     newsSource = NewsSource.ALL,
+                    eventScope = EventScope.ALL,
+                    organizationScope = OrganizationScope.ALL,
                     accountAvailable = nextHash != null,
                 )
         } else {
@@ -278,6 +309,18 @@ class BrowseViewModel(
                         }
                         .orEmpty(),
                 past = saved.get<Any?>("past:${s.route}") as? Boolean ?: false,
+                eventPeriod = savedString("event-period:${s.route}")?.let {
+                    runCatching { EventPeriod.valueOf(it) }.getOrNull()
+                } ?: EventPeriod.ALL,
+                eventAge = savedString("event-age:${s.route}")?.let {
+                    runCatching { EventAge.valueOf(it) }.getOrNull()
+                } ?: EventAge.ANY,
+                eventScope = savedString("event-scope:${s.route}")?.let {
+                    runCatching { EventScope.valueOf(it) }.getOrNull()
+                } ?: EventScope.ALL,
+                organizationScope = savedString("organization-scope:${s.route}")?.let {
+                    runCatching { OrganizationScope.valueOf(it) }.getOrNull()
+                } ?: OrganizationScope.ALL,
                 newsPeriod =
                     savedString("news-period:${s.route}")?.let {
                         runCatching { NewsPeriod.valueOf(it) }.getOrNull()
@@ -330,6 +373,7 @@ class BrowseViewModel(
 
     private fun move() {
         job?.cancel()
+        pastJob?.cancel()
         generation++
         saved["selected-tab"] = navigation.selected.route
         navigation.stacks.forEach { (tab, stack) ->
@@ -359,6 +403,10 @@ class BrowseViewModel(
                 "category:",
                 "audience:",
                 "past:",
+                "event-period:",
+                "event-age:",
+                "event-scope:",
+                "organization-scope:",
                 "news-period:",
                 "news-order:",
                 "news-source:",
@@ -375,7 +423,7 @@ class BrowseViewModel(
                         "search:" -> saved[key] = savedString(key).orEmpty().take(160)
                         "category:" -> {
                             val kind =
-                                ContentKind.entries.firstOrNull {
+                                if (route == "home") ContentKind.NEWS else ContentKind.entries.firstOrNull {
                                     it.collection == route.substringBefore('/').substringBefore(':')
                                 }
                             saved[key] =
@@ -405,6 +453,18 @@ class BrowseViewModel(
                                     }
                                     .orEmpty()
                         "past:" -> saved[key] = saved.get<Any?>(key) as? Boolean ?: false
+                        "event-period:" -> saved[key] = savedString(key)?.takeIf {
+                            runCatching { EventPeriod.valueOf(it) }.isSuccess
+                        } ?: EventPeriod.ALL.name
+                        "event-age:" -> saved[key] = savedString(key)?.takeIf {
+                            runCatching { EventAge.valueOf(it) }.isSuccess
+                        } ?: EventAge.ANY.name
+                        "event-scope:" -> saved[key] = savedString(key)?.takeIf {
+                            runCatching { EventScope.valueOf(it) }.isSuccess
+                        } ?: EventScope.ALL.name
+                        "organization-scope:" -> saved[key] = savedString(key)?.takeIf {
+                            runCatching { OrganizationScope.valueOf(it) }.isSuccess
+                        } ?: OrganizationScope.ALL.name
                         "news-period:" ->
                             saved[key] =
                                 savedString(key)?.takeIf {
@@ -430,14 +490,14 @@ class BrowseViewModel(
             (savedRoutes("query-keys").takeIf { it.isNotEmpty() }
                     ?: saved
                         .keys()
-                        .filter { it.startsWith("now:") || it.startsWith("pages:") }
+                .filter { it.startsWith("now:") || it.startsWith("pages:") || it.startsWith("past-pages:") }
                         .map { it.substringAfter(':') }
                         .distinct())
                 .filter { it.length <= 2_300 && it.none(Char::isISOControl) }
                 .takeLast(24)
         saved
             .keys()
-            .filter { it.startsWith("now:") || it.startsWith("pages:") }
+            .filter { it.startsWith("now:") || it.startsWith("pages:") || it.startsWith("past-pages:") }
             .forEach { key ->
                 if (key.substringAfter(':') !in queries) saved.remove<Any?>(key)
             }
@@ -449,7 +509,7 @@ class BrowseViewModel(
         saved["query-keys"] = ArrayList(queries)
         saved
             .keys()
-            .filter { it.startsWith("now:") || it.startsWith("pages:") }
+            .filter { it.startsWith("now:") || it.startsWith("pages:") || it.startsWith("past-pages:") }
             .forEach { savedKey ->
                 if (savedKey.substringAfter(':') !in queries) saved.remove<Any?>(savedKey)
             }
@@ -482,6 +542,10 @@ class BrowseViewModel(
         category: String = mutable.value.category,
         audience: String = mutable.value.audience,
         past: Boolean = mutable.value.past,
+        eventPeriod: EventPeriod = mutable.value.eventPeriod,
+        eventAge: EventAge = mutable.value.eventAge,
+        eventScope: EventScope = mutable.value.eventScope,
+        organizationScope: OrganizationScope = mutable.value.organizationScope,
         newsPeriod: NewsPeriod = mutable.value.newsPeriod,
         newsOrder: NewsOrder = mutable.value.newsOrder,
         newsSource: NewsSource = mutable.value.newsSource,
@@ -490,10 +554,17 @@ class BrowseViewModel(
     ) {
         val s = mutable.value
         val boundedSearch = search.take(160)
+        val privateFeed = newsSource != NewsSource.ALL ||
+            eventScope != EventScope.ALL || organizationScope != OrganizationScope.ALL
+        if (privateFeed) saved["mode"] = "emulator"
         saved["search:${s.route}"] = boundedSearch
         saved["category:${s.route}"] = category
         saved["audience:${s.route}"] = audience
         saved["past:${s.route}"] = past
+        saved["event-period:${s.route}"] = eventPeriod.name
+        saved["event-age:${s.route}"] = eventAge.name
+        saved["event-scope:${s.route}"] = eventScope.name
+        saved["organization-scope:${s.route}"] = organizationScope.name
         saved["news-period:${s.route}"] = newsPeriod.name
         saved["news-order:${s.route}"] = newsOrder.name
         saved["news-source:${s.route}"] = newsSource.name
@@ -501,10 +572,15 @@ class BrowseViewModel(
         saved["news-end:${s.route}"] = customEnd?.toString()
         mutable.value =
             s.copy(
+                mode = if (privateFeed) "emulator" else s.mode,
                 search = boundedSearch,
                 category = category,
                 audience = audience,
                 past = past,
+                eventPeriod = eventPeriod,
+                eventAge = eventAge,
+                eventScope = eventScope,
+                organizationScope = organizationScope,
                 newsPeriod = newsPeriod,
                 newsOrder = newsOrder,
                 newsSource = newsSource,
@@ -520,6 +596,54 @@ class BrowseViewModel(
         if (!mutable.value.data.loading && mutable.value.data.hasMore) load(append = true)
     }
 
+    fun morePast() {
+        val s = mutable.value
+        if (s.kind != ContentKind.EVENTS || s.past || !s.data.pastHasMore ||
+            s.data.pastLoading || s.data.pastNext == null) return
+        pastJob?.cancel()
+        val ticket = generation
+        val currentKey = key(s)
+        val now = savedString("now:$currentKey")?.let {
+            runCatching { Instant.parse(it) }.getOrNull()
+        } ?: Instant.now()
+        mutable.value = s.copy(data = s.data.copy(pastLoading = true, pastError = null))
+        pastJob = viewModelScope.launch {
+            try {
+                val ids = eventPersonalScope.load(s.eventScope)
+                val page = repository().page(
+                    ContentQuery(
+                        ContentKind.EVENTS, s.region, s.search, s.category, s.language,
+                        past = true, now = now, audience = s.audience,
+                        eventAge = s.eventAge, eventScope = s.eventScope,
+                        allowedEventIds = ids,
+                    ),
+                    s.data.pastNext,
+                )
+                if (ticket != generation || key() != currentKey) return@launch
+                val current = mutable.value
+                mutable.value = current.copy(data = current.data.copy(
+                    pastItems = (current.data.pastItems + page.value.items).distinctBy(Content::id),
+                    pastNext = page.value.next,
+                    pastHasMore = page.value.hasMore,
+                    pastLoading = false,
+                    pastError = null,
+                    cachedAt = listOfNotNull(current.data.cachedAt, page.cachedAt).minOrNull(),
+                ))
+                saved["past-pages:$currentKey"] =
+                    (saved.get<Any?>("past-pages:$currentKey") as? Int ?: 1).coerceIn(1, 100) + 1
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: ReadException) {
+                if (ticket == generation && key() == currentKey) {
+                    val current = mutable.value
+                    mutable.value = current.copy(data = current.data.copy(
+                        pastLoading = false, pastError = error.reason,
+                    ))
+                }
+            }
+        }
+    }
+
     /** A background detail is not a fresh permission/content receipt when the user returns. */
     fun onHostPause() {
         if (hostPaused) return
@@ -528,6 +652,7 @@ class BrowseViewModel(
         if (!current.isAccountRoute && current.route != "settings" &&
             !current.route.startsWith("directory")) {
             job?.cancel()
+            pastJob?.cancel()
             generation++
             mutable.value = current.copy(data = BrowseData())
         }
@@ -543,6 +668,7 @@ class BrowseViewModel(
 
     private fun load(append: Boolean = false, reset: Boolean = false, debounce: Boolean = false) {
         job?.cancel()
+        pastJob?.cancel()
         val ticket = ++generation
         val s = mutable.value
         if (s.route == "settings" || s.isAccountRoute || s.route == "directory" || s.route.startsWith("directory/")) {
@@ -553,6 +679,7 @@ class BrowseViewModel(
         retainQuery(currentKey)
         if (reset) {
             saved["pages:$currentKey"] = 1
+            saved["past-pages:$currentKey"] = 1
             saved["now:$currentKey"] = Instant.now().toString()
         }
         val now =
@@ -565,7 +692,7 @@ class BrowseViewModel(
             s.copy(data = if (append) s.data.copy(loading = true, error = null) else BrowseData())
         job = viewModelScope.launch {
             if (debounce) delay(250)
-            var result = BrowseData(loading = false)
+            var result = if (append) s.data.copy(loading = false, error = null) else BrowseData(loading = false)
             suspend fun <T> optional(
                 label: String,
                 missingIsEmpty: Boolean = false,
@@ -625,6 +752,13 @@ class BrowseViewModel(
                     val personalScope =
                         if (s.kind == ContentKind.NEWS) newsPersonalScope.load(s.newsSource)
                         else NewsPersonalScope()
+                    val organizationIds =
+                        if (s.kind == ContentKind.ORGANIZATIONS)
+                            organizationPersonalScope.load(s.organizationScope)
+                        else personalScope.organizationIds
+                    val eventIds =
+                        if (s.kind == ContentKind.EVENTS) eventPersonalScope.load(s.eventScope)
+                        else emptySet()
                     val query =
                         ContentQuery(
                             s.kind!!,
@@ -636,13 +770,18 @@ class BrowseViewModel(
                             s.organizationId,
                             now,
                             s.audience,
+                            eventPeriod = s.eventPeriod,
+                            eventAge = s.eventAge,
+                            eventScope = s.eventScope,
+                            organizationScope = s.organizationScope,
                             newsPeriod = s.newsPeriod,
                             newsOrder = s.newsOrder,
                             newsSource = s.newsSource,
                             customStart = s.customStart,
                             customEnd = s.customEnd,
                             allowedNewsIds = personalScope.newsIds,
-                            allowedOrganizationIds = personalScope.organizationIds,
+                            allowedEventIds = eventIds,
+                            allowedOrganizationIds = organizationIds,
                         )
                     var page = repository.page(query, if (append) s.data.next else null)
                     var items = if (append) s.data.items + page.value.items else page.value.items
@@ -670,46 +809,39 @@ class BrowseViewModel(
                             cachedAt = cachedAt,
                         )
                     if (append) saved["pages:$currentKey"] = pageCount + 1
-                } else {
-                    val items = coroutineScope {
-                        ContentKind.entries
-                            .map { kind ->
-                                async {
-                                    optional(kind.collection) {
-                                            repository.page(
-                                                ContentQuery(
-                                                    kind,
-                                                    s.region,
-                                                    language = s.language,
-                                                    now = now,
-                                                ),
-                                                size = 3,
-                                            )
-                                        }
-                                        ?.items
-                                        .orEmpty()
+                    if (s.kind == ContentKind.EVENTS && !s.past &&
+                        s.organizationId.isEmpty() && !append) {
+                        try {
+                            val pastQuery = query.copy(past = true, eventPeriod = EventPeriod.ALL)
+                            var pastPage = repository.page(pastQuery)
+                            var pastItems = pastPage.value.items
+                            val pastPageCount =
+                                (saved.get<Any?>("past-pages:$currentKey") as? Int ?: 1)
+                                    .coerceIn(1, 100)
+                            repeat((pastPageCount - 1).coerceIn(0, 99)) {
+                                if (pastPage.value.hasMore) {
+                                    pastPage = repository.page(pastQuery, pastPage.value.next)
+                                    pastItems = pastItems + pastPage.value.items
                                 }
                             }
-                            .awaitAll()
-                            .flatten()
-                    }
-                    result =
-                        result.copy(
-                            items =
-                                items
-                                    .distinctBy { "${it.kind}/${it.id}" }
-                                    .sortedWith(
-                                        compareByDescending<Content> { it.publishedAt }
-                                            .thenBy { it.id }
-                                    )
-                        )
-                    // Donation is an optional app configuration document. Its absence means that
-                    // no support card is configured, not that public content failed to load.
-                    val donation =
-                        optional("donation", missingIsEmpty = true) {
-                            repository.donation()
+                            result = result.copy(
+                                pastItems = pastItems.distinctBy(Content::id),
+                                pastNext = pastPage.value.next,
+                                pastHasMore = pastPage.value.hasMore,
+                                cachedAt = listOfNotNull(result.cachedAt, pastPage.cachedAt).minOrNull(),
+                            )
+                        } catch (error: ReadException) {
+                            result = result.copy(pastError = error.reason)
                         }
-                    result = result.copy(donation = donation)
+                    }
+                    if (s.route == "home") {
+                        // The first tab is the full news feed; retain its optional support card.
+                        result = result.copy(
+                            donation = optional("donation", missingIsEmpty = true) {
+                                repository.donation()
+                            }
+                        )
+                    }
                 }
                 if (
                     s.detailId.isEmpty() &&

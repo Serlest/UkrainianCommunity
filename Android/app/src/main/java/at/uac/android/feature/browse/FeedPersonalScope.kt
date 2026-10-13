@@ -19,10 +19,18 @@ fun interface NewsPersonalScopeSource {
     suspend fun load(source: NewsSource): NewsPersonalScope
 }
 
-class FirestoreNewsPersonalScopeSource(
+fun interface OrganizationPersonalScopeSource {
+    suspend fun load(scope: OrganizationScope): Set<String>
+}
+
+fun interface EventPersonalScopeSource {
+    suspend fun load(scope: EventScope): Set<String>
+}
+
+class FirestoreFeedPersonalScopeSource(
     private val db: FirebaseFirestore,
     private val auth: FirebaseAuth,
-) : NewsPersonalScopeSource {
+) : NewsPersonalScopeSource, OrganizationPersonalScopeSource, EventPersonalScopeSource {
     init {
         FirebaseBackendGuard.requireFirestore(db)
         FirebaseBackendGuard.requireAuth(auth)
@@ -31,7 +39,8 @@ class FirestoreNewsPersonalScopeSource(
 
     override suspend fun load(source: NewsSource): NewsPersonalScope {
         if (source == NewsSource.ALL) return NewsPersonalScope()
-        val uid = auth.currentUser?.uid ?: throw ReadException(ReadFailure.DENIED)
+        val uid = auth.currentUser?.takeUnless { it.isAnonymous }?.uid
+            ?: throw ReadException(ReadFailure.DENIED)
         return request {
             when (source) {
                 NewsSource.ALL -> NewsPersonalScope()
@@ -60,6 +69,51 @@ class FirestoreNewsPersonalScopeSource(
                 if (auth.currentUser?.uid != uid)
                     throw CancellationException("News account changed")
             }
+    }
+
+    override suspend fun load(scope: OrganizationScope): Set<String> {
+        if (scope == OrganizationScope.ALL) return emptySet()
+        val uid = auth.currentUser?.takeUnless { it.isAnonymous }?.uid
+            ?: throw ReadException(ReadFailure.DENIED)
+        return request {
+            when (scope) {
+                OrganizationScope.ALL -> emptySet()
+                OrganizationScope.BOOKMARKED ->
+                    documentIds(db.collection("users/$uid/organizationBookmarks"))
+                OrganizationScope.SUBSCRIBED ->
+                    documents(
+                        db.collection("likes")
+                            .whereEqualTo("userId", uid)
+                            .orderBy(FieldPath.documentId())
+                    ).mapNotNull { it.getString("subscribedOrganizationId") }
+                        .filter(String::isNotBlank).toSet()
+            }
+        }.also {
+            if (auth.currentUser?.uid != uid)
+                throw CancellationException("Organization account changed")
+        }
+    }
+
+    override suspend fun load(scope: EventScope): Set<String> {
+        if (scope == EventScope.ALL) return emptySet()
+        val uid = auth.currentUser?.takeUnless { it.isAnonymous }?.uid
+            ?: throw ReadException(ReadFailure.DENIED)
+        return request {
+            when (scope) {
+                EventScope.ALL -> emptySet()
+                EventScope.SAVED -> documentIds(db.collection("users/$uid/eventBookmarks"))
+                EventScope.REGISTERED ->
+                    documents(
+                        db.collection("registrations")
+                            .whereEqualTo("userId", uid)
+                            .orderBy(FieldPath.documentId())
+                    ).mapNotNull { it.getString("eventId") }
+                        .filter(String::isNotBlank).toSet()
+            }
+        }.also {
+            if (auth.currentUser?.uid != uid)
+                throw CancellationException("Event account changed")
+        }
     }
 
     private suspend fun documentIds(collection: com.google.firebase.firestore.CollectionReference) =

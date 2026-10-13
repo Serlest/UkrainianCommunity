@@ -231,11 +231,12 @@ fun priceText(fields: Fields, language: String): String {
 @Composable
 private fun EventInformation(content: Content, language: String) {
     val f = content.fields
-    val start = f.time("startDate")
-    val end = f.time("endDate")
-    val allDay = f["isAllDay"] == true
+    val currentOccurrence = f.displayEventOccurrence(Instant.now())
+    val start = currentOccurrence?.start
+    val end = currentOccurrence?.end
+    val allDay = currentOccurrence?.allDay == true
     val cancelled = f.string("cancellationState") == "cancelled"
-    val past = end?.let { it < Instant.now() } == true
+    val past = f.nextEventOccurrence(Instant.now()) == null
     Section(tr(language, "Auf einen Blick", "Коротко про подію")) {
         if (cancelled)
             Surface(

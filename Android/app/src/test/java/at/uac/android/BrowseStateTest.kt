@@ -67,6 +67,23 @@ class BrowseStateTest {
     }
 
     @Test
+    fun firstTabIsFullNewsFeedWithPagingAndFilters() = runTest {
+        val vm = model()
+        advanceUntilIdle()
+        assertEquals("home", vm.state.value.route)
+        assertEquals(ContentKind.NEWS, vm.state.value.kind)
+        assertEquals(6, vm.state.value.data.items.size)
+        assertTrue(vm.state.value.data.items.all { it.kind == ContentKind.NEWS })
+        assertTrue(vm.state.value.data.hasMore)
+        vm.more()
+        advanceUntilIdle()
+        assertEquals(12, vm.state.value.data.items.size)
+        vm.filters(search = "synthetic-18")
+        advanceUntilIdle()
+        assertEquals(listOf("synthetic-18"), vm.state.value.data.items.map { it.id })
+    }
+
+    @Test
     fun missingOptionalDonationDoesNotRenderAFeedWarning() = runTest {
         val vm = model()
         advanceUntilIdle()

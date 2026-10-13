@@ -728,6 +728,10 @@ class MainActivity : FragmentActivity() {
                     }
                     check(modelClass == BrowseViewModel::class.java)
                     val (synthetic, emulator) = localContentRepositories(applicationContext)
+                    val feedScopes = FirestoreFeedPersonalScopeSource(
+                        AppBackend.firestore(applicationContext),
+                        AppBackend.auth(applicationContext),
+                    )
                     return BrowseViewModel(
                             synthetic,
                             emulator,
@@ -736,10 +740,9 @@ class MainActivity : FragmentActivity() {
                             preferences.getString("region", "").orEmpty(),
                             preferences.getString("theme", "system")!!,
                             { key, selected -> preferences.edit { putString(key, selected) } },
-                            FirestoreNewsPersonalScopeSource(
-                                AppBackend.firestore(applicationContext),
-                                AppBackend.auth(applicationContext),
-                            ),
+                            feedScopes,
+                            feedScopes,
+                            feedScopes,
                         )
                         .also { navigation ->
                             navigation.observeAccounts(

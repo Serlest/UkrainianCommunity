@@ -560,9 +560,9 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
 
 private fun navigationLabel(tab: PrimaryTab, language: String): String =
     when (tab) {
-        PrimaryTab.HOME -> tr(language, "Start", "Головна")
-        PrimaryTab.EVENTS -> tr(language, "Events", "Події")
-        PrimaryTab.ORGANIZATIONS -> tr(language, "Organisationen", "Організації")
+        PrimaryTab.HOME -> tr(language, "Nachrichten", "Новини")
+        PrimaryTab.EVENTS -> tr(language, "Termine", "Події")
+        PrimaryTab.ORGANIZATIONS -> tr(language, "Organisation", "Організації")
         PrimaryTab.DIRECTORY -> tr(language, "Ratgeber", "Довідник")
         PrimaryTab.PROFILE -> tr(language, "Profil", "Профіль")
     }
@@ -579,7 +579,7 @@ private fun UacNavigationTab(
 ) {
     val icon =
         when (tab) {
-            PrimaryTab.HOME -> UacIcon.HOME
+            PrimaryTab.HOME -> UacIcon.NEWS
             PrimaryTab.EVENTS -> UacIcon.CALENDAR
             PrimaryTab.ORGANIZATIONS -> UacIcon.ORGANIZATIONS
             PrimaryTab.DIRECTORY -> UacIcon.DIRECTORY
@@ -621,8 +621,10 @@ private fun UacNavigationTab(
             ) {
                 UacSymbol(icon)
                 Text(
-                    label,
-                    Modifier.fillMaxWidth().testTag("tab-label-${tab.route}"),
+                    if (tab == PrimaryTab.ORGANIZATIONS && label == "Organisation")
+                        "Organi-\nsation" else label,
+                    Modifier.fillMaxWidth().testTag("tab-label-${tab.route}")
+                        .semantics { contentDescription = label },
                     style = labelStyle,
                     textAlign = TextAlign.Center,
                 )

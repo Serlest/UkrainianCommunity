@@ -7,7 +7,7 @@ import at.uac.android.feature.directory.DirectoryCatalog
 import at.uac.android.feature.organization.OrganizationContract
 import at.uac.android.feature.personal.validDocumentId
 
-/** Independent tab stacks. The Home-to-News restructuring is a later parity step. */
+/** Independent tab stacks. The legacy home route remains stable for saved navigation state. */
 enum class PrimaryTab(val route: String) {
     HOME("home"),
     EVENTS("events"),

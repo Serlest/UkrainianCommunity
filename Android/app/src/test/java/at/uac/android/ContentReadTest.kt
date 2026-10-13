@@ -275,6 +275,66 @@ class ContentReadTest {
     }
 
     @Test
+    fun eventDiscoveryPeriodAgeAndPersonalIdsFilterBeforePaging() = runTest {
+        val today = now.atZone(ZoneId.systemDefault()).toLocalDate()
+        val thisWeek = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+        val nextWeek = thisWeek.plusWeeks(1)
+        val events = listOf(
+            row("today", mapOf("details" to "a", "startDate" to now.plusSeconds(60),
+                "endDate" to now.plusSeconds(3600), "minimumAge" to 10, "maximumAge" to 15,
+                "audience" to "everyone")),
+            row("later", mapOf("details" to "b",
+                "startDate" to nextWeek.atStartOfDay(ZoneId.systemDefault()).toInstant(),
+                "endDate" to nextWeek.atStartOfDay(ZoneId.systemDefault()).toInstant().plusSeconds(3600),
+                "minimumAge" to 18, "maximumAge" to 80, "audience" to "families")),
+        )
+        val repository = ContentRepository(source(events, ContentKind.EVENTS), MemoryContentCache()) { now }
+        val query = ContentQuery(ContentKind.EVENTS, now = now, audience = "families",
+            eventPeriod = EventPeriod.TODAY, eventAge = EventAge.TEEN,
+            eventScope = EventScope.SAVED, allowedEventIds = setOf("today"))
+        assertEquals(listOf("today"), repository.page(query).value.items.map { it.id })
+        assertTrue(repository.page(query.copy(eventAge = EventAge.ADULT)).value.items.isEmpty())
+        assertTrue(repository.page(query.copy(allowedEventIds = emptySet())).value.items.isEmpty())
+    }
+
+    @Test
+    fun eventDiscoveryUsesNextScheduledOccurrenceAndKeepsCancelledFutureInPast() {
+        val first = now.minusSeconds(86_400)
+        val future = now.plusSeconds(86_400)
+        val recurring = row("recurring", mapOf(
+            "details" to "Details", "startDate" to first,
+            "endDate" to future.plusSeconds(3600),
+            "occurrences" to listOf(
+                mapOf("startDate" to first, "endDate" to first.plusSeconds(3600),
+                    "status" to "cancelled"),
+                mapOf("startDate" to future, "endDate" to future.plusSeconds(3600),
+                    "status" to "scheduled"),
+            ),
+        ))
+        val upcoming = ContentQuery(ContentKind.EVENTS, now = now)
+        assertTrue(upcoming.acceptsRaw(recurring))
+        assertFalse(upcoming.copy(past = true).acceptsRaw(recurring))
+        assertEquals(future, recurring.fields.displayEventOccurrence(now)?.start)
+
+        val cancelled = recurring.copy(id = "cancelled", fields = recurring.fields +
+            ("occurrences" to listOf(mapOf("startDate" to future,
+                "endDate" to future.plusSeconds(3600), "status" to "cancelled"))))
+        assertFalse(upcoming.acceptsRaw(cancelled))
+        assertTrue(upcoming.copy(past = true).acceptsRaw(cancelled))
+    }
+
+    @Test
+    fun organizationPersonalMembershipDoesNotAdmitOtherOrganizations() {
+        val member = row("member", mapOf("name" to "Member", "city" to "Wien", "description" to "x"))
+        val other = row("other", mapOf("name" to "Other", "city" to "Wien", "description" to "x"))
+        val query = ContentQuery(ContentKind.ORGANIZATIONS,
+            organizationScope = OrganizationScope.BOOKMARKED,
+            allowedOrganizationIds = setOf("member"))
+        assertTrue(query.acceptsRaw(member))
+        assertFalse(query.acceptsRaw(other))
+    }
+
+    @Test
     fun recommendationsUseCategoryAndCreatedAtForEventsWithoutUpcomingConstraint() {
         val query =
             ContentQuery(

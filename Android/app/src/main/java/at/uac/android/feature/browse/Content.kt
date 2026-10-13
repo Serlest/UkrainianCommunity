@@ -30,6 +30,39 @@ fun Fields.time(key: String): Instant? = this[key] as? Instant
 
 fun Fields.count(key: String): Long = (this[key] as? Number)?.toLong()?.coerceAtLeast(0) ?: 0
 
+data class FeedEventOccurrence(
+    val start: Instant,
+    val end: Instant,
+    val allDay: Boolean,
+    val cancelled: Boolean,
+)
+
+fun Fields.eventOccurrences(): List<FeedEventOccurrence> {
+    val explicit = (this["occurrences"] as? List<*>)
+        ?.filterIsInstance<Map<*, *>>()
+        ?.mapNotNull { row ->
+            val start = row["startDate"] as? Instant ?: return@mapNotNull null
+            val end = row["endDate"] as? Instant ?: return@mapNotNull null
+            if (end < start) return@mapNotNull null
+            FeedEventOccurrence(start, end, row["isAllDay"] == true,
+                row["status"] == "cancelled")
+        }
+        .orEmpty()
+        .sortedBy(FeedEventOccurrence::start)
+    if (explicit.isNotEmpty()) return explicit
+    val start = time("startDate") ?: return emptyList()
+    val end = time("endDate") ?: return emptyList()
+    return if (end >= start) listOf(FeedEventOccurrence(
+        start, end, this["isAllDay"] == true, false
+    )) else emptyList()
+}
+
+fun Fields.nextEventOccurrence(now: Instant): FeedEventOccurrence? =
+    eventOccurrences().firstOrNull { !it.cancelled && it.end >= now }
+
+fun Fields.displayEventOccurrence(now: Instant): FeedEventOccurrence? =
+    nextEventOccurrence(now) ?: eventOccurrences().firstOrNull()
+
 fun tr(language: String, de: String, uk: String) = if (language == "uk") uk else de
 
 enum class ContentKind(val collection: String, val de: String, val uk: String, val order: String) {
@@ -39,6 +72,16 @@ enum class ContentKind(val collection: String, val de: String, val uk: String, v
 
     fun label(language: String) = tr(language, de, uk)
 }
+
+enum class EventPeriod { ALL, TODAY, THIS_WEEK }
+
+enum class EventScope { ALL, SAVED, REGISTERED }
+
+enum class EventAge(val lower: Int, val upper: Int) {
+    ANY(0, 120), CHILD(0, 12), TEEN(13, 17), ADULT(18, 120),
+}
+
+enum class OrganizationScope { ALL, SUBSCRIBED, BOOKMARKED }
 
 enum class ReadFailure {
     OFFLINE,
@@ -155,7 +198,8 @@ data class Content(val kind: ContentKind, val id: String, val fields: Fields) {
                 fields.strings("additionalCategories") +
                 fields.map("directoryProfile").strings("secondaryCategories")
         return (query.category.isEmpty() || query.category in categories) &&
-            (query.audience.isEmpty() || fields.string("audience") == query.audience) &&
+            (query.audience.isEmpty() || fields.string("audience") in setOf("everyone", query.audience)) &&
+            (kind != ContentKind.EVENTS || query.matchesEventDiscovery(fields)) &&
             fold(
                     listOf(
                             title(query.language),
@@ -220,6 +264,10 @@ data class ContentQuery(
     val organizationId: String = "",
     val now: Instant = Instant.now(),
     val audience: String = "",
+    val eventPeriod: EventPeriod = EventPeriod.ALL,
+    val eventAge: EventAge = EventAge.ANY,
+    val eventScope: EventScope = EventScope.ALL,
+    val organizationScope: OrganizationScope = OrganizationScope.ALL,
     val recommendations: Boolean = false,
     val newsPeriod: NewsPeriod = NewsPeriod.ALL,
     val newsOrder: NewsOrder = NewsOrder.NEWEST,
@@ -227,8 +275,28 @@ data class ContentQuery(
     val customStart: LocalDate? = null,
     val customEnd: LocalDate? = null,
     val allowedNewsIds: Set<String>? = null,
+    val allowedEventIds: Set<String>? = null,
     val allowedOrganizationIds: Set<String>? = null,
 ) {
+    fun matchesEventDiscovery(fields: Fields): Boolean {
+        if (recommendations) return true
+        val start = fields.displayEventOccurrence(now)?.start ?: return false
+        val date = start.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        val today = now.atZone(java.time.ZoneId.systemDefault()).toLocalDate()
+        val periodMatches = when (if (past) EventPeriod.ALL else eventPeriod) {
+            EventPeriod.ALL -> true
+            EventPeriod.TODAY -> date == today
+            EventPeriod.THIS_WEEK -> {
+                val firstDay = java.time.temporal.WeekFields.of(Locale.getDefault()).firstDayOfWeek
+                val first = today.with(java.time.temporal.TemporalAdjusters.previousOrSame(firstDay))
+                date >= first && date < first.plusWeeks(1)
+            }
+        }
+        val min = (fields["minimumAge"] as? Number)?.toInt() ?: 0
+        val max = (fields["maximumAge"] as? Number)?.toInt() ?: 120
+        return periodMatches && min <= eventAge.upper && max >= eventAge.lower
+    }
+
     val newsDates: NewsDateRange
         get() = newsDateRange(newsPeriod, now, customStart = customStart, customEnd = customEnd)
 
@@ -270,9 +338,12 @@ data class ContentQuery(
                             NewsSource.SUBSCRIBED ->
                                 allowedOrganizationIds?.contains(string("organizationId")) == true
                         }) &&
+                (kind != ContentKind.ORGANIZATIONS || organizationScope == OrganizationScope.ALL ||
+                    allowedOrganizationIds?.contains(doc.id) == true) &&
                 (kind != ContentKind.EVENTS ||
                     recommendations ||
-                    if (past) time("endDate")!! < now else time("endDate")!! >= now)
+                    ((if (past) nextEventOccurrence(now) == null else nextEventOccurrence(now) != null) &&
+                        (eventScope == EventScope.ALL || allowedEventIds?.contains(doc.id) == true)))
         }
 }
 

@@ -10,7 +10,6 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -47,7 +46,10 @@ import at.uac.android.feature.directory.DirectoryEditorAccess
 import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 internal fun shouldRevealNewBanner(
     bannersAvailable: Boolean,
@@ -237,9 +239,7 @@ fun BrowseScreen(
                                                 item("banners") { BannerCarousel(state, model) }
                                             if (state.detailId.isEmpty())
                                                 item("filters") {
-                                                    if (state.route == "home")
-                                                        HomeFeedControls(state, model)
-                                                    else BrowseListControls(state, model)
+                                                    BrowseListControls(state, model)
                                                 }
                                             if (visibilityNotice != null)
                                                 item("visibility") { visibilityNotice() }
@@ -267,26 +267,31 @@ fun BrowseScreen(
                                                 }
                                             if (state.data.error != null)
                                                 item("error") {
+                                                    val signInRequired = !state.accountAvailable &&
+                                                        state.data.error == ReadFailure.DENIED &&
+                                                        (state.kind == ContentKind.NEWS && state.newsSource != NewsSource.ALL ||
+                                                            state.kind == ContentKind.EVENTS && state.eventScope != EventScope.ALL ||
+                                                            state.kind == ContentKind.ORGANIZATIONS && state.organizationScope != OrganizationScope.ALL)
                                                     Section(
-                                                        tr(l, "Nicht verfügbar", "Недоступно")
+                                                        if (signInRequired) tr(l, "Anmeldung erforderlich", "Потрібен вхід")
+                                                        else tr(l, "Nicht verfügbar", "Недоступно")
                                                     ) {
                                                         Text(
-                                                            failureText(state.data.error, l),
+                                                            if (signInRequired)
+                                                                tr(l, "Melde dich an, um deine persönlichen Inhalte zu sehen.", "Увійдіть, щоб побачити особисті матеріали.")
+                                                            else failureText(state.data.error, l),
                                                             Modifier.testTag("browse-error"),
                                                         )
-                                                        Button(
-                                                            if (state.data.items.isEmpty())
-                                                                model::refresh
-                                                            else model::more,
-                                                            Modifier.testTag("browse-retry"),
-                                                        ) {
-                                                            Text(
-                                                                tr(
-                                                                    l,
-                                                                    "Erneut versuchen",
-                                                                    "Спробувати ще раз",
-                                                                )
-                                                            )
+                                                        if (signInRequired) {
+                                                            Button(
+                                                                { model.navigate("profile/login") },
+                                                                Modifier.testTag("browse-sign-in"),
+                                                            ) { Text(tr(l, "Anmelden", "Увійти")) }
+                                                        } else {
+                                                            Button(
+                                                                if (state.data.items.isEmpty()) model::refresh else model::more,
+                                                                Modifier.testTag("browse-retry"),
+                                                            ) { Text(tr(l, "Erneut versuchen", "Спробувати ще раз")) }
                                                         }
                                                     }
                                                 }
@@ -311,28 +316,46 @@ fun BrowseScreen(
                                                         publicGallery,
                                                     )
                                                 }
-                                            if (state.route == "home")
-                                                item("overview") {
-                                                    Text(
-                                                        tr(
-                                                            l,
-                                                            "Aktuelle Auswahl · alle Einträge in den jeweiligen Bereichen",
-                                                            "Свіжа добірка · усі матеріали у відповідних розділах",
-                                                        ),
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color =
-                                                            MaterialTheme.colorScheme
-                                                                .onSurfaceVariant,
-                                                    )
+                                            if (state.isList && state.kind == ContentKind.EVENTS) {
+                                                val sorted = state.data.items.sortedWith(
+                                                    compareBy<Content> { it.fields.displayEventOccurrence(Instant.now())?.start }
+                                                        .thenBy { it.id }
+                                                ).let { if (state.past) it.reversed() else it }
+                                                sorted.groupBy {
+                                                    it.fields.displayEventOccurrence(Instant.now())!!.start
+                                                        .atZone(ZoneId.systemDefault())
+                                                        .toLocalDate()
+                                                        .withDayOfMonth(1)
+                                                }.forEach { (month, events) ->
+                                                    item("month:$month") {
+                                                        Text(
+                                                            month.format(
+                                                                DateTimeFormatter.ofPattern(
+                                                                    "LLLL yyyy",
+                                                                    Locale.forLanguageTag(if (l == "uk") "uk" else "de"),
+                                                                )
+                                                            ).replaceFirstChar(Char::titlecase),
+                                                            Modifier.fillMaxWidth().semantics { heading() }
+                                                                .testTag("event-month-$month"),
+                                                            style = MaterialTheme.typography.titleMedium,
+                                                        )
+                                                    }
+                                                    items(events, key = { "events/${it.id}" }) { item ->
+                                                        ContentCard(item, l) {
+                                                            model.navigate("events/${item.id}")
+                                                        }
+                                                    }
                                                 }
-                                            items(
-                                                state.data.items,
-                                                key = { "${it.kind}/${it.id}" },
-                                            ) { item ->
-                                                ContentCard(item, l) {
-                                                    model.navigate(
-                                                        "${item.kind.collection}/${item.id}"
-                                                    )
+                                            } else {
+                                                items(
+                                                    state.data.items,
+                                                    key = { "${it.kind}/${it.id}" },
+                                                ) { item ->
+                                                    ContentCard(item, l) {
+                                                        model.navigate(
+                                                            "${item.kind.collection}/${item.id}"
+                                                        )
+                                                    }
                                                 }
                                             }
                                             if (
@@ -350,11 +373,21 @@ fun BrowseScreen(
                                                                 "Поки немає збігів. Перегляньте наступні сторінки.",
                                                             )
                                                         else
-                                                            tr(
-                                                                l,
-                                                                "Keine passenden Inhalte gefunden.",
-                                                                "Відповідних матеріалів не знайдено.",
-                                                            ),
+                                                            when {
+                                                                state.kind == ContentKind.EVENTS && state.past ->
+                                                                    tr(l, "Keine vergangenen Termine gefunden.", "Минулих подій не знайдено.")
+                                                                state.kind == ContentKind.EVENTS && state.eventScope == EventScope.SAVED ->
+                                                                    tr(l, "Keine gespeicherten Termine gefunden.", "Збережених подій не знайдено.")
+                                                                state.kind == ContentKind.EVENTS && state.eventScope == EventScope.REGISTERED ->
+                                                                    tr(l, "Keine Anmeldungen gefunden.", "Реєстрацій не знайдено.")
+                                                                state.kind == ContentKind.EVENTS ->
+                                                                    tr(l, "Keine kommenden Termine gefunden.", "Майбутніх подій не знайдено.")
+                                                                state.kind == ContentKind.ORGANIZATIONS && state.organizationScope == OrganizationScope.SUBSCRIBED ->
+                                                                    tr(l, "Keine abonnierten Organisationen gefunden.", "Підписок на організації не знайдено.")
+                                                                state.kind == ContentKind.ORGANIZATIONS && state.organizationScope == OrganizationScope.BOOKMARKED ->
+                                                                    tr(l, "Keine gespeicherten Organisationen gefunden.", "Збережених організацій не знайдено.")
+                                                                else -> tr(l, "Keine passenden Inhalte gefunden.", "Відповідних матеріалів не знайдено.")
+                                                            },
                                                         Modifier.testTag("empty"),
                                                     )
                                                 }
@@ -368,6 +401,45 @@ fun BrowseScreen(
                                                         Text(tr(l, "Mehr laden", "Завантажити ще"))
                                                     }
                                                 }
+                                            if (state.isList && state.kind == ContentKind.EVENTS &&
+                                                !state.past && state.organizationId.isEmpty() &&
+                                                (state.data.pastItems.isNotEmpty() ||
+                                                    state.data.pastError != null || state.data.pastHasMore)) {
+                                                item("past-heading") {
+                                                    Text(
+                                                        tr(l, "Vergangene Termine", "Минулі події"),
+                                                        Modifier.fillMaxWidth().semantics { heading() }
+                                                            .testTag("past-events-heading"),
+                                                        style = MaterialTheme.typography.titleMedium,
+                                                    )
+                                                }
+                                                items(
+                                                    state.data.pastItems.sortedWith(
+                                                        compareByDescending<Content> { it.fields.displayEventOccurrence(Instant.now())?.start }
+                                                            .thenBy { it.id }
+                                                    ),
+                                                    key = { "past-events/${it.id}" },
+                                                ) { item ->
+                                                    ContentCard(item, l) { model.navigate("events/${item.id}") }
+                                                }
+                                                if (state.data.pastError != null)
+                                                    item("past-error") {
+                                                        Section(tr(l, "Vergangene Termine", "Минулі події")) {
+                                                            Text(failureText(state.data.pastError, l))
+                                                            Button(model::refresh, Modifier.testTag("past-events-retry")) {
+                                                                Text(tr(l, "Erneut versuchen", "Спробувати ще раз"))
+                                                            }
+                                                        }
+                                                    }
+                                                if (state.data.pastHasMore)
+                                                    item("past-more") {
+                                                        Button(
+                                                            model::morePast,
+                                                            Modifier.testTag("load-more-past"),
+                                                            enabled = !state.data.pastLoading,
+                                                        ) { Text(tr(l, "Mehr vergangene Termine", "Більше минулих подій")) }
+                                                    }
+                                            }
                                             if (state.data.donation?.url != null)
                                                 item("donation") {
                                                     val donation = state.data.donation
@@ -552,6 +624,10 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                             state.category.isNotEmpty(),
                             state.kind == ContentKind.EVENTS && state.past,
                             state.kind == ContentKind.EVENTS && state.audience.isNotEmpty(),
+                            state.kind == ContentKind.EVENTS && state.eventPeriod != EventPeriod.ALL,
+                            state.kind == ContentKind.EVENTS && state.eventAge != EventAge.ANY,
+                            state.kind == ContentKind.EVENTS && state.eventScope != EventScope.ALL,
+                            state.kind == ContentKind.ORGANIZATIONS && state.organizationScope != OrganizationScope.ALL,
                             state.kind == ContentKind.NEWS && state.newsPeriod != NewsPeriod.ALL,
                             state.kind == ContentKind.NEWS && state.newsOrder != NewsOrder.NEWEST,
                             state.kind == ContentKind.NEWS && state.newsSource != NewsSource.ALL,
@@ -577,6 +653,55 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().testTag("news-filter-summary"),
                 )
+            if (state.kind == ContentKind.EVENTS)
+                Column(
+                    Modifier.fillMaxWidth().testTag("events-discovery-row"),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            EventPeriod.TODAY to tr(language, "Heute", "Сьогодні"),
+                            EventPeriod.THIS_WEEK to tr(language, "Diese Woche", "Цього тижня"),
+                        ).forEach { (period, title) ->
+                            FilterChip(
+                                selected = state.eventPeriod == period,
+                                onClick = { model.filters(eventPeriod = if (state.eventPeriod == period) EventPeriod.ALL else period) },
+                                label = { Text(title) },
+                                modifier = Modifier.testTag("event-quick-period-${period.name}"),
+                            )
+                        }
+                    }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf(
+                            EventScope.SAVED to tr(language, "Gespeichert", "Збережені"),
+                            EventScope.REGISTERED to tr(language, "Angemeldet", "Зареєстровані"),
+                        ).forEach { (scope, title) ->
+                            FilterChip(
+                                selected = state.eventScope == scope,
+                                onClick = { model.filters(eventScope = if (state.eventScope == scope) EventScope.ALL else scope) },
+                                label = { Text(title) },
+                                modifier = Modifier.testTag("event-quick-scope-${scope.name}"),
+                            )
+                        }
+                    }
+                }
+            if (state.kind == ContentKind.ORGANIZATIONS)
+                FlowRow(
+                    Modifier.fillMaxWidth().testTag("organizations-discovery-row"),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    listOf(
+                        OrganizationScope.SUBSCRIBED to tr(language, "Abonniert", "Підписки"),
+                        OrganizationScope.BOOKMARKED to tr(language, "Gespeichert", "Збережені"),
+                    ).forEach { (scope, title) ->
+                        FilterChip(
+                            selected = state.organizationScope == scope,
+                            onClick = { model.filters(organizationScope = if (state.organizationScope == scope) OrganizationScope.ALL else scope) },
+                            label = { Text(title) },
+                            modifier = Modifier.testTag("organization-quick-scope-${scope.name}"),
+                        )
+                    }
+                }
             if (searchVisible || state.search.isNotEmpty())
                 OutlinedTextField(
                     state.search,
@@ -669,6 +794,10 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
             onCategory = { model.filters(category = it) },
             onPast = { model.filters(past = it) },
             onAudience = { model.filters(audience = it) },
+            onEventPeriod = { model.filters(eventPeriod = it) },
+            onEventAge = { model.filters(eventAge = it) },
+            onEventScope = { model.filters(eventScope = it) },
+            onOrganizationScope = { model.filters(organizationScope = it) },
         )
     else if (sheet != null)
         ModalBottomSheet(
@@ -723,6 +852,10 @@ private fun ContentFilterSheet(
     onCategory: (String) -> Unit,
     onPast: (Boolean) -> Unit,
     onAudience: (String) -> Unit,
+    onEventPeriod: (EventPeriod) -> Unit,
+    onEventAge: (EventAge) -> Unit,
+    onEventScope: (EventScope) -> Unit,
+    onOrganizationScope: (OrganizationScope) -> Unit,
 ) {
     val language = state.language
     ModalBottomSheet(
@@ -738,6 +871,21 @@ private fun ContentFilterSheet(
         ) {
             Heading(tr(language, "Inhalte filtern", "Фільтрувати матеріали"))
             if (state.kind == ContentKind.EVENTS) {
+                Text(tr(language, "Wann", "Коли"), style = MaterialTheme.typography.titleMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EventPeriod.entries.forEach { period ->
+                        FilterChip(
+                            selected = state.eventPeriod == period,
+                            onClick = { onEventPeriod(period) },
+                            label = { Text(when (period) {
+                                EventPeriod.ALL -> tr(language, "Alle", "Усі")
+                                EventPeriod.TODAY -> tr(language, "Heute", "Сьогодні")
+                                EventPeriod.THIS_WEEK -> tr(language, "Diese Woche", "Цього тижня")
+                            }) },
+                            modifier = Modifier.testTag("event-period-${period.name}"),
+                        )
+                    }
+                }
                 Text(tr(language, "Zeitraum", "Час"), style = MaterialTheme.typography.titleMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(
@@ -780,6 +928,54 @@ private fun ContentFilterSheet(
                                 modifier = Modifier.testTag("audience-$value"),
                             )
                         }
+                }
+                Text(tr(language, "Alter", "Вік"), style = MaterialTheme.typography.titleMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EventAge.entries.forEach { age ->
+                        FilterChip(
+                            selected = state.eventAge == age,
+                            onClick = { onEventAge(age) },
+                            label = { Text(when (age) {
+                                EventAge.ANY -> tr(language, "Alle", "Усі")
+                                EventAge.CHILD -> tr(language, "Kinder", "Діти")
+                                EventAge.TEEN -> tr(language, "Jugendliche", "Підлітки")
+                                EventAge.ADULT -> tr(language, "Erwachsene", "Дорослі")
+                            }) },
+                            modifier = Modifier.testTag("event-age-${age.name}"),
+                        )
+                    }
+                }
+                Text(tr(language, "Meine Termine", "Мої події"), style = MaterialTheme.typography.titleMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    EventScope.entries.forEach { scope ->
+                        FilterChip(
+                            selected = state.eventScope == scope,
+                            onClick = { onEventScope(scope) },
+                            label = { Text(when (scope) {
+                                EventScope.ALL -> tr(language, "Alle", "Усі")
+                                EventScope.SAVED -> tr(language, "Gespeichert", "Збережені")
+                                EventScope.REGISTERED -> tr(language, "Angemeldet", "Зареєстровані")
+                            }) },
+                            modifier = Modifier.testTag("event-scope-${scope.name}"),
+                        )
+                    }
+                }
+            }
+            if (state.kind == ContentKind.ORGANIZATIONS) {
+                Text(tr(language, "Meine Organisationen", "Мої організації"), style = MaterialTheme.typography.titleMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OrganizationScope.entries.forEach { scope ->
+                        FilterChip(
+                            selected = state.organizationScope == scope,
+                            onClick = { onOrganizationScope(scope) },
+                            label = { Text(when (scope) {
+                                OrganizationScope.ALL -> tr(language, "Alle", "Усі")
+                                OrganizationScope.SUBSCRIBED -> tr(language, "Abonniert", "Підписки")
+                                OrganizationScope.BOOKMARKED -> tr(language, "Gespeichert", "Збережені")
+                            }) },
+                            modifier = Modifier.testTag("organization-scope-${scope.name}"),
+                        )
+                    }
                 }
             }
             Text(
@@ -985,87 +1181,6 @@ private fun newsSourceLabel(value: NewsSource, language: String) =
         NewsSource.SAVED -> tr(language, "Gespeichert", "Збережені")
         NewsSource.SUBSCRIBED -> tr(language, "Meine Abos", "Мої підписки")
     }
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun HomeFeedControls(state: BrowseState, model: BrowseViewModel) {
-    val language = state.language
-    var regionSheet by rememberSaveable { mutableStateOf(false) }
-    val regionLabel =
-        regions.find { it.first == state.region }?.second
-            ?: tr(language, "Ganz Österreich", "Уся Австрія")
-    LazyRow(
-        Modifier.widthIn(max = UacDesign.readableWidth).fillMaxWidth().testTag("home-controls"),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        item("region") {
-            FilterChip(
-                selected = state.region.isNotEmpty(),
-                onClick = { regionSheet = true },
-                label = { Text(regionLabel) },
-                modifier = Modifier.heightIn(min = 48.dp).testTag("region"),
-            )
-        }
-        items(
-            listOf(
-                Triple("news", tr(language, "Neuigkeiten", "Новини"), "tab-news"),
-                Triple("events", tr(language, "Veranstaltungen", "Події"), "home-events"),
-                Triple(
-                    "organizations",
-                    tr(language, "Organisationen", "Організації"),
-                    "home-organizations",
-                ),
-            ),
-            key = { it.first },
-        ) { (route, title, tag) ->
-            FilterChip(
-                selected = false,
-                onClick = { model.navigate(route) },
-                label = { Text(title) },
-                modifier = Modifier.heightIn(min = 48.dp).testTag(tag),
-            )
-        }
-        item("saved") {
-            FilterChip(
-                selected = false,
-                onClick = { model.navigate("profile/saved") },
-                label = { Text(tr(language, "Gespeichert", "Збережене")) },
-                modifier = Modifier.testTag("quick-saved"),
-            )
-        }
-    }
-    if (regionSheet)
-        ModalBottomSheet(
-            onDismissRequest = { regionSheet = false },
-            modifier = Modifier.testTag("browse-filter-sheet"),
-        ) {
-            Column(
-                Modifier.fillMaxWidth()
-                    .navigationBarsPadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                Heading(tr(language, "Region", "Регіон"))
-                (listOf("" to tr(language, "Ganz Österreich", "Уся Австрія")) + regions).forEach {
-                    (value, text) ->
-                    FilterChip(
-                        selected = state.region == value,
-                        onClick = {
-                            model.preference("region", value)
-                            regionSheet = false
-                        },
-                        label = { Text(text) },
-                        modifier =
-                            Modifier.fillMaxWidth()
-                                .heightIn(min = UacDesign.minimumTouch)
-                                .testTag("region-$value"),
-                    )
-                }
-                Spacer(Modifier.height(8.dp))
-            }
-        }
-}
 
 @Composable
 fun SafeLink(

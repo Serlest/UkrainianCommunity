@@ -51,8 +51,7 @@ class BrowseUiTest {
         if (kind == "news") {
             compose.onNodeWithTag("tab-home").performClick()
             ready()
-            scroll("home-controls")
-            compose.onNodeWithTag("home-controls").performScrollToNode(hasTestTag("tab-news"))
+            return
         }
         compose.onNodeWithTag("tab-$kind").performClick()
         ready()
@@ -220,9 +219,9 @@ class BrowseUiTest {
         compose.onNodeWithTag("refresh").assertDoesNotExist()
         val heroTop = compose.onNodeWithTag("banner-hero").fetchSemanticsNode().boundsInRoot.top
         val controlsTop =
-            compose.onNodeWithTag("home-controls").fetchSemanticsNode().boundsInRoot.top
+            compose.onNodeWithTag("primary-filter-row").fetchSemanticsNode().boundsInRoot.top
         org.junit.Assert.assertTrue("hero=$heroTop controls=$controlsTop", heroTop < controlsTop)
-        compose.onNodeWithTag("home-controls").performScrollToNode(hasTestTag("quick-saved"))
+        scroll("quick-saved")
         compose.onNodeWithTag("quick-saved").assertIsDisplayed()
 
         tab("news")
