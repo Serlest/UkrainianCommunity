@@ -116,10 +116,27 @@ data class AuthLegalDocument(
     val requiresAcceptance: Boolean,
     val titles: Map<String, String>,
     val texts: Map<String, String>,
+    val contentHash: String? = null,
 ) {
     fun title(language: String): String = titles[language] ?: titles["de"] ?: type
 
     fun text(language: String): String = texts[language] ?: texts["de"] ?: ""
+}
+
+/** Public, server-verified documents shown before an account is created. */
+data class RegistrationLegalState(
+    val loading: Boolean = false,
+    val documents: List<AuthLegalDocument> = emptyList(),
+    val error: AuthProblem? = null,
+) {
+    val ready: Boolean
+        get() =
+            !loading && error == null &&
+                documents.map { it.type }.toSet() == setOf("terms", "privacy") &&
+                documents.all {
+                    it.version.isNotBlank() && it.texts.isNotEmpty() &&
+                        it.contentHash?.matches(Regex("[0-9a-f]{64}")) == true
+                }
 }
 
 data class AuthSession(
@@ -180,8 +197,13 @@ data class AuthRegistration(
     val analyticsOptIn: Boolean = false,
     val termsVersion: String = TERMS_VERSION,
     val privacyVersion: String = PRIVACY_VERSION,
+    val termsContentHash: String? = null,
+    val privacyContentHash: String? = null,
+    val locale: String = "de",
 ) {
     companion object {
+        // Historical local-emulator fixture versions. Production registration must supply
+        // versions read from the authoritative public documents, never these defaults.
         const val TERMS_VERSION = "2026.10"
         const val PRIVACY_VERSION = "2026.12"
         const val MINIMUM_AGE_VERSION = "14+"

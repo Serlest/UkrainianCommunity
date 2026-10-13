@@ -8,6 +8,8 @@ import at.uac.android.AuthEmulatorFixtures.seedLegalReference
 import at.uac.android.core.LocalEnvironment
 import at.uac.android.core.LocalFirebase
 import at.uac.android.feature.auth.*
+import at.uac.android.feature.startup.StartupAccess
+import at.uac.android.feature.startup.startupAccess
 import com.google.firebase.FirebaseApp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.Source
@@ -16,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
@@ -94,6 +97,7 @@ class AuthDeviceTest {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
         val store = AuthStore(backend, profiles, scope)
         var uid: String? = null
+        var secondUid: String? = null
         try {
             withContext(Dispatchers.Main) { store.restore() }.join()
             assertEquals(AuthStage.GUEST, store.state.value.stage)
@@ -123,6 +127,19 @@ class AuthDeviceTest {
             assertEquals("14+", profile.getString("minimumAgeVersion"))
             assertNotNull(profile.getTimestamp("acceptedTermsAt"))
             assertFalse(profile.contains("role"))
+            for (document in profiles.legalDocuments()) {
+                val receipt =
+                    database.collection("legalAcceptanceLogs")
+                        .document("${uid}_${document.type}_${document.version}")
+                        .get(Source.SERVER).await()
+                assertEquals(uid, receipt.getString("userId"))
+                assertEquals(document.type, receipt.getString("documentType"))
+                assertEquals(document.version, receipt.getString("version"))
+                assertEquals(document.contentHash, receipt.getString("contentHash"))
+                assertEquals("android", receipt.getString("acceptedFromPlatform"))
+                assertNotNull(receipt.getTimestamp("acceptedAt"))
+                assertEquals(profile.getTimestamp("createdAt"), receipt.getTimestamp("acceptedAt"))
+            }
             try {
                 database
                     .collection("users")
@@ -144,6 +161,44 @@ class AuthDeviceTest {
             withContext(Dispatchers.Main) { store.applyVerificationCode(verifyCode)!! }.join()
             assertEquals(AuthStage.AUTHENTICATED, store.state.value.stage)
             assertTrue(store.state.value.readyForActions)
+            // A published legal update must revoke the app shell while this
+            // account is still signed in. Restore the isolated fixture after it.
+            val oldTerms = profiles.legalDocuments().first { it.type == "terms" }
+            val newTermsVersion = "2026.11"
+            try {
+                withContext(Dispatchers.IO) {
+                    val root = AuthEmulatorFixtures.documentPath("legalDocuments/terms")
+                    adminRequest(
+                        8088,
+                        "$root/versions/$newTermsVersion",
+                        "PATCH",
+                        build80LegalFixture(oldTerms.copy(version = newTermsVersion)),
+                    )
+                    adminRequest(
+                        8088,
+                        "$root?updateMask.fieldPaths=activeVersion&updateMask.fieldPaths=versionNumber",
+                        "PATCH",
+                        mapOf(
+                            "activeVersion" to newTermsVersion,
+                            "versionNumber" to build80VersionNumber(newTermsVersion),
+                        ),
+                    )
+                }
+                withTimeout(30_000) {
+                    while (store.state.value.gate != AuthGate.LEGAL_REQUIRED) delay(100)
+                }
+                assertFalse(store.state.value.readyForActions)
+                assertEquals(StartupAccess.ACCOUNT, startupAccess(store.state.value))
+                assertEquals(
+                    newTermsVersion,
+                    store.state.value.requiredLegalDocuments().single().version,
+                )
+            } finally {
+                seedLegalReference()
+            }
+            withTimeout(30_000) {
+                while (!store.state.value.readyForActions) delay(100)
+            }
             val publicProfile =
                 database.collection("publicProfiles").document(uid).get(Source.SERVER).await()
             assertEquals("Вигаданий користувач", publicProfile.getString("displayName"))
@@ -190,26 +245,69 @@ class AuthDeviceTest {
             withContext(Dispatchers.Main) { store.signIn(email, newPassword)!! }.join()
             assertTrue(store.state.value.readyForActions)
             assertEquals(uid, backend.current?.uid)
+            // A second account must replace the first profile in the root gate;
+            // switching back must restore only the first account's own data.
+            withContext(Dispatchers.Main) { store.signOut() }.join()
+            val secondEmail = "auth3b-${UUID.randomUUID()}@example.invalid"
+            val second = backend.create(secondEmail, password, "Second synthetic account")
+            secondUid = second.uid
+            val documents = profiles.legalDocuments().associateBy { it.type }
+            profiles.create(
+                second.uid,
+                AuthRegistration(
+                    secondEmail,
+                    "Second synthetic account",
+                    "wien",
+                    acceptedTerms = true,
+                    acceptedPrivacy = true,
+                    minimumAgeConfirmed = true,
+                    termsVersion = documents.getValue("terms").version,
+                    privacyVersion = documents.getValue("privacy").version,
+                    termsContentHash = documents.getValue("terms").contentHash,
+                    privacyContentHash = documents.getValue("privacy").contentHash,
+                ),
+            )
+            backend.sendVerification("de")
+            backend.verifyEmailCode(actionCode(secondEmail, "VERIFY_EMAIL"))
+            withContext(Dispatchers.Main) { store.restore() }.join()
+            assertEquals(second.uid, store.state.value.profile?.uid)
+            assertEquals(secondEmail, store.state.value.profile?.email)
+            assertTrue(store.state.value.readyForActions)
+            backend.deleteCreatedUser(second.uid)
+            withContext(Dispatchers.Main) { store.signOut() }.join()
+            withContext(Dispatchers.Main) { store.signIn(email, newPassword)!! }.join()
+            assertEquals(uid, store.state.value.profile?.uid)
+            assertEquals(email, store.state.value.profile?.email)
+            assertTrue(store.state.value.readyForActions)
         } finally {
             scope.cancel()
             val ownUid = uid
+            val otherUid = secondUid
             val keepForProcessProbe =
                 InstrumentationRegistry.getArguments().getString("keepAuthSession") == "true"
             if (!keepForProcessProbe) {
-                if (ownUid != null && backend.current?.uid == ownUid)
-                    backend.deleteCreatedUser(ownUid)
+                if (backend.current?.uid in listOfNotNull(ownUid, otherUid))
+                    backend.deleteCreatedUser(backend.current!!.uid)
                 backend.signOut()
-                if (ownUid != null) {
+                for (accountUid in listOfNotNull(ownUid, otherUid)) {
                     adminRequest(
                         8088,
-                        "/v1/projects/${LocalEnvironment.PROJECT_ID}/databases/(default)/documents/users/$ownUid",
+                        "/v1/projects/${LocalEnvironment.PROJECT_ID}/databases/(default)/documents/users/$accountUid",
                         "DELETE",
                     )
                     adminRequest(
                         8088,
-                        "/v1/projects/${LocalEnvironment.PROJECT_ID}/databases/(default)/documents/publicProfiles/$ownUid",
+                        "/v1/projects/${LocalEnvironment.PROJECT_ID}/databases/(default)/documents/publicProfiles/$accountUid",
                         "DELETE",
                     )
+                    for (document in profiles.legalDocuments())
+                        adminRequest(
+                            8088,
+                            AuthEmulatorFixtures.documentPath(
+                                "legalAcceptanceLogs/${accountUid}_${document.type}_${document.version}"
+                            ),
+                            "DELETE",
+                        )
                 }
             }
         }

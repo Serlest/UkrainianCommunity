@@ -23,6 +23,7 @@ class AuthSessionTest {
             true,
             mapOf("de" to "Terms"),
             mapOf("de" to "Complete text"),
+            "a".repeat(64),
         )
     private val privacy =
         AuthLegalDocument(
@@ -31,6 +32,7 @@ class AuthSessionTest {
             false,
             mapOf("de" to "Privacy"),
             mapOf("de" to "Complete text"),
+            "b".repeat(64),
         )
 
     private fun identity(uid: String = "a", verified: Boolean = true) =
@@ -347,6 +349,41 @@ class AuthSessionTest {
     }
 
     @Test
+    fun registrationChecksCurrentPublishedVersionsBeforeCreatingIdentity() = runTest {
+        val backend = FakeBackend()
+        val profiles = FakeProfiles()
+        val store = AuthStore(backend, profiles, backgroundScope)
+        store.restore().join()
+        store.loadRegistrationDocuments()!!.join()
+        assertTrue(store.registrationLegal.value.ready)
+        profiles.documents = listOf(terms.copy(version = "new-terms"), privacy)
+
+        store.register(draft(), "1234567890", "1234567890", "de")!!.join()
+
+        assertEquals(0, backend.createCount)
+        assertEquals(AuthStage.GUEST, store.state.value.stage)
+        assertEquals(AuthProblem.LEGAL_CHANGED, store.state.value.error)
+        assertEquals("new-terms", store.registrationLegal.value.documents.first().version)
+    }
+
+    @Test
+    fun unavailableRegistrationDocumentsFailClosedBeforeAccountCreation() = runTest {
+        val backend = FakeBackend()
+        val profiles = FakeProfiles().apply { legalProblem = true }
+        val store = AuthStore(backend, profiles, backgroundScope)
+        store.restore().join()
+        store.loadRegistrationDocuments()!!.join()
+        assertFalse(store.registrationLegal.value.ready)
+        assertEquals(AuthProblem.NETWORK, store.registrationLegal.value.error)
+
+        store.register(draft(), "1234567890", "1234567890", "uk")!!.join()
+
+        assertEquals(0, backend.createCount)
+        assertEquals(AuthStage.GUEST, store.state.value.stage)
+        assertEquals(AuthProblem.NETWORK, store.state.value.error)
+    }
+
+    @Test
     fun serializedPersonalMutationKeepsOldIdentityUntilActualSdkCompletion() = runTest {
         val blocker = CompletableDeferred<Unit>()
         val backend = FakeBackend(identity())
@@ -595,6 +632,7 @@ class AuthSessionTest {
         var fetchCount = 0
         var createCount = 0
         var useRequestedUid = false
+        var documents = listOf(terms, privacy)
         var changes: Flow<Result<AuthProfile>> = emptyFlow()
 
         override suspend fun create(uid: String, draft: AuthRegistration) {
@@ -610,7 +648,7 @@ class AuthSessionTest {
 
         override suspend fun legalDocuments(): List<AuthLegalDocument> {
             if (legalProblem) throw AuthException(AuthProblem.NETWORK)
-            return listOf(terms, privacy)
+            return documents
         }
 
         override suspend fun ensurePublicProfile(profile: AuthProfile) = Unit

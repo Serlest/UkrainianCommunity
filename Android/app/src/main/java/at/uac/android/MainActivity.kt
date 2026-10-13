@@ -12,12 +12,17 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -25,6 +30,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
@@ -50,6 +56,7 @@ import at.uac.android.core.backend.AppBackend
 import at.uac.android.design.LocalUacDark
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacPageBackground
 import at.uac.android.design.UacRowDivider
 import at.uac.android.design.UacSectionCard
 import at.uac.android.design.UacTheme
@@ -61,6 +68,7 @@ import at.uac.android.feature.applinks.*
 import at.uac.android.feature.applock.*
 import at.uac.android.feature.attendees.*
 import at.uac.android.feature.auth.AuthImagePickerAuthorization
+import at.uac.android.feature.auth.AccountScreen
 import at.uac.android.feature.auth.LocalAuthSession
 import at.uac.android.feature.authoring.*
 import at.uac.android.feature.authoring.recovery.localAuthoringRecoveryStore
@@ -954,6 +962,9 @@ class MainActivity : FragmentActivity() {
                 lockState.canRoute,
             ) {
                 val request = pendingAppLink ?: return@LaunchedEffect
+                // Keep a deep link pending behind the mandatory account gate. A guest must
+                // never consume a public link into a hidden browse stack before signing in.
+                if (!authSession.readyForActions) return@LaunchedEffect
                 val resolution =
                     AppLinkContract.resolve(
                         request.destination,
@@ -1079,6 +1090,56 @@ class MainActivity : FragmentActivity() {
                         rememberStartupReducedMotion(),
                         !lockState.blocksInteraction,
                     )
+                }
+            } else if (startupAccess(authSession) != StartupAccess.APP) {
+                // No browse routes, public cards, bottom tabs or overlays are composed until
+                // identity, profile, MFA and current legal versions have all been verified.
+                UacTheme(browseState.theme) {
+                    val dark = LocalUacDark.current
+                    SideEffect {
+                        WindowCompat.getInsetsController(window, window.decorView).apply {
+                            isAppearanceLightStatusBars = !dark
+                            isAppearanceLightNavigationBars = !dark
+                        }
+                    }
+                    UacPageBackground(Modifier.fillMaxSize(), plain = true) {
+                        Column(
+                            Modifier.fillMaxSize()
+                                .windowInsetsPadding(WindowInsets.safeDrawing)
+                                .verticalScroll(rememberScrollState())
+                                .padding(horizontal = 20.dp, vertical = 16.dp)
+                                .testTag("startup-account-gate"),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            TextButton(
+                                {
+                                    model.preference(
+                                        "language",
+                                        if (browseState.language == "uk") "de" else "uk",
+                                    )
+                                },
+                                Modifier.testTag("startup-language"),
+                            ) {
+                                Text(if (browseState.language == "uk") "Deutsch" else "Українська")
+                            }
+                            AccountScreen(auth, browseState.language)
+                        }
+                        AccountStatusHost(
+                            accountStatus,
+                            statusSession,
+                            browseState.language,
+                            interactive =
+                                hostInteractive &&
+                                    lockState.canRoute &&
+                                    !remediationActive &&
+                                    !securityRemediation &&
+                                    !lockHost.privacy.interactionBlocked,
+                            // The account screen is already visible beneath the notice.
+                            onVerification = {},
+                            onMfa = {},
+                        )
+                    }
                 }
             } else {
                 CompositionLocalProvider(

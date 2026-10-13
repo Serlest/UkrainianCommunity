@@ -11,6 +11,24 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthLegalTest {
+    @Test
+    fun initialReceiptContainsTheExactServerLegalHashAndNoCredentials() {
+        val receipt =
+            initialLegalReceiptFields(
+                "user-a", "terms", "2026.14", "a".repeat(64), "uk", 123L,
+            )
+        assertEquals(
+            setOf(
+                "userId", "documentType", "version", "acceptedAt", "appVersion",
+                "locale", "contentHash", "acceptedFromPlatform",
+            ),
+            receipt.keys,
+        )
+        assertEquals("android", receipt["acceptedFromPlatform"])
+        assertEquals("a".repeat(64), receipt["contentHash"])
+        assertEquals("uk", receipt["locale"])
+    }
+
     private val terms =
         AuthLegalDocument(
             "terms",

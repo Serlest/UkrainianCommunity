@@ -55,6 +55,9 @@ class AuthLegalDeviceTest {
             val logIds = mutableListOf<String>()
             try {
                 backend.signOut()
+                val initialDocuments = profiles.legalDocuments()
+                val initialTerms = initialDocuments.first { it.type == "terms" }
+                val initialPrivacy = initialDocuments.first { it.type == "privacy" }
                 val identity = backend.create(email, password, "Synthetic legal account")
                 uid = identity.uid
                 profiles.create(
@@ -67,16 +70,16 @@ class AuthLegalDeviceTest {
                         true,
                         true,
                         true,
-                        termsVersion = "synthetic-old-terms",
-                        privacyVersion = "synthetic-old-privacy",
+                        termsVersion = initialTerms.version,
+                        privacyVersion = initialPrivacy.version,
+                        termsContentHash = initialTerms.contentHash,
+                        privacyContentHash = initialPrivacy.contentHash,
                     ),
                 )
-                val documents = profiles.legalDocuments()
-                val terms = documents.first { it.type == "terms" }
                 assertEquals(
                     AuthProblem.SESSION_CHANGED,
                     (runCatching {
-                            acceptor.accept(identity.uid, terms, "uk")
+                            acceptor.accept(identity.uid, initialTerms, "uk")
                         }
                             .exceptionOrNull() as AuthException)
                         .problem,
@@ -85,7 +88,7 @@ class AuthLegalDeviceTest {
                     runCatching {
                         callables
                             .getHttpsCallable("acceptLegalDocument")
-                            .call(legalAcceptancePayload(terms, "uk"))
+                            .call(legalAcceptancePayload(initialTerms, "uk"))
                             .await()
                     }
                         .exceptionOrNull()
@@ -98,6 +101,30 @@ class AuthLegalDeviceTest {
                 backend.verifyEmailCode(AuthEmulatorFixtures.actionCode(email, "VERIFY_EMAIL"))
                 backend.reload()
                 backend.refreshToken()
+                // Initial registration must use the then-current documents. Publish
+                // newer versions only after that atomic profile and receipt write.
+                withContext(Dispatchers.IO) {
+                    for ((document, version) in
+                        listOf(initialTerms to "2026.11", initialPrivacy to "2026.13")) {
+                        val root = AuthEmulatorFixtures.documentPath("legalDocuments/${document.type}")
+                        AuthEmulatorFixtures.adminRequest(
+                            8088,
+                            "$root/versions/$version",
+                            "PATCH",
+                            build80LegalFixture(document.copy(version = version)),
+                        )
+                        AuthEmulatorFixtures.adminRequest(
+                            8088,
+                            "$root?updateMask.fieldPaths=activeVersion&updateMask.fieldPaths=versionNumber",
+                            "PATCH",
+                            mapOf(
+                                "activeVersion" to version,
+                                "versionNumber" to build80VersionNumber(version),
+                            ),
+                        )
+                    }
+                }
+                val terms = profiles.legalDocuments().first { it.type == "terms" }
                 val store = AuthStore(backend, profiles, scope, acceptor)
                 withContext(Dispatchers.Main) { store.restore() }.join()
                 assertEquals(AuthGate.LEGAL_REQUIRED, store.state.value.gate)
@@ -117,7 +144,7 @@ class AuthLegalDeviceTest {
                         .problem,
                 )
                 assertEquals(
-                    "synthetic-old-terms",
+                    initialTerms.version,
                     database
                         .collection("users")
                         .document(identity.uid)
@@ -178,8 +205,10 @@ class AuthLegalDeviceTest {
                         .get(Source.SERVER)
                         .await()
                 logIds += logs.documents.map { it.id }
-                assertEquals(acceptedVersions.size, logs.size())
-                for (log in logs.documents) {
+                assertEquals(acceptedVersions.size + 2, logs.size())
+                for (log in logs.documents.filter {
+                    acceptedVersions[it.getString("documentType")] == it.getString("version")
+                }) {
                     assertEquals("android", log.getString("acceptedFromPlatform"))
                     assertEquals("uk", log.getString("locale"))
                     assertEquals(BuildConfig.VERSION_NAME, log.getString("appVersion"))
@@ -230,6 +259,7 @@ class AuthLegalDeviceTest {
                 backend.signIn(email, password)
             } finally {
                 scope.cancel()
+                AuthEmulatorFixtures.seedLegalReference()
                 val ownUid = uid
                 if (ownUid != null && backend.current?.uid == ownUid)
                     backend.deleteCreatedUser(ownUid)

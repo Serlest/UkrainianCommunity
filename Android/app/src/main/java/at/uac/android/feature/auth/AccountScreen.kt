@@ -42,6 +42,7 @@ fun AccountScreen(
     personalContent: (@Composable (AuthSession) -> Unit)? = null,
 ) {
     val session by store.state.collectAsStateWithLifecycle()
+    val registrationLegal by store.registrationLegal.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val referenceDocuments = remember(context) { bundledReferenceLegal(context) }
     var document by remember { mutableStateOf<AuthLegalDocument?>(null) }
@@ -58,6 +59,9 @@ fun AccountScreen(
     var password by remember { mutableStateOf("") }
     var repeated by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
+    LaunchedEffect(session.stage) {
+        if (session.stage == AuthStage.GUEST) store.loadRegistrationDocuments()
+    }
     LaunchedEffect(session.stage) {
         if (session.stage != AuthStage.GUEST) {
             password = ""
@@ -205,21 +209,38 @@ fun AccountScreen(
                                 ),
                                 style = MaterialTheme.typography.bodySmall,
                             )
-                            RegistrationFields(
-                                session.busy,
-                                language,
-                                referenceDocuments,
-                                {
-                                    document = it
-                                    reference = true
-                                },
-                            ) { draft ->
-                                store.register(
-                                    draft.copy(email = email),
-                                    password,
-                                    repeated,
+                            if (registrationLegal.ready) {
+                                RegistrationFields(
+                                    session.busy,
                                     language,
+                                    registrationLegal.documents,
+                                    {
+                                        document = it
+                                        reference = false
+                                    },
+                                ) { draft ->
+                                    store.register(
+                                        draft.copy(email = email),
+                                        password,
+                                        repeated,
+                                        language,
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    if (registrationLegal.loading)
+                                        authText(language, "Aktuelle Dokumente werden geladen…", "Завантажуємо чинні документи…")
+                                    else
+                                        authText(language, "Die aktuellen Dokumente konnten nicht geprüft werden. Eine Registrierung ist derzeit nicht möglich.", "Не вдалося перевірити чинні документи. Реєстрація зараз недоступна."),
+                                    Modifier.testTag("auth-registration-legal-unavailable"),
                                 )
+                                OutlinedButton(
+                                    { store.loadRegistrationDocuments() },
+                                    Modifier.testTag("auth-registration-legal-retry"),
+                                    enabled = !registrationLegal.loading,
+                                ) {
+                                    Text(authText(language, "Erneut prüfen", "Перевірити знову"))
+                                }
                             }
                         }
                         "reset" -> {
@@ -335,8 +356,8 @@ fun AccountScreen(
                     Text(
                         authText(
                             language,
-                            "Öffentliche Inhalte kannst du ohne Anmeldung lesen.",
-                            "Публічні матеріали можна читати без входу.",
+                            "Melde dich an oder erstelle ein Konto, um die App zu öffnen.",
+                            "Увійдіть або створіть акаунт, щоб відкрити застосунок.",
                         )
                     )
                 }
@@ -555,9 +576,22 @@ fun AccountScreen(
         ) {
             HorizontalDivider()
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                val useReference = session.legalDocuments.isEmpty()
+                val liveDocuments =
+                    session.legalDocuments.ifEmpty { registrationLegal.documents }
+                val useReference = liveDocuments.isEmpty()
                 val readerDocuments =
-                    if (useReference) referenceDocuments else session.legalDocuments
+                    if (useReference && BuildConfig.USE_LOCAL_BACKEND) referenceDocuments
+                    else liveDocuments
+                if (useReference && BuildConfig.USE_LOCAL_BACKEND)
+                    Text(
+                        authText(
+                            language,
+                            "Historische Dokumente nur für den lokalen Test; keine aktuelle Zustimmung.",
+                            "Історичні документи лише для локального тесту; це не чинна згода.",
+                        ),
+                        Modifier.testTag("auth-legal-reference-notice"),
+                        style = MaterialTheme.typography.bodySmall,
+                    )
                 readerDocuments.take(2).forEach { legal ->
                     TextButton(
                         {
@@ -630,8 +664,9 @@ private fun RegistrationFields(
     var name by remember { mutableStateOf("") }
     var telegram by remember { mutableStateOf("") }
     var region by remember { mutableStateOf("") }
-    var terms by remember { mutableStateOf(false) }
-    var privacy by remember { mutableStateOf(false) }
+    val versions = documents.associate { it.type to it.version }
+    var terms by remember(versions) { mutableStateOf(false) }
+    var privacy by remember(versions) { mutableStateOf(false) }
     var age by remember { mutableStateOf(false) }
     AuthField(
         name,
@@ -660,8 +695,8 @@ private fun RegistrationFields(
         { terms = it },
         authText(
             language,
-            "Ich akzeptiere die Nutzungsbedingungen (lokaler Test).",
-            "Я погоджуюся з умовами користування (локальний тест).",
+            "Ich akzeptiere die aktuellen Nutzungsbedingungen (${versions["terms"]}).",
+            "Я погоджуюся з чинними умовами користування (${versions["terms"]}).",
         ),
         "auth-terms",
         busy,
@@ -671,8 +706,8 @@ private fun RegistrationFields(
         { privacy = it },
         authText(
             language,
-            "Ich habe die Datenschutzhinweise gelesen.",
-            "Я ознайомився(-лась) з політикою конфіденційності.",
+            "Ich habe die aktuellen Datenschutzhinweise gelesen (${versions["privacy"]}).",
+            "Я ознайомився(-лась) з чинною політикою конфіденційності (${versions["privacy"]}).",
         ),
         "auth-privacy",
         busy,
@@ -685,7 +720,17 @@ private fun RegistrationFields(
         busy,
     )
     Button(
-        { submit(AuthRegistration("", name, region, telegram, terms, privacy, age)) },
+        {
+            submit(
+                AuthRegistration(
+                    "", name, region, telegram, terms, privacy, age,
+                    termsVersion = checkNotNull(versions["terms"]),
+                    privacyVersion = checkNotNull(versions["privacy"]),
+                    termsContentHash = documents.first { it.type == "terms" }.contentHash,
+                    privacyContentHash = documents.first { it.type == "privacy" }.contentHash,
+                )
+            )
+        },
         Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("auth-register-submit"),
         enabled = !busy,
     ) {

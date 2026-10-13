@@ -31,10 +31,13 @@ class AuthStore(
 ) {
     private val mutable = MutableStateFlow(AuthSession())
     val state: StateFlow<AuthSession> = mutable.asStateFlow()
+    private val mutableRegistrationLegal = MutableStateFlow(RegistrationLegalState())
+    val registrationLegal: StateFlow<RegistrationLegalState> = mutableRegistrationLegal.asStateFlow()
     private val sessionMutex = Mutex()
     private var generation = 0L
     private var profileWatch: Job? = null
     private var legalWatch: Job? = null
+    private var registrationLegalWatch: Job? = null
     private var pendingRegistration: Pair<String, AuthRegistration>? = null
     private var pendingMfa: PendingMfa? = null
     private var pendingEnrollment: Pair<String, AuthTotpEnrollment>? = null
@@ -63,6 +66,30 @@ class AuthStore(
     )
 
     fun restore() = transition(AuthStage.RESTORING) { revision -> restoreLocked(revision) }
+
+    /** Guest registration never uses the bundled historical reference as consent text. */
+    fun loadRegistrationDocuments(): Job? {
+        if (state.value.stage != AuthStage.GUEST) return null
+        registrationLegalWatch?.cancel()
+        val revision = generation
+        mutableRegistrationLegal.value = RegistrationLegalState(loading = true)
+        return scope.launch {
+            try {
+                val documents = profiles.legalDocuments()
+                if (generation == revision && state.value.stage == AuthStage.GUEST) {
+                    mutableRegistrationLegal.value =
+                        if (documents.map { it.type }.toSet() == setOf("terms", "privacy"))
+                            RegistrationLegalState(documents = documents)
+                        else RegistrationLegalState(error = AuthProblem.INVALID_PROFILE)
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                if (generation == revision && state.value.stage == AuthStage.GUEST)
+                    mutableRegistrationLegal.value =
+                        RegistrationLegalState(error = authProblem(error))
+            }
+        }.also { registrationLegalWatch = it }
+    }
 
     // Foreground refresh must not destroy a resolver while the person is reading
     // their authenticator app. Explicit cancel/logout still clears it immediately.
@@ -183,6 +210,31 @@ class AuthStore(
         }
         if (state.value.busy) return null
         return transition(AuthStage.AUTHENTICATING) { revision ->
+            val currentDocuments = profiles.legalDocuments()
+            requireCurrent(revision)
+            if (currentDocuments.map { it.type }.toSet() != setOf("terms", "privacy"))
+                throw AuthException(AuthProblem.INVALID_PROFILE)
+            val currentVersions = currentDocuments.associate { it.type to it.version }
+            val currentHashes = currentDocuments.associate { it.type to it.contentHash }
+            if (
+                currentVersions["terms"] != draft.termsVersion ||
+                    currentVersions["privacy"] != draft.privacyVersion ||
+                    (draft.termsContentHash != null &&
+                        draft.termsContentHash != currentHashes["terms"]) ||
+                    (draft.privacyContentHash != null &&
+                        draft.privacyContentHash != currentHashes["privacy"])
+            ) {
+                mutableRegistrationLegal.value = RegistrationLegalState(documents = currentDocuments)
+                throw AuthException(AuthProblem.LEGAL_CHANGED)
+            }
+            val termsHash = currentHashes["terms"] ?: throw AuthException(AuthProblem.INVALID_PROFILE)
+            val privacyHash = currentHashes["privacy"] ?: throw AuthException(AuthProblem.INVALID_PROFILE)
+            val verifiedDraft =
+                draft.copy(
+                    termsContentHash = termsHash,
+                    privacyContentHash = privacyHash,
+                    locale = if (language == "uk") "uk" else "de",
+                )
             backend.signOut()
             requireCurrent(revision)
             val identity =
@@ -192,7 +244,7 @@ class AuthStore(
                     // Auth may have created its identity before a display-name update
                     // failed. Preserve the non-secret draft for explicit recovery.
                     if (generation == revision)
-                        backend.current?.let { pendingRegistration = it.uid to draft }
+                        backend.current?.let { pendingRegistration = it.uid to verifiedDraft }
                     throw error
                 }
             if (generation != revision) {
@@ -202,9 +254,9 @@ class AuthStore(
                 return@transition
             }
             requireCurrent(revision, identity.uid)
-            pendingRegistration = identity.uid to draft
+            pendingRegistration = identity.uid to verifiedDraft
             try {
-                profiles.create(identity.uid, draft)
+                profiles.create(identity.uid, verifiedDraft)
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
                 // A timed-out write is not proof it failed. Read back before cleanup.
@@ -262,6 +314,7 @@ class AuthStore(
             backend.signOut()
             requireCurrent(revision)
             pendingRegistration = null
+            mutableRegistrationLegal.value = RegistrationLegalState()
             mutable.value = AuthSession(AuthStage.GUEST, revision = revision)
         }
     }
@@ -1015,6 +1068,7 @@ class AuthStore(
         if (previous == null || previous.anonymous) {
             if (previous != null) backend.signOut()
             requireCurrent(revision)
+            mutableRegistrationLegal.value = RegistrationLegalState()
             mutable.value = AuthSession(AuthStage.GUEST, revision = revision)
             return
         }

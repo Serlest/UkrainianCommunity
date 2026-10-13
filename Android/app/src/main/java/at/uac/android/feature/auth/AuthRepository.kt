@@ -197,17 +197,35 @@ class FirestoreAuthProfiles(private val database: FirebaseFirestore) : AuthProfi
 
     override suspend fun create(uid: String, draft: AuthRegistration) {
         val reference = database.collection("users").document(uid)
+        val termsHash = draft.termsContentHash ?: throw AuthException(AuthProblem.INVALID_PROFILE)
+        val privacyHash = draft.privacyContentHash ?: throw AuthException(AuthProblem.INVALID_PROFILE)
+        if (!Regex("[0-9a-f]{64}").matches(termsHash) ||
+            !Regex("[0-9a-f]{64}").matches(privacyHash))
+            throw AuthException(AuthProblem.INVALID_PROFILE)
         // Transactions fail offline: no queued private registration write may be
-        // replayed later under a different account. Existing profiles are never overwritten.
+        // replayed later under a different account. The current Firestore rules require the
+        // profile and both exact legal receipts in the same atomic commit.
         write {
             database
                 .runTransaction { transaction ->
                     if (transaction.get(reference).exists())
                         throw AuthException(AuthProblem.EMAIL_EXISTS)
+                    val timestamp = FieldValue.serverTimestamp()
                     transaction.set(
                         reference,
-                        registeredProfileFields(uid, draft, FieldValue.serverTimestamp()),
+                        registeredProfileFields(uid, draft, timestamp),
                     )
+                    for ((type, version, hash) in
+                        listOf(
+                            Triple("terms", draft.termsVersion, termsHash),
+                            Triple("privacy", draft.privacyVersion, privacyHash),
+                        )) {
+                        val logId = "${uid}_${type}_${version}"
+                        transaction.set(
+                            database.collection("legalAcceptanceLogs").document(logId),
+                            initialLegalReceiptFields(uid, type, version, hash, draft.locale, timestamp),
+                        )
+                    }
                 }
                 .await()
         }
@@ -361,6 +379,25 @@ fun registeredProfileFields(
         "updatedAt" to timestamp,
     )
 
+internal fun initialLegalReceiptFields(
+    uid: String,
+    type: String,
+    version: String,
+    contentHash: String,
+    locale: String,
+    timestamp: Any,
+): Map<String, Any?> =
+    mapOf(
+        "userId" to uid,
+        "documentType" to type,
+        "version" to version,
+        "acceptedAt" to timestamp,
+        "appVersion" to BuildConfig.VERSION_NAME,
+        "locale" to if (locale == "uk") "uk" else "de",
+        "contentHash" to contentHash,
+        "acceptedFromPlatform" to "android",
+    )
+
 fun decodeProfile(uid: String, data: Map<String, Any?>): AuthProfile {
     // The document path is authoritative; older iOS profiles may omit a duplicated id.
     if (data["id"] != null && data["id"] != uid) throw AuthException(AuthProblem.INVALID_PROFILE)
@@ -443,6 +480,7 @@ fun decodeLegal(type: String, version: String, data: Map<String, Any?>): AuthLeg
         data["requiresAcceptance"] as? Boolean ?: true,
         titles,
         texts,
+        data["contentHash"] as? String,
     )
 }
 
