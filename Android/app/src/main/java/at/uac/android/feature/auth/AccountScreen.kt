@@ -1,5 +1,12 @@
 package at.uac.android.feature.auth
 
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.fragment.app.FragmentActivity
+import android.os.Build
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +36,9 @@ import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Choice
 import at.uac.android.feature.browse.PublicImage
 import at.uac.android.feature.browse.regions
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 @Composable
 fun AccountScreen(
@@ -44,6 +54,8 @@ fun AccountScreen(
     val session by store.state.collectAsStateWithLifecycle()
     val registrationLegal by store.registrationLegal.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var providerBusy by remember { mutableStateOf(false) }
     val referenceDocuments = remember(context) { bundledReferenceLegal(context) }
     var document by remember { mutableStateOf<AuthLegalDocument?>(null) }
     var reference by remember { mutableStateOf(true) }
@@ -60,7 +72,8 @@ fun AccountScreen(
     var repeated by remember { mutableStateOf("") }
     var code by remember { mutableStateOf("") }
     LaunchedEffect(session.stage) {
-        if (session.stage == AuthStage.GUEST) store.loadRegistrationDocuments()
+        if (session.stage in setOf(AuthStage.GUEST, AuthStage.REGISTRATION_PENDING))
+            store.loadRegistrationDocuments()
     }
     LaunchedEffect(session.stage) {
         if (session.stage != AuthStage.GUEST) {
@@ -81,15 +94,22 @@ fun AccountScreen(
         Modifier.widthIn(max = 760.dp).fillMaxWidth().testTag("account-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        if (session.stage == AuthStage.GUEST) {
+        if (session.stage == AuthStage.GUEST || session.stage == AuthStage.REGISTRATION_PENDING) {
             val title =
-                when (page) {
+                when {
+                    session.stage == AuthStage.REGISTRATION_PENDING ->
+                        authText(language, "Registrierung abschließen", "Завершити реєстрацію")
+                    else -> when (page) {
                     "register" -> authText(language, "Konto erstellen", "Створити акаунт")
                     "reset" -> authText(language, "Passwort zurücksetzen", "Відновити пароль")
                     else -> authText(language, "Anmelden", "Увійти")
+                    }
                 }
             val subtitle =
-                when (page) {
+                when {
+                    session.stage == AuthStage.REGISTRATION_PENDING ->
+                        authText(language, "Bestätigen Sie Ihre Angaben und die aktuellen Dokumente, bevor Sie die App verwenden.", "Підтвердьте свої дані та чинні документи перед користуванням застосунком.")
+                    else -> when (page) {
                     "register" ->
                         authText(
                             language,
@@ -108,6 +128,7 @@ fun AccountScreen(
                             "Verwenden Sie Ihre Konto-E-Mail und Ihr Passwort.",
                             "Використайте електронну пошту та пароль акаунта.",
                         )
+                    }
                 }
             UacSectionCard(title, subtitle)
         }
@@ -320,6 +341,46 @@ fun AccountScreen(
                                 Text(authText(language, "Anmelden", "Увійти"))
                             }
                     }
+                    if (page == "login" && !BuildConfig.USE_LOCAL_BACKEND) {
+                        if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotBlank()) {
+                            OutlinedButton(
+                                {
+                                    if (!providerBusy) scope.launch {
+                                        providerBusy = true
+                                        try {
+                                            store.signInWithGoogle(googleIdToken(context))
+                                        } catch (_: GetCredentialCancellationException) {
+                                            // The person dismissed the system account chooser.
+                                        } catch (_: Exception) {
+                                            store.reportProviderFailure()
+                                        } finally {
+                                            providerBusy = false
+                                        }
+                                    }
+                                },
+                                Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("auth-google-sign-in"),
+                                enabled = !session.busy && !providerBusy,
+                            ) { Text(authText(language, "Mit Google anmelden", "Увійти через Google")) }
+                        }
+                        if (BuildConfig.APPLE_SIGN_IN_ENABLED) {
+                            OutlinedButton(
+                                {
+                                    val activity = context as? FragmentActivity
+                                    if (activity == null) store.reportProviderFailure()
+                                    else store.signInWithApple(activity, language)
+                                },
+                                Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("auth-apple-sign-in"),
+                                enabled = !session.busy && !providerBusy,
+                            ) { Text(authText(language, "Mit Apple anmelden", "Увійти через Apple")) }
+                        }
+                        if (BuildConfig.PASSKEY_ENABLED && Build.VERSION.SDK_INT >= 28) {
+                            OutlinedButton(
+                                { store.signInWithPasskey(context) },
+                                Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("auth-passkey-sign-in"),
+                                enabled = !session.busy && !providerBusy,
+                            ) { Text(authText(language, "Mit Passkey anmelden", "Увійти за ключем доступу")) }
+                        }
+                    }
                     if (onNavigateAuth != null) {
                         Column(
                             Modifier.fillMaxWidth(),
@@ -360,6 +421,30 @@ fun AccountScreen(
                             "Увійдіть або створіть акаунт, щоб відкрити застосунок.",
                         )
                     )
+                }
+            }
+            AuthStage.REGISTRATION_PENDING -> {
+                UacCard {
+                    Text(session.identity?.email.orEmpty(), Modifier.testTag("auth-federated-email"))
+                    if (registrationLegal.ready) {
+                        RegistrationFields(
+                            session.busy, language, registrationLegal.documents,
+                            { document = it; reference = false },
+                        ) { draft ->
+                            store.completeFederatedRegistration(
+                                draft.copy(email = session.identity?.email.orEmpty()), language,
+                            )
+                        }
+                    } else {
+                        Text(
+                            authText(language, "Aktuelle Dokumente konnten nicht geprüft werden.", "Не вдалося перевірити чинні документи."),
+                            Modifier.testTag("auth-registration-legal-unavailable"),
+                        )
+                        OutlinedButton({ store.loadRegistrationDocuments() }, enabled = !registrationLegal.loading) {
+                            Text(authText(language, "Erneut prüfen", "Перевірити знову"))
+                        }
+                    }
+                    SignOutButton(store, language)
                 }
             }
             AuthStage.VERIFICATION_PENDING -> {
@@ -559,6 +644,12 @@ fun AccountScreen(
                         (showAccountUtilities || session.gate != AuthGate.READY)
                 )
                     at.uac.android.design.UacCard { AuthMfaPanel(store, session, language) }
+                if (showAccountUtilities && session.readyForActions &&
+                    BuildConfig.PASSKEY_ENABLED && Build.VERSION.SDK_INT >= 28)
+                    UacCard { PasskeyManagement(store, session, language) }
+                if (showAccountUtilities && session.readyForActions &&
+                    (BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotBlank() || BuildConfig.APPLE_SIGN_IN_ENABLED))
+                    UacCard { LinkedProviders(store, session, language) }
                 if (showAccountUtilities || session.gate != AuthGate.READY)
                     OutlinedButton(
                         { store.refresh() },
@@ -607,6 +698,93 @@ fun AccountScreen(
         }
     }
     document?.let { AuthLegalReader(it, language, reference) { document = null } }
+}
+
+private suspend fun googleIdToken(context: Context): String {
+    val option = GetGoogleIdOption.Builder()
+        .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+        .setFilterByAuthorizedAccounts(false)
+        .build()
+    val request = GetCredentialRequest.Builder().addCredentialOption(option).build()
+    val credential = CredentialManager.create(context).getCredential(context, request).credential
+    if (credential !is CustomCredential ||
+        credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL)
+        throw IllegalStateException("Unexpected credential type")
+    return GoogleIdTokenCredential.createFrom(credential.data).idToken
+}
+
+@Composable
+private fun LinkedProviders(store: AuthStore, session: AuthSession, language: String) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var busy by remember { mutableStateOf(false) }
+    var appleConsent by remember { mutableStateOf(false) }
+    val connected = session.identity?.providers.orEmpty()
+    Text(authText(language, "Anmeldemethoden", "Способи входу"), style = MaterialTheme.typography.titleMedium)
+    for ((id, name) in listOf("password" to authText(language, "E-Mail und Passwort", "Пошта й пароль"),
+        "google.com" to "Google", "apple.com" to "Apple")) {
+        if (id in connected) Text("$name ✓")
+    }
+    if (session.profile?.privileged == true)
+        Text(authText(language, "Neue Methoden benötigen eine bestätigte TOTP-Anmeldung innerhalb der letzten 10 Minuten.",
+            "Для нового способу потрібен підтверджений вхід з TOTP за останні 10 хвилин."))
+    if (BuildConfig.GOOGLE_WEB_CLIENT_ID.isNotBlank() && "google.com" !in connected) {
+        OutlinedButton({
+            if (!busy) scope.launch {
+                busy = true
+                try { store.linkGoogle(googleIdToken(context),
+                    session.identity?.uid.orEmpty(), session.revision) }
+                catch (_: GetCredentialCancellationException) { /* Chooser dismissed. */ }
+                catch (_: Exception) { store.reportProviderFailure() }
+                finally { busy = false }
+            }
+        }, enabled = !session.busy && !busy) {
+            Text(authText(language, "Google verbinden", "Підключити Google"))
+        }
+    }
+    if (BuildConfig.APPLE_SIGN_IN_ENABLED && "apple.com" !in connected) {
+        Text(authText(language, "Beim Verbinden erhält dieses Konto Zugriff über die ausgewählte Apple ID.",
+            "Після підключення до цього акаунта можна буде входити з обраним Apple ID."))
+        ConsentRow(appleConsent, { appleConsent = it },
+            authText(language, "Ich stimme der Verbindung mit meiner Apple ID zu.",
+                "Я погоджуюся підключити свій Apple ID."), "auth-apple-link-consent", busy)
+        OutlinedButton({
+            val activity = context as? FragmentActivity
+            if (activity == null) store.reportProviderFailure()
+            else store.linkApple(activity, language, appleConsent)
+        }, enabled = !session.busy && !busy && appleConsent) {
+            Text(authText(language, "Apple verbinden", "Підключити Apple"))
+        }
+    }
+}
+
+@Composable
+private fun PasskeyManagement(store: AuthStore, session: AuthSession, language: String) {
+    val context = LocalContext.current
+    var pendingRemoval by remember { mutableStateOf<String?>(null) }
+    Text(authText(language, "Passkeys", "Ключі доступу"), style = MaterialTheme.typography.titleMedium)
+    OutlinedButton({ store.loadPasskeys() }, enabled = !session.busy) {
+        Text(authText(language, "Passkeys anzeigen", "Показати ключі доступу"))
+    }
+    Button({ store.registerPasskey(context) }, enabled = !session.busy) {
+        Text(authText(language, "Passkey hinzufügen", "Додати ключ доступу"))
+    }
+    for (key in session.passkeys) {
+        Text(key.createdAt ?: key.id.take(12), style = MaterialTheme.typography.bodyMedium)
+        if (pendingRemoval == key.id) {
+            Text(authText(language, "Diesen Passkey wirklich entfernen?", "Справді видалити цей ключ доступу?"))
+            Button({ pendingRemoval = null; store.removePasskey(key.id) }, enabled = !session.busy) {
+                Text(authText(language, "Entfernen bestätigen", "Підтвердити видалення"))
+            }
+            TextButton({ pendingRemoval = null }) {
+                Text(authText(language, "Abbrechen", "Скасувати"))
+            }
+        } else {
+            TextButton({ pendingRemoval = key.id }, enabled = !session.busy) {
+                Text(authText(language, "Passkey entfernen", "Видалити ключ доступу"))
+            }
+        }
+    }
 }
 
 @Composable

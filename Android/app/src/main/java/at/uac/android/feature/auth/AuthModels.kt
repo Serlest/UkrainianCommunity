@@ -10,6 +10,7 @@ enum class AuthStage {
     AUTHENTICATING,
     GUEST,
     VERIFICATION_PENDING,
+    REGISTRATION_PENDING,
     MFA_CHALLENGE,
     AUTHENTICATED,
     SESSION_UNAVAILABLE,
@@ -38,6 +39,10 @@ enum class AuthProblem {
     RATE_LIMITED,
     DISABLED,
     OPERATION_DISABLED,
+    PROVIDER_SIGN_IN_FAILED,
+    LINK_TOTP_REQUIRED,
+    PROVIDER_ALREADY_LINKED,
+    PROVIDER_BELONGS_TO_OTHER_ACCOUNT,
     PROFILE_MISSING,
     INVALID_PROFILE,
     PERMISSION_DENIED,
@@ -69,6 +74,9 @@ enum class AuthNotice {
     MFA_REMOVED,
     MFA_VERIFIED,
     MFA_ACTIVATED,
+    PASSKEY_REGISTERED,
+    PASSKEY_REMOVED,
+    PROVIDER_LINKED,
 }
 
 class AuthException(val problem: AuthProblem) : Exception(problem.name)
@@ -78,6 +86,7 @@ data class AuthIdentity(
     val email: String,
     val emailVerified: Boolean,
     val anonymous: Boolean = false,
+    val providers: Set<String> = emptySet(),
 )
 
 data class AuthProfile(
@@ -101,6 +110,7 @@ data class AuthProfile(
     val statusUpdatedAt: Instant? = null,
     val statusAcknowledgedAt: Instant? = null,
     val banExpiresAt: Instant? = null,
+    val passkeyEpoch: String? = null,
 ) {
     val active: Boolean
         get() =
@@ -155,7 +165,11 @@ data class AuthSession(
     val mfa: AuthMfaState = AuthMfaState(),
     val localPasswordProof: AuthPasswordProof? = null,
     val deletionRecovery: Boolean = false,
+    val passkeyProofEpoch: String? = null,
+    val passkeys: List<AndroidPasskey> = emptyList(),
 ) {
+    val passkeyAuthenticated: Boolean
+        get() = passkeyProofEpoch != null && passkeyProofEpoch == profile?.passkeyEpoch
     val readyForActions: Boolean
         get() =
             stage == AuthStage.AUTHENTICATED &&
@@ -181,7 +195,7 @@ internal fun AuthSession.permitsStatusAcknowledgement(uid: String, revision: Lon
         profile?.uid == uid &&
         profile.active &&
         gate in setOf(AuthGate.READY, AuthGate.LEGAL_REQUIRED, AuthGate.LEGAL_UNAVAILABLE) &&
-        (!profile.privileged || (profile.requiresMultiFactorAuth && totpAuthenticated)) &&
+        (!profile.privileged || (profile.requiresMultiFactorAuth && (totpAuthenticated || passkeyAuthenticated))) &&
         !busy &&
         !mfa.interactive &&
         !mfa.unconfirmed
@@ -241,6 +255,21 @@ object AuthValidation {
             ?: password(password)
             ?: when {
                 password != repeated -> AuthProblem.PASSWORD_MISMATCH
+                draft.displayName.trim().length !in 1..160 -> AuthProblem.NAME_REQUIRED
+                draft.region !in regions -> AuthProblem.REGION_REQUIRED
+                !draft.acceptedTerms || !draft.acceptedPrivacy || !draft.minimumAgeConfirmed ->
+                    AuthProblem.CONSENT_REQUIRED
+                draft.telegramUsername.trim().removePrefix("@").let {
+                    it.isNotEmpty() && !Regex("[A-Za-z0-9_]{5,32}").matches(it)
+                } -> AuthProblem.INVALID_TELEGRAM
+                draft.termsVersion.isBlank() || draft.privacyVersion.isBlank() ->
+                    AuthProblem.CONSENT_REQUIRED
+                else -> null
+            }
+
+    fun federatedRegistration(draft: AuthRegistration): AuthProblem? =
+        email(draft.email)
+            ?: when {
                 draft.displayName.trim().length !in 1..160 -> AuthProblem.NAME_REQUIRED
                 draft.region !in regions -> AuthProblem.REGION_REQUIRED
                 !draft.acceptedTerms || !draft.acceptedPrivacy || !draft.minimumAgeConfirmed ->

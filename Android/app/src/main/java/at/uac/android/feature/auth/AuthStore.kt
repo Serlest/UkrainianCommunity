@@ -1,5 +1,9 @@
 package at.uac.android.feature.auth
 
+import androidx.fragment.app.FragmentActivity
+import android.content.Context
+import androidx.credentials.exceptions.CreateCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import at.uac.android.core.AccountDeletionJournal
 import at.uac.android.core.DeletionJournalCodec
 import kotlinx.coroutines.CancellationException
@@ -27,6 +31,7 @@ class AuthStore(
     private val legalAcceptor: AuthLegalAcceptor? = null,
     private val mfaActivator: AuthMfaActivator? = null,
     private val deletionJournal: AccountDeletionJournal? = null,
+    private val passkeys: AuthPasskeys? = null,
     private val clock: () -> Long = System::currentTimeMillis,
 ) {
     private val mutable = MutableStateFlow(AuthSession())
@@ -67,16 +72,16 @@ class AuthStore(
 
     fun restore() = transition(AuthStage.RESTORING) { revision -> restoreLocked(revision) }
 
-    /** Guest registration never uses the bundled historical reference as consent text. */
+    /** Registration never uses the bundled historical reference as consent text. */
     fun loadRegistrationDocuments(): Job? {
-        if (state.value.stage != AuthStage.GUEST) return null
+        if (state.value.stage !in setOf(AuthStage.GUEST, AuthStage.REGISTRATION_PENDING)) return null
         registrationLegalWatch?.cancel()
         val revision = generation
         mutableRegistrationLegal.value = RegistrationLegalState(loading = true)
         return scope.launch {
             try {
                 val documents = profiles.legalDocuments()
-                if (generation == revision && state.value.stage == AuthStage.GUEST) {
+                if (generation == revision && state.value.stage in setOf(AuthStage.GUEST, AuthStage.REGISTRATION_PENDING)) {
                     mutableRegistrationLegal.value =
                         if (documents.map { it.type }.toSet() == setOf("terms", "privacy"))
                             RegistrationLegalState(documents = documents)
@@ -84,7 +89,7 @@ class AuthStore(
                 }
             } catch (error: Exception) {
                 if (error is CancellationException) throw error
-                if (generation == revision && state.value.stage == AuthStage.GUEST)
+                if (generation == revision && state.value.stage in setOf(AuthStage.GUEST, AuthStage.REGISTRATION_PENDING))
                     mutableRegistrationLegal.value =
                         RegistrationLegalState(error = authProblem(error))
             }
@@ -198,6 +203,226 @@ class AuthStore(
         }
     }
 
+    fun signInWithGoogle(idToken: String): Job? =
+        signInFederated { backend.signInWithGoogle(idToken) }
+
+    fun reportProviderFailure() = report(AuthProblem.PROVIDER_SIGN_IN_FAILED)
+
+    fun linkGoogle(idToken: String, expectedUid: String, expectedRevision: Long): Job? =
+        linkProvider("google.com", expectedUid, expectedRevision) { uid ->
+            backend.linkGoogle(uid, idToken)
+        }
+
+    fun linkApple(activity: FragmentActivity, language: String, explicitConsent: Boolean): Job? {
+        if (!explicitConsent) { report(AuthProblem.CONSENT_REQUIRED); return null }
+        val session = state.value
+        return linkProvider("apple.com", session.identity?.uid.orEmpty(), session.revision) { uid ->
+            backend.linkApple(uid, activity, language)
+        }
+    }
+
+    private fun linkProvider(
+        provider: String,
+        expectedUid: String,
+        expectedRevision: Long,
+        action: suspend (String) -> AuthIdentity,
+    ): Job? {
+        val session = state.value
+        val identity = session.identity ?: return null
+        val profile = session.profile ?: return null
+        if (identity.uid != expectedUid || session.revision != expectedRevision) {
+            report(AuthProblem.SESSION_CHANGED)
+            return null
+        }
+        if (!session.readyForActions) {
+            report(AuthProblem.PERMISSION_DENIED)
+            return null
+        }
+        if (identity.providers.contains(provider)) {
+            report(AuthProblem.PROVIDER_ALREADY_LINKED)
+            return null
+        }
+        if (profile.privileged && !session.totpAuthenticated) {
+            report(AuthProblem.LINK_TOTP_REQUIRED)
+            return null
+        }
+        return auxiliary { revision ->
+            requireCurrent(revision, identity.uid)
+            if (profile.privileged) {
+                val authAt = backend.authTimestampMillis()
+                    ?: throw AuthException(AuthProblem.RECENT_LOGIN_REQUIRED)
+                requireCurrent(revision, identity.uid)
+                if (clock() - authAt !in 0L..600_000L)
+                    throw AuthException(AuthProblem.RECENT_LOGIN_REQUIRED)
+            }
+            val after = try { action(identity.uid) } catch (error: Exception) {
+                if (backend.current?.uid != identity.uid) {
+                    backend.signOut()
+                    requireCurrent(revision)
+                    reconcile(AuthProblem.SESSION_CHANGED, revision)
+                    return@auxiliary
+                }
+                throw error
+            }
+            requireCurrent(revision, identity.uid)
+            if (!after.providers.contains(provider))
+                throw AuthException(AuthProblem.PROVIDER_SIGN_IN_FAILED)
+            restoreLocked(revision)
+            if (state.value.stage == AuthStage.AUTHENTICATED)
+                mutable.value = state.value.copy(notice = AuthNotice.PROVIDER_LINKED)
+        }
+    }
+
+    fun signInWithApple(activity: FragmentActivity, language: String): Job? =
+        signInFederated { backend.signInWithApple(activity, language) }
+
+    fun signInWithPasskey(context: Context): Job? {
+        val service = passkeys ?: run { report(AuthProblem.OPERATION_DISABLED); return null }
+        if (state.value.busy) return null
+        return transition(AuthStage.AUTHENTICATING) { revision ->
+            backend.signOut()
+            requireCurrent(revision)
+            pendingRegistration = null
+            val token = try { service.signInToken(context) }
+                catch (_: GetCredentialCancellationException) {
+                    mutable.value = AuthSession(AuthStage.GUEST, revision = revision)
+                    return@transition
+                }
+            requireCurrent(revision)
+            val identity = backend.signInWithPasskeyToken(token)
+            requireCurrent(revision, identity.uid)
+            restoreLocked(revision)
+        }
+    }
+
+    fun registerPasskey(context: Context): Job? {
+        val service = passkeys ?: run { report(AuthProblem.OPERATION_DISABLED); return null }
+        val session = state.value
+        val uid = session.identity?.uid ?: return null
+        if (!session.readyForActions) return null
+        return auxiliary { revision ->
+            requireCurrent(revision, uid)
+            try { service.register(context, uid) }
+                catch (_: CreateCredentialCancellationException) { return@auxiliary }
+            requireCurrent(revision, uid)
+            mutable.value = state.value.copy(
+                passkeys = service.list(uid), notice = AuthNotice.PASSKEY_REGISTERED,
+            )
+        }
+    }
+
+    fun loadPasskeys(): Job? {
+        val service = passkeys ?: run { report(AuthProblem.OPERATION_DISABLED); return null }
+        val session = state.value
+        val uid = session.identity?.uid ?: return null
+        if (!session.readyForActions) return null
+        return auxiliary { revision ->
+            requireCurrent(revision, uid)
+            mutable.value = state.value.copy(passkeys = service.list(uid))
+        }
+    }
+
+    fun removePasskey(id: String): Job? {
+        val service = passkeys ?: run { report(AuthProblem.OPERATION_DISABLED); return null }
+        val session = state.value
+        val uid = session.identity?.uid ?: return null
+        if (!session.readyForActions || session.passkeys.none { it.id == id }) return null
+        return auxiliary { revision ->
+            requireCurrent(revision, uid)
+            // Revocation may complete even if the response is lost. Close the
+            // privileged gate before sending it, then restore from server truth.
+            mutable.value = AuthSession(
+                AuthStage.SESSION_UNAVAILABLE, session.identity,
+                revision = revision, gate = AuthGate.RESTRICTED, busy = true,
+            )
+            service.remove(uid, id)
+            requireCurrent(revision, uid)
+            restoreLocked(revision)
+            if (state.value.stage == AuthStage.AUTHENTICATED)
+                mutable.value = state.value.copy(notice = AuthNotice.PASSKEY_REMOVED)
+        }
+    }
+
+    private fun signInFederated(action: suspend () -> AuthIdentity): Job? {
+        if (state.value.busy) return null
+        return transition(AuthStage.AUTHENTICATING) { revision ->
+            backend.signOut()
+            requireCurrent(revision)
+            pendingRegistration = null
+            val identity =
+                try {
+                    action()
+                } catch (error: AuthMfaChallengeRequired) {
+                    showMfaChallenge(
+                        revision,
+                        PendingMfa(error.challenge, MfaPurpose.SIGN_IN, ""),
+                    )
+                    return@transition
+                }
+            requireCurrent(revision, identity.uid)
+            restoreLocked(revision)
+        }
+    }
+
+    fun completeFederatedRegistration(draft: AuthRegistration, language: String): Job? {
+        val session = state.value
+        val identity = session.identity
+        if (
+            session.busy || session.stage != AuthStage.REGISTRATION_PENDING ||
+                identity == null || !identity.emailVerified ||
+                identity.providers.intersect(setOf("google.com", "apple.com")).isEmpty() ||
+                !identity.email.equals(draft.email, ignoreCase = true)
+        ) {
+            report(AuthProblem.SESSION_CHANGED)
+            return null
+        }
+        AuthValidation.federatedRegistration(draft)?.let { report(it); return null }
+        return auxiliary { revision ->
+            requireCurrent(revision, identity.uid)
+            if (draft.termsContentHash == null || draft.privacyContentHash == null)
+                throw AuthException(AuthProblem.CONSENT_REQUIRED)
+            val verifiedDraft = verifiedRegistrationDraft(draft, language, revision)
+            requireCurrent(revision, identity.uid)
+            try {
+                profiles.fetch(identity.uid)
+            } catch (error: AuthException) {
+                if (error.problem != AuthProblem.PROFILE_MISSING) throw error
+                profiles.create(identity.uid, verifiedDraft)
+            }
+            requireCurrent(revision, identity.uid)
+            restoreLocked(revision)
+        }
+    }
+
+    private suspend fun verifiedRegistrationDraft(
+        draft: AuthRegistration,
+        language: String,
+        revision: Long,
+    ): AuthRegistration {
+        val currentDocuments = profiles.legalDocuments()
+        requireCurrent(revision)
+        if (currentDocuments.map { it.type }.toSet() != setOf("terms", "privacy"))
+            throw AuthException(AuthProblem.INVALID_PROFILE)
+        val currentVersions = currentDocuments.associate { it.type to it.version }
+        val currentHashes = currentDocuments.associate { it.type to it.contentHash }
+        if (
+            currentVersions["terms"] != draft.termsVersion ||
+                currentVersions["privacy"] != draft.privacyVersion ||
+                (draft.termsContentHash != null && draft.termsContentHash != currentHashes["terms"]) ||
+                (draft.privacyContentHash != null && draft.privacyContentHash != currentHashes["privacy"])
+        ) {
+            mutableRegistrationLegal.value = RegistrationLegalState(documents = currentDocuments)
+            throw AuthException(AuthProblem.LEGAL_CHANGED)
+        }
+        val termsHash = currentHashes["terms"] ?: throw AuthException(AuthProblem.INVALID_PROFILE)
+        val privacyHash = currentHashes["privacy"] ?: throw AuthException(AuthProblem.INVALID_PROFILE)
+        return draft.copy(
+            termsContentHash = termsHash,
+            privacyContentHash = privacyHash,
+            locale = if (language == "uk") "uk" else "de",
+        )
+    }
+
     fun register(
         draft: AuthRegistration,
         password: String,
@@ -210,31 +435,7 @@ class AuthStore(
         }
         if (state.value.busy) return null
         return transition(AuthStage.AUTHENTICATING) { revision ->
-            val currentDocuments = profiles.legalDocuments()
-            requireCurrent(revision)
-            if (currentDocuments.map { it.type }.toSet() != setOf("terms", "privacy"))
-                throw AuthException(AuthProblem.INVALID_PROFILE)
-            val currentVersions = currentDocuments.associate { it.type to it.version }
-            val currentHashes = currentDocuments.associate { it.type to it.contentHash }
-            if (
-                currentVersions["terms"] != draft.termsVersion ||
-                    currentVersions["privacy"] != draft.privacyVersion ||
-                    (draft.termsContentHash != null &&
-                        draft.termsContentHash != currentHashes["terms"]) ||
-                    (draft.privacyContentHash != null &&
-                        draft.privacyContentHash != currentHashes["privacy"])
-            ) {
-                mutableRegistrationLegal.value = RegistrationLegalState(documents = currentDocuments)
-                throw AuthException(AuthProblem.LEGAL_CHANGED)
-            }
-            val termsHash = currentHashes["terms"] ?: throw AuthException(AuthProblem.INVALID_PROFILE)
-            val privacyHash = currentHashes["privacy"] ?: throw AuthException(AuthProblem.INVALID_PROFILE)
-            val verifiedDraft =
-                draft.copy(
-                    termsContentHash = termsHash,
-                    privacyContentHash = privacyHash,
-                    locale = if (language == "uk") "uk" else "de",
-                )
+            val verifiedDraft = verifiedRegistrationDraft(draft, language, revision)
             backend.signOut()
             requireCurrent(revision)
             val identity =
@@ -313,6 +514,9 @@ class AuthStore(
             withContext(NonCancellable) { beforeExplicitSignOut(captured) }
             backend.signOut()
             requireCurrent(revision)
+            try { backend.clearExternalCredentialState() }
+            catch (error: CancellationException) { throw error }
+            catch (_: Exception) { /* Firebase sign-out has already completed. */ }
             pendingRegistration = null
             mutableRegistrationLegal.value = RegistrationLegalState()
             mutable.value = AuthSession(AuthStage.GUEST, revision = revision)
@@ -516,7 +720,7 @@ class AuthStore(
                 backend.current?.uid != identity.uid ||
                     identity.anonymous ||
                     !identity.emailVerified ||
-                    !identity.email.equals(pending.email, true) ||
+                    (pending.email.isNotEmpty() && !identity.email.equals(pending.email, true)) ||
                     (pending.uid != null && pending.uid != identity.uid)
             ) {
                 backend.signOut()
@@ -722,7 +926,7 @@ class AuthStore(
         mutable.value =
             state.value.copy(
                 profile = profile,
-                gate = gateFor(profile, state.value.totpAuthenticated, state.value.legalDocuments),
+                gate = gateFor(profile, protectedProof(profile), state.value.legalDocuments),
             )
         if (!identity.emailVerified || !profile.active) {
             clearMfaHandles()
@@ -886,7 +1090,7 @@ class AuthStore(
             state.value.copy(
                 profile = profile,
                 legalDocuments = documents,
-                gate = gateFor(profile, state.value.totpAuthenticated, documents),
+                gate = gateFor(profile, protectedProof(profile), documents),
             )
     }
 
@@ -1085,6 +1289,7 @@ class AuthStore(
             return
         }
         val totp = backend.refreshToken()
+        val passkeyEpoch = backend.passkeyProofEpoch()
         requireCurrent(revision, identity.uid)
         val profile =
             try {
@@ -1108,6 +1313,15 @@ class AuthStore(
                                 error = AuthProblem.PROFILE_MISSING,
                                 deletionRecovery = true,
                             )
+                        return
+                    }
+                    if (identity.providers.intersect(setOf("google.com", "apple.com")).isNotEmpty()) {
+                        mutable.value = AuthSession(
+                            AuthStage.REGISTRATION_PENDING,
+                            identity,
+                            revision = revision,
+                            gate = AuthGate.RESTRICTED,
+                        )
                         return
                     }
                     backend.signOut()
@@ -1135,13 +1349,15 @@ class AuthStore(
                 identity,
                 profile,
                 revision,
-                gateFor(profile, totp, docs),
+                gateFor(profile, totp || passkeyEpoch != null && passkeyEpoch == profile.passkeyEpoch, docs),
                 docs.orEmpty(),
                 totpAuthenticated = totp,
+                passkeyProofEpoch = passkeyEpoch,
             )
         watchProfile(revision, identity, totp)
         watchLegalVersions(revision, identity)
-        if (profile.active && (!profile.privileged || (profile.requiresMultiFactorAuth && totp))) {
+        if (profile.active && (!profile.privileged ||
+                (profile.requiresMultiFactorAuth && (totp || state.value.passkeyAuthenticated)))) {
             // This projection has no private email or account metadata. Failure is recoverable.
             try {
                 profiles.ensurePublicProfile(profile)
@@ -1184,7 +1400,7 @@ class AuthStore(
                     mutable.value =
                         mutable.value.copy(
                             profile = profile,
-                            gate = gateFor(profile, totp, state.value.legalDocuments),
+                            gate = gateFor(profile, protectedProof(profile), state.value.legalDocuments),
                             mfa = if (profile.active) state.value.mfa else AuthMfaState(),
                         )
                 }
@@ -1214,7 +1430,7 @@ class AuthStore(
                     mutable.value =
                         state.value.copy(
                             legalDocuments = emptyList(),
-                            gate = gateFor(profile, state.value.totpAuthenticated, null),
+                            gate = gateFor(profile, protectedProof(profile), null),
                         )
                 } else {
                     val changed = observedVersions?.let { it != versions } ?: false
@@ -1307,6 +1523,11 @@ class AuthStore(
         if (generation != revision || (uid != null && backend.current?.uid != uid))
             throw AuthException(AuthProblem.SESSION_CHANGED)
     }
+
+    private fun protectedProof(profile: AuthProfile): Boolean =
+        state.value.totpAuthenticated ||
+            (state.value.passkeyProofEpoch != null &&
+                state.value.passkeyProofEpoch == profile.passkeyEpoch)
 }
 
 fun gateFor(profile: AuthProfile, totp: Boolean, documents: List<AuthLegalDocument>?): AuthGate =

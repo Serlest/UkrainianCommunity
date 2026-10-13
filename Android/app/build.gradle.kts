@@ -42,6 +42,9 @@ android {
             manifestPlaceholders["enableCloudMessaging"] = "false"
             buildConfigField("boolean", "USE_LOCAL_BACKEND", "true")
             buildConfigField("boolean", "USE_DEBUG_APP_CHECK", "false")
+            buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"\"")
+            buildConfigField("boolean", "APPLE_SIGN_IN_ENABLED", "false")
+            buildConfigField("boolean", "PASSKEY_ENABLED", "false")
             buildConfigField("String", "BACKEND_APP_NAME", "\"uac-local\"")
             buildConfigField("String", "BACKEND_PROJECT_ID", "\"demo-uac-android\"")
             buildConfigField(
@@ -64,6 +67,18 @@ android {
             manifestPlaceholders["enableCloudMessaging"] = "true"
             buildConfigField("boolean", "USE_LOCAL_BACKEND", "false")
             buildConfigField("boolean", "USE_DEBUG_APP_CHECK", "true")
+            buildConfigField(
+                "String", "GOOGLE_WEB_CLIENT_ID",
+                "\"${providers.environmentVariable("UAC_STAGING_GOOGLE_WEB_CLIENT_ID").orElse("").get()}\"",
+            )
+            buildConfigField(
+                "boolean", "APPLE_SIGN_IN_ENABLED",
+                providers.environmentVariable("UAC_STAGING_APPLE_SIGN_IN_ENABLED").orElse("false").get(),
+            )
+            buildConfigField(
+                "boolean", "PASSKEY_ENABLED",
+                providers.environmentVariable("UAC_STAGING_PASSKEY_ENABLED").orElse("false").get(),
+            )
             buildConfigField("String", "BACKEND_APP_NAME", "\"[DEFAULT]\"")
             buildConfigField(
                 "String",
@@ -130,6 +145,18 @@ android {
             manifestPlaceholders["enableCloudMessaging"] = "true"
             buildConfigField("boolean", "USE_LOCAL_BACKEND", "false")
             buildConfigField("boolean", "USE_DEBUG_APP_CHECK", "false")
+            buildConfigField(
+                "String", "GOOGLE_WEB_CLIENT_ID",
+                "\"${providers.environmentVariable("UAC_PRODUCTION_GOOGLE_WEB_CLIENT_ID").orElse("").get()}\"",
+            )
+            buildConfigField(
+                "boolean", "APPLE_SIGN_IN_ENABLED",
+                providers.environmentVariable("UAC_PRODUCTION_APPLE_SIGN_IN_ENABLED").orElse("false").get(),
+            )
+            buildConfigField(
+                "boolean", "PASSKEY_ENABLED",
+                providers.environmentVariable("UAC_PRODUCTION_PASSKEY_ENABLED").orElse("false").get(),
+            )
             buildConfigField("String", "BACKEND_APP_NAME", "\"[DEFAULT]\"")
             buildConfigField(
                 "String",
@@ -349,6 +376,9 @@ dependencies {
     implementation("androidx.biometric:biometric:1.1.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.10.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0")
+    implementation("androidx.credentials:credentials:1.3.0")
+    implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+    implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")

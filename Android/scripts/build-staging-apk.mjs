@@ -11,14 +11,22 @@ const config = JSON.parse(
   }),
 );
 const client = config.client?.[0];
+const oauth = client?.oauth_client ?? [];
+const webClient = oauth.find((entry) => entry.client_type === 3)?.client_id;
+const androidClient = oauth.find((entry) =>
+  entry.client_type === 1 &&
+  entry.android_info?.package_name === "at.serlest.ukrainiancommunity.staging");
 const env = {
   ...process.env,
   UAC_STAGING_FIREBASE_PROJECT_ID: config.project_info?.project_id ?? "",
   UAC_STAGING_FIREBASE_APPLICATION_ID: client?.client_info?.mobilesdk_app_id ?? "",
   UAC_STAGING_FIREBASE_API_KEY: client?.api_key?.[0]?.current_key ?? "",
   UAC_STAGING_FIREBASE_BUCKET: config.project_info?.storage_bucket ?? "",
+  // A web ID alone cannot prove the Android package/certificate is registered.
+  UAC_STAGING_GOOGLE_WEB_CLIENT_ID: webClient && androidClient ? webClient : "",
 };
-for (const key of Object.keys(env).filter((key) => key.startsWith("UAC_STAGING_"))) {
+for (const key of ["UAC_STAGING_FIREBASE_PROJECT_ID", "UAC_STAGING_FIREBASE_APPLICATION_ID",
+  "UAC_STAGING_FIREBASE_API_KEY", "UAC_STAGING_FIREBASE_BUCKET"]) {
   if (!env[key]) throw new Error(`Missing staging configuration: ${key}`);
 }
 const result = spawnSync("./gradlew", [":app:assembleStagingDebug", "--no-daemon"], {

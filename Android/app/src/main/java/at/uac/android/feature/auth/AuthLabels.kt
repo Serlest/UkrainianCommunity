@@ -44,6 +44,18 @@ fun AuthProblem.message(language: String): String {
             AuthProblem.OPERATION_DISABLED ->
                 "Diese Anmeldemethode ist derzeit nicht verfügbar." to
                     "Цей спосіб входу наразі недоступний."
+            AuthProblem.PROVIDER_SIGN_IN_FAILED ->
+                "Die Anmeldung mit diesem Anbieter ist fehlgeschlagen. Bitte erneut versuchen." to
+                    "Не вдалося увійти через цього провайдера. Спробуйте ще раз."
+            AuthProblem.LINK_TOTP_REQUIRED ->
+                "Für dieses Administrationskonto ist vor dem Verbinden eine bestätigte Authenticator-Anmeldung erforderlich." to
+                    "Для цього адміністративного акаунта перед підключенням потрібен підтверджений вхід з аутентифікатором."
+            AuthProblem.PROVIDER_ALREADY_LINKED ->
+                "Diese Anmeldemethode ist bereits verbunden." to
+                    "Цей спосіб входу вже підключено."
+            AuthProblem.PROVIDER_BELONGS_TO_OTHER_ACCOUNT ->
+                "Diese Anmeldemethode gehört zu einem anderen Konto." to
+                    "Цей спосіб входу належить іншому акаунту."
             AuthProblem.PROFILE_MISSING ->
                 "Das Kontoprofil fehlt. Es wurde kein Ersatzkonto erzeugt." to
                     "Профіль акаунта відсутній. Замість нього не було створено інший акаунт."
@@ -157,4 +169,10 @@ fun AuthNotice.message(language: String): String =
                 "Schutz des Administrationskontos auf dem Server bestätigt.",
                 "Захист адміністративного акаунта підтверджено на сервері.",
             )
+        AuthNotice.PASSKEY_REGISTERED ->
+            authText(language, "Passkey hinzugefügt.", "Ключ доступу додано.")
+        AuthNotice.PASSKEY_REMOVED ->
+            authText(language, "Passkey entfernt.", "Ключ доступу видалено.")
+        AuthNotice.PROVIDER_LINKED ->
+            authText(language, "Anmeldemethode verbunden.", "Спосіб входу підключено.")
     }

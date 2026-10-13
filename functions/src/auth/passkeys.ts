@@ -18,11 +18,12 @@ import {
   canManagePasskeyCredentials,
   requireVerifiedActiveUser,
 } from "./context";
+import {passkeyOrigins} from "./passkeyOrigins";
 
 // This domain is served by Firebase Hosting and has the app's webcredentials
 // association. Never accept an RP ID or origin supplied by the client.
 const rpID = "ukrainiancommunity-dbd5f.web.app";
-const origin = `https://${rpID}`;
+const expectedOrigins = passkeyOrigins(process.env.UAC_PASSKEY_ANDROID_ORIGINS);
 const challengeLifetimeMs = 5 * 60 * 1000;
 const options = {region: "europe-west3", maxInstances: 5, enforceAppCheck: true};
 const challenges = db.collection("passkeyChallenges");
@@ -142,7 +143,7 @@ export const finishPasskeyRegistration = onCall(options, async (request) => {
   let verification;
   try {
     verification = await verifyRegistrationResponse({
-      response, expectedChallenge, expectedOrigin: origin, expectedRPID: rpID,
+      response, expectedChallenge, expectedOrigin: expectedOrigins, expectedRPID: rpID,
       requireUserVerification: true, supportedAlgorithmIDs: [-7],
     });
   } catch {
@@ -214,7 +215,7 @@ export const finishPasskeySignIn = onCall(options, async (request) => {
   let verification;
   try {
     verification = await verifyAuthenticationResponse({
-      response, expectedChallenge, expectedOrigin: origin, expectedRPID: rpID,
+      response, expectedChallenge, expectedOrigin: expectedOrigins, expectedRPID: rpID,
       credential: {
         id: response.id,
         publicKey: Buffer.from(stringField(key.get("publicKey"), 8192), "base64"),

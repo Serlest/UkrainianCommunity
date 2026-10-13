@@ -1,6 +1,9 @@
 package at.uac.android.feature.auth
 
 import android.content.Context
+import androidx.fragment.app.FragmentActivity
+import androidx.credentials.ClearCredentialStateRequest
+import androidx.credentials.CredentialManager
 import at.uac.android.BuildConfig
 import at.uac.android.core.LocalEnvironment
 import at.uac.android.core.backend.AppBackend
@@ -12,6 +15,8 @@ import com.google.firebase.Timestamp
 import com.google.firebase.auth.ActionCodeResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.GoogleAuthProvider
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -36,13 +41,34 @@ interface AuthBackend {
 
     suspend fun signIn(email: String, password: String): AuthIdentity
 
+    suspend fun signInWithGoogle(idToken: String): AuthIdentity =
+        throw AuthException(AuthProblem.OPERATION_DISABLED)
+
+    suspend fun signInWithApple(activity: FragmentActivity, language: String): AuthIdentity =
+        throw AuthException(AuthProblem.OPERATION_DISABLED)
+
+    suspend fun signInWithPasskeyToken(token: String): AuthIdentity =
+        throw AuthException(AuthProblem.OPERATION_DISABLED)
+
+    suspend fun authTimestampMillis(): Long? = null
+
+    suspend fun linkGoogle(uid: String, idToken: String): AuthIdentity =
+        throw AuthException(AuthProblem.OPERATION_DISABLED)
+
+    suspend fun linkApple(uid: String, activity: FragmentActivity, language: String): AuthIdentity =
+        throw AuthException(AuthProblem.OPERATION_DISABLED)
+
     suspend fun create(email: String, password: String, displayName: String): AuthIdentity
 
     suspend fun reload(): AuthIdentity
 
     suspend fun refreshToken(): Boolean
 
+    suspend fun passkeyProofEpoch(): String? = null
+
     suspend fun signOut()
+
+    suspend fun clearExternalCredentialState() = Unit
 
     suspend fun deleteCreatedUser(uid: String)
 
@@ -74,7 +100,10 @@ class FirebaseAuthBackend(private val auth: FirebaseAuth) : AuthBackend {
     override val current: AuthIdentity?
         get() =
             auth.currentUser?.let {
-                AuthIdentity(it.uid, it.email.orEmpty(), it.isEmailVerified, it.isAnonymous)
+                AuthIdentity(
+                    it.uid, it.email.orEmpty(), it.isEmailVerified, it.isAnonymous,
+                    it.providerData.map { provider -> provider.providerId }.toSet(),
+                )
             }
 
     private fun requireSyntheticEmail(email: String) {
@@ -91,6 +120,63 @@ class FirebaseAuthBackend(private val auth: FirebaseAuth) : AuthBackend {
         requireSyntheticEmail(email)
         auth.signInWithEmailAndPassword(email.trim(), password).await()
         current ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+    }
+
+    override suspend fun signInWithGoogle(idToken: String): AuthIdentity = operation {
+        if (BuildConfig.USE_LOCAL_BACKEND || idToken.isBlank())
+            throw AuthException(AuthProblem.OPERATION_DISABLED)
+        auth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await()
+        current ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+    }
+
+    override suspend fun signInWithApple(
+        activity: FragmentActivity,
+        language: String,
+    ): AuthIdentity = operation {
+        if (BuildConfig.USE_LOCAL_BACKEND) throw AuthException(AuthProblem.OPERATION_DISABLED)
+        auth.setLanguageCode(if (language == "uk") "uk" else "de")
+        val provider = OAuthProvider.newBuilder("apple.com")
+        provider.addCustomParameter("locale", if (language == "uk") "uk" else "de")
+        val pending = auth.pendingAuthResult
+        (pending ?: auth.startActivityForSignInWithProvider(activity, provider.build())).await()
+        current ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+    }
+
+    override suspend fun signInWithPasskeyToken(token: String): AuthIdentity = operation {
+        if (BuildConfig.USE_LOCAL_BACKEND || token.isBlank())
+            throw AuthException(AuthProblem.OPERATION_DISABLED)
+        auth.signInWithCustomToken(token).await()
+        current ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+    }
+
+    override suspend fun authTimestampMillis(): Long? = operation {
+        auth.currentUser?.getIdToken(true)?.await()?.authTimestamp?.times(1000)
+    }
+
+    override suspend fun linkGoogle(uid: String, idToken: String): AuthIdentity = operation {
+        if (BuildConfig.USE_LOCAL_BACKEND || idToken.isBlank())
+            throw AuthException(AuthProblem.OPERATION_DISABLED)
+        val user = auth.currentUser?.takeIf { it.uid == uid }
+            ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+        user.linkWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await()
+        if (auth.currentUser?.uid != uid) throw AuthException(AuthProblem.SESSION_CHANGED)
+        user.reload().await()
+        current?.takeIf { it.uid == uid } ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+    }
+
+    override suspend fun linkApple(
+        uid: String, activity: FragmentActivity, language: String,
+    ): AuthIdentity = operation {
+        if (BuildConfig.USE_LOCAL_BACKEND) throw AuthException(AuthProblem.OPERATION_DISABLED)
+        val user = auth.currentUser?.takeIf { it.uid == uid }
+            ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+        auth.setLanguageCode(if (language == "uk") "uk" else "de")
+        val provider = OAuthProvider.newBuilder("apple.com")
+        provider.addCustomParameter("locale", if (language == "uk") "uk" else "de")
+        user.startActivityForLinkWithProvider(activity, provider.build()).await()
+        if (auth.currentUser?.uid != uid) throw AuthException(AuthProblem.SESSION_CHANGED)
+        user.reload().await()
+        current?.takeIf { it.uid == uid } ?: throw AuthException(AuthProblem.SESSION_CHANGED)
     }
 
     override suspend fun create(
@@ -123,7 +209,23 @@ class FirebaseAuthBackend(private val auth: FirebaseAuth) : AuthBackend {
         firebase?.get("sign_in_second_factor") == "totp"
     }
 
+    override suspend fun passkeyProofEpoch(): String? = operation {
+        val user = auth.currentUser ?: throw AuthException(AuthProblem.SESSION_CHANGED)
+        val token = user.getIdToken(true).await()
+        val firebase = token.claims["firebase"] as? Map<*, *>
+        if (firebase?.get("sign_in_provider") != "custom" ||
+            token.claims["uac_passkey_verified"] != true) null
+        else (token.claims["uac_passkey_epoch"] as? String)?.takeIf(String::isNotBlank)
+    }
+
     override suspend fun signOut() = operation { auth.signOut() }
+
+    override suspend fun clearExternalCredentialState() {
+        if (!BuildConfig.USE_LOCAL_BACKEND) {
+            CredentialManager.create(auth.app.applicationContext)
+                .clearCredentialState(ClearCredentialStateRequest())
+        }
+    }
 
     override suspend fun deleteCreatedUser(uid: String) = operation {
         val user = auth.currentUser ?: throw AuthException(AuthProblem.SESSION_CHANGED)
@@ -451,6 +553,7 @@ fun decodeProfile(uid: String, data: Map<String, Any?>): AuthProfile {
         optionalStatusTime("statusUpdatedAt"),
         optionalStatusTime("statusAcknowledgedAt"),
         optionalStatusTime("banExpiresAt"),
+        data["passkeyEpoch"] as? String,
     )
 }
 
@@ -498,6 +601,10 @@ fun authProblem(error: Throwable): AuthProblem =
                 "ERROR_INVALID_CREDENTIAL",
                 "ERROR_INVALID_LOGIN_CREDENTIALS" -> AuthProblem.INVALID_CREDENTIALS
                 "ERROR_EMAIL_ALREADY_IN_USE" -> AuthProblem.EMAIL_EXISTS
+                "ERROR_CREDENTIAL_ALREADY_IN_USE",
+                "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" ->
+                    AuthProblem.PROVIDER_BELONGS_TO_OTHER_ACCOUNT
+                "ERROR_PROVIDER_ALREADY_LINKED" -> AuthProblem.PROVIDER_ALREADY_LINKED
                 "ERROR_WEAK_PASSWORD" -> AuthProblem.WEAK_PASSWORD
                 "ERROR_USER_DISABLED" -> AuthProblem.DISABLED
                 "ERROR_OPERATION_NOT_ALLOWED" -> AuthProblem.OPERATION_DISABLED
@@ -562,6 +669,12 @@ object LocalAuthSession {
                         LocalAuthMfaActivator(
                             AppBackend.auth(context.applicationContext),
                             AppBackend.firestore(context.applicationContext),
+                            AppBackend.callables(context.applicationContext),
+                        ),
+                    passkeys =
+                        if (BuildConfig.USE_LOCAL_BACKEND || !BuildConfig.PASSKEY_ENABLED) null
+                        else AndroidPasskeyService(
+                            AppBackend.auth(context.applicationContext),
                             AppBackend.callables(context.applicationContext),
                         ),
                     deletionJournal =

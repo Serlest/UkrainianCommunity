@@ -624,6 +624,141 @@ class AuthSessionTest {
         assertEquals(AuthNotice.PASSWORD_CHANGED, store.state.value.notice)
     }
 
+    @Test
+    fun federatedFirstSignInStaysGatedUntilCurrentLegalProfileIsCreated() = runTest {
+        val backend = FakeBackend()
+        val profiles = FakeProfiles().apply {
+            problem = AuthProblem.PROFILE_MISSING
+            createUpdatesProfile = true
+        }
+        val store = AuthStore(backend, profiles, backgroundScope)
+        store.restore().join()
+        store.signInWithGoogle("synthetic-token")!!.join()
+        assertEquals(AuthStage.REGISTRATION_PENDING, store.state.value.stage)
+        assertFalse(store.state.value.readyForActions)
+        store.loadRegistrationDocuments()!!.join()
+        val draft = draft().copy(
+            email = "a@example.invalid",
+            termsContentHash = terms.contentHash,
+            privacyContentHash = privacy.contentHash,
+        )
+        store.completeFederatedRegistration(draft, "uk")!!.join()
+        assertEquals(1, profiles.createCount)
+        assertEquals("uk", profiles.createdDraft?.locale)
+        assertEquals(AuthStage.AUTHENTICATED, store.state.value.stage)
+        assertTrue(store.state.value.readyForActions)
+    }
+
+    @Test
+    fun federatedRegistrationRejectsChangedLegalTextAndAccountSwitchClearsPendingAccess() = runTest {
+        val backend = FakeBackend()
+        val profiles = FakeProfiles().apply { problem = AuthProblem.PROFILE_MISSING }
+        val store = AuthStore(backend, profiles, backgroundScope)
+        store.restore().join()
+        store.signInWithGoogle("synthetic-token")!!.join()
+        val draft = draft().copy(
+            email = "a@example.invalid",
+            termsContentHash = terms.contentHash,
+            privacyContentHash = privacy.contentHash,
+        )
+        profiles.documents = listOf(terms.copy(version = "new"), privacy)
+        store.completeFederatedRegistration(draft, "de")!!.join()
+        assertEquals(AuthProblem.LEGAL_CHANGED, store.state.value.error)
+        assertEquals(0, profiles.createCount)
+        assertFalse(store.state.value.readyForActions)
+        store.signOut().join()
+        assertEquals(AuthStage.GUEST, store.state.value.stage)
+        assertNull(backend.current)
+    }
+
+    @Test
+    fun passkeyProofOnlyOpensPrivilegedGateForMatchingProfileEpoch() = runTest {
+        val backend = FakeBackend(identity()).apply { passkeyEpoch = "current" }
+        val profiles = FakeProfiles().apply {
+            result = profile().copy(
+                globalRole = "owner", requiresMultiFactorAuth = true,
+                passkeyEpoch = "current",
+            )
+        }
+        val store = AuthStore(backend, profiles, backgroundScope)
+        store.restore().join()
+        assertTrue(store.state.value.passkeyAuthenticated)
+        assertTrue(store.state.value.readyForActions)
+        profiles.result = profiles.result.copy(passkeyEpoch = "revoked")
+        store.refresh().join()
+        assertFalse(store.state.value.passkeyAuthenticated)
+        assertEquals(AuthGate.MFA_REQUIRED, store.state.value.gate)
+        assertFalse(store.state.value.readyForActions)
+    }
+
+    @Test
+    fun providerLinkKeepsUidAndNeedsTotpAndRecentLoginForOwner() = runTest {
+        val backend = FakeBackend(identity()).apply {
+            tokenVerified = true
+            authAtMillis = 1_000_000L
+        }
+        val profiles = FakeProfiles().apply {
+            result = profile().copy(globalRole = "owner", requiresMultiFactorAuth = true)
+        }
+        val store = AuthStore(backend, profiles, backgroundScope, clock = { 1_010_000L })
+        store.restore().join()
+        assertTrue(store.state.value.readyForActions)
+        store.linkGoogle("synthetic-token", "a", store.state.value.revision)!!.join()
+        assertEquals("a", store.state.value.identity?.uid)
+        assertTrue("google.com" in store.state.value.identity?.providers.orEmpty())
+        assertEquals(AuthNotice.PROVIDER_LINKED, store.state.value.notice)
+
+        backend.current = identity()
+        backend.authAtMillis = 1L
+        store.restore().join()
+        store.linkGoogle("synthetic-token", "a", store.state.value.revision)!!.join()
+        assertEquals(AuthProblem.RECENT_LOGIN_REQUIRED, store.state.value.error)
+        assertFalse("google.com" in backend.current?.providers.orEmpty())
+
+        backend.tokenVerified = false
+        store.restore().join()
+        assertEquals(AuthGate.MFA_REQUIRED, store.state.value.gate)
+        assertNull(store.linkGoogle("synthetic-token", "a", store.state.value.revision))
+    }
+
+    @Test
+    fun delayedGoogleChooserCannotLinkCredentialAfterAccountSwitch() = runTest {
+        val backend = FakeBackend(identity())
+        val profiles = FakeProfiles().apply { useRequestedUid = true }
+        val store = AuthStore(backend, profiles, backgroundScope)
+        store.restore().join()
+        val oldRevision = store.state.value.revision
+        store.signOut().join()
+        backend.current = identity("b")
+        store.restore().join()
+        assertNull(store.linkGoogle("synthetic-token", "a", oldRevision))
+        assertEquals("b", backend.current?.uid)
+        assertFalse("google.com" in backend.current?.providers.orEmpty())
+    }
+
+    @Test
+    fun uncertainPasskeyRemovalClosesReadyGateBeforeServerReadback() = runTest {
+        val backend = FakeBackend(identity()).apply { passkeyEpoch = "epoch" }
+        val profiles = FakeProfiles().apply {
+            result = profile().copy(globalRole = "owner", requiresMultiFactorAuth = true,
+                passkeyEpoch = "epoch")
+        }
+        val service = object : AuthPasskeys {
+            override suspend fun signInToken(context: android.content.Context) = "unused"
+            override suspend fun register(context: android.content.Context, uid: String) = Unit
+            override suspend fun list(uid: String) = listOf(AndroidPasskey("key", null))
+            override suspend fun remove(uid: String, id: String): Unit =
+                throw AuthException(AuthProblem.NETWORK)
+        }
+        val store = AuthStore(backend, profiles, backgroundScope, passkeys = service)
+        store.restore().join()
+        assertTrue(store.state.value.readyForActions)
+        store.loadPasskeys()!!.join()
+        store.removePasskey("key")!!.join()
+        assertEquals(AuthStage.SESSION_UNAVAILABLE, store.state.value.stage)
+        assertFalse(store.state.value.readyForActions)
+    }
+
     private inner class FakeProfiles : AuthProfiles {
         var result = profile()
         var problem: AuthProblem? = null
@@ -631,6 +766,8 @@ class AuthSessionTest {
         var legalProblem = false
         var fetchCount = 0
         var createCount = 0
+        var createUpdatesProfile = false
+        var createdDraft: AuthRegistration? = null
         var useRequestedUid = false
         var documents = listOf(terms, privacy)
         var changes: Flow<Result<AuthProfile>> = emptyFlow()
@@ -638,6 +775,15 @@ class AuthSessionTest {
         override suspend fun create(uid: String, draft: AuthRegistration) {
             createCount++
             createProblem?.let { throw AuthException(it) }
+            createdDraft = draft
+            if (createUpdatesProfile) {
+                problem = null
+                result = AuthProfile(
+                    uid, draft.email, draft.displayName, region = draft.region,
+                    acceptedTermsVersion = draft.termsVersion,
+                    acceptedPrivacyVersion = draft.privacyVersion,
+                )
+            }
         }
 
         override suspend fun fetch(uid: String): AuthProfile {
@@ -662,6 +808,9 @@ class AuthSessionTest {
         var resetProblem: AuthProblem? = null
         var signOutProblem: AuthProblem? = null
         var createCount = 0
+        var passkeyEpoch: String? = null
+        var tokenVerified = false
+        var authAtMillis: Long? = null
         val deleted = mutableListOf<String>()
         var beforeSignIn: suspend (String) -> Unit = {}
         var beforeCreate: suspend () -> Unit = {}
@@ -670,6 +819,18 @@ class AuthSessionTest {
             beforeSignIn(email)
             return identity(email.substringBefore('@')).also { current = it }
         }
+
+        override suspend fun signInWithGoogle(idToken: String): AuthIdentity =
+            AuthIdentity("a", "a@example.invalid", true, providers = setOf("google.com"))
+                .also { current = it }
+
+        override suspend fun linkGoogle(uid: String, idToken: String): AuthIdentity {
+            if (current?.uid != uid) throw AuthException(AuthProblem.SESSION_CHANGED)
+            return current!!.copy(providers = current!!.providers + "google.com")
+                .also { current = it }
+        }
+
+        override suspend fun authTimestampMillis(): Long? = authAtMillis
 
         override suspend fun create(
             email: String,
@@ -685,8 +846,10 @@ class AuthSessionTest {
 
         override suspend fun refreshToken(): Boolean {
             tokenProblem?.let { throw AuthException(it) }
-            return false
+            return tokenVerified
         }
+
+        override suspend fun passkeyProofEpoch(): String? = passkeyEpoch
 
         override suspend fun signOut() {
             signOutProblem?.let { throw AuthException(it) }
