@@ -83,7 +83,9 @@ class ReminderDeviceTest {
             FirestoreAuthProfiles(db)
                 .create(
                     identity.uid,
-                    AuthRegistration(email, "Synthetic reminder", "wien", "", true, true, true),
+                    AuthEmulatorFixtures.currentLegalDraft(
+                        AuthRegistration(email, "Synthetic reminder", "wien", "", true, true, true)
+                    ),
                 )
             val session = ReminderSession(identity.uid, 1, true)
             assertTrue(

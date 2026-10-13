@@ -141,13 +141,15 @@ class InboxPopupJourneyUiTest {
         val account = Account(identity.uid, email).also(created::add)
         profiles.create(
             identity.uid,
-            AuthRegistration(
-                email,
-                "Popup Journey",
-                "wien",
-                acceptedTerms = true,
-                acceptedPrivacy = true,
-                minimumAgeConfirmed = true,
+            AuthEmulatorFixtures.currentLegalDraft(
+                AuthRegistration(
+                    email,
+                    "Popup Journey",
+                    "wien",
+                    acceptedTerms = true,
+                    acceptedPrivacy = true,
+                    minimumAgeConfirmed = true,
+                )
             ),
         )
         backend.sendVerification("de")

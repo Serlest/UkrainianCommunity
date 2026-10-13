@@ -267,14 +267,16 @@ class ReminderColdDeviceTest {
             FirestoreAuthProfiles(LocalFirebase.firestore(context))
                 .create(
                     created.uid,
-                    AuthRegistration(
-                        email,
-                        "Synthetic cold reminder",
-                        "wien",
-                        "",
-                        true,
-                        true,
-                        true,
+                    AuthEmulatorFixtures.currentLegalDraft(
+                        AuthRegistration(
+                            email,
+                            "Synthetic cold reminder",
+                            "wien",
+                            "",
+                            true,
+                            true,
+                            true,
+                        )
                     ),
                 )
             backend.sendVerification("de")

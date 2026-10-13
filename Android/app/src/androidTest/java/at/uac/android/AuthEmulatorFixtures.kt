@@ -2,6 +2,9 @@ package at.uac.android
 
 import androidx.test.platform.app.InstrumentationRegistry
 import at.uac.android.core.LocalEnvironment
+import at.uac.android.core.LocalFirebase
+import at.uac.android.feature.auth.AuthRegistration
+import at.uac.android.feature.auth.FirestoreAuthProfiles
 import at.uac.android.feature.auth.bundledReferenceLegal
 import java.net.HttpURLConnection
 import java.net.URL
@@ -12,6 +15,21 @@ import org.json.JSONObject
 
 /** Test setup only. No production host or credential can be supplied here. */
 internal object AuthEmulatorFixtures {
+    /** Complete a synthetic draft from the emulator's current published documents. */
+    suspend fun currentLegalDraft(draft: AuthRegistration): AuthRegistration {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val documents = FirestoreAuthProfiles(LocalFirebase.firestore(context))
+            .legalDocuments().associateBy { it.type }
+        val terms = documents.getValue("terms")
+        val privacy = documents.getValue("privacy")
+        return draft.copy(
+            termsVersion = terms.version,
+            privacyVersion = privacy.version,
+            termsContentHash = requireNotNull(terms.contentHash),
+            privacyContentHash = requireNotNull(privacy.contentHash),
+        )
+    }
+
     suspend fun actionCode(email: String, type: String): String =
         withContext(Dispatchers.IO) {
             val json =

@@ -138,14 +138,16 @@ class NativeReminderJourneyUiTest {
                 FirestoreAuthProfiles(LocalFirebase.firestore(context))
                     .create(
                         created.uid,
-                        AuthRegistration(
-                            email,
-                            "Synthetic reminder journey",
-                            "wien",
-                            "",
-                            true,
-                            true,
-                            true,
+                        AuthEmulatorFixtures.currentLegalDraft(
+                            AuthRegistration(
+                                email,
+                                "Synthetic reminder journey",
+                                "wien",
+                                "",
+                                true,
+                                true,
+                                true,
+                            )
                         ),
                     )
                 backend.sendVerification("de")

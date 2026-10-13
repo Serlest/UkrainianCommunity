@@ -52,7 +52,9 @@ internal object AccountDeletionFixtures {
         FirestoreAuthProfiles(LocalFirebase.firestore(context))
             .create(
                 identity.uid,
-                AuthRegistration(email, "Synthetic deletion account", "wien", "", true, true, true),
+                AuthEmulatorFixtures.currentLegalDraft(
+                    AuthRegistration(email, "Synthetic deletion account", "wien", "", true, true, true)
+                ),
             )
         if (verified) {
             backend.sendVerification("de")

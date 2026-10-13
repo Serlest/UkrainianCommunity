@@ -51,7 +51,9 @@ class AuthMfaDeviceTest {
             uid = identity.uid
             profiles.create(
                 identity.uid,
-                AuthRegistration(email, "Synthetic MFA denial", "wien", "", true, true, true),
+                AuthEmulatorFixtures.currentLegalDraft(
+                    AuthRegistration(email, "Synthetic MFA denial", "wien", "", true, true, true)
+                ),
             )
             assertEquals(
                 AuthProblem.VERIFICATION_PENDING,

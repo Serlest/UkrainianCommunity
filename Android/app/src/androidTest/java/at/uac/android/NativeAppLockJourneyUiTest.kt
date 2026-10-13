@@ -351,13 +351,15 @@ class NativeAppLockJourneyUiTest {
             FirestoreAuthProfiles(LocalFirebase.firestore(context))
                 .create(
                     identity.uid,
-                    AuthRegistration(
-                        email,
-                        "Native Lock Demo",
-                        "wien",
-                        acceptedTerms = true,
-                        acceptedPrivacy = true,
-                        minimumAgeConfirmed = true,
+                    AuthEmulatorFixtures.currentLegalDraft(
+                        AuthRegistration(
+                            email,
+                            "Native Lock Demo",
+                            "wien",
+                            acceptedTerms = true,
+                            acceptedPrivacy = true,
+                            minimumAgeConfirmed = true,
+                        )
                     ),
                 )
             backend.sendVerification("de")

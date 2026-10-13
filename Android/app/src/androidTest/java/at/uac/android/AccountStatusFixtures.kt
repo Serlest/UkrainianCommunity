@@ -57,14 +57,16 @@ internal class AccountStatusFixtures(private val prefix: String) {
             FirestoreAuthProfiles(LocalFirebase.firestore(context))
                 .create(
                     user.uid,
-                    AuthRegistration(
-                        email,
-                        "Synthetic status account",
-                        "wien",
-                        "",
-                        true,
-                        true,
-                        true,
+                    AuthEmulatorFixtures.currentLegalDraft(
+                        AuthRegistration(
+                            email,
+                            "Synthetic status account",
+                            "wien",
+                            "",
+                            true,
+                            true,
+                            true,
+                        )
                     ),
                 )
             if (verified) {
