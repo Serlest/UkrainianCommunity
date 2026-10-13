@@ -16,6 +16,7 @@ import at.uac.android.feature.directory.DirectoryEditorAccess
 import at.uac.android.feature.directory.DirectoryEditorScreen
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,6 +61,70 @@ class DirectoryEditorUiTest {
         assertNull(DirectoryDraftValidation.firstIssue(result.second))
         assertEquals("Sicherheit und Schutz",
             org.json.JSONObject(result.second).getJSONObject("title").getString("german"))
+        compose.waitUntil(10_000) { destination == "directory/manage" }
+    }
+
+    @Test
+    fun newCategoryRequiresCompleteBilingualGuideAndOfficialSourceBeforePublish() {
+        var submitted: Triple<String, String, Int>? = null
+        var destination: String? = null
+        val access = object : DirectoryEditorAccess {
+            override val uid = "fixture-owner"
+            override val owner = true
+            override suspend fun publish(categoryId: String, payload: String, expectedRevision: Int): Int {
+                submitted = Triple(categoryId, payload, expectedRevision)
+                return 1
+            }
+            override suspend fun delete(categoryId: String, expectedRevision: Int): Int =
+                error("Deletion was not requested")
+        }
+        compose.setContent {
+            UacTheme("light") {
+                DirectoryEditorScreen("new-start", "de", emptyList(), emptyMap(), access) {
+                    destination = it
+                }
+            }
+        }
+        fun fill(tag: String, value: String) {
+            compose.onNodeWithTag("directory-editor").performScrollToNode(hasTestTag(tag))
+            compose.onNodeWithTag(tag).performTextReplacement(value)
+        }
+        fun open(tag: String) {
+            compose.onNodeWithTag("directory-editor").performScrollToNode(hasTestTag(tag))
+            compose.onNodeWithTag(tag).performClick()
+        }
+        fill("directory-editor-category-title-uk", "Новий розділ")
+        fill("directory-editor-category-title-de", "Neuer Bereich")
+        open("directory-publish")
+        compose.onNodeWithTag("directory-editor")
+            .performScrollToNode(hasTestTag("directory-editor-error"))
+        compose.onNodeWithTag("directory-editor-error").assertExists()
+        assertNull(submitted)
+        fill("directory-editor-category-summary-uk", "Корисна інформація")
+        fill("directory-editor-category-summary-de", "Wichtige Informationen")
+        open("directory-editor-open-group-0")
+        fill("directory-editor-group-title-uk", "Підрозділ")
+        fill("directory-editor-group-title-de", "Unterbereich")
+        open("directory-editor-category-back")
+        open("directory-editor-open-topic-0")
+        fill("directory-editor-topic-title-uk", "Нова стаття")
+        fill("directory-editor-topic-title-de", "Neuer Beitrag")
+        fill("directory-editor-topic-summary-uk", "Вступ до статті")
+        fill("directory-editor-topic-summary-de", "Einleitung zum Beitrag")
+        open("directory-editor-open-section-0")
+        fill("directory-editor-section-title-uk", "Інформація")
+        fill("directory-editor-section-title-de", "Information")
+        fill("directory-editor-section-body-uk", "Перевірений текст статті.")
+        fill("directory-editor-section-body-de", "Geprüfter Beitragstext.")
+        fill("directory-editor-section-source-name", "Offizielle Stelle")
+        fill("directory-editor-section-source-url", "https://www.oesterreich.gv.at/")
+        open("directory-publish")
+        compose.waitUntil(10_000) { submitted != null }
+        val result = submitted!!
+        assertTrue(result.first.startsWith("custom-"))
+        assertEquals(0, result.third)
+        assertNull(DirectoryDraftValidation.firstIssue(result.second))
+        assertEquals(result.first, org.json.JSONObject(result.second).getString("id"))
         compose.waitUntil(10_000) { destination == "directory/manage" }
     }
 }

@@ -104,7 +104,9 @@ fun DirectoryEditorScreen(
                 color = MaterialTheme.colorScheme.primary)
             if (error != null) Text(error!!, color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.testTag("directory-editor-error"))
-            TextButton({ pane = "category" }) { Text(tr(language, "Zum Bereich", "До розділу")) }
+            TextButton({ pane = "category" }, Modifier.testTag("directory-editor-category-back")) {
+                Text(tr(language, "Zum Bereich", "До розділу"))
+            }
         }
         when {
             sectionIndex != null || regionSectionIndex != null -> {
@@ -117,11 +119,13 @@ fun DirectoryEditorScreen(
                     val section = list.getJSONObject(index[1])
                     item("section-fields") {
                         UacSectionHeading(tr(language, "Informationsabschnitt", "Інформаційний блок"), UacIcon.EDIT)
-                        BilingualEditor(language, tr(language, "Titel", "Назва"), section.getJSONObject("title")) { key, value ->
+                        BilingualEditor(language, tr(language, "Titel", "Назва"), section.getJSONObject("title"),
+                            tag = "directory-editor-section-title") { key, value ->
                             mutate { root -> sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
                                 .getJSONObject("title").put(key, value) }
                         }
-                        BilingualEditor(language, tr(language, "Text", "Текст"), section.getJSONObject("body"), multiline = true) { key, value ->
+                        BilingualEditor(language, tr(language, "Text", "Текст"), section.getJSONObject("body"),
+                            multiline = true, tag = "directory-editor-section-body") { key, value ->
                             mutate { root -> sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
                                 .getJSONObject("body").put(key, value) }
                         }
@@ -130,7 +134,7 @@ fun DirectoryEditorScreen(
                                 .put("symbol", it) }
                         }
                         val source = section.optJSONObject("source") ?: JSONObject().put("name", "").put("url", "")
-                        SourceEditor(language, source) { key, value ->
+                        SourceEditor(language, source, "directory-editor-section-source") { key, value ->
                             mutate { root ->
                                 val target = sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
                                 val s = target.optJSONObject("source") ?: JSONObject().also { target.put("source", it) }
@@ -196,7 +200,8 @@ fun DirectoryEditorScreen(
                 val group = groups.getJSONObject(groupIndex)
                 item("group-fields") {
                     UacSectionHeading(tr(language, "Unterbereich", "Підрозділ"), UacIcon.EDIT)
-                    BilingualEditor(language, tr(language, "Titel", "Назва"), group.getJSONObject("title")) { key, value ->
+                    BilingualEditor(language, tr(language, "Titel", "Назва"), group.getJSONObject("title"),
+                        tag = "directory-editor-group-title") { key, value ->
                         mutate { it.getJSONArray("groups").getJSONObject(groupIndex).getJSONObject("title").put(key, value) }
                     }
                     LabeledSwitch(tr(language, "Verbergen", "Приховати"), group.getBoolean("isHidden")) {
@@ -225,10 +230,12 @@ fun DirectoryEditorScreen(
                 val topic = topics.getJSONObject(topicIndex)
                 item("topic-fields") {
                     UacSectionHeading(tr(language, "Beitrag", "Стаття"), UacIcon.EDIT)
-                    BilingualEditor(language, tr(language, "Titel", "Назва"), topic.getJSONObject("title")) { key, value ->
+                    BilingualEditor(language, tr(language, "Titel", "Назва"), topic.getJSONObject("title"),
+                        tag = "directory-editor-topic-title") { key, value ->
                         mutate { it.getJSONArray("topics").getJSONObject(topicIndex).getJSONObject("title").put(key, value) }
                     }
-                    BilingualEditor(language, tr(language, "Einleitung", "Вступ"), topic.getJSONObject("summary"), multiline = true) { key, value ->
+                    BilingualEditor(language, tr(language, "Einleitung", "Вступ"), topic.getJSONObject("summary"),
+                        multiline = true, tag = "directory-editor-topic-summary") { key, value ->
                         mutate { it.getJSONArray("topics").getJSONObject(topicIndex).getJSONObject("summary").put(key, value) }
                     }
                     Choice(tr(language, "Unterbereich", "Підрозділ"), topic.getString("groupID"),
@@ -260,7 +267,8 @@ fun DirectoryEditorScreen(
                     val sections = topic.getJSONArray("sections")
                     (0 until sections.length()).forEach { i ->
                         Row {
-                            TextButton({ pane = "section:$topicIndex:$i" }, Modifier.weight(1f)) {
+                            TextButton({ pane = "section:$topicIndex:$i" },
+                                Modifier.weight(1f).testTag("directory-editor-open-section-$i")) {
                                 Text(sections.getJSONObject(i).getJSONObject("title")
                                     .getString(if (language == "uk") "ukrainian" else "german")
                                     .ifBlank { tr(language, "Neuer Abschnitt", "Новий блок") })
@@ -313,7 +321,8 @@ fun DirectoryEditorScreen(
                         json.getJSONObject("title"), tag = "directory-editor-category-title") { key, value ->
                         mutate { it.getJSONObject("title").put(key, value) }
                     }
-                    BilingualEditor(language, tr(language, "Kurzbeschreibung", "Опис"), json.getJSONObject("summary"), multiline = true) { key, value ->
+                    BilingualEditor(language, tr(language, "Kurzbeschreibung", "Опис"), json.getJSONObject("summary"),
+                        multiline = true, tag = "directory-editor-category-summary") { key, value ->
                         mutate { it.getJSONObject("summary").put(key, value) }
                     }
                     EditorText(language, tr(language, "Symbol", "Символ"), json.getString("symbol")) {
@@ -329,7 +338,7 @@ fun DirectoryEditorScreen(
                     Text(tr(language, "Unterbereiche", "Підрозділи"), style = MaterialTheme.typography.titleMedium)
                     (0 until groups.length()).forEach { i ->
                         Row {
-                            TextButton({ pane = "group:$i" }, Modifier.weight(1f)) {
+                            TextButton({ pane = "group:$i" }, Modifier.weight(1f).testTag("directory-editor-open-group-$i")) {
                                 Text(groups.getJSONObject(i).getJSONObject("title")
                                     .getString(if (language == "uk") "ukrainian" else "german")
                                     .ifBlank { tr(language, "Neuer Unterbereich", "Новий підрозділ") })
@@ -345,7 +354,7 @@ fun DirectoryEditorScreen(
                     Text(tr(language, "Beiträge", "Статті"), style = MaterialTheme.typography.titleMedium)
                     (0 until topics.length()).forEach { i ->
                         Row {
-                            TextButton({ pane = "topic:$i" }, Modifier.weight(1f)) {
+                            TextButton({ pane = "topic:$i" }, Modifier.weight(1f).testTag("directory-editor-open-topic-$i")) {
                                 Text(topics.getJSONObject(i).getJSONObject("title")
                                     .getString(if (language == "uk") "ukrainian" else "german")
                                     .ifBlank { tr(language, "Neuer Beitrag", "Нова стаття") })
@@ -463,11 +472,15 @@ private fun EditorText(language: String, label: String, value: String,
 }
 
 @Composable
-private fun SourceEditor(language: String, source: JSONObject, onChange: (String, String) -> Unit) {
-    EditorText(language, tr(language, "Quellenname", "Назва джерела"), source.optString("name")) {
+private fun SourceEditor(language: String, source: JSONObject, tag: String? = null,
+                         onChange: (String, String) -> Unit) {
+    EditorText(language, tr(language, "Quellenname", "Назва джерела"), source.optString("name"),
+        tag = tag?.let { "$it-name" }) {
         onChange("name", it)
     }
-    EditorText(language, "HTTPS URL", source.optString("url")) { onChange("url", it) }
+    EditorText(language, "HTTPS URL", source.optString("url"), tag = tag?.let { "$it-url" }) {
+        onChange("url", it)
+    }
 }
 
 @Composable
