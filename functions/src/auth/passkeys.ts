@@ -14,6 +14,7 @@ import {onSchedule} from "firebase-functions/v2/scheduler";
 
 import {adminAuth, db} from "../firebase/admin";
 import {isActiveUser, userPermissionSnapshotFromData} from "../permissions/userPermissions";
+import {transientSchedulerRetry} from "../scheduling/transientRetry";
 import {
   canManagePasskeyCredentials,
   requireVerifiedActiveUser,
@@ -289,7 +290,12 @@ export const removeMyPasskey = onCall(options, async (request) => {
 });
 
 export const cleanupExpiredPasskeyChallenges = onSchedule(
-  {schedule: "every 60 minutes", region: "europe-west3", maxInstances: 1},
+  {
+    schedule: "every 60 minutes",
+    region: "europe-west3",
+    maxInstances: 1,
+    ...transientSchedulerRetry,
+  },
   async () => {
     for (let page = 0; page < 10; page++) {
       const expired = await challenges.where("expiresAt", "<=", Timestamp.now()).limit(500).get();
