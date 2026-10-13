@@ -3,6 +3,7 @@ package at.uac.android.feature.gallery
 import android.content.Context
 import android.util.AtomicFile
 import at.uac.android.core.LocalEnvironment
+import at.uac.android.core.backend.CompiledBackend
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
@@ -24,6 +25,8 @@ enum class GalleryPhase {
     DELETE_REJECTED,
     METADATA_REMOVED,
     UPLOAD_REJECTED,
+    COMMAND_SUBMITTED,
+    COMMAND_REJECTED,
 }
 
 data class GalleryJournalEntry(
@@ -34,6 +37,7 @@ data class GalleryJournalEntry(
     val captionHash: String,
     val uploaderHash: String,
     val token: String? = null,
+    val operationId: String? = null,
 ) {
     override fun toString() = "GalleryJournalEntry(phase=$phase, redacted)"
 }
@@ -72,10 +76,9 @@ object GalleryJournalCodec {
                     entry.target,
                 ) == entry.token
         )
-        require(
-            entry.phase in setOf(GalleryPhase.UPLOADING, GalleryPhase.UPLOAD_REJECTED) ||
-                entry.token != null
-        )
+        val command = entry.phase in setOf(GalleryPhase.COMMAND_SUBMITTED, GalleryPhase.COMMAND_REJECTED)
+        require(if (command) entry.operationId?.matches(Regex("[A-Za-z0-9_-]{1,200}")) == true else entry.operationId == null)
+        require(command || entry.phase in setOf(GalleryPhase.UPLOADING, GalleryPhase.UPLOAD_REJECTED) || entry.token != null)
     }
 
     fun encode(entries: List<GalleryJournalEntry>): ByteArray {
@@ -87,7 +90,7 @@ object GalleryJournalCodec {
             .also { bytes ->
                 DataOutputStream(bytes).use { out ->
                     out.writeInt(MAGIC)
-                    out.writeByte(1)
+                    out.writeByte(2)
                     out.writeByte(entries.size)
                     entries.forEach { entry ->
                         validate(entry)
@@ -100,6 +103,8 @@ object GalleryJournalCodec {
                         out.writeUTF(entry.uploaderHash)
                         out.writeBoolean(entry.token != null)
                         entry.token?.let(out::writeUTF)
+                        out.writeBoolean(entry.operationId != null)
+                        entry.operationId?.let(out::writeUTF)
                     }
                 }
             }
@@ -110,7 +115,8 @@ object GalleryJournalCodec {
     fun decode(bytes: ByteArray): List<GalleryJournalEntry> {
         require(bytes.size in 1..MAX_BYTES)
         return DataInputStream(ByteArrayInputStream(bytes)).use { input ->
-            require(input.readInt() == MAGIC && input.readUnsignedByte() == 1)
+            require(input.readInt() == MAGIC)
+            val version = input.readUnsignedByte().also { require(it in 1..2) }
             val count = input.readUnsignedByte().also { require(it <= MAX_ENTRIES) }
             List(count) {
                     val account = input.readUTF()
@@ -126,6 +132,7 @@ object GalleryJournalCodec {
                             input.readUTF(),
                             input.readUTF(),
                             if (input.readBoolean()) input.readUTF() else null,
+                            if (version >= 2 && input.readBoolean()) input.readUTF() else null,
                         )
                         .also(::validate)
                 }
@@ -240,7 +247,7 @@ object LocalGalleryJournal {
 
     fun get(context: Context): GalleryJournal {
         LocalEnvironment.requireSafe()
-        require(context.applicationContext.packageName == "at.uac.android.local")
+        require(context.applicationContext.packageName == CompiledBackend.ANDROID_PACKAGE)
         return instance
             ?: synchronized(this) {
                 instance

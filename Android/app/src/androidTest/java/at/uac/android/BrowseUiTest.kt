@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import at.uac.android.feature.browse.BrowseViewModel
+import at.uac.android.feature.browse.NewsOrder
+import at.uac.android.feature.browse.NewsPeriod
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -34,11 +36,23 @@ class BrowseUiTest {
         compose.onNodeWithTag(tag).performScrollTo()
     }
 
+    private fun openSearch() {
+        scrollPrimary("search-toggle")
+        if (compose.onAllNodesWithTag("search").fetchSemanticsNodes().isEmpty())
+            compose.onNodeWithTag("search-toggle").performClick()
+        scroll("search")
+    }
+
+    private fun scrollPrimary(tag: String) {
+        scroll(tag)
+    }
+
     private fun tab(kind: String) {
         if (kind == "news") {
             compose.onNodeWithTag("tab-home").performClick()
             ready()
-            scroll("tab-news")
+            scroll("home-controls")
+            compose.onNodeWithTag("home-controls").performScrollToNode(hasTestTag("tab-news"))
         }
         compose.onNodeWithTag("tab-$kind").performClick()
         ready()
@@ -71,7 +85,7 @@ class BrowseUiTest {
         scroll("card-synthetic-news-07")
         compose.onNodeWithTag("card-synthetic-news-07").assertIsDisplayed()
         top()
-        scroll("search")
+        openSearch()
         compose.onNodeWithTag("search").performTextReplacement("Suchziel")
         ready()
         scroll("card-synthetic-news-01")
@@ -84,7 +98,7 @@ class BrowseUiTest {
         compose.onNodeWithTag("back").performClick()
         ready()
         top()
-        scroll("search")
+        openSearch()
         compose.onNodeWithTag("search").assertTextContains("Suchziel")
         compose.onNodeWithTag("search").performTextReplacement("does-not-exist")
         ready()
@@ -102,18 +116,25 @@ class BrowseUiTest {
         compose.onNodeWithTag("back").performClick()
         ready()
         top()
-        scroll("past")
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("past").performScrollTo()
         compose.onNodeWithTag("past").performClick()
+        compose.onNodeWithTag("content-filter-done").performScrollTo().performClick()
         ready()
         scroll("card-synthetic-event-18")
         compose.onNodeWithTag("card-synthetic-event-18").assertIsDisplayed()
         top()
-        scroll("upcoming")
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("upcoming").performScrollTo()
         compose.onNodeWithTag("upcoming").performClick()
+        compose.onNodeWithTag("content-filter-done").performScrollTo().performClick()
         ready()
-        scroll("audience")
-        compose.onNodeWithTag("audience").performClick()
-        compose.onNodeWithTag("audience-families").performClick()
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("audience-families").performScrollTo().performClick()
+        compose.onNodeWithTag("content-filter-done").performScrollTo().performClick()
         ready()
         scroll("card-synthetic-event-02")
         compose.onNodeWithTag("card-synthetic-event-02").performClick()
@@ -124,7 +145,7 @@ class BrowseUiTest {
     @Test
     fun organizationPublicTeamPhotosAndRelatedNews() {
         tab("organizations")
-        scroll("search")
+        openSearch()
         compose.onNodeWithTag("search").performTextReplacement("01")
         ready()
         scroll("card-synthetic-org-01")
@@ -172,7 +193,7 @@ class BrowseUiTest {
         compose.onNodeWithTag("region").performClick()
         compose.onNodeWithTag("region-wien").performScrollTo().performClick()
         ready()
-        scroll("search")
+        openSearch()
         compose.onNodeWithTag("search").performTextReplacement("18")
         ready()
         compose.runOnIdle {
@@ -187,7 +208,63 @@ class BrowseUiTest {
         compose.activityRule.scenario.recreate()
         ready()
         top()
-        scroll("search")
+        openSearch()
         compose.onNodeWithTag("search").assertTextContains("18")
+    }
+
+    @Test
+    fun publicChromeKeepsHeroBeforeCompactFiltersAndSearchOnDemand() {
+        tab("home")
+        top()
+        compose.onNodeWithTag("browse-pull-refresh").assertExists()
+        compose.onNodeWithTag("refresh").assertDoesNotExist()
+        val heroTop = compose.onNodeWithTag("banner-hero").fetchSemanticsNode().boundsInRoot.top
+        val controlsTop =
+            compose.onNodeWithTag("home-controls").fetchSemanticsNode().boundsInRoot.top
+        org.junit.Assert.assertTrue("hero=$heroTop controls=$controlsTop", heroTop < controlsTop)
+        compose.onNodeWithTag("home-controls").performScrollToNode(hasTestTag("quick-saved"))
+        compose.onNodeWithTag("quick-saved").assertIsDisplayed()
+
+        tab("news")
+        top()
+        compose.onNodeWithTag("search").assertDoesNotExist()
+        scrollPrimary("search-toggle")
+        compose.onNodeWithTag("search-toggle").performClick()
+        compose.onNodeWithTag("search").assertIsDisplayed()
+        scroll("quick-saved")
+        compose.onNodeWithTag("quick-saved").assertIsDisplayed()
+
+        tab("events")
+        scroll("quick-registrations")
+        compose.onNodeWithTag("quick-registrations").assertIsDisplayed()
+        tab("organizations")
+        scroll("quick-subscriptions")
+        compose.onNodeWithTag("quick-subscriptions").assertIsDisplayed()
+    }
+
+    @Test
+    fun newsPeriodAndOrderApplyTogetherWhileCancelKeepsSelection() {
+        tab("news")
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("news-period-SEVEN_DAYS").performScrollTo().performClick()
+        compose.onNodeWithTag("news-order-OLDEST").performScrollTo().performClick()
+        compose.onNodeWithTag("news-filter-apply").performScrollTo().performClick()
+        ready()
+        compose.runOnIdle {
+            val state = ViewModelProvider(compose.activity)[BrowseViewModel::class.java].state.value
+            org.junit.Assert.assertEquals(NewsPeriod.SEVEN_DAYS, state.newsPeriod)
+            org.junit.Assert.assertEquals(NewsOrder.OLDEST, state.newsOrder)
+        }
+
+        scrollPrimary("news-filters")
+        compose.onNodeWithTag("news-filters").performClick()
+        compose.onNodeWithTag("news-period-ALL").performScrollTo().performClick()
+        compose.onNodeWithText("Abbrechen").performScrollTo().performClick()
+        compose.runOnIdle {
+            val state = ViewModelProvider(compose.activity)[BrowseViewModel::class.java].state.value
+            org.junit.Assert.assertEquals(NewsPeriod.SEVEN_DAYS, state.newsPeriod)
+            org.junit.Assert.assertEquals(NewsOrder.OLDEST, state.newsOrder)
+        }
     }
 }

@@ -207,6 +207,19 @@ class OrganizationReviewTest {
     }
 
     @Test
+    fun loadedRevisionPreservesNanosecondsForBuild80ServerGuard() {
+        val fixture = OrganizationReviewUnitFixture
+        val snapshot = OrganizationReviewContract.snapshot(fixture.id, fixture.fields())
+        assertEquals("${fixture.time.epochSecond}:123456789", snapshot.expectedRevision)
+        val sdk =
+            OrganizationReviewContract.snapshot(
+                fixture.id,
+                fixture.fields() + ("updatedAt" to Timestamp(fixture.time.epochSecond, 123456789)),
+            )
+        assertEquals(snapshot.expectedRevision, sdk.expectedRevision)
+    }
+
+    @Test
     fun exactThreePayloadsAndWhitespace() {
         assertEquals(
             mapOf("organizationId" to f.id),

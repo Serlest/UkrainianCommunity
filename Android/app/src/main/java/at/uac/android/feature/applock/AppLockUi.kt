@@ -2,6 +2,7 @@ package at.uac.android.feature.applock
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,42 +16,64 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 
 @Composable
 fun AppLockSettingsSection(state: AppLockState, language: String, onEnabled: (Boolean) -> Unit) {
     Card(Modifier.fillMaxWidth().testTag("app-lock-settings")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
+            UacSectionHeading(
                 tr(language, "App-Sperre", "Блокування застосунку"),
-                style = MaterialTheme.typography.titleMedium,
+                UacIcon.SECURITY,
             )
             Text(
                 tr(
                     language,
-                    "Schütze den Zugriff auf dieses Konto auf diesem Gerät mit einem starken biometrischen Merkmal oder deinem Gerätecode. " +
-                        "Nach dem Abmelden bleiben E-Mail und Passwort erforderlich.",
-                    "Захистіть доступ до цього акаунту на цьому пристрої сильною біометрією або кодом пристрою. Після виходу потрібні email і пароль.",
+                    "Öffne UAC mit Biometrie oder Gerätecode. Nach dem Abmelden benötigst du wieder E-Mail und Passwort.",
+                    "Відкривайте UAC за біометрією або кодом пристрою. Після виходу знову потрібні email і пароль.",
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    tr(language, "App beim Öffnen entsperren", "Розблокування під час відкриття"),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall,
                 )
-            )
-            Switch(
-                checked = state.enabled,
-                onCheckedChange = onEnabled,
-                enabled =
-                    state.session != null &&
-                        state.foreground &&
-                        !state.authenticating &&
-                        state.availability.available,
-                modifier = Modifier.testTag("app-lock-toggle"),
-            )
+                Switch(
+                    checked = state.enabled,
+                    onCheckedChange = onEnabled,
+                    enabled =
+                        state.session != null &&
+                            state.foreground &&
+                            !state.authenticating &&
+                            state.availability.available,
+                    modifier =
+                        Modifier.testTag("app-lock-toggle").semantics {
+                            contentDescription = tr(language, "App-Sperre", "Блокування застосунку")
+                        },
+                )
+            }
             if (!state.availability.available)
-                Text(appLockError(AppLockProblem.UNAVAILABLE, language))
+                Text(
+                    appLockError(AppLockProblem.UNAVAILABLE, language),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             state.error?.let {
                 Text(
                     appLockError(it, language),
@@ -83,9 +106,9 @@ fun AppLockScreen(
     ) {
         Text("UAC", style = MaterialTheme.typography.headlineLarge)
         if (state.foreground && state.locked) {
-            Text(
+            UacSectionHeading(
                 tr(language, "Zugriff gesperrt", "Доступ заблоковано"),
-                style = MaterialTheme.typography.headlineMedium,
+                UacIcon.SECURITY,
             )
             Text(
                 tr(

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -116,6 +117,13 @@ fun ModerationDecisionPanel(
                         Button(
                             actions.confirm,
                             Modifier.fillMaxWidth().testTag("moderation-decision-confirm"),
+                            colors =
+                                ButtonDefaults.buttonColors(
+                                    containerColor =
+                                        if (decision == ModerationDecision.REJECT)
+                                            MaterialTheme.colorScheme.error
+                                        else MaterialTheme.colorScheme.primary
+                                ),
                         ) {
                             Text(decisionTitle(decision, language))
                         }
@@ -136,7 +144,10 @@ fun ModerationDecisionPanel(
                         { actions.request(ModerationDecision.REJECT) },
                         Modifier.fillMaxWidth().testTag("moderation-reject"),
                     ) {
-                        Text(decisionTitle(ModerationDecision.REJECT, language))
+                        Text(
+                            decisionTitle(ModerationDecision.REJECT, language),
+                            color = MaterialTheme.colorScheme.error,
+                        )
                     }
                 }
         }

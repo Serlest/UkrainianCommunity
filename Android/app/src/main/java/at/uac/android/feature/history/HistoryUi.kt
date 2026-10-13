@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacBackButton
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.PublicImage
 import at.uac.android.feature.browse.displayTime
@@ -142,18 +143,19 @@ fun HistoryContent(state: HistoryState, language: String, actions: HistoryAction
             .orEmpty()
     LazyColumn(
         Modifier.fillMaxSize().imePadding().testTag("history-list"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
-            TextButton(actions.back, Modifier.testTag("history-back")) {
+            UacBackButton(actions.back, Modifier.testTag("history-back")) {
+                at.uac.android.design.UacSymbol(at.uac.android.design.UacIcon.BACK)
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            at.uac.android.design.UacSectionHeading(
                 if (state.section == HistorySection.RECENT)
                     tr(language, "Zuletzt angesehen", "Нещодавно переглянуте")
                 else tr(language, "Meine Aktivitäten", "Мої дії"),
-                style = MaterialTheme.typography.headlineMedium,
+                icon = at.uac.android.design.UacIcon.HISTORY,
             )
             Text(
                 tr(

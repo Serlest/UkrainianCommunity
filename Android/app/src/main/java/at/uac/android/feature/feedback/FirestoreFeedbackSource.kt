@@ -106,6 +106,59 @@ class FirestoreFeedbackSource(private val db: FirebaseFirestore) : FeedbackSourc
             .mapNotNull(::row)
     }
 
+    override suspend fun messagePage(
+        id: String,
+        after: FeedbackCursor?,
+        size: Int,
+    ): FeedbackRawPage = request {
+        require(size in 1..100)
+        var query: Query =
+            reference(id)
+                .collection("messages")
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .orderBy(FieldPath.documentId(), Query.Direction.DESCENDING)
+        if (after != null)
+            query =
+                query.startAfter(
+                    Timestamp(after.createdAt.epochSecond, after.createdAt.nano),
+                    id(after.id),
+                )
+        val documents = query.limit((size + 1).toLong()).get(Source.SERVER).await().documents
+        val chosen = documents.take(size)
+        val next =
+            chosen.lastOrNull()?.let {
+                val date =
+                    it.getTimestamp("createdAt") ?: throw FeedbackException(FeedbackFailure.INVALID)
+                FeedbackCursor(
+                    Instant.ofEpochSecond(date.seconds, date.nanoseconds.toLong()),
+                    it.id,
+                )
+            }
+        FeedbackRawPage(chosen.mapNotNull(::row), next, documents.size > size)
+    }
+
+    override suspend fun acknowledgeRead(
+        item: FeedbackItem,
+        session: FeedbackSession,
+        current: () -> Boolean,
+    ): Boolean =
+        request(writing = true) {
+            db.runTransaction { transaction ->
+                    if (!current()) throw CancellationException("Feedback account scope changed")
+                    val reference = reference(item.id)
+                    val latest =
+                        row(transaction.get(reference))?.let(FeedbackContract::item)
+                            ?: throw FeedbackException(FeedbackFailure.MISSING)
+                    if (latest.uid != session.uid) throw FeedbackException(FeedbackFailure.DENIED)
+                    // A newly arrived reply must not be acknowledged by an older rendered snapshot.
+                    if (latest != item) return@runTransaction false
+                    if (!current()) throw CancellationException("Feedback account scope changed")
+                    if (latest.unreadForUser) transaction.update(reference, "unreadForUser", false)
+                    true
+                }
+                .await()
+        }
+
     override suspend fun message(id: String, messageId: String): RawDocument? = request {
         row(reference(id).collection("messages").document(id(messageId)).get(Source.SERVER).await())
     }

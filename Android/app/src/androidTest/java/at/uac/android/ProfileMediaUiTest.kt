@@ -230,6 +230,44 @@ class ProfileMediaUiTest {
     }
 
     @Test
+    fun existingIosAvatarPathIsVisibleWithoutSelectingAnotherPhoto() {
+        val legacyUrl =
+            "http://10.0.2.2:9198/v0/b/${LocalStorage.BUCKET}/o/profileImages%2F${session.uid}%2Flegacy-ios-photo.jpg?alt=media"
+        val source =
+            object : ProfileMediaSource {
+                override suspend fun upload(
+                    uid: String,
+                    photo: PreparedAvatar,
+                    operation: AvatarOperation,
+                    onProgress: (Float) -> Unit,
+                ): String = error("No upload expected")
+
+                override suspend fun saveAvatar(
+                    uid: String,
+                    url: String,
+                    stillCurrent: () -> Boolean,
+                ): PersonalProfile = error("No save expected")
+            }
+        val model = ProfileMediaViewModel(source, ProfilePhotoPreparation { photo() }, { session })
+        compose.setContent {
+            MaterialTheme {
+                Column {
+                    ProfileAvatarEditor(
+                        ProfileMediaState(session = session),
+                        "de",
+                        true,
+                        legacyUrl,
+                        model,
+                        {},
+                    )
+                }
+            }
+        }
+        compose.onNodeWithTag("profile-avatar-current").assertIsDisplayed()
+        compose.onNodeWithTag("profile-avatar-preview").assertDoesNotExist()
+    }
+
+    @Test
     fun explicitAvatarRemovalClearsOldConfirmedPreviewWithoutRestoringUrl() {
         val currentUrl = mutableStateOf("")
         val source =

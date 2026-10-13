@@ -87,13 +87,19 @@ class SafetyRepository(
         if (!safetyId(id)) throw SafetyException(SafetyFailure.INVALID)
         if (id == session.uid) throw SafetyException(SafetyFailure.OWN_TARGET)
         return request(session) {
-            val value =
-                source.call(
-                    "setUserBlocked",
-                    mapOf("targetUserId" to id, "isBlocked" to blocked),
-                    session.uid,
-                )
-            SafetyContract.userReceipt(value, id, blocked)
+            try {
+                val value =
+                    source.call(
+                        "setUserBlocked",
+                        mapOf("targetUserId" to id, "isBlocked" to blocked),
+                        session.uid,
+                    )
+                SafetyContract.userReceipt(value, id, blocked)
+            } catch (error: SafetyException) {
+                if (error.failure !in setOf(SafetyFailure.OFFLINE, SafetyFailure.UNCONFIRMED))
+                    throw error
+                current(session)
+            }
             val result =
                 read(session, SafetyOperation.USER_BLOCK) {
                     source.userBlock(session.uid, id)?.let(SafetyContract::user)
@@ -108,13 +114,19 @@ class SafetyRepository(
         val session = capture()
         if (!safetyId(id, 160)) throw SafetyException(SafetyFailure.INVALID)
         return request(session) {
-            val value =
-                source.call(
-                    "setOrganizationBlocked",
-                    mapOf("organizationId" to id, "isBlocked" to blocked),
-                    session.uid,
-                )
-            SafetyContract.organizationReceipt(value, id, blocked)
+            try {
+                val value =
+                    source.call(
+                        "setOrganizationBlocked",
+                        mapOf("organizationId" to id, "isBlocked" to blocked),
+                        session.uid,
+                    )
+                SafetyContract.organizationReceipt(value, id, blocked)
+            } catch (error: SafetyException) {
+                if (error.failure !in setOf(SafetyFailure.OFFLINE, SafetyFailure.UNCONFIRMED))
+                    throw error
+                current(session)
+            }
             current(session)
             val actual =
                 SafetyContract.organizations(

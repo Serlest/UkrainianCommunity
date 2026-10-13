@@ -38,16 +38,22 @@ object LocalCallableProtocol {
     const val MAX_COVER_BASE64_CHARACTERS = 4_000_000
     const val MAX_RESPONSE_BYTES = 262_144
     private const val COVER_UPLOAD = "uploadOrganizationContentCover"
+    private const val PHOTO_SAVE = "saveOrganizationPhoto"
     private val allowed =
         setOf(
             "registerForEvent",
             "unregisterFromEvent",
             "saveComment",
             "submitContentReport",
+            "reviewContentModeration",
             "setUserBlocked",
             "setOrganizationBlocked",
             "getBlockedOrganizations",
             "getMyDsaStatement",
+            "deleteFeedback",
+            "deleteNotificationPushRegistration",
+            "getManagedUserPresence",
+            "updateUserPresence",
             "acceptLegalDocument",
             "activatePrivilegedMFAProtection",
             "searchManagedUsers",
@@ -74,10 +80,37 @@ object LocalCallableProtocol {
             "cancelEvent",
             "createOrganizationPhotoMetadata",
             "deleteOrganizationPhotoMetadata",
+            "getOrganizationAccess",
+            "updateOrganizationInfo",
+            PHOTO_SAVE,
+            "updateAnalyticsConsentV2",
+            "updateAnalyticsConsent",
+            "trackAnalyticsEvent",
+            "getLegalEvidencePage",
+            "beginOwnerContentDraftPublication",
+            "finalizeOwnerContentDraftPublication",
+            "failOwnerContentDraftPublication",
+            "archiveOwnerContentDraft",
+            "deleteOwnerContentDraft",
+            "saveFeaturedBanner",
+            "setFeaturedBannerActive",
+            "deleteFeaturedBanner",
+            "deleteSystemLog",
+            "clearSystemLogs",
+            "sendTestPushNotification",
+            "getAnnouncements",
+            "acknowledgeAnnouncement",
+            "registerAnnouncementDevice",
+            "manageAnnouncements",
+            "translateContent",
             COVER_UPLOAD,
         )
     private const val INT64 = "type.googleapis.com/google.protobuf.Int64Value"
     private const val UINT64 = "type.googleapis.com/google.protobuf.UInt64Value"
+
+    fun requireAllowed(name: String) {
+        require(name in allowed) { "CALLABLE_NOT_ALLOWED" }
+    }
 
     fun endpoint(
         name: String,
@@ -89,7 +122,7 @@ object LocalCallableProtocol {
         LocalEnvironment.requireSafe(project, host)
         CompiledBackend.configuration.requireEndpoint(BackendService.CALLABLES, host, port)
         CompiledBackend.configuration.requireCallableRegion(region)
-        require(name in allowed)
+        requireAllowed(name)
         return "http://$host:$port/$project/$region/$name"
     }
 
@@ -100,6 +133,7 @@ object LocalCallableProtocol {
             setOf(
                 "saveComment",
                 "submitContentReport",
+                "reviewContentModeration",
                 "acceptLegalDocument",
                 "warnUser",
                 "suspendUser",
@@ -118,31 +152,105 @@ object LocalCallableProtocol {
                 "transferOrganizationOwnership",
                 "deleteOwnAccount",
                 "deleteNews",
+                "deleteFeedback",
                 "cancelEvent",
                 "createOrganizationPhotoMetadata",
                 "deleteOrganizationPhotoMetadata",
+                "updateOrganizationInfo",
+                PHOTO_SAVE,
+                "updateAnalyticsConsentV2",
+                "updateAnalyticsConsent",
+                "beginOwnerContentDraftPublication",
+                "finalizeOwnerContentDraftPublication",
+                "failOwnerContentDraftPublication",
+                "archiveOwnerContentDraft",
+                "deleteOwnerContentDraft",
+                "updateUserPresence",
+                "saveFeaturedBanner",
+                "setFeaturedBannerActive",
+                "deleteFeaturedBanner",
+                "deleteSystemLog",
+                "clearSystemLogs",
+                "sendTestPushNotification",
+                "acknowledgeAnnouncement",
+                "registerAnnouncementDevice",
+                "manageAnnouncements",
+                "translateContent",
                 COVER_UPLOAD,
             )
 
     // Exact existing server deadlines. Cover upload overwrites Storage then updates Firestore.
     fun maximumTimeoutMillis(name: String): Long =
         when (name) {
-            "deleteOwnAccount",
-            "deleteNews" -> 300_000
+            "deleteOwnAccount" -> 330_000L
+            "deleteNews",
+            "deleteFeedback",
+            "clearSystemLogs" -> 300_000
             COVER_UPLOAD -> 120_000
+            PHOTO_SAVE -> 120_000
             else -> 60_000
         }
 
     fun maximumRequestBytes(name: String): Int =
-        if (name == COVER_UPLOAD) MAX_COVER_REQUEST_BYTES else MAX_REQUEST_BYTES
+        if (name == COVER_UPLOAD || name == PHOTO_SAVE) MAX_COVER_REQUEST_BYTES
+        else MAX_REQUEST_BYTES
 
     /** Ordinary compatibility entry point; it never grants the larger media budget. */
     fun request(data: Any?): Map<String, Any?> = boundedRequest(data, MAX_REQUEST_BYTES)
 
     fun request(name: String, data: Any?): Map<String, Any?> {
-        require(name in allowed)
+        requireAllowed(name)
         if (name == COVER_UPLOAD) validateCoverRequest(data)
+        if (name == PHOTO_SAVE) validatePhotoRequest(data)
         return boundedRequest(data, maximumRequestBytes(name))
+    }
+
+    private fun validatePhotoRequest(value: Any?) {
+        val data = value as? Map<*, *> ?: invalid()
+        if (
+            data.keys !=
+                setOf(
+                    "principalId",
+                    "organizationId",
+                    "photoId",
+                    "operationId",
+                    "expectedImageURL",
+                    "imageBase64",
+                    "caption",
+                    "clientVersion",
+                )
+        )
+            invalid()
+        val principal = data["principalId"] as? String ?: invalid()
+        if (principal.isEmpty() || principal.length > 128 || '/' in principal) invalid()
+        for (key in listOf("organizationId", "photoId", "operationId")) {
+            val id = data[key] as? String ?: invalid()
+            if (!Regex("[A-Za-z0-9_-]{1,200}").matches(id)) invalid()
+        }
+        val expected = data["expectedImageURL"]
+        if (expected != null && (expected !is String || expected.length > 4_096)) invalid()
+        val caption = data["caption"]
+        if (caption != null && (caption !is String || caption.length > 500)) invalid()
+        val version = data["clientVersion"] as? String ?: invalid()
+        if (version.isEmpty() || version.length > 64) invalid()
+        val image = data["imageBase64"] as? String ?: invalid()
+        if (image.isEmpty() || image.length > MAX_COVER_BASE64_CHARACTERS || image.length % 4 != 0)
+            invalid()
+        var padding = 0
+        image.forEachIndexed { index, character ->
+            when {
+                character == '=' -> {
+                    padding++
+                    if (padding > 2 || index < image.length - 2) invalid()
+                }
+                padding != 0 -> invalid()
+                character !in 'A'..'Z' &&
+                    character !in 'a'..'z' &&
+                    character !in '0'..'9' &&
+                    character != '+' &&
+                    character != '/' -> invalid()
+            }
+        }
     }
 
     private fun boundedRequest(data: Any?, maximum: Int): Map<String, Any?> {

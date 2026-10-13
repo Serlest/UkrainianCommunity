@@ -16,6 +16,7 @@ fun resolveInboxNavigation(
     currentSession: InboxSession?,
     canManageFeedback: Boolean,
     now: Instant,
+    canOpenContentPlanning: Boolean = false,
 ): InboxNavigationTarget? {
     if (
         capturedSession == null ||
@@ -54,6 +55,13 @@ fun resolveInboxNavigation(
             val base = "profile/${if (management) "support" else "feedback"}"
             InboxNavigationTarget.Route(destination.target?.let { "$base/$it" } ?: base)
         }
+        InboxDestinationKind.CONTENT_PLANNING ->
+            if (canOpenContentPlanning)
+                InboxNavigationTarget.Route(
+                    destination.target?.let { "profile/content-planning/$it" }
+                        ?: "profile/content-planning"
+                )
+            else null
         InboxDestinationKind.URL -> destination.target?.let { InboxNavigationTarget.External(it) }
         else -> null
     }

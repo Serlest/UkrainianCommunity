@@ -2,6 +2,7 @@ package at.uac.android
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -9,23 +10,26 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
@@ -33,6 +37,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.compose.viewModel
 import at.uac.android.core.AppInteractionViewModel
@@ -43,9 +48,16 @@ import at.uac.android.core.LocalWindowPrivacy
 import at.uac.android.core.ReminderNavigationViewModel
 import at.uac.android.core.backend.AppBackend
 import at.uac.android.design.LocalUacDark
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacRowDivider
+import at.uac.android.design.UacSectionCard
 import at.uac.android.design.UacTheme
 import at.uac.android.feature.accountdeletion.*
 import at.uac.android.feature.accountstatus.*
+import at.uac.android.feature.analyticsconsent.*
+import at.uac.android.feature.announcements.*
+import at.uac.android.feature.applinks.*
 import at.uac.android.feature.applock.*
 import at.uac.android.feature.attendees.*
 import at.uac.android.feature.auth.AuthImagePickerAuthorization
@@ -56,27 +68,37 @@ import at.uac.android.feature.browse.*
 import at.uac.android.feature.community.*
 import at.uac.android.feature.contentlifecycle.*
 import at.uac.android.feature.contentmedia.*
+import at.uac.android.feature.contentplanning.*
+import at.uac.android.feature.donationsettings.*
 import at.uac.android.feature.dsaappeal.*
 import at.uac.android.feature.dsastatement.*
+import at.uac.android.feature.featuredmanagement.*
 import at.uac.android.feature.feedback.*
 import at.uac.android.feature.gallery.*
 import at.uac.android.feature.history.*
 import at.uac.android.feature.inbox.*
+import at.uac.android.feature.legalevidence.*
 import at.uac.android.feature.moderation.*
 import at.uac.android.feature.organization.*
 import at.uac.android.feature.organizationreview.*
+import at.uac.android.feature.owneranalytics.*
 import at.uac.android.feature.personal.*
 import at.uac.android.feature.platformrolemanagement.*
+import at.uac.android.feature.presence.*
 import at.uac.android.feature.profilemedia.*
+import at.uac.android.feature.push.*
 import at.uac.android.feature.registrations.*
 import at.uac.android.feature.reminders.*
 import at.uac.android.feature.safety.*
 import at.uac.android.feature.startup.*
 import at.uac.android.feature.subscribers.*
+import at.uac.android.feature.systemlogs.*
 import at.uac.android.feature.usermanagement.*
 import at.uac.android.feature.userstatusmanagement.*
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class MainActivity : FragmentActivity() {
     private var appLockHost: ActivityAppLockHost? = null
@@ -84,9 +106,18 @@ class MainActivity : FragmentActivity() {
     private var interactionHost: Long? = null
     private var reminders: LocalReminderRuntime? = null
     private var reminderNavigation: ReminderNavigationViewModel? = null
+    private var appLinkNavigation: AppLinkNavigationViewModel? = null
+    private var presence: UserPresenceService? = null
+    private var push: MainPushRuntime? = null
+    private var pushNavigation: PushNavigationViewModel? = null
+    private var announcementOpen: String? = null
+    private var announcementChallenge: String? = null
+    private var announcementIntentHandler: ((String) -> Unit)? = null
+    private var announcementChallengeHandler: ((String) -> Unit)? = null
     private val reminderPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) {
             reminders?.controller?.permissionReturned()
+            push?.permissionChanged()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -97,6 +128,26 @@ class MainActivity : FragmentActivity() {
             preferences.getString("language", null)
                 ?: if (Locale.getDefault().language == "uk") "uk" else "de"
         val auth = LocalAuthSession.get(applicationContext)
+        val pushRoutes =
+            ViewModelProvider(this)[PushNavigationViewModel::class.java].also {
+                pushNavigation = it
+            }
+        if (!BuildConfig.USE_LOCAL_BACKEND) {
+            push = MainPushRuntime.get(applicationContext, auth)
+            acceptPushIntent(intent)
+            acceptAnnouncementIntent(intent)
+        }
+        val analyticsConsent =
+            AnalyticsConsentSettingsController(
+                analyticsConsentV2Source(applicationContext),
+                SharedPreferencesAnalyticsConsentStore(applicationContext),
+                { auth.state.value.analyticsConsentAuthority() },
+            )
+        val analyticsTracking =
+            firstPartyAnalytics(applicationContext) {
+                auth.state.value.analyticsConsentAuthority()
+            }
+        val legalEvidence = legalEvidencePageSource(applicationContext)
         val reminderRuntime =
             LocalReminders.get(applicationContext).also {
                 reminders = it
@@ -108,6 +159,22 @@ class MainActivity : FragmentActivity() {
                 reminderNavigation = it
             }
         acceptReminderIntent(intent)
+        val appLinkRoutes =
+            ViewModelProvider(this)[AppLinkNavigationViewModel::class.java].also {
+                appLinkNavigation = it
+            }
+        acceptAppLinkIntent(intent)
+        if (!BuildConfig.USE_LOCAL_BACKEND) {
+            presence =
+                UserPresenceService(
+                        localUserPresenceSource(applicationContext),
+                        { UserPresenceContract.eligibleUser(auth.state.value) },
+                        lifecycleScope,
+                    )
+                    .also { runtime ->
+                        runtime.bind(auth.state.map(UserPresenceContract::eligibleUser))
+                    }
+        }
         val lockHost = ActivityAppLockHost(this, auth).also { appLockHost = it }
         val lockModel = lockHost.model
         val interactionModel =
@@ -204,6 +271,13 @@ class MainActivity : FragmentActivity() {
                     modelClass: Class<T>,
                     extras: CreationExtras,
                 ): T {
+                    if (modelClass == AnnouncementViewModel::class.java) {
+                        return AnnouncementViewModel(
+                            announcementSource(applicationContext),
+                            AnnouncementInstallationStore(applicationContext),
+                        )
+                            as T
+                    }
                     if (modelClass == StartupViewModel::class.java) {
                         return StartupViewModel().also { startup ->
                             startup.observeSessions(
@@ -248,6 +322,19 @@ class MainActivity : FragmentActivity() {
                                 mutationGate = AuthPersonalMutationGate(auth),
                                 onConfirmedChange = {
                                     history.personalChanged(it, navigation.state.value.language)
+                                    if (it.enabled) {
+                                        val authority = auth.state.value.analyticsConsentAuthority()
+                                        val receipt = authority?.let(analyticsConsent::read)
+                                        if (authority != null && receipt?.enabled == true)
+                                            lifecycleScope.launch {
+                                                analyticsTracking.trackConfirmedAction(
+                                                    authority,
+                                                    receipt,
+                                                    it.target,
+                                                    it.action,
+                                                )
+                                            }
+                                    }
                                 },
                             )
                             .also { personal ->
@@ -341,6 +428,65 @@ class MainActivity : FragmentActivity() {
                                 )
                             } as T
                     }
+                    if (modelClass == FeaturedManagementViewModel::class.java) {
+                        return FeaturedManagementViewModel(
+                            FeaturedManagementRepository(
+                                localFeaturedManagementSource(applicationContext),
+                                authority = { auth.state.value.moderationScope() },
+                            ),
+                            localFeaturedImagePreparation(applicationContext),
+                        )
+                            as T
+                    }
+                    if (modelClass == ContentPlanningViewModel::class.java) {
+                        return ContentPlanningViewModel(
+                            contentPlanningRepository(applicationContext) {
+                                auth.state.value.moderationScope()
+                            }
+                        )
+                            as T
+                    }
+                    if (modelClass == SystemLogsViewModel::class.java) {
+                        return SystemLogsViewModel(
+                            SystemLogRepository(
+                                localSystemLogSource(applicationContext),
+                                authority = { auth.state.value.moderationScope() },
+                                journal =
+                                    SharedPreferencesSystemLogMutationJournal.get(
+                                        applicationContext
+                                    ),
+                            )
+                        )
+                            as T
+                    }
+                    if (modelClass == DonationSettingsViewModel::class.java) {
+                        return DonationSettingsViewModel(
+                            donationSettingsRepository(
+                                applicationContext,
+                                { auth.state.value.moderationScope() },
+                                AuthModerationDecisionGate(auth),
+                            )
+                        )
+                            as T
+                    }
+                    if (modelClass == OwnerAnalyticsViewModel::class.java) {
+                        return OwnerAnalyticsViewModel(
+                            ownerAnalyticsRepository(applicationContext) {
+                                auth.state.value.ownerAnalyticsScope()
+                            }
+                        )
+                            as T
+                    }
+                    if (modelClass == ManagedUserPresenceViewModel::class.java) {
+                        return ManagedUserPresenceViewModel(
+                            ManagedUserPresenceRepository(
+                                localUserPresenceSource(applicationContext),
+                                { auth.state.value.moderationScope() },
+                                AuthModerationDecisionGate(auth),
+                            )
+                        )
+                            as T
+                    }
                     if (modelClass == ModerationViewModel::class.java) {
                         return ModerationViewModel(
                                 localModerationSource(applicationContext),
@@ -403,9 +549,11 @@ class MainActivity : FragmentActivity() {
                                 localInboxSource(applicationContext),
                                 { auth.state.value.inboxScope() },
                                 AuthInboxMutationGate(auth),
-                                onPreferencesConfirmed = { session, _ ->
-                                    if (auth.state.value.inboxScope() == session)
+                                onPreferencesConfirmed = { session, preferences ->
+                                    if (auth.state.value.inboxScope() == session) {
                                         reminderRuntime.controller.preferencesChanged()
+                                        push?.preferencesChanged(session.uid, preferences)
+                                    }
                                 },
                             )
                             .also { inbox ->
@@ -434,6 +582,18 @@ class MainActivity : FragmentActivity() {
                                 onConfirmedRegistration = {
                                     history.registrationChanged(it, navigation.state.value.language)
                                     reminderRuntime.controller.registrationChanged(it.target.id)
+                                    if (it.participation.registered) {
+                                        val authority = auth.state.value.analyticsConsentAuthority()
+                                        val receipt = authority?.let(analyticsConsent::read)
+                                        if (authority != null && receipt?.enabled == true)
+                                            lifecycleScope.launch {
+                                                analyticsTracking.trackConfirmedEventRegistration(
+                                                    authority,
+                                                    receipt,
+                                                    it.target.id,
+                                                )
+                                            }
+                                    }
                                 },
                             )
                             .also { community ->
@@ -568,6 +728,10 @@ class MainActivity : FragmentActivity() {
                             preferences.getString("region", "").orEmpty(),
                             preferences.getString("theme", "system")!!,
                             { key, selected -> preferences.edit { putString(key, selected) } },
+                            FirestoreNewsPersonalScopeSource(
+                                AppBackend.firestore(applicationContext),
+                                AppBackend.auth(applicationContext),
+                            ),
                         )
                         .also { navigation ->
                             navigation.observeAccounts(
@@ -597,9 +761,38 @@ class MainActivity : FragmentActivity() {
             val managedUsers: ManagedUsersViewModel = viewModel(factory = factory)
             val userStatuses: UserStatusViewModel = viewModel(factory = factory)
             val platformRoles: PlatformRoleViewModel = viewModel(factory = factory)
+            val managedPresence: ManagedUserPresenceViewModel = viewModel(factory = factory)
+            val featuredBanners: FeaturedManagementViewModel = viewModel(factory = factory)
+            val contentPlanning: ContentPlanningViewModel = viewModel(factory = factory)
+            val planningBridge =
+                remember(contentPlanning) {
+                    object : PlanningAuthoringBridge {
+                        override suspend fun begin(draft: ContentPlanningDraft) =
+                            contentPlanning.beginForEditor(draft)
+
+                        override suspend fun finalize(
+                            draft: ContentPlanningDraft,
+                            lease: ContentPlanningLease,
+                            publication: ContentPlanningPublication,
+                        ) = contentPlanning.finalizeForEditor(draft, lease, publication)
+
+                        override suspend fun fail(
+                            draft: ContentPlanningDraft,
+                            lease: ContentPlanningLease,
+                            message: String,
+                        ) = contentPlanning.failForEditor(draft, lease, message)
+                    }
+                }
+            val systemLogs: SystemLogsViewModel = viewModel(factory = factory)
+            val ownerAnalytics: OwnerAnalyticsViewModel = viewModel(factory = factory)
+            val donationSettings: DonationSettingsViewModel = viewModel(factory = factory)
             val moderationDecisions: ModerationDecisionViewModel = viewModel(factory = factory)
             val organizationReviews: OrganizationReviewViewModel = viewModel(factory = factory)
             val inbox: InboxViewModel = viewModel(factory = factory)
+            DisposableEffect(inbox) {
+                val binding = push?.bindInboxRefresh { inbox.refresh() }
+                onDispose { binding?.close() }
+            }
             val popup: InboxPopupViewModel = viewModel(factory = factory)
             val community: CommunityViewModel = viewModel(factory = factory)
             val feedback: FeedbackViewModel = viewModel(factory = factory)
@@ -613,7 +806,14 @@ class MainActivity : FragmentActivity() {
             val contentLifecycle: ContentLifecycleViewModel = viewModel(factory = factory)
             val media: ProfileMediaViewModel = viewModel(factory = factory)
             val deletion: AccountDeletionViewModel = viewModel(factory = factory)
+            val announcements: AnnouncementViewModel = viewModel(factory = factory)
             val authSession by auth.state.collectAsStateWithLifecycle()
+            LaunchedEffect(authSession.moderationScope()) {
+                donationSettings.bind(authSession.moderationScope())
+            }
+            LaunchedEffect(authSession.ownerAnalyticsScope()) {
+                ownerAnalytics.bind(authSession.ownerAnalyticsScope())
+            }
             val lockSnapshot by lockHost.model.state.collectAsStateWithLifecycle()
             val lockState = lockSnapshot.forSession(authSession.appLockSession())
             SideEffect { lockHost.rendered(authSession.appLockSession()) }
@@ -644,6 +844,11 @@ class MainActivity : FragmentActivity() {
             val mediaState = mediaSnapshot.forSession(authSession.personalScope())
             val deletionSnapshot by deletion.state.collectAsStateWithLifecycle()
             val deletionState = deletionSnapshot.forSession(authSession.accountDeletionScope())
+            val announcementSession = authSession.announcementSession()
+            val announcementSnapshot by announcements.state.collectAsStateWithLifecycle()
+            val announcementState = announcementSnapshot.forSession(announcementSession)
+            val announcementOwnerState by announcements.ownerState.collectAsStateWithLifecycle()
+            val contentPlanningState by contentPlanning.state.collectAsStateWithLifecycle()
             val browseState by model.state.collectAsStateWithLifecycle()
             val startupState by startup.state.collectAsStateWithLifecycle()
             val hostInteractive by interactionModel.interactive.collectAsStateWithLifecycle()
@@ -651,12 +856,78 @@ class MainActivity : FragmentActivity() {
             val statusSnapshot by accountStatus.state.collectAsStateWithLifecycle()
             val statusSession = authSession.accountStatusScope()
             val securityRemediation = authSession.mfa.interactive || authSession.mfa.unconfirmed
+            LaunchedEffect(announcementSession, browseState.language, push) {
+                announcements.configure(announcementSession)
+                while (true) {
+                    announcements.refresh()
+                    if (push != null)
+                        announcements.syncPush(
+                            browseState.language,
+                            notificationsGranted(),
+                        )
+                    delay(60_000)
+                }
+            }
+            DisposableEffect(push, announcements) {
+                val binding = push?.bindAnnouncements(announcements::push, announcements::challenge)
+                val openIntent: (String) -> Unit = announcements::open
+                val confirmChallenge: (String) -> Unit = announcements::challenge
+                announcementIntentHandler = openIntent
+                announcementChallengeHandler = confirmChallenge
+                announcementOpen?.let {
+                    openIntent(it)
+                    announcementOpen = null
+                }
+                announcementChallenge?.let {
+                    confirmChallenge(it)
+                    announcementChallenge = null
+                }
+                AnnouncementPushInbox.takeId(applicationContext)?.let(announcements::push)
+                AnnouncementPushInbox.takeChallenge(applicationContext)
+                    ?.let(announcements::challenge)
+                onDispose {
+                    binding?.close()
+                    if (announcementIntentHandler === openIntent) announcementIntentHandler = null
+                    if (announcementChallengeHandler === confirmChallenge)
+                        announcementChallengeHandler = null
+                }
+            }
+            LaunchedEffect(
+                browseState.entryRevision,
+                browseState.data.detail,
+                browseState.data.loading,
+                authSession.revision,
+            ) {
+                val content = browseState.data.detail ?: return@LaunchedEffect
+                if (browseState.data.loading || browseState.mode != "emulator")
+                    return@LaunchedEffect
+                val authority = authSession.analyticsConsentAuthority() ?: return@LaunchedEffect
+                val receipt = analyticsConsent.read(authority)
+                analyticsTracking.trackView(authority, receipt, content)
+            }
             val statusCovered =
                 !remediationActive &&
                     !securityRemediation &&
                     statusSnapshot.coversContent(statusSession)
             val interactive =
                 hostInteractive && !remediationActive && !securityRemediation && !statusCovered
+            LaunchedEffect(
+                announcementState.items,
+                announcementState.serverNow,
+                announcementState.pendingPushId,
+                interactive,
+                startupState.covered,
+                lockState.canRoute,
+                popupState.active,
+            ) {
+                if (
+                    interactive &&
+                        !startupState.covered &&
+                        lockState.canRoute &&
+                        popupState.active == null
+                )
+                    announcements.presentIfPossible()
+            }
             val focusManager = LocalFocusManager.current
             val keyboardController = LocalSoftwareKeyboardController.current
             LaunchedEffect(statusCovered) {
@@ -668,10 +939,67 @@ class MainActivity : FragmentActivity() {
             val reminderSnapshot by reminderRuntime.controller.state.collectAsStateWithLifecycle()
             val reminderState = reminderSnapshot.forSession(authSession.reminderSession())
             val reminderRouteState by reminderRoutes.state.collectAsStateWithLifecycle()
+            val pendingAppLink by appLinkRoutes.pending.collectAsStateWithLifecycle()
+            val pendingPush by pushRoutes.pending.collectAsStateWithLifecycle()
             SideEffect {
                 interactionModel.rendered(host, !startupState.covered && lockState.canRoute)
             }
             SideEffect { reminderRuntime.controller.bindAuth(authSession) }
+            LaunchedEffect(
+                pendingAppLink?.revision,
+                authSession.stage,
+                authSession.readyForActions,
+                interactive,
+                startupState.covered,
+                lockState.canRoute,
+            ) {
+                val request = pendingAppLink ?: return@LaunchedEffect
+                val resolution =
+                    AppLinkContract.resolve(
+                        request.destination,
+                        authSession.readyForActions,
+                        authSession.stage == at.uac.android.feature.auth.AuthStage.GUEST,
+                        interactive && !startupState.covered && lockState.canRoute,
+                    )
+                when (resolution.action) {
+                    AppLinkAction.OPEN -> {
+                        model.navigate(checkNotNull(resolution.route), tab = true)
+                        appLinkRoutes.consume(request.revision)
+                    }
+                    AppLinkAction.PROMPT_LOGIN ->
+                        model.navigate(checkNotNull(resolution.route), tab = true)
+                    AppLinkAction.WAIT -> Unit
+                }
+            }
+            LaunchedEffect(
+                pendingPush?.revision,
+                authSession.stage,
+                authSession.readyForActions,
+                interactive,
+                startupState.covered,
+                lockState.canRoute,
+            ) {
+                val request = pendingPush ?: return@LaunchedEffect
+                val uid = authSession.identity?.takeUnless { it.anonymous }?.uid
+                if (authSession.stage == at.uac.android.feature.auth.AuthStage.GUEST) {
+                    pushRoutes.consume(request.revision)
+                    return@LaunchedEffect
+                }
+                if (uid != null && uid != request.ownerUid) {
+                    pushRoutes.consume(request.revision)
+                    return@LaunchedEffect
+                }
+                if (
+                    uid == request.ownerUid &&
+                        authSession.readyForActions &&
+                        interactive &&
+                        !startupState.covered &&
+                        lockState.canRoute
+                ) {
+                    model.navigate(request.decision.route, tab = true)
+                    pushRoutes.consume(request.revision)
+                }
+            }
             LaunchedEffect(safetyState.session, safetyState.visibility) {
                 personal.visibilityChanged()
                 history.visibilityChanged()
@@ -760,6 +1088,11 @@ class MainActivity : FragmentActivity() {
                     BrowseScreen(
                         browseState.visibleTo(safetyState.visibility),
                         model,
+                        navigationRequest = { action ->
+                            if (browseState.route == "profile/donation-settings")
+                                donationSettings.requestLeave(action)
+                            else action()
+                        },
                         diagnostics = {
                             startActivity(Intent(this, FoundationActivity::class.java))
                         },
@@ -786,6 +1119,28 @@ class MainActivity : FragmentActivity() {
                                 onVerification = { model.navigate("profile") },
                                 onMfa = { model.navigate("profile") },
                             )
+                            announcementState.active?.let { item ->
+                                AnnouncementPopup(
+                                    item,
+                                    browseState.language,
+                                    announcements::dismiss,
+                                    announcements::acknowledge,
+                                    {
+                                        announcements.action()
+                                        feedback.draft(
+                                            FeedbackDraft(
+                                                message =
+                                                    if (browseState.language == "uk")
+                                                        "Оповіщення «${item.title.uk}» (${item.id}): "
+                                                    else
+                                                        "Mitteilung „${item.title.de}“ (${item.id}): "
+                                            )
+                                        )
+                                        model.navigate("profile/feedback", tab = true)
+                                    },
+                                    item.active(announcementState.serverNow),
+                                )
+                            }
                         },
                         visibilityNotice = {
                             if (reminderRouteState.unavailable)
@@ -847,7 +1202,68 @@ class MainActivity : FragmentActivity() {
                             }
                         },
                         accountContent = { route, selectedLanguage ->
-                            if (route == "profile/deleted") {
+                            val managementAccess =
+                                ProfileManagementAccess(
+                                    owner = authSession.ownerAnalyticsScope()?.ready == true,
+                                    moderator = authSession.moderationScope()?.allowed == true,
+                                    support = authSession.feedbackScope()?.canManage == true,
+                                )
+                            if (!managementAccess.allows(route)) {
+                                UacSectionCard(
+                                    tr(
+                                        selectedLanguage,
+                                        "Zugriff nicht verfügbar",
+                                        "Доступ недоступний",
+                                    ),
+                                    tr(
+                                        selectedLanguage,
+                                        "Für dieses Konto sind keine passenden Verwaltungsrechte bestätigt.",
+                                        "Для цього акаунта не підтверджено потрібні права керування.",
+                                    ),
+                                    modifier = Modifier.testTag("management-access-denied"),
+                                ) {
+                                    UacNavigationRow(
+                                        tr(selectedLanguage, "Zum Profil", "До профілю"),
+                                        icon = UacIcon.PROFILE,
+                                    ) {
+                                        model.navigate("profile", tab = true)
+                                    }
+                                }
+                            } else if (route == "profile/preferences") {
+                                Column(
+                                    Modifier.fillMaxSize()
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(bottom = 32.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                ) {
+                                    at.uac.android.design.UacSectionHeading(
+                                        tr(
+                                            selectedLanguage,
+                                            "Datenschutz und App-Sperre",
+                                            "Приватність і блокування застосунку",
+                                        ),
+                                        UacIcon.SECURITY,
+                                    )
+                                    if (lockState.session != null)
+                                        AppLockSettingsSection(lockState, selectedLanguage) {
+                                            enabled ->
+                                            if (
+                                                lockHost.model.state.value.session ==
+                                                    auth.state.value.appLockSession()
+                                            )
+                                                lockHost.model.setEnabled(enabled, selectedLanguage)
+                                        }
+                                    if (authSession.identity?.anonymous == false)
+                                        at.uac.android.design.UacCard {
+                                            AnalyticsConsentSettings(
+                                                authSession.analyticsConsentAuthority(),
+                                                selectedLanguage,
+                                                BuildConfig.VERSION_NAME,
+                                                analyticsConsent,
+                                            )
+                                        }
+                                }
+                            } else if (route == "profile/deleted") {
                                 Column(
                                     Modifier.fillMaxSize()
                                         .verticalScroll(rememberScrollState())
@@ -1068,6 +1484,90 @@ class MainActivity : FragmentActivity() {
                                         model.navigate("profile/organizations/manage/$it")
                                     },
                                 )
+                            } else if (route == "profile/featured-banners") {
+                                FeaturedManagementScreen(
+                                    featuredBanners,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route.startsWith("profile/content-planning/author/")) {
+                                val parts = route.split('/')
+                                val draft =
+                                    contentPlanningState.selected?.takeIf { it.id == parts[3] }
+                                if (draft == null) {
+                                    LaunchedEffect(route) {
+                                        model.navigate("profile/content-planning/${parts[3]}")
+                                    }
+                                } else {
+                                    AuthoringScreen(
+                                        authoring,
+                                        parts[4],
+                                        authSession.organizationScope(),
+                                        selectedLanguage,
+                                        model::back,
+                                        { model.navigate("profile") },
+                                        model::openPersonalContent,
+                                        initialKind =
+                                            if (draft.kind == ContentPlanningKind.EVENT)
+                                                ContentKind.EVENTS
+                                            else ContentKind.NEWS,
+                                        planningSource = draft,
+                                        planningBridge = planningBridge,
+                                    )
+                                }
+                            } else if (
+                                route == "profile/content-planning" ||
+                                    route.startsWith("profile/content-planning/")
+                            ) {
+                                ContentPlanningScreen(
+                                    contentPlanning,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                    onOpenPublished = { kind, id ->
+                                        model.preference("mode", "emulator")
+                                        model.navigate("${kind.collection}/$id")
+                                    },
+                                    initialDraftId =
+                                        route.removePrefix("profile/content-planning/").takeUnless {
+                                            route == "profile/content-planning"
+                                        },
+                                    onStartEditor = { draft, organizationId ->
+                                        model.navigate(
+                                            "profile/content-planning/author/${draft.id}/$organizationId"
+                                        )
+                                    },
+                                )
+                            } else if (route == "profile/system-logs") {
+                                SystemLogsScreen(
+                                    systemLogs,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route == "profile/donation-settings") {
+                                DonationSettingsScreen(
+                                    donationSettings,
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route == "profile/analytics") {
+                                OwnerAnalyticsScreen(
+                                    ownerAnalytics,
+                                    authSession.ownerAnalyticsScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route.startsWith("profile/legal-evidence/")) {
+                                LegalEvidenceScreen(
+                                    route.removePrefix("profile/legal-evidence/"),
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    legalEvidence,
+                                    model::back,
+                                )
                             } else if (route == "profile/users") {
                                 ManagedUsersScreen(
                                     managedUsers,
@@ -1078,6 +1578,15 @@ class MainActivity : FragmentActivity() {
                                     interactive = interactive,
                                     statuses = userStatuses,
                                     roles = platformRoles,
+                                    presence = managedPresence,
+                                    onLegalEvidence = { id ->
+                                        if (
+                                            auth.state.value.moderationScope()?.let {
+                                                it.ready && it.role == "owner"
+                                            } == true
+                                        )
+                                            model.navigate("profile/legal-evidence/$id")
+                                    },
                                 )
                             } else if (
                                 route == "profile/moderation" ||
@@ -1180,6 +1689,48 @@ class MainActivity : FragmentActivity() {
                                         onAccount = { model.navigate("profile") },
                                     )
                                 }
+                            } else if (route == "profile/announcements") {
+                                AnnouncementHistoryScreen(
+                                    announcementState,
+                                    selectedLanguage,
+                                    push != null,
+                                    notificationsGranted(),
+                                    { announcements.refresh() },
+                                    announcements::open,
+                                    { enabled ->
+                                        if (
+                                            enabled &&
+                                                push != null &&
+                                                Build.VERSION.SDK_INT >= 33 &&
+                                                !notificationsGranted()
+                                        )
+                                            reminderPermission.launch(
+                                                Manifest.permission.POST_NOTIFICATIONS
+                                            )
+                                        announcements.guestPush(
+                                            enabled,
+                                            selectedLanguage,
+                                            push != null && notificationsGranted(),
+                                        )
+                                    },
+                                )
+                            } else if (route == "profile/announcements/manage") {
+                                AnnouncementOwnerScreen(
+                                    announcementOwnerState,
+                                    selectedLanguage,
+                                    announcements::loadOwner,
+                                    announcements::loadMoreOwner,
+                                    { announcements.edit() },
+                                    announcements::changeDraft,
+                                    announcements::saveDraft,
+                                    announcements::testDraft,
+                                    announcements::previewDraft,
+                                    announcements::loadUsers,
+                                    announcements::publishDraft,
+                                    announcements::edit,
+                                    announcements::statistics,
+                                    announcements::cancel,
+                                )
                             } else if (
                                 route in
                                     setOf(
@@ -1276,180 +1827,486 @@ class MainActivity : FragmentActivity() {
                                         )
                                     },
                                 ) {
-                                    InboxAccountLink(inboxState, selectedLanguage) {
-                                        if (auth.state.value.inboxScope() != null)
-                                            model.navigate("profile/inbox")
-                                    }
-                                    if (lockState.session != null)
-                                        AppLockSettingsSection(lockState, selectedLanguage) {
-                                            enabled ->
-                                            if (
-                                                lockHost.model.state.value.session ==
-                                                    auth.state.value.appLockSession()
-                                            )
-                                                lockHost.model.setEnabled(enabled, selectedLanguage)
-                                        }
-                                    if (authSession.identity?.anonymous == false)
-                                        OutlinedButton(
-                                            { model.navigate("profile/blocked") },
-                                            Modifier.fillMaxWidth().testTag("account-open-blocked"),
+                                    if (route != "profile/administration") {
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Kommunikation", "Спілкування")
                                         ) {
-                                            Text(
+                                            InboxAccountLink(inboxState, selectedLanguage) {
+                                                if (auth.state.value.inboxScope() != null)
+                                                    model.navigate("profile/inbox")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
+                                                title =
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "App-Mitteilungen",
+                                                        "Оповіщення застосунку",
+                                                    ),
+                                                icon = UacIcon.NEWS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-announcements"),
+                                            ) {
+                                                model.navigate("profile/announcements")
+                                            }
+                                        }
+                                        if (
+                                            authSession.identity?.anonymous == false ||
+                                                authSession.feedbackScope() != null ||
+                                                authSession.readyForActions
+                                        )
+                                            UacSectionCard(
+                                                tr(selectedLanguage, "Aktivität", "Активність")
+                                            ) {
+                                                if (authSession.readyForActions) {
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Organisationen und Anträge",
+                                                            "Мої організації та заявки",
+                                                        ),
+                                                        icon = UacIcon.ORGANIZATIONS,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-organizations"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/organizations")
+                                                    }
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Veranstaltungen",
+                                                            "Мої події",
+                                                        ),
+                                                        icon = UacIcon.CALENDAR,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-registrations"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/registrations")
+                                                    }
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Zuletzt angesehen",
+                                                            "Нещодавно переглянуте",
+                                                        ),
+                                                        icon = UacIcon.HISTORY,
+                                                        modifier =
+                                                            Modifier.testTag("account-open-recent"),
+                                                    ) {
+                                                        model.navigate("profile/recent")
+                                                    }
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Aktivitäten",
+                                                            "Мої дії",
+                                                        ),
+                                                        icon = UacIcon.HISTORY,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-history"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/history")
+                                                    }
+                                                }
+                                                if (authSession.feedbackScope() != null) {
+                                                    if (authSession.readyForActions) UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Meine Anfragen und Support",
+                                                            "Мої звернення та підтримка",
+                                                        ),
+                                                        icon = UacIcon.SUPPORT,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-feedback"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/feedback")
+                                                    }
+                                                }
+                                                if (authSession.identity?.anonymous == false) {
+                                                    if (
+                                                        authSession.readyForActions ||
+                                                            authSession.feedbackScope() != null
+                                                    )
+                                                        UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Blockierte Konten und Organisationen",
+                                                            "Заблоковані користувачі й організації",
+                                                        ),
+                                                        icon = UacIcon.SETTINGS,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-blocked"
+                                                            ),
+                                                    ) {
+                                                        model.navigate("profile/blocked")
+                                                    }
+                                                }
+                                            }
+                                        UacSectionCard(
+                                            tr(
+                                                selectedLanguage,
+                                                "Einstellungen und Sicherheit",
+                                                "Налаштування й безпека",
+                                            )
+                                        ) {
+                                            UacNavigationRow(
                                                 tr(
                                                     selectedLanguage,
-                                                    "Blockierte Konten und Organisationen",
-                                                    "Заблоковані користувачі й організації",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.feedbackScope() != null)
-                                        OutlinedButton(
-                                            { model.navigate("profile/feedback") },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-feedback"),
-                                        ) {
-                                            Text(
+                                                    "Kontosicherheit",
+                                                    "Безпека акаунта",
+                                                ),
+                                                icon = UacIcon.SECURITY,
+                                                modifier =
+                                                    Modifier.testTag("account-open-security"),
+                                            ) {
+                                                model.navigate("profile/security")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
                                                 tr(
                                                     selectedLanguage,
-                                                    "Meine Anfragen und Support",
-                                                    "Мої звернення та підтримка",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.readyForActions)
-                                        OutlinedButton(
-                                            { model.navigate("profile/organizations") },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-organizations"),
-                                        ) {
-                                            Text(
+                                                    "Datenschutz und App-Sperre",
+                                                    "Приватність і блокування застосунку",
+                                                ),
+                                                icon = UacIcon.SETTINGS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-preferences"),
+                                            ) {
+                                                model.navigate("profile/preferences")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
                                                 tr(
                                                     selectedLanguage,
-                                                    "Meine Organisationen und Anträge",
-                                                    "Мої організації та заявки",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.readyForActions)
-                                        OutlinedButton(
-                                            { model.navigate("profile/registrations") },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-registrations"),
-                                        ) {
-                                            Text(
+                                                    "Sprache und Darstellung",
+                                                    "Мова й оформлення",
+                                                ),
+                                                icon = UacIcon.SETTINGS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-appearance"),
+                                            ) {
+                                                model.navigate("settings")
+                                            }
+                                            UacRowDivider()
+                                            UacNavigationRow(
                                                 tr(
                                                     selectedLanguage,
-                                                    "Meine Veranstaltungen",
-                                                    "Мої події",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.readyForActions) {
-                                        OutlinedButton(
-                                            { model.navigate("profile/recent") },
-                                            Modifier.fillMaxWidth().testTag("account-open-recent"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Zuletzt angesehen",
-                                                    "Нещодавно переглянуте",
-                                                )
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            { model.navigate("profile/history") },
-                                            Modifier.fillMaxWidth().testTag("account-open-history"),
-                                        ) {
-                                            Text(
-                                                tr(selectedLanguage, "Meine Aktivitäten", "Мої дії")
-                                            )
+                                                    "Rechtliche Dokumente",
+                                                    "Правові документи",
+                                                ),
+                                                icon = UacIcon.NEWS,
+                                                modifier = Modifier.testTag("account-open-legal"),
+                                            ) {
+                                                model.navigate("profile/legal")
+                                            }
                                         }
                                     }
                                     val moderationScope = authSession.moderationScope()
-                                    if (moderationScope?.allowed == true) {
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/users")
-                                            },
-                                            Modifier.fillMaxWidth().testTag("account-open-users"),
+                                    val ownerTools =
+                                        authSession.ownerAnalyticsScope()?.ready == true ||
+                                            moderationScope?.allowed == true ||
+                                            authSession.feedbackScope()?.canManage == true
+                                    if (!ownerTools && route == "profile/administration")
+                                        UacSectionCard(
+                                            tr(
+                                                selectedLanguage,
+                                                "Verwaltung nicht verfügbar",
+                                                "Керування недоступне",
+                                            ),
+                                            tr(
+                                                selectedLanguage,
+                                                "Für dieses Konto sind derzeit keine Verwaltungsrechte bestätigt.",
+                                                "Для цього акаунта наразі не підтверджено права керування.",
+                                            ),
+                                            modifier =
+                                                Modifier.testTag("administration-unavailable"),
                                         ) {
-                                            Text(
+                                            UacNavigationRow(
                                                 tr(
                                                     selectedLanguage,
-                                                    "Nutzerverwaltung",
-                                                    "Керування користувачами",
-                                                )
-                                            )
+                                                    "Zurück zum Profil",
+                                                    "Повернутися до профілю",
+                                                ),
+                                                icon = UacIcon.PROFILE,
+                                            ) {
+                                                model.navigate("profile", true)
+                                            }
                                         }
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/moderation")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-moderation"),
+                                    if (ownerTools && route != "profile/administration")
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Verwaltung", "Керування")
                                         ) {
-                                            Text(
+                                            UacNavigationRow(
                                                 tr(
                                                     selectedLanguage,
-                                                    "Inhalte prüfen",
-                                                    "Перевірка матеріалів",
-                                                )
-                                            )
+                                                    "Verwaltungsbereich öffnen",
+                                                    "Відкрити розділ керування",
+                                                ),
+                                                subtitle =
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Inhalte, Organisationen und Community",
+                                                        "Матеріали, організації та спільнота",
+                                                    ),
+                                                icon = UacIcon.SETTINGS,
+                                                modifier =
+                                                    Modifier.testTag("account-open-administration"),
+                                            ) {
+                                                model.navigate("profile/administration")
+                                            }
                                         }
-                                        OutlinedButton(
-                                            {
-                                                if (
-                                                    auth.state.value.moderationScope() ==
-                                                        moderationScope
-                                                )
-                                                    model.navigate("profile/organization-review")
-                                            },
-                                            Modifier.fillMaxWidth()
-                                                .testTag("account-open-organization-review"),
+                                    if (ownerTools && route == "profile/administration")
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Verwaltung", "Керування"),
+                                            tr(
+                                                selectedLanguage,
+                                                "Nur für berechtigte Konten",
+                                                "Лише для облікових записів із дозволом",
+                                            ),
                                         ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Organisationsanträge prüfen",
-                                                    "Перевірка заявок організацій",
-                                                )
+                                            if (authSession.ownerAnalyticsScope()?.ready == true) {
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Projektunterstützung",
+                                                        "Підтримка проєкту",
+                                                    ),
+                                                    icon = UacIcon.LIKE,
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-donation-settings"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            authSession.moderationScope()
+                                                    )
+                                                        model.navigate("profile/donation-settings")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Analytics",
+                                                        "Аналітика",
+                                                    ),
+                                                    icon = UacIcon.ANALYTICS,
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-owner-analytics"
+                                                        ),
+                                                ) {
+                                                    val captured = authSession.ownerAnalyticsScope()
+                                                    if (
+                                                        captured?.ready == true &&
+                                                            auth.state.value
+                                                                .ownerAnalyticsScope() == captured
+                                                    )
+                                                        model.navigate("profile/analytics")
+                                                }
+                                            }
+                                            if (
+                                                authSession.ownerAnalyticsScope()?.ready == true &&
+                                                    moderationScope?.allowed == true
                                             )
+                                                UacRowDivider()
+                                            if (moderationScope?.allowed == true) {
+                                                UacNavigationRow(
+                                                    if (moderationScope.role == "owner")
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Systemprotokoll",
+                                                            "Системний журнал",
+                                                        )
+                                                    else
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Admin-Protokoll",
+                                                            "Журнал адміністратора",
+                                                        ),
+                                                    icon = UacIcon.HISTORY,
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-system-logs"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/system-logs")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Nutzerverwaltung",
+                                                        "Керування користувачами",
+                                                    ),
+                                                    icon = UacIcon.PROFILE,
+                                                    modifier =
+                                                        Modifier.testTag("account-open-users"),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/users")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Inhalte prüfen",
+                                                        "Перевірка матеріалів",
+                                                    ),
+                                                    icon = UacIcon.SECURITY,
+                                                    modifier =
+                                                        Modifier.testTag("account-open-moderation"),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/moderation")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Organisationsanträge prüfen",
+                                                        "Перевірка заявок організацій",
+                                                    ),
+                                                    icon = UacIcon.ORGANIZATIONS,
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-organization-review"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate(
+                                                            "profile/organization-review"
+                                                        )
+                                                }
+                                                if (authSession.announcementSession().owner) {
+                                                    UacRowDivider()
+                                                    UacNavigationRow(
+                                                        tr(
+                                                            selectedLanguage,
+                                                            "Nutzer-Mitteilungen",
+                                                            "Оповіщення користувачів",
+                                                        ),
+                                                        icon = UacIcon.NOTIFICATIONS,
+                                                        modifier =
+                                                            Modifier.testTag(
+                                                                "account-open-announcement-owner"
+                                                            ),
+                                                    ) {
+                                                        if (
+                                                            auth.state.value
+                                                                .announcementSession()
+                                                                .owner
+                                                        )
+                                                            model.navigate(
+                                                                "profile/announcements/manage"
+                                                            )
+                                                    }
+                                                }
+                                            }
+                                            if (
+                                                moderationScope?.ready == true &&
+                                                    moderationScope.role == "owner"
+                                            ) {
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Empfohlene Banner",
+                                                        "Рекомендовані банери",
+                                                    ),
+                                                    icon = UacIcon.NEWS,
+                                                    modifier =
+                                                        Modifier.testTag("account-open-featured"),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/featured-banners")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Inhaltsplanung",
+                                                        "Планування контенту",
+                                                    ),
+                                                    icon = UacIcon.EDIT,
+                                                    modifier =
+                                                        Modifier.testTag(
+                                                            "account-open-content-planning"
+                                                        ),
+                                                ) {
+                                                    if (
+                                                        auth.state.value.moderationScope() ==
+                                                            moderationScope
+                                                    )
+                                                        model.navigate("profile/content-planning")
+                                                }
+                                            }
+                                            if (authSession.feedbackScope()?.canManage == true) {
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Support-Postfach",
+                                                        "Скринька підтримки",
+                                                    ),
+                                                    icon = UacIcon.SUPPORT,
+                                                    modifier =
+                                                        Modifier.testTag("account-open-support"),
+                                                ) {
+                                                    model.navigate("profile/support")
+                                                }
+                                            }
                                         }
-                                    }
-                                    if (authSession.feedbackScope()?.canManage == true)
-                                        OutlinedButton(
-                                            { model.navigate("profile/support") },
-                                            Modifier.fillMaxWidth().testTag("account-open-support"),
+                                    if (
+                                        authSession.accountDeletionScope() != null &&
+                                            route != "profile/administration"
+                                    )
+                                        UacSectionCard(
+                                            tr(selectedLanguage, "Konto", "Обліковий запис")
                                         ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Support-Postfach verwalten",
-                                                    "Керувати скринькою підтримки",
-                                                )
-                                            )
-                                        }
-                                    if (authSession.accountDeletionScope() != null)
-                                        OutlinedButton(
-                                            { model.navigate("profile/delete") },
-                                            Modifier.fillMaxWidth().testTag("account-open-delete"),
-                                        ) {
-                                            Text(
-                                                tr(
-                                                    selectedLanguage,
-                                                    "Konto löschen",
-                                                    "Видалити обліковий запис",
-                                                )
-                                            )
+                                            UacNavigationRow(
+                                                title =
+                                                    tr(
+                                                        selectedLanguage,
+                                                        "Konto löschen",
+                                                        "Видалити обліковий запис",
+                                                    ),
+                                                icon = UacIcon.DELETE,
+                                                destructive = true,
+                                                modifier = Modifier.testTag("account-open-delete"),
+                                            ) {
+                                                model.navigate("profile/delete")
+                                            }
                                         }
                                 }
                         },
@@ -1623,12 +2480,20 @@ class MainActivity : FragmentActivity() {
         LocalAuthSession.get(applicationContext).onForeground()
         reminders?.controller?.bindAuth(LocalAuthSession.get(applicationContext).state.value)
         reminders?.controller?.permissionReturned()
+        push?.permissionChanged()
+        presence?.update(
+            UserPresenceContract.eligibleUser(LocalAuthSession.get(applicationContext).state.value),
+            true,
+        )
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         acceptReminderIntent(intent)
+        acceptAppLinkIntent(intent)
+        acceptPushIntent(intent)
+        acceptAnnouncementIntent(intent)
     }
 
     private fun acceptReminderIntent(intent: Intent?) {
@@ -1636,7 +2501,42 @@ class MainActivity : FragmentActivity() {
         ReminderIntents.request(intent)?.let { reminderNavigation?.offer(it) }
     }
 
+    private fun acceptAppLinkIntent(intent: Intent?) {
+        if (intent?.action != Intent.ACTION_VIEW) return
+        appLinkNavigation?.offer(intent.dataString)
+    }
+
+    private fun acceptPushIntent(intent: Intent?) {
+        if (BuildConfig.USE_LOCAL_BACKEND) return
+        val uid =
+            AppBackend.auth(applicationContext).currentUser?.takeUnless { it.isAnonymous }?.uid
+        pushNavigation?.offer(intent, uid)
+    }
+
+    private fun acceptAnnouncementIntent(intent: Intent?) {
+        if (BuildConfig.USE_LOCAL_BACKEND || intent?.action != PushNavigationViewModel.ACTION_TAP)
+            return
+        intent.getStringExtra("announcementId")?.takeIf(AnnouncementContract::id)?.let { id ->
+            announcementIntentHandler?.invoke(id) ?: run { announcementOpen = id }
+        }
+        intent
+            .getStringExtra("announcementChallenge")
+            ?.takeIf { Regex("[a-f0-9]{64}").matches(it) }
+            ?.let { value ->
+                announcementChallengeHandler?.invoke(value) ?: run { announcementChallenge = value }
+            }
+    }
+
+    private fun notificationsGranted(): Boolean =
+        Build.VERSION.SDK_INT < 33 ||
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+
     override fun onPause() {
+        presence?.update(
+            UserPresenceContract.eligibleUser(LocalAuthSession.get(applicationContext).state.value),
+            false,
+        )
         interactionHost?.let { interaction?.pause(it) }
         appLockHost?.onPause()
         LocalAuthSession.get(applicationContext).onHostPause()
@@ -1654,6 +2554,10 @@ class MainActivity : FragmentActivity() {
         interaction = null
         reminders = null
         reminderNavigation = null
+        appLinkNavigation = null
+        pushNavigation = null
+        presence?.close()
+        presence = null
         appLockHost?.close()
         appLockHost = null
         super.onDestroy()

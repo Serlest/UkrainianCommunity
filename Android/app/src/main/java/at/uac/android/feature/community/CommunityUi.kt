@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
@@ -26,6 +27,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.displayTime
 import at.uac.android.feature.browse.tr
@@ -99,9 +102,9 @@ fun EventRegistrationPanel(
 ) {
     var confirmCancellation by remember(state.target, state.session) { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
+        UacSectionHeading(
             tr(language, "Meine Teilnahme", "Моя участь"),
-            style = MaterialTheme.typography.titleMedium,
+            UacIcon.CALENDAR,
         )
         if (state.session?.ready != true) {
             AccountPrompt(language, onAccount)
@@ -124,6 +127,15 @@ fun EventRegistrationPanel(
                     onClick = { if (it.registered) confirmCancellation = true else onChange(true) },
                     modifier = Modifier.testTag("registration-toggle"),
                     enabled = !state.registrationBusy && unavailable == null,
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor =
+                                if (it.registered) MaterialTheme.colorScheme.surfaceContainerHigh
+                                else MaterialTheme.colorScheme.primary,
+                            contentColor =
+                                if (it.registered) MaterialTheme.colorScheme.onSurface
+                                else MaterialTheme.colorScheme.onPrimary,
+                        ),
                 ) {
                     Text(
                         if (it.registered) tr(language, "Teilnahme absagen", "Скасувати участь")
@@ -206,7 +218,7 @@ fun CommentsPanel(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         HorizontalDivider()
-        Text(tr(language, "Diskussion", "Обговорення"), style = MaterialTheme.typography.titleLarge)
+        UacSectionHeading(tr(language, "Diskussion", "Обговорення"), UacIcon.SUPPORT)
         Text(
             tr(
                 language,
@@ -256,7 +268,8 @@ fun CommentsPanel(
                                 modifier = Modifier.testTag("comment-delete-${comment.id}"),
                             ) {
                                 Text(
-                                    tr(language, "Als Moderation löschen", "Видалити як модератор")
+                                    tr(language, "Als Moderation löschen", "Видалити як модератор"),
+                                    color = MaterialTheme.colorScheme.error,
                                 )
                             }
                     }

@@ -13,6 +13,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.organization.OrganizationSession
 
@@ -71,15 +74,19 @@ fun ContentLifecycleContent(
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(bottom = 24.dp)
             .testTag("content-lifecycle-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) { Text(lc(language, "Zurück", "Назад")) }
-        Text(
+        at.uac.android.design.UacBackButton(back) {
+            UacSymbol(UacIcon.BACK)
+            Spacer(Modifier.width(8.dp))
+            Text(lc(language, "Zurück", "Назад"))
+        }
+        UacSectionHeading(
             if (event) lc(language, "Veranstaltung absagen", "Скасувати подію")
             else lc(language, "Nachricht löschen", "Видалити новину"),
-            style = MaterialTheme.typography.headlineMedium,
+            UacIcon.DELETE,
         )
         if (state.session?.ready != true) {
             Text(
@@ -94,9 +101,16 @@ fun ContentLifecycleContent(
             }
         } else {
             state.snapshot?.let { snapshot ->
-                Text(snapshot.organization.name, style = MaterialTheme.typography.titleMedium)
-                snapshot.item?.let {
-                    Text(it.content.title(language), style = MaterialTheme.typography.titleLarge)
+                at.uac.android.design.UacSectionCard(
+                    lc(language, "Ausgewählter Inhalt", "Обраний матеріал")
+                ) {
+                    Text(snapshot.organization.name, style = MaterialTheme.typography.titleMedium)
+                    snapshot.item?.let {
+                        Text(
+                            it.content.title(language),
+                            style = MaterialTheme.typography.titleLarge,
+                        )
+                    }
                 }
             }
             state.error?.let {

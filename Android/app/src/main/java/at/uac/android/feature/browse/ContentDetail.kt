@@ -7,20 +7,27 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacCard
+import at.uac.android.design.UacDesign
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSymbol
 import java.text.NumberFormat
 import java.time.Instant
 import java.util.Currency
 import java.util.Locale
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ContentDetail(
     content: Content,
@@ -32,32 +39,94 @@ fun ContentDetail(
     val l = s.language
     val f = content.fields
     val image =
-        if (content.kind == ContentKind.ORGANIZATIONS)
-            f.string("coverURL").ifEmpty { f.string("imageURL") }
+        if (content.kind == ContentKind.ORGANIZATIONS) organizationImageUrl(f, preferCover = true)
         else f.string("imageURL")
     Column(
         Modifier.widthIn(max = 760.dp).fillMaxWidth().testTag("detail-content"),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Heading(content.title(l))
-        Text(content.kind.label(l) + " · " + label(content.category, l))
-        PublicImage(
-            image,
-            f.map("mediaMetadata").string("alternativeText").ifEmpty { content.title(l) },
-            l,
-        )
-        for (field in listOf("caption", "credit")) f.map("mediaMetadata")
-            .string(field)
-            .takeIf(String::isNotBlank)
-            ?.let { Text(it, style = MaterialTheme.typography.labelMedium) }
-        SelectionContainer {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerLow,
+            tonalElevation = 1.dp,
+        ) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(content.summary(l), style = MaterialTheme.typography.titleMedium)
-                Text(content.body(l))
+                if (image.isNotBlank() || content.kind == ContentKind.ORGANIZATIONS) {
+                    val fallback =
+                        when (content.kind) {
+                            ContentKind.NEWS -> at.uac.android.design.UacIcon.NEWS
+                            ContentKind.EVENTS -> at.uac.android.design.UacIcon.CALENDAR
+                            ContentKind.ORGANIZATIONS -> at.uac.android.design.UacIcon.ORGANIZATIONS
+                        }
+                    PublicImage(
+                        image,
+                        f.map("mediaMetadata").string("alternativeText").ifEmpty {
+                            content.title(l)
+                        },
+                        l,
+                        Modifier.fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)),
+                        fallback = fallback,
+                        presentation =
+                            if (
+                                content.kind == ContentKind.ORGANIZATIONS &&
+                                    f.string("coverURL").isBlank()
+                            )
+                                PublicImagePresentation.VIEWPORT_FIT
+                            else PublicImagePresentation.VIEWPORT_CROP,
+                    )
+                }
+                Column(
+                    Modifier.padding(start = 18.dp, end = 18.dp, bottom = 18.dp, top = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    ) {
+                        Text(
+                            content.kind.label(l) + " · " + label(content.category, l),
+                            Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
+                    }
+                    Heading(content.title(l))
+                    Text(
+                        displayTime(content.publishedAt, l),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    val credits =
+                        listOf("caption", "credit")
+                            .map { f.map("mediaMetadata").string(it) }
+                            .filter(String::isNotBlank)
+                            .joinToString(" · ")
+                    if (credits.isNotBlank())
+                        Text(
+                            credits,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                }
             }
         }
-        Text(displayTime(content.publishedAt, l))
         if (content.kind == ContentKind.EVENTS) EventInformation(content, l)
+        if (content.summary(l).isNotBlank() || content.body(l).isNotBlank()) {
+            UacCard {
+                SelectionContainer {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        content.summary(l).takeIf(String::isNotBlank)?.let {
+                            Text(it, style = MaterialTheme.typography.titleMedium)
+                        }
+                        content.body(l).takeIf(String::isNotBlank)?.let {
+                            Text(it, style = MaterialTheme.typography.bodyLarge)
+                        }
+                    }
+                }
+            }
+        }
         if (content.kind == ContentKind.ORGANIZATIONS)
             OrganizationInformation(content, s, model, publicGallery)
         else {
@@ -76,20 +145,49 @@ fun ContentDetail(
         }
         if (content.kind == ContentKind.NEWS) {
             val source = f.string("sourceName")
-            if (source.isNotEmpty()) Text(tr(l, "Quelle: ", "Джерело: ") + source)
-            SafeLink(tr(l, "Originalquelle", "Першоджерело"), f.string("sourceURL"), l)
             val action = f.map("externalAction")
-            SafeLink(
-                action.string("title").ifEmpty {
-                    tr(l, "Weitere Informationen", "Дізнатися більше")
-                },
-                action.string("url"),
-                l,
-            )
+            if (
+                source.isNotBlank() ||
+                    f.string("sourceURL").isNotBlank() ||
+                    action.string("url").isNotBlank()
+            ) {
+                Section(tr(l, "Quelle und Links", "Джерело та посилання")) {
+                    if (source.isNotBlank())
+                        Text(source, style = MaterialTheme.typography.titleMedium)
+                    SafeLink(tr(l, "Originalquelle", "Першоджерело"), f.string("sourceURL"), l)
+                    SafeLink(
+                        action.string("title").ifEmpty {
+                            tr(l, "Weitere Informationen", "Дізнатися більше")
+                        },
+                        action.string("url"),
+                        l,
+                    )
+                }
+            }
         }
-        val tags = f.strings("tags")
-        if (tags.isNotEmpty()) Text(tags.joinToString(" ") { "#$it" })
-        Section(tr(l, "Aktionen mit Konto", "Дії з акаунтом")) {
+        val tags = f.strings("tags").filter(String::isNotBlank)
+        if (tags.isNotEmpty())
+            UacCard {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    tags.forEach { tag ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            shape = RoundedCornerShape(12.dp),
+                        ) {
+                            Text(
+                                "#$tag",
+                                Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                        }
+                    }
+                }
+            }
+        Section(tr(l, "Aktionen", "Дії")) {
             if (personalActions != null) personalActions(content, s)
             else
                 TextButton({ model.navigate("profile") }) {
@@ -101,9 +199,6 @@ fun ContentDetail(
             s.data.related.forEach { item ->
                 ContentCard(item, l) { model.navigate("${item.kind.collection}/${item.id}") }
             }
-        }
-        TextButton(model::refresh, Modifier.testTag("detail-refresh")) {
-            Text(tr(l, "Aktualisieren", "Оновити"))
         }
     }
 }
@@ -136,69 +231,117 @@ fun priceText(fields: Fields, language: String): String {
 @Composable
 private fun EventInformation(content: Content, language: String) {
     val f = content.fields
-    Section(tr(language, "Termin und Teilnahme", "Час та участь")) {
-        val cancelled = f.string("cancellationState") == "cancelled"
-        val past = f.time("endDate")!! < Instant.now()
+    val start = f.time("startDate")
+    val end = f.time("endDate")
+    val allDay = f["isAllDay"] == true
+    val cancelled = f.string("cancellationState") == "cancelled"
+    val past = end?.let { it < Instant.now() } == true
+    Section(tr(language, "Auf einen Blick", "Коротко про подію")) {
         if (cancelled)
-            Text(tr(language, "Abgesagt", "Скасовано"), color = MaterialTheme.colorScheme.error)
-        Text(
-            displayTime(f.time("startDate")!!, language, f["isAllDay"] == true) +
-                " — " +
-                displayTime(f.time("endDate")!!, language, f["isAllDay"] == true)
-        )
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = RoundedCornerShape(10.dp),
+            ) {
+                Text(
+                    tr(language, "Abgesagt", "Скасовано"),
+                    Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        if (start != null && end != null)
+            DetailFact(
+                tr(language, "Wann", "Коли"),
+                displayTime(start, language, allDay) + " – " + displayTime(end, language, allDay),
+                UacIcon.CALENDAR,
+            )
+        val place =
+            listOf("venue", "city", "locationNote")
+                .map(f::string)
+                .filter(String::isNotBlank)
+                .joinToString(" · ")
+        if (place.isNotBlank()) DetailFact(tr(language, "Wo", "Де"), place, UacIcon.LOCATION)
+        DetailFact(tr(language, "Preis", "Вартість"), priceText(f, language))
+        f.map("pricing").string("note").takeIf(String::isNotEmpty)?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall)
+        }
+        f.string("audience").takeIf(String::isNotEmpty)?.let {
+            DetailFact(tr(language, "Für wen", "Для кого"), label(it, language), UacIcon.PROFILE)
+        }
+        f.string("organizerName").takeIf(String::isNotBlank)?.let {
+            DetailFact(tr(language, "Veranstalter", "Організатор"), it, UacIcon.ORGANIZATIONS)
+        }
         Text(
             tr(
                 language,
-                "Anzeige in der Zeitzone dieses Geräts.",
-                "Час показано в часовому поясі пристрою.",
-            )
+                "Zeitangaben entsprechen der Zeitzone dieses Geräts.",
+                "Час показано відповідно до часового поясу пристрою.",
+            ),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        val occurrences = (f["occurrences"] as? List<*>)?.filterIsInstance<Map<*, *>>().orEmpty()
-        occurrences.forEach { raw ->
-            val start = raw["startDate"] as? Instant
-            val end = raw["endDate"] as? Instant
-            if (start != null && end != null && end >= start) {
-                Text(
-                    (if (raw["status"] == "cancelled") tr(language, "Abgesagt · ", "Скасовано · ")
-                    else "") +
-                        (if (raw["isAllDay"] == true) tr(language, "Ganztägig · ", "Увесь день · ")
+    }
+    val occurrences = (f["occurrences"] as? List<*>)?.filterIsInstance<Map<*, *>>().orEmpty()
+    if (occurrences.isNotEmpty())
+        Section(tr(language, "Weitere Termine", "Інші дати")) {
+            val occurrences =
+                (f["occurrences"] as? List<*>)?.filterIsInstance<Map<*, *>>().orEmpty()
+            occurrences.forEach { raw ->
+                val start = raw["startDate"] as? Instant
+                val end = raw["endDate"] as? Instant
+                if (start != null && end != null && end >= start) {
+                    Text(
+                        (if (raw["status"] == "cancelled")
+                            tr(language, "Abgesagt · ", "Скасовано · ")
                         else "") +
-                        displayTime(start, language, raw["isAllDay"] == true) +
-                        " — " +
-                        displayTime(end, language, raw["isAllDay"] == true)
-                )
-            } else Text(tr(language, "Ungültiger Einzeltermin", "Некоректний час окремої події"))
+                            (if (raw["isAllDay"] == true)
+                                tr(language, "Ganztägig · ", "Увесь день · ")
+                            else "") +
+                            displayTime(start, language, raw["isAllDay"] == true) +
+                            " — " +
+                            displayTime(end, language, raw["isAllDay"] == true)
+                    )
+                } else
+                    Text(tr(language, "Ungültiger Einzeltermin", "Некоректний час окремої події"))
+            }
         }
-        Text(priceText(f, language))
-        f.map("pricing").string("note").takeIf(String::isNotEmpty)?.let { Text(it) }
+    Section(tr(language, "Teilnahme", "Участь")) {
         val capacity = f.count("capacity")
         val registered = f.count("registeredCount")
         if (capacity > 0)
-            Text(
+            DetailFact(
+                tr(language, "Plätze", "Місця"),
                 tr(
                     language,
-                    "Angemeldet: $registered / $capacity",
-                    "Зареєстровано: $registered / $capacity",
-                )
+                    "$registered von $capacity angemeldet",
+                    "Зареєстровано $registered із $capacity",
+                ),
             )
-        if (capacity > 0 && registered >= capacity) Text(tr(language, "Ausgebucht", "Місць немає"))
-        f.string("audience").takeIf(String::isNotEmpty)?.let {
-            Text(tr(language, "Für: ", "Для: ") + label(it, language))
-        }
-        if (past) Text(tr(language, "Diese Veranstaltung ist vorbei.", "Ця подія вже завершилася."))
+        if (capacity > 0 && registered >= capacity)
+            Text(tr(language, "Ausgebucht", "Місць немає"), color = MaterialTheme.colorScheme.error)
+        if (past)
+            Text(
+                tr(language, "Diese Veranstaltung ist vorbei.", "Ця подія вже завершилася."),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         val mode =
             f.string("participationMode").ifEmpty {
                 if (f["requiresRegistration"] == true) "inAppRegistration" else "none"
             }
         when (mode) {
-            "none" -> Text(tr(language, "Keine Anmeldung erforderlich", "Реєстрація не потрібна"))
+            "none" ->
+                DetailFact(
+                    tr(language, "Anmeldung", "Реєстрація"),
+                    tr(language, "Nicht erforderlich", "Не потрібна"),
+                )
             "inAppRegistration" ->
-                Text(
+                DetailFact(
+                    tr(language, "Anmeldung", "Реєстрація"),
                     tr(
                         language,
                         "Anmeldung im Bereich „Meine Teilnahme“ weiter unten.",
                         "Реєстрація — у розділі «Моя участь» нижче.",
-                    )
+                    ),
                 )
             "externalRegistration",
             "externalTickets" ->
@@ -214,15 +357,26 @@ private fun EventInformation(content: Content, language: String) {
                     tr(language, "Teilnahmeart nicht unterstützt", "Спосіб участі не підтримується")
                 )
         }
-        Text(
-            listOf("venue", "city", "locationNote", "organizerName")
-                .map(f::string)
-                .filter(String::isNotBlank)
-                .joinToString(" · ")
-        )
         ContactActions(f, language)
         SafeLink(tr(language, "Veranstalter", "Організатор"), f.string("organizerURL"), language)
         SafeLink(tr(language, "Kontakt", "Контакт"), f.string("contactURL"), language)
+    }
+}
+
+@Composable
+private fun DetailFact(label: String, value: String, icon: UacIcon? = null) {
+    if (value.isBlank()) return
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (icon != null) UacSymbol(icon, modifier = Modifier.padding(top = 2.dp).size(20.dp))
+        else Spacer(Modifier.width(20.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(value, style = MaterialTheme.typography.bodyMedium)
+        }
     }
 }
 
@@ -241,16 +395,31 @@ private fun OrganizationInformation(
             directory.string(key).ifBlank { f.string(key) }
         }
     Section(tr(l, "Über die Organisation", "Про організацію")) {
-        PublicImage(f.string("logoURL"), content.title(l), l)
+        val logo = organizationImageUrl(f, preferCover = false)
+        val hero = organizationImageUrl(f, preferCover = true)
+        if (logo.isNotBlank() && logo != hero)
+            PublicImage(
+                logo,
+                content.title(l),
+                l,
+                Modifier.size(96.dp).clip(RoundedCornerShape(16.dp)),
+                presentation = PublicImagePresentation.VIEWPORT_FIT,
+            )
         localized("missionStatement").takeIf(String::isNotBlank)?.let { Text(it) }
-        Text(
-            listOf(f.string("city"), f.strings("languages").joinToString(" / "))
-                .filter(String::isNotBlank)
-                .joinToString(" · ")
+        DetailFact(tr(l, "Ort", "Місто"), f.string("city"), UacIcon.LOCATION)
+        DetailFact(
+            tr(l, "Sprachen", "Мови"),
+            f.strings("languages").joinToString(" / "),
         )
         if (f.count("foundedYear") > 0)
-            Text(tr(l, "Gegründet: ", "Засновано: ") + f.count("foundedYear"))
-        Text(tr(l, "Abonnements: ", "Підписників: ") + f.count("subscriberCount"))
+            DetailFact(
+                tr(l, "Gegründet", "Засновано"),
+                f.count("foundedYear").toString(),
+            )
+        DetailFact(
+            tr(l, "Abonnements", "Підписників"),
+            f.count("subscriberCount").toString(),
+        )
         ContactActions(f, l)
         listOf(
                 "website" to tr(l, "Website", "Вебсайт"),

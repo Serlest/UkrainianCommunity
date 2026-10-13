@@ -1,6 +1,7 @@
 package at.uac.android.core.backend
 
 import android.content.Context
+import at.uac.android.BuildConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -11,7 +12,8 @@ import com.google.firebase.storage.FirebaseStorage
  * ownership lives here. Reading configuration does not initialize Firebase.
  */
 internal object AppBackend {
-    private val provider: FirebaseBackendProvider = LocalFirebaseBackendProvider
+    private val provider: FirebaseBackendProvider =
+        if (BuildConfig.USE_LOCAL_BACKEND) LocalFirebaseBackendProvider else CloudFirebaseBackendProvider
 
     val configuration: BackendConfiguration
         get() = provider.configuration
@@ -19,9 +21,10 @@ internal object AppBackend {
     private fun checkedContext(context: Context, service: BackendService? = null): Context {
         val appContext = context.applicationContext
         configuration.requireAndroidPackage(appContext.packageName)
-        // This seam is still local-only. A future cloud provider requires its own reviewed policy;
-        // adding a provider cannot silently bypass this service boundary.
-        service?.let(configuration::requireLocal)
+        service?.let {
+            if (BuildConfig.USE_LOCAL_BACKEND) configuration.requireLocal(it)
+            else configuration.requireCloud(it)
+        }
         return appContext
     }
 

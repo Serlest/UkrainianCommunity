@@ -66,13 +66,13 @@ fun DsaStatementScreen(
         else DsaStatementState(session = snapshot.session, reportId = reportId, loading = ready)
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(12.dp),
+        contentPadding = PaddingValues(top = 8.dp, bottom = 32.dp),
         modifier = Modifier.testTag("dsa-statement-list"),
     ) {
         item {
-            Text(
+            at.uac.android.design.UacSectionHeading(
                 tr(language, "Begründung der Entscheidung", "Обґрунтування рішення"),
-                style = MaterialTheme.typography.headlineSmall,
+                icon = at.uac.android.design.UacIcon.NEWS,
             )
         }
         if (!ready)

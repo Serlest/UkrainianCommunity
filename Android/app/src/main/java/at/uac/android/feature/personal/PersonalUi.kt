@@ -3,8 +3,10 @@ package at.uac.android.feature.personal
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -32,6 +35,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionCard
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.regions
@@ -160,14 +166,13 @@ fun PersonalProfilePanel(
             }
         }
         if (profile != null) {
-            Text(profile.email, style = MaterialTheme.typography.bodyMedium)
-            Text(
+            UacSectionCard(
+                tr(language, "Sichtbarkeit deiner Angaben", "Видимість ваших даних"),
                 tr(
                     language,
                     "Dein Anzeigename, Wohnort, Bundesland und Profilbild sind öffentlich. E-Mail und Biografie bleiben im privaten Profil.",
                     "Відображуване ім’я, місто, федеральна земля та фото профілю є публічними. Email і біографія залишаються у приватному профілі.",
                 ),
-                style = MaterialTheme.typography.bodySmall,
             )
             val editable =
                 state.session?.ready == true &&
@@ -175,6 +180,10 @@ fun PersonalProfilePanel(
                     !state.profileLoading &&
                     !avatarBusy &&
                     (editor == null || stored?.confirmedSession == state.session)
+            ProfileEditorSection(
+                tr(language, "Name und Profil", "Ім’я та профіль"),
+                UacIcon.PROFILE,
+            )
             ProfileField(
                 draft.fullName,
                 { change(draft.copy(fullName = it)) },
@@ -193,6 +202,7 @@ fun PersonalProfilePanel(
                 attempted && draft.displayName.trim().length !in 1..160,
                 160,
             )
+            ProfileEditorSection(tr(language, "Wohnort", "Місце проживання"), UacIcon.LOCATION)
             ProfileField(
                 draft.city,
                 { change(draft.copy(city = it)) },
@@ -206,7 +216,7 @@ fun PersonalProfilePanel(
                 OutlinedButton(
                     onClick = { regionMenu = true },
                     enabled = editable,
-                    modifier = Modifier.testTag("profile-region"),
+                    modifier = Modifier.fillMaxWidth().testTag("profile-region"),
                 ) {
                     val title = regions.firstOrNull { it.first == draft.federalState }?.second
                     Text(title ?: tr(language, "Bundesland auswählen", "Оберіть федеральну землю"))
@@ -223,6 +233,10 @@ fun PersonalProfilePanel(
                     }
                 }
             }
+            ProfileEditorSection(
+                tr(language, "Über mich und Kontakt", "Про себе та контакти"),
+                UacIcon.EDIT,
+            )
             ProfileField(
                 draft.bio,
                 { change(draft.copy(bio = it)) },
@@ -242,6 +256,7 @@ fun PersonalProfilePanel(
                 attempted && draft.telegramUsername.trim().length > 80,
                 80,
             )
+            ProfileEditorSection(tr(language, "Profilbild", "Фото профілю"), UacIcon.PROFILE)
             if (avatarEditor != null)
                 avatarEditor(
                     draft.avatarUrl,
@@ -285,7 +300,7 @@ fun PersonalProfilePanel(
                     }
                 },
                 enabled = editable,
-                modifier = Modifier.testTag("profile-save"),
+                modifier = Modifier.fillMaxWidth().testTag("profile-save"),
             ) {
                 Text(tr(language, "Änderungen speichern", "Зберегти зміни"))
             }
@@ -299,6 +314,18 @@ fun PersonalProfilePanel(
                     modifier = Modifier.testTag("profile-saved"),
                 )
         }
+    }
+}
+
+@Composable
+private fun ProfileEditorSection(title: String, icon: UacIcon) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        UacSymbol(icon, modifier = Modifier.size(22.dp))
+        Text(title, Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
     }
 }
 
@@ -406,6 +433,16 @@ fun PersonalActionsRow(
                         selected = active,
                         onClick = { onChange(action, !active) },
                         label = { Text(title) },
+                        leadingIcon = {
+                            UacSymbol(
+                                when (action) {
+                                    PersonalAction.LIKE -> UacIcon.LIKE
+                                    PersonalAction.BOOKMARK -> UacIcon.BOOKMARK
+                                    PersonalAction.SUBSCRIBE -> UacIcon.NOTIFICATIONS
+                                },
+                                modifier = Modifier.size(18.dp),
+                            )
+                        },
                         enabled = !pending && selected != null,
                         modifier =
                             Modifier.testTag("personal-${action.name.lowercase(Locale.ROOT)}"),
@@ -455,6 +492,7 @@ fun PersonalSavedScreen(
     language: String,
     onLoad: (Boolean) -> Unit,
     onOpen: (Content) -> Unit,
+    onRemoveUnavailable: ((PersonalTarget) -> Unit)? = null,
 ) {
     var selected by remember(state.session?.uid) { mutableStateOf<ContentKind?>(null) }
     var sort by remember(state.session?.uid) { mutableStateOf(PersonalSort.NEWEST) }
@@ -519,13 +557,16 @@ fun PersonalSavedScreen(
                 if (state.savedLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
                 PersonalError(state.savedError, language) { onLoad(false) }
                 if (!state.savedLoading && state.savedError == null && items.isEmpty())
-                    Text(
+                    UacSectionCard(
+                        tr(language, "Noch nichts gespeichert", "Поки немає збереженого"),
                         tr(
                             language,
                             "Hier erscheinen deine gespeicherten Nachrichten, Veranstaltungen und Organisationen.",
                             "Тут з’являться збережені новини, події та організації.",
-                        )
-                    )
+                        ),
+                    ) {
+                        UacSymbol(UacIcon.BOOKMARK)
+                    }
                 if (pages.sumOf { it.unavailable } > 0)
                     Text(
                         tr(
@@ -545,6 +586,13 @@ fun PersonalSavedScreen(
                     )
             }
         }
+        if (onRemoveUnavailable != null)
+            items(
+                pages.flatMap { it.unavailableTargets }.distinct(),
+                key = { "unavailable:${it.key}" },
+            ) { target ->
+                UnavailablePersonalCard(target, state, language) { onRemoveUnavailable(target) }
+            }
         items(items, key = { "${it.kind}/${it.id}" }) { PersonalContentCard(it, language, onOpen) }
         item {
             if (state.saved.values.any { it.hasMore })
@@ -564,6 +612,7 @@ fun PersonalSubscriptionsScreen(
     language: String,
     onLoad: (Boolean) -> Unit,
     onOpen: (Content) -> Unit,
+    onRemoveUnavailable: ((PersonalTarget) -> Unit)? = null,
 ) {
     LaunchedEffect(state.session?.uid, state.session?.revision) { onLoad(false) }
     LazyColumn(
@@ -584,13 +633,16 @@ fun PersonalSubscriptionsScreen(
                         state.subscriptionsError == null &&
                         state.subscriptions?.items.isNullOrEmpty()
                 )
-                    Text(
+                    UacSectionCard(
+                        tr(language, "Noch keine Abonnements", "Поки немає підписок"),
                         tr(
                             language,
-                            "Noch keine sichtbaren Abonnements auf dieser Seite.",
-                            "На цій сторінці поки немає доступних підписок.",
-                        )
-                    )
+                            "Öffne eine Organisation und wähle Abonnieren. Hier findest du die Organisationen, denen du folgst.",
+                            "Відкрийте організацію та натисніть «Підписатися». Тут з’являться організації, за якими ви стежите.",
+                        ),
+                    ) {
+                        UacSymbol(UacIcon.NOTIFICATIONS)
+                    }
                 if ((state.subscriptions?.unavailable ?: 0) > 0)
                     Text(
                         tr(
@@ -601,6 +653,13 @@ fun PersonalSubscriptionsScreen(
                     )
             }
         }
+        if (onRemoveUnavailable != null)
+            items(
+                state.subscriptions?.unavailableTargets.orEmpty(),
+                key = { "unavailable:${it.key}" },
+            ) { target ->
+                UnavailablePersonalCard(target, state, language) { onRemoveUnavailable(target) }
+            }
         items(state.subscriptions?.items.orEmpty(), key = { it.id }) {
             PersonalContentCard(it, language, onOpen)
         }
@@ -618,11 +677,33 @@ fun PersonalSubscriptionsScreen(
 
 @Composable
 private fun PersonalContentCard(item: Content, language: String, onOpen: (Content) -> Unit) {
-    Card(onClick = { onOpen(item) }, modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(item.kind.label(language), style = MaterialTheme.typography.labelMedium)
-            Text(item.title(language), style = MaterialTheme.typography.titleMedium)
-            Text(item.summary(language), style = MaterialTheme.typography.bodyMedium, maxLines = 3)
+    at.uac.android.feature.browse.ContentCard(item, language) { onOpen(item) }
+}
+
+@Composable
+private fun UnavailablePersonalCard(
+    target: PersonalTarget,
+    state: PersonalState,
+    language: String,
+    onRemove: () -> Unit,
+) {
+    Card(Modifier.fillMaxWidth().testTag("unavailable:${target.key}")) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                tr(language, "Inhalt derzeit nicht verfügbar", "Матеріал зараз недоступний"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                tr(
+                    language,
+                    "Du kannst diesen Eintrag aus deiner Liste entfernen.",
+                    "Ви можете видалити цей запис зі свого списку.",
+                )
+            )
+            PersonalError(state.actionErrors[target], language, onRemove)
+            TextButton(onClick = onRemove, enabled = target !in state.actionsPending) {
+                Text(tr(language, "Aus der Liste entfernen", "Видалити зі списку"))
+            }
         }
     }
 }

@@ -2,15 +2,18 @@ package at.uac.android.feature.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -18,9 +21,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import at.uac.android.BuildConfig
 import at.uac.android.design.UacCard
+import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionCard
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Choice
+import at.uac.android.feature.browse.PublicImage
 import at.uac.android.feature.browse.regions
 
 @Composable
@@ -29,6 +36,9 @@ fun AccountScreen(
     language: String,
     initialPage: String = "login",
     onNavigateAuth: ((String) -> Unit)? = null,
+    showAccountUtilities: Boolean = true,
+    showIdentity: Boolean = true,
+    confirmedAvatarUrl: String? = null,
     personalContent: (@Composable (AuthSession) -> Unit)? = null,
 ) {
     val session by store.state.collectAsStateWithLifecycle()
@@ -96,20 +106,17 @@ fun AccountScreen(
                         )
                 }
             UacSectionCard(title, subtitle)
-        } else
+        }
+        if (BuildConfig.USE_LOCAL_BACKEND) {
             Text(
-                authText(language, "Dein Konto", "Ваш акаунт"),
-                Modifier.semantics { heading() },
-                style = MaterialTheme.typography.headlineSmall,
+                authText(
+                    language,
+                    "Lokaler Kontotest · nur erfundene .invalid-Adressen",
+                    "Локальна перевірка акаунта · лише вигадані адреси .invalid",
+                ),
+                style = MaterialTheme.typography.labelMedium,
             )
-        Text(
-            authText(
-                language,
-                "Lokaler Kontotest · nur erfundene .invalid-Adressen",
-                "Локальна перевірка акаунта · лише вигадані адреси .invalid",
-            ),
-            style = MaterialTheme.typography.labelMedium,
-        )
+        }
         if (session.busy) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("auth-loading"))
         session.error?.let { problem ->
             Text(
@@ -438,22 +445,40 @@ fun AccountScreen(
                     { store.cancelMfa() },
                 )
             AuthStage.AUTHENTICATED -> {
-                Text(
-                    session.profile?.displayName.orEmpty(),
-                    Modifier.testTag("auth-profile-name"),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Text(session.profile?.email.orEmpty())
+                if (showIdentity || session.gate != AuthGate.READY)
+                    UacSectionCard(
+                        title =
+                            session.profile?.displayName.orEmpty().ifBlank {
+                                authText(language, "Dein Konto", "Ваш акаунт")
+                            },
+                        subtitle = session.profile?.email.orEmpty(),
+                        modifier = Modifier.testTag("auth-profile-name"),
+                    ) {
+                        AccountProfileAvatar(
+                            confirmedAvatarUrl ?: session.profile?.avatarUrl.orEmpty(),
+                            language,
+                        )
+                        if (session.gate == AuthGate.READY)
+                            Surface(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            ) {
+                                Text(
+                                    authText(
+                                        language,
+                                        "Angemeldet · E-Mail bestätigt",
+                                        "Вхід виконано · пошту підтверджено",
+                                    ),
+                                    Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                        .testTag("auth-ready"),
+                                    style = MaterialTheme.typography.labelMedium,
+                                )
+                            }
+                        SignOutButton(store, language)
+                    }
                 when (session.gate) {
                     AuthGate.READY -> {
-                        Text(
-                            authText(
-                                language,
-                                "Angemeldet · E-Mail bestätigt",
-                                "Вхід виконано · пошту підтверджено",
-                            ),
-                            Modifier.testTag("auth-ready"),
-                        )
                         personalContent?.invoke(session)
                     }
                     AuthGate.RESTRICTED -> {
@@ -508,30 +533,41 @@ fun AccountScreen(
                             Modifier.testTag("auth-legal-unavailable"),
                         )
                 }
-                if (session.profile?.active == true) AuthMfaPanel(store, session, language)
-                OutlinedButton(
-                    { store.refresh() },
-                    Modifier.testTag("auth-refresh"),
-                    enabled = !session.busy,
-                ) {
-                    Text(authText(language, "Sitzung aktualisieren", "Оновити сеанс"))
-                }
-                SignOutButton(store, language)
+                if (
+                    session.profile?.active == true &&
+                        (showAccountUtilities || session.gate != AuthGate.READY)
+                )
+                    at.uac.android.design.UacCard { AuthMfaPanel(store, session, language) }
+                if (showAccountUtilities || session.gate != AuthGate.READY)
+                    OutlinedButton(
+                        { store.refresh() },
+                        Modifier.testTag("auth-refresh"),
+                        enabled = !session.busy,
+                    ) {
+                        Text(authText(language, "Sitzung aktualisieren", "Оновити сеанс"))
+                    }
             }
         }
-        HorizontalDivider()
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val useReference = session.legalDocuments.isEmpty()
-            val readerDocuments = if (useReference) referenceDocuments else session.legalDocuments
-            readerDocuments.take(2).forEach { legal ->
-                TextButton(
-                    {
-                        document = legal
-                        reference = useReference
-                    },
-                    Modifier.testTag("auth-legal-${legal.type}"),
-                ) {
-                    Text(legal.title(language))
+        if (
+            showAccountUtilities ||
+                session.stage != AuthStage.AUTHENTICATED ||
+                session.gate != AuthGate.READY
+        ) {
+            HorizontalDivider()
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val useReference = session.legalDocuments.isEmpty()
+                val readerDocuments =
+                    if (useReference) referenceDocuments else session.legalDocuments
+                readerDocuments.take(2).forEach { legal ->
+                    TextButton(
+                        {
+                            document = legal
+                            reference = useReference
+                        },
+                        Modifier.testTag("auth-legal-${legal.type}"),
+                    ) {
+                        Text(legal.title(language))
+                    }
                 }
             }
         }
@@ -722,8 +758,35 @@ private fun AuthPassword(
 }
 
 @Composable
+internal fun AccountProfileAvatar(url: String, language: String) {
+    val description = authText(language, "Profilfoto", "Фото профілю")
+    Surface(
+        modifier =
+            Modifier.size(80.dp).clip(CircleShape).testTag("auth-profile-avatar").semantics {
+                contentDescription = description
+            },
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+    ) {
+        PublicImage(
+            url = url,
+            description = description,
+            language = language,
+            modifier = Modifier.fillMaxSize(),
+            compact = true,
+            fallback = UacIcon.PROFILE,
+        )
+    }
+}
+
+@Composable
 private fun SignOutButton(store: AuthStore, language: String) {
-    TextButton({ store.signOut() }, Modifier.testTag("auth-signout")) {
+    OutlinedButton(
+        { store.signOut() },
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("auth-signout"),
+    ) {
+        UacSymbol(UacIcon.LOGOUT)
+        Spacer(Modifier.width(8.dp))
         Text(authText(language, "Abmelden", "Вийти"))
     }
 }

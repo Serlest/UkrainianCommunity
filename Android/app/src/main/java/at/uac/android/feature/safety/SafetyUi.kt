@@ -3,6 +3,7 @@ package at.uac.android.feature.safety
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,6 +44,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDialog as Dialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 
 /**
@@ -65,7 +69,13 @@ fun SafetyActions(
         modifier = Modifier.testTag("safety-actions"),
     ) {
         HorizontalDivider()
-        Text(tr(language, "Sicherheit", "Безпека"), style = MaterialTheme.typography.titleMedium)
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            UacSymbol(UacIcon.SECURITY)
+            Text(tr(language, "Sicherheit", "Безпека"), style = MaterialTheme.typography.titleSmall)
+        }
         if (state.session?.ready != true) {
             Text(
                 tr(
@@ -226,16 +236,17 @@ fun SafetyBlockedScreen(
     LazyColumn(
         Modifier.fillMaxSize().testTag("safety-blocked-list"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(bottom = 32.dp),
     ) {
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
+                UacSectionHeading(
                     tr(
                         language,
-                        "Blockierte Konten und Organisationen",
-                        "Заблоковані користувачі й організації",
+                        "Blockierungen",
+                        "Блокування",
                     ),
-                    style = MaterialTheme.typography.headlineSmall,
+                    UacIcon.SECURITY,
                 )
                 Text(
                     tr(
@@ -343,7 +354,10 @@ private fun SafetyBlockRow(
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(type, style = MaterialTheme.typography.labelLarge)
-            Text(name, style = MaterialTheme.typography.titleMedium)
+            UacSectionHeading(
+                name,
+                if (id.startsWith("user:")) UacIcon.PROFILE else UacIcon.ORGANIZATIONS,
+            )
             OutlinedButton(
                 onClick = onClick,
                 enabled = state.pendingBlocks.isEmpty() && !state.loading,
@@ -399,9 +413,9 @@ fun SafetyReportDialog(
                     Modifier.widthIn(max = 760.dp).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(
+                    UacSectionHeading(
                         tr(language, "Inhalt melden", "Повідомити про порушення"),
-                        style = MaterialTheme.typography.headlineSmall,
+                        UacIcon.SECURITY,
                     )
                     Column(
                         Modifier.weight(1f)

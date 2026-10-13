@@ -1,19 +1,16 @@
 package at.uac.android.feature.personal
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacRowDivider
 import at.uac.android.design.UacSectionCard
 import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
@@ -42,8 +39,12 @@ fun GuestProfileContent(
         ) {
             Button(
                 onLogin,
-                Modifier.heightIn(min = UacDesign.minimumTouch).testTag("guest-sign-in"),
+                Modifier.fillMaxWidth()
+                    .heightIn(min = UacDesign.minimumTouch)
+                    .testTag("guest-sign-in"),
             ) {
+                UacSymbol(UacIcon.PROFILE)
+                Spacer(Modifier.width(8.dp))
                 Text(tr(language, "Anmelden", "Увійти"))
             }
             FilledTonalButton(
@@ -81,6 +82,7 @@ fun GuestProfileContent(
         ) {
             onNavigate("home")
         }
+        UacRowDivider()
         ProfileNavigationRow(
             tr(language, "Veranstaltungen ansehen", "Перегляд подій"),
             tr(
@@ -93,6 +95,7 @@ fun GuestProfileContent(
         ) {
             onNavigate("events")
         }
+        UacRowDivider()
         ProfileNavigationRow(
             tr(language, "Organisationen ansehen", "Перегляд організацій"),
             tr(
@@ -137,34 +140,11 @@ fun ProfileNavigationRow(
     tag: String,
     onClick: () -> Unit,
 ) {
-    Row(
-        Modifier.fillMaxWidth()
-            .heightIn(min = 58.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(role = Role.Button, onClick = onClick)
-            .testTag(tag)
-            .padding(vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Surface(
-            Modifier.size(32.dp),
-            shape = RoundedCornerShape(9.dp),
-            color = MaterialTheme.colorScheme.primaryContainer,
-            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ) {
-            Box(contentAlignment = Alignment.Center) { UacSymbol(icon) }
-        }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium)
-            subtitle?.takeIf(String::isNotBlank)?.let {
-                Text(
-                    it,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        UacSymbol(UacIcon.BACK, modifier = Modifier.rotate(180f))
-    }
+    UacNavigationRow(
+        title = title,
+        subtitle = subtitle,
+        icon = icon,
+        modifier = Modifier.testTag(tag),
+        onClick = onClick,
+    )
 }

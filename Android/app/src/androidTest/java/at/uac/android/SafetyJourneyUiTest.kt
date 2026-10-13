@@ -83,6 +83,14 @@ class SafetyJourneyUiTest {
         compose.onNodeWithTag("browse-list").performScrollToNode(hasTestTag(tag))
     }
 
+    private fun openSearch() {
+        if (!compose.onNodeWithTag("search").isDisplayed()) {
+            detail("search-toggle")
+            compose.onNodeWithTag("search-toggle").performClick()
+        }
+        detail("search")
+    }
+
     private fun tab(route: String) {
         // News is a Home action, not a fifth persistent tab. A tab switch may restore its
         // previous destination, while a second explicit tap returns to the tab root.
@@ -105,7 +113,7 @@ class SafetyJourneyUiTest {
 
     private fun openContent(kind: String, id: String, query: String) {
         tab(kind)
-        detail("search")
+        openSearch()
         compose.onNodeWithTag("search").performTextReplacement(query)
         ready()
         detail("card-$id")

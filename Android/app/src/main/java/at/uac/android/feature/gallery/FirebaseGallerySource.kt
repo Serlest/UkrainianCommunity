@@ -3,6 +3,7 @@ package at.uac.android.feature.gallery
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
+import at.uac.android.BuildConfig
 import at.uac.android.core.*
 import at.uac.android.core.backend.AppBackend
 import at.uac.android.core.backend.CallableGateway
@@ -11,12 +12,20 @@ import at.uac.android.feature.auth.decodeProfile
 import at.uac.android.feature.browse.RawDocument
 import at.uac.android.feature.organization.OrganizationContract
 import at.uac.android.feature.organization.OrganizationSession
+import at.uac.android.feature.organizationaccess.OrganizationAccessReader
+import at.uac.android.feature.organizationaccess.OrganizationAccessSource
+import at.uac.android.feature.organizationaccess.OrganizationCommand
+import at.uac.android.feature.organizationaccess.OrganizationPhotoAttempt
+import at.uac.android.feature.organizationaccess.OrganizationPhotoReceipt
+import at.uac.android.feature.organizationaccess.OrganizationPhotoVersion
+import at.uac.android.feature.organizationaccess.OrganizationVersion
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.*
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
+import com.google.firebase.storage.StorageReference
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
@@ -28,6 +37,17 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+
+internal fun galleryPhotoRoute(
+    snapshot: at.uac.android.feature.organizationaccess.OrganizationAccessSnapshot,
+    organizationId: String,
+): GalleryPhotoRoute =
+    when {
+        !snapshot.isEnforced("managePhotos") ||
+            snapshot.commands[OrganizationCommand.SAVE_PHOTO] != true -> GalleryPhotoRoute.LEGACY
+        snapshot.allows(organizationId, "managePhotos") -> GalleryPhotoRoute.COMMAND
+        else -> GalleryPhotoRoute.DENIED
+    }
 
 fun interface GalleryPreparation {
     suspend fun prepare(uri: String): PreparedGalleryPhoto
@@ -73,6 +93,37 @@ class FirebaseGallerySource(
         FirebaseBackendGuard.requireStorage(storage, db.app)
         functions.requireBoundTo(auth)
     }
+
+    private val access =
+        OrganizationAccessSource(
+            functions,
+            object : OrganizationAccessReader {
+                override suspend fun read(organizationId: String): OrganizationVersion? {
+                    val value = db.document("organizations/$organizationId").get(Source.SERVER).await()
+                    if (!value.exists()) return null
+                    val revision = value.getTimestamp("updatedAt")?.let { "${it.seconds}:${it.nanoseconds}" }
+                    return OrganizationVersion(
+                        organizationId,
+                        revision,
+                        value.data.orEmpty().mapValues { decode(it.value) },
+                    )
+                }
+
+                override suspend fun readPhoto(
+                    organizationId: String,
+                    photoId: String,
+                ): OrganizationPhotoVersion? {
+                    val value =
+                        db.document("organizations/$organizationId/photos/$photoId")
+                            .get(Source.SERVER)
+                            .await()
+                    if (!value.exists()) return null
+                    return value.getString("imageURL")?.let {
+                        OrganizationPhotoVersion(organizationId, photoId, it)
+                    }
+                }
+            },
+        )
 
     private fun identity(session: OrganizationSession) {
         if (currentSession() != session || auth.currentUser?.uid != session.uid)
@@ -154,35 +205,79 @@ class FirebaseGallerySource(
         }
 
     override suspend fun blob(target: GalleryTarget, session: OrganizationSession): GalleryBlob? =
+        read(session) { readBlob(storage.reference.child(target.path), target, session) }
+
+    override suspend fun blob(photo: GalleryPhoto, session: OrganizationSession): GalleryBlob? =
         read(session) {
-            val ref = storage.reference.child(target.path)
-            val metadata =
+            val path =
+                GalleryContract.storagePath(photo.imageUrl, photo.target)
+                    ?: GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
+            readBlob(storage.reference.child(path), photo.target, session)
+        }
+
+    private suspend fun readBlob(
+        ref: StorageReference,
+        target: GalleryTarget,
+        session: OrganizationSession,
+    ): GalleryBlob? {
+        val metadata =
+            try {
+                ref.metadata.await()
+            } catch (error: StorageException) {
+                if (error.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) return null
+                throw error
+            }
+        identity(session)
+        if (metadata.contentType != "image/jpeg" || metadata.sizeBytes !in 4 until 3_000_000)
+            GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
+        val url = ref.downloadUrl.await().toString()
+        identity(session)
+        val token =
+            GalleryContract.token(url, target)
+                ?: GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
+        val bytes = ref.getBytes(3_000_000).await()
+        identity(session)
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (
+            metadata.sizeBytes != bytes.size.toLong() ||
+                !LocalImagePreparation.validJpeg(bytes, LocalImagePolicy.GALLERY_PHOTO) ||
+                bounds.outWidth !in 1..1600 ||
+                bounds.outHeight !in 1..1600
+        )
+            GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
+        return GalleryBlob(bytes, token)
+    }
+
+    override suspend fun photoRoute(
+        organizationId: String,
+        legacyAllowed: Boolean,
+        session: OrganizationSession,
+    ): GalleryPhotoRoute =
+        read(session) {
+            val snapshot =
                 try {
-                    ref.metadata.await()
-                } catch (error: StorageException) {
-                    if (error.errorCode == StorageException.ERROR_OBJECT_NOT_FOUND) return@read null
-                    else throw error
+                    access.access(
+                        session.uid,
+                        listOf(organizationId),
+                        mapOf(organizationId to mapOf("managePhotos" to legacyAllowed)),
+                        BuildConfig.VERSION_NAME,
+                    )
+                } catch (error: LocalCallableException) {
+                    if (error.code == LocalCallableFailure.NOT_FOUND) return@read GalleryPhotoRoute.LEGACY
+                    throw error
                 }
             identity(session)
-            if (metadata.contentType != "image/jpeg" || metadata.sizeBytes !in 4 until 3_000_000)
-                GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
-            val url = ref.downloadUrl.await().toString()
-            identity(session)
-            val token =
-                GalleryContract.token(url, target)
-                    ?: GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
-            val bytes = ref.getBytes(3_000_000).await()
-            identity(session)
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            if (
-                metadata.sizeBytes != bytes.size.toLong() ||
-                    !LocalImagePreparation.validJpeg(bytes, LocalImagePolicy.GALLERY_PHOTO) ||
-                    bounds.outWidth !in 1..1600 ||
-                    bounds.outHeight !in 1..1600
-            )
-                GalleryContract.fail(GalleryFailure.IMAGE_UNAVAILABLE)
-            GalleryBlob(bytes, token)
+            galleryPhotoRoute(snapshot, organizationId)
+        }
+
+    override suspend fun savePhoto(
+        attempt: OrganizationPhotoAttempt,
+        session: OrganizationSession,
+    ): OrganizationPhotoReceipt =
+        write(session) {
+            if (attempt.principalId != session.uid) GalleryContract.fail(GalleryFailure.DENIED)
+            access.savePhoto(attempt, BuildConfig.VERSION_NAME).also { identity(session) }
         }
 
     override suspend fun upload(
@@ -358,6 +453,16 @@ fun galleryFailure(error: Throwable): GalleryFailure =
                 LocalCallableFailure.NOT_FOUND -> GalleryFailure.MISSING
                 LocalCallableFailure.INVALID_ARGUMENT -> GalleryFailure.INVALID
                 LocalCallableFailure.RESOURCE_EXHAUSTED -> GalleryFailure.LIMIT
+                LocalCallableFailure.ABORTED -> GalleryFailure.STALE
+                LocalCallableFailure.ALREADY_EXISTS -> GalleryFailure.CONFLICT
+                LocalCallableFailure.FAILED_PRECONDITION ->
+                    when ((error.details as? Map<*, *>)?.get("reasonCode")) {
+                        "route_disabled",
+                        "role_missing",
+                        "mfa_required" -> GalleryFailure.DENIED
+                        "operation_expired" -> GalleryFailure.INVALID
+                        else -> GalleryFailure.UNKNOWN
+                    }
                 LocalCallableFailure.UNAVAILABLE,
                 LocalCallableFailure.DEADLINE_EXCEEDED -> GalleryFailure.OFFLINE
                 LocalCallableFailure.UNCONFIRMED -> GalleryFailure.UNCONFIRMED

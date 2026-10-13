@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <!-- The emulator-only package owns a named app and must never create a cloud default app. -->
+        <provider android:name="com.google.firebase.provider.FirebaseInitProvider"
+            android:authorities="${applicationId}.firebaseinitprovider"
+            tools:node="remove" />
+        <receiver android:name="com.google.firebase.iid.FirebaseInstanceIdReceiver"
+            android:enabled="false" tools:replace="android:enabled" />
+        <service android:name="com.google.firebase.messaging.FirebaseMessagingService"
+            android:enabled="false" tools:replace="android:enabled" />
+    </application>
+</manifest>

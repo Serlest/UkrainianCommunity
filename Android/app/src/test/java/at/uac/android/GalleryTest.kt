@@ -6,6 +6,11 @@ import at.uac.android.feature.browse.RawDocument
 import at.uac.android.feature.gallery.*
 import at.uac.android.feature.organization.OrganizationMutationGate
 import at.uac.android.feature.organization.OrganizationSession
+import at.uac.android.feature.organizationaccess.OrganizationPhotoAttempt
+import at.uac.android.feature.organizationaccess.OrganizationPhotoReceipt
+import at.uac.android.feature.organizationaccess.OrganizationAccessRecord
+import at.uac.android.feature.organizationaccess.OrganizationAccessSnapshot
+import at.uac.android.feature.organizationaccess.OrganizationCommand
 import java.time.Instant
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -146,6 +151,10 @@ class GalleryTest {
         var creates = 0
         var removes = 0
         var cleanups = 0
+        var commandSaves = 0
+        var route = GalleryPhotoRoute.LEGACY
+        var commandFailure: Exception? = null
+        var commitCommandOnFailure = false
         var uploadDelay = 0L
         var uploadFailure: Exception? = null
         var commitUploadOnFailure = false
@@ -173,6 +182,35 @@ class GalleryTest {
 
         override suspend fun blob(target: GalleryTarget, session: OrganizationSession) =
             images[target]
+
+        override suspend fun photoRoute(
+            organizationId: String,
+            legacyAllowed: Boolean,
+            session: OrganizationSession,
+        ) = route
+
+        override suspend fun savePhoto(
+            attempt: OrganizationPhotoAttempt,
+            session: OrganizationSession,
+        ): OrganizationPhotoReceipt {
+            commandSaves++
+            val previous = metadata[GalleryTarget(attempt.organizationId, attempt.photoId)]
+            val target = GalleryTarget(attempt.organizationId, attempt.photoId)
+            if (commandFailure == null || commitCommandOnFailure) {
+                metadata[target] =
+                    GalleryPhoto(
+                        target,
+                        GalleryContract.commandAlias(target, session.uid, attempt.operationId, token),
+                        attempt.caption,
+                        session.uid,
+                        previous?.createdAt ?: time,
+                        previous?.let { time.plusSeconds(1) },
+                    )
+                images[target] = GalleryBlob(attempt.jpeg, token)
+            }
+            commandFailure?.let { throw it }
+            return OrganizationPhotoReceipt(attempt.organizationId, attempt.photoId, true)
+        }
 
         override suspend fun upload(
             target: GalleryTarget,
@@ -445,6 +483,17 @@ class GalleryTest {
                 .single()
                 .phase,
         )
+        val command =
+            entry(GalleryPhase.COMMAND_SUBMITTED, null).copy(operationId = "operation-123456")
+        assertEquals(
+            command,
+            GalleryJournalCodec.decode(GalleryJournalCodec.encode(listOf(command))).single(),
+        )
+        invalid {
+            GalleryJournalCodec.encode(
+                listOf(entry(GalleryPhase.COMMAND_SUBMITTED, null))
+            )
+        }
     }
 
     @Test
@@ -459,6 +508,135 @@ class GalleryTest {
         assertEquals(1, source.creates)
         assertEquals(0, source.cleanups)
         assertTrue(journal.entries.isEmpty())
+    }
+
+    @Test
+    fun enforcedCommandOwnsCreateAndNeverUsesLegacyStorageOrMetadata() = runTest {
+        val source = Fake().apply { route = GalleryPhotoRoute.COMMAND }
+        val journal = Journal()
+
+        val result = repository(source, journal).upload(intent())
+
+        assertEquals(1, source.commandSaves)
+        assertEquals(0, source.uploads)
+        assertEquals(0, source.creates)
+        assertEquals(1, result.snapshot.photos.size)
+        assertTrue(journal.entries.isEmpty())
+    }
+
+    @Test
+    fun capabilityRouteMatchesServerEnforcementAndAuthority() {
+        fun access(mode: String, actions: Set<String>) =
+            OrganizationAccessSnapshot(
+                session.uid,
+                "organization-actions-v1",
+                mode == "enforced",
+                mapOf("managePhotos" to mode),
+                mapOf(OrganizationCommand.SAVE_PHOTO to true),
+                mapOf(id to OrganizationAccessRecord(id, actions)),
+                Instant.MAX,
+            )
+
+        assertEquals(
+            GalleryPhotoRoute.LEGACY,
+            galleryPhotoRoute(access("shadow", setOf("managePhotos")), id),
+        )
+        assertEquals(
+            GalleryPhotoRoute.COMMAND,
+            galleryPhotoRoute(access("enforced", setOf("managePhotos")), id),
+        )
+        assertEquals(
+            GalleryPhotoRoute.DENIED,
+            galleryPhotoRoute(access("enforced", emptySet()), id),
+        )
+    }
+
+    @Test
+    fun commandReplacementKeepsPhotoIdentityAndUsesExpectedVersion() = runTest {
+        val original = photo()
+        val source = Fake().apply {
+            route = GalleryPhotoRoute.COMMAND
+            metadata[target] = original
+        }
+        val journal = Journal()
+        val replacement = GalleryUploadIntent(target, "Replacement", prepared, original)
+
+        val result = repository(source, journal).upload(replacement)
+
+        assertEquals(1, source.commandSaves)
+        assertEquals(setOf(target), source.metadata.keys)
+        assertEquals(original.createdAt, result.snapshot.photos.single().createdAt)
+        assertEquals("Replacement", result.snapshot.photos.single().caption)
+        assertNotNull(result.snapshot.photos.single().updatedAt)
+    }
+
+    @Test
+    fun shadowRouteKeepsLegacyAndCannotReplace() = runTest {
+        val source = Fake()
+        val journal = Journal()
+        repository(source, journal).upload(intent())
+        assertEquals(1, source.uploads)
+        assertEquals(1, source.creates)
+        assertEquals(0, source.commandSaves)
+
+        val existing = source.metadata.values.single()
+        fails(GalleryFailure.DENIED) {
+            repository(source, Journal()).upload(
+                GalleryUploadIntent(existing.target, "Replacement", prepared, existing)
+            )
+        }
+        assertEquals(0, source.commandSaves)
+    }
+
+    @Test
+    fun ambiguousCommandIsNeverReplayedAndExactRecoveryPublishesIt() = runTest {
+        val source =
+            Fake().apply {
+                route = GalleryPhotoRoute.COMMAND
+                commitCommandOnFailure = true
+                commandFailure = GalleryException(GalleryFailure.UNCONFIRMED)
+            }
+        val journal = Journal()
+
+        fails(GalleryFailure.UNCONFIRMED) { repository(source, journal).upload(intent()) }
+        assertEquals(1, source.commandSaves)
+        val pending = journal.entries.single()
+        assertEquals(GalleryPhase.COMMAND_SUBMITTED, pending.phase)
+
+        val recovered = repository(source, journal).reconcile(pending)
+        assertEquals(GalleryRecovery.PUBLISHED, recovered.status)
+        assertEquals(1, source.commandSaves)
+        assertTrue(journal.entries.isEmpty())
+    }
+
+    @Test
+    fun definitiveCommandRejectionCanBeClearedWithoutReplay() = runTest {
+        val source =
+            Fake().apply {
+                route = GalleryPhotoRoute.COMMAND
+                commandFailure = GalleryException(GalleryFailure.STALE)
+            }
+        val journal = Journal()
+
+        fails(GalleryFailure.STALE) { repository(source, journal).upload(intent()) }
+        assertEquals(1, source.commandSaves)
+        val pending = journal.entries.single()
+        assertEquals(GalleryPhase.COMMAND_REJECTED, pending.phase)
+
+        val recovered = repository(source, journal).reconcile(pending)
+        assertEquals(GalleryRecovery.UNCHANGED, recovered.status)
+        assertEquals(1, source.commandSaves)
+        assertTrue(journal.entries.isEmpty())
+    }
+
+    @Test
+    fun eachNewReplacementIntentGetsARecoverableOperationIdentity() {
+        val original = photo()
+        val first = GalleryUploadIntent.create(id, "Replacement", prepared, original)
+        val second = GalleryUploadIntent.create(id, "Replacement", prepared, original)
+        assertNotEquals(first.operationId, second.operationId)
+        assertEquals(target, first.target)
+        assertEquals(target, second.target)
     }
 
     @Test

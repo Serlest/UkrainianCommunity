@@ -42,7 +42,7 @@ class ModerationEntryJourneyUiTest {
         try {
             compose.runOnIdle { browse.navigate("profile/users") }
             compose.waitUntil(15_000) {
-                compose.onNodeWithTag("managed-users-access").isDisplayed()
+                compose.onNodeWithTag("management-access-denied").isDisplayed()
             }
             compose.onNodeWithTag("managed-users-search").assertDoesNotExist()
             compose.onNodeWithTag("platform-role-panel").assertDoesNotExist()
@@ -59,7 +59,8 @@ class ModerationEntryJourneyUiTest {
                 assertTrue(roles.state.value.pending.isEmpty())
                 assertNull(LocalFirebase.auth(compose.activity).currentUser)
             }
-            compose.onNodeWithTag("managed-users-back").performScrollTo().performClick()
+            compose.onNodeWithTag("managed-users-back").assertDoesNotExist()
+            compose.onNodeWithTag("back").performClick()
             compose.waitUntil(15_000) { browse.state.value.route == "profile" }
             for (route in
                 listOf(
@@ -68,17 +69,14 @@ class ModerationEntryJourneyUiTest {
                     "profile/organization-review/synthetic-request",
                 )) {
                 compose.runOnIdle { browse.navigate(route) }
-                // At the real 200% system font, the explanatory header can fill the viewport.
-                // Scroll the actual list to the denial; do not assume its first-frame placement.
-                compose
-                    .onNodeWithTag("moderation-list")
-                    .performScrollToNode(hasTestTag("moderation-denied"))
-                compose.onNodeWithTag("moderation-denied").assertIsDisplayed()
+                compose.onNodeWithTag("management-access-denied").assertIsDisplayed()
+                compose.onNodeWithTag("moderation-list").assertDoesNotExist()
                 compose.onNodeWithTag("moderation-preview-title").assertDoesNotExist()
                 assertTrue(moderation.state.value.parts.isEmpty())
                 assertNull(moderation.state.value.preview)
                 assertNull(LocalFirebase.auth(compose.activity).currentUser)
-                compose.onNodeWithTag("moderation-back").performScrollTo().performClick()
+                compose.onNodeWithTag("moderation-back").assertDoesNotExist()
+                compose.onNodeWithTag("back").performClick()
                 compose.waitUntil(15_000) { browse.state.value.route == "profile" }
             }
         } finally {

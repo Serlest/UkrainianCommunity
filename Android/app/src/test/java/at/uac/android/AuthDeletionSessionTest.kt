@@ -46,6 +46,7 @@ class AuthDeletionSessionTest {
     private class Profiles : AuthProfiles {
         var missing = false
         var restricted = false
+        var acceptedLegal = false
         var writes = 0
         var legalReads = 0
         val observed = MutableSharedFlow<Result<AuthProfile>>()
@@ -57,6 +58,8 @@ class AuthDeletionSessionTest {
                 "$uid@example.invalid",
                 "Synthetic",
                 accountStatus = if (restricted) "blocked" else "active",
+                acceptedTermsVersion = if (acceptedLegal) "1" else null,
+                acceptedPrivacyVersion = if (acceptedLegal) "1" else null,
             )
         }
 
@@ -266,7 +269,7 @@ class AuthDeletionSessionTest {
     @Test
     fun queuedCompletionNeverInvalidatesNewLoginGeneration() = runTest {
         val backend = Backend()
-        val store = AuthStore(backend, Profiles(), backgroundScope)
+        val store = AuthStore(backend, Profiles().apply { acceptedLegal = true }, backgroundScope)
         store.restore().join()
         val revision = store.state.value.revision
         val completion = store.signOutDeletedIdentity("a", revision)!!

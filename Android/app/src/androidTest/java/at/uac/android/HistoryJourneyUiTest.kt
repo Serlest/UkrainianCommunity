@@ -234,8 +234,8 @@ class HistoryJourneyUiTest {
                         .getLong("viewCount"),
                 )
             }
-            list("history-back")
-            compose.onNodeWithTag("history-back").performClick()
+            compose.onNodeWithTag("history-back").assertDoesNotExist()
+            compose.onNodeWithTag("back").performClick()
             account("account-open-history").performClick()
             compose.waitUntil(30_000) {
                 history.state.value.page?.entries?.singleOrNull()?.record?.action ==
@@ -244,8 +244,8 @@ class HistoryJourneyUiTest {
             assertEquals("profile/history", browse.state.value.route)
             list("history-row-${rows.documents.single().id}")
             compose.onNodeWithText("Nachricht gespeichert").assertIsDisplayed()
-            list("history-back")
-            compose.onNodeWithTag("history-back").performClick()
+            compose.onNodeWithTag("history-back").assertDoesNotExist()
+            compose.onNodeWithTag("back").performClick()
             account("auth-signout").performClick()
             compose.waitUntil(30_000) {
                 auth.state.value.stage == AuthStage.GUEST && history.state.value.session == null

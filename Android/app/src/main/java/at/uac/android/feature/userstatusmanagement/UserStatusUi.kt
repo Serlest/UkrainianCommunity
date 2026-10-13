@@ -18,6 +18,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import at.uac.android.core.ProtectedDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.usermanagement.managedUsersDate
 import at.uac.android.feature.usermanagement.managedUsersRoleLabel
@@ -140,9 +142,9 @@ fun UserStatusPanel(state: UserStatusState, language: String, actions: UserStatu
             }
         }
         if (state.targetId != null) {
-            Text(
+            UacSectionHeading(
                 tr(language, "Kontostatus verwalten", "Керування станом акаунта"),
-                style = MaterialTheme.typography.titleLarge,
+                UacIcon.PROFILE,
             )
             if (!state.fresh) {
                 Text(
@@ -241,50 +243,57 @@ private fun UserStatusConfirmation(
                     },
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
+                UacSectionHeading(
                     userStatusTitle(action, language),
-                    style = MaterialTheme.typography.headlineSmall,
+                    UacIcon.SECURITY,
                 )
-                Text(
-                    tr(language, "Zielkonto: ", "Цільовий акаунт: ") + snapshot.version.targetId,
-                    Modifier.testTag("user-status-target"),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                snapshot.displayName?.let {
+                at.uac.android.design.UacCard {
                     Text(
-                        it,
-                        Modifier.testTag("user-status-target-name"),
+                        tr(language, "Zielkonto: ", "Цільовий акаунт: ") +
+                            snapshot.version.targetId,
+                        Modifier.testTag("user-status-target"),
                         style = MaterialTheme.typography.titleMedium,
                     )
-                }
-                snapshot.email?.let {
-                    Text(it, Modifier.testTag("user-status-target-email"))
-                }
-                Text(managedUsersRoleLabel(snapshot.role, language))
-                Text(
-                    tr(language, "Kontostatus: ", "Стан акаунта: ") +
-                        managedUsersStatusLabel(snapshot.accountStatus, language)
-                )
-                Text(
-                    tr(language, "Zugriffsstatus: ", "Стан доступу: ") +
-                        managedUsersStatusLabel(snapshot.blockState, language)
-                )
-                Text(tr(language, "Warnungen: ", "Попередження: ") + snapshot.warningCount)
-                snapshot.statusReason
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.let {
+                    snapshot.displayName?.let {
                         Text(
-                            tr(language, "Bisherige Begründung: ", "Попередня причина: ") + it,
-                            Modifier.testTag("user-status-previous-reason"),
+                            it,
+                            Modifier.testTag("user-status-target-name"),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                snapshot.banExpiresAt?.let {
+                    snapshot.email?.let {
+                        Text(it, Modifier.testTag("user-status-target-email"))
+                    }
+                    Text(managedUsersRoleLabel(snapshot.role, language))
                     Text(
-                        tr(language, "Bisher eingeschränkt bis: ", "Попереднє обмеження до: ") +
-                            managedUsersDate(it, language)
+                        tr(language, "Kontostatus: ", "Стан акаунта: ") +
+                            managedUsersStatusLabel(snapshot.accountStatus, language)
                     )
+                    Text(
+                        tr(language, "Zugriffsstatus: ", "Стан доступу: ") +
+                            managedUsersStatusLabel(snapshot.blockState, language)
+                    )
+                    Text(tr(language, "Warnungen: ", "Попередження: ") + snapshot.warningCount)
+                    snapshot.statusReason
+                        ?.takeIf { it.isNotEmpty() }
+                        ?.let {
+                            Text(
+                                tr(language, "Bisherige Begründung: ", "Попередня причина: ") + it,
+                                Modifier.testTag("user-status-previous-reason"),
+                            )
+                        }
+                    snapshot.banExpiresAt?.let {
+                        Text(
+                            tr(language, "Bisher eingeschränkt bis: ", "Попереднє обмеження до: ") +
+                                managedUsersDate(it, language)
+                        )
+                    }
                 }
-                Text(userStatusEffect(action, language), Modifier.testTag("user-status-effect"))
+                Text(
+                    userStatusEffect(action, language),
+                    Modifier.testTag("user-status-effect"),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
                 Text(
                     tr(
                         language,

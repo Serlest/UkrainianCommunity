@@ -23,6 +23,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.auth.AuthLegalDocument
 import at.uac.android.feature.auth.AuthLegalReader
 import at.uac.android.feature.auth.AuthSession
@@ -32,6 +35,7 @@ import at.uac.android.feature.browse.safeHttps
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.dsastatement.DsaStatementContract
 import at.uac.android.feature.feedback.feedbackScope
+import at.uac.android.feature.moderation.moderationScope
 import java.net.URI
 import java.time.Instant
 
@@ -49,6 +53,7 @@ fun availableInboxDestination(destination: InboxDestination): Boolean =
                 InboxDestinationKind.URL,
                 InboxDestinationKind.FEEDBACK,
                 InboxDestinationKind.ORGANIZATION_REQUEST,
+                InboxDestinationKind.CONTENT_PLANNING,
             )
 
 @Composable
@@ -78,17 +83,21 @@ fun InboxDestinationScreen(
             )
         "profile/legal" ->
             Column(
-                Modifier.verticalScroll(rememberScrollState()).padding(16.dp),
+                Modifier.verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp)
+                    .testTag("profile-legal-documents"),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
+                UacSectionHeading(
                     tr(language, "Rechtliche Dokumente", "Правові документи"),
-                    style = MaterialTheme.typography.headlineMedium,
+                    UacIcon.SECURITY,
                 )
                 authSession.legalDocuments.forEach { document ->
-                    OutlinedButton({ if (current()) legal = document }, Modifier.fillMaxWidth()) {
-                        Text(document.title(language))
-                    }
+                    UacNavigationRow(
+                        title = document.title(language),
+                        icon = UacIcon.NEWS,
+                        onClick = { if (current()) legal = document },
+                    )
                 }
                 if (authSession.legalDocuments.isEmpty())
                     Text(
@@ -123,6 +132,9 @@ fun InboxDestinationScreen(
                             live.inboxScope(),
                             live.feedbackScope()?.canManage == true,
                             Instant.now(),
+                            canOpenContentPlanning =
+                                live.moderationScope()?.let { it.ready && it.role == "owner" } ==
+                                    true,
                         )
                     if (current() && target != null) {
                         inbox.change(notice, InboxMutation.READ)
@@ -150,15 +162,20 @@ fun InboxDestinationScreen(
 @Composable
 fun InboxAccountLink(state: InboxState, language: String, onOpen: () -> Unit) {
     if (state.session == null) return
-    OutlinedButton(onOpen, Modifier.fillMaxWidth().testTag("account-open-inbox")) {
-        Text(
-            tr(
-                language,
-                "Mitteilungen (${state.unreadCount})",
-                "Повідомлення (${state.unreadCount})",
-            )
-        )
-    }
+    at.uac.android.design.UacNavigationRow(
+        title = tr(language, "Postfach", "Повідомлення"),
+        subtitle =
+            if (state.unreadCount > 0)
+                tr(
+                    language,
+                    "${state.unreadCount} ungelesene Mitteilungen",
+                    "${state.unreadCount} непрочитаних повідомлень",
+                )
+            else tr(language, "Keine ungelesenen Mitteilungen", "Немає непрочитаних повідомлень"),
+        icon = at.uac.android.design.UacIcon.NEWS,
+        modifier = Modifier.testTag("account-open-inbox"),
+        onClick = onOpen,
+    )
 }
 
 @Composable

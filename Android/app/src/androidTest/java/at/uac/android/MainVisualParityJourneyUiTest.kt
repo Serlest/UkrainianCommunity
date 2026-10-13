@@ -115,20 +115,19 @@ class MainVisualParityJourneyUiTest {
                 compose.onNodeWithTag("banner-hero").assertIsDisplayed()
                 chrome()
                 capture("home", language, theme, expectedScale)
-                compose.onNodeWithTag("browse-list").performScrollToNode(hasTestTag("banner-auto"))
-                compose
-                    .onNodeWithTag("banner-auto")
-                    .assertHeightIsAtLeast(48.dp)
-                    .assertWidthIsAtLeast(48.dp)
-                    .assertIsOff()
-                    .performClick()
-                    .assertIsOn()
-                    .performClick()
-                    .assertIsOff()
+                compose.onNodeWithTag("banner-indicator").assertIsDisplayed()
+                compose.onNodeWithTag("banner-auto").assertDoesNotExist()
+                compose.onNodeWithTag("banner-previous").assertDoesNotExist()
+                compose.onNodeWithTag("banner-next").assertDoesNotExist()
                 compose
                     .onNodeWithTag("browse-list")
                     .performScrollToNode(hasTestTag("home-controls"))
+                compose.onNodeWithTag("home-controls").performScrollToNode(hasTestTag("region"))
                 compose.onNodeWithTag("region").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+                listOf("tab-news", "home-events", "home-organizations").forEach { tag ->
+                    compose.onNodeWithTag("home-controls").performScrollToNode(hasTestTag(tag))
+                    compose.onNodeWithTag(tag).assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+                }
                 compose.onNodeWithTag("browse-list").performScrollToNode(hasTestTag("banner-open"))
                 compose
                     .onNodeWithTag("banner-open")
@@ -148,6 +147,11 @@ class MainVisualParityJourneyUiTest {
                 )) {
                 configure("de", "light", route)
                 if (route != "profile") compose.onNodeWithTag("browse-list").performScrollToIndex(0)
+                if (route in setOf("events", "organizations")) {
+                    compose.onNodeWithTag("banner-hero").assertIsDisplayed()
+                } else if (route.contains('/')) {
+                    compose.onNodeWithTag("banner-hero").assertDoesNotExist()
+                }
                 chrome()
                 capture(name, "de", "light", expectedScale)
                 if (route == "profile") {

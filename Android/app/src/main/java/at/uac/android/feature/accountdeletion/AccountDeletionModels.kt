@@ -235,7 +235,8 @@ data class AccountDeletionState(
 }
 
 object AccountDeletionContract {
-    const val REQUEST_TIMEOUT_SECONDS = 300L
+    // Allow the 300-second backend operation to settle before the transport deadline.
+    const val REQUEST_TIMEOUT_SECONDS = 330L
 
     fun receipt(value: Any?): AccountDeletionReceipt {
         val fields = value as? Map<*, *> ?: invalid()

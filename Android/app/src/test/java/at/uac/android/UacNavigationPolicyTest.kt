@@ -15,7 +15,7 @@ class UacNavigationPolicyTest {
     @Test
     fun largeFontChangesOnlyWhenMeasuredLabelsNeedIt() {
         assertFalse(useLargeTextNavigationGrid(2f, listOf(1, 1, 1, 1)))
-        assertFalse(useLargeTextNavigationGrid(2f, listOf(1, 1, 2, 1)))
+        assertTrue(useLargeTextNavigationGrid(2f, listOf(1, 1, 2, 1)))
         assertTrue(useLargeTextNavigationGrid(1.3001f, listOf(1, 1, 3, 1)))
         for (index in listOf(0, 1, 3)) {
             val lines = mutableListOf(1, 1, 2, 1)

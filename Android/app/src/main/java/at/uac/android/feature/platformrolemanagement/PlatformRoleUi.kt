@@ -17,6 +17,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import at.uac.android.core.ProtectedDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.usermanagement.managedUsersRoleLabel
 
@@ -136,9 +138,9 @@ fun PlatformRolePanel(state: PlatformRoleState, language: String, actions: Platf
             }
         }
         if (state.targetId != null) {
-            Text(
+            UacSectionHeading(
                 tr(language, "Plattformrolle verwalten", "Керування роллю на платформі"),
-                style = MaterialTheme.typography.titleLarge,
+                UacIcon.SECURITY,
             )
             if (!state.fresh) {
                 Text(
@@ -256,32 +258,35 @@ private fun PlatformRoleConfirmation(
                     },
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
+                UacSectionHeading(
                     platformRoleTitle(action, language),
-                    style = MaterialTheme.typography.headlineSmall,
+                    UacIcon.SECURITY,
                 )
-                Text(
-                    tr(language, "Zielkonto: ", "Цільовий акаунт: ") + snapshot.version.targetId,
-                    Modifier.testTag("platform-role-target"),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                snapshot.displayName?.let {
+                at.uac.android.design.UacCard {
                     Text(
-                        it,
-                        Modifier.testTag("platform-role-target-name"),
+                        tr(language, "Zielkonto: ", "Цільовий акаунт: ") +
+                            snapshot.version.targetId,
+                        Modifier.testTag("platform-role-target"),
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    snapshot.displayName?.let {
+                        Text(
+                            it,
+                            Modifier.testTag("platform-role-target-name"),
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+                    }
+                    snapshot.email?.let {
+                        Text(it, Modifier.testTag("platform-role-target-email"))
+                    }
+                    Text(
+                        managedUsersRoleLabel(snapshot.target.role, language) +
+                            " → " +
+                            managedUsersRoleLabel(action.newRole, language),
+                        Modifier.testTag("platform-role-transition"),
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }
-                snapshot.email?.let {
-                    Text(it, Modifier.testTag("platform-role-target-email"))
-                }
-                Text(
-                    managedUsersRoleLabel(snapshot.target.role, language) +
-                        " → " +
-                        managedUsersRoleLabel(action.newRole, language),
-                    Modifier.testTag("platform-role-transition"),
-                    style = MaterialTheme.typography.titleMedium,
-                )
                 platformRoleAssignmentIssue(state, language)?.let { issue ->
                     Text(
                         issue,
@@ -289,7 +294,11 @@ private fun PlatformRoleConfirmation(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
-                Text(platformRoleEffect(action, language), Modifier.testTag("platform-role-effect"))
+                Text(
+                    platformRoleEffect(action, language),
+                    Modifier.testTag("platform-role-effect"),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
                 Text(
                     tr(
                         language,

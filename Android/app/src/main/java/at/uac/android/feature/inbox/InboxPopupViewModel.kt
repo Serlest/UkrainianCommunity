@@ -13,6 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.launch
 
 class InboxPopupViewModel(
@@ -62,12 +63,27 @@ class InboxPopupViewModel(
         return scope
             .launch {
                 try {
-                    source.popupHeads(session.uid).collect { head ->
-                        if (current(account) && coordinator.receive(session, head)) {
-                            publish()
-                            scheduleExpiry(account)
+                    source
+                        .popupHeads(session.uid)
+                        .retryWhen { cause, attempt ->
+                            if (
+                                current(account) &&
+                                    (cause as? InboxException)?.reason == InboxFailure.OFFLINE
+                            ) {
+                                coordinator.suspendHead()
+                                publish(error = InboxFailure.OFFLINE)
+                                delay(
+                                    (1L shl attempt.coerceAtMost(5).toInt()).coerceAtMost(30) * 1000
+                                )
+                                true
+                            } else false
                         }
-                    }
+                        .collect { head ->
+                            if (current(account) && coordinator.receive(session, head)) {
+                                publish()
+                                scheduleExpiry(account)
+                            }
+                        }
                 } catch (error: CancellationException) {
                     throw error
                 } catch (error: Exception) {

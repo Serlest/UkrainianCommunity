@@ -25,6 +25,13 @@ class LocalCallableProtocolTest {
     }
 
     @Test
+    fun build80ModerationTransportIsAllowedAndLostResponsesStayUnconfirmed() {
+        LocalCallableProtocol.requireAllowed("reviewContentModeration")
+        assertTrue(LocalCallableProtocol.nonIdempotent("reviewContentModeration"))
+        assertEquals(60_000L, LocalCallableProtocol.maximumTimeoutMillis("reviewContentModeration"))
+    }
+
+    @Test
     fun exactEndpointAndAllowlistRejectProductionAndPathInjectionBeforeNetwork() {
         assertEquals(
             "http://10.0.2.2:5008/demo-uac-android/europe-west3/saveComment",
@@ -45,7 +52,7 @@ class LocalCallableProtocolTest {
                 { LocalCallableProtocol.endpoint("../deleteOwnAccount") },
                 { LocalCallableProtocol.endpoint("saveComment?target=production") },
                 { LocalCallableProtocol.endpoint("deleteAnyAccount") },
-                { LocalCallableProtocol.endpoint("sendTestPushNotification") },
+                { LocalCallableProtocol.endpoint("sendArbitraryPushNotification") },
             )
         for (action in invalid) try {
             action()
@@ -361,7 +368,7 @@ class LocalCallableProtocolTest {
             "http://10.0.2.2:5008/demo-uac-android/europe-west3/deleteOwnAccount",
             LocalCallableProtocol.endpoint("deleteOwnAccount"),
         )
-        assertEquals(300_000L, LocalCallableProtocol.maximumTimeoutMillis("deleteOwnAccount"))
+        assertEquals(330_000L, LocalCallableProtocol.maximumTimeoutMillis("deleteOwnAccount"))
         assertEquals(300_000L, LocalCallableProtocol.maximumTimeoutMillis("deleteNews"))
         assertEquals(
             "http://10.0.2.2:5008/demo-uac-android/europe-west3/cancelEvent",

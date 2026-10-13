@@ -10,12 +10,14 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
@@ -29,6 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import at.uac.android.BuildConfig
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
 import at.uac.android.design.UacBottomNavigation
@@ -38,10 +41,20 @@ import at.uac.android.design.UacIcon
 import at.uac.android.design.UacPageBackground
 import at.uac.android.design.UacSymbol
 import at.uac.android.design.UacTheme
-import at.uac.android.design.isCompactAuthHeaderRoute
+import at.uac.android.design.isCompactHeaderRoute
 import java.net.URI
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
+internal fun shouldRevealNewBanner(
+    bannersAvailable: Boolean,
+    bannersWereAvailable: Boolean,
+    hasDetail: Boolean,
+    firstVisibleItemIndex: Int,
+): Boolean = bannersAvailable && !bannersWereAvailable && !hasDetail && firstVisibleItemIndex <= 1
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowseScreen(
     state: BrowseState,
@@ -52,8 +65,11 @@ fun BrowseScreen(
     visibilityNotice: (@Composable () -> Unit)? = null,
     overlay: (@Composable () -> Unit)? = null,
     publicGallery: (@Composable (Content, BrowseState) -> Unit)? = null,
+    navigationRequest: (((() -> Unit)) -> Unit)? = null,
 ) {
     val l = state.language
+    val backDispatcher =
+        androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     LifecycleResumeEffect(model) {
         model.onHostResume()
         onPauseOrDispose { model.onHostPause() }
@@ -68,9 +84,15 @@ fun BrowseScreen(
             }
         }
     }
-    BackHandler(state.canBack, model::back)
+    fun requestNavigation(action: () -> Unit) {
+        if (navigationRequest != null) navigationRequest(action) else action()
+    }
+    BackHandler(state.canBack) { requestNavigation(model::back) }
     UacTheme(state.theme) {
-        UacPageBackground(Modifier.fillMaxSize()) {
+        UacPageBackground(
+            Modifier.fillMaxSize(),
+            plain = state.isAccountRoute || state.route == "settings",
+        ) {
             val keyboardVisible =
                 WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
             Scaffold(
@@ -78,7 +100,9 @@ fun BrowseScreen(
                 modifier = Modifier.imePadding(),
                 bottomBar = {
                     if (!keyboardVisible)
-                        UacBottomNavigation(state.selectedTab, l, model::selectTab)
+                        UacBottomNavigation(state.selectedTab, l) { tab ->
+                            requestNavigation { model.selectTab(tab) }
+                        }
                 },
             ) { insets ->
                 Column(Modifier.fillMaxSize().padding(insets)) {
@@ -86,10 +110,13 @@ fun BrowseScreen(
                         UacHeader(
                             l,
                             state.canBack,
-                            model::back,
-                            { model.navigate("settings") },
+                            {
+                                if (backDispatcher != null) backDispatcher.onBackPressed()
+                                else requestNavigation(model::back)
+                            },
+                            { requestNavigation { model.navigate("settings") } },
                             compact =
-                                isCompactAuthHeaderRoute(state.route) ||
+                                isCompactHeaderRoute(state.route) ||
                                     keyboardVisible ||
                                     androidx.compose.ui.platform.LocalConfiguration.current
                                         .screenHeightDp < 480,
@@ -115,7 +142,13 @@ fun BrowseScreen(
                                                 vertical = 12.dp,
                                             )
                                     ) {
-                                        if (accountContent != null) accountContent(state.route, l)
+                                        if (accountContent != null)
+                                            CompositionLocalProvider(
+                                                at.uac.android.design
+                                                    .LocalEmbeddedNavigation provides true
+                                            ) {
+                                                accountContent(state.route, l)
+                                            }
                                         else
                                             Text(
                                                 tr(
@@ -128,178 +161,219 @@ fun BrowseScreen(
                                 }
                             } else {
                                 val list = rememberLazyListState()
-                                LazyColumn(
-                                    Modifier.fillMaxSize().testTag("browse-list"),
-                                    state = list,
-                                    contentPadding =
-                                        PaddingValues(
-                                            start = UacDesign.pageInset,
-                                            end = UacDesign.pageInset,
-                                            bottom = 24.dp,
-                                        ),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                ) {
-                                    if (state.route == "settings")
-                                        item("preferences") {
-                                            Settings(state, model, diagnostics)
-                                        }
-                                    else {
-                                        if (visibilityNotice != null)
-                                            item("visibility") { visibilityNotice() }
-                                        if (
-                                            state.route == "home" && state.data.banners.isNotEmpty()
+                                var bannersWereAvailable by
+                                    remember(state.route) {
+                                        mutableStateOf(false)
+                                    }
+                                val bannersAvailable =
+                                    state.route.substringBefore(':') in
+                                        setOf("home", "events", "organizations") &&
+                                        state.detailId.isEmpty() &&
+                                        state.data.banners.isNotEmpty()
+                                LaunchedEffect(bannersAvailable, state.detailId) {
+                                    // On a cold/cloud load the filters are initially item 0. When
+                                    // banners arrive they are inserted above the filters and
+                                    // LazyColumn
+                                    // deliberately keeps the filter key in place, hiding the hero
+                                    // just
+                                    // above the viewport. Correct only that near-top insertion;
+                                    // never
+                                    // pull a reader back from a position they intentionally
+                                    // scrolled to.
+                                    if (
+                                        shouldRevealNewBanner(
+                                            bannersAvailable,
+                                            bannersWereAvailable,
+                                            state.detailId.isNotEmpty(),
+                                            list.firstVisibleItemIndex,
                                         )
-                                            item("home-banners") { BannerCarousel(state, model) }
-                                        if (state.detailId.isEmpty())
-                                            item("filters") {
-                                                if (state.route == "home")
-                                                    HomeFeedControls(state, model)
-                                                else BrowseListControls(state, model)
+                                    ) {
+                                        list.scrollToItem(0)
+                                    }
+                                    bannersWereAvailable = bannersAvailable
+                                }
+                                PullToRefreshBox(
+                                    isRefreshing = state.data.loading && state.route != "settings",
+                                    onRefresh = {
+                                        if (state.route != "settings") model.refresh()
+                                    },
+                                    modifier =
+                                        Modifier.fillMaxSize().testTag("browse-pull-refresh"),
+                                ) {
+                                    LazyColumn(
+                                        Modifier.fillMaxSize().testTag("browse-list"),
+                                        state = list,
+                                        contentPadding =
+                                            PaddingValues(
+                                                start = UacDesign.pageInset,
+                                                end = UacDesign.pageInset,
+                                                bottom = 36.dp,
+                                            ),
+                                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                    ) {
+                                        if (state.route == "settings")
+                                            item("preferences") {
+                                                Settings(state, model, diagnostics)
                                             }
-                                        if (state.data.loading)
-                                            item("loading") {
-                                                Text(tr(l, "Wird geladen…", "Завантаження…"))
-                                            }
-                                        if (state.data.cachedAt != null)
-                                            item("offline") {
-                                                Text(
-                                                    tr(
-                                                        l,
-                                                        "Offline-Kopie vom ",
-                                                        "Збережена копія від ",
-                                                    ) +
-                                                        displayTime(state.data.cachedAt, l) +
+                                        else {
+                                            if (bannersAvailable)
+                                                item("banners") { BannerCarousel(state, model) }
+                                            if (state.detailId.isEmpty())
+                                                item("filters") {
+                                                    if (state.route == "home")
+                                                        HomeFeedControls(state, model)
+                                                    else BrowseListControls(state, model)
+                                                }
+                                            if (visibilityNotice != null)
+                                                item("visibility") { visibilityNotice() }
+                                            if (state.data.loading)
+                                                item("loading") {
+                                                    Text(tr(l, "Wird geladen…", "Завантаження…"))
+                                                }
+                                            if (state.data.cachedAt != null)
+                                                item("offline") {
+                                                    Text(
                                                         tr(
                                                             l,
-                                                            ". Kann veraltet sein.",
-                                                            ". Може бути застарілою.",
-                                                        ),
-                                                    Modifier.testTag("cached"),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                )
-                                            }
-                                        if (state.data.error != null)
-                                            item("error") {
-                                                Section(tr(l, "Nicht verfügbar", "Недоступно")) {
-                                                    Text(
-                                                        failureText(state.data.error, l),
-                                                        Modifier.testTag("browse-error"),
-                                                    )
-                                                    Button(
-                                                        if (state.data.items.isEmpty())
-                                                            model::refresh
-                                                        else model::more,
-                                                        Modifier.testTag("browse-retry"),
-                                                    ) {
-                                                        Text(
+                                                            "Offline-Kopie vom ",
+                                                            "Збережена копія від ",
+                                                        ) +
+                                                            displayTime(state.data.cachedAt, l) +
                                                             tr(
                                                                 l,
-                                                                "Erneut versuchen",
-                                                                "Спробувати ще раз",
+                                                                ". Kann veraltet sein.",
+                                                                ". Може бути застарілою.",
+                                                            ),
+                                                        Modifier.testTag("cached"),
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                    )
+                                                }
+                                            if (state.data.error != null)
+                                                item("error") {
+                                                    Section(
+                                                        tr(l, "Nicht verfügbar", "Недоступно")
+                                                    ) {
+                                                        Text(
+                                                            failureText(state.data.error, l),
+                                                            Modifier.testTag("browse-error"),
+                                                        )
+                                                        Button(
+                                                            if (state.data.items.isEmpty())
+                                                                model::refresh
+                                                            else model::more,
+                                                            Modifier.testTag("browse-retry"),
+                                                        ) {
+                                                            Text(
+                                                                tr(
+                                                                    l,
+                                                                    "Erneut versuchen",
+                                                                    "Спробувати ще раз",
+                                                                )
                                                             )
+                                                        }
+                                                    }
+                                                }
+                                            if (state.data.invalid > 0)
+                                                item("invalid-warning") {
+                                                    Text(
+                                                        tr(
+                                                            l,
+                                                            "Ungültige Einträge übersprungen: ",
+                                                            "Пропущено некоректних записів: ",
+                                                        ) + state.data.invalid,
+                                                        Modifier.testTag("invalid-warning"),
+                                                    )
+                                                }
+                                            if (state.data.detail != null)
+                                                item("detail") {
+                                                    ContentDetail(
+                                                        state.data.detail,
+                                                        state,
+                                                        model,
+                                                        personalActions,
+                                                        publicGallery,
+                                                    )
+                                                }
+                                            if (state.route == "home")
+                                                item("overview") {
+                                                    Text(
+                                                        tr(
+                                                            l,
+                                                            "Aktuelle Auswahl · alle Einträge in den jeweiligen Bereichen",
+                                                            "Свіжа добірка · усі матеріали у відповідних розділах",
+                                                        ),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color =
+                                                            MaterialTheme.colorScheme
+                                                                .onSurfaceVariant,
+                                                    )
+                                                }
+                                            items(
+                                                state.data.items,
+                                                key = { "${it.kind}/${it.id}" },
+                                            ) { item ->
+                                                ContentCard(item, l) {
+                                                    model.navigate(
+                                                        "${item.kind.collection}/${item.id}"
+                                                    )
+                                                }
+                                            }
+                                            if (
+                                                !state.data.loading &&
+                                                    state.data.error == null &&
+                                                    state.detailId.isEmpty() &&
+                                                    state.data.items.isEmpty()
+                                            )
+                                                item("empty") {
+                                                    Text(
+                                                        if (state.data.hasMore)
+                                                            tr(
+                                                                l,
+                                                                "Bisher keine Treffer. Weitere Seiten durchsuchen.",
+                                                                "Поки немає збігів. Перегляньте наступні сторінки.",
+                                                            )
+                                                        else
+                                                            tr(
+                                                                l,
+                                                                "Keine passenden Inhalte gefunden.",
+                                                                "Відповідних матеріалів не знайдено.",
+                                                            ),
+                                                        Modifier.testTag("empty"),
+                                                    )
+                                                }
+                                            if (state.data.hasMore)
+                                                item("more") {
+                                                    Button(
+                                                        model::more,
+                                                        Modifier.testTag("load-more"),
+                                                        enabled = !state.data.loading,
+                                                    ) {
+                                                        Text(tr(l, "Mehr laden", "Завантажити ще"))
+                                                    }
+                                                }
+                                            if (state.data.donation?.url != null)
+                                                item("donation") {
+                                                    val donation = state.data.donation
+                                                    Section(donation.text("title", l)) {
+                                                        Text(donation.text("message", l))
+                                                        SafeLink(
+                                                            donation.text("buttonTitle", l),
+                                                            donation.url!!,
+                                                            l,
                                                         )
                                                     }
                                                 }
-                                            }
-                                        if (state.data.invalid > 0)
-                                            item("invalid-warning") {
+                                            items(
+                                                state.data.warnings.distinct(),
+                                                key = { "warning:${it.first}:${it.second}" },
+                                            ) { (section, reason) ->
                                                 Text(
-                                                    tr(
-                                                        l,
-                                                        "Ungültige Einträge übersprungen: ",
-                                                        "Пропущено некоректних записів: ",
-                                                    ) + state.data.invalid,
-                                                    Modifier.testTag("invalid-warning"),
+                                                    sectionLabel(section, l) +
+                                                        ": " +
+                                                        failureText(reason, l)
                                                 )
                                             }
-                                        if (
-                                            state.route != "home" && state.data.banners.isNotEmpty()
-                                        )
-                                            item("banners") { BannerCarousel(state, model) }
-                                        if (state.data.detail != null)
-                                            item("detail") {
-                                                ContentDetail(
-                                                    state.data.detail,
-                                                    state,
-                                                    model,
-                                                    personalActions,
-                                                    publicGallery,
-                                                )
-                                            }
-                                        if (state.route == "home")
-                                            item("overview") {
-                                                Text(
-                                                    tr(
-                                                        l,
-                                                        "Aktuelle Auswahl · alle Einträge in den jeweiligen Bereichen",
-                                                        "Свіжа добірка · усі матеріали у відповідних розділах",
-                                                    ),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color =
-                                                        MaterialTheme.colorScheme.onSurfaceVariant,
-                                                )
-                                            }
-                                        items(state.data.items, key = { "${it.kind}/${it.id}" }) {
-                                            item ->
-                                            ContentCard(item, l) {
-                                                model.navigate("${item.kind.collection}/${item.id}")
-                                            }
-                                        }
-                                        if (
-                                            !state.data.loading &&
-                                                state.data.error == null &&
-                                                state.detailId.isEmpty() &&
-                                                state.data.items.isEmpty()
-                                        )
-                                            item("empty") {
-                                                Text(
-                                                    if (state.data.hasMore)
-                                                        tr(
-                                                            l,
-                                                            "Bisher keine Treffer. Weitere Seiten durchsuchen.",
-                                                            "Поки немає збігів. Перегляньте наступні сторінки.",
-                                                        )
-                                                    else
-                                                        tr(
-                                                            l,
-                                                            "Keine passenden Inhalte gefunden.",
-                                                            "Відповідних матеріалів не знайдено.",
-                                                        ),
-                                                    Modifier.testTag("empty"),
-                                                )
-                                            }
-                                        if (state.data.hasMore)
-                                            item("more") {
-                                                Button(
-                                                    model::more,
-                                                    Modifier.testTag("load-more"),
-                                                    enabled = !state.data.loading,
-                                                ) {
-                                                    Text(tr(l, "Mehr laden", "Завантажити ще"))
-                                                }
-                                            }
-                                        if (state.data.donation?.url != null)
-                                            item("donation") {
-                                                val donation = state.data.donation
-                                                Section(donation.text("title", l)) {
-                                                    Text(donation.text("message", l))
-                                                    SafeLink(
-                                                        donation.text("buttonTitle", l),
-                                                        donation.url!!,
-                                                        l,
-                                                    )
-                                                }
-                                            }
-                                        items(
-                                            state.data.warnings.distinct(),
-                                            key = { "warning:${it.first}:${it.second}" },
-                                        ) { (section, reason) ->
-                                            Text(
-                                                sectionLabel(section, l) +
-                                                    ": " +
-                                                    failureText(reason, l)
-                                            )
                                         }
                                     }
                                 }
@@ -334,12 +408,7 @@ fun Heading(text: String) {
 
 @Composable
 fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.widthIn(max = 760.dp).fillMaxWidth()) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Heading(title)
-            content()
-        }
-    }
+    at.uac.android.design.UacSectionCard(title = title, content = content)
 }
 
 @Composable
@@ -398,89 +467,161 @@ private fun Settings(s: BrowseState, model: BrowseViewModel, diagnostics: () -> 
             "theme",
             { model.preference("theme", it) },
         )
-        Text(tr(l, "Datenquelle · ausschließlich lokal", "Джерело даних · лише локально"))
-        listOf(
-                "synthetic" to tr(l, "Eingebaute Beispiele", "Вбудовані приклади"),
-                "emulator" to "Firebase Emulator · demo-uac-android",
-            )
-            .forEach { (key, title) ->
-                FilterChip(
-                    s.mode == key,
-                    { model.preference("mode", key) },
-                    { Text(title) },
-                    modifier = Modifier.testTag("browse-mode-$key"),
+        if (BuildConfig.USE_LOCAL_BACKEND) {
+            Text(tr(l, "Datenquelle · ausschließlich lokal", "Джерело даних · лише локально"))
+            listOf(
+                    "synthetic" to tr(l, "Eingebaute Beispiele", "Вбудовані приклади"),
+                    "emulator" to "Firebase Emulator · demo-uac-android",
                 )
-            }
-        Text(
-            tr(
-                l,
-                "Externe Demo-Links öffnen keine echten Angebote. Persönliche Aktionen verwenden ausschließlich den lokalen Firebase Emulator, nicht die eingebauten Beispiele.",
-                "Демо-посилання не відкривають справжніх пропозицій. Особисті дії працюють лише з локальним Firebase Emulator, а не з вбудованими прикладами.",
+                .forEach { (key, title) ->
+                    FilterChip(
+                        s.mode == key,
+                        { model.preference("mode", key) },
+                        { Text(title) },
+                        modifier = Modifier.testTag("browse-mode-$key"),
+                    )
+                }
+            Text(
+                tr(
+                    l,
+                    "Externe Demo-Links öffnen keine echten Angebote. Persönliche Aktionen verwenden ausschließlich den lokalen Firebase Emulator, nicht die eingebauten Beispiele.",
+                    "Демо-посилання не відкривають справжніх пропозицій. Особисті дії працюють лише з локальним Firebase Emulator, а не з вбудованими прикладами.",
+                )
             )
-        )
-        TextButton(diagnostics, Modifier.testTag("diagnostics")) {
-            Text(tr(l, "Technische lokale Prüfung", "Технічна локальна перевірка"))
+            TextButton(diagnostics, Modifier.testTag("diagnostics")) {
+                Text(tr(l, "Technische lokale Prüfung", "Технічна локальна перевірка"))
+            }
         }
         HorizontalDivider()
         at.uac.android.feature.auth.ReferenceLegalLinks(l)
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
     val language = state.language
+    var searchVisible by rememberSaveable(state.route) { mutableStateOf(state.search.isNotEmpty()) }
+    var sheet by rememberSaveable(state.route) { mutableStateOf<String?>(null) }
+    val regionLabel =
+        regions.find { it.first == state.region }?.second
+            ?: tr(language, "Ganz Österreich", "Уся Австрія")
     Column(
         Modifier.widthIn(max = UacDesign.readableWidth).fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Heading(state.kind?.label(language) ?: tr(language, "Entdecken", "Відкривайте нове"))
-        Choice(
-            tr(language, "Region", "Регіон"),
-            state.region,
-            listOf("" to tr(language, "Ganz Österreich", "Уся Австрія")) + regions,
-            "region",
-            { model.preference("region", it) },
-        )
         if (state.isList) {
-            OutlinedTextField(
-                state.search,
-                { model.filters(search = it) },
-                Modifier.fillMaxWidth().testTag("search"),
-                label = {
-                    Text(tr(language, "Suchen, auch nach Tags", "Пошук, зокрема за тегами"))
-                },
-                singleLine = true,
-            )
-            Choice(
-                tr(language, "Kategorie", "Категорія"),
-                state.category,
-                listOf("" to tr(language, "Alle Kategorien", "Усі категорії")) +
-                    categories(state.kind!!).map { it to label(it, language) },
-                "category",
-                { model.filters(category = it) },
-            )
-            if (state.kind == ContentKind.EVENTS) {
-                Choice(
-                    tr(language, "Zielgruppe", "Для кого"),
-                    state.audience,
-                    listOf("" to tr(language, "Alle Zielgruppen", "Усі аудиторії")) +
-                        listOf("everyone", "families", "children", "teens", "adults", "seniors")
-                            .map { it to label(it, language) },
-                    "audience",
-                    { model.filters(audience = it) },
+            FlowRow(
+                Modifier.fillMaxWidth().testTag("primary-filter-row"),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                FilterChip(
+                    selected = state.region.isNotEmpty(),
+                    onClick = { sheet = "region" },
+                    label = { Text(regionLabel) },
+                    leadingIcon = { UacSymbol(UacIcon.LOCATION, modifier = Modifier.size(18.dp)) },
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("region"),
                 )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        !state.past,
-                        { model.filters(past = false) },
-                        { Text(tr(language, "Kommend", "Майбутні")) },
-                        modifier = Modifier.testTag("upcoming"),
+                FilterChip(
+                    selected = searchVisible || state.search.isNotEmpty(),
+                    onClick = { searchVisible = !searchVisible },
+                    label = { Text(tr(language, "Suchen", "Пошук")) },
+                    leadingIcon = { UacSymbol(UacIcon.SEARCH, modifier = Modifier.size(18.dp)) },
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("search-toggle"),
+                )
+                val activeFilters =
+                    listOf(
+                            state.category.isNotEmpty(),
+                            state.kind == ContentKind.EVENTS && state.past,
+                            state.kind == ContentKind.EVENTS && state.audience.isNotEmpty(),
+                            state.kind == ContentKind.NEWS && state.newsPeriod != NewsPeriod.ALL,
+                            state.kind == ContentKind.NEWS && state.newsOrder != NewsOrder.NEWEST,
+                            state.kind == ContentKind.NEWS && state.newsSource != NewsSource.ALL,
+                        )
+                        .count { it }
+                FilterChip(
+                    selected = activeFilters > 0,
+                    onClick = { sheet = if (state.kind == ContentKind.NEWS) "news" else "filters" },
+                    leadingIcon = { UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp)) },
+                    label = {
+                        Text(
+                            tr(language, "Filter", "Фільтри") +
+                                if (activeFilters > 0) " · $activeFilters" else ""
+                        )
+                    },
+                    modifier = Modifier.heightIn(min = 48.dp).testTag("news-filters"),
+                )
+            }
+            if (state.kind == ContentKind.NEWS)
+                Text(
+                    newsFilterSummary(state, language),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().testTag("news-filter-summary"),
+                )
+            if (searchVisible || state.search.isNotEmpty())
+                OutlinedTextField(
+                    state.search,
+                    { model.filters(search = it) },
+                    Modifier.fillMaxWidth().testTag("search"),
+                    label = {
+                        Text(tr(language, "Suchen, auch nach Tags", "Пошук, зокрема за тегами"))
+                    },
+                    trailingIcon = {
+                        if (state.search.isNotEmpty())
+                            TextButton({ model.filters(search = "") }) {
+                                Text(tr(language, "Löschen", "Очистити"))
+                            }
+                    },
+                    singleLine = true,
+                )
+            val categorySummary =
+                state.category.takeIf(String::isNotEmpty)?.let { label(it, language) }
+            if (categorySummary != null)
+                Text(
+                    tr(language, "Kategorie", "Категорія") + ": " + categorySummary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("category-filter-row"),
+                )
+            val quickDestination =
+                when (state.kind) {
+                    ContentKind.NEWS -> "profile/saved"
+                    ContentKind.EVENTS -> "profile/registrations"
+                    ContentKind.ORGANIZATIONS -> "profile/subscriptions"
+                    else -> null
+                }
+            quickDestination?.let { destination ->
+                TextButton(
+                    onClick = { model.navigate(destination) },
+                    modifier =
+                        Modifier.testTag(
+                            when (state.kind) {
+                                ContentKind.NEWS -> "quick-saved"
+                                ContentKind.EVENTS -> "quick-registrations"
+                                else -> "quick-subscriptions"
+                            }
+                        ),
+                ) {
+                    UacSymbol(
+                        when (state.kind) {
+                            ContentKind.EVENTS -> UacIcon.CALENDAR
+                            ContentKind.ORGANIZATIONS -> UacIcon.NOTIFICATIONS
+                            else -> UacIcon.BOOKMARK
+                        },
+                        modifier = Modifier.size(18.dp),
                     )
-                    FilterChip(
-                        state.past,
-                        { model.filters(past = true) },
-                        { Text(tr(language, "Vergangen", "Минулі")) },
-                        modifier = Modifier.testTag("past"),
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        when (state.kind) {
+                            ContentKind.NEWS ->
+                                tr(language, "Gespeicherte Inhalte", "Збережені матеріали")
+                            ContentKind.EVENTS ->
+                                tr(language, "Meine Anmeldungen", "Мої реєстрації")
+                            else -> tr(language, "Meine Abonnements", "Мої підписки")
+                        }
                     )
                 }
             }
@@ -488,35 +629,426 @@ private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
                 Text(tr(language, "Inhalte dieser Organisation", "Матеріали цієї організації"))
             }
         }
-        TextButton(model::refresh, Modifier.testTag("refresh")) {
-            Text(tr(language, "Aktualisieren", "Оновити"))
+    }
+    if (sheet == "news")
+        NewsFilterSheet(
+            state = state,
+            onDismiss = { sheet = null },
+            onApply = { period, order, source, start, end, category ->
+                model.filters(
+                    category = category,
+                    newsPeriod = period,
+                    newsOrder = order,
+                    newsSource = source,
+                    customStart = start,
+                    customEnd = end,
+                )
+                sheet = null
+            },
+        )
+    else if (sheet == "filters")
+        ContentFilterSheet(
+            state = state,
+            onDismiss = { sheet = null },
+            onCategory = { model.filters(category = it) },
+            onPast = { model.filters(past = it) },
+            onAudience = { model.filters(audience = it) },
+        )
+    else if (sheet != null)
+        ModalBottomSheet(
+            onDismissRequest = { sheet = null },
+            modifier = Modifier.testTag("browse-filter-sheet"),
+        ) {
+            val title =
+                if (sheet == "region") tr(language, "Region", "Регіон")
+                else tr(language, "Zielgruppe", "Для кого")
+            Column(
+                Modifier.fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Heading(title)
+                val options =
+                    if (sheet == "region")
+                        listOf("" to tr(language, "Ganz Österreich", "Уся Австрія")) + regions
+                    else
+                        listOf("" to tr(language, "Alle Zielgruppen", "Усі аудиторії")) +
+                            listOf("everyone", "families", "children", "teens", "adults", "seniors")
+                                .map { it to label(it, language) }
+                options.forEach { (value, text) ->
+                    FilterChip(
+                        selected =
+                            if (sheet == "region") state.region == value
+                            else state.audience == value,
+                        onClick = {
+                            if (sheet == "region") model.preference("region", value)
+                            else model.filters(audience = value)
+                            sheet = null
+                        },
+                        label = { Text(text) },
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .heightIn(min = UacDesign.minimumTouch)
+                                .testTag("${sheet.orEmpty()}-$value"),
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ContentFilterSheet(
+    state: BrowseState,
+    onDismiss: () -> Unit,
+    onCategory: (String) -> Unit,
+    onPast: (Boolean) -> Unit,
+    onAudience: (String) -> Unit,
+) {
+    val language = state.language
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("browse-filter-sheet"),
+    ) {
+        Column(
+            Modifier.fillMaxWidth()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Heading(tr(language, "Inhalte filtern", "Фільтрувати матеріали"))
+            if (state.kind == ContentKind.EVENTS) {
+                Text(tr(language, "Zeitraum", "Час"), style = MaterialTheme.typography.titleMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        !state.past,
+                        { onPast(false) },
+                        { Text(tr(language, "Kommend", "Майбутні")) },
+                        Modifier.testTag("upcoming"),
+                    )
+                    FilterChip(
+                        state.past,
+                        { onPast(true) },
+                        { Text(tr(language, "Vergangen", "Минулі")) },
+                        Modifier.testTag("past"),
+                    )
+                }
+                Text(
+                    tr(language, "Zielgruppe", "Для кого"),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    (listOf("") +
+                            listOf(
+                                "everyone",
+                                "families",
+                                "children",
+                                "teens",
+                                "adults",
+                                "seniors",
+                            ))
+                        .forEach { value ->
+                            FilterChip(
+                                selected = state.audience == value,
+                                onClick = { onAudience(value) },
+                                label = {
+                                    Text(
+                                        if (value.isEmpty()) tr(language, "Alle", "Усі")
+                                        else label(value, language)
+                                    )
+                                },
+                                modifier = Modifier.testTag("audience-$value"),
+                            )
+                        }
+                }
+            }
+            Text(
+                tr(language, "Kategorie", "Категорія"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (listOf("") + categories(state.kind!!)).forEach { value ->
+                    FilterChip(
+                        selected = state.category == value,
+                        onClick = { onCategory(value) },
+                        label = {
+                            Text(
+                                if (value.isEmpty()) tr(language, "Alle", "Усі")
+                                else label(value, language)
+                            )
+                        },
+                        modifier = Modifier.testTag("category-$value"),
+                    )
+                }
+            }
+            Button(onDismiss, Modifier.fillMaxWidth().testTag("content-filter-done")) {
+                Text(tr(language, "Ergebnisse anzeigen", "Показати результати"))
+            }
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeFeedControls(state: BrowseState, model: BrowseViewModel) {
-    FlowRow(
-        Modifier.widthIn(max = UacDesign.readableWidth).fillMaxWidth().testTag("home-controls"),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+private fun NewsFilterSheet(
+    state: BrowseState,
+    onDismiss: () -> Unit,
+    onApply: (NewsPeriod, NewsOrder, NewsSource, LocalDate?, LocalDate?, String) -> Unit,
+) {
+    val language = state.language
+    var period by rememberSaveable { mutableStateOf(state.newsPeriod) }
+    var order by rememberSaveable { mutableStateOf(state.newsOrder) }
+    var source by rememberSaveable { mutableStateOf(state.newsSource) }
+    var category by rememberSaveable { mutableStateOf(state.category) }
+    var start by rememberSaveable { mutableStateOf(state.customStart) }
+    var end by rememberSaveable { mutableStateOf(state.customEnd) }
+    var datesVisible by rememberSaveable { mutableStateOf(false) }
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        modifier = Modifier.testTag("news-filter-sheet"),
     ) {
-        Choice(
-            tr(state.language, "Region", "Регіон"),
-            state.region,
-            listOf("" to tr(state.language, "Ganz Österreich", "Уся Австрія")) + regions,
-            "region",
-            { model.preference("region", it) },
-        )
-        TextButton({ model.navigate("news") }, Modifier.testTag("tab-news")) {
-            UacSymbol(UacIcon.NEWS)
-            Spacer(Modifier.width(8.dp))
-            Text(tr(state.language, "Alle Neuigkeiten", "Усі новини"))
-        }
-        TextButton(model::refresh, Modifier.testTag("refresh")) {
-            Text(tr(state.language, "Aktualisieren", "Оновити"))
+        Column(
+            Modifier.fillMaxWidth()
+                .navigationBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            Heading(tr(language, "Nachrichten filtern", "Фільтри новин"))
+            Text(tr(language, "Zeitraum", "Період"), style = MaterialTheme.typography.titleMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NewsPeriod.entries.forEach { value ->
+                    FilterChip(
+                        selected = period == value,
+                        onClick = {
+                            period = value
+                            if (value == NewsPeriod.CUSTOM) datesVisible = true
+                        },
+                        label = { Text(newsPeriodLabel(value, language)) },
+                        modifier = Modifier.testTag("news-period-${value.name}"),
+                    )
+                }
+            }
+            if (period == NewsPeriod.CUSTOM && start != null && end != null)
+                Text("${start.toString()} – ${end.toString()}")
+            Text(
+                tr(language, "Reihenfolge", "Порядок"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NewsOrder.entries.forEach { value ->
+                    FilterChip(
+                        selected = order == value,
+                        onClick = { order = value },
+                        label = { Text(newsOrderLabel(value, language)) },
+                        modifier = Modifier.testTag("news-order-${value.name}"),
+                    )
+                }
+            }
+            Text(tr(language, "Quelle", "Джерело"), style = MaterialTheme.typography.titleMedium)
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                NewsSource.entries.forEach { value ->
+                    FilterChip(
+                        selected = source == value,
+                        onClick = { source = value },
+                        enabled = value == NewsSource.ALL || state.accountAvailable,
+                        label = { Text(newsSourceLabel(value, language)) },
+                        modifier = Modifier.testTag("news-source-${value.name}"),
+                    )
+                }
+            }
+            if (!state.accountAvailable)
+                Text(
+                    tr(
+                        language,
+                        "Gespeicherte Inhalte und Abos sind nach der Anmeldung verfügbar.",
+                        "Збережене та підписки доступні після входу.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            Text(
+                tr(language, "Kategorie", "Категорія"),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                (listOf("") + categories(ContentKind.NEWS)).forEach { value ->
+                    FilterChip(
+                        selected = category == value,
+                        onClick = { category = value },
+                        label = {
+                            Text(
+                                if (value.isEmpty()) tr(language, "Alle", "Усі")
+                                else label(value, language)
+                            )
+                        },
+                        modifier = Modifier.testTag("category-$value"),
+                    )
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onDismiss, Modifier.weight(1f)) {
+                    Text(tr(language, "Abbrechen", "Скасувати"))
+                }
+                Button(
+                    onClick = { onApply(period, order, source, start, end, category) },
+                    enabled = period != NewsPeriod.CUSTOM || start != null && end != null,
+                    modifier = Modifier.weight(1f).testTag("news-filter-apply"),
+                ) {
+                    Text(tr(language, "Anwenden", "Застосувати"))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
         }
     }
+    if (datesVisible) {
+        val picker =
+            rememberDateRangePickerState(
+                initialSelectedStartDateMillis =
+                    start?.atStartOfDay()?.toInstant(ZoneOffset.UTC)?.toEpochMilli(),
+                initialSelectedEndDateMillis =
+                    end?.atStartOfDay()?.toInstant(ZoneOffset.UTC)?.toEpochMilli(),
+            )
+        DatePickerDialog(
+            onDismissRequest = { datesVisible = false },
+            confirmButton = {
+                TextButton({
+                    start =
+                        picker.selectedStartDateMillis?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+                        }
+                    end =
+                        picker.selectedEndDateMillis?.let {
+                            Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+                        }
+                    datesVisible = false
+                }) {
+                    Text(tr(language, "Übernehmen", "Готово"))
+                }
+            },
+            dismissButton = {
+                TextButton({ datesVisible = false }) {
+                    Text(tr(language, "Abbrechen", "Скасувати"))
+                }
+            },
+        ) {
+            DateRangePicker(picker, modifier = Modifier.fillMaxWidth().heightIn(max = 560.dp))
+        }
+    }
+}
+
+private fun newsFilterSummary(state: BrowseState, language: String): String =
+    listOf(
+            newsPeriodLabel(state.newsPeriod, language),
+            newsOrderLabel(state.newsOrder, language),
+            newsSourceLabel(state.newsSource, language),
+        )
+        .joinToString(" · ")
+
+private fun newsPeriodLabel(value: NewsPeriod, language: String) =
+    when (value) {
+        NewsPeriod.ALL -> tr(language, "Alle Zeiten", "Увесь час")
+        NewsPeriod.TODAY -> tr(language, "Heute", "Сьогодні")
+        NewsPeriod.SEVEN_DAYS -> tr(language, "7 Tage", "7 днів")
+        NewsPeriod.THIRTY_DAYS -> tr(language, "30 Tage", "30 днів")
+        NewsPeriod.CUSTOM -> tr(language, "Zeitraum", "Власний період")
+    }
+
+private fun newsOrderLabel(value: NewsOrder, language: String) =
+    if (value == NewsOrder.NEWEST) tr(language, "Neueste zuerst", "Спочатку нові")
+    else tr(language, "Älteste zuerst", "Спочатку старі")
+
+private fun newsSourceLabel(value: NewsSource, language: String) =
+    when (value) {
+        NewsSource.ALL -> tr(language, "Alle Quellen", "Усі джерела")
+        NewsSource.SAVED -> tr(language, "Gespeichert", "Збережені")
+        NewsSource.SUBSCRIBED -> tr(language, "Meine Abos", "Мої підписки")
+    }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeFeedControls(state: BrowseState, model: BrowseViewModel) {
+    val language = state.language
+    var regionSheet by rememberSaveable { mutableStateOf(false) }
+    val regionLabel =
+        regions.find { it.first == state.region }?.second
+            ?: tr(language, "Ganz Österreich", "Уся Австрія")
+    LazyRow(
+        Modifier.widthIn(max = UacDesign.readableWidth).fillMaxWidth().testTag("home-controls"),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item("region") {
+            FilterChip(
+                selected = state.region.isNotEmpty(),
+                onClick = { regionSheet = true },
+                label = { Text(regionLabel) },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("region"),
+            )
+        }
+        items(
+            listOf(
+                Triple("news", tr(language, "Neuigkeiten", "Новини"), "tab-news"),
+                Triple("events", tr(language, "Veranstaltungen", "Події"), "home-events"),
+                Triple(
+                    "organizations",
+                    tr(language, "Organisationen", "Організації"),
+                    "home-organizations",
+                ),
+            ),
+            key = { it.first },
+        ) { (route, title, tag) ->
+            FilterChip(
+                selected = false,
+                onClick = { model.navigate(route) },
+                label = { Text(title) },
+                modifier = Modifier.heightIn(min = 48.dp).testTag(tag),
+            )
+        }
+        item("saved") {
+            FilterChip(
+                selected = false,
+                onClick = { model.navigate("profile/saved") },
+                label = { Text(tr(language, "Gespeichert", "Збережене")) },
+                modifier = Modifier.testTag("quick-saved"),
+            )
+        }
+    }
+    if (regionSheet)
+        ModalBottomSheet(
+            onDismissRequest = { regionSheet = false },
+            modifier = Modifier.testTag("browse-filter-sheet"),
+        ) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .navigationBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Heading(tr(language, "Region", "Регіон"))
+                (listOf("" to tr(language, "Ganz Österreich", "Уся Австрія")) + regions).forEach {
+                    (value, text) ->
+                    FilterChip(
+                        selected = state.region == value,
+                        onClick = {
+                            model.preference("region", value)
+                            regionSheet = false
+                        },
+                        label = { Text(text) },
+                        modifier =
+                            Modifier.fillMaxWidth()
+                                .heightIn(min = UacDesign.minimumTouch)
+                                .testTag("region-$value"),
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
 }
 
 @Composable
@@ -539,6 +1071,8 @@ fun SafeLink(
                     else buttonColor
             ),
     ) {
+        UacSymbol(UacIcon.OPEN_ARROW, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
         Text(title.ifBlank { url })
     }
     if (show)

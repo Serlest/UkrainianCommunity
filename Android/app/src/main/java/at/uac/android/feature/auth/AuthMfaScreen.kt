@@ -122,17 +122,15 @@ internal fun MfaSecurityFields(
         Modifier.fillMaxWidth().testTag("auth-security"),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        HorizontalDivider()
-        Text(
+        at.uac.android.design.UacSectionHeading(
             authText(language, "Kontosicherheit", "Безпека акаунта"),
-            Modifier.semantics { heading() },
-            style = MaterialTheme.typography.titleLarge,
+            at.uac.android.design.UacIcon.SECURITY,
         )
         Text(
             authText(
                 language,
-                "Lokale Entwicklung: Ein echter Cloud-TOTP-Test steht separat aus.",
-                "Локальна розробка: справжню перевірку хмарного TOTP ще потрібно виконати окремо.",
+                "Schütze deine Anmeldung mit einem zusätzlichen Code aus deiner Authenticator-App.",
+                "Захистіть вхід додатковим кодом із застосунку-аутентифікатора.",
             ),
             style = MaterialTheme.typography.bodySmall,
         )

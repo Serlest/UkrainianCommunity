@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The platform clock dial has fixed radii and overlaps at large font scales. -->
+    <style name="AnnouncementTimePickerLargeLight" parent="android:style/Theme.Material.Light.Dialog.Alert">
+        <item name="android:timePickerStyle">@style/AnnouncementTimePickerSpinner</item>
+    </style>
+    <style name="AnnouncementTimePickerLargeDark" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:timePickerStyle">@style/AnnouncementTimePickerSpinner</item>
+    </style>
+    <style name="AnnouncementTimePickerSpinner" parent="android:style/Widget.Material.TimePicker">
+        <item name="android:timePickerMode">spinner</item>
+    </style>
+</resources>

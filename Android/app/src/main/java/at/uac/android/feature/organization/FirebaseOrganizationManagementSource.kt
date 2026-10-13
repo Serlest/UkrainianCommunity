@@ -1,12 +1,21 @@
 package at.uac.android.feature.organization
 
 import android.content.Context
+import at.uac.android.BuildConfig
 import at.uac.android.core.LocalEnvironment
+import at.uac.android.core.LocalCallableException
+import at.uac.android.core.LocalCallableFailure
 import at.uac.android.core.backend.AppBackend
 import at.uac.android.core.backend.CallableGateway
 import at.uac.android.core.backend.FirebaseBackendGuard
 import at.uac.android.feature.browse.Fields
 import at.uac.android.feature.browse.RawDocument
+import at.uac.android.feature.organizationaccess.OrganizationAccessReader
+import at.uac.android.feature.organizationaccess.OrganizationAccessSource
+import at.uac.android.feature.organizationaccess.OrganizationCommand
+import at.uac.android.feature.organizationaccess.OrganizationUpdateAttempt
+import at.uac.android.feature.organizationaccess.OrganizationVersion
+import at.uac.android.feature.organizationaccess.OrganizationPhotoVersion
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
@@ -18,6 +27,7 @@ import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
 import java.time.Instant
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.TimeoutCancellationException
@@ -26,6 +36,23 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
+
+internal enum class OrganizationInformationRoute {
+    LEGACY,
+    CALLABLE,
+    DENIED,
+}
+
+internal fun organizationInformationRoute(
+    snapshot: at.uac.android.feature.organizationaccess.OrganizationAccessSnapshot,
+    organizationId: String,
+): OrganizationInformationRoute =
+    when {
+        snapshot.actionModes["editInfo"] != "enforced" -> OrganizationInformationRoute.LEGACY
+        snapshot.commands[OrganizationCommand.UPDATE_INFO] == true &&
+            snapshot.allows(organizationId, "editInfo") -> OrganizationInformationRoute.CALLABLE
+        else -> OrganizationInformationRoute.DENIED
+    }
 
 fun localOrganizationManagementSource(context: Context): OrganizationManagementSource =
     FirebaseOrganizationManagementSource(
@@ -46,6 +73,38 @@ class FirebaseOrganizationManagementSource(
         FirebaseBackendGuard.requireSameApp(auth, db)
         functions.requireBoundTo(auth)
     }
+
+    private val access =
+        OrganizationAccessSource(
+            functions,
+            object : OrganizationAccessReader {
+                override suspend fun read(organizationId: String): OrganizationVersion? {
+                    val snapshot =
+                        db.document("organizations/$organizationId").get(Source.SERVER).await()
+                    if (!snapshot.exists()) return null
+                    return OrganizationVersion(
+                        organizationId,
+                        (snapshot.getTimestamp("updatedAt"))?.let {
+                            "${it.seconds}:${it.nanoseconds}"
+                        },
+                        snapshot.data.orEmpty().mapValues { decoded(it.value) },
+                    )
+                }
+
+                override suspend fun readPhoto(
+                    organizationId: String,
+                    photoId: String,
+                ): OrganizationPhotoVersion? {
+                    val snapshot =
+                        db.document("organizations/$organizationId/photos/$photoId")
+                            .get(Source.SERVER)
+                            .await()
+                    if (!snapshot.exists()) return null
+                    val image = snapshot.getString("imageURL") ?: return null
+                    return OrganizationPhotoVersion(organizationId, photoId, image)
+                }
+            },
+        )
 
     private fun identity(session: OrganizationSession) {
         if (auth.currentUser?.uid != session.uid)
@@ -226,6 +285,8 @@ class FirebaseOrganizationManagementSource(
                 }
         )
             fail(OrganizationManagementFailure.INVALID)
+        val command = organizationInformationCommand(base, fields, session)
+        if (command) return
         try {
             db.runTransaction { transaction ->
                     identity(session)
@@ -245,6 +306,100 @@ class FirebaseOrganizationManagementSource(
             throw OrganizationManagementException(organizationManagementFailure(error), error)
         }
     }
+
+    /**
+     * Uses the build 68 command only when the server marks this exact action as enforced. Shadow
+     * rollout keeps the already-audited Rules transaction. An enforced denial always fails closed.
+     */
+    private suspend fun organizationInformationCommand(
+        base: OrganizationRecord,
+        fields: Fields,
+        session: OrganizationSession,
+    ): Boolean {
+        val snapshot =
+            try {
+                access.access(
+                    session.uid,
+                    listOf(base.id),
+                    mapOf(base.id to mapOf("editInfo" to OrganizationManagementContract.canEdit(base, session))),
+                    BuildConfig.VERSION_NAME,
+                )
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: LocalCallableException) {
+                // A pre-build-68 emulator/server has no capability endpoint and remains on v1.
+                if (error.code == LocalCallableFailure.NOT_FOUND) return false
+                throw OrganizationManagementException(organizationManagementFailure(error), error)
+            } catch (error: Exception) {
+                throw OrganizationManagementException(organizationManagementFailure(error), error)
+            }
+        identity(session)
+        when (organizationInformationRoute(snapshot, base.id)) {
+            OrganizationInformationRoute.LEGACY -> return false
+            OrganizationInformationRoute.DENIED -> fail(OrganizationManagementFailure.DENIED)
+            OrganizationInformationRoute.CALLABLE -> Unit
+        }
+        val wire = fields.mapValues { callableValue(it.value) }
+        val operationId =
+            sha256(
+                listOf(session.uid, base.id, organizationRevision(base), base.status, stable(wire))
+                    .joinToString("\u0000")
+            )
+        try {
+            access.update(
+                OrganizationUpdateAttempt(
+                    session.uid,
+                    base.id,
+                    operationId,
+                    organizationRevision(base),
+                    base.status,
+                    wire,
+                ),
+                BuildConfig.VERSION_NAME,
+            )
+            identity(session)
+            return true
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw OrganizationManagementException(organizationManagementFailure(error), error)
+        }
+    }
+
+    private fun organizationRevision(value: OrganizationRecord) =
+        "${value.updatedAt.epochSecond}:${value.updatedAt.nano}"
+
+    private fun callableValue(value: Any?): Any? =
+        when (value) {
+            is Instant ->
+                mapOf(
+                    "__timestamp" to
+                        mapOf("seconds" to value.epochSecond, "nanoseconds" to value.nano.toLong())
+                )
+            is Map<*, *> ->
+                value.entries.associate { it.key.toString() to callableValue(it.value) }
+            is List<*> -> value.map(::callableValue)
+            else -> value
+        }
+
+    private fun stable(value: Any?): String =
+        when (value) {
+            null -> "null"
+            is String -> "s:${value.length}:$value"
+            is Number -> "n:$value"
+            is Boolean -> "b:$value"
+            is Map<*, *> ->
+                value.entries.sortedBy { it.key.toString() }.joinToString("{", "}") {
+                    stable(it.key.toString()) + ":" + stable(it.value)
+                }
+            is List<*> -> value.joinToString("[", "]") { stable(it) }
+            else -> throw OrganizationManagementException(OrganizationManagementFailure.INVALID)
+        }
+
+    private fun sha256(value: String) =
+        MessageDigest.getInstance("SHA-256").digest(value.toByteArray()).joinToString("") {
+            "%02x".format(it.toInt() and 255)
+        }
 
     private fun requireUnchangedEditable(
         base: OrganizationRecord,

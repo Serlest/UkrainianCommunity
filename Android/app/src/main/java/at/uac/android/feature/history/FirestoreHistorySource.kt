@@ -229,6 +229,15 @@ class FirestoreHistorySource(private val db: FirebaseFirestore, private val auth
                                         .takeIf { it.isNotEmpty() },
                                     value.id,
                                     FieldValue.serverTimestamp(),
+                                    organizationId =
+                                        if (value.section == HistorySection.RECENT) {
+                                            if (target.type == HistoryType.ORGANIZATION) target.id
+                                            else
+                                                document.fields
+                                                    .string("organizationId")
+                                                    .takeIf(String::isNotBlank)
+                                                    ?: existing?.organizationId
+                                        } else null,
                                 )
                             check(value.session, current)
                             transaction.set(ref, fields)

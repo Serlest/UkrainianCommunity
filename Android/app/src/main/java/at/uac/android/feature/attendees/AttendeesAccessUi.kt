@@ -1,14 +1,19 @@
 package at.uac.android.feature.attendees
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.tr
@@ -43,6 +48,8 @@ fun AttendeesAccessPanel(
             },
             modifier = Modifier.testTag("attendees-open"),
         ) {
+            UacSymbol(UacIcon.PROFILE)
+            Spacer(Modifier.width(8.dp))
             Text(tr(language, "Teilnehmende ansehen", "Переглянути учасників"))
         }
     }

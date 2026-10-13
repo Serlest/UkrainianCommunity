@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.window.SecureFlagPolicy
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 
 /**
@@ -81,15 +83,15 @@ fun AccountDeletionControls(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier.testTag("account-delete-panel"),
     ) {
-        Text(
+        UacSectionHeading(
             tr(language, "Konto löschen", "Видалення облікового запису"),
-            style = MaterialTheme.typography.titleLarge,
+            UacIcon.DELETE,
         )
         Text(
             tr(
                 language,
-                "Die Löschung ist unwiderruflich. Der Server prüft zuerst, ob du eine Organisation oder die Plattform besitzt.",
-                "Видалення незворотне. Сервер спочатку перевірить, чи належить вам організація або платформа.",
+                "Die Löschung ist unwiderruflich. Wenn du eine Organisation besitzt, übertrage zuerst das Eigentum.",
+                "Видалення незворотне. Якщо вам належить організація, спочатку передайте право власності.",
             )
         )
         if (state.session == null)

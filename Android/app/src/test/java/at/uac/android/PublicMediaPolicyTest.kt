@@ -18,6 +18,15 @@ class PublicMediaPolicyTest {
                 local.replace("http://10.0.2.2:9198", "https://firebasestorage.googleapis.com")
             ),
         )
+        assertEquals(
+            local,
+            PublicMediaPolicy.address(
+                local.replace(
+                    "http://10.0.2.2:9198",
+                    "https://firebasestorage.googleapis.com:443",
+                )
+            ),
+        )
     }
 
     @Test

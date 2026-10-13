@@ -187,6 +187,47 @@ class FeedbackDeviceTest {
                     mapOf("status" to "closed"),
                 )
             }
+            phase = "exact-read-acknowledgement"
+            suspend fun unread(value: Boolean) =
+                withContext(Dispatchers.IO) {
+                    AuthEmulatorFixtures.adminRequest(
+                        8088,
+                        AuthEmulatorFixtures.documentPath("feedback/$thread") +
+                            "?updateMask.fieldPaths=unreadForUser",
+                        "PATCH",
+                        mapOf("unreadForUser" to value),
+                    )
+                }
+            unread(true)
+            val displayed = repository.conversation(thread, FeedbackAudience.OWN).item
+            assertTrue(displayed.unreadForUser)
+            assertTrue(repository.acknowledgeRead(displayed))
+            assertEquals(
+                false,
+                db.document("feedback/$thread")
+                    .get(Source.SERVER)
+                    .await()
+                    .getBoolean("unreadForUser"),
+            )
+            unread(true)
+            withContext(Dispatchers.IO) {
+                AuthEmulatorFixtures.adminRequest(
+                    8088,
+                    AuthEmulatorFixtures.documentPath("feedback/$thread") +
+                        "?updateMask.fieldPaths=lastMessageText",
+                    "PATCH",
+                    mapOf("lastMessageText" to "A newer synthetic reply"),
+                )
+            }
+            assertFalse(repository.acknowledgeRead(displayed))
+            assertEquals(
+                true,
+                db.document("feedback/$thread")
+                    .get(Source.SERVER)
+                    .await()
+                    .getBoolean("unreadForUser"),
+            )
+
             phase = "closed-thread"
             expect(FeedbackFailure.CLOSED) {
                 repository.reply(thread, "after-close", "Too late", FeedbackAudience.OWN)

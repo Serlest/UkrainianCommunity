@@ -22,6 +22,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.tr
 import at.uac.android.feature.organization.OrganizationSession
 
@@ -100,14 +103,18 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(bottom = 24.dp)
             .testTag("content-cover-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) { Text(tr(language, "Zurück", "Назад")) }
-        Text(
+        at.uac.android.design.UacBackButton(back) {
+            UacSymbol(UacIcon.BACK)
+            Spacer(Modifier.width(8.dp))
+            Text(tr(language, "Zurück", "Назад"))
+        }
+        UacSectionHeading(
             tr(language, "Titelbild", "Обкладинка"),
-            style = MaterialTheme.typography.headlineMedium,
+            UacIcon.PHOTO,
         )
         if (state.session?.ready != true) {
             Text(
@@ -290,13 +297,13 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
                         Modifier.testTag("content-cover-unresolved"),
                     )
             }
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OutlinedButton(
                     actions.choose,
-                    Modifier.testTag("content-cover-choose"),
+                    Modifier.fillMaxWidth().testTag("content-cover-choose"),
                     enabled = state.canChoose,
                 ) {
                     Text(tr(language, "Foto auswählen", "Обрати фото"))
@@ -304,7 +311,7 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
                 if (state.prepared != null) {
                     Button(
                         actions.upload,
-                        Modifier.testTag("content-cover-upload"),
+                        Modifier.fillMaxWidth().testTag("content-cover-upload"),
                         enabled = state.canUpload,
                     ) {
                         Text(tr(language, "Diesen Ausschnitt speichern", "Зберегти цей фрагмент"))
@@ -319,7 +326,11 @@ fun ContentCoverContent(state: ContentCoverState, language: String, actions: Con
                 } else if (state.snapshot?.removable == true)
                     OutlinedButton(
                         actions.remove,
-                        Modifier.testTag("content-cover-remove"),
+                        Modifier.fillMaxWidth().testTag("content-cover-remove"),
+                        colors =
+                            ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            ),
                         enabled = state.canRemove,
                     ) {
                         Text(

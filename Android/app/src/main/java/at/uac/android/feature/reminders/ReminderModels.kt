@@ -1,5 +1,7 @@
 package at.uac.android.feature.reminders
 
+import at.uac.android.BuildConfig
+import at.uac.android.core.backend.CompiledBackend
 import at.uac.android.feature.auth.AuthSession
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.inbox.InboxPreferences
@@ -162,4 +164,4 @@ internal fun reminderHash(parts: List<String>): String =
         .joinToString("") { "%02x".format(it) }
 
 fun reminderOwner(uid: String): String =
-    reminderHash(listOf("demo-uac-android", "at.uac.android.local", uid))
+    reminderHash(listOf(CompiledBackend.PROJECT_ID, BuildConfig.APPLICATION_ID, uid))

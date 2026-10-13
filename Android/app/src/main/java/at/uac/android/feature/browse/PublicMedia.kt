@@ -10,6 +10,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -18,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import at.uac.android.BuildConfig
 import at.uac.android.R
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSymbol
@@ -36,10 +39,19 @@ fun PublicImage(
     language: String,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    adaptiveBackdrop: Boolean = false,
     fallback: UacIcon = UacIcon.NEWS,
     presentation: PublicImagePresentation = PublicImagePresentation.STANDARD,
+    externalBanner: Boolean = false,
 ) {
-    val address = remember(url) { PublicMediaPolicy.address(url) }
+    val bucketAddress = remember(url) { PublicMediaPolicy.address(url) }
+    val address =
+        remember(url, externalBanner) {
+            bucketAddress
+                ?: if (externalBanner && !BuildConfig.USE_LOCAL_BACKEND)
+                    ExternalBannerMediaPolicy.address(url)
+                else null
+        }
     var bitmap by remember(address, presentation) { mutableStateOf<ImageBitmap?>(null) }
     var loading by remember(address, presentation) { mutableStateOf(address != null) }
     LaunchedEffect(address, presentation) {
@@ -48,6 +60,18 @@ fun PublicImage(
                 withContext(Dispatchers.IO) {
                     PublicImageWork.load(presentation) {
                         val context = currentCoroutineContext()
+                        if (bucketAddress == null) {
+                            try {
+                                val bytes =
+                                    ExternalBannerMedia.bytes(address) { context.ensureActive() }
+                                context.ensureActive()
+                                return@load decodePublicImage(bytes, presentation)?.asImageBitmap()
+                            } catch (error: CancellationException) {
+                                throw error
+                            } catch (_: Exception) {
+                                return@load null
+                            }
+                        }
                         val connection = URI(address).toURL().openConnection() as HttpURLConnection
                         try {
                             connection.instanceFollowRedirects = false
@@ -80,6 +104,14 @@ fun PublicImage(
             val scale =
                 if (presentation == PublicImagePresentation.VIEWPORT_FIT) ContentScale.Fit
                 else ContentScale.Crop
+            if (adaptiveBackdrop && bitmap != null) {
+                Image(
+                    bitmap!!,
+                    null,
+                    Modifier.fillMaxSize().blur(24.dp).alpha(.45f),
+                    contentScale = ContentScale.Crop,
+                )
+            }
             when {
                 url == "https://example.invalid/media/community.png" ->
                     Image(
@@ -146,8 +178,8 @@ fun PublicImage(
                 Text(
                     tr(
                         language,
-                        "Bild nicht verfügbar (lokale Testversion). ",
-                        "Зображення недоступне (локальна версія). ",
+                        "Bild nicht verfügbar. ",
+                        "Зображення недоступне. ",
                     ) + description,
                     modifier,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

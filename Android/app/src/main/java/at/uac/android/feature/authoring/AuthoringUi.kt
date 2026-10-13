@@ -20,11 +20,17 @@ import at.uac.android.core.PickerLocale
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.string
 import at.uac.android.feature.contentlifecycle.ContentLifecycleContract
+import at.uac.android.feature.contentplanning.ContentPlanningDraft
 import at.uac.android.feature.organization.OrganizationSession
+import at.uac.android.feature.translation.ContentTranslationButton
+import at.uac.android.feature.translation.TranslationField
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
@@ -70,14 +76,20 @@ fun AuthoringScreen(
     initialKind: ContentKind = ContentKind.NEWS,
     onCover: ((AuthoringItem) -> Unit)? = null,
     onLifecycle: ((AuthoringItem) -> Unit)? = null,
+    planningSource: ContentPlanningDraft? = null,
+    planningBridge: PlanningAuthoringBridge? = null,
 ) {
     val stored by model.state.collectAsStateWithLifecycle(minActiveState = Lifecycle.State.RESUMED)
     val state =
         if (stored.session == session && stored.organizationId == organizationId) stored
         else AuthoringState(session, organizationId, kind = initialKind)
-    LifecycleResumeEffect(session, organizationId, initialKind) {
-        model.show(organizationId, initialKind)
+    LifecycleResumeEffect(session, organizationId, initialKind, planningSource?.id) {
+        model.show(organizationId, initialKind, planningSource?.id)
         onPauseOrDispose { model.hide() }
+    }
+    LaunchedEffect(stored.fresh, planningSource, planningBridge) {
+        if (stored.fresh && planningSource != null && planningBridge != null)
+            model.importPlanning(planningSource, planningBridge)
     }
     AuthoringContent(
         state,
@@ -138,14 +150,21 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(bottom = 24.dp)
             .testTag("authoring-screen"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(back) { Text(at(language, "Zurück", "Назад")) }
-        Text(
-            at(language, "Nachrichten & Veranstaltungen", "Новини та події"),
-            style = MaterialTheme.typography.headlineMedium,
+        at.uac.android.design.UacBackButton(back) {
+            UacSymbol(UacIcon.BACK)
+            Spacer(Modifier.width(8.dp))
+            Text(at(language, "Zurück", "Назад"))
+        }
+        UacSectionHeading(
+            if (state.draft == null)
+                at(language, "Nachrichten & Veranstaltungen", "Новини та події")
+            else if (state.base == null) at(language, "Material erstellen", "Створення матеріалу")
+            else at(language, "Material bearbeiten", "Редагування матеріалу"),
+            UacIcon.EDIT,
         )
         if (state.session?.ready != true) {
             Text(
@@ -462,6 +481,8 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
                                             Modifier.testTag("authoring-edit-${item.id}"),
                                             enabled = state.actionable,
                                         ) {
+                                            UacSymbol(UacIcon.EDIT, modifier = Modifier.size(18.dp))
+                                            Spacer(Modifier.width(8.dp))
                                             Text(at(language, "Bearbeiten", "Редагувати"))
                                         }
                                     else Text(at(language, "Schreibgeschützt", "Лише перегляд"))
@@ -472,6 +493,11 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
                                                 Modifier.testTag("authoring-cover-${item.id}"),
                                                 enabled = state.actionable,
                                             ) {
+                                                UacSymbol(
+                                                    UacIcon.PHOTO,
+                                                    modifier = Modifier.size(18.dp),
+                                                )
+                                                Spacer(Modifier.width(8.dp))
                                                 Text(at(language, "Titelbild", "Обкладинка"))
                                             }
                                         }
@@ -491,6 +517,11 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
                                                 Modifier.testTag("authoring-lifecycle-${item.id}"),
                                                 enabled = state.actionable,
                                             ) {
+                                                UacSymbol(
+                                                    UacIcon.DELETE,
+                                                    modifier = Modifier.size(18.dp),
+                                                )
+                                                Spacer(Modifier.width(8.dp))
                                                 Text(
                                                     if (item.kind == ContentKind.NEWS)
                                                         at(language, "Löschen", "Видалити")
@@ -629,7 +660,7 @@ fun AuthoringContent(state: AuthoringState, language: String, actions: Authoring
             },
             dismissButton = {
                 TextButton({ leave = false }) {
-                    Text(at(language, "Weiter bearbeiten", "Продовжити редагування"))
+                    Text(at(language, "Weiter bearbeiten", "Редагувати далі"))
                 }
             },
         )
@@ -940,6 +971,43 @@ private fun AuthoringEditor(
                 true,
                 update { old, value -> old.copy(body = value) },
             )
+            ContentTranslationButton(
+                kind = if (d.kind == ContentKind.EVENTS) "event" else "news",
+                language = language,
+                fields =
+                    listOf(
+                        TranslationField(
+                            "title",
+                            at(language, "Titel", "Заголовок"),
+                            d.title,
+                            d.germanTitle,
+                            120,
+                        ),
+                        TranslationField(
+                            "summary",
+                            at(language, "Zusammenfassung", "Короткий опис"),
+                            d.summary,
+                            d.germanSummary,
+                            200,
+                        ),
+                        TranslationField(
+                            "body",
+                            at(language, "Text", "Текст"),
+                            d.body,
+                            d.germanBody,
+                            if (d.kind == ContentKind.EVENTS) 2_000 else 10_000,
+                        ),
+                    ),
+                enabled = enabled,
+            ) { translated ->
+                change {
+                    it.copy(
+                        germanTitle = translated["title"] ?: it.germanTitle,
+                        germanSummary = translated["summary"] ?: it.germanSummary,
+                        germanBody = translated["body"] ?: it.germanBody,
+                    )
+                }
+            }
             Text(
                 at(language, "Deutsch · optional", "Deutsch · необов’язково"),
                 style = MaterialTheme.typography.titleMedium,
@@ -1243,6 +1311,10 @@ private fun AuthoringEventParticipation(
         { text ->
             change { block(it, text) }
         }
+    Text(
+        at(language, "Anmeldung und Plätze", "Реєстрація та місця"),
+        style = MaterialTheme.typography.titleMedium,
+    )
     AuthoringChoice(
         at(language, "Teilnahme", "Участь"),
         d.participation,
@@ -1268,6 +1340,8 @@ private fun AuthoringEventParticipation(
             enabled,
             change = update { old, value -> old.copy(capacity = value) },
         )
+    HorizontalDivider()
+    Text(at(language, "Kosten", "Вартість"), style = MaterialTheme.typography.titleMedium)
     AuthoringChoice(
         at(language, "Preis", "Ціна"),
         d.priceKind,
@@ -1300,6 +1374,8 @@ private fun AuthoringEventParticipation(
         enabled,
         change = update { old, value -> old.copy(priceNote = value) },
     )
+    HorizontalDivider()
+    Text(at(language, "Zielgruppe", "Аудиторія"), style = MaterialTheme.typography.titleMedium)
     AuthoringChoice(
         at(language, "Zielgruppe", "Аудиторія"),
         d.audience,
@@ -1309,8 +1385,8 @@ private fun AuthoringEventParticipation(
     ) { value ->
         change { it.copy(audience = value) }
     }
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Box(Modifier.weight(1f)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(Modifier.fillMaxWidth()) {
             AuthoringField(
                 at(language, "Alter ab", "Вік від"),
                 d.minimumAge,
@@ -1319,7 +1395,7 @@ private fun AuthoringEventParticipation(
                 change = update { old, value -> old.copy(minimumAge = value) },
             )
         }
-        Box(Modifier.weight(1f)) {
+        Box(Modifier.fillMaxWidth()) {
             AuthoringField(
                 at(language, "Alter bis", "Вік до"),
                 d.maximumAge,
@@ -1329,6 +1405,11 @@ private fun AuthoringEventParticipation(
             )
         }
     }
+    HorizontalDivider()
+    Text(
+        at(language, "Veranstalter und Kontakt", "Організатор і контакти"),
+        style = MaterialTheme.typography.titleMedium,
+    )
     AuthoringField(
         at(language, "Veranstalter", "Організатор"),
         d.organizer,
@@ -1397,8 +1478,18 @@ private fun AuthoringChoice(
     change: (String) -> Unit,
 ) {
     var open by remember { mutableStateOf(false) }
-    Box {
-        OutlinedButton({ open = true }, enabled = enabled) { Text("$label: ${title(value)}") }
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedButton({ open = true }, modifier = Modifier.fillMaxWidth(), enabled = enabled) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(title(value), style = MaterialTheme.typography.bodyLarge)
+            }
+            UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp))
+        }
         DropdownMenu(open, { open = false }) {
             options.forEach { option ->
                 DropdownMenuItem(
@@ -1505,7 +1596,11 @@ internal fun AuthoringDateTime(
                     timeOpen = false
                 },
             ) {
-                TimePicker(picker)
+                // The fixed-size 24-hour dial overlaps its inner and outer numerals
+                // at accessibility font sizes; numeric entry preserves the same state.
+                if (androidx.compose.ui.platform.LocalDensity.current.fontScale >= 1.5f)
+                    TimeInput(picker)
+                else TimePicker(picker)
                 if (selected == null)
                     Text(
                         at(

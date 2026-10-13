@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 
 /**
@@ -31,15 +33,15 @@ fun ReminderSettingsCard(
 ) {
     Card(modifier.fillMaxWidth().testTag("reminders-settings")) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                tr(language, "Lokale Veranstaltungserinnerungen", "Локальні нагадування про події"),
-                style = MaterialTheme.typography.titleMedium,
+            UacSectionHeading(
+                tr(language, "Erinnerungen auf diesem Gerät", "Нагадування на цьому пристрої"),
+                UacIcon.CALENDAR,
             )
             Text(
                 tr(
                     language,
-                    "Android kann Erinnerungen verzögert zustellen. Vor der Anzeige werden die aktuellen Angaben am Testserver geprüft. Offline erscheint keine Erinnerung.",
-                    "Android може показати нагадування із затримкою. Перед показом перевіряються актуальні дані тестового сервера. Без мережі нагадування не з’явиться.",
+                    "Für Erinnerungen ist eine Internetverbindung nötig, damit Änderungen an der Veranstaltung berücksichtigt werden. Android kann die Zustellung verzögern.",
+                    "Для нагадувань потрібен інтернет, щоб врахувати зміни події. Android може доставляти їх із затримкою.",
                 )
             )
             Text(
@@ -134,14 +136,14 @@ fun ReminderSettingsCard(
             ) {
                 Text(tr(language, "Zeitplan erneut prüfen", "Перевірити розклад ще раз"))
             }
-            Button(
+            OutlinedButton(
                 onLocalTest,
                 Modifier.fillMaxWidth().testTag("reminders-local-test"),
                 enabled =
                     state.permission == ReminderPermission.ALLOWED &&
                         state.stage == ReminderStage.SCHEDULED,
             ) {
-                Text(tr(language, "Lokale Erinnerung testen", "Перевірити локальне нагадування"))
+                Text(tr(language, "Test-Erinnerung senden", "Надіслати тестове нагадування"))
             }
             if (state.localTestRequested)
                 Text(

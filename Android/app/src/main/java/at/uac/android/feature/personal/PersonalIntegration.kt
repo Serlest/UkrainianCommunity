@@ -18,6 +18,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacRowDivider
+import at.uac.android.design.UacSectionCard
 import at.uac.android.feature.auth.AccountScreen
 import at.uac.android.feature.auth.AuthException
 import at.uac.android.feature.auth.AuthProblem
@@ -88,6 +92,9 @@ fun PersonalDestination(
                     language,
                     { more -> if (current()) personal.loadSaved(more) },
                     browse::openPersonalContent,
+                    onRemoveUnavailable = { target ->
+                        if (current()) personal.set(target, PersonalAction.BOOKMARK, false)
+                    },
                 )
             }
         }
@@ -100,6 +107,9 @@ fun PersonalDestination(
                     language,
                     { more -> if (current()) personal.loadSubscriptions(more) },
                     browse::openPersonalContent,
+                    onRemoveUnavailable = { target ->
+                        if (current()) personal.set(target, PersonalAction.SUBSCRIBE, false)
+                    },
                 )
             }
         }
@@ -127,6 +137,10 @@ fun PersonalDestination(
                         }
                     },
                 )
+            } else if (
+                route == "profile/administration" && authSession.stage == AuthStage.AUTHENTICATED
+            ) {
+                supplementaryContent?.invoke()
             } else if (route == "profile/edit" && captured?.ready == true) {
                 Column(Modifier.widthIn(max = 760.dp).fillMaxWidth()) {
                     PersonalProfilePanel(
@@ -148,27 +162,47 @@ fun PersonalDestination(
                             it in setOf("login", "register", "reset")
                         } ?: "login",
                     onNavigateAuth = { page -> browse.navigate("profile/$page") },
+                    showAccountUtilities = route == "profile/security",
+                    showIdentity = route != "profile/security",
+                    confirmedAvatarUrl =
+                        state.forSession(authSession.personalScope()).profile?.draft?.avatarUrl,
                 ) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        for ((destination, title) in
-                            listOf(
-                                "edit" to tr(language, "Profil bearbeiten", "Редагувати профіль"),
-                                "saved" to
-                                    tr(language, "Gespeicherte Inhalte", "Збережені матеріали"),
-                                "subscriptions" to
-                                    tr(language, "Meine Abonnements", "Мої підписки"),
-                            )) OutlinedButton(
-                            onClick = {
-                                if (auth.state.value.readyForActions)
-                                    browse.navigate("profile/$destination")
-                            },
-                            modifier = Modifier.fillMaxWidth().testTag("account-open-$destination"),
-                        ) {
-                            Text(title)
+                    if (route != "profile/security") {
+                        UacSectionCard(tr(language, "Mein Bereich", "Мій простір")) {
+                            val destinations =
+                                listOf(
+                                    Triple(
+                                        "edit",
+                                        tr(language, "Profil bearbeiten", "Редагувати профіль"),
+                                        UacIcon.EDIT,
+                                    ),
+                                    Triple(
+                                        "saved",
+                                        tr(language, "Gespeicherte Inhalte", "Збережені матеріали"),
+                                        UacIcon.BOOKMARK,
+                                    ),
+                                    Triple(
+                                        "subscriptions",
+                                        tr(language, "Meine Abonnements", "Мої підписки"),
+                                        UacIcon.NOTIFICATIONS,
+                                    ),
+                                )
+                            destinations.forEachIndexed { index, (destination, title, icon) ->
+                                if (index > 0) UacRowDivider()
+                                UacNavigationRow(
+                                    title = title,
+                                    icon = icon,
+                                    modifier = Modifier.testTag("account-open-$destination"),
+                                ) {
+                                    if (auth.state.value.readyForActions)
+                                        browse.navigate("profile/$destination")
+                                }
+                            }
                         }
                     }
                 }
-                supplementaryContent?.invoke()
+                if (route != "profile/security" && authSession.stage == AuthStage.AUTHENTICATED)
+                    supplementaryContent?.invoke()
             }
         }
     }

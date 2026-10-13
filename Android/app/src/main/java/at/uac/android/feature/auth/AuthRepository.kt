@@ -1,6 +1,7 @@
 package at.uac.android.feature.auth
 
 import android.content.Context
+import at.uac.android.BuildConfig
 import at.uac.android.core.LocalEnvironment
 import at.uac.android.core.backend.AppBackend
 import at.uac.android.core.backend.FirebaseBackendGuard
@@ -77,7 +78,7 @@ class FirebaseAuthBackend(private val auth: FirebaseAuth) : AuthBackend {
             }
 
     private fun requireSyntheticEmail(email: String) {
-        if (!email.trim().endsWith(".invalid", ignoreCase = true))
+        if (!emailAllowedForBackend(email, BuildConfig.USE_LOCAL_BACKEND))
             throw AuthException(AuthProblem.LOCAL_ONLY)
     }
 
@@ -166,6 +167,9 @@ class FirebaseAuthBackend(private val auth: FirebaseAuth) : AuthBackend {
     }
 }
 
+internal fun emailAllowedForBackend(email: String, localOnly: Boolean): Boolean =
+    email.isNotBlank() && (!localOnly || email.trim().endsWith(".invalid", ignoreCase = true))
+
 class FirestoreAuthProfiles(private val database: FirebaseFirestore) : AuthProfiles {
     init {
         FirebaseBackendGuard.requireFirestore(database)
@@ -219,14 +223,24 @@ class FirestoreAuthProfiles(private val database: FirebaseFirestore) : AuthProfi
     override suspend fun legalDocuments(): List<AuthLegalDocument> = read {
         listOf("terms", "privacy").map { type ->
             val reference = database.collection("legalDocuments").document(type)
+            val pointer =
+                reference.get(Source.SERVER).await().data
+                    ?: throw AuthException(AuthProblem.INVALID_PROFILE)
             val version =
-                reference.get(Source.SERVER).await().getString("activeVersion")?.takeIf {
-                    it.isNotBlank()
+                (pointer["activeVersion"] as? String)?.takeIf {
+                    it.isNotBlank() && '/' !in it
                 } ?: throw AuthException(AuthProblem.INVALID_PROFILE)
             val data =
                 reference.collection("versions").document(version).get(Source.SERVER).await().data
                     ?: throw AuthException(AuthProblem.INVALID_PROFILE)
-            decodeLegal(type, version, data)
+            LegalDocumentIntegrity.validate(type, version, pointer, data)
+            val verified =
+                data +
+                    ("locales" to
+                        (data["locales"] as Map<*, *>).mapValues { (_, value) ->
+                            (value as Map<*, *>).filterKeys { it != "contentText" }
+                        })
+            decodeLegal(type, version, verified)
         }
     }
 

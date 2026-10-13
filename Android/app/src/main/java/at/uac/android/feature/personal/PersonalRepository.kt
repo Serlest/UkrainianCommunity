@@ -270,6 +270,9 @@ class PersonalRepository(
             page.next,
             page.hasMore,
             (ids.distinct().size - items.size).coerceAtLeast(0),
+            ids.distinct()
+                .filter { id -> items.none { it.id == id } }
+                .map { PersonalTarget(kind, it) },
         )
     }
 }

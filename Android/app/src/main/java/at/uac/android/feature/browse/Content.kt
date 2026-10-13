@@ -3,6 +3,7 @@ package at.uac.android.feature.browse
 import java.net.URI
 import java.text.Normalizer
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -15,6 +16,15 @@ fun Fields.string(key: String): String = (this[key] as? String)?.trim().orEmpty(
 
 fun Fields.strings(key: String): List<String> =
     (this[key] as? List<*>)?.filterIsInstance<String>().orEmpty()
+
+/** Mirrors Organization's iOS normalization while preserving cover-first detail presentation. */
+fun organizationImageUrl(fields: Fields, preferCover: Boolean): String {
+    val keys =
+        if (preferCover) listOf("coverURL", "imageURL", "logoURL")
+        else listOf("logoURL", "imageURL", "coverURL")
+    return keys.firstNotNullOfOrNull { key -> fields.string(key).takeIf(String::isNotBlank) }
+        .orEmpty()
+}
 
 fun Fields.time(key: String): Instant? = this[key] as? Instant
 
@@ -37,6 +47,54 @@ enum class ReadFailure {
     MISSING,
     INDEX,
     UNKNOWN,
+}
+
+enum class NewsPeriod {
+    ALL,
+    TODAY,
+    SEVEN_DAYS,
+    THIRTY_DAYS,
+    CUSTOM,
+}
+
+enum class NewsOrder {
+    NEWEST,
+    OLDEST,
+}
+
+enum class NewsSource {
+    ALL,
+    SAVED,
+    SUBSCRIBED,
+}
+
+data class NewsDateRange(val startInclusive: Instant?, val endExclusive: Instant?)
+
+fun newsDateRange(
+    period: NewsPeriod,
+    now: Instant,
+    zone: ZoneId = ZoneId.of("Europe/Vienna"),
+    customStart: LocalDate? = null,
+    customEnd: LocalDate? = null,
+): NewsDateRange {
+    val today = now.atZone(zone).toLocalDate()
+    val dates =
+        when (period) {
+            NewsPeriod.ALL -> return NewsDateRange(null, null)
+            NewsPeriod.TODAY -> today to today
+            NewsPeriod.SEVEN_DAYS -> today.minusDays(6) to today
+            NewsPeriod.THIRTY_DAYS -> today.minusDays(29) to today
+            NewsPeriod.CUSTOM -> {
+                val start = requireNotNull(customStart)
+                val end = requireNotNull(customEnd)
+                require(!end.isBefore(start))
+                start to end
+            }
+        }
+    return NewsDateRange(
+        dates.first.atStartOfDay(zone).toInstant(),
+        dates.second.plusDays(1).atStartOfDay(zone).toInstant(),
+    )
 }
 
 class ReadException(val reason: ReadFailure, cause: Throwable? = null) :
@@ -104,6 +162,11 @@ data class Content(val kind: ContentKind, val id: String, val fields: Fields) {
                             summary(query.language),
                             body(query.language),
                             fields.string("city"),
+                            fields.string("authorDisplayName"),
+                            fields.string("authorName"),
+                            fields.string("organizationName"),
+                            fields.string("publisherName"),
+                            kind.label(query.language),
                             fields.strings("tags").joinToString(" "),
                         )
                         .joinToString(" ")
@@ -158,9 +221,21 @@ data class ContentQuery(
     val now: Instant = Instant.now(),
     val audience: String = "",
     val recommendations: Boolean = false,
+    val newsPeriod: NewsPeriod = NewsPeriod.ALL,
+    val newsOrder: NewsOrder = NewsOrder.NEWEST,
+    val newsSource: NewsSource = NewsSource.ALL,
+    val customStart: LocalDate? = null,
+    val customEnd: LocalDate? = null,
+    val allowedNewsIds: Set<String>? = null,
+    val allowedOrganizationIds: Set<String>? = null,
 ) {
+    val newsDates: NewsDateRange
+        get() = newsDateRange(newsPeriod, now, customStart = customStart, customEnd = customEnd)
+
     val ascending
-        get() = kind == ContentKind.EVENTS && !past && !recommendations
+        get() =
+            if (kind == ContentKind.NEWS && !recommendations) newsOrder == NewsOrder.OLDEST
+            else kind == ContentKind.EVENTS && !past && !recommendations
 
     val orderField
         get() = if (recommendations && kind == ContentKind.EVENTS) "createdAt" else kind.order
@@ -186,6 +261,15 @@ data class ContentQuery(
                 (organizationId.isEmpty() || string("organizationId") == organizationId) &&
                 (!recommendations || string("category") == category) &&
                 time(orderField) != null &&
+                (kind != ContentKind.NEWS ||
+                    (newsDates.startInclusive?.let { time("publishedAt")!! >= it } ?: true) &&
+                        (newsDates.endExclusive?.let { time("publishedAt")!! < it } ?: true) &&
+                        when (newsSource) {
+                            NewsSource.ALL -> true
+                            NewsSource.SAVED -> allowedNewsIds?.contains(doc.id) == true
+                            NewsSource.SUBSCRIBED ->
+                                allowedOrganizationIds?.contains(string("organizationId")) == true
+                        }) &&
                 (kind != ContentKind.EVENTS ||
                     recommendations ||
                     if (past) time("endDate")!! < now else time("endDate")!! >= now)
@@ -347,5 +431,20 @@ data class Donation(val fields: Fields) {
             else null
 
     fun text(key: String, language: String) =
-        fields.string(key + if (language == "uk") "UK" else "DE")
+        fields.string(key + if (language == "uk") "UK" else "DE").trim().ifEmpty {
+            donationDefaultText(key, language)
+        }
 }
+
+fun donationDefaultText(key: String, language: String): String =
+    when (key) {
+        "title" -> tr(language, "Projekt unterstützen", "Підтримати проєкт")
+        "buttonTitle" -> tr(language, "Unterstützen", "Підтримати")
+        "message" ->
+            tr(
+                language,
+                "Ukrainian Community ist ein nicht-kommerzielles Projekt zur Unterstützung von Ukrainerinnen und Ukrainern in Österreich. Wenn Sie die Weiterentwicklung und den Betrieb der App unterstützen möchten, können Sie freiwillig spenden.",
+                "Ukrainian Community — некомерційний проєкт, створений для підтримки українців в Австрії. Якщо ви хочете допомогти з розвитком і підтримкою додатку, можете зробити добровільний внесок.",
+            )
+        else -> ""
+    }

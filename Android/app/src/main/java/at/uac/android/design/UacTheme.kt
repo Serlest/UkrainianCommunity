@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -248,7 +249,17 @@ fun UacTheme(selected: String = "system", content: @Composable () -> Unit) {
  * The original bundled iPhone backdrop, with its original appearance-dependent readability overlay.
  */
 @Composable
-fun UacPageBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+fun UacPageBackground(
+    modifier: Modifier = Modifier,
+    plain: Boolean = false,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val themedModifier =
+        modifier.testTag(if (LocalUacDark.current) "uac-theme-dark" else "uac-theme-light")
+    if (plain) {
+        Box(themedModifier.background(MaterialTheme.colorScheme.background), content = content)
+        return
+    }
     val overlay =
         if (LocalUacDark.current)
             listOf(
@@ -262,7 +273,7 @@ fun UacPageBackground(modifier: Modifier = Modifier, content: @Composable BoxSco
                 Color.White.copy(alpha = .08f),
                 UacDesign.yellow.copy(alpha = .06f),
             )
-    Box(modifier) {
+    Box(themedModifier) {
         Image(
             painterResource(R.drawable.uac_background),
             contentDescription = null,

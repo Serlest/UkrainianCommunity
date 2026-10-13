@@ -23,8 +23,15 @@ import at.uac.android.core.PickerLocale
 import at.uac.android.core.ProtectedAlertDialog as AlertDialog
 import at.uac.android.core.ProtectedDialog
 import at.uac.android.core.ProtectedDropdownMenu as DropdownMenu
+import at.uac.android.design.UacBackButton
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacNavigationRow
+import at.uac.android.design.UacSectionCard
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.authoring.AuthoringContract
 import at.uac.android.feature.browse.ContentKind
+import at.uac.android.feature.translation.ContentTranslationButton
+import at.uac.android.feature.translation.TranslationField
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -119,14 +126,18 @@ fun OrganizationManagementContent(
     Column(
         Modifier.fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(bottom = 24.dp)
             .testTag("organization-management"),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TextButton(actions.back) { Text(om(language, "Zurück", "Назад")) }
+        UacBackButton(actions.back) {
+            UacSymbol(UacIcon.BACK)
+            Spacer(Modifier.width(8.dp))
+            Text(om(language, "Zurück", "Назад"))
+        }
         Text(
             om(language, "Organisation verwalten", "Керування організацією"),
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
         )
         if (session?.ready != true) {
             Text(
@@ -157,23 +168,29 @@ fun OrganizationManagementContent(
             }
             if (snapshot != null) {
                 Text(snapshot.organization.name, style = MaterialTheme.typography.titleLarge)
-                TextButton(actions.publicProfile) {
-                    Text(om(language, "Öffentliches Profil", "Публічний профіль"))
-                }
+                UacNavigationRow(
+                    title = om(language, "Öffentliches Profil", "Публічний профіль"),
+                    icon = UacIcon.ORGANIZATIONS,
+                    onClick = actions.publicProfile,
+                )
                 if (
                     state.draft == null &&
                         actions.authoring != null &&
                         runCatching { AuthoringContract.authority(snapshot.organization, session) }
                             .isSuccess
                 ) {
-                    AuthoringContract.kinds.forEach { kind ->
-                        OutlinedButton(
-                            { actions.authoring.invoke(kind) },
-                            enabled = state.actionable,
-                            modifier =
-                                Modifier.testTag("organization-authoring-${kind.collection}"),
-                        ) {
-                            Text(kind.label(language))
+                    UacSectionCard(om(language, "Inhalte erstellen", "Створення матеріалів")) {
+                        AuthoringContract.kinds.forEach { kind ->
+                            UacNavigationRow(
+                                title = kind.label(language),
+                                icon =
+                                    if (kind == ContentKind.EVENTS) UacIcon.CALENDAR
+                                    else UacIcon.NEWS,
+                                enabled = state.actionable,
+                                modifier =
+                                    Modifier.testTag("organization-authoring-${kind.collection}"),
+                                onClick = { actions.authoring.invoke(kind) },
+                            )
                         }
                     }
                 }
@@ -198,8 +215,10 @@ fun OrganizationManagementContent(
                     Button(
                         actions.edit,
                         enabled = state.editable,
-                        modifier = Modifier.testTag("organization-management-edit"),
+                        modifier = Modifier.fillMaxWidth().testTag("organization-management-edit"),
                     ) {
+                        UacSymbol(UacIcon.SETTINGS)
+                        Spacer(Modifier.width(8.dp))
                         Text(
                             if (state.draft == null)
                                 om(language, "Informationen bearbeiten", "Редагувати інформацію")
@@ -832,6 +851,70 @@ private fun OrganizationInformationExtras(
     }()
     OrganizationOfferDate(d.directory.offerUntil, language, enabled) { value ->
         change { it.copy(directory = it.directory.copy(offerUntil = value)) }
+    }
+    ContentTranslationButton(
+        kind = "organization",
+        language = language,
+        fields =
+            listOf(
+                TranslationField(
+                    "mission",
+                    om(language, "Mission", "Місія"),
+                    d.mission,
+                    d.german.mission,
+                    2_000,
+                ),
+                TranslationField(
+                    "serviceArea",
+                    om(language, "Einzugsgebiet", "Територія послуг"),
+                    d.directory.serviceArea,
+                    d.german.serviceArea,
+                    500,
+                ),
+                TranslationField(
+                    "hoursNote",
+                    om(language, "Öffnungszeiten-Hinweis", "Особливі години"),
+                    d.directory.specialHoursNote,
+                    d.german.hoursNote,
+                    500,
+                ),
+                TranslationField(
+                    "services",
+                    om(language, "Leistungen", "Послуги"),
+                    d.directory.services,
+                    d.german.services,
+                    2_000,
+                ),
+                TranslationField(
+                    "offerTitle",
+                    om(language, "Aktuelles Angebot", "Поточна пропозиція"),
+                    d.directory.offerTitle,
+                    d.german.offerTitle,
+                    500,
+                ),
+                TranslationField(
+                    "offerDetails",
+                    om(language, "Angebotsdetails", "Деталі пропозиції"),
+                    d.directory.offerDetails,
+                    d.german.offerDetails,
+                    2_000,
+                ),
+            ),
+        enabled = enabled,
+    ) { translated ->
+        change {
+            it.copy(
+                german =
+                    it.german.copy(
+                        mission = translated["mission"] ?: it.german.mission,
+                        serviceArea = translated["serviceArea"] ?: it.german.serviceArea,
+                        hoursNote = translated["hoursNote"] ?: it.german.hoursNote,
+                        services = translated["services"] ?: it.german.services,
+                        offerTitle = translated["offerTitle"] ?: it.german.offerTitle,
+                        offerDetails = translated["offerDetails"] ?: it.german.offerDetails,
+                    )
+            )
+        }
     }
     Text(
         om(

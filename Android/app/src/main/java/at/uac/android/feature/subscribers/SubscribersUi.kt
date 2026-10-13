@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.browse.PublicImage
@@ -126,16 +129,18 @@ fun SubscribersContent(
             .orEmpty()
     LazyColumn(
         Modifier.fillMaxSize().imePadding().testTag("subscribers-list"),
-        contentPadding = PaddingValues(20.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item("header") {
             TextButton(actions.back, Modifier.testTag("subscribers-back")) {
+                UacSymbol(UacIcon.BACK)
+                Spacer(Modifier.width(8.dp))
                 Text(tr(language, "Zurück", "Назад"))
             }
-            Text(
+            UacSectionHeading(
                 tr(language, "Community", "Спільнота"),
-                style = MaterialTheme.typography.headlineMedium,
+                UacIcon.PROFILE,
             )
             Text(
                 tr(

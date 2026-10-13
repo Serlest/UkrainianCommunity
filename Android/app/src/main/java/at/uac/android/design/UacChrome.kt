@@ -53,6 +53,20 @@ enum class UacIcon {
     OPEN_ARROW,
     PLAY,
     PAUSE,
+    LOGOUT,
+    LIKE,
+    BOOKMARK,
+    NOTIFICATIONS,
+    LOCATION,
+    SECURITY,
+    EDIT,
+    HISTORY,
+    SUPPORT,
+    ANALYTICS,
+    DELETE,
+    SEARCH,
+    FILTER,
+    PHOTO,
 }
 
 private val icons =
@@ -67,6 +81,159 @@ private val icons =
                     strokeLineJoin = StrokeJoin.Round,
                 ) {
                     when (icon) {
+                        UacIcon.PHOTO -> {
+                            moveTo(3f, 7f)
+                            lineTo(8f, 7f)
+                            lineTo(10f, 4f)
+                            lineTo(14f, 4f)
+                            lineTo(16f, 7f)
+                            lineTo(21f, 7f)
+                            lineTo(21f, 20f)
+                            lineTo(3f, 20f)
+                            close()
+                            moveTo(16f, 13f)
+                            curveTo(16f, 18f, 8f, 18f, 8f, 13f)
+                            curveTo(8f, 8f, 16f, 8f, 16f, 13f)
+                            close()
+                        }
+                        UacIcon.SEARCH -> {
+                            moveTo(17f, 10f)
+                            curveTo(17f, 19f, 3f, 19f, 3f, 10f)
+                            curveTo(3f, 1f, 17f, 1f, 17f, 10f)
+                            close()
+                            moveTo(15f, 15f)
+                            lineTo(21f, 21f)
+                        }
+                        UacIcon.FILTER -> {
+                            moveTo(3f, 5f)
+                            lineTo(21f, 5f)
+                            lineTo(14f, 13f)
+                            lineTo(14f, 20f)
+                            lineTo(10f, 18f)
+                            lineTo(10f, 13f)
+                            close()
+                        }
+                        UacIcon.LOGOUT -> {
+                            moveTo(10f, 4f)
+                            lineTo(4f, 4f)
+                            lineTo(4f, 20f)
+                            lineTo(10f, 20f)
+                            moveTo(10f, 12f)
+                            lineTo(21f, 12f)
+                            moveTo(17f, 8f)
+                            lineTo(21f, 12f)
+                            lineTo(17f, 16f)
+                        }
+                        UacIcon.LIKE -> {
+                            moveTo(12f, 20f)
+                            curveTo(9f, 17f, 3f, 13f, 3f, 8f)
+                            curveTo(3f, 3f, 9f, 2f, 12f, 7f)
+                            curveTo(15f, 2f, 21f, 3f, 21f, 8f)
+                            curveTo(21f, 13f, 15f, 17f, 12f, 20f)
+                            close()
+                        }
+                        UacIcon.BOOKMARK -> {
+                            moveTo(6f, 3f)
+                            lineTo(18f, 3f)
+                            lineTo(18f, 21f)
+                            lineTo(12f, 17f)
+                            lineTo(6f, 21f)
+                            close()
+                        }
+                        UacIcon.NOTIFICATIONS -> {
+                            moveTo(5f, 17f)
+                            lineTo(7f, 14f)
+                            lineTo(7f, 9f)
+                            curveTo(7f, 2f, 17f, 2f, 17f, 9f)
+                            lineTo(17f, 14f)
+                            lineTo(19f, 17f)
+                            close()
+                            moveTo(10f, 20f)
+                            quadTo(12f, 22f, 14f, 20f)
+                        }
+                        UacIcon.LOCATION -> {
+                            moveTo(12f, 21f)
+                            curveTo(8f, 17f, 5f, 12f, 5f, 9f)
+                            curveTo(5f, 0f, 19f, 0f, 19f, 9f)
+                            curveTo(19f, 12f, 16f, 17f, 12f, 21f)
+                            close()
+                            moveTo(14f, 9f)
+                            curveTo(14f, 12f, 10f, 12f, 10f, 9f)
+                            curveTo(10f, 6f, 14f, 6f, 14f, 9f)
+                            close()
+                        }
+                        UacIcon.SECURITY -> {
+                            moveTo(12f, 3f)
+                            lineTo(20f, 6f)
+                            lineTo(20f, 12f)
+                            quadTo(20f, 18f, 12f, 22f)
+                            quadTo(4f, 18f, 4f, 12f)
+                            lineTo(4f, 6f)
+                            close()
+                            moveTo(8f, 12f)
+                            lineTo(11f, 15f)
+                            lineTo(16f, 9f)
+                        }
+                        UacIcon.EDIT -> {
+                            moveTo(4f, 16f)
+                            lineTo(16f, 4f)
+                            lineTo(20f, 8f)
+                            lineTo(8f, 20f)
+                            lineTo(4f, 20f)
+                            close()
+                            moveTo(13f, 7f)
+                            lineTo(17f, 11f)
+                        }
+                        UacIcon.HISTORY -> {
+                            moveTo(4f, 7f)
+                            curveTo(10f, -1f, 22f, 4f, 21f, 13f)
+                            curveTo(20f, 23f, 6f, 24f, 3f, 15f)
+                            moveTo(3f, 3f)
+                            lineTo(3f, 8f)
+                            lineTo(8f, 8f)
+                            moveTo(12f, 7f)
+                            lineTo(12f, 12f)
+                            lineTo(16f, 14f)
+                        }
+                        UacIcon.SUPPORT -> {
+                            moveTo(4f, 4f)
+                            lineTo(20f, 4f)
+                            lineTo(20f, 17f)
+                            lineTo(9f, 17f)
+                            lineTo(4f, 21f)
+                            close()
+                            moveTo(8f, 9f)
+                            lineTo(16f, 9f)
+                            moveTo(8f, 13f)
+                            lineTo(13f, 13f)
+                        }
+                        UacIcon.ANALYTICS -> {
+                            moveTo(4f, 3f)
+                            lineTo(4f, 21f)
+                            lineTo(21f, 21f)
+                            moveTo(8f, 17f)
+                            lineTo(8f, 12f)
+                            moveTo(13f, 17f)
+                            lineTo(13f, 6f)
+                            moveTo(18f, 17f)
+                            lineTo(18f, 9f)
+                        }
+                        UacIcon.DELETE -> {
+                            moveTo(3f, 6f)
+                            lineTo(21f, 6f)
+                            moveTo(9f, 6f)
+                            lineTo(9f, 3f)
+                            lineTo(15f, 3f)
+                            lineTo(15f, 6f)
+                            moveTo(5f, 6f)
+                            lineTo(6f, 21f)
+                            lineTo(18f, 21f)
+                            lineTo(19f, 6f)
+                            moveTo(10f, 10f)
+                            lineTo(10f, 17f)
+                            moveTo(14f, 10f)
+                            lineTo(14f, 17f)
+                        }
                         UacIcon.PLAY -> {
                             moveTo(8f, 5f)
                             lineTo(19f, 12f)
@@ -295,7 +462,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
     Box(
         Modifier.fillMaxWidth()
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
         Surface(
@@ -330,7 +497,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                         Modifier.selectableGroup()
                             .semantics { isTraversalGroup = true }
                             .testTag("uac-navigation-grid")
-                            .padding(6.dp),
+                            .padding(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         PrimaryTab.entries.chunked(2).forEach { tabs ->
@@ -344,7 +511,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                                         labels[tab.ordinal],
                                         labelStyle,
                                         selected == tab,
-                                        true,
+                                        false,
                                         onSelect,
                                         Modifier.weight(1f).fillMaxHeight(),
                                     )
@@ -358,7 +525,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                             .semantics { isTraversalGroup = true }
                             .testTag("uac-navigation-row")
                             .height(IntrinsicSize.Min)
-                            .padding(6.dp),
+                            .padding(4.dp),
                         horizontalArrangement = Arrangement.spacedBy(2.dp),
                     ) {
                         PrimaryTab.entries.forEach { tab ->
@@ -409,7 +576,7 @@ private fun UacNavigationTab(
         else MaterialTheme.colorScheme.onSurfaceVariant
     val touch =
         modifier
-            .heightIn(min = if (horizontal) 48.dp else 64.dp)
+            .heightIn(min = if (horizontal) 48.dp else 56.dp)
             .clip(RoundedCornerShape(22.dp))
             .background(
                 if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
@@ -434,7 +601,7 @@ private fun UacNavigationTab(
             }
         } else {
             Column(
-                touch.padding(horizontal = 4.dp, vertical = 8.dp),
+                touch.padding(horizontal = 4.dp, vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {

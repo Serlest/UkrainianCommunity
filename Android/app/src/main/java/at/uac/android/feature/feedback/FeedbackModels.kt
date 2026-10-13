@@ -92,6 +92,7 @@ data class FeedbackConversation(
     val messages: List<FeedbackMessage>,
     val invalid: Int = 0,
     val limited: Boolean = false,
+    val next: FeedbackCursor? = null,
 )
 
 data class FeedbackItem(

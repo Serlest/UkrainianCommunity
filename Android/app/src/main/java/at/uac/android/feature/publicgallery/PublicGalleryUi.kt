@@ -66,6 +66,7 @@ fun PublicOrganizationGallery(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            UacSymbol(UacIcon.PHOTO, modifier = Modifier.size(22.dp))
             Text(
                 tr(language, "Fotos", "Фото"),
                 Modifier.weight(1f).semantics { heading() },

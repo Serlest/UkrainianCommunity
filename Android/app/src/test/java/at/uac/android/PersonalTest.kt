@@ -373,12 +373,17 @@ class PersonalTest {
         val first = repository.saved(ContentKind.NEWS, size = 2)
         assertEquals(listOf("news-0"), first.items.map { it.id })
         assertEquals(1, first.unavailable)
+        assertEquals(listOf(PersonalTarget(ContentKind.NEWS, "news-1")), first.unavailableTargets)
         assertTrue(first.hasMore)
         val second = repository.saved(ContentKind.NEWS, first.next, size = 2)
         assertEquals(listOf("news-3"), second.items.map { it.id })
         assertEquals(1, second.unavailable)
         assertFalse(second.hasMore)
         assertEquals(4, source.markers.size)
+        assertFalse(
+            repository.set(first.unavailableTargets.single(), PersonalAction.BOOKMARK, false)
+        )
+        assertEquals(3, source.markers.size)
     }
 
     @Test

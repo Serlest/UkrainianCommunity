@@ -14,6 +14,8 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import at.uac.android.core.ProtectedDialog
+import at.uac.android.design.UacIcon
+import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.tr
 import java.time.Instant
 import java.time.ZoneId
@@ -97,10 +99,10 @@ fun AccountStatusDialog(
                     .testTag("account-status-notice"),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Text(
+                UacSectionHeading(
                     title,
+                    UacIcon.SECURITY,
                     Modifier.semantics { heading() }.testTag("account-status-title"),
-                    style = MaterialTheme.typography.headlineSmall,
                 )
                 Text(
                     if (notice.requiresSignOut)
