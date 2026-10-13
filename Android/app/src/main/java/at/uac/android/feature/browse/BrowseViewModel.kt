@@ -525,7 +525,8 @@ class BrowseViewModel(
         if (hostPaused) return
         hostPaused = true
         val current = mutable.value
-        if (!current.isAccountRoute && current.route != "settings") {
+        if (!current.isAccountRoute && current.route != "settings" &&
+            !current.route.startsWith("directory")) {
             job?.cancel()
             generation++
             mutable.value = current.copy(data = BrowseData())
@@ -536,14 +537,15 @@ class BrowseViewModel(
     fun onHostResume() {
         if (!hostPaused) return
         hostPaused = false
-        if (!mutable.value.isAccountRoute && mutable.value.route != "settings") load()
+        if (!mutable.value.isAccountRoute && mutable.value.route != "settings" &&
+            !mutable.value.route.startsWith("directory")) load()
     }
 
     private fun load(append: Boolean = false, reset: Boolean = false, debounce: Boolean = false) {
         job?.cancel()
         val ticket = ++generation
         val s = mutable.value
-        if (s.route == "settings" || s.isAccountRoute) {
+        if (s.route == "settings" || s.isAccountRoute || s.route == "directory" || s.route.startsWith("directory/")) {
             mutable.value = s.copy(data = BrowseData(loading = false))
             return
         }

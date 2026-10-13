@@ -99,7 +99,7 @@ class UacChromeUiTest {
     }
 
     @Test
-    fun germanLightFourTabsHaveSelectionAndFullLabels() {
+    fun germanLightFiveTabsHaveSelectionAndFullLabels() {
         show("de", "light", 1f)
         assertReadableLabelsAndTouchTargets()
         compose.onNodeWithTag("tab-home").assertIsSelected()

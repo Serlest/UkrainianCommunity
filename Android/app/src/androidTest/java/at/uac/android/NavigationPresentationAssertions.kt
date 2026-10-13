@@ -62,17 +62,19 @@ internal fun ComposeContentTestRule.assertNavigationPresentation(expectedFontSca
             }
             node.boundsInRoot
         }
-    // Layout and explicit accessibility traversal share Home, Events, Organizations, Profile order.
+    // Layout and explicit accessibility traversal share the five-tab source order.
     if (grid) {
         assertEquals(bounds[0].top, bounds[1].top, 1f)
-        assertEquals(bounds[2].top, bounds[3].top, 1f)
+        assertEquals(bounds[1].top, bounds[2].top, 1f)
+        assertEquals(bounds[3].top, bounds[4].top, 1f)
         assertTrue(bounds[0].right <= bounds[1].left)
-        assertTrue(bounds[2].right <= bounds[3].left)
-        assertTrue(bounds[0].bottom <= bounds[2].top)
+        assertTrue(bounds[1].right <= bounds[2].left)
+        assertTrue(bounds[3].right <= bounds[4].left)
+        assertTrue(bounds[0].bottom <= bounds[3].top)
     } else {
         bounds.drop(1).forEach { assertEquals(bounds[0].top, it.top, 1f) }
         bounds.zipWithNext().forEach { (a, b) -> assertTrue(a.right <= b.left) }
     }
     if (expectedFontScale <= 1.3f)
-        assertFalse("Normal font retains the original four columns", grid)
+        assertFalse("Normal font uses one row", grid)
 }

@@ -1,0 +1,98 @@
+package at.uac.android
+
+import android.graphics.Bitmap
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.onNodeWithText
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import at.uac.android.design.UacTheme
+import at.uac.android.feature.directory.DirectoryCatalog
+import at.uac.android.feature.directory.DirectoryDestination
+import at.uac.android.feature.directory.DirectoryDraftValidation
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+@RunWith(AndroidJUnit4::class)
+class DirectoryReaderUiTest {
+    @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun bundledCatalogMatchesCurrentIosSourceAndEveryVisibleGuideHasSources() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val categories = DirectoryCatalog.bundled(context)
+        assertEquals(25, categories.size)
+        assertEquals(145, categories.sumOf { it.topics.size })
+        assertEquals(663, categories.sumOf { c -> c.topics.sumOf { it.sections.size } })
+        assertTrue(categories.all { it.visible })
+        categories.forEach { category ->
+            assertEquals(category.id, null, DirectoryDraftValidation.firstIssue(category.rawJson))
+            category.visibleGroups.forEach { group ->
+                category.visibleTopics(group.id).forEach { topic ->
+                    assertTrue("${category.id}/${topic.id}", topic.sections.any { !it.hidden })
+                    assertTrue("${category.id}/${topic.id}", topic.sources.any { it.safeUrl != null })
+                }
+            }
+        }
+    }
+
+    @Test
+    fun opensCategoryGuideAndRegionalContentWithIndependentSearch() {
+        val route = mutableStateOf("directory")
+        val region = mutableStateOf("")
+        compose.setContent {
+            UacTheme("light") {
+                DirectoryDestination(route.value, "uk", region.value,
+                    { region.value = it }, { route.value = it }, { _, _, _ -> })
+            }
+        }
+        screenshot("directory-root-api26.png")
+        compose.onNodeWithTag("directory-list")
+            .performScrollToNode(androidx.compose.ui.test.hasTestTag("directory-category-safety"))
+        compose.onNodeWithTag("directory-category-safety").performClick()
+        compose.onNodeWithTag("directory-list")
+            .performScrollToNode(androidx.compose.ui.test.hasTestTag("directory-topic-emergency"))
+        compose.onNodeWithTag("directory-topic-emergency").performClick()
+        compose.onNodeWithTag("directory-section-choose").assertExists()
+        screenshot("directory-guide-api26.png")
+    }
+
+    @Test
+    fun searchFindsGuideAndRegionShowsLocalSection() {
+        val route = mutableStateOf("directory")
+        val region = mutableStateOf("")
+        compose.setContent {
+            UacTheme("light") {
+                DirectoryDestination(route.value, "de", region.value,
+                    { region.value = it }, { route.value = it }, { _, _, _ -> })
+            }
+        }
+        compose.onNodeWithTag("directory-search").performTextInput("Gewalt")
+        compose.onNodeWithText("Häusliche Gewalt · Sicherheit & Schutz").performClick()
+        assertEquals("directory/safety/domestic-violence", route.value)
+        compose.onNodeWithTag("directory-list")
+            .performScrollToNode(androidx.compose.ui.test.hasTestTag("directory-region"))
+        compose.onNodeWithTag("directory-region").performClick()
+        compose.onNodeWithTag("directory-region-burgenland").performClick()
+        assertEquals("burgenland", region.value)
+        compose.onNodeWithTag("directory-list")
+            .performScrollToNode(androidx.compose.ui.test.hasTestTag("directory-section-regional-protection"))
+    }
+
+    private fun screenshot(name: String) {
+        compose.waitForIdle()
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val bitmap = instrumentation.uiAutomation.takeScreenshot()
+        java.io.File(instrumentation.targetContext.cacheDir, name).outputStream().use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        bitmap.recycle()
+    }
+}

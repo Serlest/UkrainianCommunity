@@ -34,12 +34,37 @@ class BrowseNavigationTest {
     }
 
     @Test
-    fun fourTabsHaveIndependentRootsAndNewsBelongsToHome() {
+    fun fiveTabsHaveIndependentRootsAndNewsBelongsToHomeUntilNewsStep() {
         val navigation = BrowseNavigation.restore()
-        assertEquals(4, navigation.stacks.size)
+        assertEquals(5, navigation.stacks.size)
         assertEquals(PrimaryTab.HOME, PrimaryTab.forRoute("news/example"))
         assertEquals(PrimaryTab.ORGANIZATIONS, PrimaryTab.forRoute("organizations/example"))
+        assertEquals(PrimaryTab.DIRECTORY, PrimaryTab.forRoute("directory/safety/emergency"))
         assertFalse(navigation.canBack)
+    }
+
+    @Test
+    fun directoryStackRestoresValidGuideAndRejectsEscapes() {
+        val nav = BrowseNavigation.restore().select(PrimaryTab.DIRECTORY)
+            .navigate("directory/safety").navigate("directory/safety/emergency")
+        assertEquals("directory/safety/emergency", nav.route)
+        assertEquals("directory/safety", nav.back().route)
+        assertEquals(nav.route, BrowseNavigation.restore(nav.selected.route, nav.stacks).route)
+        assertEquals("directory", nav.select(PrimaryTab.DIRECTORY).route)
+        for (route in listOf("directory/../x", "directory/safety/", "directory/safety/x/y")) {
+            assertTrue(runCatching { BrowseNavigation.restore().navigate(route) }.isFailure)
+        }
+    }
+
+    @Test
+    fun accountSwitchClearsDirectoryEditorButKeepsPublicGuide() {
+        val nav = BrowseNavigation.restore().select(PrimaryTab.DIRECTORY)
+            .navigate("directory/safety")
+            .navigate("directory/manage")
+            .navigate("directory/manage/safety")
+        val scrubbed = nav.scrubPrivateDestinations()
+        assertEquals("directory/safety", scrubbed.route)
+        assertEquals("directory", scrubbed.back().route)
     }
 
     @Test

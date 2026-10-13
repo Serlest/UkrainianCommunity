@@ -46,6 +46,7 @@ enum class UacIcon {
     HOME,
     CALENDAR,
     ORGANIZATIONS,
+    DIRECTORY,
     PROFILE,
     SETTINGS,
     BACK,
@@ -312,6 +313,18 @@ private val icons =
                             moveTo(13f, 18f)
                             lineTo(13f, 21f)
                         }
+                        UacIcon.DIRECTORY -> {
+                            moveTo(12f, 6f)
+                            quadTo(8f, 3f, 3f, 5f)
+                            lineTo(3f, 19f)
+                            quadTo(8f, 17f, 12f, 20f)
+                            quadTo(16f, 17f, 21f, 19f)
+                            lineTo(21f, 5f)
+                            quadTo(16f, 3f, 12f, 6f)
+                            close()
+                            moveTo(12f, 6f)
+                            lineTo(12f, 20f)
+                        }
                         UacIcon.PROFILE -> {
                             moveTo(16f, 7f)
                             curveTo(16f, 12.3f, 8f, 12.3f, 8f, 7f)
@@ -472,11 +485,10 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
             modifier = Modifier.widthIn(max = 600.dp).fillMaxWidth(),
         ) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
-                // Match the unchanged four-column layout: 12dp group padding, 3x2dp gaps,
-                // and 8dp horizontal padding inside each tab. No font-scale substitution.
+                // Use the actual tab count so the five labels have honest measured widths.
                 val labelWidthPx =
                     with(density) {
-                        ((maxWidth - 18.dp) / 4 - 8.dp).roundToPx().coerceAtLeast(1)
+                        ((maxWidth - 18.dp) / PrimaryTab.entries.size - 8.dp).roundToPx().coerceAtLeast(1)
                     }
                 val grid =
                     density.fontScale > 1.3f &&
@@ -500,7 +512,7 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
                             .padding(4.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        PrimaryTab.entries.chunked(2).forEach { tabs ->
+                        PrimaryTab.entries.chunked(3).forEach { tabs ->
                             Row(
                                 Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -551,6 +563,7 @@ private fun navigationLabel(tab: PrimaryTab, language: String): String =
         PrimaryTab.HOME -> tr(language, "Start", "Головна")
         PrimaryTab.EVENTS -> tr(language, "Events", "Події")
         PrimaryTab.ORGANIZATIONS -> tr(language, "Organisationen", "Організації")
+        PrimaryTab.DIRECTORY -> tr(language, "Ratgeber", "Довідник")
         PrimaryTab.PROFILE -> tr(language, "Profil", "Профіль")
     }
 
@@ -569,6 +582,7 @@ private fun UacNavigationTab(
             PrimaryTab.HOME -> UacIcon.HOME
             PrimaryTab.EVENTS -> UacIcon.CALENDAR
             PrimaryTab.ORGANIZATIONS -> UacIcon.ORGANIZATIONS
+            PrimaryTab.DIRECTORY -> UacIcon.DIRECTORY
             PrimaryTab.PROFILE -> UacIcon.PROFILE
         }
     val color =

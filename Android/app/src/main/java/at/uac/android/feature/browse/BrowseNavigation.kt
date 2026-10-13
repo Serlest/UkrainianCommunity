@@ -3,14 +3,16 @@ package at.uac.android.feature.browse
 import at.uac.android.feature.community.communityId
 import at.uac.android.feature.dsastatement.DsaStatementContract
 import at.uac.android.feature.feedback.feedbackId
+import at.uac.android.feature.directory.DirectoryCatalog
 import at.uac.android.feature.organization.OrganizationContract
 import at.uac.android.feature.personal.validDocumentId
 
-/** Build 65 has four independent navigation stacks. News belongs to Home. */
+/** Independent tab stacks. The Home-to-News restructuring is a later parity step. */
 enum class PrimaryTab(val route: String) {
     HOME("home"),
     EVENTS("events"),
     ORGANIZATIONS("organizations"),
+    DIRECTORY("directory"),
     PROFILE("profile");
 
     companion object {
@@ -72,7 +74,8 @@ private constructor(
                     } else
                         routes
                             .takeWhile {
-                                it != "settings" && it != "profile" && !it.startsWith("profile/")
+                                it != "settings" && it != "profile" && !it.startsWith("profile/") &&
+                                    !it.startsWith("directory/manage")
                             }
                             .ifEmpty { listOf(tab.route) }
                 }
@@ -123,7 +126,7 @@ private constructor(
                 return false
             if (
                 route in accountRoots ||
-                    route in setOf("home", "news", "events", "organizations", "settings")
+                    route in setOf("home", "news", "events", "organizations", "directory", "settings")
             )
                 return true
             val parts = route.split('/')
@@ -136,6 +139,9 @@ private constructor(
             return when {
                 parts.size == 2 && parts[0] in setOf("news", "events") -> validDocumentId(parts[1])
                 parts.size == 2 && parts[0] == "organizations" -> OrganizationContract.id(parts[1])
+                parts.size == 2 && parts[0] == "directory" -> DirectoryCatalog.validId(parts[1])
+                parts.size == 3 && parts[0] == "directory" ->
+                    DirectoryCatalog.validId(parts[1]) && DirectoryCatalog.validId(parts[2])
                 parts.size == 3 &&
                     parts[0] == "profile" &&
                     parts[1] in setOf("feedback", "support") -> feedbackId(parts[2])

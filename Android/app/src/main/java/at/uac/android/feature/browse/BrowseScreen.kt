@@ -42,6 +42,8 @@ import at.uac.android.design.UacPageBackground
 import at.uac.android.design.UacSymbol
 import at.uac.android.design.UacTheme
 import at.uac.android.design.isCompactHeaderRoute
+import at.uac.android.feature.directory.DirectoryDestination
+import at.uac.android.feature.directory.DirectoryEditorAccess
 import java.net.URI
 import java.time.Instant
 import java.time.LocalDate
@@ -66,6 +68,8 @@ fun BrowseScreen(
     overlay: (@Composable () -> Unit)? = null,
     publicGallery: (@Composable (Content, BrowseState) -> Unit)? = null,
     navigationRequest: (((() -> Unit)) -> Unit)? = null,
+    directoryFeedback: ((String?, String?, String) -> Unit)? = null,
+    directoryEditor: DirectoryEditorAccess? = null,
 ) {
     val l = state.language
     val backDispatcher =
@@ -132,7 +136,19 @@ fun BrowseScreen(
                             knownRoutes = state.retainedRoutes
                         }
                         holder.SaveableStateProvider(state.route) {
-                            if (state.isAccountRoute) {
+                            if (state.route == "directory" || state.route.startsWith("directory/")) {
+                                DirectoryDestination(
+                                    state.route,
+                                    l,
+                                    state.region,
+                                    { model.preference("region", it) },
+                                    { destination -> requestNavigation { model.navigate(destination) } },
+                                    { category, topic, title ->
+                                        directoryFeedback?.invoke(category, topic, title)
+                                    },
+                                    directoryEditor,
+                                )
+                            } else if (state.isAccountRoute) {
                                 Column(Modifier.fillMaxSize()) {
                                     Box(
                                         Modifier.weight(1f)

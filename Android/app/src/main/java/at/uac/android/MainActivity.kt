@@ -1149,6 +1149,25 @@ class MainActivity : FragmentActivity() {
                     BrowseScreen(
                         browseState.visibleTo(safetyState.visibility),
                         model,
+                        directoryEditor = authSession.identity?.uid?.takeIf { authSession.readyForActions }?.let { uid ->
+                            at.uac.android.feature.directory.FirebaseDirectoryEditorAccess(
+                                this, auth, uid, authSession.revision,
+                                authSession.profile?.globalRole == "owner",
+                            )
+                        },
+                        directoryFeedback = { categoryId, topicId, title ->
+                            val reference = listOfNotNull(categoryId, topicId).joinToString("/")
+                            feedback.draft(
+                                FeedbackDraft(
+                                    type = if (topicId == null) FeedbackType.QUESTION else FeedbackType.REPORT,
+                                    message = if (browseState.language == "uk")
+                                        "Довідник · ${reference.ifEmpty { "home" }} · $title: "
+                                    else
+                                        "Ratgeber · ${reference.ifEmpty { "home" }} · $title: ",
+                                )
+                            )
+                            model.navigate("profile/feedback", tab = true)
+                        },
                         navigationRequest = { action ->
                             if (browseState.route == "profile/donation-settings")
                                 donationSettings.requestLeave(action)
