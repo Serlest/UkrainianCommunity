@@ -1,6 +1,6 @@
 # Production Scheduler monitoring
 
-Verified on 2026-10-12 in `ukrainiancommunity-dbd5f`.
+Verified on 2026-10-13 in `ukrainiancommunity-dbd5f`.
 
 ## Retry-enabled jobs
 
@@ -36,3 +36,19 @@ No minimum Cloud Run instances are required for these alerts. As checked on
 2026-10-12, [Google's alerting price schedule](https://cloud.google.com/products/observability/pricing)
 starts no earlier than 2027-09-01; built-in [Cloud Run metrics](https://cloud.google.com/run/docs/monitoring)
 have no separate collection charge. Recheck pricing before that date.
+
+## 2026-10-13 incident and verification
+
+- `cleanupExpiredPasskeyChallenges` received one Cloud Run HTTP 429 at 06:47 UTC:
+  no instance was available. The previous 22 scheduled requests succeeded with
+  HTTP 200. Its Scheduler job had no retry configuration, so this transient
+  failure left one hourly cleanup cycle undone and opened an alert.
+- An earlier `restoreExpiredTemporarySuspensions` no-success alert at 17:11 UTC
+  on 2026-10-12 was false: the function returned HTTP 200 at 17:08. Deployment
+  shifted its hourly execution from 15:49 to 17:08; the old 75-minute window
+  and Monitoring data delay were too narrow for that shift.
+- The passkey cleanup now uses three short Scheduler retries. Both alert policies
+  were updated and read back: hourly success window 100 minutes; passkey cleanup
+  excluded from the per-attempt failure alert. A manual Scheduler invocation
+  after deployment returned HTTP 200 at 07:37 UTC. The function remains at zero
+  minimum instances; the next automatic execution still requires observation.
