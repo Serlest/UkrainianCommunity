@@ -1,0 +1,40 @@
+# iOS 107 ↔ Android 86: screen inventory, pass 1
+
+This is the first paired inspection after restoring the Android 1.1 (86) product tree on the iOS 1.2 (107) source baseline. It records what was observed on emulators and what is established only by source. It is not a pixel-perfect comparison: the Android local flavor uses synthetic content and German; the iOS debug guest fixture uses different content and Ukrainian.
+
+## Evidence and setup
+
+- iOS: `release/1.2-107` source matches the current shared app tree. A fresh Debug simulator app reported version `1.2 (107)` and compiled successfully on an iPhone 18 Pro Max simulator (iOS 27). The ordinary launch showed the mandatory account gate. A separate `UITestForceGuestSession=1` launch exposed the public News screen for inspection without changing user accounts.
+- Android: the restored Build 86 tree compiled as `localDebug` and was installed on an API 37 AVD under `at.uac.android.local`. This flavor displays synthetic content and retains version name `1.1-local`, code `86`. It is structurally useful but is not the signed Play package.
+- Captured and visually inspected PNGs are in `/Users/serlest/Documents/Codex/2026-10-13/uac-android/evidence/`: `ios107-launch.png`, `ios107-debug-guest-news-after.png`, `android86-local-launch.png`, `android86-local-profile-after.png`, `android86-local-login.png`, `android86-local-news.png`, `android86-local-events.png`, `android86-local-organizations.png`. The images are local audit evidence, not production data.
+
+## Screen and scenario matrix
+
+| Area | iOS 107 | Android Build 86 baseline | Evidence | Parity action |
+| --- | --- | --- | --- | --- |
+| Startup / account | Ordinary launch requires account flow before the app tabs. Landing offers passkey, Apple, Google, email and registration when enabled. | Ordinary local launch enters public Home; guest Profile offers login/registration. Android account form shown is email/password. | Both entry states observed. iOS: `AppStartupGate.swift`, `AuthViews.swift`, `FederatedSignInButtons.swift`. Android: `AuthStore.kt`, `AccountScreen.kt`. Provider backend behavior has not been exercised. | Specify and implement the Android startup/access policy, provider choices and recovery states; verify separately with real test accounts and current legal documents. |
+| Root navigation | Five tabs: News/Home, Events, Organizations, Directory, Profile; each keeps its own navigation path. | Four tabs: Home, Events, Organizations, Profile. News is nested under Home. No Directory route exists in `BrowseNavigation.kt`. | News and Android Home observed; both tab enumerations checked in source (`ContentView.swift`, `BrowseNavigation.kt`). | Add Directory as a separate tab and route; align tab order, return-to-root and state restoration. Do not erase existing Android deep-link routes. |
+| News | First tab shows featured banner, visible topic/region controls, personal scopes and news cards in the debug guest fixture. | News is a Home subroute; observed controls include Region, Search and Filter, with additional period/order/source choices in a sheet. | Both screens observed, but locales and fixture data differ. Android filters confirmed in `BrowseScreen.kt`; iOS layout in `NewsHomeView` and `NewsHomeFilterRow.swift`. | Preserve existing filter semantics; bring the first-screen hierarchy, topic and region visibility, personal scopes, card density, empty/error states and navigation into parity. Check live Firestore data after local visual work. |
+| Directory | Dedicated tab and a large category/guide tree, search, regional content, sources, feedback and editor paths. | No Directory tab or Android Directory feature tree found. This is a complete product gap, not merely a visual variation. | iOS `ContentView.swift` and `Features/Directory/`; Android route and feature inventory. iOS Directory was not opened in a running simulator during this pass. | Implement read-only catalog and guide navigation first, then search/region/source/feedback, then authorized editor flows; test every language and deep link. |
+| Events | Dedicated tab; source includes upcoming and past sections with separate pagination controls. | Dedicated tab observed with featured banner, region/search/filter controls, registrations entry and event cards. Feed/detail implementation exists. | Android root observed with synthetic data; iOS source comparison only (`EventsListView.swift`, Android browse/content modules). | Capture paired event states and check time grouping, region, search, past pagination, registration and failure/empty views before changing code. |
+| Organizations | Dedicated tab plus authoring/management paths. | Dedicated tab observed with featured banner, region/search/filter controls, subscriptions entry and organization cards. Authoring modules exist. | Android root observed with synthetic data; iOS source comparison only. | Capture paired list/detail/management states; check membership, moderation and roles against the same backend fixtures. |
+| Profile / personal | Dedicated tab with account, saved content, subscriptions, notifications, preferences and owner tools. | Guest Profile and login were observed; personal, admin and management modules exist in source. | Guest state observed; signed-in/owner behavior source-only. | Use isolated authenticated fixtures to compare each role and action result, including account switch and sign-out isolation. |
+| Banners / consent | Root tabs pass banner taps and measurement into `BannerMeasurementService`; consent UI and queue exist. | Banner carousel and public media exist; no measurement wiring found in the inspected Android carousel/view model. | Source comparison plus visual banner presence; measurement outcome not run. | Define consent and event contract from iOS, then port measurement with explicit opt-in and offline queue tests. |
+| Legal acceptance | Startup monitor checks current Terms/Privacy and blocks signed-in access until required acceptance. | Current-version acceptance logic was reconciled from `main` in Step 1; guest Home is still available under the existing startup policy. | Source and unit tests; no live legal-document/read-back test yet. | Verify published document versions, refusal, interrupted acceptance and account switching against staging before claiming parity. |
+
+## Limits of this pass
+
+1. Different language, fixtures and device sizes mean the captured images establish hierarchy and access differences, not pixel equality.
+2. The iOS News image is a debug-only guest fixture; ordinary iOS launch stayed at the account gate. Synthetic or missing images in either fixture are not evidence of a production media defect.
+3. No signed-in user, owner, production Firebase, push delivery, payment or Play release was exercised. Source presence alone does not mark those scenarios complete.
+4. Ukrainian and German, light/dark, 100%/200% text, compact/wide Android, accessibility and physical device need their own paired runtime checks.
+
+## Ordered continuation
+
+1. **Step 2.2:** capture matching Events, Organizations, Directory and signed-in/profile states with controlled fixtures and record actions, loading, empty and error states. For the missing Android Directory, record the iOS contract instead of inventing a fake comparison.
+2. **Step 3:** implement the startup/account/legal access contract first, including real auth-provider feasibility and a staging end-to-end test. The account gate affects every later scenario.
+3. **Step 4:** add Directory navigation and a read-only catalog vertical slice, then feedback and editing by role.
+4. **Step 5:** align News, Events, Organizations and personal flows against the paired inventory, preserving Build 86 behavior that is still correct.
+5. **Steps 6–9:** port consent/analytics and owner flows; run visual, localization, accessibility, performance, backend and release gates separately.
+
+Every implementation slice should end with its own observable outcome, targeted checks, a focused commit and a refreshed matrix. A successful local test does not imply a Play or production rollout.
