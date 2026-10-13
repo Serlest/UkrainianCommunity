@@ -42,6 +42,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -63,6 +64,7 @@ import at.uac.android.design.UacTheme
 import at.uac.android.feature.accountdeletion.*
 import at.uac.android.feature.accountstatus.*
 import at.uac.android.feature.analyticsconsent.*
+import at.uac.android.feature.bannermeasurement.*
 import at.uac.android.feature.announcements.*
 import at.uac.android.feature.applinks.*
 import at.uac.android.feature.applock.*
@@ -155,6 +157,10 @@ class MainActivity : FragmentActivity() {
             firstPartyAnalytics(applicationContext) {
                 auth.state.value.analyticsConsentAuthority()
             }
+        val bannerMeasurement = bannerMeasurementController(
+            applicationContext, lifecycleScope,
+        ) { auth.state.value.bannerMeasurementAuthority() }
+        val bannerReport = bannerReportSource(applicationContext)
         val legalEvidence = legalEvidencePageSource(applicationContext)
         val reminderRuntime =
             LocalReminders.get(applicationContext).also {
@@ -819,6 +825,12 @@ class MainActivity : FragmentActivity() {
             val deletion: AccountDeletionViewModel = viewModel(factory = factory)
             val announcements: AnnouncementViewModel = viewModel(factory = factory)
             val authSession by auth.state.collectAsStateWithLifecycle()
+            val bannerState by bannerMeasurement.state.collectAsStateWithLifecycle()
+            val bannerAuthority = authSession.bannerMeasurementAuthority()
+            LifecycleResumeEffect(bannerMeasurement, bannerAuthority) {
+                bannerMeasurement.bind(bannerAuthority)
+                onPauseOrDispose { }
+            }
             LaunchedEffect(authSession.moderationScope()) {
                 donationSettings.bind(authSession.moderationScope())
             }
@@ -1152,6 +1164,9 @@ class MainActivity : FragmentActivity() {
                     BrowseScreen(
                         browseState.visibleTo(safetyState.visibility),
                         model,
+                        bannerMeasurementActive = interactive && lockState.canRoute &&
+                            !startupState.covered && popupState.active == null,
+                        onBannerMeasurement = bannerMeasurement::record,
                         directoryEditor = authSession.identity?.uid?.takeIf { authSession.readyForActions }?.let { uid ->
                             at.uac.android.feature.directory.FirebaseDirectoryEditorAccess(
                                 this, auth, uid, authSession.revision,
@@ -1343,6 +1358,13 @@ class MainActivity : FragmentActivity() {
                                                 selectedLanguage,
                                                 BuildConfig.VERSION_NAME,
                                                 analyticsConsent,
+                                            )
+                                        }
+                                    if (bannerAuthority?.ready == true &&
+                                        (bannerState.available || bannerState.error))
+                                        at.uac.android.design.UacCard {
+                                            BannerMeasurementSettings(
+                                                bannerAuthority, selectedLanguage, bannerMeasurement,
                                             )
                                         }
                                 }
@@ -1639,6 +1661,13 @@ class MainActivity : FragmentActivity() {
                             } else if (route == "profile/analytics") {
                                 OwnerAnalyticsScreen(
                                     ownerAnalytics,
+                                    authSession.ownerAnalyticsScope(),
+                                    selectedLanguage,
+                                    model::back,
+                                )
+                            } else if (route == "profile/banner-report") {
+                                BannerMeasurementReportScreen(
+                                    bannerReport,
                                     authSession.ownerAnalyticsScope(),
                                     selectedLanguage,
                                     model::back,
@@ -2200,6 +2229,17 @@ class MainActivity : FragmentActivity() {
                                                                 .ownerAnalyticsScope() == captured
                                                     )
                                                         model.navigate("profile/analytics")
+                                                }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(selectedLanguage, "Banner-Statistik", "Статистика банерів"),
+                                                    icon = UacIcon.ANALYTICS,
+                                                    modifier = Modifier.testTag("account-open-banner-report"),
+                                                ) {
+                                                    val captured = authSession.ownerAnalyticsScope()
+                                                    if (captured?.ready == true &&
+                                                        auth.state.value.ownerAnalyticsScope() == captured)
+                                                        model.navigate("profile/banner-report")
                                                 }
                                             }
                                             if (

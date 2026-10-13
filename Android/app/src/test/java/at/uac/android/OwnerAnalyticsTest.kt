@@ -33,14 +33,19 @@ class OwnerAnalyticsTest {
         )
 
     @Test
-    fun analyticsScopeRequiresOwnerLegalAndActivatedTotp() {
+    fun analyticsScopeRequiresOwnerLegalAndActivatedPrivilegedProof() {
         val session = owner()
         assertTrue(session.ownerAnalyticsScope()!!.ready)
         assertFalse(session.copy(totpAuthenticated = false).ownerAnalyticsScope()!!.ready)
+        val passkeyProfile = session.profile!!.copy(passkeyEpoch = "epoch-1")
+        assertTrue(session.copy(profile = passkeyProfile, totpAuthenticated = false,
+            passkeyProofEpoch = "epoch-1").ownerAnalyticsScope()!!.ready)
+        assertFalse(session.copy(profile = passkeyProfile, totpAuthenticated = false,
+            passkeyProofEpoch = "old-epoch").ownerAnalyticsScope()!!.ready)
         assertFalse(session.copy(gate = AuthGate.LEGAL_REQUIRED).ownerAnalyticsScope()!!.ready)
         assertNull(
             session
-                .copy(profile = session.profile!!.copy(globalRole = "admin"))
+                .copy(profile = passkeyProfile.copy(globalRole = "admin"))
                 .ownerAnalyticsScope()
         )
         assertNull(

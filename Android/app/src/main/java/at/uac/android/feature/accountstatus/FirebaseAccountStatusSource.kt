@@ -165,7 +165,8 @@ internal fun requireAcknowledgementProfile(
     statusRequire(role == session.role, AccountStatusFailure.STALE)
     if (role in setOf("owner", "admin")) {
         statusRequire(
-            fields["requiresMultiFactorAuth"] == true && session.totpAuthenticated,
+            fields["requiresMultiFactorAuth"] == true &&
+                (session.totpAuthenticated || session.passkeyAuthenticated),
             AccountStatusFailure.DENIED,
         )
     }

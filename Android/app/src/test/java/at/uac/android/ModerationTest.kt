@@ -123,7 +123,7 @@ class ModerationTest {
     }
 
     @Test
-    fun sessionProjectionRequiresActivatedAndRealTotpAndLegalGate() {
+    fun sessionProjectionRequiresActivatedPrivilegedProofAndLegalGate() {
         val profile =
             AuthProfile(
                 uid = actor.uid,
@@ -142,6 +142,11 @@ class ModerationTest {
             )
         assertTrue(session.moderationScope()!!.allowed)
         assertFalse(session.copy(totpAuthenticated = false).moderationScope()!!.allowed)
+        val passkeyProfile = profile.copy(passkeyEpoch = "epoch-1")
+        assertTrue(session.copy(profile = passkeyProfile, totpAuthenticated = false,
+            passkeyProofEpoch = "epoch-1").moderationScope()!!.allowed)
+        assertFalse(session.copy(profile = passkeyProfile, totpAuthenticated = false,
+            passkeyProofEpoch = "wrong-epoch").moderationScope()!!.allowed)
         assertFalse(
             session
                 .copy(profile = profile.copy(requiresMultiFactorAuth = false))
@@ -156,6 +161,21 @@ class ModerationTest {
                 .allowed
         )
         assertFalse(session.copy(busy = true).moderationScope()!!.allowed)
+    }
+
+    @Test fun privilegedTokenProofAcceptsTotpOrCurrentVerifiedPasskeyOnly() {
+        val profile = mapOf<String, Any?>("passkeyEpoch" to "epoch-1")
+        assertTrue(moderationHasPrivilegedProof(
+            mapOf("firebase" to mapOf("sign_in_second_factor" to "totp")), profile))
+        val verified = mapOf<String, Any?>(
+            "firebase" to mapOf("sign_in_provider" to "custom"),
+            "uac_passkey_verified" to true, "uac_passkey_epoch" to "epoch-1",
+        )
+        assertTrue(moderationHasPrivilegedProof(verified, profile))
+        assertFalse(moderationHasPrivilegedProof(verified, mapOf("passkeyEpoch" to "new-epoch")))
+        assertFalse(moderationHasPrivilegedProof(verified - "uac_passkey_verified", profile))
+        assertFalse(moderationHasPrivilegedProof(verified +
+            ("firebase" to mapOf("sign_in_provider" to "password")), profile))
     }
 
     @Test

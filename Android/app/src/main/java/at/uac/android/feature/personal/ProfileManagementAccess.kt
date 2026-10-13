@@ -14,6 +14,7 @@ data class ProfileManagementAccess(
             root in
                 setOf(
                     "profile/analytics",
+                    "profile/banner-report",
                     "profile/donation-settings",
                     "profile/featured-banners",
                     "profile/content-planning",

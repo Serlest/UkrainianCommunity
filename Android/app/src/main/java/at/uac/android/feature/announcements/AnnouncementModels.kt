@@ -82,7 +82,7 @@ fun AuthSession.announcementSession(): AnnouncementSession {
                 profile?.active == true &&
                 profile.globalRole == "owner" &&
                 profile.requiresMultiFactorAuth &&
-                totpAuthenticated,
+                (totpAuthenticated || passkeyAuthenticated),
     )
 }
 

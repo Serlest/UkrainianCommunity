@@ -17,7 +17,8 @@ fun AuthSession.ownerAnalyticsScope(): OwnerAnalyticsSession? {
     return OwnerAnalyticsSession(
         actor.uid,
         revision,
-        readyForActions && owner.active && owner.requiresMultiFactorAuth && totpAuthenticated,
+        readyForActions && owner.active && owner.requiresMultiFactorAuth &&
+            (totpAuthenticated || passkeyAuthenticated),
     )
 }
 

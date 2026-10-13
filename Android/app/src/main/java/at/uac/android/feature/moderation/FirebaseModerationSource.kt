@@ -177,7 +177,7 @@ internal class ModerationAccess(private val db: FirebaseFirestore, private val a
         val token = user.getIdToken(false).await()
         identity(session)
         requireProfile(session, profile.data)
-        if ((token.claims["firebase"] as? Map<*, *>)?.get("sign_in_second_factor") != "totp")
+        if (!moderationHasPrivilegedProof(token.claims, profile.data ?: emptyMap()))
             ModerationContract.fail(ModerationFailure.NOT_READY)
     }
 
@@ -194,6 +194,18 @@ internal class ModerationAccess(private val db: FirebaseFirestore, private val a
                 ModerationContract.fail(ModerationFailure.NOT_READY)
         }
     }
+}
+
+/** Same two accepted privileged proofs as Firestore Rules and callable auth context. */
+internal fun moderationHasPrivilegedProof(
+    claims: Map<String, Any?>, profile: Map<String, Any?>,
+): Boolean {
+    val firebase = claims["firebase"] as? Map<*, *> ?: return false
+    if (firebase["sign_in_second_factor"] == "totp") return true
+    val epoch = profile["passkeyEpoch"] as? String
+    return firebase["sign_in_provider"] == "custom" &&
+        claims["uac_passkey_verified"] == true &&
+        !epoch.isNullOrBlank() && claims["uac_passkey_epoch"] == epoch
 }
 
 fun moderationFailure(error: Throwable): ModerationFailure =

@@ -11,12 +11,16 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -30,6 +34,8 @@ import at.uac.android.design.LocalUacDark
 import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSymbol
+import at.uac.android.feature.bannermeasurement.BannerExposureTracker
+import at.uac.android.feature.bannermeasurement.BannerMeasurement
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.delay
@@ -51,7 +57,13 @@ fun bannerRoute(action: String, target: String): String? {
 }
 
 @Composable
-fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
+fun BannerCarousel(
+    state: BrowseState,
+    model: BrowseViewModel,
+    measurementActive: Boolean = false,
+    onMeasurement: (BannerMeasurement) -> Unit = {},
+    viewport: Rect? = null,
+) {
     val candidates = state.data.banners
     if (candidates.isEmpty()) return
     var now by remember(candidates) { mutableStateOf(Instant.now()) }
@@ -89,6 +101,28 @@ fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
     var index by rememberSaveable { mutableIntStateOf(0) }
     val selected = index.coerceIn(0, banners.lastIndex)
     val banner = banners[selected]
+    val section = state.route.substringBefore(':')
+    val view = LocalView.current
+    val tracker = remember { BannerExposureTracker() }
+    var visibleFraction by remember(banner.id) { mutableFloatStateOf(0f) }
+    var artworkReady by remember(banner.id, banner.fields.string("imageURL")) {
+        mutableStateOf(false)
+    }
+    var externalDialogVisible by remember(banner.id) { mutableStateOf(false) }
+    val eligible = measurementActive && resumed && artworkReady && !externalDialogVisible
+    LaunchedEffect(banner.id, section, eligible, visibleFraction) {
+        tracker.observe(banner.id, section, visibleFraction, eligible, System.currentTimeMillis())
+            ?.let(onMeasurement)
+        if (eligible && visibleFraction >= .5f) {
+            delay(1_000)
+            tracker.observe(banner.id, section, visibleFraction, eligible, System.currentTimeMillis())
+                ?.let(onMeasurement)
+        }
+    }
+    fun recordClick() {
+        tracker.click(banner.id, section, visibleFraction, eligible, System.currentTimeMillis())
+            .forEach(onMeasurement)
+    }
     val accessibility =
         LocalContext.current.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
     var spoken by remember { mutableStateOf(accessibility.isTouchExplorationEnabled) }
@@ -150,7 +184,25 @@ fun BannerCarousel(state: BrowseState, model: BrowseViewModel) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box {
-            BannerHero(banner, state.language, { model.navigate(it) })
+            BannerHero(
+                banner, state.language, { model.navigate(it) },
+                modifier = Modifier.onGloballyPositioned { coordinates ->
+                    val frame = coordinates.boundsInWindow()
+                    val visible = viewport ?: Rect(0f, 0f, view.width.toFloat(), view.height.toFloat())
+                    val width = frame.width
+                    val height = frame.height
+                    val overlapWidth = (minOf(frame.right, visible.right) - maxOf(frame.left, visible.left))
+                        .coerceAtLeast(0f)
+                    val overlapHeight = (minOf(frame.bottom, visible.bottom) - maxOf(frame.top, visible.top))
+                        .coerceAtLeast(0f)
+                    visibleFraction = if (width > 0f && height > 0f)
+                        (overlapWidth * overlapHeight / (width * height)).coerceIn(0f, 1f)
+                    else 0f
+                },
+                onArtworkReady = { artworkReady = it },
+                onTap = ::recordClick,
+                onDialogVisibilityChanged = { externalDialogVisible = it },
+            )
             if (banners.size > 1)
                 Row(
                     Modifier.align(Alignment.TopCenter)
@@ -185,6 +237,9 @@ fun BannerHero(
     language: String,
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onArtworkReady: (Boolean) -> Unit = {},
+    onTap: () -> Unit = {},
+    onDialogVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val largeText = LocalDensity.current.fontScale > 1.3f
     val title = banner.text("title", language)
@@ -214,7 +269,9 @@ fun BannerHero(
                 presentation = PublicImagePresentation.VIEWPORT_FIT,
                 adaptiveBackdrop = true,
                 externalBanner = true,
+                onLoadStateChanged = onArtworkReady,
             )
+        else LaunchedEffect(banner.id) { onArtworkReady(true) }
         Box(
             Modifier.matchParentSize()
                 .background(
@@ -271,7 +328,7 @@ fun BannerHero(
                             }
                             if (route != null)
                                 FilledIconButton(
-                                    { onNavigate(route) },
+                                    { onTap(); onNavigate(route) },
                                     Modifier.size(48.dp).testTag("banner-open"),
                                     colors =
                                         IconButtonDefaults.filledIconButtonColors(
@@ -291,6 +348,8 @@ fun BannerHero(
                                 banner.fields.string("externalURL"),
                                 language,
                                 buttonColor = Color.White,
+                                onOpen = onTap,
+                                onDialogVisibilityChanged = onDialogVisibilityChanged,
                             )
                     }
                 }

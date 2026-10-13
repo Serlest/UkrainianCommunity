@@ -22,7 +22,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
@@ -41,6 +44,7 @@ import at.uac.android.design.UacPageBackground
 import at.uac.android.design.UacSymbol
 import at.uac.android.design.UacTheme
 import at.uac.android.design.isCompactHeaderRoute
+import at.uac.android.feature.bannermeasurement.BannerMeasurement
 import at.uac.android.feature.directory.DirectoryDestination
 import at.uac.android.feature.directory.DirectoryEditorAccess
 import java.net.URI
@@ -72,6 +76,8 @@ fun BrowseScreen(
     navigationRequest: (((() -> Unit)) -> Unit)? = null,
     directoryFeedback: ((String?, String?, String) -> Unit)? = null,
     directoryEditor: DirectoryEditorAccess? = null,
+    bannerMeasurementActive: Boolean = false,
+    onBannerMeasurement: (BannerMeasurement) -> Unit = {},
 ) {
     val l = state.language
     val backDispatcher =
@@ -179,6 +185,8 @@ fun BrowseScreen(
                                 }
                             } else {
                                 val list = rememberLazyListState()
+                                var listViewport by remember { mutableStateOf<Rect?>(null) }
+                                var filterSheetVisible by remember(state.route) { mutableStateOf(false) }
                                 var bannersWereAvailable by
                                     remember(state.route) {
                                         mutableStateOf(false)
@@ -219,7 +227,8 @@ fun BrowseScreen(
                                         Modifier.fillMaxSize().testTag("browse-pull-refresh"),
                                 ) {
                                     LazyColumn(
-                                        Modifier.fillMaxSize().testTag("browse-list"),
+                                        Modifier.fillMaxSize().testTag("browse-list")
+                                            .onGloballyPositioned { listViewport = it.boundsInWindow() },
                                         state = list,
                                         contentPadding =
                                             PaddingValues(
@@ -236,10 +245,16 @@ fun BrowseScreen(
                                             }
                                         else {
                                             if (bannersAvailable)
-                                                item("banners") { BannerCarousel(state, model) }
+                                                item("banners") {
+                                                    BannerCarousel(state, model,
+                                                        bannerMeasurementActive && !filterSheetVisible,
+                                                        onBannerMeasurement, listViewport)
+                                                }
                                             if (state.detailId.isEmpty())
                                                 item("filters") {
-                                                    BrowseListControls(state, model)
+                                                    BrowseListControls(state, model) {
+                                                        filterSheetVisible = it
+                                                    }
                                                 }
                                             if (visibilityNotice != null)
                                                 item("visibility") { visibilityNotice() }
@@ -587,10 +602,13 @@ private fun Settings(s: BrowseState, model: BrowseViewModel, diagnostics: () -> 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun BrowseListControls(state: BrowseState, model: BrowseViewModel) {
+private fun BrowseListControls(
+    state: BrowseState, model: BrowseViewModel, onSheetVisible: (Boolean) -> Unit = {},
+) {
     val language = state.language
     var searchVisible by rememberSaveable(state.route) { mutableStateOf(state.search.isNotEmpty()) }
     var sheet by rememberSaveable(state.route) { mutableStateOf<String?>(null) }
+    LaunchedEffect(sheet) { onSheetVisible(sheet != null) }
     val regionLabel =
         regions.find { it.first == state.region }?.second
             ?: tr(language, "Ganz Österreich", "Уся Австрія")
@@ -1188,13 +1206,16 @@ fun SafeLink(
     value: String,
     language: String,
     buttonColor: Color = Color.Unspecified,
+    onOpen: () -> Unit = {},
+    onDialogVisibilityChanged: (Boolean) -> Unit = {},
 ) {
     val url = safeHttps(value) ?: return
     var show by remember(url) { mutableStateOf(false) }
+    LaunchedEffect(show) { onDialogVisibilityChanged(show) }
     var failed by remember(url) { mutableStateOf(false) }
     val context = LocalContext.current
     TextButton(
-        { show = true },
+        { onOpen(); show = true },
         colors =
             ButtonDefaults.textButtonColors(
                 contentColor =
@@ -1239,7 +1260,9 @@ fun SafeLink(
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                             }
                                 .isFailure
-                        if (!failed) show = false
+                        if (!failed) {
+                            show = false
+                        }
                     },
                     enabled = !URI(url).host.endsWith(".invalid"),
                 ) {

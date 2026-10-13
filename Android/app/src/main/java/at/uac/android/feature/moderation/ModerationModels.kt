@@ -31,7 +31,8 @@ fun AuthSession.moderationScope(): ModerationSession? =
                 profile?.globalRole.orEmpty(),
                 readyForActions &&
                     profile?.active == true &&
-                    (!profile.privileged || profile.requiresMultiFactorAuth && totpAuthenticated),
+                    (!profile.privileged || profile.requiresMultiFactorAuth &&
+                        (totpAuthenticated || passkeyAuthenticated)),
             )
         }
 

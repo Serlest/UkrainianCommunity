@@ -213,6 +213,7 @@ class AccountStatusTest {
             )
         }
         requireAcknowledgementProfile(owner.copy(totpAuthenticated = true), elevated)
+        requireAcknowledgementProfile(owner.copy(passkeyAuthenticated = true), elevated)
         fails(AccountStatusFailure.STALE) { requireAcknowledgementProfile(session(), elevated) }
     }
 

@@ -79,6 +79,7 @@ data class AccountStatusSession(
     val needsMfa: Boolean = false,
     val role: String = "user",
     val totpAuthenticated: Boolean = false,
+    val passkeyAuthenticated: Boolean = false,
 )
 
 fun AuthSession.accountStatusScope(): AccountStatusSession? {
@@ -112,6 +113,7 @@ fun AuthSession.accountStatusScope(): AccountStatusSession? {
         gate == AuthGate.MFA_REQUIRED,
         own.globalRole,
         totpAuthenticated,
+        passkeyAuthenticated,
     )
 }
 
