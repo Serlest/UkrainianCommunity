@@ -21,6 +21,7 @@ import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSymbol
 import java.time.ZoneId
 import java.time.Instant
+import java.time.Duration
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -28,7 +29,7 @@ import java.util.Locale
  * Build-65 feed structure: media + compact type/title/metadata, stacked for accessibility sizes.
  */
 @Composable
-fun ContentCard(item: Content, language: String, onClick: () -> Unit) {
+fun ContentCard(item: Content, language: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val largeText = LocalDensity.current.fontScale > 1.3f
     val icon =
         when (item.kind) {
@@ -68,7 +69,7 @@ fun ContentCard(item: Content, language: String, onClick: () -> Unit) {
     }
     Card(
         onClick,
-        Modifier.widthIn(max = UacDesign.readableWidth)
+        modifier.widthIn(max = UacDesign.readableWidth)
             .fillMaxWidth()
             .testTag("card-${item.id}")
             .semantics(mergeDescendants = true) {},
@@ -85,7 +86,7 @@ fun ContentCard(item: Content, language: String, onClick: () -> Unit) {
                     media()
                     if (item.kind == ContentKind.EVENTS) EventDateBadge(item, language)
                 }
-                FeedCardDetails(item, language, icon, accent, fill, true)
+                    FeedCardDetails(item, language, icon, accent, fill, true)
             }
         else
             Row(
@@ -93,11 +94,13 @@ fun ContentCard(item: Content, language: String, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                media()
+                if (item.kind == ContentKind.EVENTS) EventDateBadge(item, language)
+                else media()
                 Box(Modifier.weight(1f)) {
                     FeedCardDetails(item, language, icon, accent, fill, false)
                 }
-                if (item.kind == ContentKind.EVENTS) EventDateBadge(item, language)
+                if (item.kind == ContentKind.EVENTS) media()
+                if (item.kind == ContentKind.NEWS) NewsRelativeDate(item, language)
             }
     }
 }
@@ -113,14 +116,21 @@ private fun FeedCardDetails(
 ) {
     val maximum = if (largeText) Int.MAX_VALUE else 2
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Surface(color = fill, contentColor = accent, shape = RoundedCornerShape(8.dp)) {
-            Row(
-                Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                UacSymbol(icon, modifier = Modifier.size(13.dp))
-                Text(item.kind.label(language), style = MaterialTheme.typography.labelSmall)
+        if (item.kind != ContentKind.ORGANIZATIONS) {
+            Surface(color = fill, contentColor = accent, shape = RoundedCornerShape(8.dp)) {
+                Row(
+                    Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    UacSymbol(icon, modifier = Modifier.size(13.dp))
+                    Text(
+                        if (item.kind == ContentKind.NEWS)
+                            tr(language, "NEUIGKEITEN", "НОВИНИ")
+                        else tr(language, "TERMINE", "ПОДІЇ"),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
             }
         }
         Text(
@@ -134,7 +144,8 @@ private fun FeedCardDetails(
         item.summary(language).takeIf(String::isNotBlank)?.let {
             Text(
                 it,
-                style = MaterialTheme.typography.bodySmall,
+                style = if (item.kind == ContentKind.NEWS && !largeText)
+                    MaterialTheme.typography.labelMedium else MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = if (largeText) Int.MAX_VALUE else 1,
                 overflow = TextOverflow.Ellipsis,
@@ -144,7 +155,8 @@ private fun FeedCardDetails(
             item.fields.string("organizationName").ifEmpty {
                 item.fields.string("authorDisplayName")
             }
-        if (publisher.isNotBlank() && item.kind != ContentKind.ORGANIZATIONS)
+        if (publisher.isNotBlank() && item.kind != ContentKind.ORGANIZATIONS &&
+            (item.kind != ContentKind.EVENTS || largeText))
             Text(
                 publisher,
                 style = MaterialTheme.typography.labelSmall,
@@ -152,17 +164,21 @@ private fun FeedCardDetails(
                 maxLines = maximum,
                 overflow = TextOverflow.Ellipsis,
             )
-        val date =
-            if (item.kind == ContentKind.EVENTS)
-                item.fields.displayEventOccurrence(Instant.now())?.start else item.publishedAt
-        val metadata =
+        val eventOccurrence = if (item.kind == ContentKind.EVENTS)
+            item.fields.displayEventOccurrence(Instant.now()) else null
+        val date = eventOccurrence?.start ?: item.publishedAt
+        val metadataParts =
             listOfNotNull(
                     item.fields.string("city").takeIf(String::isNotBlank),
                     date?.let {
-                        if (item.kind == ContentKind.EVENTS)
-                            DateTimeFormatter.ofPattern("HH:mm", Locale.forLanguageTag(language))
-                                .withZone(ZoneId.systemDefault())
-                                .format(it)
+                        if (eventOccurrence != null) {
+                            if (eventOccurrence.allDay) tr(language, "Ganztägig", "Увесь день")
+                            else {
+                                val clock = DateTimeFormatter.ofPattern("HH:mm", Locale.forLanguageTag(language))
+                                    .withZone(ZoneId.systemDefault())
+                                "${clock.format(eventOccurrence.start)}–${clock.format(eventOccurrence.end)}"
+                            }
+                        }
                         else
                             DateTimeFormatter.ofPattern(
                                     "dd.MM.yyyy",
@@ -172,8 +188,19 @@ private fun FeedCardDetails(
                                 .format(it)
                     },
                 )
-                .joinToString(" · ")
-        if (metadata.isNotBlank())
+        val metadata = (if (item.kind == ContentKind.EVENTS) metadataParts.reversed()
+            else metadataParts).joinToString(" · ")
+        val organizationRegion = item.fields.string("federalState")
+            .takeIf(String::isNotBlank)?.let { localizedRegionName(it, language) }
+            ?: item.fields.string("city")
+        if (item.kind == ContentKind.ORGANIZATIONS && !largeText && organizationRegion.isNotBlank())
+            Surface(color = MaterialTheme.colorScheme.surfaceContainerLow,
+                shape = RoundedCornerShape(12.dp)) {
+                Text(organizationRegion, Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        else if (metadata.isNotBlank() && (item.kind != ContentKind.NEWS || largeText))
             Text(
                 metadata,
                 style = MaterialTheme.typography.labelSmall,
@@ -189,6 +216,27 @@ private fun FeedCardDetails(
                 style = MaterialTheme.typography.labelLarge,
             )
     }
+}
+
+@Composable
+private fun NewsRelativeDate(item: Content, language: String) {
+    val published = item.publishedAt ?: return
+    val elapsed = Duration.between(published, Instant.now()).toMinutes().coerceAtLeast(0)
+    val label = when {
+        elapsed < 60 -> tr(language, "gerade eben", "щойно")
+        elapsed < 1_440 -> {
+            val hours = (elapsed / 60).coerceAtLeast(1)
+            if (language == "uk") "$hours год тому"
+            else if (hours == 1L) "vor 1 Std." else "vor $hours Std."
+        }
+        else -> {
+            val days = elapsed / 1_440
+            if (language == "uk") "$days дн. тому"
+            else if (days == 1L) "vor 1 Tag" else "vor $days Tagen"
+        }
+    }
+    Text(label, style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
 }
 
 @Composable
@@ -212,6 +260,12 @@ private fun EventDateBadge(item: Content, language: String) {
                 DateTimeFormatter.ofPattern("MMM", Locale.forLanguageTag(language)).format(date),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
+            )
+            Text(
+                DateTimeFormatter.ofPattern("EEE", Locale.forLanguageTag(language)).format(date)
+                    .uppercase(Locale.forLanguageTag(language)),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }

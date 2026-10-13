@@ -7,15 +7,12 @@ import org.junit.Test
 
 class UacHeaderPolicyTest {
     @Test
-    fun everySecondaryRouteUsesCompactBranding() {
+    fun secondaryRoutesUseCompactBranding() {
         for (route in
             listOf(
-                "events",
                 "events/example",
-                "organizations",
                 "news",
                 "settings",
-                "profile",
                 "profile/edit",
                 "profile/login",
             )) {
@@ -24,7 +21,8 @@ class UacHeaderPolicyTest {
     }
 
     @Test
-    fun homeIsTheOnlyLargeBrandRoute() {
-        assertFalse(isCompactHeaderRoute("home"))
+    fun fiveRootTabsKeepFullBranding() {
+        for (route in listOf("home", "events", "organizations", "directory", "profile"))
+            assertFalse(route, isCompactHeaderRoute(route))
     }
 }

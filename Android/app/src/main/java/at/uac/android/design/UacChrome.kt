@@ -2,6 +2,7 @@ package at.uac.android.design
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -33,10 +34,12 @@ import androidx.compose.ui.text.intl.LocaleList
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import at.uac.android.R
 import at.uac.android.feature.browse.PrimaryTab
 import at.uac.android.feature.browse.tr
@@ -68,6 +71,8 @@ enum class UacIcon {
     SEARCH,
     FILTER,
     PHOTO,
+    CHEVRON_DOWN,
+    GRID,
 }
 
 private val icons =
@@ -82,6 +87,20 @@ private val icons =
                     strokeLineJoin = StrokeJoin.Round,
                 ) {
                     when (icon) {
+                        UacIcon.CHEVRON_DOWN -> {
+                            moveTo(5f, 9f)
+                            lineTo(12f, 16f)
+                            lineTo(19f, 9f)
+                        }
+                        UacIcon.GRID -> {
+                            for (x in listOf(4f, 13f)) for (y in listOf(4f, 13f)) {
+                                moveTo(x, y)
+                                lineTo(x + 7f, y)
+                                lineTo(x + 7f, y + 7f)
+                                lineTo(x, y + 7f)
+                                close()
+                            }
+                        }
                         UacIcon.PHOTO -> {
                             moveTo(3f, 7f)
                             lineTo(8f, 7f)
@@ -435,6 +454,8 @@ fun UacHeader(
     onBack: () -> Unit,
     onSettings: () -> Unit,
     compact: Boolean = false,
+    actionIcon: UacIcon = UacIcon.SETTINGS,
+    actionTag: String = "settings",
 ) {
     val largeText = !compact && LocalDensity.current.fontScale > 1.3f
     Column(
@@ -455,8 +476,18 @@ fun UacHeader(
                     style = MaterialTheme.typography.titleMedium,
                 )
             else if (!largeText) UacBrand(Modifier.weight(1f)) else Spacer(Modifier.weight(1f))
-            IconButton(onSettings, Modifier.size(48.dp).testTag("settings")) {
-                UacSymbol(UacIcon.SETTINGS, tr(language, "Einstellungen", "Налаштування"))
+            IconButton(onSettings, Modifier.size(48.dp)
+                .then(if (actionIcon == UacIcon.SEARCH) Modifier
+                    .clip(RoundedCornerShape(17.dp))
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = .56f))
+                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(17.dp))
+                else Modifier)
+                .testTag(actionTag)) {
+                UacSymbol(actionIcon, when (actionIcon) {
+                    UacIcon.SEARCH -> tr(language, "Suchen", "Пошук")
+                    UacIcon.SETTINGS -> tr(language, "Einstellungen", "Налаштування")
+                    else -> null
+                })
             }
         }
     }
@@ -471,6 +502,9 @@ fun UacBottomNavigation(selected: PrimaryTab, language: String, onSelect: (Prima
         MaterialTheme.typography.labelMedium.copy(
             localeList = LocaleList(language),
             hyphens = Hyphens.Auto,
+            fontSize = 10.sp,
+            lineHeight = 12.sp,
+            letterSpacing = 0.sp,
         )
     Box(
         Modifier.fillMaxWidth()
@@ -621,12 +655,13 @@ private fun UacNavigationTab(
             ) {
                 UacSymbol(icon)
                 Text(
-                    if (tab == PrimaryTab.ORGANIZATIONS && label == "Organisation")
-                        "Organi-\nsation" else label,
+                    label,
                     Modifier.fillMaxWidth().testTag("tab-label-${tab.route}")
                         .semantics { contentDescription = label },
                     style = labelStyle,
                     textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

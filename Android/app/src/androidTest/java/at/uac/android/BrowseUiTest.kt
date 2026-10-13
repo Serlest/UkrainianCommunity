@@ -37,10 +37,14 @@ class BrowseUiTest {
     }
 
     private fun openSearch() {
-        scrollPrimary("search-toggle")
-        if (compose.onAllNodesWithTag("search").fetchSemanticsNodes().isEmpty())
-            compose.onNodeWithTag("search-toggle").performClick()
-        scroll("search")
+        if (compose.onAllNodesWithTag("header-search-field").fetchSemanticsNodes().isEmpty())
+            compose.onNodeWithTag("header-search-toggle").performClick()
+    }
+
+    private fun openSettings() {
+        compose.onNodeWithTag("tab-profile").performClick()
+        ready()
+        compose.onNodeWithTag("settings").performClick()
     }
 
     private fun scrollPrimary(tag: String) {
@@ -60,7 +64,7 @@ class BrowseUiTest {
     @Before
     fun localSetup() {
         ready()
-        compose.onNodeWithTag("settings").performClick()
+        openSettings()
         scroll("browse-language-de")
         compose.onNodeWithTag("browse-language-de").performClick()
         scroll("browse-mode-${if (online) "emulator" else "synthetic"}")
@@ -68,6 +72,8 @@ class BrowseUiTest {
             .onNodeWithTag("browse-mode-${if (online) "emulator" else "synthetic"}")
             .performClick()
         compose.onNodeWithTag("back").performClick()
+        ready()
+        compose.onNodeWithTag("tab-home").performClick()
         ready()
         scroll("region")
         compose.onNodeWithTag("region").performClick()
@@ -85,7 +91,7 @@ class BrowseUiTest {
         compose.onNodeWithTag("card-synthetic-news-07").assertIsDisplayed()
         top()
         openSearch()
-        compose.onNodeWithTag("search").performTextReplacement("Suchziel")
+        compose.onNodeWithTag("header-search-field").performTextReplacement("Suchziel")
         ready()
         scroll("card-synthetic-news-01")
         compose.onNodeWithTag("card-synthetic-news-01").performClick()
@@ -98,8 +104,8 @@ class BrowseUiTest {
         ready()
         top()
         openSearch()
-        compose.onNodeWithTag("search").assertTextContains("Suchziel")
-        compose.onNodeWithTag("search").performTextReplacement("does-not-exist")
+        compose.onNodeWithTag("header-search-field").assertTextContains("Suchziel")
+        compose.onNodeWithTag("header-search-field").performTextReplacement("does-not-exist")
         ready()
         scroll("empty")
         compose.onNodeWithTag("empty").assertIsDisplayed()
@@ -145,7 +151,7 @@ class BrowseUiTest {
     fun organizationPublicTeamPhotosAndRelatedNews() {
         tab("organizations")
         openSearch()
-        compose.onNodeWithTag("search").performTextReplacement("01")
+        compose.onNodeWithTag("header-search-field").performTextReplacement("01")
         ready()
         scroll("card-synthetic-org-01")
         compose.onNodeWithTag("card-synthetic-org-01").performClick()
@@ -177,7 +183,7 @@ class BrowseUiTest {
         compose.onNodeWithText("Beispielnachricht 01").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("back").performClick()
         ready()
-        compose.onNodeWithTag("settings").performClick()
+        openSettings()
         scroll("browse-language-uk")
         compose.onNodeWithTag("browse-language-uk").performClick()
         scroll("theme")
@@ -193,7 +199,7 @@ class BrowseUiTest {
         compose.onNodeWithTag("region-wien").performScrollTo().performClick()
         ready()
         openSearch()
-        compose.onNodeWithTag("search").performTextReplacement("18")
+        compose.onNodeWithTag("header-search-field").performTextReplacement("18")
         ready()
         compose.runOnIdle {
             val state = ViewModelProvider(compose.activity)[BrowseViewModel::class.java].state.value
@@ -208,7 +214,7 @@ class BrowseUiTest {
         ready()
         top()
         openSearch()
-        compose.onNodeWithTag("search").assertTextContains("18")
+        compose.onNodeWithTag("header-search-field").assertTextContains("18")
     }
 
     @Test
@@ -221,24 +227,22 @@ class BrowseUiTest {
         val controlsTop =
             compose.onNodeWithTag("primary-filter-row").fetchSemanticsNode().boundsInRoot.top
         org.junit.Assert.assertTrue("hero=$heroTop controls=$controlsTop", heroTop < controlsTop)
-        scroll("quick-saved")
-        compose.onNodeWithTag("quick-saved").assertIsDisplayed()
+        scrollPrimary("news-quick-source-SAVED")
+        compose.onNodeWithTag("news-quick-source-SAVED").assertExists()
 
         tab("news")
         top()
-        compose.onNodeWithTag("search").assertDoesNotExist()
-        scrollPrimary("search-toggle")
-        compose.onNodeWithTag("search-toggle").performClick()
-        compose.onNodeWithTag("search").assertIsDisplayed()
-        scroll("quick-saved")
-        compose.onNodeWithTag("quick-saved").assertIsDisplayed()
+        compose.onNodeWithTag("header-search-field").assertDoesNotExist()
+        compose.onNodeWithTag("header-search-toggle").performClick()
+        compose.onNodeWithTag("header-search-field").assertIsDisplayed()
+        compose.onNodeWithTag("news-quick-source-SAVED").assertExists()
 
         tab("events")
-        scroll("quick-registrations")
-        compose.onNodeWithTag("quick-registrations").assertIsDisplayed()
+        scrollPrimary("event-quick-scope-REGISTERED")
+        compose.onNodeWithTag("event-quick-scope-REGISTERED").assertExists()
         tab("organizations")
-        scroll("quick-subscriptions")
-        compose.onNodeWithTag("quick-subscriptions").assertIsDisplayed()
+        scrollPrimary("organization-quick-scope-SUBSCRIBED")
+        compose.onNodeWithTag("organization-quick-scope-SUBSCRIBED").assertExists()
     }
 
     @Test

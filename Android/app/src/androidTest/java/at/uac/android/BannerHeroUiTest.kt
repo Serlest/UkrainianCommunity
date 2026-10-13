@@ -126,7 +126,7 @@ class BannerHeroUiTest {
                 )
             }
         }
-        compose.onNodeWithText("Ansehen").performClick()
+        compose.onNodeWithTag("banner-open").performClick()
         compose.onNodeWithText("https://first.example.invalid/path").assertIsDisplayed()
         compose.runOnIdle { url.value = "https://second.example.invalid/path" }
         compose.onAllNodes(isDialog()).assertCountEquals(0)

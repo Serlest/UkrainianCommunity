@@ -12,6 +12,11 @@ val regions =
         "vorarlberg" to "Vorarlberg / Форарльберг",
         "wien" to "Wien / Відень",
     )
+
+fun localizedRegionName(code: String, language: String): String? =
+    regions.firstOrNull { it.first == code }?.second?.split(" / ")?.let {
+        if (language == "uk") it.getOrNull(1) ?: it.first() else it.first()
+    }
 private val labels =
     mapOf(
         "news" to ("Nachrichten" to "Новини"),

@@ -203,28 +203,24 @@ fun BannerCarousel(
                 onTap = ::recordClick,
                 onDialogVisibilityChanged = { externalDialogVisible = it },
             )
-            if (banners.size > 1)
-                Row(
-                    Modifier.align(Alignment.TopCenter)
-                        .padding(top = 10.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(UacDesign.bannerScrim.copy(alpha = .72f))
-                        .padding(horizontal = 8.dp, vertical = 6.dp)
-                        .testTag("banner-indicator"),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    banners.indices.forEach { dot ->
-                        Box(
-                            Modifier.size(if (dot == selected) 8.dp else 6.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(
-                                    if (dot == selected) Color.White
-                                    else Color.White.copy(alpha = .5f)
-                                )
-                        )
-                    }
-                }
         }
+        if (banners.size > 1)
+            Row(
+                Modifier.padding(top = 8.dp).testTag("banner-indicator"),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                banners.indices.forEach { dot ->
+                    Box(
+                        Modifier.size(width = if (dot == selected) 18.dp else 6.dp, height = 6.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                if (dot == selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .35f)
+                            )
+                    )
+                }
+            }
     }
 }
 
@@ -269,6 +265,8 @@ fun BannerHero(
                 presentation = PublicImagePresentation.VIEWPORT_FIT,
                 adaptiveBackdrop = true,
                 externalBanner = true,
+                fallback = UacIcon.PHOTO,
+                showUnavailableText = false,
                 onLoadStateChanged = onArtworkReady,
             )
         else LaunchedEffect(banner.id) { onArtworkReady(true) }
@@ -326,7 +324,7 @@ fun BannerHero(
                                         overflow = TextOverflow.Ellipsis,
                                     )
                             }
-                            if (route != null)
+                            if (route != null) {
                                 FilledIconButton(
                                     { onTap(); onNavigate(route) },
                                     Modifier.size(48.dp).testTag("banner-open"),
@@ -341,16 +339,17 @@ fun BannerHero(
                                         tr(language, "Ansehen", "Переглянути"),
                                     )
                                 }
+                            } else if (action == "externalURL") {
+                                SafeLink(
+                                    tr(language, "Ansehen", "Переглянути"),
+                                    banner.fields.string("externalURL"),
+                                    language,
+                                    onOpen = onTap,
+                                    onDialogVisibilityChanged = onDialogVisibilityChanged,
+                                    iconOnly = true,
+                                )
+                            }
                         }
-                        if (action == "externalURL")
-                            SafeLink(
-                                tr(language, "Ansehen", "Переглянути"),
-                                banner.fields.string("externalURL"),
-                                language,
-                                buttonColor = Color.White,
-                                onOpen = onTap,
-                                onDialogVisibilityChanged = onDialogVisibilityChanged,
-                            )
                     }
                 }
         }

@@ -7,7 +7,10 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -15,6 +18,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -28,6 +32,7 @@ import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -80,6 +85,12 @@ fun BrowseScreen(
     onBannerMeasurement: (BannerMeasurement) -> Unit = {},
 ) {
     val l = state.language
+    val discoveryRoot = state.route in setOf("home", "events", "organizations")
+    val directoryRoot = state.route == "directory"
+    val cardColumns = if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 700 &&
+        androidx.compose.ui.platform.LocalDensity.current.fontScale <= 1.3f) 2 else 1
+    var searchVisible by rememberSaveable(state.route) { mutableStateOf(state.search.isNotEmpty()) }
+    var directorySearchVisible by rememberSaveable(state.route) { mutableStateOf(false) }
     val backDispatcher =
         androidx.activity.compose.LocalOnBackPressedDispatcherOwner.current?.onBackPressedDispatcher
     LifecycleResumeEffect(model) {
@@ -126,14 +137,40 @@ fun BrowseScreen(
                                 if (backDispatcher != null) backDispatcher.onBackPressed()
                                 else requestNavigation(model::back)
                             },
-                            { requestNavigation { model.navigate("settings") } },
+                            {
+                                if (discoveryRoot) {
+                                    if (searchVisible || state.search.isNotEmpty()) {
+                                        searchVisible = false
+                                        model.filters(search = "")
+                                    } else searchVisible = true
+                                } else if (directoryRoot) directorySearchVisible = !directorySearchVisible
+                                else requestNavigation { model.navigate("settings") }
+                            },
                             compact =
                                 isCompactHeaderRoute(state.route) ||
                                     keyboardVisible ||
                                     androidx.compose.ui.platform.LocalConfiguration.current
                                         .screenHeightDp < 480,
+                            actionIcon = if (discoveryRoot || directoryRoot) UacIcon.SEARCH else UacIcon.SETTINGS,
+                            actionTag = if (discoveryRoot || directoryRoot) "header-search-toggle" else "settings",
                         )
                     }
+                    if (discoveryRoot && searchVisible)
+                        OutlinedTextField(
+                            state.search,
+                            { model.filters(search = it) },
+                            Modifier.widthIn(max = UacDesign.readableWidth)
+                                .fillMaxWidth()
+                                .padding(horizontal = UacDesign.pageInset, vertical = 4.dp)
+                                .testTag("header-search-field"),
+                            label = { Text(tr(l, "Suchen, auch nach Tags", "Пошук, зокрема за тегами")) },
+                            trailingIcon = {
+                                if (state.search.isNotEmpty()) TextButton({ model.filters(search = "") }) {
+                                    Text(tr(l, "Löschen", "Очистити"))
+                                }
+                            },
+                            singleLine = true,
+                        )
                     if (state.data.loading)
                         LinearProgressIndicator(Modifier.fillMaxWidth().testTag("browse-loading"))
                     key(state.navigationEpoch) {
@@ -155,6 +192,7 @@ fun BrowseScreen(
                                         directoryFeedback?.invoke(category, topic, title)
                                     },
                                     directoryEditor,
+                                    searchVisible = directorySearchVisible,
                                 )
                             } else if (state.isAccountRoute) {
                                 Column(Modifier.fillMaxSize()) {
@@ -252,9 +290,10 @@ fun BrowseScreen(
                                                 }
                                             if (state.detailId.isEmpty())
                                                 item("filters") {
-                                                    BrowseListControls(state, model) {
-                                                        filterSheetVisible = it
-                                                    }
+                                                    BrowseListControls(state, model,
+                                                        searchVisible,
+                                                        { searchVisible = it },
+                                                        { filterSheetVisible = it })
                                                 }
                                             if (visibilityNotice != null)
                                                 item("visibility") { visibilityNotice() }
@@ -310,17 +349,6 @@ fun BrowseScreen(
                                                         }
                                                     }
                                                 }
-                                            if (state.data.invalid > 0)
-                                                item("invalid-warning") {
-                                                    Text(
-                                                        tr(
-                                                            l,
-                                                            "Ungültige Einträge übersprungen: ",
-                                                            "Пропущено некоректних записів: ",
-                                                        ) + state.data.invalid,
-                                                        Modifier.testTag("invalid-warning"),
-                                                    )
-                                                }
                                             if (state.data.detail != null)
                                                 item("detail") {
                                                     ContentDetail(
@@ -355,18 +383,18 @@ fun BrowseScreen(
                                                             style = MaterialTheme.typography.titleMedium,
                                                         )
                                                     }
-                                                    items(events, key = { "events/${it.id}" }) { item ->
-                                                        ContentCard(item, l) {
+                                                    items(events.chunked(cardColumns), key = { "events/${it.first().id}" }) { row ->
+                                                        BrowseCardRow(row, l, cardColumns) { item ->
                                                             model.navigate("events/${item.id}")
                                                         }
                                                     }
                                                 }
                                             } else {
                                                 items(
-                                                    state.data.items,
-                                                    key = { "${it.kind}/${it.id}" },
-                                                ) { item ->
-                                                    ContentCard(item, l) {
+                                                    state.data.items.chunked(cardColumns),
+                                                    key = { row -> "${row.first().kind}/${row.first().id}" },
+                                                ) { row ->
+                                                    BrowseCardRow(row, l, cardColumns) { item ->
                                                         model.navigate(
                                                             "${item.kind.collection}/${item.id}"
                                                         )
@@ -432,10 +460,12 @@ fun BrowseScreen(
                                                     state.data.pastItems.sortedWith(
                                                         compareByDescending<Content> { it.fields.displayEventOccurrence(Instant.now())?.start }
                                                             .thenBy { it.id }
-                                                    ),
-                                                    key = { "past-events/${it.id}" },
-                                                ) { item ->
-                                                    ContentCard(item, l) { model.navigate("events/${item.id}") }
+                                                    ).chunked(cardColumns),
+                                                    key = { "past-events/${it.first().id}" },
+                                                ) { row ->
+                                                    BrowseCardRow(row, l, cardColumns) { item ->
+                                                        model.navigate("events/${item.id}")
+                                                    }
                                                 }
                                                 if (state.data.pastError != null)
                                                     item("past-error") {
@@ -600,39 +630,185 @@ private fun Settings(s: BrowseState, model: BrowseViewModel, diagnostics: () -> 
     }
 }
 
+@Composable
+private fun BrowseCardRow(
+    row: List<Content>,
+    language: String,
+    columns: Int,
+    onOpen: (Content) -> Unit,
+) {
+    Row(
+        Modifier.widthIn(max = if (columns == 1) UacDesign.readableWidth else 1040.dp)
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        row.forEach { item ->
+            ContentCard(item, language, Modifier.weight(1f)) { onOpen(item) }
+        }
+        if (columns > row.size) Spacer(Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun BrowseFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    leadingIcon: (@Composable () -> Unit)? = null,
+    trailingIcon: (@Composable () -> Unit)? = null,
+) {
+    val colors = MaterialTheme.colorScheme
+    Box(modifier.selectable(selected = selected, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center) {
+        Surface(
+            shape = RoundedCornerShape(UacDesign.chipRadius),
+            color = if (selected) colors.primary else colors.surface.copy(alpha = .64f),
+            contentColor = if (selected) colors.onPrimary else colors.onSurfaceVariant,
+            border = BorderStroke(1.dp, if (selected) colors.primary else colors.outlineVariant),
+        ) {
+            Row(Modifier.heightIn(min = 34.dp).padding(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(7.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                leadingIcon?.invoke()
+                ProvideTextStyle(MaterialTheme.typography.labelLarge) { label() }
+                trailingIcon?.invoke()
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BrowseListControls(
-    state: BrowseState, model: BrowseViewModel, onSheetVisible: (Boolean) -> Unit = {},
+    state: BrowseState, model: BrowseViewModel,
+    searchVisible: Boolean,
+    onSearchVisible: (Boolean) -> Unit,
+    onSheetVisible: (Boolean) -> Unit = {},
 ) {
     val language = state.language
-    var searchVisible by rememberSaveable(state.route) { mutableStateOf(state.search.isNotEmpty()) }
     var sheet by rememberSaveable(state.route) { mutableStateOf<String?>(null) }
+    var eventPeriodMenu by remember { mutableStateOf(false) }
     LaunchedEffect(sheet) { onSheetVisible(sheet != null) }
-    val regionLabel =
-        regions.find { it.first == state.region }?.second
-            ?: tr(language, "Ganz Österreich", "Уся Австрія")
+    val regionLabel = localizedRegionName(state.region, language)
+        ?: tr(language, "Ganz Österreich", "Уся Австрія")
     Column(
         Modifier.widthIn(max = UacDesign.readableWidth).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Heading(state.kind?.label(language) ?: tr(language, "Entdecken", "Відкривайте нове"))
+        if (state.route !in setOf("home", "events", "organizations"))
+            Heading(state.kind?.label(language) ?: tr(language, "Entdecken", "Відкривайте нове"))
         if (state.isList) {
-            FlowRow(
-                Modifier.fillMaxWidth().testTag("primary-filter-row"),
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())
+                    .testTag("primary-filter-row"),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                FilterChip(
+                if (state.kind == ContentKind.NEWS)
+                    BrowseFilterChip(
+                        selected = state.category.isNotEmpty(),
+                        onClick = { sheet = "news" },
+                        label = { Text(state.category.takeIf(String::isNotEmpty)?.let { label(it, language) }
+                            ?: tr(language, "Thema", "Тема")) },
+                        leadingIcon = { UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = { UacSymbol(UacIcon.CHEVRON_DOWN, modifier = Modifier.size(15.dp)) },
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("news-topic"),
+                    )
+                if (state.kind == ContentKind.EVENTS)
+                    Box {
+                        BrowseFilterChip(
+                            selected = state.eventPeriod != EventPeriod.ALL,
+                            onClick = { eventPeriodMenu = true },
+                            label = { Text(when (state.eventPeriod) {
+                                EventPeriod.ALL -> tr(language, "Alle", "Усі")
+                                EventPeriod.TODAY -> tr(language, "Heute", "Сьогодні")
+                                EventPeriod.THIS_WEEK -> tr(language, "Diese Woche", "Цього тижня")
+                            }) },
+                            leadingIcon = { UacSymbol(UacIcon.GRID, modifier = Modifier.size(18.dp)) },
+                            trailingIcon = { UacSymbol(UacIcon.CHEVRON_DOWN, modifier = Modifier.size(15.dp)) },
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("event-period-menu"),
+                        )
+                        DropdownMenu(eventPeriodMenu, onDismissRequest = { eventPeriodMenu = false }) {
+                            listOf(
+                                EventPeriod.ALL to tr(language, "Alle", "Усі"),
+                                EventPeriod.TODAY to tr(language, "Heute", "Сьогодні"),
+                                EventPeriod.THIS_WEEK to tr(language, "Diese Woche", "Цього тижня"),
+                            ).forEach { (period, title) ->
+                                DropdownMenuItem(text = { Text(title) }, onClick = {
+                                    model.filters(eventPeriod = period)
+                                    eventPeriodMenu = false
+                                }, modifier = Modifier.testTag("event-quick-period-${period.name}"))
+                            }
+                        }
+                    }
+                if (state.kind == ContentKind.ORGANIZATIONS)
+                    BrowseFilterChip(
+                        selected = false,
+                        onClick = { model.filters(organizationScope = OrganizationScope.ALL) },
+                        label = { Text(tr(language, "Alle", "Усі")) },
+                        leadingIcon = { UacSymbol(UacIcon.GRID, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = { UacSymbol(UacIcon.CHEVRON_DOWN, modifier = Modifier.size(15.dp)) },
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("organization-all"),
+                    )
+                BrowseFilterChip(
                     selected = state.region.isNotEmpty(),
                     onClick = { sheet = "region" },
                     label = { Text(regionLabel) },
                     leadingIcon = { UacSymbol(UacIcon.LOCATION, modifier = Modifier.size(18.dp)) },
+                    trailingIcon = { UacSymbol(UacIcon.CHEVRON_DOWN, modifier = Modifier.size(15.dp)) },
                     modifier = Modifier.heightIn(min = 48.dp).testTag("region"),
                 )
-                FilterChip(
+                if (state.kind == ContentKind.EVENTS) {
+                    BrowseFilterChip(
+                        selected = state.category.isNotEmpty(),
+                        onClick = { sheet = "filters" },
+                        label = { Text(state.category.takeIf(String::isNotEmpty)?.let { label(it, language) }
+                            ?: tr(language, "Alle Kategorien", "Усі категорії")) },
+                        leadingIcon = { UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp)) },
+                        trailingIcon = { UacSymbol(UacIcon.CHEVRON_DOWN, modifier = Modifier.size(15.dp)) },
+                        modifier = Modifier.heightIn(min = 48.dp).testTag("event-category"),
+                    )
+                }
+                if (state.kind == ContentKind.NEWS)
+                    listOf(
+                        NewsSource.SUBSCRIBED to tr(language, "Gefolgt", "Підписані"),
+                        NewsSource.SAVED to tr(language, "Gespeichert", "Збережені"),
+                    ).forEach { (source, title) ->
+                        BrowseFilterChip(
+                            selected = state.newsSource == source,
+                            onClick = { model.filters(newsSource = if (state.newsSource == source) NewsSource.ALL else source) },
+                            label = { Text(title) },
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("news-quick-source-${source.name}"),
+                        )
+                    }
+                if (state.kind == ContentKind.EVENTS)
+                    listOf(
+                        EventScope.REGISTERED to tr(language, "Angemeldet", "Зареєстровані"),
+                        EventScope.SAVED to tr(language, "Gespeichert", "Збережені"),
+                    ).forEach { (scope, title) ->
+                        BrowseFilterChip(
+                            selected = state.eventScope == scope,
+                            onClick = { model.filters(eventScope = if (state.eventScope == scope) EventScope.ALL else scope) },
+                            label = { Text(title) },
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("event-quick-scope-${scope.name}"),
+                        )
+                    }
+                if (state.kind == ContentKind.ORGANIZATIONS)
+                    listOf(
+                        OrganizationScope.SUBSCRIBED to tr(language, "Gefolgt", "Підписані"),
+                        OrganizationScope.BOOKMARKED to tr(language, "Gespeichert", "Збережені"),
+                    ).forEach { (scope, title) ->
+                        BrowseFilterChip(
+                            selected = state.organizationScope == scope,
+                            onClick = { model.filters(organizationScope = if (state.organizationScope == scope) OrganizationScope.ALL else scope) },
+                            label = { Text(title) },
+                            modifier = Modifier.heightIn(min = 48.dp).testTag("organization-quick-scope-${scope.name}"),
+                        )
+                    }
+                BrowseFilterChip(
                     selected = searchVisible || state.search.isNotEmpty(),
-                    onClick = { searchVisible = !searchVisible },
+                    onClick = { onSearchVisible(!searchVisible) },
                     label = { Text(tr(language, "Suchen", "Пошук")) },
                     leadingIcon = { UacSymbol(UacIcon.SEARCH, modifier = Modifier.size(18.dp)) },
                     modifier = Modifier.heightIn(min = 48.dp).testTag("search-toggle"),
@@ -651,7 +827,7 @@ private fun BrowseListControls(
                             state.kind == ContentKind.NEWS && state.newsSource != NewsSource.ALL,
                         )
                         .count { it }
-                FilterChip(
+                BrowseFilterChip(
                     selected = activeFilters > 0,
                     onClick = { sheet = if (state.kind == ContentKind.NEWS) "news" else "filters" },
                     leadingIcon = { UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp)) },
@@ -664,6 +840,8 @@ private fun BrowseListControls(
                     modifier = Modifier.heightIn(min = 48.dp).testTag("news-filters"),
                 )
             }
+            if (state.route == "organizations")
+                Heading(tr(language, "Organisationen", "Організації"))
             if (state.kind == ContentKind.NEWS)
                 Text(
                     newsFilterSummary(state, language),
@@ -671,56 +849,8 @@ private fun BrowseListControls(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().testTag("news-filter-summary"),
                 )
-            if (state.kind == ContentKind.EVENTS)
-                Column(
-                    Modifier.fillMaxWidth().testTag("events-discovery-row"),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(
-                            EventPeriod.TODAY to tr(language, "Heute", "Сьогодні"),
-                            EventPeriod.THIS_WEEK to tr(language, "Diese Woche", "Цього тижня"),
-                        ).forEach { (period, title) ->
-                            FilterChip(
-                                selected = state.eventPeriod == period,
-                                onClick = { model.filters(eventPeriod = if (state.eventPeriod == period) EventPeriod.ALL else period) },
-                                label = { Text(title) },
-                                modifier = Modifier.testTag("event-quick-period-${period.name}"),
-                            )
-                        }
-                    }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf(
-                            EventScope.SAVED to tr(language, "Gespeichert", "Збережені"),
-                            EventScope.REGISTERED to tr(language, "Angemeldet", "Зареєстровані"),
-                        ).forEach { (scope, title) ->
-                            FilterChip(
-                                selected = state.eventScope == scope,
-                                onClick = { model.filters(eventScope = if (state.eventScope == scope) EventScope.ALL else scope) },
-                                label = { Text(title) },
-                                modifier = Modifier.testTag("event-quick-scope-${scope.name}"),
-                            )
-                        }
-                    }
-                }
-            if (state.kind == ContentKind.ORGANIZATIONS)
-                FlowRow(
-                    Modifier.fillMaxWidth().testTag("organizations-discovery-row"),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    listOf(
-                        OrganizationScope.SUBSCRIBED to tr(language, "Abonniert", "Підписки"),
-                        OrganizationScope.BOOKMARKED to tr(language, "Gespeichert", "Збережені"),
-                    ).forEach { (scope, title) ->
-                        FilterChip(
-                            selected = state.organizationScope == scope,
-                            onClick = { model.filters(organizationScope = if (state.organizationScope == scope) OrganizationScope.ALL else scope) },
-                            label = { Text(title) },
-                            modifier = Modifier.testTag("organization-quick-scope-${scope.name}"),
-                        )
-                    }
-                }
-            if (searchVisible || state.search.isNotEmpty())
+            if (state.route !in setOf("home", "events", "organizations") &&
+                (searchVisible || state.search.isNotEmpty()))
                 OutlinedTextField(
                     state.search,
                     { model.filters(search = it) },
@@ -738,7 +868,7 @@ private fun BrowseListControls(
                 )
             val categorySummary =
                 state.category.takeIf(String::isNotEmpty)?.let { label(it, language) }
-            if (categorySummary != null)
+            if (categorySummary != null && state.route !in setOf("home", "events", "organizations"))
                 Text(
                     tr(language, "Kategorie", "Категорія") + ": " + categorySummary,
                     style = MaterialTheme.typography.bodySmall,
@@ -752,7 +882,8 @@ private fun BrowseListControls(
                     ContentKind.ORGANIZATIONS -> "profile/subscriptions"
                     else -> null
                 }
-            quickDestination?.let { destination ->
+            quickDestination?.takeIf { state.route !in setOf("home", "events", "organizations") }
+                ?.let { destination ->
                 TextButton(
                     onClick = { model.navigate(destination) },
                     modifier =
@@ -1176,13 +1307,14 @@ private fun newsFilterSummary(state: BrowseState, language: String): String =
     listOf(
             newsPeriodLabel(state.newsPeriod, language),
             newsOrderLabel(state.newsOrder, language),
-            newsSourceLabel(state.newsSource, language),
+            newsSourceLabel(state.newsSource, language).takeIf { state.newsSource != NewsSource.ALL },
         )
+        .filterNotNull()
         .joinToString(" · ")
 
 private fun newsPeriodLabel(value: NewsPeriod, language: String) =
     when (value) {
-        NewsPeriod.ALL -> tr(language, "Alle Zeiten", "Увесь час")
+        NewsPeriod.ALL -> tr(language, "Gesamter Zeitraum", "За весь час")
         NewsPeriod.TODAY -> tr(language, "Heute", "Сьогодні")
         NewsPeriod.SEVEN_DAYS -> tr(language, "7 Tage", "7 днів")
         NewsPeriod.THIRTY_DAYS -> tr(language, "30 Tage", "30 днів")
@@ -1208,25 +1340,34 @@ fun SafeLink(
     buttonColor: Color = Color.Unspecified,
     onOpen: () -> Unit = {},
     onDialogVisibilityChanged: (Boolean) -> Unit = {},
+    iconOnly: Boolean = false,
 ) {
     val url = safeHttps(value) ?: return
     var show by remember(url) { mutableStateOf(false) }
     LaunchedEffect(show) { onDialogVisibilityChanged(show) }
     var failed by remember(url) { mutableStateOf(false) }
     val context = LocalContext.current
-    TextButton(
-        { onOpen(); show = true },
-        colors =
-            ButtonDefaults.textButtonColors(
-                contentColor =
-                    if (buttonColor == Color.Unspecified) MaterialTheme.colorScheme.primary
-                    else buttonColor
-            ),
-    ) {
-        UacSymbol(UacIcon.OPEN_ARROW, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(title.ifBlank { url })
-    }
+    if (iconOnly)
+        FilledIconButton(
+            { onOpen(); show = true },
+            Modifier.size(48.dp).testTag("banner-open"),
+            colors = IconButtonDefaults.filledIconButtonColors(
+                containerColor = UacDesign.blue, contentColor = Color.White),
+        ) { UacSymbol(UacIcon.OPEN_ARROW, title.ifBlank { url }) }
+    else
+        TextButton(
+            { onOpen(); show = true },
+            colors =
+                ButtonDefaults.textButtonColors(
+                    contentColor =
+                        if (buttonColor == Color.Unspecified) MaterialTheme.colorScheme.primary
+                        else buttonColor
+                ),
+        ) {
+            UacSymbol(UacIcon.OPEN_ARROW, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(title.ifBlank { url })
+        }
     if (show)
         AlertDialog(
             onDismissRequest = { show = false },

@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,6 +44,7 @@ fun PublicImage(
     fallback: UacIcon = UacIcon.NEWS,
     presentation: PublicImagePresentation = PublicImagePresentation.STANDARD,
     externalBanner: Boolean = false,
+    showUnavailableText: Boolean = true,
     onLoadStateChanged: ((Boolean) -> Unit)? = null,
 ) {
     val bucketAddress = remember(url) { PublicMediaPolicy.address(url) }
@@ -137,17 +139,22 @@ fun PublicImage(
                     CircularProgressIndicator(Modifier.size(32.dp).testTag("public-media-loading"))
                 else ->
                     Column(
-                        Modifier.padding(8.dp),
+                        (if (!showUnavailableText && LocalDensity.current.fontScale > 1.3f)
+                            Modifier.align(Alignment.TopCenter).padding(top = 20.dp)
+                        else Modifier.offset(y = if (showUnavailableText) 0.dp else (-30).dp))
+                            .padding(8.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        UacSymbol(fallback, modifier = Modifier.size(28.dp))
-                        Text(
+                        UacSymbol(fallback,
                             tr(language, "Bild nicht verfügbar", "Зображення недоступне"),
-                            Modifier.testTag("public-media-unavailable"),
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                            modifier = Modifier.size(28.dp).testTag("public-media-unavailable"))
+                        if (showUnavailableText)
+                            Text(
+                                tr(language, "Bild nicht verfügbar", "Зображення недоступне"),
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                     }
             }
         }

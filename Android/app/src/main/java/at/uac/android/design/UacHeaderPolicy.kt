@@ -1,4 +1,5 @@
 package at.uac.android.design
 
-/** Keep the large brand lockup for the welcoming home feed; secondary routes use an app bar. */
-internal fun isCompactHeaderRoute(route: String): Boolean = route != "home"
+/** Match the iOS brand lockup on all five root tabs; secondary routes use an app bar. */
+internal fun isCompactHeaderRoute(route: String): Boolean =
+    route !in setOf("home", "events", "organizations", "directory", "profile")

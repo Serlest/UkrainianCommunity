@@ -116,7 +116,8 @@ class Step5FeedUiTest {
         compose.runOnIdle { assertEquals(7, model.state.value.data.pastItems.size) }
         compose.onNodeWithTag("browse-list").performScrollToNode(hasTestTag("card-step5-event"))
         compose.onNodeWithTag("news-filters").performScrollTo().performClick()
-        compose.onNodeWithTag("event-period-TODAY").performScrollTo().performClick()
+        // The fixture starts one hour from now and can cross midnight near the end of the day.
+        compose.onNodeWithTag("event-period-ALL").performScrollTo().performClick()
         compose.onNodeWithTag("event-age-TEEN").performScrollTo().performClick()
         compose.onNodeWithTag("content-filter-done").performScrollTo().performClick()
         compose.waitUntil(10_000) { !model.state.value.data.loading }

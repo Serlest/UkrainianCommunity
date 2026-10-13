@@ -30,6 +30,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -70,6 +71,7 @@ fun DirectoryDestination(
     onOpen: (String) -> Unit,
     onFeedback: (String?, String?, String) -> Unit,
     editor: DirectoryEditorAccess? = null,
+    searchVisible: Boolean = false,
 ) {
     val context = LocalContext.current
     val content: DirectoryViewModel = viewModel()
@@ -109,6 +111,9 @@ fun DirectoryDestination(
     val topic = category?.let { c -> parts.getOrNull(2)?.let(c::visibleTopic) }
     val missing = (parts.size > 1 && category == null) || (parts.size > 2 && topic == null)
     var query by rememberSaveable(route) { mutableStateOf("") }
+    LaunchedEffect(searchVisible, route) {
+        if (route == "directory" && !searchVisible) query = ""
+    }
     val searching = query.isNotBlank()
     val results = remember(query, language, categories) { searchDirectory(categories, query, language) }
     val listState = rememberLazyListState()
@@ -213,13 +218,13 @@ fun DirectoryDestination(
         } else {
             if (!searching) {
                 item("intro") {
-                    DirectoryWelcomeHero(language) { scope.launch { listState.animateScrollToItem(3) } }
+                    DirectoryWelcomeHero(language) { scope.launch { listState.animateScrollToItem(2) } }
                     if (canEdit) TextButton({ onOpen("directory/manage") }) {
                         Text(tr(language, "Ratgeber verwalten", "Керування довідником"))
                     }
                 }
             }
-            item("search") {
+            if (searchVisible || searching) item("search") {
                 OutlinedTextField(query, { query = it.take(160) },
                     label = { Text(tr(language, "Im Ratgeber suchen", "Пошук у довіднику")) },
                     modifier = Modifier.fillMaxWidth().testTag("directory-search"), singleLine = true)

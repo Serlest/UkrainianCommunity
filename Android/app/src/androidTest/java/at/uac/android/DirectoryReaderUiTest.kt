@@ -74,7 +74,8 @@ class DirectoryReaderUiTest {
         compose.setContent {
             UacTheme("light") {
                 DirectoryDestination(route.value, "de", region.value,
-                    { region.value = it }, { route.value = it }, { _, _, _ -> })
+                    { region.value = it }, { route.value = it }, { _, _, _ -> },
+                    searchVisible = true)
             }
         }
         compose.onNodeWithTag("directory-search").performTextInput("Gewalt")
