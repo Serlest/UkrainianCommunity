@@ -17,14 +17,15 @@ const manifest = {
   body: "Місто Відень відкрило консультаційний пункт для мешканців. Він пояснює, як отримати допомогу та які документи потрібні для звернення. Перед візитом слід перевірити години роботи на офіційній сторінці й підготувати посвідчення особи.",
   deTitle: "Neue Beratungsstelle in Wien", deSubtitle: "Die Stadt hat eine neue Anlaufstelle eröffnet.",
   deBody: "Die Stadt Wien hat eine Beratungsstelle für Einwohner eröffnet. Dort erfahren sie, wie sie Unterstützung erhalten und welche Unterlagen für einen Termin nötig sind. Vor dem Besuch sollten sie die Öffnungszeiten auf der offiziellen Seite prüfen und einen Ausweis bereithalten.",
-  publishedAt: "2026-10-12T10:00:00Z", category: "communityAndIntegration",
+  publishedAt: "2026-10-12T10:55:00Z", category: "communityAndIntegration",
   sources: [
     {url: primaryURL, title: "Stadt Wien", isPrimary: true, verificationRole: "officialPrimary"},
     {url: "https://orf.at/stories/example", title: "ORF", isPrimary: false, verificationRole: "independent"},
   ],
 };
 const review = {
-  scope: "wien", sourceEventAt: "2026-10-12T10:00:00Z", sourceEventKind: "new",
+  scope: "wien", sourceEventDate: "2026-10-12", sourceEventAt: "2026-10-12T10:00:00Z",
+  sourceEventKind: "new",
   primaryCheckedAt: "2026-10-12T10:45:00Z", independentCheckedAt: "2026-10-12T10:47:00Z",
   primaryOpened: true, independentOpened: true, primaryPageKind: "article_or_notice",
   officialAuthorityConfirmed: true, primaryURL, independentURL: "https://orf.at/stories/example",
@@ -45,9 +46,33 @@ test("news editorial gate accepts a fresh verified bilingual package", () => {
   assert.equal(result.item.regionScope, "federalState");
 });
 
-test("news editorial gate rejects stale, indirect, incomplete, and unproven material", () => {
-  assert.throws(() => validateNewsEditorialReview({...manifest, publishedAt: "2026-10-10T10:00:00Z"},
-    {...review, sourceEventAt: "2026-10-10T10:00:00Z"}, now), /freshness window/);
+test("news editorial gate accepts today's official date without an invented source time", () => {
+  const result = validateNewsEditorialReview(manifest,
+    {...review, sourceEventAt: undefined}, now);
+  assert.equal(result.sourceEventDate, "2026-10-12");
+  assert.equal(result.sourceEventAt, null);
+  assert.equal(result.item.publishedAt.toISOString(), "2026-10-12T10:55:00.000Z");
+});
+
+test("today is determined in Europe/Vienna, including after UTC midnight offset", () => {
+  const viennaAfterMidnight = new Date("2026-10-12T22:30:00Z");
+  const item = {...manifest, publishedAt: "2026-10-12T22:25:00Z"};
+  const datedToday = {...review, sourceEventDate: "2026-10-13", sourceEventAt: undefined,
+    primaryCheckedAt: "2026-10-12T22:20:00Z", independentCheckedAt: "2026-10-12T22:22:00Z",
+    image: {...review.image, generatedAt: "2026-10-12T22:23:00Z"}};
+  assert.equal(validateNewsEditorialReview(item, datedToday, viennaAfterMidnight).sourceEventDate,
+    "2026-10-13");
+  assert.throws(() => validateNewsEditorialReview(item,
+    {...datedToday, sourceEventDate: "2026-10-12"}, viennaAfterMidnight), /today's official news date/);
+});
+
+test("news editorial gate rejects old dates, stale post times, indirect and unproven material", () => {
+  assert.throws(() => validateNewsEditorialReview(manifest,
+    {...review, sourceEventDate: "2026-10-11", sourceEventAt: undefined}, now), /today's official news date/);
+  assert.throws(() => validateNewsEditorialReview({...manifest, publishedAt: "2026-10-12T10:00:00Z"},
+    review, now), /freshness window/);
+  assert.throws(() => validateNewsEditorialReview(manifest,
+    {...review, sourceEventAt: "2026-10-11T10:00:00Z"}, now), /does not match/);
   assert.throws(() => validateNewsEditorialReview(manifest,
     {...review, primaryURL: "https://www.wien.gv.at/"}, now), /direct source URL/);
   const mediaAsPrimary = {...manifest, canonicalURL: "https://orf.at/stories/example",
@@ -74,6 +99,8 @@ test("editorial receipt is bound to exact manifest and generated cover bytes", a
     const receipt = await reviewNewsForPublication(manifestPath, reviewPath, now);
     assert.equal(receipt.passed, true);
     assert.equal(receipt.scope, "wien");
+    assert.equal(receipt.sourceEventDate, "2026-10-12");
+    assert.equal(receipt.publishedAt, "2026-10-12T10:55:00.000Z");
     await writeFile(imagePath, "copied-or-changed-image");
     await assert.rejects(() => reviewNewsForPublication(manifestPath, reviewPath, now), /image hash/);
   } finally {

@@ -13,6 +13,23 @@ import {normalizeAndValidateManifestItem} from "./verifiedContentPublisherCore.m
 const hour = 60 * 60 * 1000;
 const maxArticleAge = 24 * hour;
 const maxSourceReviewAge = 2 * hour;
+const maxPublicationStampAge = 10 * 60 * 1000;
+
+function viennaDate(time) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Vienna", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(time).map(({type, value}) => [type, value]));
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
+
+function officialDate(value) {
+  const parsed = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ?
+    new Date(`${value}T00:00:00Z`) : new Date(NaN);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) {
+    throw new Error("sourceEventDate needs a valid official calendar date.");
+  }
+  return value;
+}
 
 function authorityRoot(value) {
   const hostname = new URL(value).hostname.toLowerCase();
@@ -48,11 +65,15 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   if (item.kind !== "news") throw new Error("The news editorial gate accepts news only.");
   if (!isAbsolute(item.imagePath)) throw new Error("The generated news imagePath must be absolute.");
 
-  const eventAt = exactTime(review.sourceEventAt, "sourceEventAt");
-  recent(eventAt, now, maxArticleAge, "sourceEventAt");
-  if (item.publishedAt.getTime() !== eventAt.getTime()) {
-    throw new Error("Manifest publishedAt must equal the verified source event timestamp.");
+  const eventDate = officialDate(review.sourceEventDate);
+  if (eventDate !== viennaDate(now)) {
+    throw new Error("sourceEventDate is not today's official news date in Europe/Vienna.");
   }
+  const eventAt = review.sourceEventAt == null ? null : exactTime(review.sourceEventAt, "sourceEventAt");
+  if (eventAt && viennaDate(eventAt) !== eventDate) {
+    throw new Error("sourceEventAt does not match the official sourceEventDate.");
+  }
+  recent(item.publishedAt, now, maxPublicationStampAge, "publishedAt");
   if (!["new", "material_update"].includes(review.sourceEventKind)) {
     throw new Error("sourceEventKind must be new or material_update.");
   }
@@ -104,7 +125,8 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   }
   substantiveText(image.prompt, "image.prompt", 40);
   recent(exactTime(image.generatedAt, "image.generatedAt"), now, maxArticleAge, "image.generatedAt");
-  return {item, imageSHA256: image.sha256.toLowerCase(), sourceEventAt: eventAt};
+  return {item, imageSHA256: image.sha256.toLowerCase(), sourceEventDate: eventDate,
+    sourceEventAt: eventAt};
 }
 
 export async function reviewNewsForPublication(manifestPath, reviewPath, now = new Date()) {
@@ -113,12 +135,15 @@ export async function reviewNewsForPublication(manifestPath, reviewPath, now = n
   const rawItems = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [raw];
   if (rawItems.length !== 1) throw new Error("One news article is required per editorial review.");
   const review = JSON.parse(await readFile(reviewPath, "utf8"));
-  const {item, imageSHA256, sourceEventAt} = validateNewsEditorialReview(rawItems[0], review, now);
+  const {item, imageSHA256, sourceEventDate, sourceEventAt} =
+    validateNewsEditorialReview(rawItems[0], review, now);
   const actualImageSHA256 = createHash("sha256").update(await readFile(item.imagePath)).digest("hex");
   if (actualImageSHA256 !== imageSHA256) throw new Error("Generated image hash does not match the reviewed cover.");
   return {
-    schemaVersion: 1, passed: true, reviewedAt: now.toISOString(), scope: review.scope,
-    canonicalURL: item.canonicalURL, sourceEventAt: sourceEventAt.toISOString(),
+    schemaVersion: 2, passed: true, reviewedAt: now.toISOString(), scope: review.scope,
+    canonicalURL: item.canonicalURL, sourceEventDate,
+    sourceEventAt: sourceEventAt?.toISOString() ?? null,
+    publishedAt: item.publishedAt.toISOString(),
     manifestSHA256: createHash("sha256").update(manifestBytes).digest("hex"),
     imageSHA256: actualImageSHA256,
     primaryURL: item.canonicalURL,
