@@ -3,31 +3,49 @@ package at.uac.android.feature.directory
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import at.uac.android.core.backend.AppBackend
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -35,10 +53,12 @@ import at.uac.android.design.UacCard
 import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionHeading
+import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Choice
 import at.uac.android.feature.browse.SafeLink
 import at.uac.android.feature.browse.regions
 import at.uac.android.feature.browse.tr
+import kotlinx.coroutines.launch
 
 /** Public catalog stays readable from the reviewed bundle while cloud edits sync. */
 @Composable
@@ -88,8 +108,14 @@ fun DirectoryDestination(
     val category = parts.getOrNull(1)?.let { id -> categories.firstOrNull { it.id == id } }
     val topic = category?.let { c -> parts.getOrNull(2)?.let(c::visibleTopic) }
     val missing = (parts.size > 1 && category == null) || (parts.size > 2 && topic == null)
+    var query by rememberSaveable(route) { mutableStateOf("") }
+    val searching = query.isNotBlank()
+    val results = remember(query, language, categories) { searchDirectory(categories, query, language) }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
     LazyColumn(
         Modifier.fillMaxSize().testTag("directory-list"),
+        state = listState,
         contentPadding = PaddingValues(start = UacDesign.pageInset, end = UacDesign.pageInset, bottom = 36.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -185,58 +211,135 @@ fun DirectoryDestination(
                 }
             }
         } else {
-            item("intro") {
-                UacSectionHeading(tr(language, "Ratgeber", "Довідник"), UacIcon.NEWS)
-                Text(tr(language, "Wichtige Themen für das Leben in Österreich – vom Ankommen bis zum Alltag.",
-                    "Важливі теми для життя в Австрії — від перших кроків до щоденних питань."),
-                    style = MaterialTheme.typography.bodyLarge)
-                if (canEdit) TextButton({ onOpen("directory/manage") }) {
-                    Text(tr(language, "Ratgeber verwalten", "Керування довідником"))
+            if (!searching) {
+                item("intro") {
+                    DirectoryWelcomeHero(language) { scope.launch { listState.animateScrollToItem(3) } }
+                    if (canEdit) TextButton({ onOpen("directory/manage") }) {
+                        Text(tr(language, "Ratgeber verwalten", "Керування довідником"))
+                    }
                 }
             }
             item("search") {
-                var query by rememberSaveable { mutableStateOf("") }
                 OutlinedTextField(query, { query = it.take(160) },
                     label = { Text(tr(language, "Im Ratgeber suchen", "Пошук у довіднику")) },
                     modifier = Modifier.fillMaxWidth().testTag("directory-search"), singleLine = true)
-                val results = remember(query, language, categories) { searchDirectory(categories, query, language) }
-                if (query.trim().length >= 2) {
-                    if (results.isEmpty())
-                        Text(tr(language, "Keine Treffer", "Нічого не знайдено"))
-                    results.take(40).forEach { result ->
-                        TextButton({ onOpen(result.first) }, Modifier.fillMaxWidth()) {
-                            Text(result.second)
+            }
+            if (searching) {
+                item("results-heading") {
+                    Text(tr(language, "Suchergebnisse", "Результати пошуку"),
+                        style = MaterialTheme.typography.titleMedium)
+                }
+                if (results.isEmpty()) item("no-results") {
+                    Text(tr(language, "Keine Treffer. Versuchen Sie einen anderen Begriff.",
+                        "Нічого не знайдено. Спробуйте інший запит."))
+                }
+                items(results, key = { "result:${it.first}" }) { result ->
+                    UacCard(Modifier.clickable { onOpen(result.first) }) {
+                        Text(result.second, style = MaterialTheme.typography.titleSmall)
+                    }
+                }
+            } else {
+                item("categories-heading") {
+                    Text(tr(language, "Bereiche des Ratgebers", "Розділи довідника"),
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.testTag("directory-categories-heading"))
+                }
+                categories.firstOrNull { it.id == "safety" }?.let { safety ->
+                    item("safety") {
+                        DirectoryCategoryRow(safety, language, featured = true) {
+                            onOpen("directory/${safety.id}")
                         }
                     }
                 }
-            }
-            listOf("start", "life", "support").forEach { placement ->
-                val section = categories.filter { it.placement == placement }
-                if (section.isNotEmpty()) {
-                    item("placement:$placement") {
-                        UacSectionHeading(when (placement) {
-                            "start" -> tr(language, "Ankommen in Österreich", "Початок в Австрії")
-                            "life" -> tr(language, "Alltag", "Повсякденне життя")
-                            else -> tr(language, "Unterstützung und Teilhabe", "Підтримка та участь")
-                        }, UacIcon.NEWS)
-                    }
-                    items(section, key = { "category:${it.id}" }) { item ->
-                        UacCard(Modifier.clickable { onOpen("directory/${item.id}") }
-                            .testTag("directory-category-${item.id}")) {
-                            Text(item.title.forLanguage(language), style = MaterialTheme.typography.titleMedium)
-                            Text(item.summary.forLanguage(language), maxLines = 3)
-                            TextButton({ onOpen("directory/${item.id}") }) {
-                                Text(tr(language, "Bereich öffnen", "Відкрити розділ"))
+                listOf("start", "life", "support").forEach { placement ->
+                    val section = categories.filter { it.placement == placement && it.id != "safety" }
+                    if (section.isNotEmpty()) {
+                        item("placement:$placement") {
+                            Text(when (placement) {
+                                "start" -> tr(language, "Ankommen in Österreich", "Початок в Австрії")
+                                "life" -> tr(language, "Alltag", "Повсякденне життя")
+                                else -> tr(language, "Unterstützung und Teilhabe", "Підтримка та участь")
+                            }, style = MaterialTheme.typography.titleMedium)
+                        }
+                        items(section, key = { "category:${it.id}" }) { item ->
+                            DirectoryCategoryRow(item, language) {
+                                onOpen("directory/${item.id}")
                             }
                         }
                     }
                 }
-            }
-            item("feedback") {
-                FeedbackCard(language, tr(language, "Fehlt eine Antwort?", "Бракує відповіді?")) {
-                    onFeedback(null, null, tr(language, "Ratgeber", "Довідник"))
+                item("feedback") {
+                    FeedbackCard(language, tr(language, "Fehlt eine Antwort?", "Бракує відповіді?")) {
+                        onFeedback(null, null, tr(language, "Ratgeber", "Довідник"))
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun DirectoryWelcomeHero(language: String, onBrowse: () -> Unit) {
+    val shape = RoundedCornerShape(UacDesign.cardRadius)
+    Column(
+        Modifier.fillMaxWidth().heightIn(min = 190.dp)
+            .clip(shape)
+            .background(Brush.linearGradient(listOf(
+                Color(0xFF25498C), Color(0xFFAC3D4D), Color(0xFFC59E43),
+            )))
+            .clickable(role = Role.Button, onClick = onBrowse)
+            .testTag("directory-browse-sections")
+            .padding(22.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        CompositionLocalProvider(LocalContentColor provides Color.White) {
+            UacSymbol(UacIcon.DIRECTORY)
+        }
+        Text(tr(language, "Ratgeber", "Довідник"),
+            style = MaterialTheme.typography.headlineLarge, color = Color.White)
+        Text(tr(language, "Wichtige Themen für das Leben in Österreich – vom Ankommen bis zum Alltag.",
+            "Важливі теми для життя в Австрії — від перших кроків до щоденних питань."),
+            style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .9f))
+        Text(tr(language, "Bereiche ansehen →", "Переглянути розділи →"),
+            style = MaterialTheme.typography.labelLarge, color = Color.White)
+    }
+}
+
+@Composable
+private fun DirectoryCategoryRow(category: DirectoryCategory, language: String,
+                                 featured: Boolean = false, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(UacDesign.cardRadius)
+    val colors = if (featured)
+        listOf(UacDesign.blue, UacDesign.blue.copy(alpha = .82f))
+    else listOf(MaterialTheme.colorScheme.surfaceContainerLow,
+        MaterialTheme.colorScheme.surfaceContainerLow)
+    val foreground = if (featured) Color.White else MaterialTheme.colorScheme.onSurface
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 76.dp)
+            .clip(shape).background(Brush.linearGradient(colors))
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag("directory-category-${category.id}")
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            Modifier.size(if (featured) 56.dp else 48.dp),
+            shape = RoundedCornerShape(14.dp),
+            color = if (featured) Color.White.copy(alpha = .18f)
+                else MaterialTheme.colorScheme.primaryContainer,
+            contentColor = if (featured) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                UacSymbol(if (featured) UacIcon.SECURITY else UacIcon.DIRECTORY)
+            }
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(category.title.forLanguage(language),
+                style = MaterialTheme.typography.titleSmall, color = foreground)
+            Text(category.summary.forLanguage(language), maxLines = 2,
+                style = MaterialTheme.typography.bodySmall,
+                color = foreground.copy(alpha = if (featured) .88f else .72f))
         }
     }
 }
@@ -279,7 +382,7 @@ private fun FeedbackCard(language: String, heading: String, onClick: () -> Unit)
 
 private fun searchDirectory(categories: List<DirectoryCategory>, raw: String, language: String): List<Pair<String, String>> {
     val query = raw.trim().lowercase()
-    if (query.length < 2) return emptyList()
+    if (query.isEmpty()) return emptyList()
     val found = mutableListOf<Pair<String, String>>()
     categories.forEach { category ->
         val title = category.title.forLanguage(language)

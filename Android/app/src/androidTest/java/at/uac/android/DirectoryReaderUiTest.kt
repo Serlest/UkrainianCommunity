@@ -3,11 +3,14 @@ package at.uac.android
 import android.graphics.Bitmap
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import at.uac.android.design.UacTheme
@@ -75,6 +78,7 @@ class DirectoryReaderUiTest {
             }
         }
         compose.onNodeWithTag("directory-search").performTextInput("Gewalt")
+        compose.onNodeWithTag("directory-browse-sections").assertDoesNotExist()
         compose.onNodeWithText("Häusliche Gewalt · Sicherheit & Schutz").performClick()
         assertEquals("directory/safety/domestic-violence", route.value)
         compose.onNodeWithTag("directory-list")
@@ -89,7 +93,7 @@ class DirectoryReaderUiTest {
     private fun screenshot(name: String) {
         compose.waitForIdle()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
-        val bitmap = instrumentation.uiAutomation.takeScreenshot()
+        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
         java.io.File(instrumentation.targetContext.cacheDir, name).outputStream().use {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
         }
