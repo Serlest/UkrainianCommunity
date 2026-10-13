@@ -1,5 +1,7 @@
 package at.uac.android.feature.auth
 
+import at.uac.android.BuildConfig
+
 internal fun authText(language: String, german: String, ukrainian: String): String =
     if (language == "uk") ukrainian else german
 
@@ -78,8 +80,12 @@ fun AuthProblem.message(language: String): String {
                 "Dieser Link ist abgelaufen. Bitte einen neuen anfordern." to
                     "Строк дії посилання минув. Запросіть нове."
             AuthProblem.SECOND_FACTOR_REQUIRED ->
-                "Dieses Konto benötigt eine Zwei-Faktor-Anmeldung. Der lokale Test bestätigt keine echte TOTP-Sitzung." to
-                    "Акаунт потребує двофакторного входу. Локальний тест не підтверджує справжній сеанс TOTP."
+                (if (BuildConfig.USE_LOCAL_BACKEND)
+                    "Dieses Konto benötigt eine Zwei-Faktor-Anmeldung. Der lokale Test bestätigt keine echte TOTP-Sitzung."
+                else "Dieses Konto benötigt eine Zwei-Faktor-Anmeldung. Bitte den Authenticator-Code eingeben.") to
+                    (if (BuildConfig.USE_LOCAL_BACKEND)
+                        "Акаунт потребує двофакторного входу. Локальний тест не підтверджує справжній сеанс TOTP."
+                    else "Акаунт потребує двофакторного входу. Введіть код автентифікатора.")
             AuthProblem.LOCAL_ONLY ->
                 "Dieser isolierte Test erlaubt nur erfundene Adressen mit .invalid, z. B. test@example.invalid." to
                     "Цей ізольований тест дозволяє лише вигадані адреси з .invalid, наприклад test@example.invalid."
@@ -122,14 +128,22 @@ fun AuthNotice.message(language: String): String =
         AuthNotice.VERIFICATION_SENT ->
             authText(
                 language,
-                "Bestätigungslink im lokalen E-Mail-Test erstellt. Es wird keine echte E-Mail versendet.",
-                "Посилання підтвердження створено в локальному тесті пошти. Справжній лист не надсилається.",
+                if (BuildConfig.USE_LOCAL_BACKEND)
+                    "Bestätigungslink im lokalen E-Mail-Test erstellt. Es wird keine echte E-Mail versendet."
+                else "Bestätigungs-E-Mail angefordert. Bitte Posteingang und Spamordner prüfen.",
+                if (BuildConfig.USE_LOCAL_BACKEND)
+                    "Посилання підтвердження створено в локальному тесті пошти. Справжній лист не надсилається."
+                else "Лист підтвердження запитано. Перевірте вхідні повідомлення та спам.",
             )
         AuthNotice.RESET_SENT ->
             authText(
                 language,
-                "Falls ein passendes Konto existiert, wurde ein lokaler Link zur Passwortänderung erstellt.",
-                "Якщо відповідний акаунт існує, створено локальне посилання зміни пароля.",
+                if (BuildConfig.USE_LOCAL_BACKEND)
+                    "Falls ein passendes Konto existiert, wurde ein lokaler Link zur Passwortänderung erstellt."
+                else "Falls ein passendes Konto existiert, wurde eine E-Mail zum Zurücksetzen angefordert.",
+                if (BuildConfig.USE_LOCAL_BACKEND)
+                    "Якщо відповідний акаунт існує, створено локальне посилання зміни пароля."
+                else "Якщо відповідний акаунт існує, запитано лист для відновлення пароля.",
             )
         AuthNotice.PASSWORD_CHANGED ->
             authText(

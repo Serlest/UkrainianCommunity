@@ -18,12 +18,12 @@ import {
   canManagePasskeyCredentials,
   requireVerifiedActiveUser,
 } from "./context";
-import {passkeyOrigins} from "./passkeyOrigins";
+import {passkeyOrigins, passkeyRpId} from "./passkeyOrigins";
 
 // This domain is served by Firebase Hosting and has the app's webcredentials
 // association. Never accept an RP ID or origin supplied by the client.
-const rpID = "ukrainiancommunity-dbd5f.web.app";
-const expectedOrigins = passkeyOrigins(process.env.UAC_PASSKEY_ANDROID_ORIGINS);
+const rpID = passkeyRpId(process.env.GCLOUD_PROJECT, process.env.UAC_PASSKEY_RP_ID);
+const expectedOrigins = passkeyOrigins(process.env.UAC_PASSKEY_ANDROID_ORIGINS, rpID);
 const challengeLifetimeMs = 5 * 60 * 1000;
 const options = {region: "europe-west3", maxInstances: 5, enforceAppCheck: true};
 const challenges = db.collection("passkeyChallenges");

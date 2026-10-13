@@ -392,12 +392,11 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck")
     implementation("com.google.firebase:firebase-appcheck-debug")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
-    "stagingImplementation"("com.google.firebase:firebase-appcheck-debug-testing:19.4.1")
-    // The CI helper still declares AndroidX Test 1.5/1.6. Keep the staging app-side
-    // registrar binary-compatible with the current runner/Espresso shipped in the test APK.
-    "stagingImplementation"("androidx.test:core:1.7.0")
-    "stagingImplementation"("androidx.test:monitor:1.8.0")
-    "stagingImplementation"("androidx.test.services:storage:1.6.0")
+    // Keep the instrumentation-only App Check helper out of the manually launched APK.
+    androidTestImplementation("com.google.firebase:firebase-appcheck-debug-testing:19.4.1")
+    androidTestImplementation("androidx.test:core:1.7.0")
+    androidTestImplementation("androidx.test:monitor:1.8.0")
+    androidTestImplementation("androidx.test.services:storage:1.6.0")
     // Local callable protocol only: Functions SDK requires IID/FIS even with useEmulator.
     // Keep the synthetic key invalid; do not initialize identifiers or cloud SDK fallbacks.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

@@ -280,53 +280,55 @@ fun AccountScreen(
                                     )
                                 )
                             }
-                            TextButton({ showLocalTools = !showLocalTools }) {
-                                Text(
-                                    authText(
-                                        language,
-                                        "Lokalen Wiederherstellungslink verwenden",
-                                        "Використати локальне посилання відновлення",
-                                    )
-                                )
-                            }
-                            if (showLocalTools) {
-                                AuthField(
-                                    code,
-                                    { code = it },
-                                    authText(
-                                        language,
-                                        "Lokaler Link oder Code",
-                                        "Локальне посилання або код",
-                                    ),
-                                    "auth-reset-code",
-                                    session.busy,
-                                )
-                                AuthPassword(
-                                    password,
-                                    { password = it },
-                                    authText(language, "Neues Passwort", "Новий пароль"),
-                                    "auth-new-password",
-                                    session.busy,
-                                )
-                                AuthPassword(
-                                    repeated,
-                                    { repeated = it },
-                                    authText(language, "Passwort wiederholen", "Повторіть пароль"),
-                                    "auth-new-password-repeat",
-                                    session.busy,
-                                )
-                                Button(
-                                    { store.confirmPasswordReset(code, password, repeated) },
-                                    Modifier.testTag("auth-confirm-reset"),
-                                    enabled = !session.busy,
-                                ) {
+                            if (BuildConfig.USE_LOCAL_BACKEND) {
+                                TextButton({ showLocalTools = !showLocalTools }) {
                                     Text(
                                         authText(
                                             language,
-                                            "Neues Passwort speichern",
-                                            "Зберегти новий пароль",
+                                            "Lokalen Wiederherstellungslink verwenden",
+                                            "Використати локальне посилання відновлення",
                                         )
                                     )
+                                }
+                                if (showLocalTools) {
+                                    AuthField(
+                                        code,
+                                        { code = it },
+                                        authText(
+                                            language,
+                                            "Lokaler Link oder Code",
+                                            "Локальне посилання або код",
+                                        ),
+                                        "auth-reset-code",
+                                        session.busy,
+                                    )
+                                    AuthPassword(
+                                        password,
+                                        { password = it },
+                                        authText(language, "Neues Passwort", "Новий пароль"),
+                                        "auth-new-password",
+                                        session.busy,
+                                    )
+                                    AuthPassword(
+                                        repeated,
+                                        { repeated = it },
+                                        authText(language, "Passwort wiederholen", "Повторіть пароль"),
+                                        "auth-new-password-repeat",
+                                        session.busy,
+                                    )
+                                    Button(
+                                        { store.confirmPasswordReset(code, password, repeated) },
+                                        Modifier.testTag("auth-confirm-reset"),
+                                        enabled = !session.busy,
+                                    ) {
+                                        Text(
+                                            authText(
+                                                language,
+                                                "Neues Passwort speichern",
+                                                "Зберегти новий пароль",
+                                            )
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -490,29 +492,31 @@ fun AccountScreen(
                         )
                     )
                 }
-                TextButton({ showLocalTools = !showLocalTools }) {
-                    Text(
-                        authText(
-                            language,
-                            "Lokalen Bestätigungslink verwenden",
-                            "Використати локальне посилання підтвердження",
+                if (BuildConfig.USE_LOCAL_BACKEND) {
+                    TextButton({ showLocalTools = !showLocalTools }) {
+                        Text(
+                            authText(
+                                language,
+                                "Lokalen Bestätigungslink verwenden",
+                                "Використати локальне посилання підтвердження",
+                            )
                         )
-                    )
-                }
-                if (showLocalTools) {
-                    AuthField(
-                        code,
-                        { code = it },
-                        authText(language, "Lokaler Link oder Code", "Локальне посилання або код"),
-                        "auth-verification-code",
-                        session.busy,
-                    )
-                    Button(
-                        { store.applyVerificationCode(code) },
-                        Modifier.testTag("auth-apply-verification"),
-                        enabled = !session.busy,
-                    ) {
-                        Text(authText(language, "Bestätigen", "Підтвердити"))
+                    }
+                    if (showLocalTools) {
+                        AuthField(
+                            code,
+                            { code = it },
+                            authText(language, "Lokaler Link oder Code", "Локальне посилання або код"),
+                            "auth-verification-code",
+                            session.busy,
+                        )
+                        Button(
+                            { store.applyVerificationCode(code) },
+                            Modifier.testTag("auth-apply-verification"),
+                            enabled = !session.busy,
+                        ) {
+                            Text(authText(language, "Bestätigen", "Підтвердити"))
+                        }
                     }
                 }
                 SignOutButton(store, language)
@@ -604,8 +608,12 @@ fun AccountScreen(
                         Text(
                             authText(
                                 language,
-                                "Geschütztes Konto: TOTP-Anmeldung und Aktivierung sind erforderlich. Lokale Tests ersetzen keinen echten zweiten Faktor.",
-                                "Захищений акаунт: потрібні вхід TOTP та активація. Локальні тести не замінюють справжній другий фактор.",
+                                if (BuildConfig.USE_LOCAL_BACKEND)
+                                    "Geschütztes Konto: TOTP-Anmeldung und Aktivierung sind erforderlich. Lokale Tests ersetzen keinen echten zweiten Faktor."
+                                else "Geschütztes Konto: TOTP-Anmeldung und Aktivierung sind erforderlich.",
+                                if (BuildConfig.USE_LOCAL_BACKEND)
+                                    "Захищений акаунт: потрібні вхід TOTP та активація. Локальні тести не замінюють справжній другий фактор."
+                                else "Захищений акаунт: потрібні вхід TOTP та активація.",
                             ),
                             Modifier.testTag("auth-mfa-required"),
                         )

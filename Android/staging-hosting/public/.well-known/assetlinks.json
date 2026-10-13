@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "at.serlest.ukrainiancommunity.staging",
+      "sha256_cert_fingerprints": [
+        "D4:C9:CB:12:64:C9:E9:F0:E4:C6:F8:BC:FB:94:43:3D:DD:D8:08:41:F3:53:EA:9C:35:0C:AB:F9:28:F7:EC:2F"
+      ]
+    }
+  }
+]

@@ -1,7 +1,6 @@
 package at.uac.android.core.backend
 
 import android.content.Context
-import android.util.Log
 import at.uac.android.BuildConfig
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
@@ -15,21 +14,8 @@ import com.google.firebase.storage.FirebaseStorage
 
 /** Build-selected cloud SDK instances. No runtime endpoint selector or emulator fallback exists. */
 internal object CloudFirebaseBackendProvider : FirebaseBackendProvider {
-    private const val TAG = "CloudFirebaseBackend"
     override val configuration = CompiledBackend.configuration
     private var configuredAppCheck = false
-
-    /**
-     * The staging-only Firebase CI helper replaces the regular debug secret provider and
-     * requires a registered instrumentation plus its transient runner argument. A manually
-     * launched staging APK has neither, so installing that factory would crash the process.
-     */
-    private fun hasRegisteredTestInstrumentation(): Boolean =
-        runCatching {
-            Class.forName("androidx.test.platform.app.InstrumentationRegistry")
-                .getMethod("getInstrumentation")
-                .invoke(null)
-        }.isSuccess
 
     override fun app(context: Context): FirebaseApp {
         require(!BuildConfig.USE_LOCAL_BACKEND) { "CLOUD_BACKEND_IN_LOCAL_BUILD" }
@@ -54,16 +40,10 @@ internal object CloudFirebaseBackendProvider : FirebaseBackendProvider {
                     FirebaseApp.initializeApp(appContext, options, BuildConfig.BACKEND_APP_NAME)
                 }
         if (!configuredAppCheck) {
-            if (BuildConfig.USE_DEBUG_APP_CHECK && !hasRegisteredTestInstrumentation()) {
-                // Standalone staging is useful for visual/manual QA. Cloud calls remain
-                // fail-closed until the CI helper supplies its registered debug secret.
-                Log.w(TAG, "Staging App Check test provider skipped outside instrumentation")
-            } else {
-                FirebaseAppCheck.getInstance(app).installAppCheckProviderFactory(
-                    if (BuildConfig.USE_DEBUG_APP_CHECK) DebugAppCheckProviderFactory.getInstance()
-                    else PlayIntegrityAppCheckProviderFactory.getInstance()
-                )
-            }
+            FirebaseAppCheck.getInstance(app).installAppCheckProviderFactory(
+                if (BuildConfig.USE_DEBUG_APP_CHECK) DebugAppCheckProviderFactory.getInstance()
+                else PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
             configuredAppCheck = true
         }
         return app.also { FirebaseBackendGuard.requireApp(appContext, it) }

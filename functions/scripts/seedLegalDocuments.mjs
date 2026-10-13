@@ -3,6 +3,7 @@
 import {createHash} from "node:crypto";
 import {readFileSync} from "node:fs";
 import {fileURLToPath, URL} from "node:url";
+import {resolve} from "node:path";
 import {cert, getApps, initializeApp} from "firebase-admin/app";
 import {FieldValue, getFirestore} from "firebase-admin/firestore";
 
@@ -63,7 +64,7 @@ function markdownToPlainText(markdown) {
     .trim();
 }
 
-const documents = Object.keys(manifest.documents).map((type) => ({
+export const documents = Object.keys(manifest.documents).map((type) => ({
   type,
   requiresAcceptance: manifest.documents[type].requiresAcceptance === true,
   locales: Object.fromEntries(
@@ -77,7 +78,7 @@ function sha256(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
-function buildPayload(document) {
+export function buildPayload(document) {
   const VERSION = documentVersion(document.type);
   const VERSION_NUMBER = documentVersionNumber(document.type);
   const CHANGE_SUMMARY = manifest.documents[document.type].changeSummary ?? `Publication of legal documents ${VERSION}.`;
@@ -168,7 +169,7 @@ function initializeFirestore() {
   return getFirestore();
 }
 
-function pathsFor(documentType) {
+export function pathsFor(documentType) {
   return {
     pointer: `legalDocuments/${documentType}`,
     version: `legalDocuments/${documentType}/versions/${documentVersion(documentType)}`,
@@ -264,15 +265,17 @@ async function seedDocuments(db) {
   }
 }
 
-try {
-  if (isDryRun) {
-    printPlan();
-  } else {
-    const db = initializeFirestore();
-    if (isVerify) await verifySeed(db);
-    else await seedDocuments(db);
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    if (isDryRun) {
+      printPlan();
+    } else {
+      const db = initializeFirestore();
+      if (isVerify) await verifySeed(db);
+      else await seedDocuments(db);
+    }
+  } catch (error) {
+    console.error(error?.message ?? error);
+    process.exit(1);
   }
-} catch (error) {
-  console.error(error?.message ?? error);
-  process.exit(1);
 }

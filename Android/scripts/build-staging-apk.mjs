@@ -29,7 +29,7 @@ for (const key of ["UAC_STAGING_FIREBASE_PROJECT_ID", "UAC_STAGING_FIREBASE_APPL
   "UAC_STAGING_FIREBASE_API_KEY", "UAC_STAGING_FIREBASE_BUCKET"]) {
   if (!env[key]) throw new Error(`Missing staging configuration: ${key}`);
 }
-const result = spawnSync("./gradlew", [":app:assembleStagingDebug", "--no-daemon"], {
+const result = spawnSync("./gradlew", [":app:assembleStagingDebug", ...process.argv.slice(2), "--no-daemon"], {
   cwd: new URL("..", import.meta.url),
   env,
   stdio: "inherit",
