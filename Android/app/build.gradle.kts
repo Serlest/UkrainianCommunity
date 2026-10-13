@@ -393,10 +393,12 @@ dependencies {
     implementation("com.google.firebase:firebase-appcheck-debug")
     implementation("com.google.firebase:firebase-appcheck-playintegrity")
     // Keep the instrumentation-only App Check helper out of the manually launched APK.
-    androidTestImplementation("com.google.firebase:firebase-appcheck-debug-testing:19.4.1")
-    androidTestImplementation("androidx.test:core:1.7.0")
-    androidTestImplementation("androidx.test:monitor:1.8.0")
-    androidTestImplementation("androidx.test.services:storage:1.6.0")
+    "androidTestStagingImplementation"("com.google.firebase:firebase-appcheck-debug-testing:19.4.1")
+    // The App Check testing registrar and its newer Test runtime belong only to staging.
+    // Local UI tests retain their established runner dependency graph.
+    "androidTestStagingImplementation"("androidx.test:core:1.7.0")
+    "androidTestStagingImplementation"("androidx.test:monitor:1.8.0")
+    "androidTestStagingImplementation"("androidx.test.services:storage:1.6.0")
     // Local callable protocol only: Functions SDK requires IID/FIS even with useEmulator.
     // Keep the synthetic key invalid; do not initialize identifiers or cloud SDK fallbacks.
     implementation("com.squareup.okhttp3:okhttp:4.12.0")

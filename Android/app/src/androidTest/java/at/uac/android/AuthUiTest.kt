@@ -83,7 +83,7 @@ class AuthUiTest {
     }
 
     @Test
-    fun guestValidationAndCompleteLegalReader() {
+    fun guestValidationAndUnavailableRegistrationStayClosedWithLegalReader() {
         scroll("auth-login-submit")
         compose.onNodeWithTag("auth-login-submit").performClick()
         scroll("auth-error")
@@ -96,10 +96,9 @@ class AuthUiTest {
         compose.onNodeWithTag("auth-email").performTextInput("ui@example.invalid")
         scroll("auth-password")
         compose.onNodeWithTag("auth-password").performTextInput("short")
-        scroll("auth-register-submit")
-        compose.onNodeWithTag("auth-register-submit").performClick()
-        scroll("auth-error")
-        compose.onNodeWithTag("auth-error").assertTextContains("10 bis 128", substring = true)
+        scroll("auth-registration-legal-unavailable")
+        compose.onNodeWithTag("auth-registration-legal-unavailable").assertExists()
+        compose.onNodeWithTag("auth-register-submit").assertDoesNotExist()
         readLegal("terms", "de")
     }
 

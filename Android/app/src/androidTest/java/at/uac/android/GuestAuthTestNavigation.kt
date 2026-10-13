@@ -9,7 +9,11 @@ import androidx.compose.ui.unit.dp
  * override.
  */
 fun ComposeContentTestRule.openGuestLogin() {
-    waitUntil(15_000) { onAllNodesWithTag("guest-sign-in").fetchSemanticsNodes().isNotEmpty() }
+    waitUntil(15_000) {
+        onAllNodesWithTag("guest-sign-in").fetchSemanticsNodes().isNotEmpty() ||
+            onAllNodesWithTag("auth-email").fetchSemanticsNodes().isNotEmpty()
+    }
+    if (onAllNodesWithTag("auth-email").fetchSemanticsNodes().isNotEmpty()) return
     onNodeWithTag("guest-sign-in")
         .performScrollTo()
         .assertIsEnabled()
