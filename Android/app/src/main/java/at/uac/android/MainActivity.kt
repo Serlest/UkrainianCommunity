@@ -654,10 +654,20 @@ class MainActivity : FragmentActivity() {
                                 localFeedbackSource(applicationContext),
                                 { auth.state.value.feedbackScope() },
                                 AuthFeedbackMutationGate(auth),
+                                diagnostics = localClientDiagnosticWriter(applicationContext),
                             )
                             .also { feedback ->
                                 feedback.observeSessions(auth.state.map { it.feedbackScope() })
                             } as T
+                    }
+                    if (modelClass == FeedbackInboxClearViewModel::class.java) {
+                        return FeedbackInboxClearViewModel(
+                            FeedbackInboxClearRepository(
+                                localFeedbackInboxClearSource(applicationContext),
+                                PersistentFeedbackInboxClearJournal(applicationContext),
+                                { auth.state.value.moderationScope() },
+                            )
+                        ) as T
                     }
                     if (modelClass == OrganizationViewModel::class.java) {
                         return OrganizationViewModel(
@@ -828,6 +838,7 @@ class MainActivity : FragmentActivity() {
             val popup: InboxPopupViewModel = viewModel(factory = factory)
             val community: CommunityViewModel = viewModel(factory = factory)
             val feedback: FeedbackViewModel = viewModel(factory = factory)
+            val feedbackInboxClear: FeedbackInboxClearViewModel = viewModel(factory = factory)
             val dsaStatement: DsaStatementViewModel = viewModel(factory = factory)
             val dsaReview: DsaAppealReviewViewModel = viewModel(factory = factory)
             val dsaOwner: DsaOwnerDecisionViewModel = viewModel(factory = factory)
@@ -875,6 +886,9 @@ class MainActivity : FragmentActivity() {
             val popupState = popupSnapshot.forAccount(authSession.inboxPopupAccount())
             val feedbackSnapshot by feedback.state.collectAsStateWithLifecycle()
             val feedbackState = feedbackSnapshot.forSession(authSession.feedbackScope())
+            val clearSnapshot by feedbackInboxClear.state.collectAsStateWithLifecycle()
+            val clearOwner = authSession.moderationScope()
+            LaunchedEffect(clearOwner) { feedbackInboxClear.bind(clearOwner) }
             val dsaSnapshot by dsaStatement.state.collectAsStateWithLifecycle()
             val dsaState = dsaSnapshot.forSession(authSession.dsaStatementScope())
             val reviewSnapshot by dsaReview.state.collectAsStateWithLifecycle()
@@ -1817,6 +1831,17 @@ class MainActivity : FragmentActivity() {
                                             if (DsaStatementContract.validId(reportId))
                                                 model.navigate("profile/dsa-owner/$reportId")
                                         } else null,
+                                    canClearInbox = clearOwner?.let { it.ready && it.role == "owner" } == true,
+                                    clearState = clearSnapshot,
+                                    onClearInbox = {
+                                        feedbackInboxClear.clear(auth.state.value.moderationScope()) {
+                                            feedback.refresh()
+                                        }
+                                    },
+                                    onAcknowledgeClear = {
+                                        feedbackInboxClear.acknowledge(auth.state.value.moderationScope())
+                                        feedback.refresh()
+                                    },
                                 )
                             } else if (
                                 route == "profile/blocked" &&

@@ -276,9 +276,9 @@ class FeedbackDeletionContractTest {
         )
         for (name in
             listOf(
-                "clearFeedbackInbox",
                 "deleteMyFeedback",
                 "clearMyFeedback",
             )) assertTrue(runCatching { LocalCallableProtocol.endpoint(name) }.isFailure)
+        assertTrue(LocalCallableProtocol.endpoint("clearFeedbackInbox").endsWith("/clearFeedbackInbox"))
     }
 }

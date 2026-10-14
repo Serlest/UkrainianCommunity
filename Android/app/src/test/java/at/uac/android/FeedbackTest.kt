@@ -7,6 +7,8 @@ import at.uac.android.feature.auth.AuthSession
 import at.uac.android.feature.auth.AuthStage
 import at.uac.android.feature.browse.RawDocument
 import at.uac.android.feature.feedback.*
+import at.uac.android.feature.systemlogs.ClientDiagnosticOperation
+import at.uac.android.feature.systemlogs.ClientDiagnosticWriter
 import java.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -29,6 +31,23 @@ class FeedbackTest {
     private val bob = FeedbackSession("bob", 2, true, false, "Synthetic Bob")
     private val admin = FeedbackSession("admin", 3, true, true, "Synthetic Admin")
     private val draft = FeedbackDraft(FeedbackType.QUESTION, "A synthetic question")
+
+    @Test
+    fun technicalReadFailureEmitsOnlyCategorizedDiagnostic() = runTest {
+        val source = Fake().apply { fail = FeedbackFailure.UNKNOWN }
+        val events = mutableListOf<Triple<FeedbackSession, ClientDiagnosticOperation, FeedbackFailure>>()
+        val model = FeedbackViewModel(
+            source, { alice }, DirectFeedbackMutationGate, backgroundScope,
+            ClientDiagnosticWriter { session, operation, failure ->
+                events += Triple(session, operation, failure)
+            },
+        )
+        model.bind(alice)
+        model.show(FeedbackAudience.OWN, null)
+        runCurrent()
+        assertTrue(events.any { it.second == ClientDiagnosticOperation.FEEDBACK_READ && it.third == FeedbackFailure.UNKNOWN })
+        assertTrue(events.all { it.first == alice })
+    }
 
     @Test
     fun conversationPagesReachEveryMessageWithEqualTimestampAndNoDuplicates() = runTest {

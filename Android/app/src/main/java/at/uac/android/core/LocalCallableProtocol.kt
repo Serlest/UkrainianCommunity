@@ -55,6 +55,8 @@ object LocalCallableProtocol {
             "decideDsaCase",
             "decideDsaAppeal",
             "deleteFeedback",
+            "clearFeedbackInbox",
+            "writeClientDiagnostic",
             "deleteNotificationPushRegistration",
             "getManagedUserPresence",
             "updateUserPresence",
@@ -179,6 +181,8 @@ object LocalCallableProtocol {
                 "deleteOwnAccount",
                 "deleteNews",
                 "deleteFeedback",
+                "clearFeedbackInbox",
+                "writeClientDiagnostic",
                 "cancelEvent",
                 "createOrganizationPhotoMetadata",
                 "deleteOrganizationPhotoMetadata",
@@ -213,6 +217,7 @@ object LocalCallableProtocol {
             "deleteOwnAccount" -> 330_000L
             "deleteNews",
             "deleteFeedback",
+            "clearFeedbackInbox",
             "clearSystemLogs" -> 300_000
             COVER_UPLOAD -> 120_000
             PHOTO_SAVE -> 120_000

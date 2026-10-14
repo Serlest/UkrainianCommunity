@@ -2,6 +2,8 @@ package at.uac.android.feature.feedback
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import at.uac.android.feature.systemlogs.ClientDiagnosticOperation
+import at.uac.android.feature.systemlogs.ClientDiagnosticWriter
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -20,6 +22,7 @@ class FeedbackViewModel(
     private val authority: () -> FeedbackSession?,
     gate: FeedbackMutationGate,
     workScope: CoroutineScope? = null,
+    private val diagnostics: ClientDiagnosticWriter = ClientDiagnosticWriter { _, _, _ -> },
 ) : ViewModel() {
     private val scope = workScope ?: viewModelScope
     private val repository = FeedbackRepository(source, authority, gate)
@@ -301,6 +304,7 @@ class FeedbackViewModel(
 
     private fun fail(error: Exception) {
         val reason = (error as? FeedbackException)?.failure ?: FeedbackFailure.UNKNOWN
+        reportDiagnostic(ClientDiagnosticOperation.FEEDBACK_READ, reason)
         mutable.value =
             state.value.copy(
                 error = reason,
@@ -312,6 +316,19 @@ class FeedbackViewModel(
                     else FeedbackInboxOptions(),
                 inboxQueryRejected = false,
             )
+    }
+
+    private fun reportDiagnostic(operation: ClientDiagnosticOperation, failure: FeedbackFailure) {
+        if (failure !in setOf(FeedbackFailure.UNKNOWN, FeedbackFailure.UNCONFIRMED, FeedbackFailure.OFFLINE)) return
+        val actor = state.value.session ?: return
+        if (!current(actor) || !actor.ready) return
+        scope.launch {
+            try {
+                diagnostics.write(actor, operation, failure)
+            } catch (_: Exception) {
+                // Best effort. Never log details or alter the user operation.
+            }
+        }
     }
 
     private fun canSelectInbox(): Boolean {
@@ -426,6 +443,7 @@ class FeedbackViewModel(
                     if (current(actor)) {
                         val reason =
                             (error as? FeedbackException)?.failure ?: FeedbackFailure.UNCONFIRMED
+                        reportDiagnostic(ClientDiagnosticOperation.FEEDBACK_WRITE, reason)
                         // Preserve the exact request ID/payload after uncertain results; a retry
                         // cannot duplicate it.
                         if (

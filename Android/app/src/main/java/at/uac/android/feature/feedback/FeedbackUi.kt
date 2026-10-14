@@ -27,6 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -56,7 +57,16 @@ fun FeedbackDestination(
     onAccount: () -> Unit,
     onReadDecision: ((String) -> Unit)? = null,
     onDecideDsa: ((String) -> Unit)? = null,
+    canClearInbox: Boolean = false,
+    clearState: FeedbackInboxClearState = FeedbackInboxClearState(),
+    onClearInbox: () -> Unit = {},
+    onAcknowledgeClear: () -> Unit = {},
 ) {
+    // A late auth/profile emission can reset the ViewModel to OWN after this route resumed.
+    // Reconcile the visible route whenever that happens, including without another resume event.
+    LaunchedEffect(audience, id, snapshot.session, snapshot.audience, snapshot.selectedId) {
+        if (snapshot.audience != audience || snapshot.selectedId != id) model.show(audience, id)
+    }
     val state =
         if (snapshot.audience == audience && snapshot.selectedId == id) snapshot
         else
@@ -100,6 +110,10 @@ fun FeedbackDestination(
             model::inboxSearch,
             model::inboxFilter,
             model::inboxSort,
+            canClearInbox,
+            clearState,
+            onClearInbox,
+            onAcknowledgeClear,
         )
     else
         FeedbackDetail(
@@ -134,7 +148,12 @@ fun FeedbackList(
     onSearch: (String) -> Unit = {},
     onFilter: (FeedbackInboxFilter) -> Unit = {},
     onSort: (FeedbackInboxSort) -> Unit = {},
+    canClearInbox: Boolean = false,
+    clearState: FeedbackInboxClearState = FeedbackInboxClearState(),
+    onClearInbox: () -> Unit = {},
+    onAcknowledgeClear: () -> Unit = {},
 ) {
+    var confirmClear by remember { mutableStateOf(false) }
     val manager = state.audience == FeedbackAudience.MANAGEMENT
     if (manager && state.session?.canManage != true) {
         Text(
@@ -167,6 +186,41 @@ fun FeedbackList(
                 Text(tr(language, "Aktualisieren", "Оновити"))
             }
             FeedbackReadStatus(state, language)
+            if (manager && canClearInbox && clearState.busy)
+                LinearProgressIndicator(Modifier.fillMaxWidth().testTag("feedback-clear-progress"))
+            if (manager && canClearInbox && clearState.deletedCount != null)
+                Text(
+                    tr(language,
+                        "Vom Server bestätigt: ${clearState.deletedCount} Anfragen gelöscht. Geschützte DSA-Fälle bleiben erhalten.",
+                        "Сервер підтвердив: видалено ${clearState.deletedCount} звернень. Захищені справи DSA залишилися.",
+                    ),
+                    Modifier.testTag("feedback-clear-receipt"),
+                )
+            if (manager && canClearInbox && clearState.pending) {
+                Text(
+                    tr(language,
+                        "Ergebnis der letzten Löschung unklar. Das Postfach prüfen; die Anfrage wird nicht automatisch wiederholt.",
+                        "Результат останнього видалення невідомий. Перевірте скриньку; запит не повторюється автоматично.",
+                    ),
+                    Modifier.testTag("feedback-clear-pending"),
+                )
+                TextButton(onAcknowledgeClear, Modifier.testTag("feedback-clear-acknowledge")) {
+                    Text(tr(language, "Nach Prüfung freigeben", "Розблокувати після перевірки"))
+                }
+            } else if (manager && canClearInbox && clearState.failed) {
+                Text(tr(language, "Löschen nicht bestätigt.", "Видалення не підтверджено."),
+                    Modifier.testTag("feedback-clear-error"))
+            }
+            if (manager && canClearInbox &&
+                state.page?.items?.isNotEmpty() == true && !clearState.pending) {
+                TextButton(
+                    { confirmClear = true },
+                    Modifier.testTag("feedback-clear-inbox"),
+                    enabled = !clearState.busy && !state.loading,
+                ) {
+                    Text(tr(language, "Alle gewöhnlichen Anfragen löschen", "Видалити всі звичайні звернення"))
+                }
+            }
         }
         if (selection != null)
             item("inbox-controls") {
@@ -301,6 +355,24 @@ fun FeedbackList(
                 }
             }
     }
+    if (confirmClear) AlertDialog(
+        onDismissRequest = { confirmClear = false },
+        title = { Text(tr(language, "Alle Anfragen löschen?", "Видалити всі звернення?")) },
+        text = { Text(tr(language,
+            "Gewöhnliche Anfragen und ihre Nachrichten werden unwiderruflich gelöscht. DSA-Fälle bleiben bis zum Ende ihrer Aufbewahrungsfrist erhalten.",
+            "Звичайні звернення та повідомлення буде безповоротно видалено. Справи DSA залишаться до завершення строку зберігання.",
+        )) },
+        confirmButton = {
+            TextButton({ confirmClear = false; onClearInbox() }, Modifier.testTag("feedback-clear-confirm")) {
+                Text(tr(language, "Endgültig löschen", "Видалити назавжди"))
+            }
+        },
+        dismissButton = {
+            TextButton({ confirmClear = false }, Modifier.testTag("feedback-clear-cancel")) {
+                Text(tr(language, "Abbrechen", "Скасувати"))
+            }
+        },
+    )
 }
 
 @Composable
