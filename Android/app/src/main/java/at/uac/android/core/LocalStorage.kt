@@ -1,6 +1,7 @@
 package at.uac.android.core
 
 import android.content.Context
+import at.uac.android.BuildConfig
 import at.uac.android.core.backend.BackendService
 import at.uac.android.core.backend.CompiledBackend
 import at.uac.android.core.backend.FirebaseBackendGuard
@@ -8,7 +9,7 @@ import com.google.firebase.storage.FirebaseStorage
 import java.net.URI
 import java.net.URLDecoder
 
-/** Shared named demo SDK only. Each feature must validate its own UID/content path before use. */
+/** Each feature validates its own UID/content path; this helper binds the URL to the compiled bucket. */
 object LocalStorage {
     val BUCKET = CompiledBackend.STORAGE_BUCKET
     private var configured: FirebaseStorage? = null
@@ -41,12 +42,13 @@ object LocalStorage {
         )
             return false
         val uri = URI(value)
-        uri.scheme == "http" &&
-            uri.host == LocalEnvironment.HOST &&
-            uri.port == LocalEnvironment.STORAGE_PORT &&
-            uri.userInfo == null &&
-            uri.fragment == null &&
-            URLDecoder.decode(uri.rawPath, "UTF-8") == "/v0/b/$BUCKET/o/$objectPath"
+        val pathMatches = URLDecoder.decode(uri.rawPath, "UTF-8") == "/v0/b/$BUCKET/o/$objectPath"
+        val local = BuildConfig.USE_LOCAL_BACKEND && uri.scheme == "http" &&
+            uri.host == LocalEnvironment.HOST && uri.port == LocalEnvironment.STORAGE_PORT
+        val cloud = !BuildConfig.USE_LOCAL_BACKEND && uri.scheme == "https" &&
+            uri.host == "firebasestorage.googleapis.com" && uri.port == -1 &&
+            uri.rawQuery?.matches(Regex("alt=media&token=[A-Za-z0-9_-]{20,128}")) == true
+        (local || cloud) && pathMatches && uri.userInfo == null && uri.fragment == null
     }
         .getOrDefault(false)
 }

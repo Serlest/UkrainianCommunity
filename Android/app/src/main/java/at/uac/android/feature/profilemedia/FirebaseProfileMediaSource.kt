@@ -20,6 +20,7 @@ import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageException
 import com.google.firebase.storage.StorageMetadata
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withTimeout
 
@@ -145,18 +146,23 @@ class FirebaseProfileMediaSource(
             }
             .await()
         if (!stillCurrent()) throw CancellationException("Account scope changed")
-        val privateRead = withTimeout(5_000) { FirestorePersonalSource(db).profile(uid) }
-        val publicRead = withTimeout(5_000) { public.get(Source.SERVER).await() }
-        if (
-            privateRead.draft.avatarUrl != url ||
-                publicRead.getString("id") != uid ||
-                publicRead.getString("avatarURL") != url ||
-                publicRead.getString("displayName") != privateRead.draft.displayName ||
-                publicRead.getString("city") != privateRead.draft.city ||
-                publicRead.getString("federalState") != privateRead.draft.federalState
-        )
-            throw ProfileMediaException(ProfileMediaFailure.UNCONFIRMED)
-        privateRead
+        // A transaction can commit before the SDK's immediately following server read stops
+        // surfacing the old private document. Re-read only; never repeat the upload or write.
+        repeat(6) { attempt ->
+            if (!stillCurrent()) throw CancellationException("Account scope changed")
+            val privateRead = withTimeout(5_000) { FirestorePersonalSource(db).profile(uid) }
+            val publicRead = withTimeout(5_000) { public.get(Source.SERVER).await() }
+            if (
+                privateRead.draft.avatarUrl == url &&
+                    publicRead.getString("id") == uid &&
+                    publicRead.getString("avatarURL") == url &&
+                    publicRead.getString("displayName") == privateRead.draft.displayName &&
+                    publicRead.getString("city") == privateRead.draft.city &&
+                    publicRead.getString("federalState") == privateRead.draft.federalState
+            ) return@request privateRead
+            if (attempt < 5) delay(250L * (attempt + 1))
+        }
+        throw ProfileMediaException(ProfileMediaFailure.UNCONFIRMED)
     }
 
     private suspend fun <T> request(action: suspend () -> T): T =
