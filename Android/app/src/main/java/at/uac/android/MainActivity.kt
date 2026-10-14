@@ -91,6 +91,7 @@ import at.uac.android.feature.gallery.*
 import at.uac.android.feature.history.*
 import at.uac.android.feature.inbox.*
 import at.uac.android.feature.legalevidence.*
+import at.uac.android.feature.legalmanagement.*
 import at.uac.android.feature.moderation.*
 import at.uac.android.feature.organization.*
 import at.uac.android.feature.organizationreview.*
@@ -165,6 +166,7 @@ class MainActivity : FragmentActivity() {
         ) { auth.state.value.bannerMeasurementAuthority() }
         val bannerReport = bannerReportSource(applicationContext)
         val legalEvidence = legalEvidencePageSource(applicationContext)
+        val legalAccounts = evidenceAccountsSource(applicationContext)
         val reminderRuntime =
             LocalReminders.get(applicationContext).also {
                 reminders = it
@@ -1699,6 +1701,17 @@ class MainActivity : FragmentActivity() {
                                     legalEvidence,
                                     model::back,
                                 )
+                            } else if (route == "profile/legal-evidence") {
+                                LegalEvidenceAccountsScreen(
+                                    authSession.moderationScope(), selectedLanguage, legalAccounts,
+                                    model::back, { model.navigate("profile/legal-evidence/$it") },
+                                )
+                            } else if (route == "profile/legal-management") {
+                                LegalManagementScreen(
+                                    authSession.moderationScope(), selectedLanguage,
+                                    remember(auth) { FirebaseLegalManagementSource(this@MainActivity, auth) },
+                                    model::back,
+                                )
                             } else if (route == "profile/users") {
                                 ManagedUsersScreen(
                                     managedUsers,
@@ -2231,6 +2244,18 @@ class MainActivity : FragmentActivity() {
                                             ),
                                         ) {
                                             if (authSession.ownerAnalyticsScope()?.ready == true) {
+                                                UacNavigationRow(
+                                                    tr(selectedLanguage, "Rechtliche Dokumente verwalten", "Керувати юридичними документами"),
+                                                    icon = UacIcon.EDIT,
+                                                    modifier = Modifier.testTag("account-open-legal-management"),
+                                                ) { model.navigate("profile/legal-management") }
+                                                UacRowDivider()
+                                                UacNavigationRow(
+                                                    tr(selectedLanguage, "Rechtliche Nachweise", "Юридичні підтвердження"),
+                                                    icon = UacIcon.HISTORY,
+                                                    modifier = Modifier.testTag("account-open-legal-evidence"),
+                                                ) { model.navigate("profile/legal-evidence") }
+                                                UacRowDivider()
                                                 UacNavigationRow(
                                                     tr(selectedLanguage, "Ratgeberredakteure", "Редактори довідника"),
                                                     icon = UacIcon.EDIT,

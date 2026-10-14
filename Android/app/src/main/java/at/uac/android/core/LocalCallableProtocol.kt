@@ -102,6 +102,7 @@ object LocalCallableProtocol {
             "updateBannerMeasurementConsent",
             "recordBannerMeasurement",
             "getLegalEvidencePage",
+            "listLegalEvidenceAccounts",
             "beginOwnerContentDraftPublication",
             "finalizeOwnerContentDraftPublication",
             "failOwnerContentDraftPublication",

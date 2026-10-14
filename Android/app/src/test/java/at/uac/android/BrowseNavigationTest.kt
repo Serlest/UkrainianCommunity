@@ -14,6 +14,15 @@ class BrowseNavigationTest {
         assertEquals("profile/administration", nav.back().route)
     }
 
+    @Test fun legalOwnerRoutesKeepProfileStack() {
+        for (route in listOf("profile/legal-management", "profile/legal-evidence")) {
+            val nav = BrowseNavigation.restore().select(PrimaryTab.PROFILE)
+                .navigate("profile/administration").navigate(route)
+            assertEquals(route, nav.route)
+            assertEquals("profile/administration", nav.back().route)
+        }
+    }
+
     @Test
     fun ownerDecisionRouteAcceptsOnlyCanonicalCaseIds() {
         assertEquals("profile/dsa-owner/report-1",
@@ -297,6 +306,8 @@ class BrowseNavigationTest {
             listOf(
                 "profile/moderation",
                 "profile/users",
+                "profile/legal-management",
+                "profile/legal-evidence",
                 "profile/legal-evidence/user-1",
                 "profile/organization-review",
                 "profile/organization-review/org-1",

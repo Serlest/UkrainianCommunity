@@ -13,6 +13,7 @@ class ProfileManagementAccessTest {
             "content-planning",
             "directory-editors",
             "legal-evidence",
+            "legal-management",
             "announcements/manage",
         )
     private val moderatorRoutes =

@@ -114,6 +114,8 @@ private constructor(
                 "profile/organization-review",
                 "profile/featured-banners",
                 "profile/directory-editors",
+                "profile/legal-management",
+                "profile/legal-evidence",
                 "profile/content-planning",
                 "profile/system-logs",
                 "profile/analytics",
