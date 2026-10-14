@@ -42,6 +42,15 @@
                 <action android:name="at.uac.android.PUSH_TAP" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ukrainiancommunity" android:host="news" />
+                <data android:scheme="ukrainiancommunity" android:host="events" />
+                <data android:scheme="ukrainiancommunity" android:host="organizations" />
+                <data android:scheme="ukrainiancommunity" android:host="inbox" />
+            </intent-filter>
         </activity>
     </application>
 </manifest>

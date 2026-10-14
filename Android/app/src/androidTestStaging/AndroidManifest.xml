@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <!-- The photo fixture is local-AVD-only and its fixed authority belongs to local tests. -->
+        <provider android:name="at.uac.android.PhotoFixtureDocumentsProvider"
+            tools:node="remove" />
+        <provider android:name="at.uac.android.PhotoFixtureDocumentsProvider$Seeder"
+            tools:node="remove" />
+    </application>
+</manifest>

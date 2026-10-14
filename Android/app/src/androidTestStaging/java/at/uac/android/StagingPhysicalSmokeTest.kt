@@ -17,22 +17,24 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
-/** Read-only physical-device gate for the isolated staging application. */
+/** Read-only launch and backend-binding gate for the isolated staging application. */
 @RunWith(AndroidJUnit4::class)
 class StagingPhysicalSmokeTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun stagingGuestShellStartsWithExactBackendBinding() {
+    fun stagingGuestGateStartsWithExactBackendBinding() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("at.serlest.ukrainiancommunity.staging", context.packageName)
         assertEquals("uac-android-test-20260903", BuildConfig.BACKEND_PROJECT_ID)
 
         compose.waitUntil(60_000) {
-            compose.onAllNodesWithTag("tab-home").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag("startup-account-gate").fetchSemanticsNodes().isNotEmpty()
         }
-        listOf("tab-home", "tab-events", "tab-organizations", "tab-profile", "settings")
-            .forEach { compose.onNodeWithTag(it).assertIsDisplayed() }
+        compose.onNodeWithTag("startup-account-gate").assertIsDisplayed()
+        compose.onNodeWithTag("auth-login-submit").assertExists()
+        listOf("tab-home", "tab-events", "tab-organizations", "tab-directory", "tab-profile")
+            .forEach { compose.onNodeWithTag(it).assertDoesNotExist() }
 
         val firebaseApps = FirebaseApp.getApps(context)
         assertTrue("Staging launch must initialize Firebase", firebaseApps.isNotEmpty())
