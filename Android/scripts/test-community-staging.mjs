@@ -21,6 +21,10 @@ let account;
 let debugTokenId;
 let installed = false;
 let storageUploaded = false;
+let analyticsGateCreated = false;
+const analyticsCollections = ["analyticsDailyStats", "analyticsEventReceipts", "analyticsRateLimits",
+  "analyticsUserActivity", "analyticsTopContent", "analyticsRegionStats", "analyticsContentStats",
+  "analyticsOrganizationStats", "analyticsUserStats", "analyticsRollupState"];
 const storagePath = `step5-banner/${suffix}.jpg`;
 const ppmPath = `/tmp/uac-step5-${suffix}.ppm`;
 const jpegPath = `/tmp/uac-step5-${suffix}.jpg`;
@@ -145,12 +149,24 @@ function runUi(method) {
   }
   console.log(`Android UI: ${method} passed`);
 }
+async function waitFor(label, predicate, attempts = 30) {
+  for (let index = 0; index < attempts; index++) {
+    const result = await predicate();
+    if (result?.length) return result;
+    await new Promise(resolve => setTimeout(resolve, 1_000));
+  }
+  throw new Error(`${label} did not appear`);
+}
 
 let completed = false;
 try {
   if ((await list("users")).length !== 0) throw new Error("Staging has existing users");
   for (const collection of ["bannerMeasurementConsentStates", "bannerMeasurementConsentReceipts",
     "bannerMeasurementEventReceipts", "bannerMeasurementDailyShards", "bannerMeasurementRateLimits"])
+    if ((await list(collection)).length !== 0) throw new Error(`Staging ${collection} is not empty`);
+  if ((await document("analyticsSchemaState/current")).status !== 404)
+    throw new Error("Staging analytics schema gate already exists");
+  for (const collection of analyticsCollections)
     if ((await list(collection)).length !== 0) throw new Error(`Staging ${collection} is not empty`);
   const terms = read(expect(await document("legalDocuments/terms"), 200, "Terms").fields.activeVersion);
   const privacy = read(expect(await document("legalDocuments/privacy"), 200, "Privacy").fields.activeVersion);
@@ -238,10 +254,39 @@ try {
       disclosureVersion: "2026-08-25.1"}}, account.idToken);
   if (foreignConsent.status !== 403 || foreignConsent.data.error?.status !== "PERMISSION_DENIED")
     throw new Error(`Foreign consent mutation not denied: ${foreignConsent.status}`);
+  await create("analyticsSchemaState/current", {schemaVersion: 2, status: "complete",
+    generation: `step5-staging-${suffix}`, cutoverDay: new Date().toISOString().slice(0, 10)});
+  analyticsGateCreated = true;
+  runUi("trackNewsViewThroughUi");
+  const eventReceipts = await waitFor("Android news_view analytics receipt", async () =>
+    (await list("analyticsEventReceipts")).filter(row =>
+      read(row.fields.eventName) === "news_view" && read(row.fields.contentID) === newsId));
+  if (eventReceipts.length !== 1) throw new Error("Android news view was not deduplicated");
+  const analyticsDay = read(eventReceipts[0].fields.analyticsDay);
+  const daily = expect(await document(`analyticsDailyStats/${analyticsDay}`), 200, "analytics daily stats");
+  if (read(daily.fields.metrics?.mapValue?.fields?.newsViews) !== "1" ||
+    read(daily.fields.metrics?.mapValue?.fields?.totalViews) !== "1")
+    throw new Error("Daily news view aggregate mismatch");
+  const detail = (await list(`analyticsContentStats/${analyticsDay}/items`)).filter(row =>
+    read(row.fields.contentID) === newsId);
+  if (detail.length !== 1 || read(detail[0].fields.metrics?.mapValue?.fields?.views) !== "1")
+    throw new Error("iOS-readable analytics content detail mismatch");
+  const duplicate = expect(await call(`https://europe-west3-${project}.cloudfunctions.net/trackAnalyticsEvent`,
+    "POST", {data: {name: "news_view", parameters: {content_id: newsId}, consentID: consentId,
+      occurredAtMilliseconds: Date.now()}}, account.idToken), 200, "duplicate analytics view");
+  if (duplicate.result?.tracked !== false ||
+    read(expect(await document(`analyticsDailyStats/${analyticsDay}`), 200, "deduped daily stats")
+      .fields.metrics?.mapValue?.fields?.newsViews) !== "1")
+    throw new Error("Analytics duplicate incremented the iOS aggregate");
   runUi("withdrawAnalyticsConsentThroughUi");
   if (read(expect(await document(consentPath), 200, "withdrawn consent").fields.enabled) !== false ||
     read(expect(await document(receiptPath), 200, "withdrawn receipt").fields.enabled) !== false)
     throw new Error("Analytics withdrawal not durably recorded");
+  const withdrawnView = await call(`https://europe-west3-${project}.cloudfunctions.net/trackAnalyticsEvent`,
+    "POST", {data: {name: "news_view", parameters: {content_id: newsId}, consentID: consentId,
+      occurredAtMilliseconds: Date.now()}}, account.idToken);
+  if (withdrawnView.status < 400 || withdrawnView.data.error?.status !== "FAILED_PRECONDITION")
+    throw new Error(`Analytics view after withdrawal not denied: ${withdrawnView.status}`);
   runUi("measureBannerImpressionAndClickThroughUi");
   const bannerConsentPath = `bannerMeasurementConsentStates/${account.uid}`;
   const bannerConsent = expect(await document(bannerConsentPath), 200, "banner consent");
@@ -298,7 +343,19 @@ try {
   console.log("Staging step5 community: registration, comments, analytics and banner consent, UI impression/click, dedupe, withdrawal and denials passed");
   completed = true;
 } finally {
+  if (analyticsGateCreated) await remove("analyticsSchemaState/current");
   if (account) {
+    for (const collection of analyticsCollections)
+      for (const row of await list(collection)) {
+        const path = `${collection}/${row.name.split("/").at(-1)}`;
+        if (collection === "analyticsContentStats")
+          for (const child of await list(`${path}/items`))
+            paths.add(`${path}/items/${child.name.split("/").at(-1)}`);
+        if (collection === "analyticsOrganizationStats")
+          for (const child of await list(`${path}/organizations`))
+            paths.add(`${path}/organizations/${child.name.split("/").at(-1)}`);
+        paths.add(path);
+      }
     for (const collection of ["bannerMeasurementConsentReceipts", "bannerMeasurementEventReceipts",
       "bannerMeasurementDailyShards", "bannerMeasurementRateLimits"])
       for (const row of await list(collection))
@@ -335,8 +392,10 @@ try {
   for (const collection of ["users", "registrations", "eventRegistrationCounterOperations",
     "analyticsConsentStates", "analyticsConsentReceipts", "bannerMeasurementConsentStates",
     "bannerMeasurementConsentReceipts", "bannerMeasurementEventReceipts",
-    "bannerMeasurementDailyShards", "bannerMeasurementRateLimits"])
+    "bannerMeasurementDailyShards", "bannerMeasurementRateLimits", ...analyticsCollections])
     if ((await list(collection)).length !== 0) throw new Error(`Staging cleanup left ${collection}`);
+  if ((await document("analyticsSchemaState/current")).status !== 404)
+    throw new Error("Staging analytics schema gate survived cleanup");
   if (storageUploaded) {
     const deleted = await fetch(`https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(storagePath)}`,
       {method: "DELETE", headers: {authorization: `Bearer ${token}`, "x-goog-user-project": project}});

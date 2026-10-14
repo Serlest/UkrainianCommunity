@@ -134,6 +134,19 @@ class StagingCommunityJourneyTest {
         compose.onNodeWithTag("analytics-consent-error").assertDoesNotExist()
     }
 
+    @Test fun trackNewsViewThroughUi() {
+        login()
+        val browse = ViewModelProvider(compose.activity)[BrowseViewModel::class.java]
+        compose.runOnIdle { browse.navigate("news/$newsId") }
+        compose.waitUntil(60_000) {
+            browse.state.value.let { it.detailId == newsId && it.data.detail?.id == newsId && !it.data.loading }
+        }
+        compose.waitUntil(60_000) {
+            compose.activity.getSharedPreferences("analytics-view-receipts-v1", android.content.Context.MODE_PRIVATE)
+                .all.isNotEmpty()
+        }
+    }
+
     @Test fun measureBannerImpressionAndClickThroughUi() {
         login()
         val browse = ViewModelProvider(compose.activity)[BrowseViewModel::class.java]
@@ -166,10 +179,12 @@ class StagingCommunityJourneyTest {
         }
         compose.onNodeWithTag("loaded-media").assertExists()
         compose.onNodeWithTag("banner-open").assertIsDisplayed()
-        Thread.sleep(1_400)
+        Thread.sleep(2_000)
         compose.onNodeWithTag("banner-open").performClick()
         val news = newsId
         compose.waitUntil(60_000) { browse.state.value.detailId == news }
+        // Keep the resumed Activity alive while its queued measurement is acknowledged.
+        Thread.sleep(5_000)
     }
 
     @Test fun withdrawBannerMeasurementThroughUi() {
