@@ -83,6 +83,8 @@ import at.uac.android.feature.donationsettings.*
 import at.uac.android.feature.dsaappeal.*
 import at.uac.android.feature.dsaowner.*
 import at.uac.android.feature.dsastatement.*
+import at.uac.android.feature.directory.DirectoryEditorsScreen
+import at.uac.android.feature.directory.FirebaseDirectoryEditorsSource
 import at.uac.android.feature.featuredmanagement.*
 import at.uac.android.feature.feedback.*
 import at.uac.android.feature.gallery.*
@@ -1748,6 +1750,13 @@ class MainActivity : FragmentActivity() {
                                     dsaOwnerState,
                                     dsaOwner,
                                 )
+                            } else if (route == "profile/directory-editors") {
+                                DirectoryEditorsScreen(
+                                    authSession.moderationScope(),
+                                    selectedLanguage,
+                                    remember(auth) { FirebaseDirectoryEditorsSource(this@MainActivity, auth) },
+                                    onBack = model::back,
+                                )
                             } else if (route.startsWith("profile/dsa-review/")) {
                                 DsaAppealReviewDestination(
                                     route.removePrefix("profile/dsa-review/"),
@@ -2222,6 +2231,17 @@ class MainActivity : FragmentActivity() {
                                             ),
                                         ) {
                                             if (authSession.ownerAnalyticsScope()?.ready == true) {
+                                                UacNavigationRow(
+                                                    tr(selectedLanguage, "Ratgeberredakteure", "Редактори довідника"),
+                                                    icon = UacIcon.EDIT,
+                                                    modifier = Modifier.testTag("account-open-directory-editors"),
+                                                ) {
+                                                    val captured = authSession.moderationScope()
+                                                    if (captured?.ready == true && captured.role == "owner" &&
+                                                        auth.state.value.moderationScope() == captured)
+                                                        model.navigate("profile/directory-editors")
+                                                }
+                                                UacRowDivider()
                                                 UacNavigationRow(
                                                     tr(
                                                         selectedLanguage,

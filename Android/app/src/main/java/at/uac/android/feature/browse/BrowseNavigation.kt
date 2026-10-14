@@ -113,6 +113,7 @@ private constructor(
                 "profile/users",
                 "profile/organization-review",
                 "profile/featured-banners",
+                "profile/directory-editors",
                 "profile/content-planning",
                 "profile/system-logs",
                 "profile/analytics",

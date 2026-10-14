@@ -20,6 +20,7 @@ data class ProfileManagementAccess(
                     "profile/content-planning",
                     "profile/legal-evidence",
                     "profile/dsa-owner",
+                    "profile/directory-editors",
                 ) -> owner
             root in
                 setOf(

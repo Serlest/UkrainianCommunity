@@ -11,6 +11,7 @@ class ProfileManagementAccessTest {
             "donation-settings",
             "featured-banners",
             "content-planning",
+            "directory-editors",
             "legal-evidence",
             "announcements/manage",
         )

@@ -39,6 +39,7 @@ object LocalCallableProtocol {
     const val MAX_RESPONSE_BYTES = 262_144
     private const val COVER_UPLOAD = "uploadOrganizationContentCover"
     private const val PHOTO_SAVE = "saveOrganizationPhoto"
+    private const val DIRECTORY_SAVE = "saveDirectoryCategory"
     private val allowed =
         setOf(
             "registerForEvent",
@@ -66,6 +67,8 @@ object LocalCallableProtocol {
             "removeMyPasskey",
             "activatePrivilegedMFAProtection",
             "searchManagedUsers",
+            DIRECTORY_SAVE,
+            "deleteDirectoryCategory",
             "getManagedUserSecurityMetadata",
             "warnUser",
             "suspendUser",
@@ -144,6 +147,8 @@ object LocalCallableProtocol {
         name in
             setOf(
                 "saveComment",
+                DIRECTORY_SAVE,
+                "deleteDirectoryCategory",
                 "submitContentReport",
                 "submitDsaAppeal",
                 "decideDsaCase",
@@ -215,6 +220,7 @@ object LocalCallableProtocol {
 
     fun maximumRequestBytes(name: String): Int =
         if (name == COVER_UPLOAD || name == PHOTO_SAVE) MAX_COVER_REQUEST_BYTES
+        else if (name == DIRECTORY_SAVE) 850_000
         else MAX_REQUEST_BYTES
 
     /** Ordinary compatibility entry point; it never grants the larger media budget. */

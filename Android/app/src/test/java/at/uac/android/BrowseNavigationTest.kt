@@ -7,6 +7,14 @@ import org.junit.Test
 
 class BrowseNavigationTest {
     @Test
+    fun directoryEditorsRouteKeepsProfileStack() {
+        val nav = BrowseNavigation.restore().select(PrimaryTab.PROFILE)
+            .navigate("profile/administration").navigate("profile/directory-editors")
+        assertEquals("profile/directory-editors", nav.route)
+        assertEquals("profile/administration", nav.back().route)
+    }
+
+    @Test
     fun ownerDecisionRouteAcceptsOnlyCanonicalCaseIds() {
         assertEquals("profile/dsa-owner/report-1",
             BrowseNavigation.restore().navigate("profile/dsa-owner/report-1").route)
