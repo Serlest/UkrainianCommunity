@@ -181,7 +181,16 @@ class OrganizationManagementViewModel(
             )
         read = viewModelScope.launch {
             try {
-                val loaded = repository.load(id, if (more) captured.snapshot else null)
+                val loaded =
+                    try {
+                        repository.load(id, if (more) captured.snapshot else null)
+                    } catch (error: Exception) {
+                        // A role callable can commit between the two server reads used to
+                        // assemble a page. Refresh the snapshot, never resend the command.
+                        if (!more && organizationManagementFailure(error) == OrganizationManagementFailure.STALE)
+                            repository.load(id)
+                        else throw error
+                    }
                 if (same(session, epoch)) {
                     val uncertain = mutable.value.uncertain
                     val recovered =
@@ -197,7 +206,10 @@ class OrganizationManagementViewModel(
                             loading = false,
                             uncertain = uncertain.takeUnless { recovered },
                             confirmed = mutable.value.confirmed || recovered,
-                            error = if (recovered) null else mutable.value.error,
+                            error =
+                                if (recovered || mutable.value.error == OrganizationManagementFailure.STALE)
+                                    null
+                                else mutable.value.error,
                         )
                 }
             } catch (error: CancellationException) {

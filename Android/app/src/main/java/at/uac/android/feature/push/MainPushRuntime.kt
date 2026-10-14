@@ -15,6 +15,7 @@ import at.uac.android.feature.inbox.InboxPreferences
 import at.uac.android.feature.inbox.InboxSource
 import at.uac.android.feature.inbox.localInboxSource
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -35,6 +36,7 @@ private constructor(
     private val nativeAuth = AppBackend.auth(appContext)
     private val current = AtomicReference<PushSession?>()
     private val consent = AtomicBoolean(false)
+    private val confirmedPreferenceRevision = AtomicLong(0)
     private val inboxRefresh = AtomicReference<(() -> Unit)?>(null)
     private val announcementOpen = AtomicReference<((String) -> Unit)?>(null)
     private val announcementChallenge = AtomicReference<((String) -> Unit)?>(null)
@@ -78,18 +80,21 @@ private constructor(
                     if (session == null) consent.set(false)
                     return@collectLatest
                 }
+                val revisionBeforeRead = confirmedPreferenceRevision.get()
                 val enabled = runCatching {
                     withTimeout(15_000) { source.preferences(session.uid) }
                 }
                     .getOrElse {
-                        if (current.get() == session) {
+                        if (current.get() == session &&
+                            confirmedPreferenceRevision.get() == revisionBeforeRead) {
                             consent.set(false)
                             controller.refresh()?.join()
                         }
                         return@collectLatest
                     }
                     .notificationsEnabled
-                if (current.get() == session) {
+                if (current.get() == session &&
+                    confirmedPreferenceRevision.get() == revisionBeforeRead) {
                     consent.set(enabled)
                     controller.refresh()?.join()
                 }
@@ -98,8 +103,12 @@ private constructor(
     }
 
     fun preferencesChanged(sessionUid: String, preferences: InboxPreferences) {
-        val session = current.get() ?: return
+        // The confirmed UI write can finish before the initial preferences read or before the
+        // auth collector publishes its first session. Never let that older read undo this grant.
+        val session = auth.state.value.pushSession() ?: return
         if (session.uid != sessionUid || !session.verifiedActive) return
+        current.set(session)
+        confirmedPreferenceRevision.incrementAndGet()
         consent.set(preferences.notificationsEnabled)
         controller.refresh()
     }

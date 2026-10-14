@@ -17,6 +17,8 @@
         <meta-data android:name="firebase_messaging_notification_delegation_enabled"
             android:value="false" />
         <meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
+        <!-- Explicit FID registration still requires this API; auto init stays off until consent. -->
+        <meta-data android:name="firebase_messaging_installation_id_enabled" android:value="true" />
         <service android:name="at.uac.android.feature.push.UacFirebaseMessagingService"
             android:exported="false" android:enabled="${enableCloudMessaging}">
             <intent-filter>

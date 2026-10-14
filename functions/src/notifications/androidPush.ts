@@ -31,6 +31,9 @@ export function messageForAndroid(message: BaseMessage, nowMs = Date.now()): Bas
   const bodyLocKey = androidPushResourceKey(localized?.locKey);
   const notification: AndroidNotification = {
     channelId: androidPushChannelId,
+    // Background notification taps bypass FirebaseMessagingService. Route the system tray
+    // intent through the same explicit allowlisted handler as foreground notifications.
+    clickAction: "at.uac.android.PUSH_TAP",
     icon: androidPushIcon,
     visibility: "private",
     defaultSound: true,
