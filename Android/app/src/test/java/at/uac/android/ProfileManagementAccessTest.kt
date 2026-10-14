@@ -83,4 +83,11 @@ class ProfileManagementAccessTest {
                 assertTrue(it, revoked.allows(it))
             }
     }
+
+    @Test
+    fun dsaOwnerRouteRequiresOwnerCapability() {
+        assertTrue(ProfileManagementAccess(owner = true).allows("profile/dsa-owner/report"))
+        assertFalse(ProfileManagementAccess(moderator = true).allows("profile/dsa-owner/report"))
+        assertFalse(ProfileManagementAccess().allows("profile/dsa-owner/report"))
+    }
 }

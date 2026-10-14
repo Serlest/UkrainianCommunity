@@ -256,12 +256,9 @@ class DsaStatementTest {
                 .endsWith("/getMyDsaStatement")
         )
         assertFalse(LocalCallableProtocol.nonIdempotent(DsaStatementContract.CALLABLE))
-        for (name in
-            listOf(
-                "decideDsaCase",
-                "decideDsaAppeal",
-                "dsaCasePortal",
-            )) assertTrue(runCatching { LocalCallableProtocol.endpoint(name) }.isFailure)
+        assertTrue(LocalCallableProtocol.endpoint("decideDsaCase").endsWith("/decideDsaCase"))
+        assertTrue(LocalCallableProtocol.endpoint("decideDsaAppeal").endsWith("/decideDsaAppeal"))
+        assertTrue(runCatching { LocalCallableProtocol.endpoint("dsaCasePortal") }.isFailure)
         assertTrue(LocalCallableProtocol.endpoint("registerForEvent").contains("registerForEvent"))
     }
 

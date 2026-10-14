@@ -81,6 +81,7 @@ import at.uac.android.feature.contentmedia.*
 import at.uac.android.feature.contentplanning.*
 import at.uac.android.feature.donationsettings.*
 import at.uac.android.feature.dsaappeal.*
+import at.uac.android.feature.dsaowner.*
 import at.uac.android.feature.dsastatement.*
 import at.uac.android.feature.featuredmanagement.*
 import at.uac.android.feature.feedback.*
@@ -625,6 +626,15 @@ class MainActivity : FragmentActivity() {
                                 review.observeSessions(auth.state.map { it.dsaAppealScope() })
                             } as T
                     }
+                    if (modelClass == DsaOwnerDecisionViewModel::class.java) {
+                        return DsaOwnerDecisionViewModel(
+                            localDsaOwnerSource(applicationContext),
+                            { auth.state.value.moderationScope() },
+                            { session, action ->
+                                auth.withReadySession(session.uid, session.revision, action)
+                            },
+                        ) as T
+                    }
                     if (modelClass == DsaStatementViewModel::class.java) {
                         return DsaStatementViewModel(
                                 localDsaStatementSource(applicationContext),
@@ -816,6 +826,7 @@ class MainActivity : FragmentActivity() {
             val feedback: FeedbackViewModel = viewModel(factory = factory)
             val dsaStatement: DsaStatementViewModel = viewModel(factory = factory)
             val dsaReview: DsaAppealReviewViewModel = viewModel(factory = factory)
+            val dsaOwner: DsaOwnerDecisionViewModel = viewModel(factory = factory)
             val organizations: OrganizationViewModel = viewModel(factory = factory)
             val organizationManagement: OrganizationManagementViewModel =
                 viewModel(factory = factory)
@@ -834,6 +845,7 @@ class MainActivity : FragmentActivity() {
             }
             LaunchedEffect(authSession.moderationScope()) {
                 donationSettings.bind(authSession.moderationScope())
+                dsaOwner.bind(authSession.moderationScope())
             }
             LaunchedEffect(authSession.ownerAnalyticsScope()) {
                 ownerAnalytics.bind(authSession.ownerAnalyticsScope())
@@ -864,6 +876,10 @@ class MainActivity : FragmentActivity() {
             val reviewSnapshot by dsaReview.state.collectAsStateWithLifecycle()
             val reviewState =
                 reviewSnapshot.forSession(authSession.dsaAppealScope(), java.time.Instant.now())
+            val dsaOwnerSnapshot by dsaOwner.state.collectAsStateWithLifecycle()
+            val dsaOwnerState =
+                if (dsaOwnerSnapshot.session == authSession.moderationScope()) dsaOwnerSnapshot
+                else DsaOwnerState(session = authSession.moderationScope())
             val mediaSnapshot by media.state.collectAsStateWithLifecycle()
             val mediaState = mediaSnapshot.forSession(authSession.personalScope())
             val deletionSnapshot by deletion.state.collectAsStateWithLifecycle()
@@ -1725,6 +1741,13 @@ class MainActivity : FragmentActivity() {
                                     organizationReviews =
                                         if (requests) organizationReviews else null,
                                 )
+                            } else if (route.startsWith("profile/dsa-owner/")) {
+                                DsaOwnerDecisionDestination(
+                                    route.removePrefix("profile/dsa-owner/"),
+                                    selectedLanguage,
+                                    dsaOwnerState,
+                                    dsaOwner,
+                                )
                             } else if (route.startsWith("profile/dsa-review/")) {
                                 DsaAppealReviewDestination(
                                     route.removePrefix("profile/dsa-review/"),
@@ -1765,6 +1788,13 @@ class MainActivity : FragmentActivity() {
                                         if (DsaStatementContract.validId(reportId))
                                             model.navigate("profile/dsa-review/$reportId")
                                     },
+                                    onDecideDsa =
+                                        if (authSession.moderationScope()?.let {
+                                            it.ready && it.role == "owner"
+                                        } == true) { reportId ->
+                                            if (DsaStatementContract.validId(reportId))
+                                                model.navigate("profile/dsa-owner/$reportId")
+                                        } else null,
                                 )
                             } else if (
                                 route == "profile/blocked" &&

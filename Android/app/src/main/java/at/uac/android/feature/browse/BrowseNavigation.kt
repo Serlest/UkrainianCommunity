@@ -150,7 +150,7 @@ private constructor(
                     communityId(parts[2])
                 parts.size == 3 &&
                     parts[0] == "profile" &&
-                    parts[1] in setOf("dsa-statement", "dsa-review") ->
+                    parts[1] in setOf("dsa-statement", "dsa-review", "dsa-owner") ->
                     DsaStatementContract.validId(parts[2])
                 parts.size == 3 && parts.take(2) == listOf("profile", "subscribers") ->
                     OrganizationContract.id(parts[2])

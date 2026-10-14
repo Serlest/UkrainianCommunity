@@ -55,6 +55,7 @@ fun FeedbackDestination(
     onOpen: (String) -> Unit,
     onAccount: () -> Unit,
     onReadDecision: ((String) -> Unit)? = null,
+    onDecideDsa: ((String) -> Unit)? = null,
 ) {
     val state =
         if (snapshot.audience == audience && snapshot.selectedId == id) snapshot
@@ -116,6 +117,7 @@ fun FeedbackDestination(
             { model.refresh() },
             onAccount,
             onReadDecision,
+            onDecideDsa,
             onMore = { model.refresh(more = true) },
         )
 }
@@ -311,6 +313,7 @@ fun FeedbackDetail(
     onRefresh: () -> Unit,
     onAccount: () -> Unit,
     onReadDecision: ((String) -> Unit)? = null,
+    onDecideDsa: ((String) -> Unit)? = null,
     onMore: (() -> Unit)? = null,
 ) {
     var closing by remember(state.session, state.selectedId) { mutableStateOf(false) }
@@ -366,6 +369,15 @@ fun FeedbackDetail(
                             "Перевірити рішення перед скаргою",
                         )
                     )
+                }
+            }
+        if (onDecideDsa != null && state.audience == FeedbackAudience.MANAGEMENT &&
+            state.canReadCaseContext() &&
+            item?.caseContext?.status in setOf("submitted", "underReview", "appealed"))
+            item("owner-dsa-decision") {
+                OutlinedButton({ state.selectedId?.let(onDecideDsa) },
+                    Modifier.fillMaxWidth().testTag("feedback-dsa-owner-decision")) {
+                    Text(tr(language, "DSA-Fall entscheiden", "Ухвалити рішення у справі DSA"))
                 }
             }
         items(conversation?.messages.orEmpty(), key = { "${it.legacy}:${it.id}" }) { message ->
@@ -455,7 +467,7 @@ fun FeedbackDetail(
                                 ) {
                                     Text(tr(language, "Anfrage schließen", "Закрити звернення"))
                                 }
-                            if (item.hasDsaCase)
+                            if (item.hasDsaCase && onDecideDsa == null)
                                 Text(
                                     tr(
                                         language,

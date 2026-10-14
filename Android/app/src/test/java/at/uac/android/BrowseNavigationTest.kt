@@ -7,6 +7,15 @@ import org.junit.Test
 
 class BrowseNavigationTest {
     @Test
+    fun ownerDecisionRouteAcceptsOnlyCanonicalCaseIds() {
+        assertEquals("profile/dsa-owner/report-1",
+            BrowseNavigation.restore().navigate("profile/dsa-owner/report-1").route)
+        for (route in listOf("profile/dsa-owner/", "profile/dsa-owner/../x",
+            "profile/dsa-owner/a b", "profile/dsa-owner/" + "a".repeat(201)))
+            assertTrue(runCatching { BrowseNavigation.restore().navigate(route) }.isFailure)
+    }
+
+    @Test
     fun statementRouteRestoresOnlyPathAndBackKeepsInboxOrigin() {
         val route = "profile/dsa-statement/report-1"
         val nav =

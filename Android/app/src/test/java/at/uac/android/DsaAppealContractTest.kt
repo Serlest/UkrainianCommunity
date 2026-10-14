@@ -255,12 +255,9 @@ class DsaAppealContractTest {
     fun onlyAppealSubmissionWasEnabled() {
         assertTrue(LocalCallableProtocol.endpoint("submitDsaAppeal").endsWith("/submitDsaAppeal"))
         assertTrue(LocalCallableProtocol.nonIdempotent("submitDsaAppeal"))
-        for (name in
-            listOf(
-                "decideDsaCase",
-                "decideDsaAppeal",
-                "dsaCasePortal",
-            )) assertTrue(runCatching { LocalCallableProtocol.endpoint(name) }.isFailure)
+        assertTrue(LocalCallableProtocol.endpoint("decideDsaCase").endsWith("/decideDsaCase"))
+        assertTrue(LocalCallableProtocol.endpoint("decideDsaAppeal").endsWith("/decideDsaAppeal"))
+        assertTrue(runCatching { LocalCallableProtocol.endpoint("dsaCasePortal") }.isFailure)
         assertTrue(
             LocalCallableProtocol.endpoint("getMyDsaStatement").contains("getMyDsaStatement")
         )
