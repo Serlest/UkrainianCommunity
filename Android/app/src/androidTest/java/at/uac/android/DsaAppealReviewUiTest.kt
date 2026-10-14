@@ -189,4 +189,23 @@ class DsaAppealReviewUiTest {
         compose.onNodeWithText("PRIVATE SYNTHETIC FACTS").assertDoesNotExist()
         compose.onNodeWithTag("dsa-review-refresh").assertDoesNotExist()
     }
+
+    @Test
+    fun appealRequiresReasonAndExplicitConfirmation() {
+        var submitted: String? = null
+        compose.setContent {
+            MaterialTheme {
+                DsaAppealReviewScreen(state(), "report", "de", now, {}, {}, { submitted = it })
+            }
+        }
+        scroll("dsa-review-submit")
+        compose.onNodeWithTag("dsa-review-submit").assertIsNotEnabled()
+        scroll("dsa-review-reason")
+        compose.onNodeWithTag("dsa-review-reason").performTextInput("A detailed synthetic appeal reason")
+        scroll("dsa-review-submit")
+        compose.onNodeWithTag("dsa-review-submit").assertIsEnabled().performClick()
+        compose.runOnIdle { assertNull(submitted) }
+        compose.onNodeWithTag("dsa-review-confirm").performClick()
+        compose.runOnIdle { assertEquals("A detailed synthetic appeal reason", submitted) }
+    }
 }

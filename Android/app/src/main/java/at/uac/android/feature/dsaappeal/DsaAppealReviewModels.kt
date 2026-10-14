@@ -20,6 +20,7 @@ enum class DsaAppealReviewFailure {
     EXPIRED,
     OFFLINE,
     STALE,
+    UNCONFIRMED,
     UNKNOWN,
 }
 
@@ -48,6 +49,7 @@ data class DsaAppealReviewSnapshot(
     val context: FeedbackCaseContext,
     val decision: DsaAppealDecision,
     val fingerprint: String,
+    val updatedAt: Instant = Instant.EPOCH,
 ) {
     override fun toString() = "DsaAppealReviewSnapshot(<redacted>)"
 }

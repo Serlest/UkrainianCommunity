@@ -137,7 +137,7 @@ object DsaAppealReviewContract {
         requireOpenWindow(decision, now)
         val updatedAt = date(parent["updatedAt"])
         val fingerprint = fingerprint(row.id, reporterUid, item.status.wire, updatedAt, rawCase)
-        return DsaAppealReviewSnapshot(row.id, reporterUid, context, decision, fingerprint)
+        return DsaAppealReviewSnapshot(row.id, reporterUid, context, decision, fingerprint, updatedAt)
     }
 
     fun requireOpenWindow(decision: DsaAppealDecision, now: Instant) {

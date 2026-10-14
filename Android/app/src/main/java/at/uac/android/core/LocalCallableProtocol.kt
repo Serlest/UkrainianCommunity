@@ -50,6 +50,7 @@ object LocalCallableProtocol {
             "setOrganizationBlocked",
             "getBlockedOrganizations",
             "getMyDsaStatement",
+            "submitDsaAppeal",
             "deleteFeedback",
             "deleteNotificationPushRegistration",
             "getManagedUserPresence",
@@ -142,6 +143,7 @@ object LocalCallableProtocol {
             setOf(
                 "saveComment",
                 "submitContentReport",
+                "submitDsaAppeal",
                 "reviewContentModeration",
                 "acceptLegalDocument",
                 "beginPasskeyRegistration",

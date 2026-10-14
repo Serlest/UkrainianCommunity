@@ -250,7 +250,7 @@ class DsaStatementTest {
     }
 
     @Test
-    fun onlySanitizedDsaReadEndpointIsEnabled() {
+    fun statementReadRemainsIdempotentAndOwnerDecisionEndpointsStayClosed() {
         assertTrue(
             LocalCallableProtocol.endpoint(DsaStatementContract.CALLABLE)
                 .endsWith("/getMyDsaStatement")
@@ -259,7 +259,6 @@ class DsaStatementTest {
         for (name in
             listOf(
                 "decideDsaCase",
-                "submitDsaAppeal",
                 "decideDsaAppeal",
                 "dsaCasePortal",
             )) assertTrue(runCatching { LocalCallableProtocol.endpoint(name) }.isFailure)

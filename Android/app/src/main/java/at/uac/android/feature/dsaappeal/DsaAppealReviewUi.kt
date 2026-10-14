@@ -35,7 +35,10 @@ fun DsaAppealReviewDestination(
         model.show(reportId)
         onPauseOrDispose { model.hide(reportId) }
     }
-    DsaAppealReviewScreen(snapshot, reportId, language, Instant.now(), model::refresh, onAccount)
+    DsaAppealReviewScreen(
+        snapshot, reportId, language, Instant.now(), model::refresh, onAccount,
+        if (model.canSubmit) model::submit else null,
+    )
 }
 
 private fun Context.reviewActivity(): Activity? =
@@ -53,7 +56,13 @@ fun DsaAppealReviewScreen(
     now: Instant,
     onRefresh: () -> Unit,
     onAccount: () -> Unit,
+    onSubmit: ((String) -> Unit)? = null,
 ) {
+    var reason by remember(reportId, snapshot.session) { mutableStateOf("") }
+    var confirmSubmit by remember(reportId, snapshot.session) { mutableStateOf(false) }
+    LaunchedEffect(snapshot.submitted) {
+        if (snapshot.submitted != null) reason = ""
+    }
     val ready = snapshot.session?.ready == true
     val state =
         if (snapshot.visible && snapshot.reportId == reportId && ready)
@@ -74,13 +83,11 @@ fun DsaAppealReviewScreen(
                 icon = at.uac.android.design.UacIcon.SECURITY,
             )
         }
-        item {
+        if (onSubmit == null) item {
             Text(
-                tr(
-                    language,
-                    "Nur Ansicht. Das Einreichen einer Beschwerde ist in dieser Android-Version noch nicht verfügbar. Es wird nichts gesendet.",
-                    "Лише перегляд. Подання скарги в цій версії Android ще недоступне. Нічого не надсилається.",
-                ),
+                tr(language,
+                    "Nur Ansicht. Das Einreichen einer Beschwerde ist hier nicht verfügbar.",
+                    "Лише перегляд. Подання скарги тут недоступне."),
                 Modifier.testTag("dsa-review-readonly"),
             )
         }
@@ -104,6 +111,24 @@ fun DsaAppealReviewScreen(
                     LinearProgressIndicator(Modifier.fillMaxWidth().testTag("dsa-review-loading"))
                 }
             else -> {
+                state.submitted?.let { receipt ->
+                    item {
+                        Card(Modifier.fillMaxWidth().testTag("dsa-review-receipt")) {
+                            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(tr(language, "Beschwerde eingereicht", "Скаргу подано"),
+                                    style = MaterialTheme.typography.titleMedium)
+                                Text(receipt.caseNumber)
+                                Text(displayTime(receipt.submittedAt, language))
+                            }
+                        }
+                    }
+                }
+                state.submitError?.let { failure ->
+                    item { Text(dsaAppealReviewErrorText(failure, language), Modifier.testTag("dsa-review-submit-error")) }
+                }
+                state.reasonError?.let { failure ->
+                    item { Text(dsaAppealReasonErrorText(failure, language), Modifier.testTag("dsa-review-reason-error")) }
+                }
                 state.error?.let { error ->
                     item {
                         Text(
@@ -117,7 +142,7 @@ fun DsaAppealReviewScreen(
                         state.error == null &&
                             it.session == state.session &&
                             it.snapshot.reportId == reportId &&
-                            it.snapshot.reporterUid == state.session?.uid
+                            it.snapshot.reporterUid == state.session.uid
                     }
                     ?.snapshot
                     ?.let { review ->
@@ -234,14 +259,40 @@ fun DsaAppealReviewScreen(
                             Text(
                                 tr(
                                     language,
-                                    "Dies ist eine aktuelle Lesekopie, keine Reservierung oder Bestätigung einer Einreichung. Vor einer späteren Aktion muss erneut geprüft werden.",
-                                    "Це поточна копія для перегляду, а не резервування чи підтвердження подання. Перед подальшою дією потрібна повторна перевірка.",
+                                    "Diese Lesekopie reserviert keine Beschwerde. Vor dem Senden werden Fall und Frist erneut geprüft.",
+                                    "Ця копія не резервує подання. Перед надсиланням справу й строк буде перевірено повторно.",
                                 ),
                                 Modifier.testTag("dsa-review-not-receipt"),
                             )
                         }
+                        if (onSubmit != null && state.submitted == null) {
+                            item {
+                                OutlinedTextField(
+                                    reason,
+                                    { if (it.length <= DsaAppealContract.MAX_RAW_UTF16) reason = it },
+                                    Modifier.fillMaxWidth().testTag("dsa-review-reason"),
+                                    label = { Text(tr(language, "Grund der Beschwerde", "Підстава скарги")) },
+                                    supportingText = {
+                                        Text(tr(language, "Mindestens 20 Zeichen · höchstens 5.000", "Щонайменше 20 символів · щонайбільше 5 000"))
+                                    },
+                                    minLines = 4,
+                                    maxLines = 8,
+                                )
+                            }
+                            item {
+                                Button(
+                                    { confirmSubmit = true },
+                                    Modifier.testTag("dsa-review-submit"),
+                                    enabled = !state.submitting &&
+                                        runCatching { AndroidDsaAppealCharacters.review(reason) }.isSuccess,
+                                ) { Text(tr(language, "Beschwerde einreichen", "Подати скаргу")) }
+                            }
+                            if (state.submitting) item {
+                                LinearProgressIndicator(Modifier.fillMaxWidth().testTag("dsa-review-submitting"))
+                            }
+                        }
                     }
-                item {
+                if (state.submitted == null) item {
                     OutlinedButton(onRefresh, Modifier.testTag("dsa-review-refresh")) {
                         Text(tr(language, "Erneut prüfen", "Перевірити знову"))
                     }
@@ -249,7 +300,31 @@ fun DsaAppealReviewScreen(
             }
         }
     }
+    if (confirmSubmit && onSubmit != null && state.review != null && !state.submitting) {
+        AlertDialog(
+            onDismissRequest = { confirmSubmit = false },
+            title = { Text(tr(language, "Beschwerde einreichen?", "Подати скаргу?")) },
+            text = { Text(tr(language,
+                "Die Entscheidung und Frist werden vor dem Senden erneut geprüft.",
+                "Перед надсиланням рішення та строк буде перевірено повторно.")) },
+            confirmButton = {
+                TextButton({ confirmSubmit = false; onSubmit(reason) }, Modifier.testTag("dsa-review-confirm")) {
+                    Text(tr(language, "Einreichen", "Подати"))
+                }
+            },
+            dismissButton = {
+                TextButton({ confirmSubmit = false }) { Text(tr(language, "Abbrechen", "Скасувати")) }
+            },
+        )
+    }
 }
+
+private fun dsaAppealReasonErrorText(error: DsaAppealTextFailure, language: String): String =
+    when (error) {
+        DsaAppealTextFailure.TOO_SHORT -> tr(language, "Mindestens 20 Zeichen erforderlich.", "Потрібно щонайменше 20 символів.")
+        DsaAppealTextFailure.TOO_LONG -> tr(language, "Höchstens 5.000 Zeichen erlaubt.", "Дозволено щонайбільше 5 000 символів.")
+        else -> tr(language, "Bitte den Text prüfen und erneut versuchen.", "Перевірте текст і спробуйте знову.")
+    }
 
 @Composable
 private fun ReviewField(label: String, value: String, tag: String) {
@@ -301,6 +376,12 @@ fun dsaAppealReviewErrorText(error: DsaAppealReviewFailure, language: String): S
                 language,
                 "Die Entscheidung oder Auswahl hat sich geändert. Bitte erneut prüfen.",
                 "Рішення або вибір змінилися. Перевірте знову.",
+            )
+        DsaAppealReviewFailure.UNCONFIRMED ->
+            tr(
+                language,
+                "Die Antwort konnte nicht bestätigt werden. Bitte die Anfrage erneut laden, bevor du etwas wiederholst.",
+                "Не вдалося підтвердити результат. Оновіть звернення, перш ніж повторювати дію.",
             )
         DsaAppealReviewFailure.INVALID,
         DsaAppealReviewFailure.UNKNOWN ->

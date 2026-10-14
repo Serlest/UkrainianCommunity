@@ -619,6 +619,7 @@ class MainActivity : FragmentActivity() {
                                 localDsaAppealReadSource(applicationContext),
                                 { auth.state.value.dsaAppealScope() },
                                 AuthDsaAppealReadGate(auth),
+                                submitSource = localDsaAppealSubmissionSource(applicationContext),
                             )
                             .also { review ->
                                 review.observeSessions(auth.state.map { it.dsaAppealScope() })

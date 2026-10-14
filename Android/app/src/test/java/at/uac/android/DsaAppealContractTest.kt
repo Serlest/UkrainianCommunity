@@ -29,6 +29,7 @@ class DsaAppealContractTest {
             "caseNumber" to "SYNTHETIC CASE",
             "status" to "appealed",
             "submittedAt" to "2026-09-03T12:34:56.123Z",
+            "replayed" to false,
         ) + extra
 
     private fun decode(fields: Any? = response()) =
@@ -251,10 +252,11 @@ class DsaAppealContractTest {
     }
 
     @Test
-    fun noAppealDecisionOrPortalEndpointWasEnabled() {
+    fun onlyAppealSubmissionWasEnabled() {
+        assertTrue(LocalCallableProtocol.endpoint("submitDsaAppeal").endsWith("/submitDsaAppeal"))
+        assertTrue(LocalCallableProtocol.nonIdempotent("submitDsaAppeal"))
         for (name in
             listOf(
-                "submitDsaAppeal",
                 "decideDsaCase",
                 "decideDsaAppeal",
                 "dsaCasePortal",

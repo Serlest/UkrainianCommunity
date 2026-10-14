@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Read-only preparation; never represents server authorization, a draft or an operation receipt.
+ * A selected review is only a preview; submission re-reads it and waits for a server receipt.
  */
 data class DsaAppealReviewState(
     val session: DsaAppealSession? = null,
@@ -20,6 +20,10 @@ data class DsaAppealReviewState(
     val loading: Boolean = false,
     val review: DsaAppealReview? = null,
     val error: DsaAppealReviewFailure? = null,
+    val submitting: Boolean = false,
+    val submitted: DsaAppealResponse? = null,
+    val submitError: DsaAppealReviewFailure? = null,
+    val reasonError: DsaAppealTextFailure? = null,
 ) {
     override fun toString() = "DsaAppealReviewState([redacted])"
 }
@@ -43,12 +47,18 @@ class DsaAppealReviewViewModel(
     private val authority: () -> DsaAppealSession?,
     gate: DsaAppealReadGate,
     private val clock: () -> Instant = Instant::now,
+    submitSource: DsaAppealSubmissionSource? = null,
 ) : ViewModel() {
     private val repository = DsaAppealReadRepository(source, authority, gate, clock)
+    private val submission = submitSource?.let {
+        DsaAppealSubmissionRepository(repository, source, it, authority, gate, AndroidDsaAppealCharacters, clock)
+    }
+    val canSubmit: Boolean get() = submission != null
     private val mutable = MutableStateFlow(DsaAppealReviewState(session = authority()))
     val state = mutable.asStateFlow()
     private var observer: Job? = null
     private var readJob: Job? = null
+    private var submitJob: Job? = null
     private var expiryJob: Job? = null
     private var epoch = 0L
 
@@ -64,6 +74,8 @@ class DsaAppealReviewViewModel(
         epoch++
         readJob?.cancel()
         readJob = null
+        submitJob?.cancel()
+        submitJob = null
         expiryJob?.cancel()
         expiryJob = null
     }
@@ -95,7 +107,7 @@ class DsaAppealReviewViewModel(
             return
         }
         val captured = mutable.value
-        if (!captured.visible || readJob?.isActive == true) return
+        if (!captured.visible || readJob?.isActive == true || submitJob?.isActive == true) return
         expiryJob?.cancel()
         expiryJob = null
         val actor = captured.session
@@ -121,7 +133,9 @@ class DsaAppealReviewViewModel(
                 mutable.value.reportId == report &&
                 mutable.value.session == actor &&
                 authority() == actor
-        mutable.value = captured.copy(review = null, loading = true, error = null)
+        mutable.value = captured.copy(
+            review = null, loading = true, error = null, submitError = null, reasonError = null,
+        )
         readJob = viewModelScope.launch {
             try {
                 val review = repository.read(actor, report, stillSelected = ::current)
@@ -155,6 +169,43 @@ class DsaAppealReviewViewModel(
                 if (current())
                     mutable.value =
                         mutable.value.copy(review = null, loading = false, error = error.failure)
+            }
+        }
+    }
+
+    fun submit(reason: String) {
+        val service = submission ?: return
+        val captured = mutable.value.forSession(authority(), clock())
+        val shown = captured.review ?: return
+        if (!captured.visible || captured.reportId != shown.snapshot.reportId ||
+            captured.session != shown.session || captured.submitting || captured.submitted != null ||
+            submitJob?.isActive == true) return
+        val generation = ++epoch
+        fun current() = generation == epoch && mutable.value.visible &&
+            mutable.value.reportId == shown.snapshot.reportId &&
+            mutable.value.session == shown.session && authority() == shown.session
+        mutable.value = captured.copy(submitting = true, submitError = null, reasonError = null)
+        submitJob = viewModelScope.launch {
+            try {
+                val receipt = service.submit(shown, reason)
+                if (current()) mutable.value = mutable.value.copy(
+                    review = null, submitting = false, submitted = receipt,
+                )
+            } catch (error: CancellationException) {
+                if (current()) mutable.value = mutable.value.copy(submitting = false)
+                throw error
+            } catch (error: DsaAppealTextException) {
+                if (current()) mutable.value = mutable.value.copy(
+                    submitting = false, reasonError = error.failure,
+                )
+            } catch (error: DsaAppealReviewException) {
+                if (current()) mutable.value = mutable.value.copy(
+                    review = null, submitting = false, submitError = error.failure,
+                )
+            } catch (_: Exception) {
+                if (current()) mutable.value = mutable.value.copy(
+                    review = null, submitting = false, submitError = DsaAppealReviewFailure.UNCONFIRMED,
+                )
             }
         }
     }

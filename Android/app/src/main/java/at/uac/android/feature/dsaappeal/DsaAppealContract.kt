@@ -32,6 +32,7 @@ data class DsaAppealResponse(
     val reportId: String,
     val caseNumber: String,
     val submittedAt: Instant,
+    val replayed: Boolean,
 ) {
     override fun toString() = "DsaAppealResponse(<redacted>)"
 }
@@ -41,7 +42,7 @@ object DsaAppealContract {
     const val MAX_REASON_UTF16 = 5_000
     const val MAX_RAW_UTF16 = 65_536
     const val MIN_LOGICAL_CHARACTERS = 20
-    private val responseKeys = setOf("reportId", "caseNumber", "status", "submittedAt")
+    private val responseKeys = setOf("reportId", "caseNumber", "status", "submittedAt", "replayed")
     private val wireTime =
         Regex("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z")
     private val wireFormatter = DateTimeFormatterBuilder().appendInstant(3).toFormatter()
@@ -125,7 +126,8 @@ object DsaAppealContract {
             fields.keys != responseKeys ||
                 fields["reportId"] != reportId ||
                 fields["caseNumber"] != caseNumber ||
-                fields["status"] != "appealed"
+                fields["status"] != "appealed" ||
+                fields["replayed"] !is Boolean
         )
             responseFailure()
         val time = fields["submittedAt"] as? String ?: responseFailure()
@@ -140,6 +142,6 @@ object DsaAppealContract {
             instant < Instant.parse("0001-01-01T00:00:00Z") || wireFormatter.format(instant) != time
         )
             responseFailure()
-        return DsaAppealResponse(reportId, caseNumber, instant)
+        return DsaAppealResponse(reportId, caseNumber, instant, fields["replayed"] as Boolean)
     }
 }
