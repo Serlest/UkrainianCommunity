@@ -24,7 +24,7 @@ data class AnalyticsConsentV2(
 )
 
 object AnalyticsConsentV2Contract {
-  const val PRIVACY_VERSION = "2026.12"
+  const val PRIVACY_VERSION = "2026.21"
   const val DISCLOSURE_VERSION = "2026-08-25.1"
 
   fun request(value: AnalyticsConsentV2): Map<String, Any?> {

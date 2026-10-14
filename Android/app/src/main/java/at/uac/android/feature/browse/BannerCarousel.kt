@@ -109,6 +109,7 @@ fun BannerCarousel(
         mutableStateOf(false)
     }
     var externalDialogVisible by remember(banner.id) { mutableStateOf(false) }
+    val measurementActiveNow by rememberUpdatedState(measurementActive)
     val eligible = measurementActive && resumed && artworkReady && !externalDialogVisible
     LaunchedEffect(banner.id, section, eligible, visibleFraction) {
         tracker.observe(banner.id, section, visibleFraction, eligible, System.currentTimeMillis())
@@ -120,7 +121,10 @@ fun BannerCarousel(
         }
     }
     fun recordClick() {
-        tracker.click(banner.id, section, visibleFraction, eligible, System.currentTimeMillis())
+        // The button may retain its click callback across the image-ready recomposition.
+        // Read current state at tap time, rather than the eligibility captured on first composition.
+        val eligibleNow = measurementActiveNow && resumed && artworkReady && !externalDialogVisible
+        tracker.click(banner.id, section, visibleFraction, eligibleNow, System.currentTimeMillis())
             .forEach(onMeasurement)
     }
     val accessibility =

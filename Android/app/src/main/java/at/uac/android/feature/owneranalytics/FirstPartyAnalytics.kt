@@ -5,6 +5,7 @@ import at.uac.android.core.backend.AppBackend
 import at.uac.android.core.backend.CallableGateway
 import at.uac.android.feature.analyticsconsent.AnalyticsConsentAuthority
 import at.uac.android.feature.analyticsconsent.AnalyticsConsentReceipt
+import at.uac.android.feature.analyticsconsent.AnalyticsConsentV2Contract
 import at.uac.android.feature.browse.Content
 import at.uac.android.feature.browse.ContentKind
 import at.uac.android.feature.personal.PersonalAction
@@ -137,7 +138,7 @@ class FirstPartyAnalytics(
     ): Boolean =
         authority.ready &&
             receipt?.enabled == true &&
-            receipt.privacyVersion == "2026.12" &&
+            receipt.privacyVersion == AnalyticsConsentV2Contract.PRIVACY_VERSION &&
             receipt.disclosureVersion == "2026-08-25.1" &&
             current() == authority &&
             auth.currentUser?.uid == authority.principalId &&

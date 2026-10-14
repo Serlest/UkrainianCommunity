@@ -160,7 +160,7 @@ class Build68ContractTest {
         )
     val request = AnalyticsConsentV2Contract.request(value)
     assertEquals("user", request["principalId"])
-    assertEquals("2026.12", request["privacyVersion"])
+    assertEquals("2026.21", request["privacyVersion"])
     assertTrue(
         AnalyticsConsentV2Contract.receipt(
             mapOf("enabled" to true, "consentID" to value.consentId),
