@@ -10,8 +10,8 @@ const organizationKinds = ["news", "event", "organization"];
 
 export function translationInput(value: unknown): {kind: string; texts: string[]; source: "uk" | "de"; organizationId?: string} {
   const v = value as {kind?: unknown; texts?: unknown; source?: unknown; organizationId?: unknown} | null;
-  if (!v || !["news", "event", "organization", "banner", "donation", "legal", "announcement"].includes(String(v.kind)) ||
-      (v.source !== undefined && v.source !== "uk" && !(v.source === "de" && v.kind === "announcement")) ||
+  if (!v || !["news", "event", "organization", "banner", "donation", "legal", "announcement", "directory"].includes(String(v.kind)) ||
+      (v.source !== undefined && v.source !== "uk" && !(v.source === "de" && ["announcement", "directory"].includes(String(v.kind)))) ||
       !Array.isArray(v.texts) || v.texts.length < 1 || v.texts.length > 12 ||
       v.texts.some((t) => typeof t !== "string" || !t.trim() || t.length > 20000) ||
       v.texts.reduce((n, t) => n + t.length, 0) > 25000 ||
@@ -26,6 +26,12 @@ export function translationInput(value: unknown): {kind: string; texts: string[]
 
 async function assertTranslationAccess(kind: string, organizationId: string | undefined,
   actor: UserPermissionSnapshot): Promise<void> {
+  if (kind === "directory") {
+    if (isAppOwner(actor)) return;
+    const grant = await db.doc(`directoryEditors/${actor.uid}`).get();
+    if (grant.data()?.enabled === true) return;
+    throw new HttpsError("permission-denied", "Directory editor access is required.");
+  }
   if (!organizationKinds.includes(kind)) {
     assertOwner(actor);
     return;

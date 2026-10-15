@@ -10,6 +10,7 @@ test("translation contract rejects unsupported fields and excessive provider inp
   assert.deepEqual(translationInput({kind: "news", texts: ["Текст"], organizationId: "org-123"}),
     {kind: "news", texts: ["Текст"], source: "uk", organizationId: "org-123"});
   assert.equal(translationInput({kind:"announcement",texts:["Text"],source:"de"}).source,"de");
+  assert.equal(translationInput({kind: "directory", texts: ["Text"], source: "de"}).source, "de");
   for (const input of [{kind:"news",texts:["Text"],source:"de"},{kind:"announcement",texts:["Text"],source:"fr"},null, {kind:"news",texts:[]}, {kind:"profile",texts:["a"]}, {kind:"event",texts:[1]}, {kind:"legal",texts:["a".repeat(20001)]}, {kind:"legal",texts:["a".repeat(15000),"b".repeat(15000)]}, {kind:"news",texts:["a"],organizationId:"bad/id"}, {kind:"legal",texts:["a"],organizationId:"org-123"}]) {
     assert.throws(() => translationInput(input));
   }
@@ -42,6 +43,15 @@ test("translation is authenticated, scoped, bounded and never stores source text
     delete outsiderLegacy.data.organizationId;
     await assert.rejects(translateContentHandler(outsiderLegacy, translate), {code: "permission-denied"});
     await assert.rejects(translateContentHandler(request(uid, "news", true, "unknown-org"), translate), {code: "permission-denied"});
+    await assert.rejects(translateContentHandler(request(uid, "directory"), translate), {code: "permission-denied"});
+    await db.doc(`directoryEditors/${uid}`).set({enabled: true});
+    const directory = request(uid, "directory"); directory.data.source = "de";
+    assert.deepEqual(await translateContentHandler(directory, async (_texts, source, target) => {
+      assert.equal(source, "de"); assert.equal(target, "uk"); return ["Переклад"];
+    }), {texts: ["Переклад"]});
+    await db.doc(`directoryEditors/${uid}`).update({enabled: false});
+    await assert.rejects(translateContentHandler(directory, translate), {code: "permission-denied"});
+    await db.doc(`users/${uid}/privateTranslationLimits/daily`).delete();
     assert.equal(calls,0);
     const editorLegacy = request(uid);
     delete editorLegacy.data.organizationId;
@@ -80,6 +90,7 @@ test("translation is authenticated, scoped, bounded and never stores source text
     await assert.rejects(translateContentHandler(request(owner,"legal"),translate));
   } finally {
     await db.doc("contentTranslationLimits/_daily").delete();
+    await db.doc(`directoryEditors/${uid}`).delete();
     await db.doc(`organizations/${orgID}`).delete();
     await db.doc(`organizations/${pendingOrgID}`).delete();
     for (const id of [uid, owner, outsider, moderator]) {
