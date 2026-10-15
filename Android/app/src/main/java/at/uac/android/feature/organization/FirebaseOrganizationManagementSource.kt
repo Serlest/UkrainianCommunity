@@ -468,6 +468,24 @@ class FirebaseOrganizationManagementSource(
         }
     }
 
+    override suspend fun delete(base: OrganizationRecord, session: OrganizationSession): Any? {
+        identity(session)
+        if (session.globalRole != "owner" || base.id == "ukrainian-community")
+            fail(OrganizationManagementFailure.DENIED)
+        // Destructive callable: one send only. A timeout is reported as uncertain; the client
+        // must read server state before deciding whether another action is possible.
+        return try {
+            functions.getHttpsCallable("deleteOrganization")
+                .withTimeout(300, TimeUnit.SECONDS)
+                .call(mapOf("organizationId" to base.id))
+                .await().data.also { identity(session) }
+        } catch (error: CancellationException) {
+            throw error
+        } catch (error: Exception) {
+            throw OrganizationManagementException(organizationManagementFailure(error), error)
+        }
+    }
+
     private fun fail(failure: OrganizationManagementFailure): Nothing =
         OrganizationManagementContract.fail(failure)
 }

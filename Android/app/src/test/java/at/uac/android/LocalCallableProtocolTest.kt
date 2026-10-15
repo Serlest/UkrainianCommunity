@@ -363,20 +363,21 @@ class LocalCallableProtocolTest {
     }
 
     @Test
-    fun onlyAccountAndNewsDeletionHaveTheExistingFiveMinuteCascadeDeadline() {
+    fun cascadingDeletionCallsHaveFiveMinuteDeadline() {
         assertEquals(
             "http://10.0.2.2:5008/demo-uac-android/europe-west3/deleteOwnAccount",
             LocalCallableProtocol.endpoint("deleteOwnAccount"),
         )
         assertEquals(330_000L, LocalCallableProtocol.maximumTimeoutMillis("deleteOwnAccount"))
         assertEquals(300_000L, LocalCallableProtocol.maximumTimeoutMillis("deleteNews"))
+        assertEquals(300_000L, LocalCallableProtocol.maximumTimeoutMillis("deleteOrganization"))
+        assertTrue(LocalCallableProtocol.nonIdempotent("deleteOrganization"))
         assertEquals(
             "http://10.0.2.2:5008/demo-uac-android/europe-west3/cancelEvent",
             LocalCallableProtocol.endpoint("cancelEvent"),
         )
         for (name in
             listOf(
-                "deleteOrganization",
                 "cancelEvent",
                 "transferOrganizationOwnership",
                 "assignOrganizationAdmin",

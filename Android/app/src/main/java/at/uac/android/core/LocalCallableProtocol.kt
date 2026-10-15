@@ -179,6 +179,7 @@ object LocalCallableProtocol {
                 "removeOrganizationModerator",
                 "transferOrganizationOwnership",
                 "deleteOwnAccount",
+                "deleteOrganization",
                 "deleteNews",
                 "deleteFeedback",
                 "clearFeedbackInbox",
@@ -215,6 +216,7 @@ object LocalCallableProtocol {
     fun maximumTimeoutMillis(name: String): Long =
         when (name) {
             "deleteOwnAccount" -> 330_000L
+            "deleteOrganization",
             "deleteNews",
             "deleteFeedback",
             "clearFeedbackInbox",

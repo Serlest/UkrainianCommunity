@@ -22,11 +22,15 @@ const ownerUserId = "organization-deletion-owner";
 const adminUserId = "organization-deletion-admin";
 const moderatorUserId = "organization-deletion-moderator";
 const userIds = [ownerUserId, adminUserId, moderatorUserId];
+const termsVersion = "deletion-test-terms";
+const privacyVersion = "deletion-test-privacy";
 
 beforeEach(async () => {
   if (!live) return;
   await cleanup();
   await Promise.all([
+    db.doc("legalDocuments/terms").set({activeVersion: termsVersion}),
+    db.doc("legalDocuments/privacy").set({activeVersion: privacyVersion}),
     db.doc(`users/${ownerUserId}`).set({preferredLanguage: "uk"}),
     db.doc(`users/${adminUserId}`).set({preferredLanguage: "de"}),
     db.doc(`users/${moderatorUserId}`).set({}),
@@ -154,7 +158,8 @@ test("owner callable removes organization, news and actual stored images and not
   const photoPath = `organizations/${organizationId}/photos/test.jpg`;
   const coverPath = `news/${newsId}/cover.jpg`;
   const bucket = adminStorage.bucket();
-  await db.doc(`users/${actorUserId}`).set({globalRole: "owner", accountStatus: "active"});
+  await db.doc(`users/${actorUserId}`).set({globalRole: "owner", accountStatus: "active",
+    acceptedTermsVersion: termsVersion, acceptedPrivacyVersion: privacyVersion});
   await db.doc(`organizations/${organizationId}`).set({name: "Test", ownerId: ownerUserId, moderationStatus: "approved"});
   await db.doc(`organizations/${organizationId}/photos/test`).set({uploadedBy: ownerUserId});
   await db.doc(`news/${newsId}`).set({organizationId, authorId: ownerUserId});
@@ -194,7 +199,8 @@ test("all organization deletion collection-group queries have deployment indexes
 });
 
 test("missing organization deletion index leaves the organization and owner intact", {skip: !live}, async t => {
-  await db.doc(`users/${actorUserId}`).set({globalRole: "owner", accountStatus: "active"});
+  await db.doc(`users/${actorUserId}`).set({globalRole: "owner", accountStatus: "active",
+    acceptedTermsVersion: termsVersion, acceptedPrivacyVersion: privacyVersion});
   await db.doc(`organizations/${organizationId}`).set({name: "Test", ownerId: ownerUserId});
   const original = db.collectionGroup.bind(db);
   const mocked = t.mock.method(db, "collectionGroup", (name: string) => {

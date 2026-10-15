@@ -52,6 +52,8 @@ data class OrganizationManagementActions(
     val confirm: () -> Unit = {},
     val dismiss: () -> Unit = {},
     val acknowledge: () -> Unit = {},
+    val requestDelete: () -> Unit = {},
+    val confirmDelete: () -> Unit = {},
     val authoring: ((ContentKind) -> Unit)? = null,
 )
 
@@ -71,6 +73,7 @@ fun OrganizationManagementScreen(
         if (stored.session == session && stored.organizationId == organizationId) stored
         else OrganizationManagementState(session, organizationId)
     val context = LocalContext.current
+    LaunchedEffect(state.deleted) { if (state.deleted) onBack() }
     val picker =
         rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
             model.pickerResult(context, it)
@@ -109,6 +112,8 @@ fun OrganizationManagementScreen(
             model::confirm,
             model::dismissConfirmation,
             model::acknowledgeUncertain,
+            model::requestDelete,
+            model::confirmDelete,
             onAuthoring,
         ),
     )
@@ -228,6 +233,19 @@ fun OrganizationManagementContent(
                                     "Aktuelle Version neu öffnen",
                                     "Відкрити актуальну версію знову",
                                 )
+                        )
+                    }
+                }
+                if (session.globalRole == "owner" &&
+                    snapshot.organization.id != "ukrainian-community" && state.draft == null) {
+                    TextButton(
+                        actions.requestDelete,
+                        enabled = state.actionable,
+                        modifier = Modifier.fillMaxWidth().testTag("organization-management-delete"),
+                    ) {
+                        Text(
+                            om(language, "Organisation löschen", "Видалити організацію"),
+                            color = MaterialTheme.colorScheme.error,
                         )
                     }
                 }
@@ -568,6 +586,26 @@ fun OrganizationManagementContent(
             },
         )
     }
+    if (state.deleteConfirmation)
+        AlertDialog(
+            onDismissRequest = actions.dismiss,
+            title = { Text(om(language, "Organisation löschen?", "Видалити організацію?")) },
+            text = {
+                Text(om(language,
+                    "Die Organisation und ihre zugehörigen Inhalte werden unwiderruflich gelöscht.",
+                    "Організацію та пов’язані матеріали буде безповоротно видалено."))
+            },
+            confirmButton = {
+                TextButton(
+                    actions.confirmDelete,
+                    enabled = state.actionable,
+                    modifier = Modifier.testTag("organization-management-confirm-delete"),
+                ) { Text(om(language, "Löschen", "Видалити"), color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(actions.dismiss) { Text(om(language, "Abbrechen", "Скасувати")) }
+            },
+        )
     if (close)
         AlertDialog(
             onDismissRequest = { close = false },

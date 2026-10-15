@@ -29,6 +29,8 @@ data class OrganizationManagementState(
     val confirmation: OrganizationRoleIntent? = null,
     val uncertain: OrganizationRoleIntent? = null,
     val confirmed: Boolean = false,
+    val deleteConfirmation: Boolean = false,
+    val deleted: Boolean = false,
     val logoIncomplete: Boolean = false,
     val pickerOpen: Boolean = false,
     val imageLoading: Boolean = false,
@@ -110,8 +112,9 @@ class OrganizationManagementViewModel(
             mutable.value.visible &&
                 mutable.value.session == currentSession() &&
                 mutable.value.organizationId == id
-        )
+        ) {
             return
+        }
         if (mutable.value.session != currentSession() || mutable.value.organizationId != id)
             reset(currentSession(), id, true)
         else mutable.value = mutable.value.copy(visible = true)
@@ -144,6 +147,7 @@ class OrganizationManagementViewModel(
                             mutable.value.copy(
                                 fresh = false,
                                 confirmation = null,
+                                deleteConfirmation = false,
                                 error =
                                     result.exceptionOrNull()?.let(::organizationManagementFailure)
                                         ?: OrganizationManagementFailure.UNKNOWN,
@@ -177,6 +181,7 @@ class OrganizationManagementViewModel(
                 loading = true,
                 fresh = false,
                 confirmation = null,
+                deleteConfirmation = false,
                 error = if (preserveError) captured.error else null,
             )
         read = viewModelScope.launch {
@@ -244,6 +249,7 @@ class OrganizationManagementViewModel(
                 pickerOpen = false,
                 imageLoading = false,
                 confirmation = null,
+                deleteConfirmation = false,
             )
     }
 
@@ -301,8 +307,9 @@ class OrganizationManagementViewModel(
             pending.session != currentSession() ||
                 mutable.value.session != pending.session ||
                 mutable.value.organizationId != pending.id
-        )
+        ) {
             return
+        }
         mutable.value = mutable.value.copy(pickerOpen = false)
         val captured = mutable.value
         if (
@@ -355,7 +362,9 @@ class OrganizationManagementViewModel(
         val captured = mutable.value
         val base = captured.base ?: return
         val draft = captured.draft ?: return
-        if (!captured.draftWritable || captured.imageLoading) return
+        if (!captured.draftWritable || captured.imageLoading) {
+            return
+        }
         mutate({ repository.save(base, draft, captured.logoPreview?.copyBytes()) }) { result ->
             mutable.value =
                 mutable.value.copy(
@@ -392,7 +401,41 @@ class OrganizationManagementViewModel(
     }
 
     fun dismissConfirmation() {
-        if (!mutable.value.busy) mutable.value = mutable.value.copy(confirmation = null)
+        if (!mutable.value.busy) mutable.value = mutable.value.copy(confirmation = null, deleteConfirmation = false)
+    }
+
+    fun requestDelete() {
+        val captured = mutable.value
+        val organization = captured.snapshot?.organization ?: return
+        if (captured.actionable && captured.draft == null && captured.session?.globalRole == "owner" &&
+            organization.id != "ukrainian-community" && captured.session == currentSession())
+            mutable.value = captured.copy(deleteConfirmation = true, error = null)
+    }
+
+    fun confirmDelete() {
+        val captured = mutable.value
+        val organization = captured.snapshot?.organization ?: return
+        val session = captured.session ?: return
+        if (!captured.deleteConfirmation || !captured.actionable || session.globalRole != "owner" ||
+            session != currentSession() || mutation?.isActive == true) return
+        val epoch = generation
+        mutable.value = captured.copy(deleteConfirmation = false, busy = true, error = null)
+        mutation = viewModelScope.launch {
+            try {
+                repository.delete(organization)
+                if (same(session, epoch)) mutable.value = mutable.value.copy(deleted = true)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                if (same(session, epoch))
+                    mutable.value = mutable.value.copy(error = organizationManagementFailure(error))
+            } finally {
+                if (same(session, epoch)) {
+                    mutable.value = mutable.value.copy(busy = false)
+                    if (!mutable.value.deleted) load(more = false, preserveError = true)
+                }
+            }
+        }
     }
 
     fun confirm() {

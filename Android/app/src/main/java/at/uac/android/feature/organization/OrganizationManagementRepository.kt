@@ -33,6 +33,8 @@ interface OrganizationManagementSource {
         intent: OrganizationRoleIntent,
         session: OrganizationSession,
     ): Any?
+
+    suspend fun delete(base: OrganizationRecord, session: OrganizationSession): Any?
 }
 
 class OrganizationManagementRepository(
@@ -189,6 +191,26 @@ class OrganizationManagementRepository(
                 }
             }
             .also { ensure(session) }
+    }
+
+    suspend fun delete(base: OrganizationRecord) {
+        val session = capture()
+        if (session.globalRole != "owner" || base.id == "ukrainian-community")
+            fail(OrganizationManagementFailure.DENIED)
+        gate.withSession(session) {
+            ensure(session)
+            val before = fresh(base.id, session)
+            unchanged(base, before)
+            val response = source.delete(before, session).also { ensure(session) }
+            val receipt = response as? Map<*, *>
+                ?: fail(OrganizationManagementFailure.UNCONFIRMED)
+            if (receipt["status"] !in setOf("deleted", "alreadyDeleted") ||
+                (receipt["deletedAt"] as? String)?.let { runCatching { java.time.Instant.parse(it) }.getOrNull() } == null)
+                fail(OrganizationManagementFailure.UNCONFIRMED)
+            if (source.organization(base.id, session).also { ensure(session) } != null)
+                fail(OrganizationManagementFailure.UNCONFIRMED)
+        }
+        ensure(session)
     }
 
     private fun fail(failure: OrganizationManagementFailure): Nothing =

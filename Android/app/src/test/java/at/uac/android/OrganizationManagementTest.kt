@@ -149,6 +149,7 @@ class OrganizationManagementTest {
         var offlineAfterRole = false
         var logoError = false
         var roles = 0
+        var deletions = 0
         var updates = 0
         var updateFields: Fields = emptyMap()
         var page =
@@ -242,6 +243,12 @@ class OrganizationManagementTest {
                     "updatedAt" to now.toString(),
                 )
             else receipt(intent)
+        }
+
+        override suspend fun delete(base: OrganizationRecord, session: OrganizationSession): Any? {
+            deletions++
+            record = null
+            return mapOf("status" to "deleted", "deletedAt" to now.toString())
         }
     }
 
@@ -678,6 +685,23 @@ class OrganizationManagementTest {
             OrganizationManagementRepository(source, { alice.copy(uid = "other") }, gate)
                 .load(basics.id)
         }
+    }
+
+    @Test
+    fun approvedOrganizationDeletionRequiresPlatformOwnerAndFreshServerState() = runTest {
+        val source = FakeSource()
+        val base = source.record!!
+        failAsync(OrganizationManagementFailure.DENIED) {
+            OrganizationManagementRepository(source, { alice }, gate).delete(base)
+        }
+        val owner = alice.copy(globalRole = "owner")
+        val repo = OrganizationManagementRepository(source, { owner }, gate)
+        source.record = row(mapOf("updatedAt" to now.plusSeconds(1)), owner)
+        failAsync(OrganizationManagementFailure.STALE) { repo.delete(base) }
+        assertEquals(0, source.deletions)
+        repo.delete(source.record!!)
+        assertEquals(1, source.deletions)
+        assertNull(source.record)
     }
 
     @Test

@@ -5,6 +5,7 @@ const project = "uac-android-test-20260903";
 const appId = "1:966536981122:android:2b617eb5d71f37b8dbe29b";
 const serial = process.env.ANDROID_SERIAL || "emulator-5582";
 const suffix = randomBytes(8).toString("hex");
+const lifecycleOnly = process.argv.includes("--lifecycle-only");
 const base = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents`;
 const authBase = "https://identitytoolkit.googleapis.com";
 const bucket = `${project}.firebasestorage.app`;
@@ -21,6 +22,9 @@ let debugTokenId;
 let installed = false;
 let completed = false;
 const galleryOrgId = `step5-gallery-${suffix}`;
+const newsId = `step5-lifecycle-news-${suffix}`;
+const requestName = `Step5 Request ${suffix}`;
+let requestId;
 
 async function call(url, method = "GET", body, bearer = token) {
   const response = await fetch(url, {method, headers: {
@@ -118,7 +122,8 @@ function setupApp() {
 function runUi(method) {
   const values = {class: `at.uac.android.StagingProfileDeletionJourneyTest#${method}`,
     profileSuffix: suffix, aEmail: accounts.a.email, aPassword: accounts.a.password,
-    bEmail: accounts.b.email, bPassword: accounts.b.password};
+    bEmail: accounts.b.email, bPassword: accounts.b.password, newsId,
+    ...(requestId ? {requestId} : {})};
   const args = ["shell", "am", "instrument", "-w", "-r"];
   for (const [name, item] of Object.entries(values)) args.push("-e", name, item);
   args.push("at.serlest.ukrainiancommunity.staging.test/androidx.test.runner.AndroidJUnitRunner");
@@ -175,98 +180,158 @@ try {
   await signup("a", terms, privacy);
   await signup("b", terms, privacy);
   setupApp();
-  try {
-    runUi("avatarAndProfileEditThroughUi");
-  } catch (error) {
-    const owner = accounts.a.uid;
-    const privateState = await document(`users/${owner}`);
-    const publicState = await document(`publicProfiles/${owner}`);
-    const privateFields = privateState.data.fields ?? {};
-    const publicFields = publicState.data.fields ?? {};
-    console.error("Avatar failure read-back", JSON.stringify({
-      object: (await storageObject(owner)).status,
-      private: privateState.status,
-      privateAvatar: Boolean(privateFields.avatarURL),
-      public: publicState.status,
-      publicAvatar: Boolean(publicFields.avatarURL),
-      sameAvatar: read(privateFields.avatarURL) === read(publicFields.avatarURL),
-      sameName: read(privateFields.displayName) === read(publicFields.displayName),
-      sameCity: read(privateFields.city) === read(publicFields.city),
-      sameRegion: read(privateFields.selectedFederalState) === read(publicFields.federalState),
-      sameId: read(privateFields.id) === read(publicFields.id),
-    }));
-    throw error;
+  if (!lifecycleOnly) {
+    try {
+      runUi("avatarAndProfileEditThroughUi");
+    } catch (error) {
+      const owner = accounts.a.uid;
+      const privateState = await document(`users/${owner}`);
+      const publicState = await document(`publicProfiles/${owner}`);
+      const privateFields = privateState.data.fields ?? {};
+      const publicFields = publicState.data.fields ?? {};
+      console.error("Avatar failure read-back", JSON.stringify({
+        object: (await storageObject(owner)).status,
+        private: privateState.status,
+        privateAvatar: Boolean(privateFields.avatarURL),
+        public: publicState.status,
+        publicAvatar: Boolean(publicFields.avatarURL),
+        sameAvatar: read(privateFields.avatarURL) === read(publicFields.avatarURL),
+        sameName: read(privateFields.displayName) === read(publicFields.displayName),
+        sameCity: read(privateFields.city) === read(publicFields.city),
+        sameRegion: read(privateFields.selectedFederalState) === read(publicFields.federalState),
+        sameId: read(privateFields.id) === read(publicFields.id),
+        bioSaved: read(privateFields.bio) === `Step5 profile ${suffix}`,
+      }));
+      throw error;
+    }
+    const a = accounts.a;
+    const privateProfile = expect(await document(`users/${a.uid}`), 200, "private edited profile");
+    const publicProfile = expect(await document(`publicProfiles/${a.uid}`), 200, "public edited profile");
+    paths.add(`publicProfiles/${a.uid}`);
+    const avatarURL = read(privateProfile.fields.avatarURL);
+    if (!avatarURL?.includes(encodeURIComponent(`profileImages/${a.uid}/avatar.jpg`)) ||
+      read(publicProfile.fields.avatarURL) !== avatarURL ||
+      read(privateProfile.fields.bio) !== `Step5 profile ${suffix}` ||
+      read(publicProfile.fields.displayName) !== read(privateProfile.fields.displayName))
+      throw new Error("Avatar/profile private-public server read-back mismatch");
+    const avatar = expect(await storageObject(a.uid), 200, "profile avatar object");
+    if (avatar.contentType !== "image/jpeg" || Number(avatar.size) <= 0)
+      throw new Error("Avatar storage metadata mismatch");
+    const denied = await call(`${base}/users/${a.uid}?updateMask.fieldPaths=avatarURL`, "PATCH",
+      {fields: {avatarURL: encode("https://example.invalid/other.jpg")}}, accounts.b.idToken);
+    if (denied.status !== 403 ||
+      read(expect(await document(`users/${a.uid}`), 200, "unchanged avatar").fields.avatarURL) !== avatarURL)
+      throw new Error("Second account modified the first profile");
+    runUi("accountSwitchKeepsProfilesSeparate");
+    const bBefore = expect(await document(`users/${accounts.b.uid}`), 200, "second profile");
+    if (read(bBefore.fields.avatarURL) !== null || read(bBefore.fields.bio) !== "")
+      throw new Error("Second account inherited first account data");
+    runUi("deleteOwnAccountThroughUi");
+    if ((await document(`users/${a.uid}`)).status !== 404 ||
+      (await document(`publicProfiles/${a.uid}`)).status !== 404 ||
+      (await storageObject(a.uid)).status !== 404)
+      throw new Error("Deleted account profile or avatar survived");
+    const authA = expect(await call(`${authBase}/v1/projects/${project}/accounts:lookup`, "POST",
+      {localId: [a.uid]}), 200, "deleted Auth lookup");
+    if ((authA.users ?? []).length) throw new Error("Deleted Auth identity survived");
+    const operations = await list("accountDeletionOperations");
+    if (operations.length !== 1 || read(operations[0].fields.status) !== "completed")
+      throw new Error(`Deletion operation did not complete exactly once: ${JSON.stringify(operations.map(row => ({
+        status: read(row.fields.status), stage: read(row.fields.stage),
+        suffix: row.name.split("/").at(-1)?.slice(0, 8),
+      })) )}`);
+    const bAfter = expect(await document(`users/${accounts.b.uid}`), 200, "unaffected second profile");
+    if (read(bAfter.fields.displayName) !== read(bBefore.fields.displayName))
+      throw new Error("Other account changed during deletion");
   }
-  const a = accounts.a;
-  const privateProfile = expect(await document(`users/${a.uid}`), 200, "private edited profile");
-  const publicProfile = expect(await document(`publicProfiles/${a.uid}`), 200, "public edited profile");
-  paths.add(`publicProfiles/${a.uid}`);
-  const avatarURL = read(privateProfile.fields.avatarURL);
-  if (!avatarURL?.includes(encodeURIComponent(`profileImages/${a.uid}/avatar.jpg`)) ||
-    read(publicProfile.fields.avatarURL) !== avatarURL ||
-    read(privateProfile.fields.bio) !== `Step5 profile ${suffix}` ||
-    read(publicProfile.fields.displayName) !== read(privateProfile.fields.displayName))
-    throw new Error("Avatar/profile private-public server read-back mismatch");
-  const avatar = expect(await storageObject(a.uid), 200, "profile avatar object");
-  if (avatar.contentType !== "image/jpeg" || Number(avatar.size) <= 0)
-    throw new Error("Avatar storage metadata mismatch");
-  const denied = await call(`${base}/users/${a.uid}?updateMask.fieldPaths=avatarURL`, "PATCH",
-    {fields: {avatarURL: encode("https://example.invalid/other.jpg")}}, accounts.b.idToken);
-  if (denied.status !== 403 ||
-    read(expect(await document(`users/${a.uid}`), 200, "unchanged avatar").fields.avatarURL) !== avatarURL)
-    throw new Error("Second account modified the first profile");
-  runUi("accountSwitchKeepsProfilesSeparate");
-  const bBefore = expect(await document(`users/${accounts.b.uid}`), 200, "second profile");
-  if (read(bBefore.fields.avatarURL) !== null || read(bBefore.fields.bio) !== "")
-    throw new Error("Second account inherited first account data");
-  runUi("deleteOwnAccountThroughUi");
-  if ((await document(`users/${a.uid}`)).status !== 404 ||
-    (await document(`publicProfiles/${a.uid}`)).status !== 404 ||
-    (await storageObject(a.uid)).status !== 404)
-    throw new Error("Deleted account profile or avatar survived");
-  const authA = expect(await call(`${authBase}/v1/projects/${project}/accounts:lookup`, "POST",
-    {localId: [a.uid]}), 200, "deleted Auth lookup");
-  if ((authA.users ?? []).length) throw new Error("Deleted Auth identity survived");
-  const operations = await list("accountDeletionOperations");
-  if (operations.length !== 1 || read(operations[0].fields.status) !== "completed")
-    throw new Error(`Deletion operation did not complete exactly once: ${JSON.stringify(operations.map(row => ({
-      status: read(row.fields.status), stage: read(row.fields.stage),
-      suffix: row.name.split("/").at(-1)?.slice(0, 8),
-    })) )}`);
-  const bAfter = expect(await document(`users/${accounts.b.uid}`), 200, "unaffected second profile");
-  if (read(bAfter.fields.displayName) !== read(bBefore.fields.displayName))
-    throw new Error("Other account changed during deletion");
   await create(`organizations/${galleryOrgId}`, {id: galleryOrgId,
     name: `Step5 Gallery ${suffix}`, city: "Wien", shortDescription: "Synthetic gallery check",
     moderationStatus: "approved", sourceType: "organization", ownerId: accounts.b.uid,
     adminIds: [], moderatorIds: [], createdAt: new Date(), updatedAt: new Date()});
-  runUi("galleryUploadThroughUi");
-  const photos = await list(`organizations/${galleryOrgId}/photos`);
-  if (photos.length !== 1) throw new Error("Gallery upload metadata absent or duplicated");
-  const photoId = photos[0].name.split("/").at(-1);
-  paths.add(`organizations/${galleryOrgId}/photos/${photoId}`);
-  if (read(photos[0].fields.uploadedBy) !== accounts.b.uid ||
-    read(photos[0].fields.caption) !== `Step5 gallery ${suffix}`)
-    throw new Error("Gallery upload metadata mismatch");
-  const imageURL = read(photos[0].fields.imageURL);
-  const imagePath = imageURL && decodeURIComponent(new URL(imageURL).pathname);
-  const objectPath = imagePath?.split(`/v0/b/${bucket}/o/`)[1];
-  if (!objectPath || !objectPath.startsWith(`organizations/${galleryOrgId}/`) ||
-    !objectPath.endsWith(".jpg")) throw new Error("Gallery object path mismatch");
-  const galleryObject = expect(await call(`https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectPath)}`),
-    200, "gallery object after upload");
-  if (galleryObject.contentType !== "image/jpeg" || Number(galleryObject.size) <= 0)
-    throw new Error("Gallery storage metadata mismatch");
-  runUi("galleryRemoveThroughUi");
-  if ((await list(`organizations/${galleryOrgId}/photos`)).length)
-    throw new Error("Gallery photo metadata survived removal");
-  const afterRemoval = await call(`https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectPath)}`);
-  if (afterRemoval.status !== 404 && afterRemoval.status !== 200)
-    throw new Error(`Gallery object read-back HTTP ${afterRemoval.status}`);
-  if (afterRemoval.status === 200 && !(await galleryRecords("organizationPhotoGarbage"))
-    .some(row => read(row.fields?.path) === objectPath))
-    throw new Error("Gallery object survived without server cleanup job");
-  console.log("Staging step5 profile: avatar, edit, account isolation, deletion, gallery upload/remove passed");
+  if (!lifecycleOnly) {
+    runUi("galleryUploadThroughUi");
+    const photos = await list(`organizations/${galleryOrgId}/photos`);
+    if (photos.length !== 1) throw new Error("Gallery upload metadata absent or duplicated");
+    const photoId = photos[0].name.split("/").at(-1);
+    paths.add(`organizations/${galleryOrgId}/photos/${photoId}`);
+    if (read(photos[0].fields.uploadedBy) !== accounts.b.uid ||
+      read(photos[0].fields.caption) !== `Step5 gallery ${suffix}`)
+      throw new Error("Gallery upload metadata mismatch");
+    const imageURL = read(photos[0].fields.imageURL);
+    const imagePath = imageURL && decodeURIComponent(new URL(imageURL).pathname);
+    const objectPath = imagePath?.split(`/v0/b/${bucket}/o/`)[1];
+    if (!objectPath || !objectPath.startsWith(`organizations/${galleryOrgId}/`) ||
+      !objectPath.endsWith(".jpg")) throw new Error("Gallery object path mismatch");
+    const galleryObject = expect(await call(`https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectPath)}`),
+      200, "gallery object after upload");
+    if (galleryObject.contentType !== "image/jpeg" || Number(galleryObject.size) <= 0)
+      throw new Error("Gallery storage metadata mismatch");
+    runUi("galleryRemoveThroughUi");
+    if ((await list(`organizations/${galleryOrgId}/photos`)).length)
+      throw new Error("Gallery photo metadata survived removal");
+    const afterRemoval = await call(`https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectPath)}`);
+    if (afterRemoval.status !== 404 && afterRemoval.status !== 200)
+      throw new Error(`Gallery object read-back HTTP ${afterRemoval.status}`);
+    if (afterRemoval.status === 200 && !(await galleryRecords("organizationPhotoGarbage"))
+      .some(row => read(row.fields?.path) === objectPath))
+      throw new Error("Gallery object survived without server cleanup job");
+  }
+  const now = new Date();
+  await create(`news/${newsId}`, {id: newsId, title: `Step5 News ${suffix}`,
+    summary: "Synthetic news for lifecycle deletion", body: "Synthetic news body",
+    sourceType: "organization", organizationId: galleryOrgId, authorId: accounts.b.uid,
+    moderationStatus: "approved", createdAt: now, updatedAt: now, publishedAt: now});
+  await create(`news/${newsId}/comments/one`, {userId: accounts.b.uid,
+    text: "Synthetic deletion reference", createdAt: now});
+  await create(`users/${accounts.b.uid}/newsBookmarks/${newsId}`, {newsId, createdAt: now});
+  if (lifecycleOnly) {
+    const denied = await call(`https://europe-west3-${project}.cloudfunctions.net/deleteNews`,
+      "POST", {data: {newsId}}, accounts.a.idToken);
+    if (denied.status !== 403 || denied.data.error?.status !== "PERMISSION_DENIED" ||
+      (await document(`news/${newsId}`)).status !== 200)
+      throw new Error(`Outsider news deletion was not rejected: ${denied.status}`);
+  }
+  runUi("newsDeleteThroughUi");
+  if ((await document(`news/${newsId}`)).status !== 404 ||
+    (await document(`news/${newsId}/comments/one`)).status !== 404 ||
+    (await document(`users/${accounts.b.uid}/newsBookmarks/${newsId}`)).status !== 404)
+    throw new Error("News or related content survived deletion");
+  runUi("organizationRequestCreateThroughUi");
+  const requests = (await list("organizations")).filter(row =>
+    read(row.fields?.submittedByUserId) === accounts.b.uid &&
+    read(row.fields?.name) === requestName);
+  if (requests.length !== 1 || read(requests[0].fields.moderationStatus) !== "pendingReview")
+    throw new Error("Organization request not found exactly once");
+  requestId = requests[0].name.split("/").at(-1);
+  paths.add(`organizations/${requestId}`);
+  const proof = expect(await document(`organizationCreationProofs/${requestId}`), 200,
+    "organization rules proof");
+  paths.add(`organizationCreationProofs/${requestId}`);
+  if (read(proof.fields.userId) !== accounts.b.uid ||
+    read(proof.fields.organizationName) !== requestName)
+    throw new Error("Organization rules proof mismatch");
+  const acceptance = (await list("legalAcceptanceLogs")).filter(row =>
+    read(row.fields?.organizationId) === requestId && read(row.fields?.userId) === accounts.b.uid);
+  for (const row of acceptance) paths.add(`legalAcceptanceLogs/${row.name.split("/").at(-1)}`);
+  if (acceptance.length !== 1 || read(acceptance[0].fields.acceptedFromPlatform) !== "android")
+    throw new Error("Organization legal acceptance mismatch");
+  if (lifecycleOnly) {
+    const denied = await call(`https://europe-west3-${project}.cloudfunctions.net/deleteOrganization`,
+      "POST", {data: {organizationId: requestId}}, accounts.a.idToken);
+    if (denied.status !== 403 || denied.data.error?.status !== "PERMISSION_DENIED" ||
+      (await document(`organizations/${requestId}`)).status !== 200)
+      throw new Error(`Outsider organization deletion was not rejected: ${denied.status}`);
+  }
+  runUi("organizationRequestReviseThroughUi");
+  const revised = expect(await document(`organizations/${requestId}`), 200, "revised organization request");
+  if (read(revised.fields.shortDescription) !== "Revised organization application for Android step five" ||
+    read(revised.fields.moderationStatus) !== "pendingReview")
+    throw new Error("Organization revision mismatch");
+  runUi("organizationRequestDiscardThroughUi");
+  if ((await document(`organizations/${requestId}`)).status !== 404 ||
+    (await document(`organizationCreationProofs/${requestId}`)).status !== 404)
+    throw new Error("Discarded organization request or proof survived");
+  console.log("Staging step5 lifecycle: news cascade and organization create/revise/discard passed");
   completed = true;
 } finally {
   if (installed) for (const packageName of ["at.serlest.ukrainiancommunity.staging.test",
@@ -280,6 +345,30 @@ try {
         paths.add(`users/${account.uid}/${collection}/${row.name.split("/").at(-1)}`);
   }
   await cleanupGallery();
+  for (const row of await list(`news/${newsId}/comments`))
+    paths.add(`news/${newsId}/comments/${row.name.split("/").at(-1)}`);
+  paths.add(`news/${newsId}`);
+  if (accounts.b) paths.add(`users/${accounts.b.uid}/newsBookmarks/${newsId}`);
+  for (const row of await list("organizations"))
+    if (read(row.fields?.submittedByUserId) === accounts.b?.uid &&
+      read(row.fields?.name) === requestName) {
+      const id = row.name.split("/").at(-1);
+      paths.add(`organizations/${id}`);
+      paths.add(`organizationCreationProofs/${id}`);
+    }
+  for (const row of await list("organizationCreationProofs"))
+    if (read(row.fields?.userId) === accounts.b?.uid &&
+      read(row.fields?.organizationName) === requestName)
+      paths.add(`organizationCreationProofs/${row.name.split("/").at(-1)}`);
+  for (const row of await list("legalAcceptanceLogs"))
+    if (read(row.fields?.userId) === accounts.b?.uid &&
+      read(row.fields?.organizationName) === requestName)
+      paths.add(`legalAcceptanceLogs/${row.name.split("/").at(-1)}`);
+  for (const row of await list("auditLogs"))
+    if ((read(row.fields?.previousValue?.mapValue?.fields?.organizationId) === requestId ||
+      read(row.fields?.previousValue?.mapValue?.fields?.organizationName) === requestName) &&
+      read(row.fields?.actionType) === "organizationRequestDiscarded")
+      paths.add(`auditLogs/${row.name.split("/").at(-1)}`);
   for (const collection of ["accountDeletionOperations", "analyticsUserRegistrationEvents", "analyticsDeletedUserEvents"])
     for (const row of await list(collection)) paths.add(`${collection}/${row.name.split("/").at(-1)}`);
   for (const path of [...paths].sort((a, b) => b.length - a.length)) await remove(path);
@@ -298,7 +387,9 @@ try {
       "--project", project, "--app", appId, "--force"], {encoding: "utf8"});
     if (deleted.status !== 0) throw new Error("App Check token cleanup failed");
   }
-  if ((await list("users")).length !== 0 || (await list("accountDeletionOperations")).length !== 0)
+  if ((await list("users")).length !== 0 || (await list("accountDeletionOperations")).length !== 0 ||
+    (await document(`news/${newsId}`)).status !== 404 ||
+    (await list("legalAcceptanceLogs")).some(row => read(row.fields?.organizationName) === requestName))
     throw new Error("Staging profile or deletion receipt survived cleanup");
   console.log(`Staging step5 profile cleanup verified${completed ? "" : " after failure"}`);
 }
