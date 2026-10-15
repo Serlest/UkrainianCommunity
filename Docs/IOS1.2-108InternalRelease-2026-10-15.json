@@ -1,0 +1,190 @@
+{
+  "date": "2026-10-15",
+  "version": "1.2",
+  "build": "108",
+  "sourceCommit": "ea447fe76323f8494e1f54b1e4ecae1107fa0fad",
+  "buildNumberCommit": "9d6b592",
+  "directoryEditorIdentityFixCommit": "c2650d5",
+  "ci": {
+    "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/38778394207",
+    "state": "cancelled",
+    "reason": "The job has exceeded the maximum execution time of 45m0s",
+    "passedSteps": [
+      "static validation",
+      "Firebase integration and rules",
+      "Debug build",
+      "Release build",
+      "main Swift unit tests",
+      "test discovery verification"
+    ],
+    "discoveredTests": 556,
+    "mainDiscoveredTests": 553,
+    "isolatedDiscoveredTests": 3,
+    "isolatedStep": "cancelled; do not infer individual results from discovery",
+    "localIsolatedRetest": {
+      "resultBundle": "/tmp/UAC108IsolatedAnalytics-20261015.xcresult",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "testExecutionSeconds": 0.031
+    },
+    "ciOnlyFixCommit": "98c16fd8c07006370a4c228a6391cab5a166d839",
+    "ciOnlyChanges": [
+      "60 minute overall iOS job timeout",
+      "isolated tests run without simulator clones",
+      "preserve xcresult diagnostics on cancellation as well as failures"
+    ],
+    "repeatRun": "https://github.com/Serlest/UkrainianCommunity/actions/runs/38785819253",
+    "repeatState": "success",
+    "repeatSourceCommit": "98c16fd8c07006370a4c228a6391cab5a166d839",
+    "repeatJobs": [
+      {
+        "name": "Change classification and static checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase and rules",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit tests",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "repeatResults": {
+      "main": {
+        "result": "Passed",
+        "totalTestCount": 553,
+        "passedTests": 547,
+        "failedTests": 0,
+        "skippedTests": 6
+      },
+      "isolated": {
+        "result": "Passed",
+        "totalTestCount": 3,
+        "passedTests": 3,
+        "failedTests": 0,
+        "skippedTests": 0
+      },
+      "total": {
+        "discovered": 556,
+        "passed": 550,
+        "failed": 0,
+        "skipped": 6
+      },
+      "skippedScope": "Five Firebase SDK tests opt in only against isolated local emulator fixtures; one real notification queue probe requires UAC_REAL_NOTIFICATION_PROBE=1. These six were not executed by ordinary CI; server integrations/rules passed separately.",
+      "artifactURL": "https://github.com/Serlest/UkrainianCommunity/actions/runs/38785819253/artifacts/12000450107",
+      "localDownloadedArtifact": "/tmp/uac-108-ci-xcresults"
+    }
+  },
+  "archive": {
+    "path": "build/UkrainianCommunity-108-ea447fe.xcarchive",
+    "result": "SUCCEEDED",
+    "warnings": 0,
+    "errors": 0,
+    "cleanSource": true
+  },
+  "localPackageVerification": {
+    "version": "1.2",
+    "build": "108",
+    "signatureVerified": true,
+    "productionPush": true,
+    "getTaskAllow": false,
+    "nonExemptEncryption": false,
+    "appAttestEnvironment": "production",
+    "associatedDomainsCount": 1,
+    "ipaSha256": "20d3d3cdf485b5d5dfc8c7623851f08ba7dfe406c265c6cfb83465955ae74b2c",
+    "ipaBytes": 30534465,
+    "sourceCommit": "ea447fe76323f8494e1f54b1e4ecae1107fa0fad"
+  },
+  "localRegressions": {
+    "affectedTestsPassed": 59,
+    "legalAndRepeatedArticleTestsPassed": 12,
+    "coordinatorRefactorTestsPassed": 16
+  },
+  "excludedCandidate": "The earlier 9d6b592 archive was not uploaded; the final archive includes the non-generic access shield coordinator refactor.",
+  "upload": {
+    "state": "SUCCEEDED",
+    "completedAt": "2026-10-15T18:15:48Z",
+    "log": "build/UAC-108-ea447fe-upload.log",
+    "exportSucceeded": true,
+    "uploadSucceeded": true,
+    "note": "Destination upload does not retain an export directory; the independently verified local IPA and final archive remain available."
+  },
+  "publicAppStoreSubmission": false,
+  "dirtyFilesPreserved": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj",
+    "UkrainianCommunity/Localization/Localizable.xcstrings"
+  ],
+  "appStoreConnect": {
+    "checkedAt": "2026-10-15T18:57:37.833Z",
+    "maximumBuild": 108,
+    "target": {
+      "id": "f2b7916e-62ec-4923-9f09-69a41b1b5f60",
+      "build": "108",
+      "state": "VALID",
+      "expired": false,
+      "uploaded": "2026-10-15T11:17:03-07:00",
+      "nonExemptEncryption": false
+    },
+    "betaDetail": {
+      "autoNotifyEnabled": true,
+      "internalBuildState": "IN_BETA_TESTING",
+      "externalBuildState": "READY_FOR_BETA_SUBMISSION"
+    },
+    "groups": [
+      {
+        "name": "Beta Tester",
+        "internal": true
+      }
+    ]
+  },
+  "testFlightNotes": {
+    "checkedAt": "2026-10-15T18:18:59.758Z",
+    "build": "108",
+    "processing": "VALID",
+    "locales": [
+      "uk",
+      "de-DE"
+    ],
+    "notesReadback": true,
+    "groups": [
+      {
+        "name": "Beta Tester",
+        "internal": true,
+        "membershipVerified": true
+      }
+    ],
+    "beta": {
+      "autoNotifyEnabled": true,
+      "internalBuildState": "IN_BETA_TESTING",
+      "externalBuildState": "READY_FOR_BETA_SUBMISSION"
+    }
+  },
+  "scope": {
+    "binarySourceUnchangedByCIFix": true,
+    "internalGroup": "Beta Tester",
+    "externalGroupAssigned": false,
+    "betaReviewSubmitted": false,
+    "publicAppStoreSubmitted": false
+  },
+  "preservationVerified": {
+    "catalogSHA256Unchanged": true,
+    "cleanReleaseCheckout": true
+  },
+  "reportUpdatedAt": "2026-10-15T18:58:41.150859+00:00",
+  "publicReleaseLimitations": "This confirms internal TestFlight and automated CI only. Physical-device hands-on checks and public App Store release gates remain separate; no public submission was made."
+}
