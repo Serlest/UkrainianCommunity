@@ -248,7 +248,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.ios == 'true'
     runs-on: macos-15
-    timeout-minutes: 45
+    # Includes separate Debug/Release builds and both unit-test runs.
+    timeout-minutes: 60
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       IOS_TEST_DESTINATION: platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2
@@ -316,6 +317,7 @@ jobs:
           -derivedDataPath "$RUNNER_TEMP/UkrainianCommunityDerivedData"
           -resultBundlePath "$RUNNER_TEMP/UkrainianCommunityIsolatedUnitTests.xcresult"
           CODE_SIGNING_ALLOWED=NO
+          -parallel-testing-enabled NO
           test
           "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/latestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
@@ -350,7 +352,7 @@ jobs:
           PY
 
       - name: Preserve Swift test diagnostics
-        if: ${{ failure() && needs.changes.outputs.ios_unit == 'true' }}
+        if: ${{ always() && needs.changes.outputs.ios_unit == 'true' }}
         uses: actions/upload-artifact@v7
         with:
           name: ios-unit-xcresult-${{ github.run_id }}-${{ github.run_attempt }}
