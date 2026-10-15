@@ -111,6 +111,7 @@ struct DirectoryCategoryFormView: View {
                                 Image(systemName: "trash")
                             }
                             .accessibilityLabel(DirectoryEditorText.value("Видалити підкатегорію", "Unterbereich löschen"))
+                            .buttonStyle(.borderless)
                         }
                         let ids = DirectoryEditorOrdering.topicIDs(draft.topics, groupID: groupID)
                         ForEach(ids, id: \.self) { id in
@@ -130,6 +131,7 @@ struct DirectoryCategoryFormView: View {
                                             }
                                         }
                                     }
+                                    .accessibilityIdentifier("directory.topic.edit.\(id)")
                                     if ids.count > 1 {
                                         DirectoryMoveMenu(
                                             canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
@@ -150,6 +152,7 @@ struct DirectoryCategoryFormView: View {
                                         Image(systemName: "trash")
                                     }
                                     .accessibilityLabel(DirectoryEditorText.value("Видалити статтю", "Beitrag löschen"))
+                                    .buttonStyle(.borderless)
                                 }
                             }
                         }

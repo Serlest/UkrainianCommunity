@@ -27,5 +27,6 @@ struct DirectoryMoveMenu: View {
                 .accessibilityLabel(DirectoryEditorText.value("Змінити порядок", "Reihenfolge ändern"))
         }
         .disabled(!canMoveUp && !canMoveDown)
+        .buttonStyle(.borderless)
     }
 }

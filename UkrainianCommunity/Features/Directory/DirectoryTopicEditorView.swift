@@ -1,13 +1,22 @@
 import SwiftUI
 
 struct DirectoryTopicEditorView: View {
+    private enum SectionAlert {
+        case delete(String)
+        case unavailable
+    }
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var topic: DirectoryManagedTopic
     let groups: [DirectoryManagedGroup]
-    @State private var pendingSectionID: String?
+    @State private var sectionAlert: SectionAlert?
     @State private var showAddSection = false
-    @State private var deletionLimitMessage: String?
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
+    private var sectionAlertTitle: String {
+        if case .unavailable? = sectionAlert {
+            return DirectoryEditorText.value("Видалення недоступне", "Löschen nicht möglich")
+        }
+        return DirectoryEditorText.value("Видалити інформаційний блок?", "Informationsabschnitt löschen?")
+    }
 
     var body: some View {
         Form {
@@ -45,6 +54,7 @@ struct DirectoryTopicEditorView: View {
                                     }
                                 }
                             }
+                            .accessibilityIdentifier("directory.section.edit.\(id)")
                             DirectoryMoveMenu(
                                 canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
                                 moveUp: { DirectoryEditorOrdering.moveSection(&topic.sections, id: id, by: -1) },
@@ -52,17 +62,16 @@ struct DirectoryTopicEditorView: View {
                             )
                             Button(role: .destructive) {
                                 if DirectoryEditorDeletion.canDeleteSection(id, from: topic) {
-                                    pendingSectionID = id
+                                    sectionAlert = .delete(id)
                                 } else {
-                                    deletionLimitMessage = DirectoryEditorText.value(
-                                        "Це останній видимий блок. Додайте новий перед видаленням цього.",
-                                        "Dies ist der letzte sichtbare Abschnitt. Legen Sie zuerst einen neuen an."
-                                    )
+                                    sectionAlert = .unavailable
                                 }
                             } label: {
                                 Image(systemName: "trash")
                             }
                             .accessibilityLabel(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"))
+                            .buttonStyle(.borderless)
+                            .accessibilityIdentifier("directory.section.delete.\(id)")
                         }
                     }
                 }
@@ -85,6 +94,7 @@ struct DirectoryTopicEditorView: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .accessibilityIdentifier("directory.region.edit.\(state.rawValue)")
                 }
             }
             DirectorySourcesEditorView(sources: $topic.sources)
@@ -96,23 +106,39 @@ struct DirectoryTopicEditorView: View {
                 topic.sections.append($0)
             }
         }
-        .confirmationDialog(
-            DirectoryEditorText.value("Видалити інформаційний блок?", "Informationsabschnitt löschen?"),
-            isPresented: Binding(get: { pendingSectionID != nil },
-                                 set: { if !$0 { pendingSectionID = nil } })
-        ) {
-            Button(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"), role: .destructive) {
-                guard let id = pendingSectionID else { return }
-                DirectoryEditorDeletion.deleteSection(id, from: &topic)
-                pendingSectionID = nil
+        .alert(
+            sectionAlertTitle,
+            isPresented: Binding(get: { sectionAlert != nil },
+                                 set: { if !$0 { sectionAlert = nil } }),
+            presenting: sectionAlert
+        ) { action in
+            switch action {
+            case let .delete(id):
+                Button(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"), role: .destructive) {
+                    DirectoryEditorDeletion.deleteSection(id, from: &topic)
+                    sectionAlert = nil
+                }
+                .accessibilityIdentifier("directory.section.confirmDelete")
+                Button(DirectoryEditorText.value("Скасувати", "Abbrechen"), role: .cancel) {
+                    sectionAlert = nil
+                }
+                .accessibilityIdentifier("directory.section.cancelDelete")
+            case .unavailable:
+                Button(DirectoryEditorText.value("Гаразд", "OK")) { sectionAlert = nil }
             }
-        }
-        .alert(DirectoryEditorText.value("Видалення недоступне", "Löschen nicht möglich"),
-               isPresented: Binding(get: { deletionLimitMessage != nil },
-                                    set: { if !$0 { deletionLimitMessage = nil } })) {
-            Button(DirectoryEditorText.value("Гаразд", "OK")) { deletionLimitMessage = nil }
-        } message: {
-            Text(deletionLimitMessage ?? "")
+        } message: { action in
+            switch action {
+            case let .delete(id):
+                Text(DirectoryEditorText.value(
+                    "Блок «\(topic.sections.first { $0.id == id }?.title.value(for: language) ?? "")» буде вилучено з чернетки. Щоб зберегти зміну для читачів, опублікуйте категорію.",
+                    "Der Abschnitt „\(topic.sections.first { $0.id == id }?.title.value(for: language) ?? "")“ wird aus dem Entwurf entfernt. Veröffentlichen Sie den Bereich, um die Änderung für Leser zu speichern."
+                ))
+            case .unavailable:
+                Text(DirectoryEditorText.value(
+                    "Це останній видимий блок. Додайте новий перед видаленням цього.",
+                    "Dies ist der letzte sichtbare Abschnitt. Legen Sie zuerst einen neuen an."
+                ))
+            }
         }
     }
 }
@@ -139,6 +165,7 @@ private struct DirectorySourcesEditorView: View {
                         Image(systemName: "trash")
                     }
                     .accessibilityLabel(DirectoryEditorText.value("Видалити джерело", "Quelle löschen"))
+                    .buttonStyle(.borderless)
                 }
             }
             Button {
@@ -202,6 +229,7 @@ private struct DirectoryRegionEditorView: View {
                                     }
                                 }
                             }
+                            .accessibilityIdentifier("directory.region.section.edit.\(id)")
                             DirectoryMoveMenu(canMoveUp: rank > 0, canMoveDown: rank < ids.count - 1,
                                               moveUp: { moveRegionSection(id, by: -1) },
                                               moveDown: { moveRegionSection(id, by: 1) })
@@ -209,6 +237,8 @@ private struct DirectoryRegionEditorView: View {
                                 Image(systemName: "trash")
                             }
                             .accessibilityLabel(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"))
+                            .buttonStyle(.borderless)
+                            .accessibilityIdentifier("directory.region.section.delete.\(id)")
                         }
                     }
                 }
@@ -229,18 +259,26 @@ private struct DirectoryRegionEditorView: View {
                 sections.wrappedValue = current
             }
         }
-        .confirmationDialog(
+        .alert(
             DirectoryEditorText.value("Видалити регіональний блок?", "Regionalen Abschnitt löschen?"),
             isPresented: Binding(get: { pendingSectionID != nil },
-                                 set: { if !$0 { pendingSectionID = nil } })
-        ) {
+                                 set: { if !$0 { pendingSectionID = nil } }),
+            presenting: pendingSectionID
+        ) { id in
             Button(DirectoryEditorText.value("Видалити блок", "Abschnitt löschen"), role: .destructive) {
-                guard let id = pendingSectionID else { return }
-                var current = sections.wrappedValue
-                current.removeAll { $0.id == id }
-                sections.wrappedValue = current
+                DirectoryEditorDeletion.deleteRegionalSection(id, state: state, from: &topic)
                 pendingSectionID = nil
             }
+            .accessibilityIdentifier("directory.region.section.confirmDelete")
+            Button(DirectoryEditorText.value("Скасувати", "Abbrechen"), role: .cancel) {
+                pendingSectionID = nil
+            }
+            .accessibilityIdentifier("directory.region.section.cancelDelete")
+        } message: { _ in
+            Text(DirectoryEditorText.value(
+                "Блок буде вилучено з чернетки цієї федеральної землі. Щоб зберегти зміну для читачів, опублікуйте категорію.",
+                "Der Abschnitt wird aus dem Entwurf dieses Bundeslands entfernt. Veröffentlichen Sie den Bereich, um die Änderung für Leser zu speichern."
+            ))
         }
     }
 

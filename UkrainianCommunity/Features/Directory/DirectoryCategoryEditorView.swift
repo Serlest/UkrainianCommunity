@@ -82,9 +82,11 @@ struct DirectoryCategoryEditorView: View {
             isPresented: Binding(
                 get: { confirmation != nil },
                 set: { if !$0 { confirmation = nil } }
-            )
-        ) {
-            switch confirmation {
+            ),
+            titleVisibility: .visible,
+            presenting: confirmation
+        ) { action in
+            switch action {
             case .publish:
                 Button(DirectoryEditorText.value("Опублікувати", "Veröffentlichen")) {
                     confirmation = nil
@@ -111,8 +113,6 @@ struct DirectoryCategoryEditorView: View {
                     confirmation = nil
                     DirectoryEditorDeletion.deleteTopic(id, from: &draft)
                 }
-            case nil:
-                EmptyView()
             }
         }
         .alert(DirectoryEditorText.value("Не вдалося зберегти", "Speichern fehlgeschlagen"),

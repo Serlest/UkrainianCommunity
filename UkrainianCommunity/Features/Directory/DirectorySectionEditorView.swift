@@ -67,6 +67,7 @@ struct DirectorySectionEditorView: View {
                                 Image(systemName: "trash")
                             }
                             .accessibilityLabel(DirectoryEditorText.value("Видалити контакт", "Kontakt löschen"))
+                            .buttonStyle(.borderless)
                         }
                         TextField(DirectoryEditorText.value("Номер", "Nummer"),
                                   text: $section.contacts[index].number)

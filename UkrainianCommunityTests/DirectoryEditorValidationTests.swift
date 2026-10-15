@@ -98,6 +98,26 @@ struct DirectoryEditorValidationTests {
         #expect(DirectorySourceValidation.urlIssue(input + "a") != nil)
     }
 
+    @Test func deletedSectionsRemainDeletedAfterEncodingAndRereading() throws {
+        var draft = category()
+        var second = draft.topics[0].sections[0]
+        second.id = "keep"
+        draft.topics[0].sections.append(second)
+        let deleted = draft.topics[0].sections[0].id
+        var regional = second
+        regional.id = "regional-delete"
+        regional.source = draft.topics[0].sources[0]
+        draft.topics[0].regionalSections[AustrianFederalState.wien.rawValue] = [regional]
+        DirectoryEditorDeletion.deleteSection(deleted, from: &draft.topics[0])
+        DirectoryEditorDeletion.deleteRegionalSection(regional.id, state: .wien, from: &draft.topics[0])
+        let reread = try JSONDecoder().decode(DirectoryManagedCategory.self,
+                                             from: DirectoryManagedValidation.validate(draft))
+        #expect(reread.topics[0].sections.map(\.id) == ["keep"])
+        #expect(reread.topics[0].regionalSections[AustrianFederalState.wien.rawValue]?.isEmpty == true)
+        DirectoryEditorDeletion.deleteSection("keep", from: &draft.topics[0])
+        #expect(draft.topics[0].sections.map(\.id) == ["keep"], "Last visible ordinary section stays protected")
+    }
+
     @Test func boundsMatchServerIncludingUnicodeAndOptionalHiddenContent() throws {
         #expect(DirectoryEditorField.articleTitle.issue(for: String(repeating: "a", count: 140), language: .german) == nil)
         #expect(DirectoryEditorField.articleTitle.issue(for: String(repeating: "a", count: 141), language: .german) != nil)

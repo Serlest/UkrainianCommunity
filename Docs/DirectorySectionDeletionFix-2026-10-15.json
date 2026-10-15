@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-15",
+  "baseCommit": "aa6610ba33145a9c9baee1b8c4c802139a73fcdb",
+  "issue": "iOS section deletion popup closes without reliably deleting the selected section.",
+  "codeDefects": [
+    "Confirmation read the selected ID from mutable presentation state, which dismissal could clear before the action.",
+    "Destructive buttons and navigation links shared automatic Form/List row button behavior."
+  ],
+  "changes": [
+    "Use an explicit alert with captured action/section ID, Delete and Cancel, and draft/publication explanation for ordinary and regional sections.",
+    "Isolate inline destructive buttons and ordering menus with borderless button style.",
+    "Capture category/group/topic confirmation data with presenting instead of reading mutable state while building actions.",
+    "Keep the last visible ordinary section protected; permit removal of the last regional section."
+  ],
+  "verification": {
+    "preFixUI": "The original UI test failed waiting for the deletion confirmation. Its test failure is recorded in build/UAC-directory-delete-baseline-run-test.log; xcodebuild finalization was stopped after recording failure, so its partial xcresult is not valid final evidence.",
+    "unit": {
+      "failedTests": 0,
+      "passedTests": 54,
+      "result": "Passed",
+      "skippedTests": 0,
+      "totalTestCount": 54
+    },
+    "unitResultBundle": "/tmp/UACDirectoryDeleteUnitFinal-20261015.xcresult",
+    "ui": {
+      "failedTests": 0,
+      "passedTests": 2,
+      "result": "Passed",
+      "skippedTests": 0,
+      "totalTestCount": 2
+    },
+    "uiResultBundle": "/tmp/UACDirectoryDeleteAlert-20261015.xcresult",
+    "uiScenarios": [
+      "Existing ordinary section: Cancel preserves it; Delete removes it without navigating to the section editor; Publish becomes enabled; reopening the article retains deletion.",
+      "Existing regional section: Delete removes it; reopening the federal state retains deletion."
+    ],
+    "uiScreenshots": [
+      "build/UAC-directory-delete-ui-proof/5651DCE1-2C85-4303-8B28-A18BE20209DC.png",
+      "build/UAC-directory-delete-ui-proof/697D320B-339E-4E59-9A31-29769606CEAC.png"
+    ],
+    "backendIntegration": {
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "project": "demo-uac-directory-management-functions",
+      "log": "build/UAC-directory-delete-backend-test.log",
+      "delegatedEditorAssertions": [
+        "Ordinary registered user with enabled directoryEditors grant can save payload without deleted ordinary/regional sections.",
+        "Firestore reread confirms deletion and next revision; versions preserve previous and changed payload.",
+        "Reader, revoked grant and stale revision cannot restore sections; saved document remains unchanged."
+      ]
+    },
+    "firestoreRules": {
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "project": "demo-uac-directory-management",
+      "log": "build/UAC-directory-delete-rules-test.log"
+    },
+    "simulatorBuild": {
+      "result": "SUCCEEDED",
+      "configuration": "Debug",
+      "errors": 0,
+      "warnings": 0,
+      "log": "build/UAC-directory-delete-build.log"
+    },
+    "static": [
+      "git diff --check",
+      "repository structure",
+      "de/uk localization validation"
+    ]
+  },
+  "limitations": [
+    "UI tests use a mock owner session; delegated-editor persistence is verified separately through the real server handler against local Firestore Emulator, not a live staging iPhone login.",
+    "Deleting changes the category draft. Publishing the category persists the change for readers.",
+    "No production data changed, Firebase deployment or TestFlight upload performed."
+  ],
+  "preservation": {
+    "preExistingPBXAndCatalogChangesExactlyPreserved": true
+  }
+}

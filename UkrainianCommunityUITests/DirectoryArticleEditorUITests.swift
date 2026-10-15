@@ -2,6 +2,82 @@ import XCTest
 
 final class DirectoryArticleEditorUITests: XCTestCase {
     @MainActor
+    func testExistingSectionDeletionDoesNotNavigateIntoTheSection() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "uk"
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 3)
+        XCTAssertTrue(tab.waitForExistence(timeout: 15)); tab.tap()
+        let manage = app.buttons["directory.manage"]
+        reveal(manage, app); manage.tap()
+        let category = app.buttons["directory.category.manage.first-steps"]
+        XCTAssertTrue(category.waitForExistence(timeout: 8)); category.tap()
+        let topic = app.buttons["directory.topic.edit.arrival"]
+        reveal(topic, app); topic.tap()
+        let deletion = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.section.delete.")).firstMatch
+        reveal(deletion, app)
+        let deletedID = deletion.identifier
+        deletion.tap()
+        let confirm = app.buttons["directory.section.confirmDelete"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        let cancel = app.alerts.buttons["directory.section.cancelDelete"].firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5)); cancel.tap()
+        XCTAssertTrue(app.buttons[deletedID].exists, "Cancel must preserve the section")
+        app.buttons[deletedID].firstMatch.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(app.navigationBars["Стаття"].waitForExistence(timeout: 5), "Deleting must not open the section editor")
+        XCTAssertFalse(app.buttons[deletedID].exists, "Confirmed section must disappear from the draft")
+        app.navigationBars["Стаття"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.buttons["directory.category.publish"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["directory.category.publish"].isEnabled)
+        reveal(topic, app); topic.tap()
+        let remaining = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.section.delete.")).firstMatch
+        reveal(remaining, app)
+        XCTAssertNotEqual(remaining.identifier, deletedID)
+        XCTAssertFalse(app.buttons[deletedID].exists, "Reopening the article must preserve the draft deletion")
+        let proof = XCTAttachment(screenshot: app.screenshot())
+        proof.name = "existing-section-deleted-after-reopening"; proof.lifetime = .keepAlways; add(proof)
+    }
+
+    @MainActor
+    func testExistingRegionalSectionDeletionPersistsWhenReopened() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestAppLanguage"] = "uk"
+        app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 3)
+        XCTAssertTrue(tab.waitForExistence(timeout: 15)); tab.tap()
+        let manage = app.buttons["directory.manage"]
+        reveal(manage, app); manage.tap()
+        let category = app.buttons["directory.category.manage.first-steps"]
+        XCTAssertTrue(category.waitForExistence(timeout: 8)); category.tap()
+        let topic = app.buttons["directory.topic.edit.arrival"]
+        reveal(topic, app); topic.tap()
+        let region = app.buttons["directory.region.edit.wien"]
+        reveal(region, app); region.tap()
+        let deletion = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "directory.region.section.delete.")).firstMatch
+        reveal(deletion, app)
+        let deletedID = deletion.identifier
+        deletion.tap()
+        let confirm = app.buttons["directory.region.section.confirmDelete"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertFalse(app.buttons[deletedID].exists)
+        app.navigationBars.buttons.firstMatch.tap()
+        reveal(region, app); region.tap()
+        XCTAssertFalse(app.buttons[deletedID].exists, "Regional deletion must survive reopening")
+        XCTAssertTrue(app.buttons["Додати блок"].exists)
+        let proof = XCTAttachment(screenshot: app.screenshot())
+        proof.name = "regional-section-deleted-after-reopening"; proof.lifetime = .keepAlways; add(proof)
+    }
+
+    @MainActor
     func testArticleTranslationAndSpecificSourceValidation() throws {
         try addArticle(sourceURL: "serlest.com/path?x=1")
     }

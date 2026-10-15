@@ -37,4 +37,9 @@ enum DirectoryEditorDeletion {
         guard canDeleteSection(id, from: topic) else { return }
         topic.sections.removeAll { $0.id == id }
     }
+
+    static func deleteRegionalSection(_ id: String, state: AustrianFederalState,
+                                      from topic: inout DirectoryManagedTopic) {
+        topic.regionalSections[state.rawValue]?.removeAll { $0.id == id }
+    }
 }
