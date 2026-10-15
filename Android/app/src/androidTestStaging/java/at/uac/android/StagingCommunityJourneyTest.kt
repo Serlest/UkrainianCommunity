@@ -85,9 +85,10 @@ class StagingCommunityJourneyTest {
         compose.onNodeWithTag("browse-list").performScrollToNode(hasTestTag("comment-send"))
         compose.onNodeWithTag("comment-send").performClick()
         compose.waitUntil(60_000) {
-            community.state.value.let { !it.sending && it.sentId != null }
+            community.state.value.let { !it.sending && (it.sentId != null || it.actionError != null) }
         }
-        assertNull(community.state.value.actionError)
+        assertNull("Comment submission failed: ${community.state.value.actionError}", community.state.value.actionError)
+        assertTrue("Comment submission returned no receipt", community.state.value.sentId != null)
     }
 
     @Test fun cancelRegistrationThroughUi() {
@@ -183,8 +184,14 @@ class StagingCommunityJourneyTest {
         compose.onNodeWithTag("banner-open").performClick()
         val news = newsId
         compose.waitUntil(60_000) { browse.state.value.detailId == news }
-        // Keep the resumed Activity alive while its queued measurement is acknowledged.
-        Thread.sleep(5_000)
+        // The first callable may cold-start. Keep this account and Activity alive until the
+        // durable click queue has received its server acknowledgement; the runner then checks
+        // the actual Firestore aggregate before signing out.
+        val queue = compose.activity.getSharedPreferences(
+            "banner-measurement-v1", android.content.Context.MODE_PRIVATE)
+        compose.waitUntil(60_000) {
+            !queue.getString("queue", "[]").orEmpty().contains("\"kind\":\"click\"")
+        }
     }
 
     @Test fun withdrawBannerMeasurementThroughUi() {

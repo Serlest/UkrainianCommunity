@@ -1,0 +1,16 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "at.serlest.ukrainiancommunity",
+      "sha256_cert_fingerprints": [
+        "C7:F9:7B:B4:BE:68:C8:5E:AD:95:A6:7D:29:35:67:08:87:4C:36:97:A6:EA:69:45:3F:78:37:D8:3F:7F:EF:BE",
+        "53:90:B5:6A:03:3C:A3:AC:83:63:E3:2F:56:EF:FB:D1:CC:4E:F5:71:0C:19:79:F2:36:21:7C:94:88:77:5C:A9"
+      ]
+    }
+  }
+]

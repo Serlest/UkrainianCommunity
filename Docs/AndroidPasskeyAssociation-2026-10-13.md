@@ -1,6 +1,6 @@
 # Android passkey: привязка приложения и проверка
 
-Статус 13 октября 2026: staging использует отдельный RP ID `uac-android-test-20260903.web.app`. Его Digital Asset Links опубликован и перечитан, серверные функции активны. На AVD Credential Manager предложил только создание ключа на другом устройстве; создание и вход с реальным ключом ещё не проверены. Флаг доступной staging-сборки и production остаётся выключен.
+Исходный статус 13 октября 2026: staging использует отдельный RP ID `uac-android-test-20260903.web.app`. Его Digital Asset Links опубликован и перечитан, серверные функции активны. На AVD Credential Manager предложил только создание ключа на другом устройстве; создание и вход с реальным ключом ещё не проверены. Флаг доступной staging-сборки и production остаётся выключен.
 
 1. В Google Play Console взять SHA-256 **App signing certificate** для `at.serlest.ukrainiancommunity`. Для staging взять SHA-256 сертификата APK, который действительно будет установлен на тестовом устройстве. Upload key и локальный debug key нельзя выдавать за Play signing key.
 2. Запустить `node Android/scripts/prepare-passkey-association.mjs at.serlest.ukrainiancommunity <SHA-256>` и отдельно для staging. Скрипт проверит форму отпечатка, выведет запись `assetlinksEntry` и `serverOrigin`; он не записывает файл и не публикует сайт.
@@ -9,3 +9,7 @@
 5. Только после пунктов 1–4 включить `UAC_STAGING_PASSKEY_ENABLED=true` в тестовой сборке. Проверить создание, вход, удаление, повторный вход после удаления и роль владельца с настоящим TOTP на физическом устройстве. В production флаг включать лишь после этой приёмки.
 
 Техническое основание: [Android Digital Asset Links](https://developer.android.com/identity/credential-manager/prerequisites), [проверка Android WebAuthn-origin](https://developer.android.com/identity/passkeys/create-passkeys), [Credential Manager sign-in](https://developer.android.com/identity/passkeys/sign-in-with-passkeys).
+
+## Фактическое обновление 15 октября 2026
+
+Production `website/.well-known/assetlinks.json` опубликован через клон текущей версии Hosting: новая relation `common.get_login_creds` добавлена к существующей `common.handle_all_urls`, оба действующих отпечатка сохранены. Версия сохранила 15 прежних файлов и конфигурацию, оба production-домена отдали ожидаемый JSON. В `functions/.env.ukrainiancommunity-dbd5f` добавлен точный origin **Play App Signing** `android:apk-key-hash:U5C1agM8o6yDY-MvVu_70cxO9XEMGXnyNiF8lIh3XKk`; шесть passkey callable развёрнуты и прочитаны как ACTIVE с ним. Клиентский флаг production не включён; создание ключа и вход на Play-подписанном Android ожидают установки беты и реальной проверки.

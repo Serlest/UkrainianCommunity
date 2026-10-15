@@ -212,11 +212,13 @@ try {
     "POST", {data: {eventId}}, "");
   if (outsider.status !== 401 || outsider.data.error?.status !== "UNAUTHENTICATED")
     throw new Error(`Unauthenticated registration not denied: ${outsider.status}`);
+  // The UI can create the registration before a later assertion fails. Track it before launch
+  // so the fixture is still removed and checked by the failure path.
+  const registrationPath = `registrations/event_${eventId}_${account.uid}`;
+  paths.add(registrationPath);
   setupApp();
   runUi("registerAndCommentThroughUi");
-  const registrationPath = `registrations/event_${eventId}_${account.uid}`;
   const registration = expect(await document(registrationPath), 200, "registration");
-  paths.add(registrationPath);
   if (read(registration.fields.userId) !== account.uid || read(registration.fields.eventId) !== eventId ||
     read(expect(await document(`events/${eventId}`), 200, "registered event").fields.registeredCount) !== "1")
     throw new Error("Registration server read-back mismatch");
