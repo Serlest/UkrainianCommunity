@@ -34,6 +34,8 @@ import at.uac.android.design.UacSectionHeading
 import at.uac.android.feature.browse.Choice
 import at.uac.android.feature.browse.regions
 import at.uac.android.feature.browse.tr
+import at.uac.android.feature.translation.ContentTranslationButton
+import at.uac.android.feature.translation.TranslationField
 import java.util.UUID
 import kotlinx.coroutines.launch
 import org.json.JSONArray
@@ -129,6 +131,16 @@ fun DirectoryEditorScreen(
                             mutate { root -> sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
                                 .getJSONObject("body").put(key, value) }
                         }
+                        DirectoryTranslationControls("section:$categoryId:$index", language,
+                            listOf(
+                                DirectoryTranslationEntry("title", tr(language, "Titel", "Назва"), section.getJSONObject("title"), 160),
+                                DirectoryTranslationEntry("body", tr(language, "Text", "Текст"), section.getJSONObject("body"), 6000),
+                            )) { values, target ->
+                            mutate { root ->
+                                val current = sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
+                                values.forEach { (key, value) -> current.getJSONObject(key).put(target, value) }
+                            }
+                        }
                         EditorText(language, tr(language, "Symbol", "Символ"), section.getString("symbol")) {
                             mutate { root -> sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
                                 .put("symbol", it) }
@@ -162,6 +174,17 @@ fun DirectoryEditorScreen(
                             BilingualEditor(language, tr(language, "Beschreibung", "Пояснення"), contact.getJSONObject("detail")) { key, value ->
                                 mutate { root -> sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
                                     .getJSONArray("contacts").getJSONObject(contactIndex).getJSONObject("detail").put(key, value) }
+                            }
+                            DirectoryTranslationControls("contact:$categoryId:$index:$contactIndex", language,
+                                listOf(
+                                    DirectoryTranslationEntry("title", tr(language, "Kontakt", "Контакт"), contact.getJSONObject("title"), 100),
+                                    DirectoryTranslationEntry("detail", tr(language, "Beschreibung", "Пояснення"), contact.getJSONObject("detail"), 200),
+                                )) { values, target ->
+                                mutate { root ->
+                                    val current = sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
+                                        .getJSONArray("contacts").getJSONObject(contactIndex)
+                                    values.forEach { (key, value) -> current.getJSONObject(key).put(target, value) }
+                                }
                             }
                             TextButton({ mutate { root -> sectionAt(root, index[0], index[1], selectedRegion.takeIf { regional })
                                 .getJSONArray("contacts").remove(contactIndex) } }) {
@@ -204,6 +227,12 @@ fun DirectoryEditorScreen(
                         tag = "directory-editor-group-title") { key, value ->
                         mutate { it.getJSONArray("groups").getJSONObject(groupIndex).getJSONObject("title").put(key, value) }
                     }
+                    DirectoryTranslationControls("group:$categoryId:$groupIndex", language,
+                        listOf(DirectoryTranslationEntry("title", tr(language, "Titel", "Назва"),
+                            group.getJSONObject("title"), 100))) { values, target ->
+                        mutate { root -> values.forEach { (key, value) -> root.getJSONArray("groups")
+                            .getJSONObject(groupIndex).getJSONObject(key).put(target, value) } }
+                    }
                     LabeledSwitch(tr(language, "Verbergen", "Приховати"), group.getBoolean("isHidden")) {
                         mutate { root -> root.getJSONArray("groups").getJSONObject(groupIndex).put("isHidden", it) }
                     }
@@ -237,6 +266,14 @@ fun DirectoryEditorScreen(
                     BilingualEditor(language, tr(language, "Einleitung", "Вступ"), topic.getJSONObject("summary"),
                         multiline = true, tag = "directory-editor-topic-summary") { key, value ->
                         mutate { it.getJSONArray("topics").getJSONObject(topicIndex).getJSONObject("summary").put(key, value) }
+                    }
+                    DirectoryTranslationControls("topic:$categoryId:$topicIndex", language,
+                        listOf(
+                            DirectoryTranslationEntry("title", tr(language, "Titel", "Назва"), topic.getJSONObject("title"), 140),
+                            DirectoryTranslationEntry("summary", tr(language, "Einleitung", "Вступ"), topic.getJSONObject("summary"), 800),
+                        )) { values, target ->
+                        mutate { root -> values.forEach { (key, value) -> root.getJSONArray("topics")
+                            .getJSONObject(topicIndex).getJSONObject(key).put(target, value) } }
                     }
                     Choice(tr(language, "Unterbereich", "Підрозділ"), topic.getString("groupID"),
                         (0 until groups.length()).map { i -> groups.getJSONObject(i).let { it.getString("id") to
@@ -325,6 +362,13 @@ fun DirectoryEditorScreen(
                         multiline = true, tag = "directory-editor-category-summary") { key, value ->
                         mutate { it.getJSONObject("summary").put(key, value) }
                     }
+                    DirectoryTranslationControls("category:$categoryId", language,
+                        listOf(
+                            DirectoryTranslationEntry("title", tr(language, "Bereichstitel", "Назва розділу"), json.getJSONObject("title"), 100),
+                            DirectoryTranslationEntry("summary", tr(language, "Kurzbeschreibung", "Опис"), json.getJSONObject("summary"), 500),
+                        )) { values, target ->
+                        mutate { root -> values.forEach { (key, value) -> root.getJSONObject(key).put(target, value) } }
+                    }
                     EditorText(language, tr(language, "Symbol", "Символ"), json.getString("symbol")) {
                         mutate { root -> root.put("symbol", it) }
                     }
@@ -378,8 +422,7 @@ fun DirectoryEditorScreen(
                 Button({
                     val issue = DirectoryDraftValidation.firstIssue(draft)
                     if (issue != null) {
-                        error = tr(language, "Felder und HTTPS-Quellen prüfen: ",
-                            "Перевірте поля та HTTPS-джерела: ") + issue
+                        error = DirectoryDraftValidation.firstIssueDescription(draft, language)
                     } else {
                         busy = true
                         scope.launch {
@@ -460,6 +503,38 @@ private fun BilingualEditor(language: String, label: String, text: JSONObject,
         tag?.let { "$it-uk" }) { onChange("ukrainian", it) }
     EditorText(language, "$label · Deutsch", text.getString("german"), multiline,
         tag?.let { "$it-de" }) { onChange("german", it) }
+}
+
+private data class DirectoryTranslationEntry(
+    val key: String,
+    val label: String,
+    val text: JSONObject,
+    val limit: Int,
+)
+
+@Composable
+private fun DirectoryTranslationControls(
+    identity: String,
+    language: String,
+    entries: List<DirectoryTranslationEntry>,
+    onApply: (Map<String, String>, String) -> Unit,
+) {
+    var source by rememberSaveable(identity) { mutableStateOf("uk") }
+    Choice(tr(language, "Sprache des Originals", "Мова оригіналу"), source,
+        listOf("uk" to "Українська", "de" to "Deutsch"), "directory-translation-source") {
+        source = it
+    }
+    val from = if (source == "uk") "ukrainian" else "german"
+    val to = if (source == "uk") "german" else "ukrainian"
+    ContentTranslationButton(
+        kind = "directory",
+        language = language,
+        fields = entries.map {
+            TranslationField(it.key, it.label, it.text.optString(from), it.text.optString(to), it.limit)
+        },
+        enabled = true,
+        sourceLanguage = source,
+    ) { values -> onApply(values, to) }
 }
 
 @Composable

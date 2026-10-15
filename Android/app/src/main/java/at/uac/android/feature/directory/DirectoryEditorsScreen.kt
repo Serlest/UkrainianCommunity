@@ -66,20 +66,25 @@ private fun DirectoryEditorsOwnerContent(
     var results by remember(session) { mutableStateOf<List<ManagedUser>>(emptyList()) }
     var query by remember(session) { mutableStateOf("") }
     var loading by remember(session) { mutableStateOf(true) }
+    var grantLoadFailed by remember(session) { mutableStateOf(false) }
     var searching by remember(session) { mutableStateOf(false) }
     var busy by remember(session) { mutableStateOf<String?>(null) }
     var confirm by remember(session) { mutableStateOf<DirectoryGrant?>(null) }
     var error by remember(session) { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val refresh: suspend () -> Unit = {
+        grantLoadFailed = true
         grants = source.grants(session)
+        grantLoadFailed = false
         val first = source.candidates(session)
         candidates = first.users
         next = first.next
     }
     LaunchedEffect(session, source) {
         loading = true
-        try { refresh() } catch (_: Exception) {
+        try { refresh() } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
             error = tr(language, "Laden fehlgeschlagen. Erneut versuchen.",
                 "Не вдалося завантажити. Спробуйте ще раз.")
         } finally { loading = false }
@@ -96,40 +101,63 @@ private fun DirectoryEditorsOwnerContent(
         } finally { searching = false }
     }
     val grantIds = grants.mapTo(mutableSetOf()) { it.uid }
+    val sortedGrants = remember(grants, candidates, results, language) {
+        val knownById = (results + candidates).associateBy { it.id }
+        val collator = java.text.Collator.getInstance(
+            java.util.Locale.forLanguageTag(if (language == "uk") "uk" else "de"))
+        grants.sortedWith { first, second ->
+            fun name(grant: DirectoryGrant) = knownById[grant.uid]
+                ?.displayName?.takeIf(String::isNotBlank) ?: grant.name
+            collator.compare(name(first), name(second)).takeUnless { it == 0 }
+                ?: first.uid.compareTo(second.uid)
+        }
+    }
     val visible = if (query.trim().length >= 2) results else candidates.filter {
         query.isBlank() || listOf(it.displayName, it.fullName, it.email).any { field ->
             field.contains(query.trim(), ignoreCase = true)
         }
     }
-    fun change(uid: String, expected: com.google.firebase.Timestamp?, enable: Boolean) {
-        if (busy != null) return
+    fun change(uid: String, expected: DirectoryGrant?, enable: Boolean) {
+        if (busy != null || grantLoadFailed || loading) return
         busy = uid
         error = null
         scope.launch {
             try {
                 source.change(session, uid, expected, enable)
                 grants = source.grants(session)
+                grantLoadFailed = false
             } catch (_: DirectoryGrantStale) {
                 error = tr(language, "Zugriff wurde geändert. Liste aktualisieren.",
                     "Доступ уже змінено. Оновіть список.")
-                runCatching { grants = source.grants(session) }
+                try { grants = source.grants(session); grantLoadFailed = false }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { grantLoadFailed = true }
             } catch (_: DirectoryGrantInvalid) {
                 error = tr(language, "Dieses Konto ist nicht aktiv.",
                     "Цей обліковий запис неактивний.")
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: Exception) {
                 error = tr(language, "Änderung nicht bestätigt. Liste aktualisieren.",
                     "Зміну не підтверджено. Оновіть список.")
-                runCatching { grants = source.grants(session) }
+                try { grants = source.grants(session); grantLoadFailed = false }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { grantLoadFailed = true }
             } finally { busy = null }
         }
     }
     confirm?.let { grant ->
+        val known = (results + candidates).firstOrNull { it.id == grant.uid }
+        val identity = known?.let { "${it.displayName} · ${it.email}" }
+            ?: grant.email?.let { "${grant.name} · $it" }
+            ?: "ID: ${grant.uid}"
         AlertDialog(
             onDismissRequest = { confirm = null },
             title = { Text(tr(language, "Ratgeberzugriff entziehen?", "Забрати доступ до довідника?")) },
-            text = { Text(grant.name) },
+            text = { Text(tr(language, "${identity} kann den Ratgeber danach nicht mehr bearbeiten.",
+                "${identity} більше не зможе редагувати довідник.")) },
             confirmButton = {
-                TextButton({ confirm = null; change(grant.uid, grant.grantedAt, false) },
+                TextButton({ confirm = null; change(grant.uid, grant, false) },
                     Modifier.testTag("directory-editors-confirm-revoke")) {
                     Text(tr(language, "Zugriff entziehen", "Забрати доступ"))
                 }
@@ -156,24 +184,61 @@ private fun DirectoryEditorsOwnerContent(
                 modifier = Modifier.testTag("directory-editors-error")) }
             if (error != null) TextButton({
                 error = null
-                scope.launch { try { refresh() } catch (_: Exception) {
-                    error = tr(language, "Laden fehlgeschlagen", "Не вдалося завантажити")
-                } }
+                scope.launch {
+                    loading = true
+                    try { refresh() } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (_: Exception) {
+                        error = tr(language, "Laden fehlgeschlagen", "Не вдалося завантажити")
+                    } finally { loading = false }
+                }
             }) { Text(tr(language, "Erneut versuchen", "Спробувати ще раз")) }
         }
         item("grants-heading") {
             Text(tr(language, "Mit Zugriff", "Мають доступ"), style = MaterialTheme.typography.titleMedium)
-            if (!loading && grants.isEmpty())
+            if (!loading && !grantLoadFailed && grants.isEmpty())
                 Text(tr(language, "Noch keine Redakteure", "Редакторів поки немає"))
+            if (grantLoadFailed && !loading)
+                Text(tr(language, "Zugriffsrechte nicht geladen. Erneut versuchen.",
+                    "Не вдалося завантажити права. Спробуйте ще раз."),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.testTag("directory-grants-load-failed"))
         }
-        items(grants, key = { "grant:${it.uid}" }) { grant ->
+        items(sortedGrants, key = { "grant:${it.uid}" }) { grant ->
+            val known = (results + candidates).firstOrNull { it.id == grant.uid }
             Row(Modifier.fillMaxWidth().testTag("directory-grant-${grant.uid}"),
                 horizontalArrangement = Arrangement.SpaceBetween) {
                 Column(Modifier.weight(1f)) {
-                    Text(grant.name)
-                    Text(grant.uid, style = MaterialTheme.typography.bodySmall)
+                    Text(known?.displayName?.takeIf(String::isNotBlank) ?: grant.name)
+                    if (known != null) {
+                        Text(known.email, style = MaterialTheme.typography.bodySmall)
+                    } else when (grant.profileState) {
+                        DirectoryGrantProfileState.LOADED ->
+                            Text(grant.email ?: "ID: ${grant.uid}", style = MaterialTheme.typography.bodySmall)
+                        DirectoryGrantProfileState.MISSING ->
+                            Text(tr(language, "Nutzerprofil nicht vorhanden", "Профіль користувача відсутній") +
+                                " · ID: ${grant.uid}", style = MaterialTheme.typography.bodySmall)
+                        DirectoryGrantProfileState.READ_FAILED ->
+                            Text(tr(language, "Nutzerdaten nicht geladen", "Дані користувача не завантажено") +
+                                " · ID: ${grant.uid}", style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (known == null && grant.profileState == DirectoryGrantProfileState.READ_FAILED) {
+                        TextButton({
+                            scope.launch {
+                                loading = true
+                                try { refresh() } catch (cancelled: CancellationException) {
+                                    throw cancelled
+                                } catch (_: Exception) {
+                                    error = tr(language, "Laden fehlgeschlagen", "Не вдалося завантажити")
+                                } finally { loading = false }
+                            }
+                        }, enabled = !loading && busy == null,
+                            modifier = Modifier.testTag("directory-grant-retry-${grant.uid}")) {
+                            Text(tr(language, "Erneut versuchen", "Спробувати ще раз"))
+                        }
+                    }
                 }
-                TextButton({ confirm = grant }, enabled = busy == null,
+                TextButton({ confirm = grant }, enabled = busy == null && !loading && !grantLoadFailed,
                     modifier = Modifier.testTag("directory-revoke-${grant.uid}")) {
                     Text(tr(language, "Entziehen", "Зняти"))
                 }
@@ -198,7 +263,8 @@ private fun DirectoryEditorsOwnerContent(
                 }
                 if (user.id in grantIds) Text(tr(language, "Zugriff aktiv", "Має доступ"))
                 else OutlinedButton({ change(user.id, null, true) },
-                    enabled = busy == null && user.accountStatus in setOf("active", "warned") &&
+                    enabled = busy == null && !loading && !grantLoadFailed &&
+                        user.accountStatus in setOf("active", "warned") &&
                         user.blockState in setOf("active", "warned"),
                     modifier = Modifier.testTag("directory-grant-${user.id}")) {
                     Text(tr(language, "Freigeben", "Надати"))

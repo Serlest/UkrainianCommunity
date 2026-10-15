@@ -3,6 +3,7 @@ package at.uac.android
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
@@ -15,6 +16,7 @@ import at.uac.android.feature.directory.DirectoryEditorsScreen
 import at.uac.android.feature.directory.FirebaseDirectoryEditorsSource
 import at.uac.android.feature.moderation.moderationScope
 import java.nio.ByteBuffer
+import kotlinx.coroutines.runBlocking
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 import org.junit.Assert.assertEquals
@@ -101,9 +103,12 @@ class StagingDirectoryEditorsJourneyTest {
         compose.waitUntil(60_000) { visible("directory-editors-search") }
         compose.onNodeWithTag("directory-editors-search").performTextInput("directory-step2-")
         compose.waitUntil(60_000) { visible("directory-grant-$uid") }
+        compose.waitUntil(60_000) { visible("directory-editors-screen") && !visible("directory-editors-loading") }
         compose.onNodeWithTag("directory-editors-screen").performScrollToNode(hasTestTag("directory-grant-$uid"))
+        compose.onNodeWithTag("directory-grant-$uid").assertIsEnabled()
         compose.onNodeWithTag("directory-grant-$uid").performClick()
-        compose.waitUntil(60_000) { visible("directory-revoke-$uid") }
+        compose.waitUntil(60_000) { visible("directory-revoke-$uid") || visible("directory-editors-error") }
+        compose.onNodeWithTag("directory-revoke-$uid").assertExists()
     }
 
     @Test fun editorPublishesCategory() {
@@ -115,7 +120,7 @@ class StagingDirectoryEditorsJourneyTest {
         compose.onNodeWithTag("directory-editor-category-title-de").performTextReplacement("Staging redigiert")
         compose.onNodeWithTag("directory-editor").performScrollToNode(hasTestTag("directory-publish"))
         compose.onNodeWithTag("directory-publish").assertIsEnabled()
-        compose.onNodeWithTag("directory-publish").performClick()
+        compose.onNodeWithTag("directory-publish").performSemanticsAction(SemanticsActions.OnClick)
         try {
             compose.waitUntil(30_000) {
                 browse.state.value.route == "directory/manage" ||
@@ -142,11 +147,21 @@ class StagingDirectoryEditorsJourneyTest {
         val auth = LocalAuthSession.get(compose.activity)
         val session = auth.state.value.moderationScope()!!
         val source = FirebaseDirectoryEditorsSource(compose.activity, auth)
+        val serverGrants = runBlocking { source.grants(session) }
+        assertTrue("Owner did not read the active grant from the server", serverGrants.any { it.uid == uid })
         compose.runOnIdle { compose.activity.setContent {
             UacTheme("light") { DirectoryEditorsScreen(session, "de", source, {}) }
         } }
-        compose.waitUntil(60_000) { visible("directory-revoke-$uid") }
-        compose.onNodeWithTag("directory-editors-screen").performScrollToNode(hasTestTag("directory-revoke-$uid"))
+        compose.waitUntil(60_000) { visible("directory-editors-screen") && !visible("directory-editors-loading") }
+        try {
+            compose.onNodeWithTag("directory-editors-screen")
+                .performScrollToNode(hasTestTag("directory-revoke-$uid"))
+        } catch (failure: Throwable) {
+            val uiError = runCatching { compose.onNodeWithTag("directory-editors-error").printToString() }
+                .getOrDefault("no error banner")
+            throw AssertionError("Owner grant row missing after server read; $uiError", failure)
+        }
+        compose.onNodeWithTag("directory-revoke-$uid").assertIsEnabled()
         compose.onNodeWithTag("directory-revoke-$uid").performClick()
         compose.onNodeWithTag("directory-editors-confirm-revoke").performClick()
         compose.waitUntil(60_000) { !visible("directory-revoke-$uid") }

@@ -26,8 +26,12 @@ data class DirectoryGrant(
     val uid: String,
     val name: String,
     val grantedBy: String,
-    val grantedAt: Timestamp,
+    val grantedAt: Timestamp?,
+    val email: String? = null,
+    val profileState: DirectoryGrantProfileState = DirectoryGrantProfileState.LOADED,
 )
+
+enum class DirectoryGrantProfileState { LOADED, MISSING, READ_FAILED }
 
 data class DirectoryCandidates(
     val users: List<ManagedUser>,
@@ -41,7 +45,7 @@ interface DirectoryEditorsSource {
     suspend fun grants(session: ModerationSession): List<DirectoryGrant>
     suspend fun candidates(session: ModerationSession, after: DocumentSnapshot? = null): DirectoryCandidates
     suspend fun search(session: ModerationSession, query: String): List<ManagedUser>
-    suspend fun change(session: ModerationSession, uid: String, expected: Timestamp?, enable: Boolean)
+    suspend fun change(session: ModerationSession, uid: String, expected: DirectoryGrant?, enable: Boolean)
 }
 
 /** Uses the iOS 107 grant document exactly; optimistic transactions add Android stale-state protection. */
@@ -76,11 +80,35 @@ class FirebaseDirectoryEditorsSource(context: Context, private val store: AuthSt
         val snapshot = db.collection("directoryEditors").get(Source.SERVER).await()
         if (snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites()) throw DirectoryGrantStale()
         snapshot.documents.filter { it.getBoolean("enabled") == true }.map { grant ->
-            val date = grant.getTimestamp("grantedAt") ?: throw DirectoryGrantStale()
-            val author = grant.getString("grantedBy") ?: throw DirectoryGrantStale()
-            val target = db.collection("users").document(grant.id).get(Source.SERVER).await()
-            DirectoryGrant(grant.id, target.takeIf { it.exists() }?.let(::user)?.displayName
-                ?.ifBlank { grant.id } ?: grant.id, author, date)
+            val target = try {
+                db.collection("users").document(grant.id).get(Source.SERVER).await().also {
+                    if (it.metadata.isFromCache || it.metadata.hasPendingWrites()) throw DirectoryGrantStale()
+                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+            val profile = try {
+                target?.takeIf { it.exists() }?.let(::user)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+            DirectoryGrant(
+                uid = grant.id,
+                name = profile?.displayName?.ifBlank { profile.fullName }?.ifBlank { grant.id }
+                    ?: grant.id,
+                grantedBy = grant.getString("grantedBy").orEmpty(),
+                grantedAt = grant.getTimestamp("grantedAt"),
+                email = profile?.email?.takeIf(String::isNotBlank),
+                profileState = when {
+                    target == null || (target.exists() && profile == null) -> DirectoryGrantProfileState.READ_FAILED
+                    profile == null -> DirectoryGrantProfileState.MISSING
+                    else -> DirectoryGrantProfileState.LOADED
+                },
+            )
         }.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
     }
 
@@ -108,15 +136,17 @@ class FirebaseDirectoryEditorsSource(context: Context, private val store: AuthSt
         ids.mapNotNull(found::get)
     }
 
-    override suspend fun change(session: ModerationSession, uid: String, expected: Timestamp?, enable: Boolean) = owner(session) {
+    override suspend fun change(session: ModerationSession, uid: String, expected: DirectoryGrant?, enable: Boolean) = owner(session) {
         ManagedUsersContract.requireId(uid)
-        if (uid == session.uid || enable == (expected != null)) throw DirectoryGrantStale()
+        if (uid == session.uid || enable == (expected != null) ||
+            (expected != null && expected.uid != uid)) throw DirectoryGrantStale()
         val reference = db.collection("directoryEditors").document(uid)
         val target = db.collection("users").document(uid)
         db.runTransaction { tx ->
             val current = tx.get(reference)
             if (current.exists() != (expected != null) ||
-                (expected != null && current.getTimestamp("grantedAt") != expected))
+                (expected != null && (current.getBoolean("enabled") != true ||
+                    current.getTimestamp("grantedAt") != expected.grantedAt)))
                 throw DirectoryGrantStale()
             if (enable) {
                 val account = tx.get(target)

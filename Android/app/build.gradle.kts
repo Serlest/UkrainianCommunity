@@ -26,8 +26,8 @@ android {
     defaultConfig {
         minSdk = 26
         targetSdk = 36
-        // Product/build identity follows the current iOS TestFlight baseline.
-        versionCode = 107
+        // Internal Play candidate after iOS build 107 parity corrections.
+        versionCode = 108
         versionName = "1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["appLabel"] = "UAC"

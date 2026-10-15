@@ -1,6 +1,7 @@
 package at.uac.android
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -99,6 +100,7 @@ class DirectoryEditorUiTest {
         compose.onNodeWithTag("directory-editor")
             .performScrollToNode(hasTestTag("directory-editor-error"))
         compose.onNodeWithTag("directory-editor-error").assertExists()
+        compose.onNodeWithTag("directory-editor-error").assertTextContains("Kurzbeschreibung", substring = true)
         assertNull(submitted)
         fill("directory-editor-category-summary-uk", "Корисна інформація")
         fill("directory-editor-category-summary-de", "Wichtige Informationen")

@@ -5,11 +5,77 @@ import org.json.JSONObject
 
 /** Fast client feedback; the callable remains the authoritative validator and rights gate. */
 object DirectoryDraftValidation {
+    fun firstIssueDescription(payload: String, language: String): String? {
+        val issue = firstIssue(payload) ?: return null
+        val german = language != "uk"
+        val category = runCatching { JSONObject(payload) }.getOrNull()
+        val field = when {
+            issue == "category.text" -> category?.let {
+                bilingualIssue(it.optJSONObject("title"), 100,
+                    if (german) "Bereichstitel" else "Назва розділу", language)
+                    ?: bilingualIssue(it.optJSONObject("summary"), 500,
+                        if (german) "Kurzbeschreibung" else "Короткий опис", language)
+            }
+            issue.startsWith("group:") -> category?.optJSONArray("groups")?.let { groups ->
+                (0 until groups.length()).firstOrNull { groups.optJSONObject(it)?.optString("id") == issue.removePrefix("group:") }
+                    ?.let { bilingualIssue(groups.getJSONObject(it).optJSONObject("title"), 100,
+                        if (german) "Name des Unterbereichs" else "Назва підрозділу", language) }
+            }
+            issue.startsWith("topic:") -> category?.optJSONArray("topics")?.let { topics ->
+                (0 until topics.length()).firstOrNull { topics.optJSONObject(it)?.optString("id") == issue.removePrefix("topic:") }
+                    ?.let { index -> topics.getJSONObject(index).let { topic ->
+                        bilingualIssue(topic.optJSONObject("title"), 140,
+                            if (german) "Beitragstitel" else "Назва статті", language)
+                            ?: bilingualIssue(topic.optJSONObject("summary"), 800,
+                                if (german) "Kurze Einleitung" else "Короткий вступ", language,
+                                required = !topic.optBoolean("isHidden"))
+                    } }
+            }
+            else -> null
+        }
+        return field ?: when {
+            issue == "category.size" -> if (german) "Der Bereich ist zu groß. Kürzen Sie Texte oder entfernen Sie Inhalte."
+                else "Розділ завеликий. Скоротіть тексти або приберіть матеріали."
+            issue == "category.empty" -> if (german) "Fügen Sie mindestens einen sichtbaren Beitrag mit Informationsabschnitt hinzu."
+                else "Додайте принаймні одну видиму статтю з інформаційним блоком."
+            issue == "category.symbol" -> if (german) "Wählen Sie ein Symbol für den Bereich."
+                else "Оберіть символ для розділу."
+            issue.startsWith("sources.duplicate:") -> if (german) "Eine Quelle wurde im Beitrag doppelt hinzugefügt. Entfernen Sie das Duplikat."
+                else "Одне джерело додано до статті двічі. Приберіть повтор."
+            issue.startsWith("sources:") -> if (german) "Prüfen Sie Quellenname und vollständige HTTPS-Adresse im Beitrag."
+                else "Перевірте назву джерела та повну HTTPS-адресу в статті."
+            issue.startsWith("sections:") || issue.startsWith("region:") ->
+                if (german) "Prüfen Sie Titel und Text in beiden Sprachen und ergänzen Sie eine offizielle HTTPS-Quelle im Abschnitt oder Beitrag."
+                else "Перевірте назву й текст обома мовами та додайте офіційне HTTPS-джерело до блока або статті."
+            issue.startsWith("topic:") -> if (german) "Prüfen Sie Titel, Einleitung und Unterbereich des Beitrags."
+                else "Перевірте назву, вступ і підрозділ статті."
+            issue.startsWith("group:") -> if (german) "Prüfen Sie den Namen des Unterbereichs in beiden Sprachen."
+                else "Перевірте назву підрозділу обома мовами."
+            else -> if (german) "Prüfen Sie Pflichtfelder, eindeutige Kennungen und HTTPS-Quellen."
+                else "Перевірте обов’язкові поля, унікальні ідентифікатори та HTTPS-джерела."
+        }
+    }
+
+    private fun bilingualIssue(text: JSONObject?, max: Int, label: String, language: String,
+        required: Boolean = true): String? {
+        for ((key, name) in listOf("ukrainian" to "Українська", "german" to "Deutsch")) {
+            val value = text?.optString(key).orEmpty()
+            if (required && value.isBlank()) return if (language == "uk")
+                "$label · $name: заповніть це поле." else "$label · $name: Bitte ausfüllen."
+            if (value.length > max) return if (language == "uk")
+                "$label · $name: ${value.length} із $max символів. Скоротіть текст."
+                else "$label · $name: ${value.length} von $max Zeichen. Bitte kürzen."
+        }
+        return null
+    }
+
     fun firstIssue(payload: String): String? = runCatching {
         val category = JSONObject(payload)
         if (payload.toByteArray(Charsets.UTF_8).size > 800_000) return "category.size"
         if (!DirectoryCatalog.validId(category.getString("id"))) return "category.id"
         if (category.getString("placement") !in setOf("start", "life", "support")) return "category.placement"
+        if (category.optString("symbol").isBlank() || category.optString("symbol").length > 80)
+            return "category.symbol"
         if (!bilingual(category.getJSONObject("title"), 100) ||
             !bilingual(category.getJSONObject("summary"), 500)) return "category.text"
         val groups = category.getJSONArray("groups")
@@ -36,6 +102,8 @@ object DirectoryDraftValidation {
                 !bilingual(topic.getJSONObject("summary"), 800, !hidden)) return "topic:$id"
             val sources = topic.getJSONArray("sources")
             if (sources.length() > 80 || !validSources(sources)) return "sources:$id"
+            if ((0 until sources.length()).map { sources.getJSONObject(it).getString("url") }.toSet().size != sources.length())
+                return "sources.duplicate:$id"
             val sections = topic.getJSONArray("sections")
             if (sections.length() > 80 || !validSections(sections, sources.length() > 0)) return "sections:$id"
             val regional = topic.getJSONObject("regionalSections")
@@ -77,6 +145,7 @@ object DirectoryDraftValidation {
             val hidden = section.getBoolean("isHidden")
             val id = section.getString("id")
             if (!DirectoryCatalog.validId(id) || !ids.add(id) ||
+                section.optString("symbol").isBlank() || section.optString("symbol").length > 80 ||
                 !bilingual(section.getJSONObject("title"), 160) ||
                 !bilingual(section.getJSONObject("body"), 6000, !hidden)) return false
             val source = section.optJSONObject("source")

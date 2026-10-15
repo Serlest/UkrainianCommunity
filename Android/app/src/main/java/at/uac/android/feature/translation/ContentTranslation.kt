@@ -46,8 +46,8 @@ private class FirebaseContentTranslationSource(context: Context) : ContentTransl
     private val calls = AppBackend.callables(context.applicationContext)
 
     override suspend fun translate(kind: String, texts: List<String>, sourceLanguage: String): List<String> {
-        require(kind in setOf("news", "event", "organization", "banner", "announcement"))
-        require(sourceLanguage == "uk" || kind == "announcement" && sourceLanguage == "de")
+        require(kind in setOf("news", "event", "organization", "banner", "announcement", "directory"))
+        require(sourceLanguage == "uk" || kind in setOf("announcement", "directory") && sourceLanguage == "de")
         require(texts.isNotEmpty() && texts.size <= 12 && texts.all { it.isNotBlank() })
         val raw =
             calls.getHttpsCallable("translateContent")
@@ -144,7 +144,7 @@ fun ContentTranslationButton(
                     if (overwrites) {
                         Row {
                             Checkbox(confirmed, { confirmed = it }, modifier = Modifier.testTag("translation-overwrite"))
-                            Text(if (language == "uk") "Замінити заповнений німецький текст" else "Vorhandenen deutschen Text ersetzen")
+                            Text(if (language == "uk") "Замінити заповнений переклад" else "Vorhandene Übersetzung ersetzen")
                         }
                     }
                     if (stale) Text(if (language == "uk") "Чернетка змінилася. Запустіть переклад ще раз." else "Der Entwurf wurde geändert. Übersetzung erneut starten.")
