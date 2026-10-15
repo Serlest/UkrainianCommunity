@@ -24,4 +24,8 @@
 
 ## Play read-back
 
-Pending upload and publish verification.
+- Uploaded the signed AAB to the pre-existing Internal track and published `1.2 (108) – Internal` on 15 October 2026 at 19:37 Vienna time.
+- Play Console read-back: track active, latest release `1.2 (108) – Internal`, status `Für interne Tester verfügbar`. No bundles from 107 were included, and the supported-device counts did not decrease.
+- Tester enrollment link shown by Play: <https://play.google.com/apps/internaltest/4701365572505552935>.
+- Play review showed one non-blocking warning: native debug symbols were not uploaded for third-party native code. The Java/Kotlin ReTrace mapping is attached to bundle 108.
+- UI evidence: `Docs/evidence/play-internal-108-2026-10-15.png`.
