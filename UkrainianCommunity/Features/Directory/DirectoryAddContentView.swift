@@ -5,6 +5,7 @@ struct DirectoryAddTopicView: View {
     @State private var topic: DirectoryManagedTopic
     @State private var editingLanguage: AppLanguage = .ukrainian
     @State private var errorMessage: String?
+    @State private var showsValidation = false
     let onAdd: (DirectoryManagedTopic) -> Void
 
     init(groupID: String, order: Int, onAdd: @escaping (DirectoryManagedTopic) -> Void) {
@@ -16,8 +17,16 @@ struct DirectoryAddTopicView: View {
         NavigationStack {
             Form {
                 DirectoryEditingLanguagePicker(language: $editingLanguage)
+                DirectoryTranslationSection(inputs: DirectoryTranslationInput.article($topic, firstSection: true), language: editingLanguage)
                 DirectoryFirstArticleFields(topic: $topic, language: editingLanguage)
+                Section {
+                    Text(DirectoryEditorText.value(
+                        "«Додати» переносить статтю до чернетки категорії. Щоб читачі побачили зміни, натисніть «Опублікувати» в редакторі категорії.",
+                        "„Hinzufügen“ übernimmt den Beitrag in den Bereichsentwurf. Damit Leser die Änderungen sehen, wählen Sie dort „Veröffentlichen“."
+                    )).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                }
             }
+            .environment(\.directoryShowsValidation, showsValidation)
             .directoryEditorChrome()
             .navigationTitle(DirectoryEditorText.value("Нова стаття", "Neuer Beitrag"))
             .toolbar {
@@ -39,15 +48,7 @@ struct DirectoryAddTopicView: View {
     }
 
     private func add() {
-        if let missing = DirectoryEditorDrafts.firstMissingLanguage(in: [
-            topic.title, topic.summary, topic.sections[0].title, topic.sections[0].body
-        ]) {
-            editingLanguage = missing
-            errorMessage = DirectoryEditorText.value(
-                "Заповніть поля вибраною мовою.", "Füllen Sie die Felder in der gewählten Sprache aus."
-            )
-            return
-        }
+        showsValidation = true
         let sample = DirectoryManagedCategory(
             id: "draft", placement: .start, order: 0, isHidden: false,
             title: .init(ukrainian: "Стаття", german: "Beitrag"),
@@ -63,6 +64,9 @@ struct DirectoryAddTopicView: View {
             onAdd(topic)
             dismiss()
         } catch {
+            if let language = (error as? DirectoryManagedValidation.Failure)?.language {
+                editingLanguage = language
+            }
             errorMessage = error.localizedDescription
         }
     }
@@ -72,12 +76,14 @@ struct DirectoryAddGroupView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var title = DirectoryText(ukrainian: "", german: "")
     @State private var showError = false
+    @State private var groupIssue = ""
     let onAdd: (DirectoryText) -> Void
 
     var body: some View {
         NavigationStack {
             Form {
-                DirectoryBilingualFields(title: DirectoryEditorText.value("Назва підкатегорії", "Name des Unterbereichs"),
+                DirectoryTranslationControls(inputs: [.init(.groupTitle, $title)])
+                DirectoryBilingualFields(field: .groupTitle,
                                          text: $title)
             }
             .directoryEditorChrome()
@@ -88,23 +94,22 @@ struct DirectoryAddGroupView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(DirectoryEditorText.value("Додати", "Hinzufügen")) {
-                        guard !title.ukrainian.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                              !title.german.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                              title.ukrainian.utf16.count <= 100,
-                              title.german.utf16.count <= 100 else {
-                            showError = true
-                            return
+                        for language in [AppLanguage.ukrainian, .german] {
+                            if let issue = DirectoryEditorField.groupTitle.issue(for: title.value(for: language), language: language) {
+                                groupIssue = issue
+                                showError = true
+                                return
+                            }
                         }
                         onAdd(title)
                         dismiss()
                     }
                 }
             }
-            .alert(DirectoryEditorText.value("Вкажіть назву обома мовами (до 100 символів)",
-                                             "Namen in beiden Sprachen eingeben (bis 100 Zeichen)"),
-                   isPresented: $showError) {
+            .environment(\.directoryShowsValidation, showError)
+            .alert(DirectoryEditorText.value("Перевірте підкатегорію", "Unterbereich prüfen"), isPresented: $showError) {
                 Button(DirectoryEditorText.value("Гаразд", "OK"), role: .cancel) { }
-            }
+            } message: { Text(groupIssue) }
         }
     }
 }

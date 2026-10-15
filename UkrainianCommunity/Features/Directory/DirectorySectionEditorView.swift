@@ -12,10 +12,11 @@ struct DirectorySectionEditorView: View {
 
     var body: some View {
         Form {
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Заголовок", "Überschrift"),
+            DirectoryTranslationControls(inputs: [.init(.sectionTitle, $section.title), .init(.sectionBody, $section.body)])
+            DirectoryBilingualFields(field: .sectionTitle,
                                      text: $section.title)
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Інформація", "Information"),
-                                     text: $section.body, multiline: true)
+            DirectoryBilingualFields(field: .sectionBody,
+                                     text: $section.body, multiline: true, required: !section.isHidden)
             Section(DirectoryEditorText.value("Показ", "Anzeige")) {
                 NavigationLink {
                     DirectorySymbolPicker(selection: $section.symbol)
@@ -70,12 +71,16 @@ struct DirectorySectionEditorView: View {
                         TextField(DirectoryEditorText.value("Номер", "Nummer"),
                                   text: $section.contacts[index].number)
                             .keyboardType(.phonePad)
+                        DirectoryTranslationControls(inputs: [
+                            .init(.contactTitle, $section.contacts[index].title),
+                            .init(.contactDetail, $section.contacts[index].detail)
+                        ])
                         DirectoryBilingualFields(
-                            title: DirectoryEditorText.value("Назва", "Name"),
+                            field: .contactTitle,
                             text: $section.contacts[index].title
                         )
                         DirectoryBilingualFields(
-                            title: DirectoryEditorText.value("Пояснення", "Hinweis"),
+                            field: .contactDetail,
                             text: $section.contacts[index].detail
                         )
                     }

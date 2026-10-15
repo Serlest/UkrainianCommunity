@@ -21,32 +21,69 @@ struct DirectoryEditingLanguagePicker: View {
 }
 
 struct DirectoryLocalizedEditorField: View {
-    let title: String
+    let field: DirectoryEditorField
     @Binding var text: DirectoryText
     let language: AppLanguage
     var multiline = false
+    var required = true
 
     var body: some View {
-        Section("\(title) · \(language == .ukrainian ? "Українська" : "Deutsch")") {
-            if multiline {
-                TextEditor(text: value)
-                    .frame(minHeight: 100)
-                    .accessibilityLabel(title)
-            } else {
-                TextField(title, text: value)
-            }
+        Section("\(field.title) · \(language.title)") {
+            DirectoryEditorTextInput(field: field, text: $text.localized(language),
+                                     language: language, multiline: multiline, required: required)
         }
     }
+}
 
-    private var value: Binding<String> {
-        Binding(
-            get: { text.value(for: language) },
-            set: { newValue in
-                text = .init(
-                    ukrainian: language == .ukrainian ? newValue : text.ukrainian,
-                    german: language == .german ? newValue : text.german
-                )
+private struct DirectoryValidationEnvironmentKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var directoryShowsValidation: Bool {
+        get { self[DirectoryValidationEnvironmentKey.self] }
+        set { self[DirectoryValidationEnvironmentKey.self] = newValue }
+    }
+}
+
+struct DirectoryEditorTextInput: View {
+    @Environment(\.directoryShowsValidation) private var showsValidation
+    let field: DirectoryEditorField
+    @Binding var text: String
+    let language: AppLanguage
+    var multiline = false
+    var required = true
+
+    private var issue: String? {
+        guard showsValidation || !text.isEmpty else { return nil }
+        return field.issue(for: text, language: language, required: required)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Group {
+                if multiline {
+                    TextEditor(text: $text).frame(minHeight: 100)
+                } else {
+                    TextField(field.title, text: $text)
+                }
             }
-        )
+            .font(.body)
+            .accessibilityLabel(field.title)
+            .accessibilityIdentifier("directory.field.\(field.rawValue).\(language.rawValue)")
+            HStack {
+                Text(required ? DirectoryEditorText.value("Обов’язково", "Pflichtfeld")
+                              : DirectoryEditorText.value("Необов’язково", "Optional"))
+                Spacer()
+                Text("\(text.utf16.count)/\(field.limit)")
+            }
+            .font(.caption)
+            .foregroundStyle(issue == nil ? AppTheme.textSecondary : AppTheme.accentDestructiveForeground)
+            if let issue {
+                Text(issue).font(.caption).foregroundStyle(AppTheme.accentDestructiveForeground)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("directory.field.\(field.rawValue).\(language.rawValue).error")
+            }
+        }
     }
 }

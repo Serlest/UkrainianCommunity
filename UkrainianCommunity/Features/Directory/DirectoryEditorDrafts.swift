@@ -16,17 +16,6 @@ enum DirectoryEditorDrafts {
         )
     }
 
-    static func firstMissingLanguage(in texts: [DirectoryText]) -> AppLanguage? {
-        for language in [AppLanguage.ukrainian, .german] {
-            if texts.contains(where: {
-                $0.value(for: language).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            }) {
-                return language
-            }
-        }
-        return nil
-    }
-
     static func topic(groupID: String, order: Int) -> DirectoryManagedTopic {
         .init(
             id: "topic-" + UUID().uuidString.lowercased(),

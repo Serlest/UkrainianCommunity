@@ -132,7 +132,7 @@ private struct ContentTranslationReview: View {
     }
     private var valid: Bool {
         draft.indices.enumerated().allSatisfy { offset, index in
-            !draft.translations[offset].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && draft.translations[offset].count <= fields[index].limit
+            !draft.translations[offset].trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && draft.translations[offset].utf16.count <= fields[index].limit
         }
     }
     var body: some View {
@@ -144,7 +144,7 @@ private struct ContentTranslationReview: View {
                         AppEditorSectionTitle(title: fields[index].title)
                         Text(draft.sources[index]).font(.subheadline).foregroundStyle(AppTheme.textSecondary)
                         EditorTextArea(targetLanguage.title, text: $draft.translations[offset],
-                                       counterText: "\(draft.translations[offset].count)/\(fields[index].limit)", minHeight: 100)
+                                       counterText: "\(draft.translations[offset].utf16.count)/\(fields[index].limit)", minHeight: 100)
                             .accessibilityIdentifier("translation.result.\(fields[index].id)")
                     }
                 }

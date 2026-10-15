@@ -27,6 +27,7 @@ struct DirectoryCategoryFormView: View {
 
     var body: some View {
         Form {
+            DirectoryTranslationControls(inputs: [.init(.categoryTitle, $draft.title), .init(.categorySummary, $draft.summary)])
             Section {
                 Label(hasUnsavedChanges
                       ? DirectoryEditorText.value("Зміни ще не опубліковані", "Änderungen noch nicht veröffentlicht")
@@ -55,9 +56,9 @@ struct DirectoryCategoryFormView: View {
                         "Ein integrierter Bereich kann entfernt und später wiederhergestellt werden. Veröffentlichen Sie die Änderung."
                      ))
             }
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Назва категорії", "Name des Bereichs"),
+            DirectoryBilingualFields(field: .categoryTitle,
                                      text: $draft.title)
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Короткий опис", "Kurzbeschreibung"),
+            DirectoryBilingualFields(field: .categorySummary,
                                      text: $draft.summary)
             Section {
                 Picker(DirectoryEditorText.value("Розділ довідника", "Ratgeber-Rubrik"),
@@ -218,7 +219,8 @@ private struct DirectoryGroupEditorView: View {
 
     var body: some View {
         Form {
-            DirectoryBilingualFields(title: DirectoryEditorText.value("Назва підкатегорії", "Name des Unterbereichs"),
+            DirectoryTranslationControls(inputs: [.init(.groupTitle, $group.title)])
+            DirectoryBilingualFields(field: .groupTitle,
                                      text: $group.title)
             Section {
                 Toggle(DirectoryEditorText.value("Тимчасово приховати підкатегорію", "Unterbereich vorübergehend ausblenden"),

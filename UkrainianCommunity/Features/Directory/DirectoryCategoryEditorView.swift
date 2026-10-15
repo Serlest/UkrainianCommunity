@@ -16,6 +16,7 @@ struct DirectoryCategoryEditorView: View {
     @State private var expectedRevision: Int = 0
     @State private var isSaving = false
     @State private var errorMessage: String?
+    @State private var showsValidation = false
     @State private var confirmation: Confirmation?
     @State private var editingLanguage: AppLanguage = .ukrainian
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
@@ -46,6 +47,7 @@ struct DirectoryCategoryEditorView: View {
                 )
             }
         }
+        .environment(\.directoryShowsValidation, showsValidation)
         .navigationBarBackButtonHidden()
         .navigationTitle(focusTopicID.flatMap { id in
             draft.topics.first { $0.id == id }?.title.value(for: language)
@@ -123,24 +125,16 @@ struct DirectoryCategoryEditorView: View {
 
     private func save() async {
         guard let actorID = authState.user?.id else { return }
-        if isNewCategory, let first = draft.topics.first,
-           let section = first.sections.first,
-           let missing = DirectoryEditorDrafts.firstMissingLanguage(in: [
-               draft.title, draft.summary, first.title, first.summary, section.title, section.body
-           ]) {
-            editingLanguage = missing
-            errorMessage = DirectoryEditorText.value(
-                "Заповніть усі поля мовою, що відкрита зараз, а потім перевірте джерело.",
-                "Füllen Sie alle Felder in der jetzt geöffneten Sprache aus und prüfen Sie danach die Quelle."
-            )
-            return
-        }
+        showsValidation = true
         isSaving = true
         defer { isSaving = false }
         do {
             try await contentStore.save(draft, expectedRevision: expectedRevision, actorID: actorID)
             dismiss()
         } catch {
+            if let language = (error as? DirectoryManagedValidation.Failure)?.language {
+                editingLanguage = language
+            }
             errorMessage = message(for: error)
         }
     }

@@ -5,6 +5,7 @@ struct DirectoryAddSectionView: View {
     @State private var section: DirectoryManagedSection
     @State private var editingLanguage: AppLanguage = .ukrainian
     @State private var errorMessage: String?
+    @State private var showsValidation = false
     let onAdd: (DirectoryManagedSection) -> Void
 
     init(order: Int, onAdd: @escaping (DirectoryManagedSection) -> Void) {
@@ -18,9 +19,10 @@ struct DirectoryAddSectionView: View {
         NavigationStack {
             Form {
                 DirectoryEditingLanguagePicker(language: $editingLanguage)
-                DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Заголовок", "Überschrift"),
+                DirectoryTranslationSection(inputs: [.init(.sectionTitle, $section.title), .init(.sectionBody, $section.body)], language: editingLanguage)
+                DirectoryLocalizedEditorField(field: .sectionTitle,
                                               text: $section.title, language: editingLanguage)
-                DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Інформація", "Information"),
+                DirectoryLocalizedEditorField(field: .sectionBody,
                                               text: $section.body, language: editingLanguage, multiline: true)
                 Section(DirectoryEditorText.value("Офіційне джерело", "Amtliche Quelle")) {
                     DirectorySourceFields(source: Binding(
@@ -29,6 +31,7 @@ struct DirectoryAddSectionView: View {
                     ))
                 }
             }
+            .environment(\.directoryShowsValidation, showsValidation)
             .directoryEditorChrome()
             .navigationTitle(DirectoryEditorText.value("Новий блок", "Neuer Abschnitt"))
             .toolbar {
@@ -50,13 +53,7 @@ struct DirectoryAddSectionView: View {
     }
 
     private func add() {
-        if let missing = DirectoryEditorDrafts.firstMissingLanguage(in: [section.title, section.body]) {
-            editingLanguage = missing
-            errorMessage = DirectoryEditorText.value(
-                "Заповніть поля вибраною мовою.", "Füllen Sie die Felder in der gewählten Sprache aus."
-            )
-            return
-        }
+        showsValidation = true
         let sampleTopic = DirectoryManagedTopic(
             id: "draft-topic", groupID: "general", order: 0, isHidden: false,
             title: .init(ukrainian: "Стаття", german: "Beitrag"),
@@ -77,6 +74,9 @@ struct DirectoryAddSectionView: View {
             onAdd(section)
             dismiss()
         } catch {
+            if let language = (error as? DirectoryManagedValidation.Failure)?.language {
+                editingLanguage = language
+            }
             errorMessage = error.localizedDescription
         }
     }

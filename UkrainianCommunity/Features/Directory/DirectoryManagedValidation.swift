@@ -7,10 +7,17 @@ enum DirectoryManagedValidation {
         case tooLarge
         case conflict
         case permissionDenied
+        case field(String, AppLanguage?)
+
+        var language: AppLanguage? {
+            if case let .field(_, language) = self { return language }
+            return nil
+        }
 
         var errorDescription: String? {
             let ukrainian = AppLanguage.stored == .ukrainian
             switch self {
+            case let .field(message, _): return message
             case .invalidContent:
                 return ukrainian ? "Заповніть назви обома мовами, розділи та статті."
                     : "Füllen Sie Namen, Bereiche und Beiträge in beiden Sprachen aus."
@@ -31,25 +38,32 @@ enum DirectoryManagedValidation {
     }
 
     static func validate(_ category: DirectoryManagedCategory) throws -> Data {
-        guard validID(category.id), validText(category.title, max: 100),
-              validText(category.summary, max: 500),
+        try validateText(category.title, field: .categoryTitle)
+        try validateText(category.summary, field: .categorySummary)
+        for group in category.groups { try validateText(group.title, field: .groupTitle) }
+        guard validID(category.id),
               !category.symbol.isEmpty, category.symbol.utf16.count <= 80,
               category.groups.count <= 30, category.topics.count <= 100,
               unique(category.groups.map(\.id)), unique(category.topics.map(\.id)),
-              category.groups.allSatisfy({ validID($0.id) && validText($0.title, max: 100) })
+              category.groups.allSatisfy({ validID($0.id) })
         else { throw Failure.invalidContent }
 
         let groupIDs = Set(category.groups.map(\.id))
         let visibleGroupIDs = Set(category.groups.filter { !$0.isHidden }.map(\.id))
         for topic in category.topics {
+            try validateText(topic.title, field: .articleTitle)
+            try validateText(topic.summary, field: .articleSummary, required: !topic.isHidden)
+            for source in topic.sources { try validateSource(source) }
+            if !unique(topic.sources.map(\.url)) {
+                throw Failure.field(DirectoryEditorText.value(
+                    "У статті «\(topic.title.value(for: AppLanguage.stored))» одне джерело додано двічі. Приберіть повтор.",
+                    "Im Beitrag „\(topic.title.value(for: AppLanguage.stored))“ ist eine Quelle doppelt. Entfernen Sie das Duplikat."
+                ), nil)
+            }
             guard validID(topic.id), groupIDs.contains(topic.groupID),
-                  validText(topic.title, max: 140), topic.summary.ukrainian.utf16.count <= 800,
-                  topic.summary.german.utf16.count <= 800,
                   topic.sections.count <= 80, topic.sources.count <= 80,
                   topic.regionalSections.count <= 9,
-                  unique(topic.sections.map(\.id)),
-                  unique(topic.sources.map(\.url)),
-                  topic.sources.allSatisfy({ validSource($0) })
+                  unique(topic.sections.map(\.id))
             else { throw Failure.invalidContent }
             for (state, sections) in topic.regionalSections {
                 guard AustrianFederalState(rawValue: state) != nil,
@@ -78,25 +92,27 @@ enum DirectoryManagedValidation {
 
     private static func validateSection(_ section: DirectoryManagedSection,
                                         inheritedSources: [DirectoryManagedSource]) throws {
-        guard validID(section.id), validText(section.title, max: 160),
-              section.body.ukrainian.utf16.count <= 6000,
-              section.body.german.utf16.count <= 6000,
+        try validateText(section.title, field: .sectionTitle)
+        try validateText(section.body, field: .sectionBody, required: !section.isHidden)
+        for contact in section.contacts {
+            try validateText(contact.title, field: .contactTitle)
+            try validateText(contact.detail, field: .contactDetail)
+        }
+        guard validID(section.id),
               !section.symbol.isEmpty, section.symbol.utf16.count <= 80,
               section.phoneNumber.map({ $0.utf16.count <= 40 }) ?? true,
               section.contacts.count <= 12,
               section.contacts.allSatisfy({
                   !$0.number.isEmpty && $0.number.utf16.count <= 40 &&
-                  $0.number.range(of: "^[0-9 +()/-]+$", options: .regularExpression) != nil &&
-                  validText($0.title, max: 100) &&
-                  validText($0.detail, max: 200)
+                  $0.number.range(of: "^[0-9 +()/-]+$", options: .regularExpression) != nil
               })
         else { throw Failure.invalidContent }
-        if let source = section.source, !validSource(source) { throw Failure.invalidSource }
-        if !section.isHidden &&
-            (section.body.ukrainian.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-             section.body.german.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-             (section.source == nil && inheritedSources.isEmpty)) {
-            throw Failure.invalidSource
+        if let source = section.source { try validateSource(source) }
+        if !section.isHidden && section.source == nil && inheritedSources.isEmpty {
+            throw Failure.field(DirectoryEditorText.value(
+                "Додайте офіційне HTTPS-джерело до блока «\(section.title.value(for: AppLanguage.stored))» або до статті.",
+                "Ergänzen Sie für „\(section.title.value(for: AppLanguage.stored))“ eine offizielle HTTPS-Quelle im Abschnitt oder Beitrag."
+            ), nil)
         }
     }
 
@@ -104,21 +120,22 @@ enum DirectoryManagedValidation {
         value.range(of: "^[a-z0-9][a-z0-9-]{0,63}$", options: .regularExpression) != nil
     }
 
-    private static func validText(_ text: DirectoryText, max: Int) -> Bool {
-        let values = [text.ukrainian, text.german]
-        return values.allSatisfy {
-            let trimmed = $0.trimmingCharacters(in: .whitespacesAndNewlines)
-            return !trimmed.isEmpty && $0.utf16.count <= max
+    private static func validateText(_ text: DirectoryText, field: DirectoryEditorField,
+                                     required: Bool = true) throws {
+        for language in [AppLanguage.ukrainian, .german] {
+            if let issue = field.issue(for: text.value(for: language), language: language, required: required) {
+                throw Failure.field(issue, language)
+            }
         }
     }
 
-    private static func validSource(_ source: DirectoryManagedSource) -> Bool {
-        guard !source.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              source.name.utf16.count <= 160, source.url.utf16.count <= 1024,
-              let url = URL(string: source.url),
-              url.scheme == "https", url.host != nil,
-              url.user == nil, url.password == nil else { return false }
-        return true
+    private static func validateSource(_ source: DirectoryManagedSource) throws {
+        if let issue = DirectorySourceValidation.nameIssue(source.name)
+            ?? DirectorySourceValidation.urlIssue(source.url) {
+            throw Failure.field(DirectoryEditorText.value(
+                "Джерело «\(source.name)»: \(issue)", "Quelle „\(source.name)“: \(issue)"
+            ), nil)
+        }
     }
 
     private static func unique(_ ids: [String]) -> Bool {

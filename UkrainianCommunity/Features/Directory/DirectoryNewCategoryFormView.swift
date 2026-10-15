@@ -9,6 +9,7 @@ struct DirectoryNewCategoryFormView: View {
     var body: some View {
         Form {
             DirectoryEditingLanguagePicker(language: $editingLanguage)
+            DirectoryTranslationSection(inputs: [.init(.categoryTitle, $draft.title), .init(.categorySummary, $draft.summary)] + DirectoryTranslationInput.article($draft.topics[0], firstSection: true), language: editingLanguage)
             Section {
                 LabeledContent(DirectoryEditorText.value("Розділ довідника", "Ratgeber-Rubrik"),
                                value: placementTitle)
@@ -25,9 +26,9 @@ struct DirectoryNewCategoryFormView: View {
                 ))
             }
 
-            DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Назва категорії", "Name des Bereichs"),
+            DirectoryLocalizedEditorField(field: .categoryTitle,
                                           text: $draft.title, language: editingLanguage)
-            DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Короткий опис категорії", "Kurzbeschreibung des Bereichs"),
+            DirectoryLocalizedEditorField(field: .categorySummary,
                                           text: $draft.summary, language: editingLanguage)
 
             DirectoryFirstArticleFields(topic: $draft.topics[0], language: editingLanguage)
@@ -49,13 +50,13 @@ struct DirectoryFirstArticleFields: View {
     let language: AppLanguage
 
     var body: some View {
-        DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Назва статті", "Beitragstitel"),
+        DirectoryLocalizedEditorField(field: .articleTitle,
                                       text: $topic.title, language: language)
-        DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Короткий вступ", "Kurze Einleitung"),
+        DirectoryLocalizedEditorField(field: .articleSummary,
                                       text: $topic.summary, language: language, multiline: true)
-        DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Заголовок інформації", "Überschrift der Information"),
+        DirectoryLocalizedEditorField(field: .sectionTitle,
                                       text: $topic.sections[0].title, language: language)
-        DirectoryLocalizedEditorField(title: DirectoryEditorText.value("Інформація", "Information"),
+        DirectoryLocalizedEditorField(field: .sectionBody,
                                       text: $topic.sections[0].body, language: language, multiline: true)
         Section {
             DirectorySourceFields(source: $topic.sources[0])
