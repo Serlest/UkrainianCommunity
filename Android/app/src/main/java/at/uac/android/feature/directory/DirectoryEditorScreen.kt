@@ -25,6 +25,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import at.uac.android.design.UacCard
@@ -287,7 +288,7 @@ fun DirectoryEditorScreen(
                     Text(tr(language, "Quellen des Beitrags", "Джерела статті"), style = MaterialTheme.typography.titleMedium)
                     val sources = topic.getJSONArray("sources")
                     (0 until sources.length()).forEach { i ->
-                        SourceEditor(language, sources.getJSONObject(i)) { key, value ->
+                        SourceEditor(language, sources.getJSONObject(i), "directory-editor-topic-source-$i") { key, value ->
                             mutate { root -> root.getJSONArray("topics").getJSONObject(topicIndex)
                                 .getJSONArray("sources").getJSONObject(i).put(key, value) }
                         }
@@ -420,17 +421,19 @@ fun DirectoryEditorScreen(
         item("actions") {
             UacCard {
                 Button({
-                    val issue = DirectoryDraftValidation.firstIssue(draft)
+                    val submission = DirectoryDraftValidation.normalizedPayload(draft)
+                    val issue = DirectoryDraftValidation.firstIssue(submission)
                     if (issue != null) {
-                        error = DirectoryDraftValidation.firstIssueDescription(draft, language)
+                        error = DirectoryDraftValidation.firstIssueDescription(submission, language)
                     } else {
                         busy = true
                         scope.launch {
                             error = runCatching {
-                                access.publish(draftId, draft, expectedRevision)
+                                access.publish(draftId, submission, expectedRevision)
                             }.fold({ revision ->
                                 expectedRevision = revision
-                                baseline = draft
+                                draft = submission
+                                baseline = submission
                                 onOpen("directory/manage")
                                 null
                             }, { tr(language, "Veröffentlichen fehlgeschlagen. Revision oder Berechtigung prüfen.",
@@ -540,9 +543,11 @@ private fun DirectoryTranslationControls(
 @Composable
 private fun EditorText(language: String, label: String, value: String,
                        multiline: Boolean = false, tag: String? = null,
+                       onBlur: (() -> Unit)? = null,
                        onChange: (String) -> Unit) {
     OutlinedTextField(value, onChange, label = { Text(label) },
-        modifier = Modifier.fillMaxWidth().then(if (tag == null) Modifier else Modifier.testTag(tag)),
+        modifier = Modifier.fillMaxWidth().then(if (tag == null) Modifier else Modifier.testTag(tag))
+            .then(if (onBlur == null) Modifier else Modifier.onFocusChanged { if (!it.isFocused) onBlur() }),
         singleLine = !multiline, minLines = if (multiline) 3 else 1)
 }
 
@@ -553,7 +558,13 @@ private fun SourceEditor(language: String, source: JSONObject, tag: String? = nu
         tag = tag?.let { "$it-name" }) {
         onChange("name", it)
     }
-    EditorText(language, "HTTPS URL", source.optString("url"), tag = tag?.let { "$it-url" }) {
+    EditorText(language, tr(language, "Webadresse · z. B. serlest.com", "Вебадреса · напр. serlest.com"),
+        source.optString("url"), tag = tag?.let { "$it-url" },
+        onBlur = {
+            val raw = source.optString("url")
+            val canonical = DirectoryDraftValidation.canonicalSourceUrl(raw)
+            if (canonical != null && canonical != raw) onChange("url", canonical)
+        }) {
         onChange("url", it)
     }
 }

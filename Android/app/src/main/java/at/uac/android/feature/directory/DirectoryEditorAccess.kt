@@ -25,11 +25,13 @@ class FirebaseDirectoryEditorAccess(
 
     override suspend fun publish(categoryId: String, payload: String, expectedRevision: Int): Int =
         auth.withReadySession(uid, sessionRevision) {
+            val normalized = DirectoryDraftValidation.normalizedPayload(payload)
             require(DirectoryCatalog.validId(categoryId) && expectedRevision >= 0)
-            require(DirectoryCatalog.parseCategory(org.json.JSONObject(payload)).id == categoryId)
+            require(DirectoryDraftValidation.firstIssue(normalized) == null)
+            require(DirectoryCatalog.parseCategory(org.json.JSONObject(normalized)).id == categoryId)
             val result = AppBackend.callables(appContext).getHttpsCallable("saveDirectoryCategory")
                 .withTimeout(30, TimeUnit.SECONDS)
-                .call(mapOf("categoryId" to categoryId, "payload" to payload,
+                .call(mapOf("categoryId" to categoryId, "payload" to normalized,
                     "expectedRevision" to expectedRevision)).await().data as? Map<*, *>
                 ?: error("Invalid directory publication response")
             require(result["categoryId"] == categoryId)

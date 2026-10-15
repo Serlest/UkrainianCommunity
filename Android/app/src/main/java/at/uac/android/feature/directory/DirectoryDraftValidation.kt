@@ -1,10 +1,61 @@
 package at.uac.android.feature.directory
 
+import at.uac.android.feature.browse.safeHttps
+import java.net.URI
 import org.json.JSONArray
 import org.json.JSONObject
 
 /** Fast client feedback; the callable remains the authoritative validator and rights gate. */
 object DirectoryDraftValidation {
+    fun canonicalSourceUrl(value: String): String? {
+        val input = value.trim()
+        if (input.isEmpty()) return null
+        val https = when {
+            input.startsWith("http://", ignoreCase = true) -> {
+                val uri = runCatching { URI(input) }.getOrNull() ?: return null
+                val authority = uri.rawAuthority ?: return null
+                val upgradedAuthority = if (uri.port == 80) authority.removeSuffix(":80") else authority
+                "https://$upgradedAuthority${input.substring(7 + authority.length)}"
+            }
+            input.startsWith("https://", ignoreCase = true) -> "https://${input.substring(8)}"
+            Regex("^[A-Za-z][A-Za-z0-9+.-]*://").containsMatchIn(input) -> return null
+            else -> "https://$input"
+        }
+        return safeHttps(https)?.takeIf { it.length <= 1024 }
+    }
+
+    /** Apply the same URL conversion to every article, section and regional source before validation or upload. */
+    fun normalizedPayload(payload: String): String = runCatching {
+        val category = JSONObject(payload)
+        var changed = false
+        fun normalize(source: JSONObject?) {
+            if (source == null) return
+            val raw = source.optString("url")
+            val canonical = canonicalSourceUrl(raw) ?: return
+            if (canonical != raw) {
+                source.put("url", canonical)
+                changed = true
+            }
+        }
+        fun sections(values: JSONArray?) {
+            if (values == null) return
+            for (index in 0 until values.length()) normalize(values.optJSONObject(index)?.optJSONObject("source"))
+        }
+        category.optJSONArray("topics")?.let { topics ->
+            for (index in 0 until topics.length()) {
+                val topic = topics.optJSONObject(index) ?: continue
+                topic.optJSONArray("sources")?.let { sources ->
+                    for (sourceIndex in 0 until sources.length()) normalize(sources.optJSONObject(sourceIndex))
+                }
+                sections(topic.optJSONArray("sections"))
+                topic.optJSONObject("regionalSections")?.let { regions ->
+                    for (region in regions.keys()) sections(regions.optJSONArray(region))
+                }
+            }
+        }
+        if (changed) category.toString() else payload
+    }.getOrDefault(payload)
+
     fun firstIssueDescription(payload: String, language: String): String? {
         val issue = firstIssue(payload) ?: return null
         val german = language != "uk"
@@ -42,8 +93,8 @@ object DirectoryDraftValidation {
                 else "Оберіть символ для розділу."
             issue.startsWith("sources.duplicate:") -> if (german) "Eine Quelle wurde im Beitrag doppelt hinzugefügt. Entfernen Sie das Duplikat."
                 else "Одне джерело додано до статті двічі. Приберіть повтор."
-            issue.startsWith("sources:") -> if (german) "Prüfen Sie Quellenname und vollständige HTTPS-Adresse im Beitrag."
-                else "Перевірте назву джерела та повну HTTPS-адресу в статті."
+            issue.startsWith("sources:") -> if (german) "Prüfen Sie Quellenname und Webadresse, z. B. serlest.com."
+                else "Перевірте назву джерела та вебадресу, наприклад serlest.com."
             issue.startsWith("sections:") || issue.startsWith("region:") ->
                 if (german) "Prüfen Sie Titel und Text in beiden Sprachen und ergänzen Sie eine offizielle HTTPS-Quelle im Abschnitt oder Beitrag."
                 else "Перевірте назву й текст обома мовами та додайте офіційне HTTPS-джерело до блока або статті."
@@ -70,8 +121,9 @@ object DirectoryDraftValidation {
     }
 
     fun firstIssue(payload: String): String? = runCatching {
-        val category = JSONObject(payload)
-        if (payload.toByteArray(Charsets.UTF_8).size > 800_000) return "category.size"
+        val normalized = normalizedPayload(payload)
+        val category = JSONObject(normalized)
+        if (normalized.toByteArray(Charsets.UTF_8).size > 800_000) return "category.size"
         if (!DirectoryCatalog.validId(category.getString("id"))) return "category.id"
         if (category.getString("placement") !in setOf("start", "life", "support")) return "category.placement"
         if (category.optString("symbol").isBlank() || category.optString("symbol").length > 80)

@@ -15,6 +15,8 @@ import at.uac.android.feature.directory.DirectoryCatalog
 import at.uac.android.feature.directory.DirectoryDraftValidation
 import at.uac.android.feature.directory.DirectoryEditorAccess
 import at.uac.android.feature.directory.DirectoryEditorScreen
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -25,6 +27,36 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class DirectoryEditorUiTest {
     @get:Rule val compose = createComposeRule()
+
+    @Test
+    fun normalizationCoversArticleSectionAndRegionalSourcesBeforeValidation() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val category = DirectoryCatalog.bundled(context).first { it.id == "safety" }
+        val root = JSONObject(category.rawJson)
+        val topic = root.getJSONArray("topics").getJSONObject(0)
+        fun source(url: String) = JSONObject().put("name", "Example").put("url", url)
+        topic.put("sources", JSONArray().put(source("serlest.com/path?x=1")))
+        val section = topic.getJSONArray("sections").getJSONObject(0)
+        section.put("source", source("http://serlest.com/section?x=1"))
+        val regional = JSONObject(section.toString()).put("id", "regional-source-test")
+            .put("source", source("serlest.com/region?next=https://example.com/a"))
+        topic.getJSONObject("regionalSections").put("wien", JSONArray().put(regional))
+
+        val normalized = JSONObject(DirectoryDraftValidation.normalizedPayload(root.toString()))
+        val normalizedTopic = normalized.getJSONArray("topics").getJSONObject(0)
+        assertEquals("https://serlest.com/path?x=1",
+            normalizedTopic.getJSONArray("sources").getJSONObject(0).getString("url"))
+        assertEquals("https://serlest.com/section?x=1",
+            normalizedTopic.getJSONArray("sections").getJSONObject(0).getJSONObject("source").getString("url"))
+        assertEquals("https://serlest.com/region?next=https://example.com/a",
+            normalizedTopic.getJSONObject("regionalSections").getJSONArray("wien").getJSONObject(0)
+                .getJSONObject("source").getString("url"))
+        assertNull(DirectoryDraftValidation.firstIssue(normalized.toString()))
+
+        topic.getJSONArray("sources").put(source("https://serlest.com/path?x=1"))
+        assertEquals("sources.duplicate:${topic.getString("id")}",
+            DirectoryDraftValidation.firstIssue(root.toString()))
+    }
 
     @Test
     fun ownerDraftPublishesBilingualChangeWithExpectedRevision() {
@@ -119,7 +151,11 @@ class DirectoryEditorUiTest {
         fill("directory-editor-section-body-uk", "Перевірений текст статті.")
         fill("directory-editor-section-body-de", "Geprüfter Beitragstext.")
         fill("directory-editor-section-source-name", "Offizielle Stelle")
-        fill("directory-editor-section-source-url", "https://www.oesterreich.gv.at/")
+        fill("directory-editor-section-source-url", "http://serlest.com/path?x=1")
+        fill("directory-editor-section-source-name", "Offizielle Stelle")
+        compose.onNodeWithTag("directory-editor-section-source-url")
+            .assertTextContains("https://serlest.com/path?x=1", substring = true)
+        fill("directory-editor-section-source-url", "serlest.com/path?x=1")
         open("directory-publish")
         compose.waitUntil(10_000) { submitted != null }
         val result = submitted!!
@@ -127,6 +163,9 @@ class DirectoryEditorUiTest {
         assertEquals(0, result.third)
         assertNull(DirectoryDraftValidation.firstIssue(result.second))
         assertEquals(result.first, org.json.JSONObject(result.second).getString("id"))
+        assertEquals("https://serlest.com/path?x=1",
+            org.json.JSONObject(result.second).getJSONArray("topics").getJSONObject(0)
+                .getJSONArray("sections").getJSONObject(0).getJSONObject("source").getString("url"))
         compose.waitUntil(10_000) { destination == "directory/manage" }
     }
 }
