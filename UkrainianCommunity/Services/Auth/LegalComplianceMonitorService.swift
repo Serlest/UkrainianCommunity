@@ -12,6 +12,7 @@ final class LegalComplianceMonitorService: ObservableObject {
     private let legalDocumentRepository: LegalDocumentRepository
     private let userRepository: UserRepository
     private let documentFetchTimeout: Duration
+    private let foregroundVerificationInterval: TimeInterval
     private var evaluatedKey: String?
     private var acceptingUserID: String?
     private var locallyAcceptedUserID: String?
@@ -22,7 +23,6 @@ final class LegalComplianceMonitorService: ObservableObject {
     private var observedDocumentVersions: [LegalDocumentType: String] = [:]
     private var versionListenerFailure: StartupVerificationFailure?
     private var lastVerifiedAt: Date?
-    private static let foregroundVerificationInterval: TimeInterval = 15 * 60
     private var versionListenerGeneration: UInt = 0
     private let activeVersionListeners = RealtimeListenerBag()
     private var configurationGeneration: UInt = 0
@@ -31,11 +31,13 @@ final class LegalComplianceMonitorService: ObservableObject {
     init(
         legalDocumentRepository: LegalDocumentRepository,
         userRepository: UserRepository,
-        documentFetchTimeout: Duration = .seconds(15)
+        documentFetchTimeout: Duration = .seconds(15),
+        foregroundVerificationInterval: TimeInterval? = nil
     ) {
         self.legalDocumentRepository = legalDocumentRepository
         self.userRepository = userRepository
         self.documentFetchTimeout = documentFetchTimeout
+        self.foregroundVerificationInterval = foregroundVerificationInterval ?? 15 * 60
     }
 
     func configure(user: AppUser?) async {
@@ -178,7 +180,7 @@ final class LegalComplianceMonitorService: ObservableObject {
         guard let user else { return }
         if verifiedKey != nil, versionListenerFailure == nil,
            let lastVerifiedAt,
-           Date().timeIntervalSince(lastVerifiedAt) < Self.foregroundVerificationInterval {
+           Date().timeIntervalSince(lastVerifiedAt) < foregroundVerificationInterval {
             return
         }
         if verificationFailure != nil {

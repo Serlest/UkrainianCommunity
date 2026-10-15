@@ -33,6 +33,7 @@ struct StartupAccessFailureView: View {
                                 isRetrying = false
                             }
                         }
+                        .accessibilityIdentifier("startup.retry")
                     }
                     .padding(.horizontal, AppTheme.pageHorizontal)
                     .appCenteredContent()

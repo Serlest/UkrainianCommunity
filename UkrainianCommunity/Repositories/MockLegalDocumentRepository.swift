@@ -7,6 +7,10 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
         await storage.activeDocument(type: type)
     }
 
+    func fetchAuthoritativeActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
+        try await storage.authoritativeDocument(type: type)
+    }
+
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState {
         await storage.managementState(type: type)
     }
@@ -39,6 +43,34 @@ private actor MockLegalDocumentStorage {
 
     private var activeDocuments: [LegalDocumentType: LegalDocument] = [:]
     private var drafts: [LegalDocumentType: LegalDocumentDraft] = [:]
+    private var authoritativeFetchCounts: [LegalDocumentType: Int] = [:]
+
+    func authoritativeDocument(type: LegalDocumentType) async throws -> LegalDocument {
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           let scenario = ProcessInfo.processInfo.environment["UITestLegalReverification"] {
+            let count = (authoritativeFetchCounts[type] ?? 0) + 1
+            authoritativeFetchCounts[type] = count
+            if count > 1 {
+                try await Task.sleep(for: .seconds(4))
+                if scenario == "offline", count == 2 { throw AppError.network }
+                if scenario == "updated", type == .privacy, count == 2 {
+                    let document = await activeDocument(type: type)
+                    var draft = await MainActor.run { LegalDocumentDraft.from(activeDocument: document) }
+                    draft.defaultLocale = "de"
+                    draft.canonicalLocale = "de"
+                    draft.locales = ["de": LegalDocumentLocaleContent(
+                        title: "Aktualisierte Test-Datenschutzerklärung",
+                        contentMarkdown: "# Datenschutz\n\nDies ist ein aktualisierter Rechtstext für den lokalen Navigationstest.",
+                        contentText: nil, contentHash: nil
+                    )]
+                    activeDocuments[type] = draftDocument(from: draft, status: .published)
+                }
+            }
+        }
+#endif
+        return await activeDocument(type: type)
+    }
 
     func activeDocument(type: LegalDocumentType) async -> LegalDocument {
         if let activeDocument = activeDocuments[type] {

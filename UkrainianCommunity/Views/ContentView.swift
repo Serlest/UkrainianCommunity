@@ -165,6 +165,7 @@ struct ContentView: View {
 
     private var passkeyOfferTaskKey: String {
         [
+            String(isStartupReady),
             authState.passkeyOfferForUserID ?? "",
             authState.presentedAuthFlow?.rawValue ?? "",
             String(updateAppLockIsLocked),
@@ -289,6 +290,9 @@ struct ContentView: View {
 
     private var observationContent: some View {
         lifecycleContent
+        .onChange(of: isStartupReady) { _, isReady in
+            if isReady { handlePendingRemoteNotificationRouteIfReady() }
+        }
         .onChange(of: authIdentityResetKey, initial: true) { _, newKey in
             handleAuthIdentityChange(for: newKey)
             if authState.isAuthenticated, let item = announcementFeedback { openAnnouncementFeedback(item) }
@@ -1154,7 +1158,7 @@ struct ContentView: View {
     }
 
     private func handlePendingRemoteNotificationRouteIfReady() {
-        guard !authState.appLock.isLocked else { return }
+        guard isStartupReady, !authState.appLock.isLocked else { return }
         guard ContentAuthLifecyclePolicy.canHandlePendingRoute(in: authState.sessionState),
               let route = remoteNotificationRouteCoordinator.pendingRoute else {
             return

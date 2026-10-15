@@ -11,6 +11,7 @@ struct AppStartupGate: View {
     @ObservedObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
     @State private var isShowingSplash = true
     @State private var hasEnteredBackground = false
+    @State private var mountedContentUserID: String?
 
     private let transitionDuration = 0.25
 
@@ -18,8 +19,17 @@ struct AppStartupGate: View {
         self.container = container
         _legalComplianceMonitor = StateObject(wrappedValue: LegalComplianceMonitorService(
             legalDocumentRepository: container.legalDocumentRepository,
-            userRepository: container.userRepository
+            userRepository: container.userRepository,
+            foregroundVerificationInterval: Self.foregroundVerificationInterval
         ))
+    }
+
+    private static var foregroundVerificationInterval: TimeInterval? {
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestLegalReverification"] != nil { return 0 }
+#endif
+        return nil
     }
 
     private var reduceMotionEnabled: Bool {
@@ -27,47 +37,21 @@ struct AppStartupGate: View {
     }
 
     var body: some View {
-        ZStack {
-            if authState.isRestoring || isShowingSplash {
-                SplashLoadingView()
-            } else if authState.isAuthenticated,
-                      let failure = legalComplianceMonitor.verificationFailure {
-                StartupAccessFailureView(failure: failure) {
-                    await legalComplianceMonitor.retryVerification(user: authState.user)
-                }
+        rootContent
+        .background(AppAccessShield(
+            authState: authState,
+            isAccessBlocked: authState.isAuthenticated && !isAccessReady,
+            accessContent: accessGateContent
+                .environmentObject(authState)
                 .preferredColorScheme(AppAppearance.stored.colorScheme)
                 .environment(\.locale, Locale(identifier: AppLanguage.stored.rawValue))
-            } else if authState.isAuthenticated,
-                      let requirement = legalComplianceMonitor.activeRequirement,
-                      requirement.userID == authState.user?.id {
-                LegalComplianceView(
-                    requirement: requirement,
-                    isAccepting: legalComplianceMonitor.isAccepting,
-                    errorMessage: legalComplianceMonitor.errorMessage,
-                    accept: {
-                        Task { await legalComplianceMonitor.acceptRequiredDocuments(authState: authState) }
-                    },
-                    decline: {
-                        Task { await legalComplianceMonitor.declineAndSignOut() }
-                    }
-                )
-                .preferredColorScheme(AppAppearance.stored.colorScheme)
-                .environment(\.locale, Locale(identifier: AppLanguage.stored.rawValue))
-            } else if authState.isAuthenticated
-                        && legalComplianceMonitor.verifiedKey != legalComplianceKey {
-                SplashLoadingView()
-            } else if authState.isAuthenticated || usesGuestUITestFixture {
-                ContentView(container: container)
-                    .environmentObject(authState)
-            } else {
-                AuthFlowContainerView(initialDestination: requiredAuthDestination, allowsDismissal: false)
-                    .id(requiredAuthDestination)
-                    .environmentObject(authState)
-                    .preferredColorScheme(AppAppearance.stored.colorScheme)
-                    .environment(\.locale, Locale(identifier: AppLanguage.stored.rawValue))
-            }
+        ).frame(width: 0, height: 0))
+        .onChange(of: readyContentUserID, initial: true) { _, userID in
+            if let userID { mountedContentUserID = userID }
         }
-        .background(AppLockShield(authState: authState).frame(width: 0, height: 0))
+        .onChange(of: authState.user?.id) { _, userID in
+            if userID == nil { mountedContentUserID = nil }
+        }
         .onAppear {
             evaluateStartupState()
         }
@@ -93,6 +77,65 @@ struct AppStartupGate: View {
         }
         .onOpenURL { url in
             _ = GIDSignIn.sharedInstance.handle(url)
+        }
+    }
+
+    @ViewBuilder
+    private var rootContent: some View {
+        // Once admitted, keep the same account's entire view hierarchy mounted.
+        // Temporary verification gates must not destroy its @State/navigation.
+        if authState.isAuthenticated, let userID = authState.user?.id,
+           mountedContentUserID == userID {
+            ContentView(container: container, isStartupReady: isAccessReady)
+                .id(userID)
+                .environmentObject(authState)
+        } else if usesGuestUITestFixture {
+            ContentView(container: container)
+                .environmentObject(authState)
+        } else if authState.isRestoring || isShowingSplash || authState.isAuthenticated {
+            SplashLoadingView()
+        } else {
+            AuthFlowContainerView(initialDestination: requiredAuthDestination, allowsDismissal: false)
+                .id(requiredAuthDestination)
+                .environmentObject(authState)
+                .preferredColorScheme(AppAppearance.stored.colorScheme)
+                .environment(\.locale, Locale(identifier: AppLanguage.stored.rawValue))
+        }
+    }
+
+    private var isAccessReady: Bool {
+        !authState.isRestoring && !isShowingSplash && authState.isAuthenticated
+            && legalComplianceMonitor.verificationFailure == nil
+            && legalComplianceMonitor.activeRequirement == nil
+            && legalComplianceMonitor.verifiedKey == legalComplianceKey
+    }
+
+    private var readyContentUserID: String? {
+        isAccessReady ? authState.user?.id : nil
+    }
+
+    @ViewBuilder
+    private var accessGateContent: some View {
+        if let failure = legalComplianceMonitor.verificationFailure {
+            StartupAccessFailureView(failure: failure) {
+                await legalComplianceMonitor.retryVerification(user: authState.user)
+            }
+        } else if let requirement = legalComplianceMonitor.activeRequirement,
+                  requirement.userID == authState.user?.id {
+            LegalComplianceView(
+                requirement: requirement,
+                isAccepting: legalComplianceMonitor.isAccepting,
+                errorMessage: legalComplianceMonitor.errorMessage,
+                accept: {
+                    Task { await legalComplianceMonitor.acceptRequiredDocuments(authState: authState) }
+                },
+                decline: {
+                    Task { await legalComplianceMonitor.declineAndSignOut() }
+                }
+            )
+        } else {
+            SplashLoadingView()
+                .accessibilityIdentifier("startup.access.verifying")
         }
     }
 

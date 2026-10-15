@@ -2,12 +2,17 @@ import Combine
 import SwiftUI
 import UIKit
 
-/// A scene-owned window covers sheets/full-screen presentations without removing
-/// their view hierarchy (and therefore without throwing away an editor draft).
-struct AppLockShield: UIViewRepresentable {
+/// Covers every presentation while access is being verified or the device is
+/// locked, preserving the underlying navigation, scroll positions and drafts.
+struct AppAccessShield<AccessContent: View>: UIViewRepresentable {
     let authState: AuthState
+    let isAccessBlocked: Bool
+    let accessContent: AccessContent
 
-    func makeCoordinator() -> Coordinator { Coordinator(authState: authState) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(authState: authState, isAccessBlocked: isAccessBlocked,
+                    accessContent: AnyView(accessContent))
+    }
 
     func makeUIView(context: Context) -> WindowProbe {
         let view = WindowProbe()
@@ -18,6 +23,7 @@ struct AppLockShield: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: WindowProbe, context: Context) {
+        context.coordinator.updateAccess(isBlocked: isAccessBlocked, content: AnyView(accessContent))
         context.coordinator.attach(to: uiView.window)
     }
 
@@ -34,7 +40,9 @@ struct AppLockShield: UIViewRepresentable {
         private let lock: AppLockService
         private weak var sourceWindow: UIWindow?
         private var shieldWindow: UIWindow?
-        private var host: UIHostingController<AppLockScreen>?
+        private var host: UIHostingController<AnyView>?
+        private var isAccessBlocked: Bool
+        private var accessContent: AnyView
         private var curtain: UIView?
         private var observation: AnyCancellable?
         private var observers: [NSObjectProtocol] = []
@@ -42,9 +50,17 @@ struct AppLockShield: UIViewRepresentable {
         private var previousInteraction = true
         private var previousAccessibilityHidden = false
 
-        init(authState: AuthState) {
+        init(authState: AuthState, isAccessBlocked: Bool, accessContent: AnyView) {
             self.authState = authState
+            self.isAccessBlocked = isAccessBlocked
+            self.accessContent = accessContent
             lock = authState.appLock
+        }
+
+        func updateAccess(isBlocked: Bool, content: AnyView) {
+            isAccessBlocked = isBlocked
+            accessContent = content
+            refresh()
         }
 
         func attach(to window: UIWindow?) {
@@ -86,7 +102,7 @@ struct AppLockShield: UIViewRepresentable {
 
         private func refresh() {
             guard let sourceWindow, let scene = sourceWindow.windowScene else { return }
-            let shouldShow = lock.isLocked || (!isActive && lock.needsPrivacyShield)
+            let shouldShow = isAccessBlocked || lock.isLocked || (!isActive && lock.needsPrivacyShield)
             guard shouldShow else { hideShield(); return }
 
             if shieldWindow == nil {
@@ -119,13 +135,22 @@ struct AppLockShield: UIViewRepresentable {
             }
         }
 
-        private var screen: AppLockScreen {
-            AppLockScreen(lock: lock, showsControls: isActive && lock.isLocked) { [weak self] in
-                guard let self else { return false }
-                guard await AuthService.shared.signOut() else { return false }
-                self.authState.presentAuthFlow(.login)
-                return true
-            }
+        private var screen: AnyView {
+            let showsDeviceShield = lock.isLocked || (!isActive && lock.needsPrivacyShield)
+            return AnyView(ZStack {
+                accessContent
+                    .opacity(isAccessBlocked ? 1 : 0)
+                    .allowsHitTesting(isAccessBlocked && !showsDeviceShield)
+                    .accessibilityHidden(!isAccessBlocked || showsDeviceShield)
+                if showsDeviceShield {
+                    AppLockScreen(lock: lock, showsControls: isActive && lock.isLocked) { [weak self] in
+                        guard let self else { return false }
+                        guard await AuthService.shared.signOut() else { return false }
+                        self.authState.presentAuthFlow(.login)
+                        return true
+                    }
+                }
+            })
         }
 
         private func hideShield() {

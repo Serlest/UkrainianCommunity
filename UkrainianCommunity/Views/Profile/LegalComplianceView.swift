@@ -45,6 +45,7 @@ struct LegalComplianceView: View {
                             systemImage: "checkmark.circle.fill",
                             action: accept
                         )
+                        .accessibilityIdentifier("legal.required.accept")
 
                         Button(role: .destructive) {
                             isConfirmingDecline = true
@@ -113,6 +114,7 @@ struct LegalComplianceView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("legal.required.document.\(document.type.rawValue)")
             }
         }
     }
@@ -215,6 +217,7 @@ struct LegalMarkdownDocumentView: View {
                         onReviewed()
                         dismiss()
                     }
+                    .accessibilityIdentifier("legal.document.reviewComplete")
                 }
             }
         }
