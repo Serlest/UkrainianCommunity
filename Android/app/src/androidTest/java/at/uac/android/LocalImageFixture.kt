@@ -11,7 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
 /** A unique emulator-only image, deleted and verified absent even when the UI assertion fails. */
-internal fun withLocalImageFixture(block: (String) -> Unit) {
+internal fun withLocalImageFixture(imageBytes: ByteArray? = null, block: (String) -> Unit) {
     assertTrue("Requires local build", BuildConfig.USE_LOCAL_BACKEND)
     assertEquals(
         "Explicit emulator opt-in is required",
@@ -20,9 +20,9 @@ internal fun withLocalImageFixture(block: (String) -> Unit) {
     )
     val root = "http://10.0.2.2:9198/v0/b/demo-uac-android.appspot.com/o/"
     val name = "featuredBanners%2Fimage-proof-${UUID.randomUUID()}%2Fhero.jpg"
-    val bitmap =
-        Bitmap.createBitmap(32, 18, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.BLUE) }
-    val bytes =
+    val bytes = imageBytes ?: run {
+        val bitmap = Bitmap.createBitmap(32, 18, Bitmap.Config.ARGB_8888)
+            .apply { eraseColor(Color.BLUE) }
         try {
             ByteArrayOutputStream()
                 .also { assertTrue(bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it)) }
@@ -30,6 +30,7 @@ internal fun withLocalImageFixture(block: (String) -> Unit) {
         } finally {
             bitmap.recycle()
         }
+    }
     fun request(method: String, url: String, payload: ByteArray? = null): Int {
         val connection = URI(url).toURL().openConnection() as HttpURLConnection
         try {

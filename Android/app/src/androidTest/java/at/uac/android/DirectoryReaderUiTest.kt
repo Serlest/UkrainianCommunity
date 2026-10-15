@@ -17,6 +17,9 @@ import at.uac.android.design.UacTheme
 import at.uac.android.feature.directory.DirectoryCatalog
 import at.uac.android.feature.directory.DirectoryDestination
 import at.uac.android.feature.directory.DirectoryDraftValidation
+import at.uac.android.feature.directory.directoryIcon
+import at.uac.android.design.UacIcon
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -35,6 +38,12 @@ class DirectoryReaderUiTest {
         assertEquals(145, categories.sumOf { it.topics.size })
         assertEquals(663, categories.sumOf { c -> c.topics.sumOf { it.sections.size } })
         assertTrue(categories.all { it.visible })
+        assertEquals(25, categories.map { it.symbol }.distinct().size)
+        assertEquals(25, categories.map { directoryIcon(it.symbol) }.distinct().size)
+        val managed = DirectoryCatalog.parseCategory(JSONObject(categories.first().rawJson)
+            .put("symbol", "new.future.symbol"))
+        assertEquals("new.future.symbol", managed.symbol)
+        assertEquals(UacIcon.DIRECTORY, directoryIcon(managed.symbol))
         categories.forEach { category ->
             assertEquals(category.id, null, DirectoryDraftValidation.firstIssue(category.rawJson))
             category.visibleGroups.forEach { group ->
@@ -62,6 +71,7 @@ class DirectoryReaderUiTest {
         compose.onNodeWithTag("directory-category-safety").performClick()
         compose.onNodeWithTag("directory-list")
             .performScrollToNode(androidx.compose.ui.test.hasTestTag("directory-topic-emergency"))
+        compose.onNodeWithText("Читати").assertDoesNotExist()
         compose.onNodeWithTag("directory-topic-emergency").performClick()
         compose.onNodeWithTag("directory-section-choose").assertExists()
         screenshot("directory-guide-api26.png")

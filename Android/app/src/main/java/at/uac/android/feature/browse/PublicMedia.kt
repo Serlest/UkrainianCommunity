@@ -46,6 +46,7 @@ fun PublicImage(
     externalBanner: Boolean = false,
     showUnavailableText: Boolean = true,
     onLoadStateChanged: ((Boolean) -> Unit)? = null,
+    onLoadFinished: ((Boolean) -> Unit)? = null,
 ) {
     val bucketAddress = remember(url) { PublicMediaPolicy.address(url) }
     val address =
@@ -58,9 +59,13 @@ fun PublicImage(
     var bitmap by remember(address, presentation) { mutableStateOf<ImageBitmap?>(null) }
     var loading by remember(address, presentation) { mutableStateOf(address != null) }
     val loadCallback by rememberUpdatedState(onLoadStateChanged)
+    val finishCallback by rememberUpdatedState(onLoadFinished)
     LaunchedEffect(url, address, loading, bitmap) {
         loadCallback?.invoke(!loading &&
             (url.isBlank() || url == "https://example.invalid/media/community.png" || bitmap != null))
+        if (!loading) finishCallback?.invoke(
+            url.isBlank() || url == "https://example.invalid/media/community.png" || bitmap != null
+        )
     }
     LaunchedEffect(address, presentation) {
         if (address != null)

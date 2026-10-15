@@ -123,7 +123,7 @@ class MainVisualParityJourneyUiTest {
                     .onNodeWithTag("browse-list")
                     .performScrollToNode(hasTestTag("primary-filter-row"))
                 compose.onNodeWithTag("region").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-                listOf("search-toggle", "news-filters").forEach { tag ->
+                listOf("news-filters").forEach { tag ->
                     compose.onNodeWithTag(tag).assertIsDisplayed().assertHeightIsAtLeast(48.dp)
                 }
                 compose.onNodeWithTag("browse-list").performScrollToNode(hasTestTag("banner-open"))

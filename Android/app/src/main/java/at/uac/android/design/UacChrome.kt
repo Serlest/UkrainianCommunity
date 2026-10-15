@@ -73,6 +73,9 @@ enum class UacIcon {
     PHOTO,
     CHEVRON_DOWN,
     GRID,
+    ARRIVAL, CHECKLIST, ID_CARD, DOCUMENT, GLOBE, MEDICAL, BRAIN, INSURANCE,
+    BRIEFCASE, GRADUATION, FAMILY, TRAIN, EURO, HEART_NOTE, COURT,
+    WIFI, COMPUTER, GROUP, RUNNER, WHEELCHAIR, CARE, SENIOR,
 }
 
 private val icons =
@@ -87,6 +90,151 @@ private val icons =
                     strokeLineJoin = StrokeJoin.Round,
                 ) {
                     when (icon) {
+                        UacIcon.ARRIVAL -> {
+                            moveTo(4f, 21f); lineTo(20f, 21f); moveTo(12f, 3f); lineTo(12f, 16f)
+                            moveTo(8f, 12f); lineTo(12f, 16f); lineTo(16f, 12f)
+                            moveTo(5f, 7f); lineTo(8f, 7f)
+                        }
+                        UacIcon.CHECKLIST -> {
+                            moveTo(8f, 5f); lineTo(21f, 5f); moveTo(8f, 12f); lineTo(21f, 12f)
+                            moveTo(8f, 19f); lineTo(21f, 19f)
+                            moveTo(2f, 5f); lineTo(4f, 7f); lineTo(6f, 3f)
+                            moveTo(2f, 12f); lineTo(4f, 14f); lineTo(6f, 10f)
+                            moveTo(2f, 19f); lineTo(4f, 21f); lineTo(6f, 17f)
+                        }
+                        UacIcon.ID_CARD -> {
+                            moveTo(2f, 5f); lineTo(22f, 5f); lineTo(22f, 19f); lineTo(2f, 19f); close()
+                            moveTo(9f, 10f); curveTo(9f, 13f, 5f, 13f, 5f, 10f)
+                            curveTo(5f, 7f, 9f, 7f, 9f, 10f); close()
+                            moveTo(4f, 16f); quadTo(7f, 13f, 10f, 16f)
+                            moveTo(13f, 10f); lineTo(19f, 10f); moveTo(13f, 14f); lineTo(18f, 14f)
+                        }
+                        UacIcon.DOCUMENT -> {
+                            moveTo(5f, 2f); lineTo(15f, 2f); lineTo(20f, 7f); lineTo(20f, 22f)
+                            lineTo(5f, 22f); close(); moveTo(15f, 2f); lineTo(15f, 7f)
+                            lineTo(20f, 7f); moveTo(8f, 12f); lineTo(17f, 12f)
+                            moveTo(8f, 16f); lineTo(17f, 16f)
+                        }
+                        UacIcon.GLOBE -> {
+                            moveTo(12f, 2f); curveTo(25f, 2f, 25f, 22f, 12f, 22f)
+                            curveTo(-1f, 22f, -1f, 2f, 12f, 2f); close()
+                            moveTo(2f, 12f); lineTo(22f, 12f)
+                            moveTo(12f, 2f); curveTo(4f, 6f, 4f, 18f, 12f, 22f)
+                            curveTo(20f, 18f, 20f, 6f, 12f, 2f)
+                        }
+                        UacIcon.MEDICAL -> {
+                            moveTo(4f, 7f); lineTo(20f, 7f); lineTo(20f, 21f); lineTo(4f, 21f); close()
+                            moveTo(9f, 7f); lineTo(9f, 4f); lineTo(15f, 4f); lineTo(15f, 7f)
+                            moveTo(12f, 10f); lineTo(12f, 18f); moveTo(8f, 14f); lineTo(16f, 14f)
+                        }
+                        UacIcon.BRAIN -> {
+                            moveTo(12f, 20f); lineTo(12f, 6f)
+                            curveTo(9f, 1f, 3f, 4f, 4f, 9f); curveTo(1f, 12f, 4f, 17f, 7f, 17f)
+                            curveTo(8f, 21f, 11f, 21f, 12f, 20f)
+                            moveTo(12f, 6f); curveTo(15f, 1f, 21f, 4f, 20f, 9f)
+                            curveTo(23f, 12f, 20f, 17f, 17f, 17f)
+                            curveTo(16f, 21f, 13f, 21f, 12f, 20f)
+                            moveTo(7f, 11f); lineTo(10f, 13f); moveTo(17f, 10f); lineTo(14f, 13f)
+                        }
+                        UacIcon.INSURANCE -> {
+                            moveTo(12f, 2f); lineTo(21f, 6f); lineTo(21f, 12f)
+                            quadTo(21f, 19f, 12f, 23f)
+                            quadTo(3f, 19f, 3f, 12f); lineTo(3f, 6f); close()
+                            moveTo(8f, 13f); lineTo(11f, 16f); lineTo(17f, 9f)
+                        }
+                        UacIcon.BRIEFCASE -> {
+                            moveTo(3f, 8f); lineTo(21f, 8f); lineTo(21f, 20f); lineTo(3f, 20f); close()
+                            moveTo(8f, 8f); lineTo(8f, 4f); lineTo(16f, 4f); lineTo(16f, 8f)
+                            moveTo(3f, 13f); lineTo(10f, 15f); lineTo(14f, 15f); lineTo(21f, 13f)
+                        }
+                        UacIcon.GRADUATION -> {
+                            moveTo(2f, 9f); lineTo(12f, 4f); lineTo(22f, 9f); lineTo(12f, 14f); close()
+                            moveTo(6f, 12f); lineTo(6f, 18f); quadTo(12f, 22f, 18f, 18f)
+                            lineTo(18f, 12f); moveTo(22f, 9f); lineTo(22f, 17f)
+                        }
+                        UacIcon.FAMILY -> {
+                            moveTo(9f, 6f); curveTo(9f, 10f, 3f, 10f, 3f, 6f)
+                            curveTo(3f, 2f, 9f, 2f, 9f, 6f); close()
+                            moveTo(21f, 6f); curveTo(21f, 10f, 15f, 10f, 15f, 6f)
+                            curveTo(15f, 2f, 21f, 2f, 21f, 6f); close()
+                            moveTo(1f, 19f); curveTo(1f, 10f, 11f, 10f, 11f, 19f)
+                            moveTo(13f, 19f); curveTo(13f, 10f, 23f, 10f, 23f, 19f)
+                        }
+                        UacIcon.TRAIN -> {
+                            moveTo(5f, 3f); lineTo(19f, 3f); lineTo(19f, 18f); lineTo(5f, 18f); close()
+                            moveTo(5f, 12f); lineTo(19f, 12f)
+                            moveTo(8f, 21f); lineTo(10f, 18f); moveTo(16f, 21f); lineTo(14f, 18f)
+                            moveTo(8f, 7f); lineTo(10f, 7f); moveTo(14f, 7f); lineTo(16f, 7f)
+                        }
+                        UacIcon.EURO -> {
+                            moveTo(20f, 5f); curveTo(8f, -1f, 3f, 8f, 6f, 16f)
+                            curveTo(8f, 22f, 15f, 23f, 20f, 19f)
+                            moveTo(3f, 10f); lineTo(16f, 10f); moveTo(3f, 14f); lineTo(15f, 14f)
+                        }
+                        UacIcon.HEART_NOTE -> {
+                            moveTo(12f, 21f); curveTo(7f, 17f, 2f, 13f, 2f, 8f)
+                            curveTo(2f, 2f, 9f, 2f, 12f, 7f)
+                            curveTo(15f, 2f, 22f, 2f, 22f, 8f)
+                            curveTo(22f, 13f, 17f, 17f, 12f, 21f); close()
+                            moveTo(7f, 12f); lineTo(17f, 12f)
+                        }
+                        UacIcon.COURT -> {
+                            moveTo(2f, 8f); lineTo(12f, 3f); lineTo(22f, 8f); close()
+                            moveTo(4f, 9f); lineTo(20f, 9f)
+                            for (x in listOf(6f, 12f, 18f)) { moveTo(x, 10f); lineTo(x, 18f) }
+                            moveTo(3f, 19f); lineTo(21f, 19f); moveTo(2f, 22f); lineTo(22f, 22f)
+                        }
+                        UacIcon.WIFI -> {
+                            moveTo(2f, 8f); quadTo(12f, -1f, 22f, 8f)
+                            moveTo(5f, 12f); quadTo(12f, 5f, 19f, 12f)
+                            moveTo(8f, 16f); quadTo(12f, 12f, 16f, 16f)
+                            moveTo(12f, 20f); lineTo(12f, 21f)
+                        }
+                        UacIcon.COMPUTER -> {
+                            moveTo(2f, 4f); lineTo(22f, 4f); lineTo(22f, 18f); lineTo(2f, 18f)
+                            close(); moveTo(12f, 18f); lineTo(12f, 22f)
+                            moveTo(7f, 22f); lineTo(17f, 22f)
+                        }
+                        UacIcon.GROUP -> {
+                            moveTo(12f, 9f); curveTo(16f, 9f, 16f, 3f, 12f, 3f)
+                            curveTo(8f, 3f, 8f, 9f, 12f, 9f); close()
+                            moveTo(4f, 11f); curveTo(7f, 11f, 7f, 6f, 4f, 6f)
+                            moveTo(20f, 11f); curveTo(17f, 11f, 17f, 6f, 20f, 6f)
+                            moveTo(5f, 21f); curveTo(5f, 8f, 19f, 8f, 19f, 21f)
+                            moveTo(1f, 20f); curveTo(0f, 15f, 2f, 13f, 5f, 13f)
+                            moveTo(23f, 20f); curveTo(24f, 15f, 22f, 13f, 19f, 13f)
+                        }
+                        UacIcon.RUNNER -> {
+                            moveTo(14f, 5f); curveTo(17f, 5f, 17f, 1f, 14f, 1f)
+                            curveTo(11f, 1f, 11f, 5f, 14f, 5f)
+                            moveTo(9f, 8f); lineTo(15f, 10f); lineTo(19f, 8f)
+                            moveTo(15f, 10f); lineTo(11f, 15f); lineTo(5f, 17f)
+                            moveTo(11f, 15f); lineTo(17f, 21f)
+                            moveTo(8f, 8f); lineTo(4f, 12f)
+                        }
+                        UacIcon.WHEELCHAIR -> {
+                            moveTo(12f, 3f); curveTo(15f, 3f, 15f, 7f, 12f, 7f)
+                            curveTo(9f, 7f, 9f, 3f, 12f, 3f)
+                            moveTo(11f, 8f); lineTo(11f, 14f); lineTo(17f, 14f)
+                            lineTo(20f, 20f); moveTo(8f, 12f)
+                            curveTo(0f, 12f, 2f, 23f, 9f, 22f)
+                            quadTo(15f, 22f, 15f, 18f)
+                        }
+                        UacIcon.CARE -> {
+                            moveTo(3f, 13f); lineTo(9f, 13f); lineTo(12f, 17f)
+                            lineTo(15f, 13f); lineTo(21f, 13f)
+                            moveTo(12f, 3f); lineTo(12f, 9f)
+                            moveTo(9f, 6f); lineTo(15f, 6f)
+                            moveTo(4f, 17f); quadTo(12f, 24f, 20f, 17f)
+                        }
+                        UacIcon.SENIOR -> {
+                            moveTo(10f, 4f); curveTo(13f, 4f, 13f, 1f, 10f, 1f)
+                            curveTo(7f, 1f, 7f, 4f, 10f, 4f)
+                            moveTo(10f, 5f); lineTo(13f, 11f); lineTo(8f, 15f)
+                            moveTo(13f, 11f); lineTo(18f, 10f); lineTo(18f, 21f)
+                            moveTo(8f, 15f); lineTo(5f, 22f)
+                            moveTo(13f, 11f); lineTo(15f, 21f)
+                        }
                         UacIcon.CHEVRON_DOWN -> {
                             moveTo(5f, 9f)
                             lineTo(12f, 16f)

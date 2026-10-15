@@ -579,19 +579,39 @@ private fun featuredActionLabel(value: FeaturedAction, language: String): String
 
 @Composable
 internal fun FeaturedImagePreview(draft: FeaturedDraft, language: String) {
-    PublicImage(
-        draft.imageUrl,
-        draft.localizations[language]?.title?.takeIf(String::isNotBlank)
-            ?: draft.title.ifBlank { draft.internalName },
-        language,
-        Modifier.fillMaxWidth()
-            .aspectRatio(16f / 9f)
-            .clip(RoundedCornerShape(12.dp))
-            .testTag("featured-preview-${draft.id}"),
-        fallback = UacIcon.PHOTO,
-        presentation = PublicImagePresentation.VIEWPORT_FIT,
-        externalBanner = true,
-    )
+    var failed by remember(draft.imageUrl) { mutableStateOf(draft.imageUrl.isBlank()) }
+    if (failed) {
+        Surface(
+            Modifier.fillMaxWidth().heightIn(min = 56.dp)
+                .testTag("featured-preview-${draft.id}"),
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+        ) {
+            Row(Modifier.padding(12.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                UacSymbol(UacIcon.PHOTO)
+                Text(if (draft.imageUrl.isBlank()) {
+                    if (language == "uk") "Зображення ще не вибрано" else "Noch kein Bild ausgewählt"
+                } else if (language == "uk") "Зображення недоступне" else "Bild nicht verfügbar",
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    } else {
+        PublicImage(
+            draft.imageUrl,
+            draft.localizations[language]?.title?.takeIf(String::isNotBlank)
+                ?: draft.title.ifBlank { draft.internalName },
+            language,
+            Modifier.fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(12.dp))
+                .testTag("featured-preview-${draft.id}"),
+            fallback = UacIcon.PHOTO,
+            presentation = PublicImagePresentation.VIEWPORT_FIT,
+            externalBanner = true,
+            onLoadFinished = { succeeded -> failed = !succeeded },
+        )
+    }
 }
 
 @Composable

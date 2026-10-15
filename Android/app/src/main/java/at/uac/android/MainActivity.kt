@@ -1171,7 +1171,8 @@ class MainActivity : FragmentActivity() {
                                 },
                                 Modifier.testTag("startup-language"),
                             ) {
-                                Text(if (browseState.language == "uk") "Deutsch" else "Українська")
+                                Text(if (browseState.language == "uk") "Змінити мову: Deutsch"
+                                    else "Sprache ändern: Українська")
                             }
                             AccountScreen(auth, browseState.language)
                         }

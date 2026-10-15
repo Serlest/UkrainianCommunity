@@ -60,6 +60,7 @@ data class DirectoryCategory(
     val groups: List<DirectoryGroup>,
     val topics: List<DirectoryTopic>,
     val rawJson: String,
+    val symbol: String = "",
 ) {
     val visibleGroups: List<DirectoryGroup>
         get() = groups.filterNot { it.hidden }.filter { group ->
@@ -120,7 +121,7 @@ object DirectoryCatalog {
         return DirectoryCategory(
             id, placement, json.getInt("order"), json.getBoolean("isHidden"),
             json.getJSONObject("title").text(), json.getJSONObject("summary").text(), groups, topics,
-            json.toString(),
+            json.toString(), json.optString("symbol"),
         )
     }
 

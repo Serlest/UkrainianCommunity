@@ -132,6 +132,13 @@ class Step7VisualParityUiTest {
                 compose.onNodeWithTag("header-search-toggle").assertIsDisplayed()
                 compose.onNodeWithTag("primary-filter-row").assertExists()
                 compose.onNodeWithTag("banner-hero").assertExists()
+                compose.onNodeWithTag("banner-media").assertExists()
+                compose.onNodeWithTag("search-toggle").assertDoesNotExist()
+                compose.onNodeWithTag("news-topic").assertDoesNotExist()
+                if (route == "organizations")
+                    compose.onNodeWithTag("organization-all").assertIsSelected()
+                if (mode == "large")
+                    compose.onNodeWithTag("banner-caption-below").assertExists()
                 capture("$mode-$route-$language-$theme")
             }
         }

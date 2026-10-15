@@ -102,7 +102,7 @@ fun AccountScreen(
                     else -> when (page) {
                     "register" -> authText(language, "Konto erstellen", "Створити акаунт")
                     "reset" -> authText(language, "Passwort zurücksetzen", "Відновити пароль")
-                    else -> authText(language, "Anmelden", "Увійти")
+                    else -> authText(language, "Willkommen bei UAC", "Вітаємо в UAC")
                     }
                 }
             val subtitle =
@@ -162,7 +162,7 @@ fun AccountScreen(
                 Text(
                     authText(
                         language,
-                        "Deine Sitzung wird sicher geprüft…",
+                        "Ihre Sitzung wird sicher geprüft…",
                         "Безпечна перевірка вашого сеансу…",
                     ),
                     Modifier.testTag("auth-restoring"),
@@ -177,7 +177,7 @@ fun AccountScreen(
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             for ((route, de, uk) in
                                 listOf(
-                                    Triple("login", "Anmelden", "Увійти"),
+                                    Triple("login", "E-Mail", "Пошта"),
                                     Triple("register", "Registrieren", "Реєстрація"),
                                     Triple("reset", "Passwort vergessen", "Забули пароль"),
                                 )) {
@@ -390,7 +390,7 @@ fun AccountScreen(
                         ) {
                             for ((destination, de, uk) in
                                 listOf(
-                                    Triple("login", "Anmelden", "Увійти"),
+                                    Triple("login", "Zur Anmeldung", "До входу"),
                                     Triple("reset", "Passwort vergessen?", "Забули пароль?"),
                                     Triple(
                                         "register",
@@ -416,13 +416,6 @@ fun AccountScreen(
                             }
                         }
                     }
-                    Text(
-                        authText(
-                            language,
-                            "Melde dich an oder erstelle ein Konto, um die App zu öffnen.",
-                            "Увійдіть або створіть акаунт, щоб відкрити застосунок.",
-                        )
-                    )
                 }
             }
             AuthStage.REGISTRATION_PENDING -> {
@@ -462,7 +455,7 @@ fun AccountScreen(
                 Text(
                     authText(
                         language,
-                        "Nach der Bestätigung bleibt dein Konto auf diesem Gerät angemeldet. Persönliche Aktionen sind bis dahin gesperrt.",
+                        "Nach der Bestätigung bleibt Ihr Konto auf diesem Gerät angemeldet. Persönliche Aktionen sind bis dahin gesperrt.",
                         "Після підтвердження акаунт залишиться в системі на цьому пристрої. Особисті дії поки недоступні.",
                     )
                 )
@@ -534,7 +527,7 @@ fun AccountScreen(
                 Text(
                     authText(
                         language,
-                        "Dein Konto ist noch angemeldet, aber Profil und Berechtigungen konnten nicht sicher geladen werden. Es werden keine privaten Daten aus einer alten Sitzung angezeigt.",
+                        "Ihr Konto ist noch angemeldet, aber Profil und Berechtigungen konnten nicht sicher geladen werden. Es werden keine privaten Daten aus einer alten Sitzung angezeigt.",
                         "Ви ще в системі, але профіль і дозволи не вдалося безпечно завантажити. Приватні дані старого сеансу не показуються.",
                     )
                 )
@@ -559,7 +552,7 @@ fun AccountScreen(
                     UacSectionCard(
                         title =
                             session.profile?.displayName.orEmpty().ifBlank {
-                                authText(language, "Dein Konto", "Ваш акаунт")
+                                authText(language, "Ihr Konto", "Ваш акаунт")
                             },
                         subtitle = session.profile?.email.orEmpty(),
                         modifier = Modifier.testTag("auth-profile-name"),

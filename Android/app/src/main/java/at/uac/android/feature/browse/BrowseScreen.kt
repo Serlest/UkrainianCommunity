@@ -85,7 +85,7 @@ fun BrowseScreen(
     onBannerMeasurement: (BannerMeasurement) -> Unit = {},
 ) {
     val l = state.language
-    val discoveryRoot = state.route in setOf("home", "events", "organizations")
+    val discoveryRoot = state.route in setOf("home", "news", "events", "organizations")
     val directoryRoot = state.route == "directory"
     val cardColumns = if (androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp >= 700 &&
         androidx.compose.ui.platform.LocalDensity.current.fontScale <= 1.3f) 2 else 1
@@ -292,7 +292,6 @@ fun BrowseScreen(
                                                 item("filters") {
                                                     BrowseListControls(state, model,
                                                         searchVisible,
-                                                        { searchVisible = it },
                                                         { filterSheetVisible = it })
                                                 }
                                             if (visibilityNotice != null)
@@ -683,7 +682,6 @@ private fun BrowseFilterChip(
 private fun BrowseListControls(
     state: BrowseState, model: BrowseViewModel,
     searchVisible: Boolean,
-    onSearchVisible: (Boolean) -> Unit,
     onSheetVisible: (Boolean) -> Unit = {},
 ) {
     val language = state.language
@@ -705,16 +703,6 @@ private fun BrowseListControls(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (state.kind == ContentKind.NEWS)
-                    BrowseFilterChip(
-                        selected = state.category.isNotEmpty(),
-                        onClick = { sheet = "news" },
-                        label = { Text(state.category.takeIf(String::isNotEmpty)?.let { label(it, language) }
-                            ?: tr(language, "Thema", "Тема")) },
-                        leadingIcon = { UacSymbol(UacIcon.FILTER, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = { UacSymbol(UacIcon.CHEVRON_DOWN, modifier = Modifier.size(15.dp)) },
-                        modifier = Modifier.heightIn(min = 48.dp).testTag("news-topic"),
-                    )
                 if (state.kind == ContentKind.EVENTS)
                     Box {
                         BrowseFilterChip(
@@ -744,11 +732,10 @@ private fun BrowseListControls(
                     }
                 if (state.kind == ContentKind.ORGANIZATIONS)
                     BrowseFilterChip(
-                        selected = false,
+                        selected = state.organizationScope == OrganizationScope.ALL,
                         onClick = { model.filters(organizationScope = OrganizationScope.ALL) },
-                        label = { Text(tr(language, "Alle", "Усі")) },
+                        label = { Text(tr(language, "Alle Organisationen", "Усі організації")) },
                         leadingIcon = { UacSymbol(UacIcon.GRID, modifier = Modifier.size(18.dp)) },
-                        trailingIcon = { UacSymbol(UacIcon.CHEVRON_DOWN, modifier = Modifier.size(15.dp)) },
                         modifier = Modifier.heightIn(min = 48.dp).testTag("organization-all"),
                     )
                 BrowseFilterChip(
@@ -806,13 +793,6 @@ private fun BrowseListControls(
                             modifier = Modifier.heightIn(min = 48.dp).testTag("organization-quick-scope-${scope.name}"),
                         )
                     }
-                BrowseFilterChip(
-                    selected = searchVisible || state.search.isNotEmpty(),
-                    onClick = { onSearchVisible(!searchVisible) },
-                    label = { Text(tr(language, "Suchen", "Пошук")) },
-                    leadingIcon = { UacSymbol(UacIcon.SEARCH, modifier = Modifier.size(18.dp)) },
-                    modifier = Modifier.heightIn(min = 48.dp).testTag("search-toggle"),
-                )
                 val activeFilters =
                     listOf(
                             state.category.isNotEmpty(),
@@ -849,7 +829,7 @@ private fun BrowseListControls(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.fillMaxWidth().testTag("news-filter-summary"),
                 )
-            if (state.route !in setOf("home", "events", "organizations") &&
+            if (state.route !in setOf("home", "news", "events", "organizations") &&
                 (searchVisible || state.search.isNotEmpty()))
                 OutlinedTextField(
                     state.search,

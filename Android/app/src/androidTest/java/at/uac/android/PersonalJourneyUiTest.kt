@@ -95,11 +95,10 @@ class PersonalJourneyUiTest {
     }
 
     private fun openSearch() {
-        if (!compose.onNodeWithTag("search").isDisplayed()) {
-            detail("search-toggle")
-            compose.onNodeWithTag("search-toggle").performClick()
+        if (!compose.onNodeWithTag("header-search-field").isDisplayed()) {
+            compose.onNodeWithTag("header-search-toggle").performClick()
         }
-        detail("search")
+        compose.onNodeWithTag("header-search-field").assertIsDisplayed()
     }
 
     private fun tab(route: String) {
@@ -192,7 +191,7 @@ class PersonalJourneyUiTest {
 
             tab("news")
             openSearch()
-            compose.onNodeWithTag("search").performTextReplacement("01")
+            compose.onNodeWithTag("header-search-field").performTextReplacement("01")
             ready()
             requireSafetyFor("card-${news.id}")
             detail("card-${news.id}")
@@ -239,7 +238,7 @@ class PersonalJourneyUiTest {
 
             tab("organizations")
             openSearch()
-            compose.onNodeWithTag("search").performTextReplacement("01")
+            compose.onNodeWithTag("header-search-field").performTextReplacement("01")
             ready()
             detail("card-${org.id}")
             compose.onNodeWithTag("card-${org.id}").performClick()

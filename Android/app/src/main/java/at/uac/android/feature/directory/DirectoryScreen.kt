@@ -192,7 +192,7 @@ fun DirectoryDestination(
             }
         } else if (category != null) {
             item("heading") {
-                UacSectionHeading(category.title.forLanguage(language), UacIcon.NEWS)
+                UacSectionHeading(category.title.forLanguage(language), directoryIcon(category.symbol))
                 Text(category.summary.forLanguage(language), style = MaterialTheme.typography.bodyLarge)
             }
             category.visibleGroups.forEach { group ->
@@ -204,9 +204,6 @@ fun DirectoryDestination(
                         .testTag("directory-topic-${item.id}")) {
                         Text(item.title.forLanguage(language), style = MaterialTheme.typography.titleMedium)
                         Text(item.summary.forLanguage(language), maxLines = 3)
-                        TextButton({ onOpen("directory/${category.id}/${item.id}") }) {
-                            Text(tr(language, "Lesen", "Читати"))
-                        }
                     }
                 }
             }
@@ -335,7 +332,7 @@ private fun DirectoryCategoryRow(category: DirectoryCategory, language: String,
             contentColor = if (featured) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                UacSymbol(if (featured) UacIcon.SECURITY else UacIcon.DIRECTORY)
+                UacSymbol(directoryIcon(category.symbol))
             }
         }
         Spacer(Modifier.width(14.dp))
@@ -347,6 +344,36 @@ private fun DirectoryCategoryRow(category: DirectoryCategory, language: String,
                 color = foreground.copy(alpha = if (featured) .88f else .72f))
         }
     }
+}
+
+/** The managed catalog keeps its SF symbol key, but only reviewed local icons are rendered. */
+internal fun directoryIcon(symbol: String): UacIcon = when (symbol) {
+    "shield.lefthalf.filled" -> UacIcon.SECURITY
+    "figure.walk.arrival" -> UacIcon.ARRIVAL
+    "checklist" -> UacIcon.CHECKLIST
+    "house.lodge.fill" -> UacIcon.HOME
+    "person.crop.rectangle" -> UacIcon.ID_CARD
+    "doc.text.fill" -> UacIcon.DOCUMENT
+    "globe.europe.africa.fill" -> UacIcon.GLOBE
+    "cross.case.fill" -> UacIcon.MEDICAL
+    "brain.head.profile" -> UacIcon.BRAIN
+    "checkmark.shield.fill" -> UacIcon.INSURANCE
+    "briefcase.fill" -> UacIcon.BRIEFCASE
+    "graduationcap.fill" -> UacIcon.GRADUATION
+    "books.vertical.fill" -> UacIcon.DIRECTORY
+    "person.2.fill" -> UacIcon.FAMILY
+    "tram.fill" -> UacIcon.TRAIN
+    "eurosign.circle.fill" -> UacIcon.EURO
+    "heart.text.square.fill" -> UacIcon.HEART_NOTE
+    "building.columns.fill" -> UacIcon.COURT
+    "wifi" -> UacIcon.WIFI
+    "desktopcomputer" -> UacIcon.COMPUTER
+    "person.3.fill" -> UacIcon.GROUP
+    "figure.run" -> UacIcon.RUNNER
+    "figure.roll" -> UacIcon.WHEELCHAIR
+    "figure.walk" -> UacIcon.CARE
+    "figure.walk.motion" -> UacIcon.SENIOR
+    else -> UacIcon.DIRECTORY
 }
 
 @Composable

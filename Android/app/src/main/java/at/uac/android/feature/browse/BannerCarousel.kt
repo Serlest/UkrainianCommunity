@@ -253,47 +253,10 @@ fun BannerHero(
     val fallback =
         if (dark) listOf(Color(0xFF213858), Color(0xFF283343), Color(0xFF51482D))
         else listOf(Color(0xFFDCE6F6), Color(0xFFE9EAF0), Color(0xFFF4ECD4))
-    Box(
-        modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(Brush.linearGradient(fallback))
-            .testTag("banner-hero")
-    ) {
-        if (banner.fields.string("imageURL").isNotBlank())
-            PublicImage(
-                banner.fields.string("imageURL"),
-                "",
-                language,
-                Modifier.matchParentSize(),
-                presentation = PublicImagePresentation.VIEWPORT_FIT,
-                adaptiveBackdrop = true,
-                externalBanner = true,
-                fallback = UacIcon.PHOTO,
-                showUnavailableText = false,
-                onLoadStateChanged = onArtworkReady,
-            )
-        else LaunchedEffect(banner.id) { onArtworkReady(true) }
-        Box(
-            Modifier.matchParentSize()
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = .35f))
-                    )
-                )
-        )
-        Column(
-            Modifier.fillMaxWidth().heightIn(min = 210.dp).padding(16.dp),
-            verticalArrangement = Arrangement.Bottom,
-        ) {
-            Spacer(Modifier.height(if (largeText) 36.dp else 52.dp))
-            if (
-                title.isNotBlank() ||
-                    subtitle.isNotBlank() ||
-                    route != null ||
-                    action == "externalURL"
-            )
-                Surface(
+    val hasCaption = title.isNotBlank() || subtitle.isNotBlank() || route != null || action == "externalURL"
+    val caption: @Composable () -> Unit = {
+        if (hasCaption)
+            Surface(
                     color = UacDesign.bannerScrim.copy(alpha = .88f),
                     contentColor = Color.White,
                     shape = RoundedCornerShape(14.dp),
@@ -355,7 +318,37 @@ fun BannerHero(
                             }
                         }
                     }
+            }
+    }
+    Column(
+        modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp))
+            .background(Brush.linearGradient(fallback)).testTag("banner-hero")
+    ) {
+        Box(Modifier.fillMaxWidth().height(if (largeText) 210.dp else 252.dp)
+            .testTag("banner-media")) {
+            if (banner.fields.string("imageURL").isNotBlank())
+                PublicImage(
+                    banner.fields.string("imageURL"), "", language, Modifier.matchParentSize(),
+                    presentation = PublicImagePresentation.VIEWPORT_FIT,
+                    adaptiveBackdrop = true,
+                    externalBanner = true,
+                    fallback = UacIcon.PHOTO,
+                    showUnavailableText = false,
+                    onLoadStateChanged = onArtworkReady,
+                )
+            else LaunchedEffect(banner.id) { onArtworkReady(true) }
+            if (!largeText && hasCaption) {
+                Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                    listOf(Color.Transparent, Color.Black.copy(alpha = .22f))
+                )))
+                Box(Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp)) {
+                    caption()
                 }
+            }
         }
+        if (largeText && hasCaption)
+            Box(Modifier.fillMaxWidth().padding(10.dp).testTag("banner-caption-below")) {
+                caption()
+            }
     }
 }

@@ -12,6 +12,10 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -35,26 +39,20 @@ internal fun FeedbackInboxControls(
 ) {
     val focus = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
     UacCard(Modifier.testTag("feedback-inbox-controls")) {
         Text(
             tr(
                 language,
-                "Suche, Filter, Zahlen und Sortierung gelten nur für geladene Anfragen.",
-                "Пошук, фільтри, кількість і сортування стосуються лише завантажених звернень.",
-            ),
-            Modifier.testTag("feedback-inbox-scope"),
-            style = MaterialTheme.typography.bodySmall,
-        )
-        Text(
-            tr(
-                language,
-                "Geladen: ${selection.loadedCount} · Treffer: ${selection.items.size}",
-                "Завантажено: ${selection.loadedCount} · Знайдено: ${selection.items.size}",
+                "${selection.items.size} von ${selection.loadedCount} geladenen Anfragen",
+                "${selection.items.size} із ${selection.loadedCount} завантажених звернень",
             ),
             Modifier.testTag("feedback-inbox-count"),
+            style = MaterialTheme.typography.labelLarge,
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FeedbackInboxFilter.entries.forEach { filter ->
+            listOf(FeedbackInboxFilter.ALL, FeedbackInboxFilter.OPEN,
+                FeedbackInboxFilter.ANSWERED).forEach { filter ->
                 FilterChip(
                     state.inbox.filter == filter,
                     { onFilter(filter) },
@@ -63,26 +61,10 @@ internal fun FeedbackInboxControls(
                 )
             }
         }
-        Text(
-            tr(language, "Letzte Aktivität", "Остання активність"),
-            style = MaterialTheme.typography.labelLarge,
-        )
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FeedbackInboxSort.entries.forEach { sort ->
-                FilterChip(
-                    state.inbox.sort == sort,
-                    { onSort(sort) },
-                    {
-                        Text(
-                            if (sort == FeedbackInboxSort.NEWEST)
-                                tr(language, "Neueste zuerst", "Спочатку новіші")
-                            else tr(language, "Älteste zuerst", "Спочатку давніші")
-                        )
-                    },
-                    modifier = Modifier.testTag("feedback-inbox-sort-${sort.name}"),
-                )
-            }
-        }
+        if (state.inbox.filter in setOf(FeedbackInboxFilter.CLOSED, FeedbackInboxFilter.UNKNOWN))
+            FilterChip(true, { expanded = true },
+                { Text(state.inbox.filter.label(language)) },
+                modifier = Modifier.testTag("feedback-inbox-active-secondary"))
         OutlinedTextField(
             state.inbox.query,
             { value ->
@@ -112,32 +94,51 @@ internal fun FeedbackInboxControls(
                         keyboard?.hide()
                     }
                 ),
-            supportingText = {
-                Text(
-                    if (state.inboxQueryRejected)
-                        tr(
-                            language,
-                            "Eingabe nicht übernommen: maximal 200 Zeichen, gültiger Unicode.",
-                            "Введення не прийнято: до 200 символів, коректний Unicode.",
-                        )
-                    else "${state.inbox.query.length} / ${FeedbackInboxSelector.MAX_QUERY_LENGTH}"
-                )
-            },
+            supportingText = if (state.inboxQueryRejected) ({
+                Text(tr(language,
+                    "Eingabe nicht übernommen: maximal 200 Zeichen, gültiger Unicode.",
+                    "Введення не прийнято: до 200 символів, коректний Unicode."))
+            }) else null,
         )
         if (state.inbox.query.isNotEmpty() || state.inboxQueryRejected)
             TextButton({ onSearch("") }, Modifier.testTag("feedback-inbox-search-clear")) {
                 Text(tr(language, "Suche löschen", "Очистити пошук"))
             }
-        if (selection.hasMore)
+        TextButton({ expanded = !expanded }, Modifier.testTag("feedback-inbox-more-filters")) {
+            Text(if (expanded) tr(language, "Weniger Optionen", "Менше параметрів")
+                else tr(language, "Weitere Filter und Sortierung", "Інші фільтри та сортування"))
+        }
+        if (expanded) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf(FeedbackInboxFilter.CLOSED, FeedbackInboxFilter.UNKNOWN).forEach { filter ->
+                    FilterChip(state.inbox.filter == filter, { onFilter(filter) },
+                        { Text("${filter.label(language)} ${selection.counts[filter] ?: 0}") },
+                        modifier = Modifier.testTag("feedback-inbox-filter-${filter.name}"))
+                }
+            }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FeedbackInboxSort.entries.forEach { sort ->
+                    FilterChip(state.inbox.sort == sort, { onSort(sort) },
+                        { Text(if (sort == FeedbackInboxSort.NEWEST)
+                            tr(language, "Neueste zuerst", "Спочатку новіші")
+                        else tr(language, "Älteste zuerst", "Спочатку давніші")) },
+                        modifier = Modifier.testTag("feedback-inbox-sort-${sort.name}"))
+                }
+            }
             Text(
                 tr(
                     language,
-                    "Weitere Anfragen sind noch nicht geladen. Unten kannst du mehr laden — auch ohne Treffer.",
-                    "Є ще незавантажені звернення. Унизу можна завантажити ще — навіть якщо нічого не знайдено.",
+                    "Suche, Filter und Zahlen gelten nur für geladene Anfragen.",
+                    "Пошук, фільтри та кількість стосуються лише завантажених звернень.",
                 ),
-                Modifier.testTag("feedback-inbox-partial"),
+                Modifier.testTag("feedback-inbox-scope"),
                 style = MaterialTheme.typography.bodySmall,
             )
+        }
+        if (selection.hasMore)
+            Text(tr(language, "Weitere Anfragen unten laden", "Інші звернення — завантажити внизу"),
+                Modifier.testTag("feedback-inbox-partial"),
+                style = MaterialTheme.typography.bodySmall)
     }
 }
 

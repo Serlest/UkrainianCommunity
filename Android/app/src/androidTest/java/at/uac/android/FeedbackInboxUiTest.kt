@@ -120,14 +120,16 @@ class FeedbackInboxUiTest {
         scroll("feedback-inbox-filter-OPEN")
         compose.onNodeWithTag("feedback-inbox-filter-OPEN").assertIsSelected()
         scroll("feedback-inbox-count")
-        compose.onNodeWithTag("feedback-inbox-count").assertTextEquals("Geladen: 4 · Treffer: 1")
+        compose.onNodeWithTag("feedback-inbox-count").assertTextEquals("2 von 4 geladenen Anfragen")
+        scroll("feedback-inbox-more-filters")
+        compose.onNodeWithTag("feedback-inbox-more-filters").performClick()
         compose
             .onNodeWithTag("feedback-inbox-scope")
             .assertTextContains("nur für geladene Anfragen", substring = true)
         scroll("feedback-inbox-partial")
         compose
             .onNodeWithTag("feedback-inbox-partial")
-            .assertTextContains("noch nicht geladen", substring = true)
+            .assertTextContains("unten laden", substring = true)
         scroll("feedback-item-open")
         compose.onNodeWithTag("feedback-item-open").assertIsDisplayed()
     }
@@ -167,8 +169,10 @@ class FeedbackInboxUiTest {
     @Test
     fun legacyGroupsUnknownAndSortControlsKeepOriginalCursor() {
         val h = Harness()
+        scroll("feedback-inbox-more-filters")
+        compose.onNodeWithTag("feedback-inbox-more-filters").performClick()
         for ((filter, target) in
-            listOf("ANSWERED" to "legacy", "CLOSED" to "closed", "UNKNOWN" to "unknown")) {
+            listOf("OPEN" to "legacy", "CLOSED" to "closed", "UNKNOWN" to "unknown")) {
             scroll("feedback-inbox-filter-$filter")
             compose.onNodeWithTag("feedback-inbox-filter-$filter").performClick().assertIsSelected()
             scroll("feedback-item-$target")
@@ -191,7 +195,7 @@ class FeedbackInboxUiTest {
         scroll("feedback-inbox-count")
         compose
             .onNodeWithTag("feedback-inbox-count")
-            .assertTextEquals("Завантажено: 4 · Знайдено: 1")
+            .assertTextEquals("2 із 4 завантажених звернень")
         h.search("x".repeat(201))
         compose.runOnIdle {
             assertEquals("питання cafe", h.state.value.inbox.query)

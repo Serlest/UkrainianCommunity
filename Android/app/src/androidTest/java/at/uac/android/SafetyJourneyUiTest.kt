@@ -84,11 +84,10 @@ class SafetyJourneyUiTest {
     }
 
     private fun openSearch() {
-        if (!compose.onNodeWithTag("search").isDisplayed()) {
-            detail("search-toggle")
-            compose.onNodeWithTag("search-toggle").performClick()
+        if (!compose.onNodeWithTag("header-search-field").isDisplayed()) {
+            compose.onNodeWithTag("header-search-toggle").performClick()
         }
-        detail("search")
+        compose.onNodeWithTag("header-search-field").assertIsDisplayed()
     }
 
     private fun tab(route: String) {
@@ -107,7 +106,7 @@ class SafetyJourneyUiTest {
     private fun openContent(kind: String, id: String, query: String) {
         tab(kind)
         openSearch()
-        compose.onNodeWithTag("search").performTextReplacement(query)
+        compose.onNodeWithTag("header-search-field").performTextReplacement(query)
         ready()
         detail("card-$id")
         compose.onNodeWithTag("card-$id").performClick()
