@@ -13,12 +13,12 @@ import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 export const analyticsConsentStateCollection = "analyticsConsentStates";
 export const analyticsConsentReceiptCollection = "analyticsConsentReceipts";
 export const analyticsConsentPurposeVersion = "owner-aggregate-analytics-v1";
-export const analyticsConsentPrivacyVersion = "2026.21";
+export const analyticsConsentPrivacyVersion = "2026.22";
 export const analyticsConsentDisclosureVersion = "2026-08-25.1";
 
 // The analytics disclosure is unchanged across released privacy revisions.
 // Preserve explicit grants and withdrawals from those clients.
-const mutationPrivacyVersions = new Set(["2026.12", "2026.13", "2026.14", "2026.15", "2026.16", "2026.17", "2026.18", "2026.19", "2026.20", analyticsConsentPrivacyVersion, "2026.22"]);
+const mutationPrivacyVersions = new Set(["2026.12", "2026.13", "2026.14", "2026.15", "2026.16", "2026.17", "2026.18", "2026.19", "2026.20", "2026.21", analyticsConsentPrivacyVersion]);
 
 export interface AnalyticsConsentMutationInput {
   enabled: boolean;

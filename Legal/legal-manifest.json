@@ -30,10 +30,10 @@
   "documents": {
     "terms": {
       "requiresAcceptance": true,
-      "version": "2026.14",
-      "effectiveDate": "2026-10-12",
-      "supersedesVersion": "2026.13",
-      "changeSummary": "Новини організацій видаляються через 30 днів разом із коментарями, вподобаннями та зображеннями. / Organisationsnachrichten werden nach 30 Tagen einschließlich Kommentaren, Likes und Bildern gelöscht.",
+      "version": "2026.15",
+      "effectiveDate": "2026-10-15",
+      "supersedesVersion": "2026.14",
+      "changeSummary": "Умови користування охоплюють застосунки iOS та Android; налаштування сповіщень залежать від операційної системи. / Nutzungsbedingungen umfassen die iOS- und Android-App; Benachrichtigungseinstellungen richten sich nach dem Betriebssystem.",
       "files": {
         "de": "Legal/terms.de.md",
         "uk": "Legal/terms.uk.md"
@@ -45,10 +45,10 @@
         "de": "Legal/privacy.de.md",
         "uk": "Legal/privacy.uk.md"
       },
-      "version": "2026.21",
-      "effectiveDate": "2026-10-12",
-      "supersedesVersion": "2026.20",
-      "changeSummary": "Окрема добровільна згода на зведений підрахунок показів і натискань банерів; відмову та відкликання дозволено без обмеження доступу. / Gesonderte freiwillige Einwilligung für zusammengefasste Banner-Einblendungen und Aufrufe; Ablehnung und Widerruf ohne Zugangsbeschränkung."
+      "version": "2026.22",
+      "effectiveDate": "2026-10-15",
+      "supersedesVersion": "2026.21",
+      "changeSummary": "Опис входу через Apple охоплює застосунки iOS та Android; інші правила обробки даних і добровільних згод не змінені. / Die Beschreibung der Apple-Anmeldung umfasst iOS und Android; sonstige Datenverarbeitung und freiwillige Einwilligungen bleiben unverändert."
     },
     "organizationRules": {
       "requiresAcceptance": true,

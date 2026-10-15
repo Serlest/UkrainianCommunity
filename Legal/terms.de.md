@@ -1,10 +1,10 @@
 # Nutzungsbedingungen für UkrainianCommunity
 
-Version 2026.14 · Veröffentlicht am 12. Oktober 2026 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.13.
+Version 2026.15 · Veröffentlicht am 15. Oktober 2026 · Gültig ab 15. Oktober 2026 · ersetzt Version 2026.14.
 
 ## 1. Anbieter und Geltungsbereich
 
-UkrainianCommunity wird von **Timofeev Philipp**, Egger-Lienz-Straße 47, 6020 Innsbruck, Österreich, als privates, nicht gewerbliches Hobbyprojekt bereitgestellt (nachfolgend „UkrainianCommunity“, „wir“ oder „uns“). Kontakt: ukrainian.community@outlook.com. Diese Bedingungen gelten für die iOS-App, die zugehörigen Webseiten und alle darin angebotenen Funktionen. Abweichende Bedingungen einer Organisation oder eines externen Anbieters gelten nur im Verhältnis zwischen diesem Anbieter und seinen Kundinnen und Kunden.
+UkrainianCommunity wird von **Timofeev Philipp**, Egger-Lienz-Straße 47, 6020 Innsbruck, Österreich, als privates, nicht gewerbliches Hobbyprojekt bereitgestellt (nachfolgend „UkrainianCommunity“, „wir“ oder „uns“). Kontakt: ukrainian.community@outlook.com. Diese Bedingungen gelten für die iOS- und Android-App, die zugehörigen Webseiten und alle darin angebotenen Funktionen. Abweichende Bedingungen einer Organisation oder eines externen Anbieters gelten nur im Verhältnis zwischen diesem Anbieter und seinen Kundinnen und Kunden.
 
 ## 2. Rolle der Plattform
 
