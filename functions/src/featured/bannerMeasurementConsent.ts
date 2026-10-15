@@ -13,6 +13,17 @@ export const bannerConsentReceiptCollection = "bannerMeasurementConsentReceipts"
 export const bannerConsentPrivacyVersion = "2026.21";
 export const bannerConsentDisclosureVersion = "2026-10-12.1";
 export const bannerConsentPurpose = "first-party-banner-measurement-v1";
+// 2026.22 only clarifies Apple login on Android; the separate banner disclosure
+// and purpose are unchanged. Preserve existing explicit banner choices after
+// the account acknowledges the newly active privacy notice.
+const eligiblePrivacyVersions = new Set([bannerConsentPrivacyVersion, "2026.22"]);
+
+export function hasAcknowledgedBannerPrivacy(
+  acceptedVersion: unknown, activeVersion: unknown
+): boolean {
+  return typeof activeVersion === "string" && eligiblePrivacyVersions.has(activeVersion)
+    && acceptedVersion === activeVersion;
+}
 export const enforceBannerMeasurementAppCheck = defineBoolean(
   "ENFORCE_BANNER_MEASUREMENT_APP_CHECK", {default: false}
 );
@@ -88,8 +99,9 @@ export const getBannerMeasurementConsent = onCall(
       db.doc(`users/${auth.uid}`),
       db.doc("legalDocuments/privacy")
     );
-    const available = profile.get("acceptedPrivacyVersion") === bannerConsentPrivacyVersion
-      && policy.get("activeVersion") === bannerConsentPrivacyVersion;
+    const available = hasAcknowledgedBannerPrivacy(
+      profile.get("acceptedPrivacyVersion"), policy.get("activeVersion")
+    );
     const consentID = state.get("consentID");
     const receipt = available && typeof consentID === "string"
       ? await db.collection(bannerConsentReceiptCollection)
@@ -128,8 +140,9 @@ export async function persistBannerMeasurementConsent(uid: string, input: Consen
       return false;
     }
     assertActiveUser(userPermissionSnapshotFromData(uid, profile.data()));
-    if (policy.get("activeVersion") !== bannerConsentPrivacyVersion
-        || profile.get("acceptedPrivacyVersion") !== bannerConsentPrivacyVersion) {
+    if (!hasAcknowledgedBannerPrivacy(
+      profile.get("acceptedPrivacyVersion"), policy.get("activeVersion")
+    )) {
       throw new HttpsError("failed-precondition", "The banner-measurement privacy revision must be published and accepted.");
     }
     if (receipt.exists) {

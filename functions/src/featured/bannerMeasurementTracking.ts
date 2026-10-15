@@ -9,7 +9,8 @@ import {analyticsRateLimitID, analyticsReceiptRetentionHours,
 import {db} from "../firebase/admin";
 import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {bannerConsentReceiptCollection, bannerConsentReceiptID,
-  bannerConsentPrivacyVersion, bannerConsentStateCollection, enforceBannerMeasurementAppCheck,
+  bannerConsentStateCollection, enforceBannerMeasurementAppCheck,
+  hasAcknowledgedBannerPrivacy,
   isCurrentBannerConsent} from "./bannerMeasurementConsent";
 
 export const bannerMeasurementReceiptCollection = "bannerMeasurementEventReceipts";
@@ -113,8 +114,9 @@ export async function persistBannerMeasurement(
       );
       if (!profile.exists) throw new HttpsError("permission-denied", "Account no longer exists.");
       assertActiveUser(userPermissionSnapshotFromData(uid, profile.data()));
-      if (profile.get("acceptedPrivacyVersion") !== bannerConsentPrivacyVersion
-          || policy.get("activeVersion") !== bannerConsentPrivacyVersion
+      if (!hasAcknowledgedBannerPrivacy(
+        profile.get("acceptedPrivacyVersion"), policy.get("activeVersion")
+      )
           || !isCurrentBannerConsent(consent.data(), input.consentID)
           || consentReceipt.get("enabled") !== true || consentReceipt.get("withdrawnAt") != null) {
         throw new HttpsError("failed-precondition", "Current banner-measurement consent is required.");
