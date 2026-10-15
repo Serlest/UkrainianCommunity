@@ -1,16 +1,11 @@
-import FirebaseFirestore
 import SwiftUI
 
 struct DirectoryEditorsView: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @EnvironmentObject private var authState: AuthState
     @StateObject private var users = DirectoryEditorCandidatesStore()
-    @State private var editorIDs = Set<String>()
-    @State private var editorNames: [String: String] = [:]
+    @StateObject private var access = DirectoryEditorAccessStore()
     @State private var searchText = ""
-    @State private var busyIDs = Set<String>()
-    @State private var errorMessage: String?
-    @State private var isLoading = true
     @State private var pendingRevocation: String?
 
     private var actor: AppUser? { authState.user }
@@ -44,25 +39,26 @@ struct DirectoryEditorsView: View {
                     .font(.subheadline).foregroundStyle(.secondary)
                 }
                 Section(DirectoryEditorText.value("Мають доступ", "Mit Zugriff")) {
-                    if isLoading { ProgressView() }
-                    if !isLoading && editorIDs.isEmpty {
+                    if access.isLoading { ProgressView() }
+                    if !access.isLoading && !access.loadFailed && access.editorIDs.isEmpty {
                         Text(DirectoryEditorText.value("Редакторів поки немає", "Noch keine Redakteure"))
                     }
-                    ForEach(editorIDs.sorted(), id: \.self) { id in
+                    if access.loadFailed {
+                        Button(DirectoryEditorText.value("Не вдалося завантажити права. Повторити", "Zugriffsrechte nicht geladen. Erneut versuchen")) {
+                            guard let actorID = actor?.id, isOwner else { return }
+                            Task { await access.load(actorID: actorID) }
+                        }
+                    }
+                    ForEach(sortedEditorIDs, id: \.self) { id in
                         HStack {
-                            VStack(alignment: .leading) {
-                                Text(editorNames[id] ?? id)
-                                if editorNames[id] != nil {
-                                    Text(id).font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
+                            editorIdentity(id)
                             Spacer()
                             Button(role: .destructive) {
                                 pendingRevocation = id
                             } label: {
                                 Text(DirectoryEditorText.value("Зняти", "Entziehen"))
                             }
-                            .disabled(busyIDs.contains(id))
+                            .disabled(access.isLoading || access.busyIDs.contains(id))
                         }
                     }
                 }
@@ -96,15 +92,16 @@ struct DirectoryEditorsView: View {
                 }
             }
         }
+        .buttonStyle(.borderless)
         .scrollContentBackground(.hidden)
         .background(AppBackgroundView())
         .tint(AppTheme.accentPrimaryForeground)
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle(DirectoryEditorText.value("Редактори довідника", "Ratgeberredakteure"))
         .task(id: actor?.id) {
-            guard isOwner else { return }
+            guard isOwner, let actorID = actor?.id else { return }
             async let candidates: Void = users.load()
-            async let grants: Void = loadEditors()
+            async let grants: Void = access.load(actorID: actorID)
             _ = await (candidates, grants)
         }
         .task(id: normalizedSearch) {
@@ -130,13 +127,18 @@ struct DirectoryEditorsView: View {
                     Task { await setAccess(false, userID: pendingRevocation) }
                 }
             }
+            Button(DirectoryEditorText.value("Скасувати", "Abbrechen"), role: .cancel) { pendingRevocation = nil }
+        } message: {
+            if let id = pendingRevocation {
+                Text(revocationDescription(id))
+            }
         }
         .alert(DirectoryEditorText.value("Помилка доступу", "Zugriffsfehler"),
-               isPresented: Binding(get: { errorMessage != nil },
-                                    set: { if !$0 { errorMessage = nil } })) {
-            Button(DirectoryEditorText.value("Гаразд", "OK")) { errorMessage = nil }
+               isPresented: Binding(get: { access.errorMessage != nil },
+                                    set: { if !$0 { access.errorMessage = nil } })) {
+            Button(DirectoryEditorText.value("Гаразд", "OK")) { access.errorMessage = nil }
         } message: {
-            Text(errorMessage ?? "")
+            Text(access.errorMessage ?? "")
         }
     }
 
@@ -149,59 +151,66 @@ struct DirectoryEditorsView: View {
                 Text(user.email).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            if editorIDs.contains(user.id) {
+            if access.editorIDs.contains(user.id) {
                 Label(DirectoryEditorText.value("Має доступ", "Zugriff aktiv"),
                       systemImage: "checkmark.circle.fill")
                     .font(.caption).foregroundStyle(.green)
             } else {
                 Button(DirectoryEditorText.value("Надати", "Freigeben")) {
-                    Task { await setAccess(true, userID: user.id) }
+                    Task { await setAccess(true, userID: user.id, knownUser: user) }
                 }
-                .disabled(!usable || busyIDs.contains(user.id))
+                .disabled(!usable || access.isLoading || access.busyIDs.contains(user.id))
             }
         }
     }
 
-    private func loadEditors() async {
-        isLoading = true
-        defer { isLoading = false }
-        do {
-            let snapshot = try await Firestore.firestore().collection("directoryEditors")
-                .getDocuments(source: .server)
-            editorIDs = Set(snapshot.documents.filter {
-                $0.data()["enabled"] as? Bool == true
-            }.map(\.documentID))
-            for id in editorIDs {
-                if let user = try? await UserManagementReads.live.user(id) {
-                    editorNames[id] = user.preferredDisplayName
-                }
-            }
-        } catch {
-            errorMessage = error.localizedDescription
+    private var sortedEditorIDs: [String] {
+        access.editorIDs.sorted { lhs, rhs in
+            let first = profile(lhs)?.preferredDisplayName ?? lhs
+            let second = profile(rhs)?.preferredDisplayName ?? rhs
+            let comparison = LocalizationStore.compareForSorting(first, second)
+            return comparison == .orderedSame ? lhs < rhs : comparison == .orderedAscending
         }
     }
 
-    private func setAccess(_ enabled: Bool, userID: String) async {
-        guard isOwner, let actorID = actor?.id, !busyIDs.contains(userID) else { return }
-        busyIDs.insert(userID)
-        defer { busyIDs.remove(userID) }
-        let reference = Firestore.firestore().collection("directoryEditors").document(userID)
-        do {
-            if enabled {
-                try await reference.setData([
-                    "enabled": true,
-                    "grantedBy": actorID,
-                    "grantedAt": FieldValue.serverTimestamp()
-                ])
+    private func profile(_ id: String) -> AppUser? {
+        (users.searchResults + users.users).first { $0.id == id } ?? access.profiles[id]
+    }
+
+    @ViewBuilder
+    private func editorIdentity(_ id: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            if let user = profile(id) {
+                Text(user.preferredDisplayName).font(.body)
+                Text(user.email).font(.caption).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             } else {
-                try await reference.delete()
+                Text(access.missingProfileIDs.contains(id)
+                     ? DirectoryEditorText.value("Профіль користувача відсутній", "Nutzerprofil nicht vorhanden")
+                     : DirectoryEditorText.value("Дані користувача не завантажено", "Nutzerdaten nicht geladen"))
+                Text("ID: \(id)").font(.caption).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                if access.failedProfileIDs.contains(id) {
+                    Button(DirectoryEditorText.value("Повторити", "Erneut versuchen")) {
+                        guard let actorID = actor?.id, isOwner else { return }
+                        Task { await access.loadProfile(id, actorID: actorID) }
+                    }
+                }
             }
-            let readback = try await reference.getDocument(source: .server)
-            guard readback.exists == enabled else { throw AppError.network }
-            if enabled { editorIDs.insert(userID) }
-            else { editorIDs.remove(userID) }
-        } catch {
-            errorMessage = error.localizedDescription
         }
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func revocationDescription(_ id: String) -> String {
+        let identity = profile(id).map { "\($0.preferredDisplayName) · \($0.email)" } ?? "ID: \(id)"
+        return DirectoryEditorText.value(
+            "\(identity) більше не зможе редагувати довідник.",
+            "\(identity) kann den Ratgeber danach nicht mehr bearbeiten."
+        )
+    }
+
+    private func setAccess(_ enabled: Bool, userID: String, knownUser: AppUser? = nil) async {
+        guard isOwner, let actorID = actor?.id else { return }
+        await access.setAccess(enabled, userID: userID, knownUser: knownUser, actorID: actorID)
     }
 }
