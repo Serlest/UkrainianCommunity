@@ -48,6 +48,7 @@ struct DirectoryAddTopicView: View {
     }
 
     private func add() {
+        topic = DirectorySourceValidation.normalizingSources(in: topic)
         showsValidation = true
         let sample = DirectoryManagedCategory(
             id: "draft", placement: .start, order: 0, isHidden: false,

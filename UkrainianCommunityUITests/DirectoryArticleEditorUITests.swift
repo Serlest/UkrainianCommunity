@@ -3,6 +3,16 @@ import XCTest
 final class DirectoryArticleEditorUITests: XCTestCase {
     @MainActor
     func testArticleTranslationAndSpecificSourceValidation() throws {
+        try addArticle(sourceURL: "serlest.com/path?x=1")
+    }
+
+    @MainActor
+    func testArticleAcceptsHTTPSourceWithPathAndQuery() throws {
+        try addArticle(sourceURL: "http://serlest.com/path?x=1")
+    }
+
+    @MainActor
+    private func addArticle(sourceURL: String) throws {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
@@ -42,15 +52,16 @@ final class DirectoryArticleEditorUITests: XCTestCase {
         let name = app.textFields["directory.source.name"]
         reveal(name, app); name.tap(); name.typeText("Amt")
         let url = app.textFields["directory.source.url"]
-        reveal(url, app); url.tap(); url.typeText("serlest.com")
+        let invalidSource = "javascript:alert(1)"
+        reveal(url, app); url.tap(); url.typeText(invalidSource)
         app.buttons["Додати"].firstMatch.tap()
         XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.alerts.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "HTTPS")).firstMatch.exists)
         app.alerts.buttons["Гаразд"].tap()
         url.tap()
         // Clear through the keyboard rather than editing the app's model.
-        url.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "serlest.com".count))
-        url.typeText("https://serlest.com/")
+        url.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: invalidSource.count))
+        url.typeText(sourceURL)
         app.buttons["Додати"].firstMatch.tap()
         XCTAssertFalse(app.navigationBars["Нова стаття"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["directory.category.publish"].exists)

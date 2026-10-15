@@ -125,6 +125,7 @@ struct DirectoryCategoryEditorView: View {
 
     private func save() async {
         guard let actorID = authState.user?.id else { return }
+        draft = DirectorySourceValidation.normalizingSources(in: draft)
         showsValidation = true
         isSaving = true
         defer { isSaving = false }

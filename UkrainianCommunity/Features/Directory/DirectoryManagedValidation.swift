@@ -38,6 +38,7 @@ enum DirectoryManagedValidation {
     }
 
     static func validate(_ category: DirectoryManagedCategory) throws -> Data {
+        let category = DirectorySourceValidation.normalizingSources(in: category)
         try validateText(category.title, field: .categoryTitle)
         try validateText(category.summary, field: .categorySummary)
         for group in category.groups { try validateText(group.title, field: .groupTitle) }

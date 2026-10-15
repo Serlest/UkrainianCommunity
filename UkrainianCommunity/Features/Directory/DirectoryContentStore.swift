@@ -204,6 +204,7 @@ final class DirectoryContentStore: ObservableObject {
 
     func save(_ category: DirectoryManagedCategory, expectedRevision: Int, actorID: String) async throws {
         guard canEdit, observedUserID == actorID else { throw AppError.permissionDenied }
+        let category = DirectorySourceValidation.normalizingSources(in: category)
         let encoded = try DirectoryManagedValidation.validate(category)
         guard let payload = String(data: encoded, encoding: .utf8) else {
             throw DirectoryManagedValidation.Failure.invalidContent

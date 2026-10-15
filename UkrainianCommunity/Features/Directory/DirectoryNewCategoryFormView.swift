@@ -64,8 +64,8 @@ struct DirectoryFirstArticleFields: View {
             Text(DirectoryEditorText.value("Офіційне джерело", "Amtliche Quelle"))
         } footer: {
             Text(DirectoryEditorText.value(
-                "Вкажіть назву установи та посилання https://. Без джерела статтю не можна опублікувати.",
-                "Geben Sie die Behörde und einen https://-Link an. Ohne Quelle ist keine Veröffentlichung möglich."
+                "Вкажіть назву установи та адресу сторінки. HTTPS додамо автоматично. Без джерела статтю не можна опублікувати.",
+                "Geben Sie die Behörde und die Seitenadresse an. HTTPS wird automatisch ergänzt. Ohne Quelle ist keine Veröffentlichung möglich."
             ))
         }
     }

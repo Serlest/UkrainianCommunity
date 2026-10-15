@@ -53,6 +53,7 @@ struct DirectoryAddSectionView: View {
     }
 
     private func add() {
+        section = DirectorySourceValidation.normalizingSources(in: section)
         showsValidation = true
         let sampleTopic = DirectoryManagedTopic(
             id: "draft-topic", groupID: "general", order: 0, isHidden: false,

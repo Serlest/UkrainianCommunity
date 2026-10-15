@@ -12,14 +12,22 @@ struct DirectorySourceFields: View {
                 .accessibilityIdentifier("directory.source.name")
             feedback(source.name, limit: DirectorySourceValidation.nameLimit, issue: DirectorySourceValidation.nameIssue(source.name))
             TextField(text: $source.url) {
-                Text(verbatim: "https://")
+                Text(verbatim: "serlest.com")
             }
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()
+                .submitLabel(.done)
+                .onSubmit(normalizeURL)
                 .accessibilityIdentifier("directory.source.url")
-            feedback(source.url, limit: DirectorySourceValidation.urlLimit, issue: DirectorySourceValidation.urlIssue(source.url))
-            if let link = source.displaySource {
+            Text(DirectoryEditorText.value(
+                "Введіть сайт або повне посилання. HTTPS додамо автоматично; шлях і параметри збережемо.",
+                "Website oder vollständigen Link eingeben. HTTPS wird automatisch ergänzt; Pfad und Parameter bleiben erhalten."
+            ))
+                .font(.caption).foregroundStyle(AppTheme.textSecondary)
+            feedback(DirectorySourceValidation.normalizedURL(source.url) ?? source.url,
+                     limit: DirectorySourceValidation.urlLimit, issue: DirectorySourceValidation.urlIssue(source.url))
+            if let link = DirectorySourceValidation.normalizingSources(in: source).displaySource {
                 Link(destination: link.url) {
                     Label(DirectoryEditorText.value("Відкрити джерело", "Quelle öffnen"),
                           systemImage: "arrow.up.right.square")
@@ -33,6 +41,10 @@ struct DirectorySourceFields: View {
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
         }
+    }
+
+    private func normalizeURL() {
+        if let url = DirectorySourceValidation.normalizedURL(source.url) { source.url = url }
     }
 
     private func feedback(_ value: String, limit: Int, issue: String?) -> some View {
