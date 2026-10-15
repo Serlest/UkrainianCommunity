@@ -789,6 +789,7 @@ struct FeedbackInboxView: View {
                             FeedbackInboxRow(item: item)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("feedbackInbox.open.\(item.id)")
 
                         if PermissionService.isAppOwner(user: authState.user) {
                             Menu {

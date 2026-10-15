@@ -8,7 +8,7 @@ actor MockRepositoryStore {
     var events = MockContentBuilder.events()
     var organizations = MockContentBuilder.organizations()
     var organizationComments: [String: [Comment]] = [:]
-    var feedbackItems: [FeedbackItem] = []
+    var feedbackItems: [FeedbackItem] = MockContentBuilder.feedbackFixtures()
     var feedbackMessages: [String: [FeedbackMessage]] = [:]
     var notificationPreferencesByUserID: [String: NotificationPreferences] = [:]
     var notificationsByUserID: [String: [AppNotification]] = MockContentBuilder.notificationDetailFixtures()
