@@ -11,7 +11,9 @@ struct DirectorySourceFields: View {
                       text: $source.name)
                 .accessibilityIdentifier("directory.source.name")
             feedback(source.name, limit: DirectorySourceValidation.nameLimit, issue: DirectorySourceValidation.nameIssue(source.name))
-            TextField("https://", text: $source.url)
+            TextField(text: $source.url) {
+                Text(verbatim: "https://")
+            }
                 .textInputAutocapitalization(.never)
                 .keyboardType(.URL)
                 .autocorrectionDisabled()

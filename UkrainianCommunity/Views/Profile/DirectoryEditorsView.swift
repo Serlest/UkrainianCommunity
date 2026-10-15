@@ -188,7 +188,7 @@ struct DirectoryEditorsView: View {
                 Text(access.missingProfileIDs.contains(id)
                      ? DirectoryEditorText.value("Профіль користувача відсутній", "Nutzerprofil nicht vorhanden")
                      : DirectoryEditorText.value("Дані користувача не завантажено", "Nutzerdaten nicht geladen"))
-                Text("ID: \(id)").font(.caption).foregroundStyle(.secondary)
+                Text(verbatim: "ID: \(id)").font(.caption).foregroundStyle(.secondary)
                     .textSelection(.enabled)
                 if access.failedProfileIDs.contains(id) {
                     Button(DirectoryEditorText.value("Повторити", "Erneut versuchen")) {

@@ -1,0 +1,94 @@
+{
+  "date": "2026-10-15",
+  "timezone": "Europe/Vienna",
+  "sourceBase": "c2650d5",
+  "version": "1.2",
+  "projectBuildNumber": 107,
+  "appStoreConnect": {
+    "maximumBuild": 107,
+    "nextCandidate": 108,
+    "checkedAt": "2026-10-15T16:59:17.577Z",
+    "latestProcessingState": "VALID",
+    "internalGroup": "Beta Tester",
+    "internalGroupHasAllBuilds": true,
+    "recheckBeforeArchive": true
+  },
+  "scope": {
+    "newArchiveCreated": false,
+    "buildUploaded": false,
+    "productionReleaseAuthorized": false
+  },
+  "fix": {
+    "cause": "A technical https:// placeholder used the localized TextField initializer and Xcode generated an empty catalog entry.",
+    "changes": [
+      "Render the URL placeholder with Text(verbatim:).",
+      "Render the fallback technical account ID with Text(verbatim:) to avoid the same extraction issue.",
+      "Remove only the empty generated https:// entry from the working catalog; do not commit pre-existing catalog metadata changes."
+    ]
+  },
+  "dirtyTree": {
+    "pbxSemanticEqualityToHEAD": true,
+    "pbxChange": "Object ordering only; not staged.",
+    "localizedTranslationValuesChanged": false,
+    "catalogChange": "Pre-existing extraction/comment metadata and an empty date-format record removal remain unstaged."
+  },
+  "checks": {
+    "affectedRegression": {
+      "passed": 59,
+      "failed": 0,
+      "resultBundle": "/Users/serlest/Library/Developer/XcodeBuildMCP/workspaces/uac-7a1d7897c7b4/result-bundles/test_sim_2026-10-15T17-00-18-642Z_pid17426_bb33f2f7.xcresult"
+    },
+    "legalAndRepeatedArticleRegression": {
+      "passed": 12,
+      "failed": 0,
+      "note": "11 legal race tests and 1 repeated article UI scenario. Two existing unit-test concurrency warnings.",
+      "resultBundle": "/Users/serlest/Library/Developer/XcodeBuildMCP/workspaces/uac-7a1d7897c7b4/result-bundles/test_sim_2026-10-15T17-05-54-368Z_pid17426_5104e602.xcresult"
+    },
+    "simulatorBuildWithStringExtraction": "SUCCEEDED, no warnings/errors",
+    "staticPassed": [
+      "release configuration",
+      "property lists",
+      "repository structure",
+      "localizations de/uk",
+      "content category contract",
+      "Firestore index contracts",
+      "published legal structure"
+    ],
+    "github": "Recheck current HEAD workflow; do not infer success from local tests."
+  },
+  "signing": {
+    "xcodeAccountUI": "Current account signed in; Developer Team Admin; Certificates/Identifiers/Profiles access selected. No certificates changed.",
+    "localDistributionPrivateKeyPresent": false,
+    "apiSigningPath": "Not used: previous build 107 API export failed with cloud signing permission errors.",
+    "verifiedPath": "Xcode account with -allowProvisioningUpdates and no API authentication flags.",
+    "localExportOfExisting107": {
+      "exportSucceeded": true,
+      "uploadStarted": false,
+      "signatureDeepStrictVerified": true,
+      "apsEnvironment": "production",
+      "getTaskAllow": false,
+      "nonExemptEncryption": false,
+      "profileExpiresUTC": "2027-05-23T16:53:59Z",
+      "evidence": "/tmp/uac-signing-preflight-107/export.log"
+    }
+  },
+  "beforeNextArchive": [
+    "Wait for Android parity coordination signal.",
+    "Re-read App Store Connect maximum build; 108 is a candidate, not a reservation.",
+    "Verify expected main HEAD, remote synchronization and explicit build number override; preserve dirty PBX/catalog metadata.",
+    "Run localization and release configuration validation; require relevant regression evidence and inspect CI status."
+  ],
+  "plannedCommandsNotExecuted": [
+    "xcodebuild -project UkrainianCommunity.xcodeproj -scheme UkrainianCommunity -configuration Release -destination 'generic/platform=iOS' -archivePath build/UkrainianCommunity-108.xcarchive -derivedDataPath /tmp/uac-release-108-derived -allowProvisioningUpdates CURRENT_PROJECT_VERSION=108 SWIFT_EMIT_LOC_STRINGS=NO archive",
+    "/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' build/UkrainianCommunity-108.xcarchive/Products/Applications/UkrainianCommunity.app/Info.plist",
+    "/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' build/UkrainianCommunity-108.xcarchive/Products/Applications/UkrainianCommunity.app/Info.plist",
+    "/usr/libexec/PlistBuddy -c 'Print :ITSAppUsesNonExemptEncryption' build/UkrainianCommunity-108.xcarchive/Products/Applications/UkrainianCommunity.app/Info.plist",
+    "xcodebuild -exportArchive -archivePath build/UkrainianCommunity-108.xcarchive -exportPath build/UAC-108-export -exportOptionsPlist build/ExportOptions-TestFlight.plist -allowProvisioningUpdates"
+  ],
+  "archiveAndUploadConditions": [
+    "Only execute commands after coordination signal; archive first, verify version 1.2/build 108/non-exempt encryption false before upload.",
+    "Use existing ExportOptions-TestFlight.plist: app-store-connect, destination upload, automatic signing, manageAppVersionAndBuildNumber false, testFlightInternalTestingOnly false. Assign to internal Beta Tester only; no external review submission.",
+    "Read back ASC processing VALID, beta internal state and group/build relationship after upload; set Ukrainian and German What to Test.",
+    "Public App Store release gates remain separate and open: physical iPhone sign-in/passkey/push/consent, App Privacy/archive comparison, content rights, final comments and release authorization."
+  ]
+}
