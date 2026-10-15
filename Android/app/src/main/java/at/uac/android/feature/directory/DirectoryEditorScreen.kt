@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,8 @@ import java.util.UUID
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+
+private data class PendingSectionDeletion(val topicId: String, val sectionId: String, val region: String?)
 
 /** Publication is revision checked by the server. Drafts stay local until explicit publish. */
 @Composable
@@ -78,6 +81,7 @@ fun DirectoryEditorScreen(
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
+    var pendingSectionDeletion by remember(categoryId) { mutableStateOf<PendingSectionDeletion?>(null) }
     val scope = rememberCoroutineScope()
     val json = remember(draft) { JSONObject(draft) }
     fun mutate(change: (JSONObject) -> Unit) {
@@ -205,18 +209,16 @@ fun DirectoryEditorScreen(
                             Text(tr(language, "Zurück zum Beitrag", "Назад до статті"))
                         }
                         OutlinedButton({
-                            val canRemove = regional || list.length() > 1
-                            if (canRemove) {
-                                mutate { root ->
-                                    val target = root.getJSONArray("topics").getJSONObject(index[0])
-                                    val targetList = if (regional) target.getJSONObject("regionalSections").getJSONArray(selectedRegion)
-                                        else target.getJSONArray("sections")
-                                    targetList.remove(index[1])
-                                }
-                                pane = "topic:${index[0]}"
-                            } else error = tr(language, "Der letzte Abschnitt kann nicht entfernt werden.",
-                                "Останній блок не можна видалити.")
-                        }) { Text(tr(language, "Abschnitt entfernen", "Видалити блок")) }
+                            val sectionId = section.getString("id")
+                            if (regional || canDeleteOrdinarySection(topic, sectionId)) {
+                                pendingSectionDeletion = PendingSectionDeletion(
+                                    topic.getString("id"), sectionId, selectedRegion.takeIf { regional })
+                            } else error = tr(language,
+                                "Der letzte sichtbare Abschnitt kann nicht entfernt werden. Erstellen Sie zuerst einen neuen.",
+                                "Останній видимий блок не можна видалити. Спочатку додайте новий.")
+                        }, modifier = Modifier.testTag("directory-editor-remove-section")) {
+                            Text(tr(language, "Abschnitt entfernen", "Видалити блок"))
+                        }
                     }
                 }
             }
@@ -330,7 +332,8 @@ fun DirectoryEditorScreen(
                     if (selectedRegion.isNotBlank()) {
                         val regionSections = topic.getJSONObject("regionalSections").optJSONArray(selectedRegion) ?: JSONArray()
                         (0 until regionSections.length()).forEach { i ->
-                            TextButton({ pane = "region:$topicIndex:$i" }) {
+                            TextButton({ pane = "region:$topicIndex:$i" },
+                                modifier = Modifier.testTag("directory-editor-open-region-section-$i")) {
                                 Text(regionSections.getJSONObject(i).getJSONObject("title")
                                     .getString(if (language == "uk") "ukrainian" else "german"))
                             }
@@ -470,6 +473,58 @@ fun DirectoryEditorScreen(
             }
         }
     }
+    pendingSectionDeletion?.let { pending ->
+        AlertDialog(
+            onDismissRequest = { pendingSectionDeletion = null },
+            title = { Text(tr(language, "Informationsabschnitt löschen?", "Видалити інформаційний блок?")) },
+            text = { Text(tr(language,
+                "Der Abschnitt wird aus dem Entwurf entfernt. Für Leser gilt die Änderung erst nach der Veröffentlichung.",
+                "Блок буде видалено з чернетки. Читачі побачать зміну лише після публікації.")) },
+            confirmButton = {
+                TextButton({
+                    val currentTopics = JSONObject(draft).getJSONArray("topics")
+                    val currentTopicIndex = arrayIndexById(currentTopics, pending.topicId)
+                    val currentTopic = currentTopicIndex.takeIf { it >= 0 }?.let(currentTopics::getJSONObject)
+                    val currentSections = if (pending.region == null) currentTopic?.optJSONArray("sections")
+                        else currentTopic?.optJSONObject("regionalSections")?.optJSONArray(pending.region)
+                    val currentSectionIndex = currentSections?.let { arrayIndexById(it, pending.sectionId) } ?: -1
+                    if (currentTopic != null && currentSectionIndex >= 0 &&
+                        (pending.region != null || canDeleteOrdinarySection(currentTopic, pending.sectionId))) {
+                        mutate { root ->
+                            val target = root.getJSONArray("topics").getJSONObject(currentTopicIndex)
+                            val sections = if (pending.region == null) target.getJSONArray("sections")
+                                else target.getJSONObject("regionalSections").getJSONArray(pending.region)
+                            sections.remove(currentSectionIndex)
+                        }
+                        pane = "topic:$currentTopicIndex"
+                    } else error = tr(language, "Der Abschnitt kann nicht mehr entfernt werden.",
+                        "Блок більше не можна видалити.")
+                    pendingSectionDeletion = null
+                }, modifier = Modifier.testTag("directory-editor-confirm-remove-section")) {
+                    Text(tr(language, "Abschnitt löschen", "Видалити блок"),
+                        color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton({ pendingSectionDeletion = null },
+                    modifier = Modifier.testTag("directory-editor-cancel-remove-section")) {
+                    Text(tr(language, "Abbrechen", "Скасувати"))
+                }
+            },
+        )
+    }
+}
+
+private fun arrayIndexById(items: JSONArray, id: String): Int =
+    (0 until items.length()).firstOrNull { items.getJSONObject(it).optString("id") == id } ?: -1
+
+private fun canDeleteOrdinarySection(topic: JSONObject, sectionId: String): Boolean {
+    val sections = topic.getJSONArray("sections")
+    return arrayIndexById(sections, sectionId) >= 0 &&
+        (0 until sections.length()).any { index ->
+            val section = sections.getJSONObject(index)
+            section.getString("id") != sectionId && !section.getBoolean("isHidden")
+        }
 }
 
 @Composable

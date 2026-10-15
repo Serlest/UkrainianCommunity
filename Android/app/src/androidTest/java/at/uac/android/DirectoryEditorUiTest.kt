@@ -6,8 +6,10 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import at.uac.android.design.UacTheme
@@ -27,6 +29,116 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class DirectoryEditorUiTest {
     @get:Rule val compose = createComposeRule()
+
+    private fun open(tag: String) {
+        compose.onNodeWithTag("directory-editor").performScrollToNode(hasTestTag(tag))
+        compose.onNodeWithTag(tag).performClick()
+    }
+
+    @Test
+    fun delegatedEditorConfirmsOrdinaryDeletionAndCannotRemoveLastVisibleSection() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val root = JSONObject(DirectoryCatalog.bundled(context).first { it.id == "safety" }.rawJson)
+        val topic = root.getJSONArray("topics").getJSONObject(0)
+        val original = topic.getJSONArray("sections").getJSONObject(0)
+        val removedId = original.getString("id")
+        val remaining = JSONObject(original.toString()).put("id", "directory-delete-remaining").put("order", 1)
+        val hidden = JSONObject(original.toString()).put("id", "directory-delete-hidden")
+            .put("order", 2).put("isHidden", true)
+        topic.put("sections", JSONArray().put(original).put(remaining).put(hidden))
+        val category = DirectoryCatalog.parseCategory(root)
+        var published: String? = null
+        var destination: String? = null
+        val access = object : DirectoryEditorAccess {
+            override val uid = "fixture-delegated-editor"
+            override val owner = false
+            override suspend fun publish(categoryId: String, payload: String, expectedRevision: Int): Int {
+                assertEquals("safety", categoryId)
+                assertEquals(4, expectedRevision)
+                published = payload
+                return expectedRevision + 1
+            }
+            override suspend fun delete(categoryId: String, expectedRevision: Int): Int =
+                error("Category deletion was not requested")
+        }
+        compose.setContent {
+            UacTheme("light") {
+                DirectoryEditorScreen("safety", "de", listOf(category), mapOf("safety" to 4), access) {
+                    destination = it
+                }
+            }
+        }
+        open("directory-editor-open-topic-0")
+        open("directory-editor-open-section-0")
+        open("directory-editor-remove-section")
+        compose.onNodeWithTag("directory-editor-cancel-remove-section").performClick()
+        compose.onNodeWithTag("directory-editor-confirm-remove-section").assertDoesNotExist()
+        open("directory-editor-remove-section")
+        compose.onNodeWithTag("directory-editor-confirm-remove-section").performClick()
+        open("directory-editor-open-section-0")
+        open("directory-editor-remove-section")
+        compose.onNodeWithTag("directory-editor-confirm-remove-section").assertDoesNotExist()
+        compose.onNodeWithTag("directory-editor").performScrollToNode(hasTestTag("directory-editor-error"))
+        compose.onNodeWithTag("directory-editor-error").assertTextContains("letzte sichtbare", substring = true)
+        open("directory-editor-category-back")
+        open("directory-publish")
+        compose.waitUntil(10_000) { published != null && destination == "directory/manage" }
+        val saved = JSONObject(published!!)
+        assertNull(DirectoryDraftValidation.firstIssue(saved.toString()))
+        val sections = saved.getJSONArray("topics").getJSONObject(0).getJSONArray("sections")
+        assertEquals(2, sections.length())
+        assertEquals("directory-delete-remaining", sections.getJSONObject(0).getString("id"))
+        assertEquals("directory-delete-hidden", sections.getJSONObject(1).getString("id"))
+        assertTrue((0 until sections.length()).none { sections.getJSONObject(it).getString("id") == removedId })
+        val reread = DirectoryCatalog.parseCategory(saved)
+        assertEquals(listOf("directory-delete-remaining", "directory-delete-hidden"),
+            reread.topics.first().sections.map { it.id })
+    }
+
+    @Test
+    fun delegatedEditorRemovesLastRegionalSectionAndPublishesTheChange() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val root = JSONObject(DirectoryCatalog.bundled(context).first { it.id == "safety" }.rawJson)
+        val topic = root.getJSONArray("topics").getJSONObject(0)
+        val regional = JSONObject(topic.getJSONArray("sections").getJSONObject(0).toString())
+            .put("id", "directory-delete-regional").put("order", 0)
+            .put("source", JSONObject().put("name", "Official source")
+                .put("url", "https://www.oesterreich.gv.at/"))
+        topic.getJSONObject("regionalSections").put("wien", JSONArray().put(regional))
+        val category = DirectoryCatalog.parseCategory(root)
+        var published: String? = null
+        val access = object : DirectoryEditorAccess {
+            override val uid = "fixture-delegated-editor"
+            override val owner = false
+            override suspend fun publish(categoryId: String, payload: String, expectedRevision: Int): Int {
+                assertEquals("safety", categoryId)
+                assertEquals(4, expectedRevision)
+                published = payload
+                return expectedRevision + 1
+            }
+            override suspend fun delete(categoryId: String, expectedRevision: Int): Int =
+                error("Category deletion was not requested")
+        }
+        compose.setContent {
+            UacTheme("light") {
+                DirectoryEditorScreen("safety", "de", listOf(category), mapOf("safety" to 4), access) {}
+            }
+        }
+        open("directory-editor-open-topic-0")
+        open("directory-editor-region")
+        compose.onNodeWithTag("directory-editor-region-wien").performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithTag("directory-editor-region").assertTextContains("Wien", substring = true)
+        open("directory-editor-open-region-section-0")
+        open("directory-editor-remove-section")
+        compose.onNodeWithTag("directory-editor-confirm-remove-section").performClick()
+        open("directory-publish")
+        compose.waitUntil(10_000) { published != null }
+        val saved = JSONObject(published!!)
+        assertNull(DirectoryDraftValidation.firstIssue(saved.toString()))
+        assertEquals(0, saved.getJSONArray("topics").getJSONObject(0)
+            .getJSONObject("regionalSections").getJSONArray("wien").length())
+        assertTrue(DirectoryCatalog.parseCategory(saved).topics.first().regionalSections["wien"].isNullOrEmpty())
+    }
 
     @Test
     fun normalizationCoversArticleSectionAndRegionalSourcesBeforeValidation() {

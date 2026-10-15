@@ -145,3 +145,59 @@ test("directory deletion removes only custom categories with permission and revi
       }
     }
   });
+
+test("delegated editor deletes ordinary and regional sections and persisted reread stays deleted",
+  {skip: !enabled}, async () => {
+    const id = `${prefix}-sections`;
+    const category = db.collection("directoryCategories").doc(id);
+    const editorID = uid("section-editor");
+    const readerID = uid("section-reader");
+    try {
+      for (const actor of [editorID, readerID]) {
+        await db.collection("users").doc(actor).set({
+          globalRole: "user", accountStatus: "active", blockState: "active",
+        });
+      }
+      await seedCurrentLegalForIntegration(editorID, readerID);
+      const grant = db.collection("directoryEditors").doc(editorID);
+      await grant.set({enabled: true});
+      const original = JSON.parse(payload("Before section deletion", id));
+      const topic = original.topics[0];
+      topic.sections.push({...topic.sections[0], id: "remaining-section"});
+      topic.regionalSections.wien = [
+        {...topic.sections[0], id: "regional-delete", source: topic.sources[0]},
+        {...topic.sections[0], id: "regional-keep", source: topic.sources[0]},
+      ];
+      await saveDirectoryCategory.run(request("section-editor", JSON.stringify(original), 0, true, id));
+      const changed = JSON.parse(JSON.stringify(original));
+      changed.topics[0].sections = changed.topics[0].sections.filter(
+        (section: {id: string}) => section.id !== "test-section");
+      changed.topics[0].regionalSections.wien = changed.topics[0].regionalSections.wien.filter(
+        (section: {id: string}) => section.id !== "regional-delete");
+      await saveDirectoryCategory.run(request("section-editor", JSON.stringify(changed), 1, true, id));
+      const persisted = (await category.get()).data();
+      assert.equal(persisted?.revision, 2);
+      assert.equal(persisted?.updatedBy, editorID);
+      const reread = JSON.parse(persisted?.payload);
+      assert.deepEqual(reread.topics[0].sections.map((section: {id: string}) => section.id),
+        ["remaining-section"]);
+      assert.deepEqual(reread.topics[0].regionalSections.wien.map((section: {id: string}) => section.id),
+        ["regional-keep"]);
+      assert.equal(JSON.parse((await category.collection("versions").doc("1").get()).data()?.payload)
+        .topics[0].sections.length, 2);
+      assert.equal(JSON.parse((await category.collection("versions").doc("2").get()).data()?.payload)
+        .topics[0].sections.length, 1);
+      await assert.rejects(saveDirectoryCategory.run(
+        request("section-editor", JSON.stringify(original), 1, true, id)), {code: "aborted"});
+      await assert.rejects(saveDirectoryCategory.run(
+        request("section-reader", JSON.stringify(original), 2, true, id)), {code: "permission-denied"});
+      await grant.delete();
+      await assert.rejects(saveDirectoryCategory.run(
+        request("section-editor", JSON.stringify(original), 2, true, id)), {code: "permission-denied"});
+      assert.deepEqual((await category.get()).data(), persisted);
+    } finally {
+      await db.recursiveDelete(category);
+      await db.collection("directoryEditors").doc(editorID).delete();
+      for (const actor of [editorID, readerID]) await db.recursiveDelete(db.collection("users").doc(actor));
+    }
+  });
