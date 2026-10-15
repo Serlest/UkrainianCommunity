@@ -218,8 +218,7 @@ struct OrganizationManagementHubView: View {
                 AppNavigationRow(
                     title: AppStrings.Profile.ownerCreateOrganization,
                     subtitle: AppStrings.Profile.organizationManagementSubtitle,
-                    systemImage: "plus.circle",
-                    accessory: .none
+                    systemImage: "plus.circle"
                 )
             }
         }

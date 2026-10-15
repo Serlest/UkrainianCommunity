@@ -252,46 +252,53 @@ struct MyFeedbackView: View {
         .appRefreshable {
             await viewModel.refresh(userID: currentUserID)
         }
-        .sheet(item: $selectedFeedback) { item in
-            let currentItem = currentFeedbackItem(for: item)
-            FeedbackConversationSheet(
-                item: currentItem,
-                messages: viewModel.messages(for: currentItem),
-                isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
-                isSending: viewModel.sendingMessageFeedbackIDs.contains(currentItem.id),
-                messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
-                hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
-                isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
-                actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
-                allowsClose: false,
-                onLoad: {
-                    Task { await viewModel.loadMessages(for: currentItem) }
-                },
-                onRetryMessages: {
-                    Task { await viewModel.loadMessages(for: currentItem) }
-                },
-                onLoadMoreMessages: {
-                    Task { await viewModel.loadMoreMessages(for: currentItem) }
-                },
-                onSend: { text in
-                    guard let user = authState.user else { return false }
-                    let latestItem = currentFeedbackItem(for: currentItem)
-                    let sent = await viewModel.sendMessage(text, feedback: latestItem, user: user)
-                    if sent, let updatedItem = viewModel.items.first(where: { $0.id == latestItem.id }) {
-                        selectedFeedback = updatedItem
-                    }
-                    return sent
-                },
-                onStop: {
-                    viewModel.stopListeningMessages(for: currentItem.id)
-                    viewModel.clearActionError()
-                },
-                onClose: nil,
-                onAppeal: { reason in
-                    await viewModel.submitDsaAppeal(reason: reason, feedback: currentFeedbackItem(for: currentItem), userID: currentUserID)
-                }
-            )
-            .presentationDetents([.medium, .large])
+        .navigationDestination(isPresented: Binding(
+            get: { selectedFeedback != nil },
+            set: { if !$0 { selectedFeedback = nil } }
+        )) {
+            if let item = selectedFeedback {
+                let currentItem = currentFeedbackItem(for: item)
+                FeedbackConversationView(
+                    item: currentItem,
+                    messages: viewModel.messages(for: currentItem),
+                    isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
+                    isSending: viewModel.sendingMessageFeedbackIDs.contains(currentItem.id),
+                    messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
+                    hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
+                    isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
+                    actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
+                    allowsClose: false,
+                    onLoad: {
+                        Task { await viewModel.loadMessages(for: currentItem) }
+                    },
+                    onRetryMessages: {
+                        Task { await viewModel.loadMessages(for: currentItem) }
+                    },
+                    onLoadMoreMessages: {
+                        Task { await viewModel.loadMoreMessages(for: currentItem) }
+                    },
+                    onSend: { text in
+                        guard let user = authState.user else { return false }
+                        let latestItem = currentFeedbackItem(for: currentItem)
+                        let sent = await viewModel.sendMessage(text, feedback: latestItem, user: user)
+                        if sent, let updatedItem = viewModel.items.first(where: { $0.id == latestItem.id }) {
+                            selectedFeedback = updatedItem
+                        }
+                        return sent
+                    },
+                    onStop: {
+                        viewModel.stopListeningMessages(for: currentItem.id)
+                        viewModel.clearActionError()
+                    },
+                    onClose: nil,
+                    onAppeal: { reason in
+                        await viewModel.submitDsaAppeal(reason: reason, feedback: currentFeedbackItem(for: currentItem), userID: currentUserID)
+                    },
+                    usesNavigationStack: false
+                )
+                .toolbar(.visible, for: .navigationBar)
+                .toolbar(.hidden, for: .tabBar)
+            }
         }
     }
 
@@ -416,8 +423,10 @@ struct MyFeedbackView: View {
                         open(item)
                     } label: {
                         FeedbackUserRequestCard(item: item)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("feedback.mine.open.\(item.id)")
                 }
 
                 if viewModel.hasMore {
@@ -678,41 +687,48 @@ struct FeedbackInboxView: View {
         } message: {
             Text(AppStrings.Feedback.deleteOneConfirmationMessage)
         }
-        .sheet(item: $selectedFeedback) { item in
-            let currentItem = currentFeedbackItem(for: item)
-            FeedbackDetailSheet(
-                item: currentItem,
-                messages: viewModel.messages(for: currentItem),
-                isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
-                isUpdating: viewModel.updatingFeedbackIDs.contains(currentItem.id),
-                messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
-                hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
-                isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
-                actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
-                onLoad: {
-                    Task { await viewModel.loadMessages(for: currentItem) }
-                },
-                onRetryMessages: {
-                    Task { await viewModel.loadMessages(for: currentItem) }
-                },
-                onLoadMoreMessages: {
-                    Task { await viewModel.loadMoreMessages(for: currentItem) }
-                },
-                onSendReply: { reply in
-                    guard let owner = authState.user else { return false }
-                    let latestItem = currentFeedbackItem(for: currentItem)
-                    let sent = await viewModel.sendReply(reply, to: latestItem, owner: owner)
-                    if sent, let updatedItem = viewModel.items.first(where: { $0.id == latestItem.id }) {
-                        selectedFeedback = updatedItem
-                    }
-                    return sent
-                },
-                onStop: {
-                    viewModel.stopListeningMessages(for: currentItem.id)
-                },
-                onClose: closeAction(for: currentItem)
-            )
-            .presentationDetents([.medium, .large])
+        .navigationDestination(isPresented: Binding(
+            get: { selectedFeedback != nil },
+            set: { if !$0 { selectedFeedback = nil } }
+        )) {
+            if let item = selectedFeedback {
+                let currentItem = currentFeedbackItem(for: item)
+                FeedbackDetailView(
+                    item: currentItem,
+                    messages: viewModel.messages(for: currentItem),
+                    isLoadingMessages: viewModel.loadingMessageFeedbackIDs.contains(currentItem.id),
+                    isUpdating: viewModel.updatingFeedbackIDs.contains(currentItem.id),
+                    messageErrorMessage: viewModel.messageErrorsByFeedbackID[currentItem.id].map(feedbackErrorMessage(_:)),
+                    hasMoreMessages: viewModel.hasMoreMessages(for: currentItem.id),
+                    isLoadingMoreMessages: viewModel.loadingMoreMessageFeedbackIDs.contains(currentItem.id),
+                    actionErrorMessage: viewModel.actionError.map(feedbackActionErrorMessage(_:)),
+                    onLoad: {
+                        Task { await viewModel.loadMessages(for: currentItem) }
+                    },
+                    onRetryMessages: {
+                        Task { await viewModel.loadMessages(for: currentItem) }
+                    },
+                    onLoadMoreMessages: {
+                        Task { await viewModel.loadMoreMessages(for: currentItem) }
+                    },
+                    onSendReply: { reply in
+                        guard let owner = authState.user else { return false }
+                        let latestItem = currentFeedbackItem(for: currentItem)
+                        let sent = await viewModel.sendReply(reply, to: latestItem, owner: owner)
+                        if sent, let updatedItem = viewModel.items.first(where: { $0.id == latestItem.id }) {
+                            selectedFeedback = updatedItem
+                        }
+                        return sent
+                    },
+                    onStop: {
+                        viewModel.stopListeningMessages(for: currentItem.id)
+                    },
+                    onClose: closeAction(for: currentItem),
+                    usesNavigationStack: false
+                )
+                .toolbar(.visible, for: .navigationBar)
+                .toolbar(.hidden, for: .tabBar)
+            }
         }
         .sheet(item: $dsaDecisionItem) { item in
             if !PermissionService.isAppOwner(user: authState.user) {
@@ -720,14 +736,14 @@ struct FeedbackInboxView: View {
             } else if item.dsaCase?.status == "appealed" {
                 DsaAppealDecisionSheet(item: item) { request in
                     let succeeded = await viewModel.decideDsaAppeal(request, item: item)
-                    if succeeded { dsaDecisionItem = nil }
+                    if succeeded { dsaDecisionItem = nil; selectedFeedback = nil }
                     return succeeded
                 }
                 .presentationDetents([.large])
             } else {
                 DsaDecisionSheet(item: item) { request in
                     let succeeded = await viewModel.decideDsaCase(request, item: item)
-                    if succeeded { dsaDecisionItem = nil }
+                    if succeeded { dsaDecisionItem = nil; selectedFeedback = nil }
                     return succeeded
                 }
                 .presentationDetents([.large])
@@ -787,6 +803,7 @@ struct FeedbackInboxView: View {
                             open(item, actorID: actorID)
                         } label: {
                             FeedbackInboxRow(item: item)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("feedbackInbox.open.\(item.id)")
@@ -941,7 +958,6 @@ struct FeedbackInboxView: View {
         return {
             let latest = currentFeedbackItem(for: item)
             if latest.dsaCase != nil {
-                selectedFeedback = nil
                 dsaDecisionItem = latest
             } else {
                 Task {
@@ -1045,16 +1061,12 @@ private struct FeedbackInboxRow: View {
                     .foregroundStyle(AppTheme.textSecondary)
                 }
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .padding(.top, 2)
             }
         }
     }
 }
 
-private struct FeedbackDetailSheet: View {
+private struct FeedbackDetailView: View {
     let item: FeedbackItem
     let messages: [FeedbackMessage]
     let isLoadingMessages: Bool
@@ -1069,9 +1081,10 @@ private struct FeedbackDetailSheet: View {
     let onSendReply: (String) async -> Bool
     let onStop: () -> Void
     let onClose: (() -> Void)?
+    var usesNavigationStack = true
 
     var body: some View {
-        FeedbackConversationSheet(
+        FeedbackConversationView(
             item: item,
             messages: messages,
             isLoadingMessages: isLoadingMessages,
@@ -1087,12 +1100,13 @@ private struct FeedbackDetailSheet: View {
             onSend: onSendReply,
             onStop: onStop,
             onClose: onClose,
-            onAppeal: nil
+            onAppeal: nil,
+            usesNavigationStack: usesNavigationStack
         )
     }
 }
 
-private struct FeedbackConversationSheet: View {
+private struct FeedbackConversationView: View {
     let item: FeedbackItem
     let messages: [FeedbackMessage]
     let isLoadingMessages: Bool
@@ -1109,6 +1123,7 @@ private struct FeedbackConversationSheet: View {
     let onStop: () -> Void
     let onClose: (() -> Void)?
     let onAppeal: ((String) async -> Bool)?
+    var usesNavigationStack = true
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -1118,8 +1133,16 @@ private struct FeedbackConversationSheet: View {
     @State private var appealText = ""
     @State private var appealValidationMessage: String?
 
+    @ViewBuilder
     var body: some View {
-        NavigationStack {
+        if usesNavigationStack {
+            NavigationStack { conversationContent }
+        } else {
+            conversationContent
+        }
+    }
+
+    private var conversationContent: some View {
             VStack(spacing: 0) {
                 ScrollViewReader { proxy in
                     ScrollView(.vertical, showsIndicators: true) {
@@ -1292,7 +1315,6 @@ private struct FeedbackConversationSheet: View {
             } message: {
                 Text(AppStrings.Feedback.closeConfirmationMessage)
             }
-        }
     }
 
     private var canAppeal: Bool {

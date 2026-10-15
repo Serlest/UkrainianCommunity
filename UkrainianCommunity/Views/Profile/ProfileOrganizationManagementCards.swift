@@ -534,9 +534,6 @@ struct OrganizationManagementRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
-                .foregroundStyle(AppTheme.textSecondary.opacity(isEnabled ? 0.75 : 0.35))
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)

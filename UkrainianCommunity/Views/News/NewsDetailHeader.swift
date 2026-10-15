@@ -419,9 +419,6 @@ extension NewsDetailView {
                         }
                     }
 
-                    Image(systemName: "chevron.right")
-                        .font(AppTheme.metadataStrongFont)
-                        .foregroundStyle(AppTheme.textSecondary)
                 }
                 .contentShape(Rectangle())
             }

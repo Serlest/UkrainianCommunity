@@ -351,7 +351,6 @@ private struct RecentViewRow: View {
             }
 
             Spacer(minLength: 0)
-            chevron
         }
     }
 
@@ -361,7 +360,6 @@ private struct RecentViewRow: View {
                 thumbnail
                 title
                 Spacer(minLength: 0)
-                chevron
             }
             subtitleText
             viewedAtLabel
@@ -404,9 +402,4 @@ private struct RecentViewRow: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var chevron: some View {
-        Image(systemName: "chevron.right")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.textSecondary)
-    }
 }

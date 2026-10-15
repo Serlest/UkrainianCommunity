@@ -364,9 +364,6 @@ private struct ActivityHistoryRow: View {
                 Spacer(minLength: 0)
 
                 if canOpenTarget {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
                 }
             }
         }

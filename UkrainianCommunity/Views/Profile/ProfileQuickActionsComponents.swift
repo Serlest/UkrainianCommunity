@@ -34,11 +34,6 @@ struct ProfileQuickActionCard: View {
                         .background(item.status.tint.opacity(0.10), in: Capsule())
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                         .frame(minWidth: 70)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .frame(width: 24, alignment: .trailing)
                 }
             }
 

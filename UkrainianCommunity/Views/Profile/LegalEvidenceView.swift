@@ -213,10 +213,6 @@ private struct LegalEvidenceAccountRow: View {
 
                 Spacer(minLength: 8)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .accessibilityHidden(true)
             }
             .contentShape(Rectangle())
         }

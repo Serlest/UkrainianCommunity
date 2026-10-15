@@ -121,10 +121,6 @@ struct DirectoryGuideCategoryView: View {
                     .font(.body.weight(.medium))
                     .foregroundStyle(AppTheme.textPrimary)
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .accessibilityHidden(true)
             }
             .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .padding(.horizontal, 16)
@@ -154,9 +150,6 @@ struct DirectoryGuideCategoryView: View {
                                     .font(.body.weight(.medium))
                                     .foregroundStyle(AppTheme.textPrimary)
                                 Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(AppTheme.textSecondary)
                             }
                             .frame(minHeight: AppTheme.minimumInteractiveTarget)
                             .padding(.horizontal, 16)

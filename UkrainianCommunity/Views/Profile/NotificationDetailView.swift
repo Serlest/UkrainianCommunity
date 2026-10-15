@@ -49,8 +49,6 @@ struct NotificationDetailView: View {
                 ProgressView().frame(maxWidth: .infinity)
             }
         }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
         .task(id: notification.id) {
             // Viewing is immediate even if the read receipt is waiting for a network.
             await viewModel.markRead(currentNotification)

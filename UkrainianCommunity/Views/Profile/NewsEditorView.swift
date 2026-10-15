@@ -308,12 +308,6 @@ struct NewsEditorView: View {
                 .foregroundStyle(AppTheme.textSecondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.76)
-
-            if showsChevron {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(AppTheme.textSecondary)
-            }
         }
         .padding(.horizontal, 12)
         .frame(height: detailRowHeight)

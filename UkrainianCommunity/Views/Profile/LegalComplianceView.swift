@@ -157,7 +157,7 @@ private struct LegalComplianceDocumentRow: View {
 
             Label(
                 isReviewed ? AppStrings.LegalCompliance.reviewComplete : AppStrings.LegalCompliance.readDocument,
-                systemImage: isReviewed ? "checkmark.circle.fill" : "chevron.right"
+                systemImage: isReviewed ? "checkmark.circle.fill" : "doc.text"
             )
                 .labelStyle(.iconOnly)
                 .font(.caption.weight(.semibold))

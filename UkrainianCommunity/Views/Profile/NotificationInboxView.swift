@@ -3,23 +3,27 @@ import SwiftUI
 struct NotificationInboxView: View {
     @ObservedObject var viewModel: NotificationInboxViewModel
     let onNotificationTap: (AppNotification) -> Void
+    let onClose: (() -> Void)?
     @State private var isShowingClearConfirmation = false
     @State private var selectedNotification: AppNotification?
     @State private var pendingDestination: AppNotification?
 
     init(
         viewModel: NotificationInboxViewModel,
-        onNotificationTap: @escaping (AppNotification) -> Void = { _ in }
+        onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
+        onClose: (() -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self.onNotificationTap = onNotificationTap
+        self.onClose = onClose
     }
 
     var body: some View {
         PushedScreenShell(
             title: AppStrings.NotificationInbox.title,
             subtitle: AppStrings.NotificationInbox.subtitle,
-            tabBarHidden: true
+            tabBarHidden: true,
+            backAction: onClose
         ) {
             if viewModel.isClearing {
                 ProgressView()
@@ -47,9 +51,15 @@ struct NotificationInboxView: View {
         .navigationTitle(AppStrings.NotificationInbox.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(item: $selectedNotification, onDismiss: openPendingDestination) { notification in
-            NotificationDetailView(notification: notification, viewModel: viewModel) { destination in
-                pendingDestination = destination
+        .navigationDestination(isPresented: Binding(
+            get: { selectedNotification != nil },
+            set: { if !$0 { selectedNotification = nil } }
+        )) {
+            if let notification = selectedNotification {
+                NotificationDetailView(notification: notification, viewModel: viewModel) { destination in
+                    pendingDestination = destination
+                }
+                .onDisappear(perform: openPendingDestination)
             }
         }
         .onChange(of: viewModel.sessionVersion) { _, _ in
@@ -169,8 +179,8 @@ struct NotificationInboxView: View {
     private func openPendingDestination() {
         guard let notification = pendingDestination else { return }
         pendingDestination = nil
-        // Wait for the detail sheet to finish dismissing before changing tabs
-        // or dismissing the inbox's own full-screen presentation.
+        // Route only after leaving the detail screen, retaining the inbox
+        // and its filter until a destination was explicitly requested.
         onNotificationTap(notification)
     }
 
@@ -200,7 +210,6 @@ private struct NotificationInboxRow: View {
                                 HStack {
                                     notificationIcon
                                     Spacer(minLength: 0)
-                                    disclosureIndicator
                                 }
                                 textContent
                             }
@@ -209,7 +218,6 @@ private struct NotificationInboxRow: View {
                                 notificationIcon
                                 textContent
                                 Spacer(minLength: 0)
-                                disclosureIndicator
                             }
                         }
                     }
@@ -296,11 +304,6 @@ private struct NotificationInboxRow: View {
         }
     }
 
-    private var disclosureIndicator: some View {
-        Image(systemName: "chevron.forward")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(AppTheme.textSecondary)
-    }
 
     @ViewBuilder
     private var severityLabel: some View {

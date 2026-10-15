@@ -354,30 +354,22 @@ struct ContentMetadataPill: View {
     }
 }
 
-enum AppNavigationRowAccessory {
-    case chevron
-    case none
-}
-
 struct AppNavigationRow: View {
     let title: String
     let subtitle: String?
     let systemImage: String
     let tint: Color
-    let accessory: AppNavigationRowAccessory
 
     init(
         title: String,
         subtitle: String? = nil,
         systemImage: String,
-        tint: Color = AppTheme.accentPrimaryForeground,
-        accessory: AppNavigationRowAccessory = .chevron
+        tint: Color = AppTheme.accentPrimaryForeground
     ) {
         self.title = title
         self.subtitle = subtitle
         self.systemImage = systemImage
         self.tint = tint
-        self.accessory = accessory
     }
 
     var body: some View {
@@ -403,13 +395,6 @@ struct AppNavigationRow: View {
             }
 
             Spacer(minLength: 12)
-
-            if accessory == .chevron {
-                Image(systemName: "chevron.right")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-                    .padding(.top, 2)
-            }
         }
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)

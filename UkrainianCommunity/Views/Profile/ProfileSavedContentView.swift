@@ -1002,9 +1002,6 @@ private struct SavedNewsCard: View {
 
                 Spacer(minLength: 0)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
     }
@@ -1045,9 +1042,6 @@ private struct SavedEventCard: View {
 
                 Spacer(minLength: 0)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
     }
@@ -1092,9 +1086,6 @@ private struct SavedOrganizationCard: View {
 
                 Spacer(minLength: 0)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
     }
@@ -1145,9 +1136,6 @@ struct ProfileOrganizationListCard: View {
 
                 Spacer(minLength: 0)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(AppTheme.textSecondary)
             }
         }
     }

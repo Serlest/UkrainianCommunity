@@ -47,12 +47,6 @@ struct SystemLogsOverviewCards: View {
                 }
 
                 Spacer(minLength: 0)
-
-                if onSelect != nil {
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
             }
         }
     }

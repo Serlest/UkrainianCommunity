@@ -69,9 +69,6 @@ struct DirectoryCategoryView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(AppTheme.textPrimary)
                             Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(AppTheme.textSecondary)
                         }
                         .padding(16)
                         .appGlassCard()

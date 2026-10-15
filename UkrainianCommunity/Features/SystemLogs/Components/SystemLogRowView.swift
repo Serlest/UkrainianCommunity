@@ -20,10 +20,6 @@ struct SystemLogRowView: View {
                     if isDeleting {
                         ProgressView()
                             .controlSize(.small)
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(AppTheme.textSecondary)
                     }
                 }
 

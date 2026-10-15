@@ -107,8 +107,6 @@ extension OrganizationDetailView {
     func highlightActionLabel(_ title: String) -> some View {
         HStack(spacing: 4) {
             Text(title)
-            Image(systemName: "chevron.right")
-                .font(AppTheme.badgeFont)
         }
         .font(AppTheme.metadataStrongFont)
         .foregroundStyle(AppTheme.accentPrimaryForeground)

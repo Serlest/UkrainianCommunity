@@ -47,7 +47,6 @@ struct ProfileModuleRow: View {
     let systemImage: String
     let tint: Color?
     let status: ProfileModuleStatus
-    let accessory: AppNavigationRowAccessory
     let countBadge: Int?
     let countState: OwnerVisibilityCountState?
 
@@ -57,7 +56,6 @@ struct ProfileModuleRow: View {
         systemImage: String,
         tint: Color? = nil,
         status: ProfileModuleStatus = .available,
-        accessory: AppNavigationRowAccessory = .chevron,
         countBadge: Int? = nil,
         countState: OwnerVisibilityCountState? = nil
     ) {
@@ -66,7 +64,6 @@ struct ProfileModuleRow: View {
         self.systemImage = systemImage
         self.tint = tint
         self.status = status
-        self.accessory = accessory
         self.countBadge = countBadge
         self.countState = countState
     }
@@ -77,8 +74,7 @@ struct ProfileModuleRow: View {
                 title: title,
                 subtitle: subtitle,
                 systemImage: systemImage,
-                tint: tint ?? status.tint,
-                accessory: status.title == nil && !status.isDisabled ? accessory : .none
+                tint: tint ?? status.tint
             )
 
             if let countState {

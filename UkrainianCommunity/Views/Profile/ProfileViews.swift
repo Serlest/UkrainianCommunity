@@ -1010,8 +1010,7 @@ struct ProfileView: View {
                     subtitle: AppStrings.Settings.sessionSubtitle,
                     systemImage: "rectangle.portrait.and.arrow.right",
                     tint: AppTheme.accentDestructiveForeground,
-                    status: .available,
-                    accessory: .none
+                    status: .available
                 )
                 .contentShape(Rectangle())
             }

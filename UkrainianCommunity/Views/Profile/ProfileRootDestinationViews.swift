@@ -147,8 +147,7 @@ struct ProfilePreferencesView: View {
                                 title: AppStrings.Auth.email,
                                 subtitle: currentUser.email,
                                 systemImage: "envelope",
-                                status: .available,
-                                accessory: .none
+                                status: .available
                             )
                             .accessibilityElement(children: .combine)
                         }
@@ -231,8 +230,7 @@ struct ProfilePreferencesView: View {
                             subtitle: AppStrings.Profile.deleteAccountSubtitle,
                             systemImage: "trash",
                             tint: AppTheme.accentDestructiveForeground,
-                            status: .available,
-                            accessory: .none
+                            status: .available
                         )
                         .contentShape(Rectangle())
                     }

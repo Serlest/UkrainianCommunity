@@ -369,8 +369,6 @@ struct OrganizationEditorView: View {
                             Text(AppStrings.legalVersionLabel(document.version))
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)
                         .contentShape(Rectangle())

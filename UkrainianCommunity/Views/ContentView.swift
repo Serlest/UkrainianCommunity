@@ -436,10 +436,13 @@ struct ContentView: View {
     private var presentedContent: some View {
         blockingPresentationContent
         .fullScreenCover(isPresented: $isShowingNotificationInbox) {
-            NotificationInboxView(
-                viewModel: notificationInboxViewModel,
-                onNotificationTap: handleNotificationTap
-            )
+            NavigationStack {
+                NotificationInboxView(
+                    viewModel: notificationInboxViewModel,
+                    onNotificationTap: handleNotificationTap,
+                    onClose: { isShowingNotificationInbox = false }
+                )
+            }
         }
         .sheet(item: $accountStatusMonitor.activeNotice) { notice in
             AccountStatusNoticeView(

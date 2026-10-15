@@ -25,10 +25,6 @@ struct DirectorySearchResultsView: View {
                             }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        Image(systemName: "chevron.right")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .accessibilityHidden(true)
                     }
                     .padding(14)
                     .appGlassCard()
