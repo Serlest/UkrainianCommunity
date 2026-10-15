@@ -10,9 +10,15 @@ const requiredSigning = [
 ];
 const missing = requiredSigning.filter((key) => !process.env[key]);
 if (missing.length) throw new Error(`Release signing configuration missing: ${missing.join(", ")}`);
+for (const key of ["UAC_PRODUCTION_APPLE_SIGN_IN_ENABLED", "UAC_PRODUCTION_PASSKEY_ENABLED"]) {
+  if (!["true", "false"].includes(process.env[key])) {
+    throw new Error(`Explicit release feature choice required: ${key}=true|false`);
+  }
+}
 
 const project = "ukrainiancommunity-dbd5f";
 const appId = "1:919042658790:android:c3e9447ac6f2a120ac4627";
+const packageName = "at.serlest.ukrainiancommunity";
 const firebaseKeys = [
   "UAC_PRODUCTION_FIREBASE_PROJECT_ID",
   "UAC_PRODUCTION_FIREBASE_APPLICATION_ID",
@@ -25,24 +31,38 @@ if (suppliedFirebaseKeys.length !== 0 && suppliedFirebaseKeys.length !== firebas
   throw new Error(`Production Firebase configuration incomplete: ${missingFirebaseKeys.join(", ")}`);
 }
 
-let firebaseConfig;
-if (suppliedFirebaseKeys.length === firebaseKeys.length) {
-  firebaseConfig = Object.fromEntries(firebaseKeys.map((key) => [key, process.env[key]]));
-} else {
-  const config = JSON.parse(
-    execFileSync("firebase", ["apps:sdkconfig", "ANDROID", appId, "--project", project], {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "inherit"],
-    }),
-  );
-  const client = config.client?.[0];
-  firebaseConfig = {
-    UAC_PRODUCTION_FIREBASE_PROJECT_ID: config.project_info?.project_id ?? "",
-    UAC_PRODUCTION_FIREBASE_APPLICATION_ID: client?.client_info?.mobilesdk_app_id ?? "",
-    UAC_PRODUCTION_FIREBASE_API_KEY: client?.api_key?.[0]?.current_key ?? "",
-    UAC_PRODUCTION_FIREBASE_BUCKET: config.project_info?.storage_bucket ?? "",
-  };
+const config = JSON.parse(
+  execFileSync("firebase", ["apps:sdkconfig", "ANDROID", appId, "--project", project], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "inherit"],
+  }),
+);
+const client = config.client?.[0];
+if (config.client?.length !== 1 ||
+    client?.client_info?.android_client_info?.package_name !== packageName) {
+  throw new Error("Production Firebase Android package does not match the Play app");
 }
+const firebaseConfig = {
+  UAC_PRODUCTION_FIREBASE_PROJECT_ID: config.project_info?.project_id ?? "",
+  UAC_PRODUCTION_FIREBASE_APPLICATION_ID: client.client_info?.mobilesdk_app_id ?? "",
+  UAC_PRODUCTION_FIREBASE_API_KEY: client.api_key?.[0]?.current_key ?? "",
+  UAC_PRODUCTION_FIREBASE_BUCKET: config.project_info?.storage_bucket ?? "",
+};
+for (const key of suppliedFirebaseKeys) {
+  if (process.env[key] !== firebaseConfig[key]) {
+    throw new Error(`Keychain production Firebase value does not match live config: ${key}`);
+  }
+}
+const webClients = client.oauth_client?.filter((entry) => entry.client_type === 3) ?? [];
+if (webClients.length !== 1 ||
+    !/^[0-9]+-[A-Za-z0-9_-]+\.apps\.googleusercontent\.com$/.test(webClients[0].client_id ?? "")) {
+  throw new Error("Production Firebase Android config must contain exactly one Google web OAuth client");
+}
+if (process.env.UAC_PRODUCTION_GOOGLE_WEB_CLIENT_ID &&
+    process.env.UAC_PRODUCTION_GOOGLE_WEB_CLIENT_ID !== webClients[0].client_id) {
+  throw new Error("Configured Google web client ID does not match production Firebase");
+}
+firebaseConfig.UAC_PRODUCTION_GOOGLE_WEB_CLIENT_ID = webClients[0].client_id;
 const env = {
   ...process.env,
   ...firebaseConfig,
