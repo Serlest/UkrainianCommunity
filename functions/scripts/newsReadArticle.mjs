@@ -12,6 +12,19 @@ export function articleBodyURL(value) {
   return url.href;
 }
 
+function officialNOEArticle(page, url) {
+  if (url.hostname !== "www.noe.gv.at") return null;
+  const start = /<div\b[^>]*class=["'][^"']*\bmain-cont\b[^"']*\bpressarticle\b[^"']*["'][^>]*>/i.exec(page);
+  if (!start) return null;
+  const offset = start.index + start[0].length;
+  let depth = 1;
+  for (const tag of page.slice(offset).matchAll(/<\/?div\b[^>]*>/gi)) {
+    depth += /^<\//.test(tag[0]) ? -1 : 1;
+    if (depth === 0) return page.slice(offset, offset + tag.index);
+  }
+  throw new Error("Official NÖ press article container is incomplete.");
+}
+
 export async function readNewsArticle(value, fetchImpl = fetch) {
   const url = new URL(value);
   if (url.protocol !== "https:" || url.username || url.password) throw new Error("A direct HTTPS article URL is required.");
@@ -24,10 +37,11 @@ export async function readNewsArticle(value, fetchImpl = fetch) {
     pages.push({url: response.url || requestURL, body});
   }
   const page = pages.at(-1).body;
-  const content = page.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i)?.[1] ??
+  const content = officialNOEArticle(page, url) ?? page.match(/<article\b[^>]*>([\s\S]*?)<\/article>/i)?.[1] ??
     page.match(/<main\b[^>]*>([\s\S]*?)<\/main>/i)?.[1] ?? page;
   const text = plainText(content);
-  const title = plainText(page.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ??
+  const title = plainText(content.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ??
+    page.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ??
     pages[0].body.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ?? "");
   const candidates = new Set();
   const accessRestricted = pages.some(({body}) => /"isAccessibleForFree"\s*:\s*(?:false|"false")/i.test(body));

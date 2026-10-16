@@ -74,3 +74,18 @@ test("direct reader exposes declared paid access without claiming an accessible 
   assert.equal(article.accessRestricted, true);
   assert.match(article.note, /false does not prove full text/);
 });
+
+test("NÖ press reader excludes long navigation before truncation and retains nested article body", async () => {
+  const page = '<nav><h1>Über NÖKI</h1>' + 'Navigation '.repeat(3000) + '</nav>' +
+    '<div class="col-xs-12 col-md-9 main-cont pressarticle"><div class="topbar"><div>16.10.2026</div></div>' +
+    '<h1>Neue Doppelturnhalle</h1><p>27 mal 30 Meter, sechs Millionen Euro.</p><div><p>Bis zu 30 Turnstunden.</p></div></div><footer>Kontakt</footer>';
+  const a = await readNewsArticle("https://www.noe.gv.at/noe/Turnhalle.html", async () => new Response(page));
+  assert.equal(a.textTruncated, false);
+  assert.equal(a.title, "Neue Doppelturnhalle");
+  assert.doesNotMatch(a.text, /Navigation|Kontakt/);
+  assert.match(a.text, /sechs Millionen Euro/);
+  assert.match(a.text, /Bis zu 30 Turnstunden/);
+  assert.deepEqual(a.dateCandidates, ["2026-10-16"]);
+  await assert.rejects(readNewsArticle("https://www.noe.gv.at/noe/Turnhalle.html", async () =>
+    new Response('<div class="main-cont pressarticle"><h1>Unvollständig</h1>')), /container is incomplete/);
+});
