@@ -6,13 +6,19 @@ import {join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 
 import {planUniqueSourceFetches} from "./newsScopeCoordination.mjs";
-import {extractORFFeedLinks, selectCoreOfficialArticles} from "./newsSourceEvidence.mjs";
+import {extractMediaFeedLinks, extractMediaListingLinks, extractORFFeedLinks, plainText, selectCoreOfficialArticles, viennaDate} from "./newsSourceEvidence.mjs";
 
 const maximumSourceBytes = 8_000_000;
 const maximumSourceLinks = 3_500;
 
 export function requestURLForSource(source, now = new Date()) {
   const url = new URL(source.url);
+  if (url.hostname === "www.sn.at" && url.pathname.replace(/\/$/, "") === "/salzburg/rss") {
+    return "https://www.sn.at/salzburg/rss/";
+  }
+  if (url.hostname === "www.bundeskanzleramt.gv.at" && url.pathname === "/bundeskanzleramt/nachrichten-der-bundesregierung.html") {
+    return `https://www.bundeskanzleramt.gv.at/bundeskanzleramt/nachrichten-der-bundesregierung/${viennaDate(now).slice(0, 4)}.html`;
+  }
   if (url.hostname === "www.wienerlinien.at" && url.pathname.replace(/\/$/, "") === "/news") {
     return "https://tramwm.wienerlinien.at/web/guest/news";
   }
@@ -44,20 +50,29 @@ async function boundedText(response) {
   } finally {
     reader.releaseLock();
   }
-  return new TextDecoder().decode(Buffer.concat(parts));
+  const bytes = Buffer.concat(parts);
+  const declared = response.headers.get("content-type")?.match(/charset=["']?([^;\s"']+)/i)?.[1] ??
+    bytes.subarray(0, 250).toString("ascii").match(/<\?xml[^>]*encoding=["']([^"']+)/i)?.[1] ?? "utf-8";
+  return new TextDecoder(declared).decode(bytes);
 }
 
 export function extractSourceLinks(html, baseURL) {
   const links = [];
-  const seen = new Set();
+  const seen = new Map();
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
     let url;
     try { url = new URL(match[1].replace(/&amp;/g, "&"), baseURL); } catch { continue; }
     if (!["http:", "https:"].includes(url.protocol)) continue;
     url.hash = "";
-    if (seen.has(url.href)) continue;
-    seen.add(url.href);
-    links.push({url: url.href, title: match[2].replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 240)});
+    const title = plainText(match[2]).slice(0, 240) || plainText(match[0].match(/\btitle=["']([^"']+)["']/i)?.[1] ?? "").slice(0, 240);
+    if (seen.has(url.href)) {
+      const existing = seen.get(url.href);
+      if (title.length > existing.title.length) existing.title = title;
+      continue;
+    }
+    const link = {url: url.href, title};
+    seen.set(url.href, link);
+    links.push(link);
     if (links.length === maximumSourceLinks) break;
   }
   return links;
@@ -142,12 +157,14 @@ export function extractOEBBLiveLinks(html, baseURL) {
 export async function inspectNewsSource(source, fetchImpl = fetch, now = new Date()) {
   const requestedURL = requestURLForSource(source, now);
   const checkedAt = now.toISOString();
+  let observedResponse;
   try {
     const response = await fetchImpl(requestedURL, {
       redirect: "follow",
       signal: AbortSignal.timeout(16_000),
       headers: {"user-agent": "UAC News source monitor"},
     });
+    observedResponse = response;
     const body = await boundedText(response);
     const botBlocked = response.ok && source.sourceId === "https://www.wienerlinien.at/news" &&
       /<title>\s*Radware Page\s*<\/title>/i.test(body);
@@ -158,6 +175,9 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
     if (response.ok && !botBlocked) {
       const host = new URL(requestedURL).hostname;
       links = host === "rss.orf.at" ? extractORFFeedLinks(body) :
+        source.editorialMode === "discovery" ? (
+          /<(?:rss|rdf:RDF|feed)\b/i.test(body) ? extractMediaFeedLinks(body, requestedURL) :
+            extractMediaListingLinks(body, requestedURL, extractSourceLinks(body, response.url || requestedURL))) :
         requestedURL === "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de"
           ? extractSalzburgTrafficLinks(body)
           : host === "presse-oebb.com" && new URL(requestedURL).pathname === "/News.aspx"
@@ -175,6 +195,8 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       recipients: source.recipients,
       editorialMode: source.editorialMode,
       discoveryOnly: source.editorialMode === "discovery",
+      primaryPolicy: source.primaryPolicy,
+      publisherGroup: source.publisherGroup,
       requestedURL,
       finalURL: response.url || requestedURL,
       checkedAt,
@@ -192,7 +214,8 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       recipients: source.recipients,
       requestedURL,
       checkedAt,
-      httpStatus: 0,
+      httpStatus: observedResponse?.status ?? 0,
+      finalURL: observedResponse?.url || requestedURL,
       links: [],
       error: error instanceof Error ? error.message : String(error),
     };

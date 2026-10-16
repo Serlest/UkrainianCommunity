@@ -39,32 +39,111 @@ export function calendarDateFromText(value) {
   return date && Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === date ? date : null;
 }
 
-export function extractORFFeedLinks(xml) {
-  if (!/<(?:rss|rdf:RDF)\b/i.test(xml)) throw new Error("invalid-orf-feed");
+export function extractMediaFeedLinks(xml, sourceURL, label = "media") {
+  if (!/<(?:rss|rdf:RDF|feed)\b/i.test(xml)) throw new Error(`invalid-${label}-feed`);
   const links = [];
   const seen = new Set();
+  const root = new URL(sourceURL).hostname.replace(/^www\./, "").replace(/^rss\./, "");
   const field = (item, tag) => item.match(new RegExp(`<${tag}\\b[^>]*>([\\s\\S]*?)<\\/${tag}>`, "i"))?.[1] ?? "";
-  for (const match of xml.matchAll(/<item\b[^>]*>([\s\S]*?)<\/item>/gi)) {
-    const item = match[1];
+  for (const match of xml.matchAll(/<(item|entry)\b[^>]*>([\s\S]*?)<\/\1>/gi)) {
+    const item = match[2];
     let url;
-    try { url = new URL(plainText(field(item, "link"))); } catch { continue; }
-    if (url.protocol !== "https:" || !(url.hostname === "orf.at" || url.hostname.endsWith(".orf.at")) ||
-        !/^\/stories\/\d+\/?$/.test(url.pathname)) continue;
+    const link = plainText(field(item, "link")) || item.match(/<link\b[^>]*href=["']([^"']+)["']/i)?.[1];
+    try { url = new URL(link); } catch { continue; }
+    if (url.protocol !== "https:" || !(url.hostname === root || url.hostname.endsWith(`.${root}`)) ||
+        url.pathname === "/") continue;
     if (seen.has(url.href)) continue;
     seen.add(url.href);
-    const date = new Date(plainText(field(item, "pubDate") || field(item, "dc:date")));
-    if (!Number.isFinite(date.getTime())) throw new Error("orf-article-date-missing");
+    const date = new Date(plainText(field(item, "pubDate") || field(item, "dc:date") || field(item, "published") || field(item, "updated")));
+    if (!Number.isFinite(date.getTime())) throw new Error(`${label}-article-date-missing`);
     links.push({url: url.href, title: plainText(field(item, "title")).slice(0, 240),
       description: plainText(field(item, "description")).slice(0, 700),
       discoveredPublishedAt: date.toISOString(), discoveredDate: viennaDate(date),
-      dateEvidence: "media_feed_only", requiresOfficialPrimary: true});
+      dateEvidence: "media_feed_only", requiresDirectArticleReview: true});
   }
-  if (!links.length) throw new Error("empty-or-changed-orf-feed");
+  if (!links.length) throw new Error(`empty-or-changed-${label}-feed`);
   return links;
+}
+
+export function extractORFFeedLinks(xml) {
+  return extractMediaFeedLinks(xml, "https://rss.orf.at/news.xml", "orf");
+}
+
+export function extractMediaListingLinks(html, sourceURL, anchorLinks) {
+  const host = new URL(sourceURL).hostname.replace(/^www\./, "");
+  const articles = new Map();
+  const add = (value) => {
+    let url;
+    try { url = new URL(value.url, sourceURL); } catch { return; }
+    if (url.protocol !== "https:" || url.hostname.replace(/^www\./, "") !== host || url.pathname === "/") return;
+    const date = value.datePublished ? new Date(value.datePublished) : null;
+    articles.set(url.href, {url: url.href, title: plainText(value.headline).slice(0, 240),
+      description: plainText(value.description ?? "").slice(0, 700),
+      discoveredPublishedAt: date && Number.isFinite(date.getTime()) ? date.toISOString() : null,
+      discoveredDate: date && Number.isFinite(date.getTime()) ? viennaDate(date) :
+        url.pathname.match(/\/(\d{4})\/(\d{2})\/(\d{2})\//)?.slice(1).join("-") ?? null,
+      dateEvidence: "media_listing_only", requiresDirectArticleReview: true});
+  };
+  const visit = (value) => {
+    if (!value || typeof value !== "object") return;
+    if (value.headline && value.url && ["NewsArticle", "Article"].includes(value["@type"])) add(value);
+    for (const child of Object.values(value)) if (typeof child === "object") {
+      if (Array.isArray(child)) child.forEach(visit); else visit(child);
+    }
+  };
+  for (const script of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)) {
+    try { visit(JSON.parse(script[1])); } catch { /* A different script may contain the article index. */ }
+  }
+  const pathPattern = host === "bvz.at" ? /^\/Nachrichten\/.+-\d+\.html$/ :
+    host === "vn.at" ? /^\/[^/]+\/\d{4}\/\d{2}\/\d{2}\/.+\.vn$/ :
+    host === "vol.at" ? /^\/.+\/\d{6,}\/?$/ : null;
+  if (pathPattern) for (const link of anchorLinks) {
+    if (pathPattern.test(new URL(link.url).pathname) && link.title.trim().length > 15 && !articles.has(link.url)) {
+      add({url: link.url, headline: link.title});
+    }
+  }
+  if (!articles.size) throw new Error("media-listing-article-extraction-empty");
+  return [...articles.values()];
 }
 
 export function selectCoreOfficialArticles(links, body, requestedURL, now) {
   const host = new URL(requestedURL).hostname;
+  const patterns = {
+    "presse.wien.gv.at": /^\/presse\/\d{4}\/\d{2}\/\d{2}\//,
+    "www.tirol.gv.at": /^\/presse\/meldungen\/meldung\/.+/,
+    "www.news.steiermark.at": /^\/cms\/beitrag\/\d+\//,
+    "presse.vorarlberg.at": /^\/land\/public\/.+/,
+    "www.land-oberoesterreich.gv.at": /^\/\d{6,}\.htm$/,
+    "www.burgenland.at": /^\/service\/medienservice\/aktuelle-meldungen\/detail\/.+/,
+    "www.verkehrsbetriebe-burgenland.at": /^\/news\/.+/,
+    "www.ooevv.at": /^\/de\/info-service\/news\/detail\/.+/,
+    "www.bundeskanzleramt.gv.at": /^\/bundeskanzleramt\/nachrichten-der-bundesregierung\/\d{4}\/.+\.html$/,
+  };
+  let selected = null;
+  if (patterns[host]) selected = links.filter(({url}) => {
+    const value = new URL(url);
+    return value.hostname === host && patterns[host].test(value.pathname);
+  });
+  if (host === "www.ktn.gv.at") selected = links.filter(({url}) => {
+    const value = new URL(url);
+    return value.hostname === host && value.pathname === "/Service/News" && /^\d+$/.test(value.searchParams.get("nid") ?? "");
+  });
+  if (host === "www.noe.gv.at") selected = links.filter(({url, title}) => {
+    const value = new URL(url); const leaf = value.pathname.split("/").at(-1);
+    return value.hostname === host && /^\/noe\/[^/]+\.html$/.test(value.pathname) &&
+      title.length > 20 && (leaf.includes("_") || leaf.length > 50);
+  });
+  if (host === "www.vor.at") selected = links.filter(({url}) => /^\/aktuelles\/news\/news\/[^/]+\/?$/.test(new URL(url).pathname));
+  if (host === "www.land-oberoesterreich.gv.at") {
+    const list = body.match(/<ol\b[^>]*class="ooeSearchResult"[^>]*>([\s\S]*?)<\/ol>/i)?.[1] ?? "";
+    const paths = new Set([...list.matchAll(/href=["']([^"']+)["']/g)].map((m) => new URL(m[1], requestedURL).href));
+    selected = selected.filter((x) => paths.has(x.url));
+  }
+  if (selected) {
+    if (!selected.length) throw new Error("official-listing-article-extraction-empty");
+    return selected.map((link) => ({...link,
+      discoveredDate: calendarDateFromText(link.title), dateEvidence: "official_listing_only"}));
+  }
   if (host === "www.bmf.gv.at") {
     const year = Number(viennaDate(now).slice(0, 4));
     return links.filter(({url}) => new RegExp(`/presse/pressemeldungen/(?:${year}|${year - 1})/[^/]+/[^/]+\\.html$`).test(new URL(url).pathname))

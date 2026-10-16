@@ -6,7 +6,7 @@ import {isAbsolute, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 
 import {canonicalizeURL} from "./contentPlanningBridgeSummary.mjs";
-import {NEWS_EDITORIAL_SOURCES} from "./newsEditorialSources.mjs";
+import {NEWS_EDITORIAL_SOURCES, editorialPublisherForURL} from "./newsEditorialSources.mjs";
 import {NEWS_SCOPES} from "./newsScopeCoordination.mjs";
 import {normalizeAndValidateManifestItem} from "./verifiedContentPublisherCore.mjs";
 
@@ -65,9 +65,11 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   if (item.kind !== "news") throw new Error("The news editorial gate accepts news only.");
   if (!isAbsolute(item.imagePath)) throw new Error("The generated news imagePath must be absolute.");
 
+  const evidenceMode = review.evidenceMode ?? "official";
+  if (!["official", "editorial"].includes(evidenceMode)) throw new Error("Unknown news evidenceMode.");
   const eventDate = officialDate(review.sourceEventDate);
   if (eventDate !== viennaDate(now)) {
-    throw new Error("sourceEventDate is not today's official news date in Europe/Vienna.");
+    throw new Error(`sourceEventDate is not today's ${evidenceMode === "official" ? "official" : "direct editorial article's"} news date in Europe/Vienna.`);
   }
   const eventAt = review.sourceEventAt == null ? null : exactTime(review.sourceEventAt, "sourceEventAt");
   if (eventAt && viennaDate(eventAt) !== eventDate) {
@@ -85,17 +87,30 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   recent(exactTime(review.independentCheckedAt, "independentCheckedAt"), now,
     maxSourceReviewAge, "independentCheckedAt");
   if (review.primaryOpened !== true || review.independentOpened !== true ||
-      review.primaryPageKind !== "article_or_notice" || review.officialAuthorityConfirmed !== true) {
-    throw new Error("Open the direct official article/notice and independent source before publication.");
+      review.primaryPageKind !== "article_or_notice") {
+    throw new Error("Open the direct primary article/notice and independent source before publication.");
   }
   if (canonicalizeURL(review.primaryURL) !== item.canonicalURL) {
-    throw new Error("Reviewed official primary URL must match the published direct source URL.");
+    throw new Error("Reviewed primary URL must match the published direct source URL.");
   }
-  const approvedAuthorityRoots = new Set(NEWS_EDITORIAL_SOURCES
-    .filter((source) => source.mode !== "discovery" && source.scopes.includes(review.scope))
-    .map((source) => authorityRoot(source.url)));
-  if (!approvedAuthorityRoots.has(authorityRoot(item.canonicalURL))) {
-    throw new Error("Official primary site is not in the approved source registry for this scope.");
+  const primary = item.sources.find((source) => source.isPrimary);
+  if (evidenceMode === "official") {
+    const approvedAuthorityRoots = new Set(NEWS_EDITORIAL_SOURCES
+      .filter((source) => source.mode !== "discovery" && source.scopes.includes(review.scope))
+      .map((source) => authorityRoot(source.url)));
+    if (review.officialAuthorityConfirmed !== true || primary.verificationRole !== "officialPrimary" ||
+        !approvedAuthorityRoots.has(authorityRoot(item.canonicalURL))) {
+      throw new Error("Official primary site is not in the approved source registry for this scope.");
+    }
+  } else {
+    const officialCategories = new Set(["lawAndDocuments", "benefitsAndSupport", "financeTaxesAndConsumerRights", "health", "safetyAndEmergencies"]);
+    if (primary.verificationRole !== "editorialPrimary" || !editorialPublisherForURL(item.canonicalURL, review.scope) ||
+        review.storyClass !== "public_interest" || review.primaryPublisherConfirmed !== true ||
+        review.primaryFullTextVerified !== true || review.paywallRestricted !== false ||
+        review.claimsRequireOfficialAuthority !== false || review.commonWireOriginExcluded !== true ||
+        [item.category, ...(item.additionalCategories ?? [])].some((category) => officialCategories.has(category))) {
+      throw new Error("Editorial news requires an approved opened full article, independent-origin confirmation and no claims requiring official authority.");
+    }
   }
   if (!item.sources.some((source) => source.verificationRole === "independent" &&
       canonicalizeURL(source.url) === canonicalizeURL(review.independentURL))) {
@@ -131,7 +146,7 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   }
   substantiveText(image.prompt, "image.prompt", 40);
   recent(exactTime(image.generatedAt, "image.generatedAt"), now, maxArticleAge, "image.generatedAt");
-  return {item, imageSHA256: image.sha256.toLowerCase(), sourceEventDate: eventDate,
+  return {item, evidenceMode, imageSHA256: image.sha256.toLowerCase(), sourceEventDate: eventDate,
     sourceEventAt: eventAt};
 }
 
@@ -141,13 +156,13 @@ export async function reviewNewsForPublication(manifestPath, reviewPath, now = n
   const rawItems = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [raw];
   if (rawItems.length !== 1) throw new Error("One news article is required per editorial review.");
   const review = JSON.parse(await readFile(reviewPath, "utf8"));
-  const {item, imageSHA256, sourceEventDate, sourceEventAt} =
+  const {item, evidenceMode, imageSHA256, sourceEventDate, sourceEventAt} =
     validateNewsEditorialReview(rawItems[0], review, now);
   const actualImageSHA256 = createHash("sha256").update(await readFile(item.imagePath)).digest("hex");
   if (actualImageSHA256 !== imageSHA256) throw new Error("Generated image hash does not match the reviewed cover.");
   return {
     schemaVersion: 2, passed: true, reviewedAt: now.toISOString(), scope: review.scope,
-    canonicalURL: item.canonicalURL, sourceEventDate,
+    canonicalURL: item.canonicalURL, sourceEventDate, evidenceMode,
     sourceEventAt: sourceEventAt?.toISOString() ?? null,
     publishedAt: item.publishedAt.toISOString(),
     manifestSHA256: createHash("sha256").update(manifestBytes).digest("hex"),

@@ -24,7 +24,7 @@ test("policy activation preserves terminal decisions and immutable old snapshots
     assert.equal((await updateNewsDiscoveryPolicy(root)).dryRun, true);
     assert.equal(JSON.parse(await readFile(join(root, "manifest.json"))).activeSourceCount, 1);
     const result = await updateNewsDiscoveryPolicy(root, {apply: true});
-    assert.equal(result.after, 16);
+    assert.equal(result.after, 53);
     const state = JSON.parse(await readFile(join(root, "scopes/wien.json")));
     assert.equal(state.candidateDecisions["https://example.at/old"].contentId, "kept");
     assert.equal(state.lastCandidateBatch.runId, "news-2026-10-16T09");

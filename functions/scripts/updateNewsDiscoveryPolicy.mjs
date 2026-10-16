@@ -21,7 +21,7 @@ export async function updateNewsDiscoveryPolicy(root, {apply = false} = {}) {
   await mkdir(scanLock);
   const held = [];
   try {
-    await writeFile(join(scanLock, "owner.json"), JSON.stringify({token, runId: "news-policy-v2-update", startedAt: new Date().toISOString()}));
+    await writeFile(join(scanLock, "owner.json"), JSON.stringify({token, runId: `news-policy-v${registry.editorialPolicyVersion}-update`, startedAt: new Date().toISOString()}));
     for (const scope of NEWS_SCOPES) {
       const path = join(root, "scopes", `${scope}.json.lock`);
       const lock = await open(path, "wx");

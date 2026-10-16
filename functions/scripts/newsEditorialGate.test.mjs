@@ -46,6 +46,29 @@ test("news editorial gate accepts a fresh verified bilingual package", () => {
   assert.equal(result.item.regionScope, "federalState");
 });
 
+test("regional reporting can use a verified newspaper primary with independent confirmation", () => {
+  const url = "https://www.tt.com/artikel/123/tiroler-regionalnachricht";
+  const item = {...manifest, federalState: "tirol", canonicalURL: url,
+    sources: [{url, title: "Tiroler Tageszeitung", isPrimary: true, verificationRole: "editorialPrimary"}, manifest.sources[1]]};
+  const checked = {...review, scope: "tirol", primaryURL: url, evidenceMode: "editorial",
+    storyClass: "public_interest", primaryPublisherConfirmed: true, primaryFullTextVerified: true,
+    paywallRestricted: false, claimsRequireOfficialAuthority: false, commonWireOriginExcluded: true,
+    image: {...review.image, generatedForURL: url}};
+  assert.equal(validateNewsEditorialReview(item, checked, now).evidenceMode, "editorial");
+  for (const field of ["primaryFullTextVerified", "primaryPublisherConfirmed", "commonWireOriginExcluded"]) {
+    assert.throws(() => validateNewsEditorialReview(item, {...checked, [field]: false}, now), /Editorial news/);
+  }
+  assert.throws(() => validateNewsEditorialReview(item, {...checked, paywallRestricted: true}, now), /Editorial news/);
+  assert.throws(() => validateNewsEditorialReview({...item, category: "health"}, checked, now), /Editorial news/);
+  assert.throws(() => validateNewsEditorialReview({...item, federalState: "wien"}, {...checked, scope: "wien"}, now), /primary source/);
+  const lead = "https://www.meinbezirk.at/tirol/c-lokales/beispiel_a123";
+  assert.throws(() => validateNewsEditorialReview({...item, canonicalURL: lead,
+    sources: [{...item.sources[0], url: lead}, item.sources[1]]}, {...checked, primaryURL: lead}, now), /primary source/);
+  const orf = "https://tirol.orf.at/stories/123/";
+  assert.throws(() => validateNewsEditorialReview({...item, canonicalURL: orf,
+    sources: [{...item.sources[0], url: orf}, item.sources[1]]}, {...checked, primaryURL: orf}, now), /publisher group/);
+});
+
 test("news editorial gate accepts today's official date without an invented source time", () => {
   const result = validateNewsEditorialReview(manifest,
     {...review, sourceEventAt: undefined}, now);

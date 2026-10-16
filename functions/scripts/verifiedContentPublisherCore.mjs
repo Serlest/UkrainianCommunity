@@ -1,4 +1,5 @@
 import {createHash} from "node:crypto";
+import {editorialPublisherForURL} from "./newsEditorialSources.mjs";
 
 import {
   buildContentPlanningSummary,
@@ -34,7 +35,7 @@ const eventCategories = new Set([
 const eventAudiences = new Set(["everyone", "families", "children", "teens", "adults", "seniors"]);
 const participationModes = new Set(["none", "inAppRegistration", "externalRegistration", "externalTickets"]);
 const verificationRoles = new Set([
-  "officialPrimary", "organizer", "venue", "municipalCalendar", "ticketing", "independent",
+  "officialPrimary", "editorialPrimary", "organizer", "venue", "municipalCalendar", "ticketing", "independent",
 ]);
 const semanticallyMutableFields = new Set([
   "createdAt", "updatedAt", "imageURL", "organizationName", "organizationImageURL",
@@ -143,7 +144,7 @@ export function normalizeAndValidateManifestItem(rawItem, targetValue) {
 
   const item = flattenManifestItem(rawItem);
   const kind = enumValue(item.kind, "kind", new Set(["news", "event"]));
-  const sources = validateSources(item.sources, kind);
+  const sources = validateSources(item.sources, kind, target);
   const primarySource = sources.find((source) => source.isPrimary);
   if (item.canonicalURL != null) {
     const providedCanonicalURL = canonicalizeURL(webURL(item.canonicalURL, "canonicalURL"));
@@ -899,7 +900,7 @@ function normalizeExternalAction(item, fallbackURL) {
   });
 }
 
-function validateSources(rawSources, kind) {
+function validateSources(rawSources, kind, target) {
   const minimumSources = kind === "event" ? 1 : 2;
   if (!Array.isArray(rawSources) || rawSources.length < minimumSources) {
     throw new Error(`Live ${kind} publication requires at least ${minimumSources} verified source${minimumSources === 1 ? "" : "s"}.`);
@@ -923,10 +924,12 @@ function validateSources(rawSources, kind) {
     throw new Error("sources must contain exactly one primary source.");
   }
   const primary = sources.find((source) => source.isPrimary);
-  if (primary.verificationRole !== "officialPrimary") {
+  if (primary.verificationRole !== "officialPrimary" &&
+      !(kind === "news" && primary.verificationRole === "editorialPrimary" &&
+        editorialPublisherForURL(primary.url, target.federalState ?? "austria"))) {
     throw new Error("The primary source must use verificationRole=officialPrimary.");
   }
-  if (sources.some((source) => !source.isPrimary && source.verificationRole === "officialPrimary")) {
+  if (sources.some((source) => !source.isPrimary && ["officialPrimary", "editorialPrimary"].includes(source.verificationRole))) {
     throw new Error("Only the primary source may use verificationRole=officialPrimary.");
   }
   const uniqueCanonicalURLs = new Set(sources.map((source) => canonicalizeURL(source.url)));
@@ -943,6 +946,12 @@ function validateSources(rawSources, kind) {
   const primaryHost = new URL(primary.url).hostname.toLowerCase();
   if (independent.some((source) => new URL(source.url).hostname.toLowerCase() === primaryHost)) {
     throw new Error(`The independent ${kind} source must be hosted on a different site.`);
+  }
+  if (primary.verificationRole === "editorialPrimary") {
+    const publisher = editorialPublisherForURL(primary.url);
+    if (independent.some((source) => editorialPublisherForURL(source.url)?.publisherGroup === publisher.publisherGroup)) {
+      throw new Error("Editorial news needs confirmation outside the primary publisher group.");
+    }
   }
   return sources;
 }

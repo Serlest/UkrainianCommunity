@@ -3,7 +3,7 @@
 export const NEWS_EDITORIAL_RULES = Object.freeze({
   maxArticleAgeHours: 24,
   required: ["direct_original_url", "published_at", "practical_effect", "original_uk_text", "original_de_text", "generated_relevant_image"],
-  include: ["public_services", "residence_and_integration", "work_and_benefits", "health_and_safety", "education", "public_transport", "major_disruptions", "verified_earthquakes"],
+  include: ["public_services", "residence_and_integration", "work_and_benefits", "health_and_safety", "education", "public_transport", "regional_economy", "housing", "infrastructure", "community_changes", "major_disruptions", "verified_earthquakes"],
   exclude: ["party_opinions", "political_conflict", "crime_reports", "murders", "war_without_direct_austrian_service_impact", "promotions", "events", "undated_pages"],
   rejectedCandidateDisposition: "reject_without_publication_or_editorial_queue",
 });
@@ -69,23 +69,14 @@ const officialSources = [
   {url: "https://www.verkehrsbetriebe-burgenland.at/ueber-uns/aktuelles", scopes: ["burgenland"], mode: "scan", topics: ["regional_transport"]},
 ];
 
-// A small, high-signal discovery core. Public-service sites remain approved for
-// targeted primary verification; they are not all polled on every hourly scan.
-const coreOfficialURLs = new Set([
-  "https://www.ams.at/arbeitsmarktdaten-und-medien/medien/news",
-  "https://www.ages.at/mensch/produktwarnungen-produktrueckrufe",
-  "https://www.bmf.gv.at/presse/pressemeldungen.html",
-  "https://www.integrationsfonds.at/der-oeif/neuigkeiten/",
-  "https://presse-oebb.com/News.aspx?l=deutsch&menueid=27022",
-  "https://www.unsereoebb.at/de/verkehrsmeldungen",
-]);
+// Regional coverage is driven by verified source usefulness, not a site-count cap.
 const mediaFeeds = [
   ["news", "austria"], ["wien", "wien"], ["noe", "niederoesterreich"],
   ["ooe", "oberoesterreich"], ["salzburg", "salzburg"], ["tirol", "tirol"],
   ["vorarlberg", "vorarlberg"], ["steiermark", "steiermark"],
   ["kaernten", "kaernten"], ["burgenland", "burgenland"],
 ].map(([feed, scope]) => ({url: `https://rss.orf.at/${feed}.xml`, scopes: [scope],
-  mode: "discovery", topics: ["public_interest_leads"]}));
+  mode: "discovery", primaryPolicy: "editorial", publisherGroup: "orf", topics: ["public_interest_leads"]}));
 
 // These authorities are visited only when a specific lead needs their primary
 // article. Their home pages are never counted as current news or scanned feeds.
@@ -110,10 +101,42 @@ const targetedAuthorities = [
     .map(([host, scope]) => [`https://${host}.arbeiterkammer.at/`, scope]),
 ].map(([url, scope]) => ({url, scopes: [scope], mode: "adapter", topics: ["targeted_primary_verification"]}));
 
+const regionalMedia = [
+  ["https://www.tt.com/rss/tirol.xml", "tirol", "tiroler_tageszeitung"],
+  ["https://www.kleinezeitung.at/rss/steiermark", "steiermark", "styria"],
+  ["https://www.kleinezeitung.at/rss/kaernten", "kaernten", "styria"],
+  ["https://www.nachrichten.at/storage/rss/rss/oberoesterreich.xml", "oberoesterreich", "wimmer"],
+  ["https://www.noen.at/", "niederoesterreich", "noe_pressehaus"],
+  ["https://www.bvz.at/", "burgenland", "noe_pressehaus"],
+  ["https://www.sn.at/salzburg/rss/", "salzburg", "salzburger_nachrichten"],
+  ["https://www.vn.at/", "vorarlberg", "russmedia"],
+  ["https://www.vol.at/", "vorarlberg", "russmedia"],
+  ["https://kurier.at/chronik/wien/xml/rss", "wien", "kurier"],
+  ["https://www.derstandard.at/rss", "austria", "derstandard"],
+].map(([url, scope, publisherGroup]) => ({url, scopes: [scope], mode: "discovery",
+  primaryPolicy: "editorial", publisherGroup, topics: ["regional_public_interest"]}));
+const localDiscovery = states.map((scope) => ({url: `https://www.meinbezirk.at/${scope}/rss`,
+  scopes: [scope], mode: "discovery", primaryPolicy: "lead_only", publisherGroup: "regionalmedien",
+  topics: ["local_leads"], note: "Community contributions require named-source verification; not an approved editorial primary."}));
+
 export const NEWS_EDITORIAL_SOURCES = Object.freeze([
-  ...officialSources.map((source) => ({...source,
-    mode: source.mode === "scan" && !coreOfficialURLs.has(source.url) ? "adapter" : source.mode})),
+  ...officialSources.map((source) => source.url === "https://www.vor.at/aktuelles/news/verkehrsmeldungen" ||
+      source.url === "https://www.salzburg.gv.at/kommunikation" ?
+    {...source, mode: "adapter", note: source.url.includes("vor.at") ?
+      "Verified operator-reference hub, not a dated live incident feed." :
+      "Listing exposes navigation; official LKORR body search requires a working adapter. Targeted verification remains available."} : source),
   ...targetedAuthorities,
   ...mediaFeeds,
+  ...regionalMedia,
+  ...localDiscovery,
 ]);
-export const NEWS_DISCOVERY_POLICY_VERSION = 2;
+export const NEWS_DISCOVERY_POLICY_VERSION = 3;
+
+export function editorialPublisherForURL(value, scope) {
+  const host = new URL(value).hostname.replace(/^www\./, "");
+  return NEWS_EDITORIAL_SOURCES.find((source) => {
+    if (source.primaryPolicy !== "editorial" || (scope && !source.scopes.includes(scope))) return false;
+    const registered = new URL(source.url).hostname.replace(/^www\./, "").replace(/^rss\./, "");
+    return host === registered || host.endsWith(`.${registered}`);
+  }) ?? null;
+}

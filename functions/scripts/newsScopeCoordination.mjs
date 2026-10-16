@@ -122,8 +122,8 @@ export function planUniqueSourceFetches(registry, requestedScopes = NEWS_SCOPES)
   }
   return registry.sources
     .filter((source) => source.active && source.scopes.some((scope) => wanted.has(scope)))
-    .map(({sourceId, url, type, scopes, editorialMode, topics}) => ({
-      sourceId, url, type, editorialMode, topics,
+    .map(({sourceId, url, type, scopes, editorialMode, topics, primaryPolicy, publisherGroup}) => ({
+      sourceId, url, type, editorialMode, topics, primaryPolicy, publisherGroup,
       recipients: scopes.filter((scope) => wanted.has(scope)),
     }));
 }
@@ -146,13 +146,15 @@ export function applyNewsEditorialSources(registry, entries = NEWS_EDITORIAL_SOU
     if (entry) byURL.delete(entry.url);
     return entry ? {...source, scopes: [...entry.scopes], active: ["scan", "discovery"].includes(entry.mode),
       type: entry.mode === "discovery" ? "media" : source.type,
+      primaryPolicy: entry.primaryPolicy, publisherGroup: entry.publisherGroup, note: entry.note,
       editorialMode: entry.mode, topics: [...entry.topics]} :
       {...source, active: false, editorialMode: "excluded", topics: []};
   });
   for (const entry of byURL.values()) {
     sources.push({sourceId: entry.url, url: entry.url, type: entry.mode === "discovery" ? "media" : "official",
       scopes: [...entry.scopes], legacyIds: [], active: ["scan", "discovery"].includes(entry.mode),
-      editorialMode: entry.mode, topics: [...entry.topics]});
+      editorialMode: entry.mode, topics: [...entry.topics], primaryPolicy: entry.primaryPolicy,
+      publisherGroup: entry.publisherGroup, note: entry.note});
   }
   sources.sort((a, b) => a.sourceId.localeCompare(b.sourceId));
   return {...registry, editorialPolicyVersion: NEWS_DISCOVERY_POLICY_VERSION, sources};

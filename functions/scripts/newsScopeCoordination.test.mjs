@@ -205,7 +205,7 @@ test("a source article after a long navigation menu is retained", () => {
   assert.equal(links.at(-1).url, "https://example.gv.at/presse/meldung/heute");
 });
 
-test("compact discovery core keeps official sources on demand and regional ORF feeds separate", () => {
+test("regional discovery restores usable official listings and adds newspapers without a site-count cap", () => {
   const oldAMS = "https://www.ams.at/regionen/wien/news.html";
   const {registry} = buildNewsScopeLayout({sourceProgress: {
     oldAMS: {url: oldAMS, type: "official", scopes: ["wien"]},
@@ -218,11 +218,13 @@ test("compact discovery core keeps official sources on demand and regional ORF f
     "https://www.unsereoebb.at/de/verkehrsmeldungen").recipients,
     ["wien", "niederoesterreich", "oberoesterreich", "salzburg", "tirol",
       "vorarlberg", "steiermark", "kaernten", "burgenland", "austria"]);
-  assert.equal(plan.length, 16);
-  assert.equal(plan.some((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html"), false);
-  assert.equal(curated.sources.find((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html").editorialMode, "adapter");
+  assert.equal(plan.length, 53);
+  assert.equal(plan.some((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html"), true);
+  assert.equal(curated.sources.find((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html").editorialMode, "scan");
   assert.deepEqual(plan.find((source) => source.url === "https://rss.orf.at/noe.xml").recipients, ["niederoesterreich"]);
   assert.equal(plan.find((source) => source.url === "https://rss.orf.at/noe.xml").type, "media");
+  assert.equal(plan.find((source) => source.url === "https://www.tt.com/rss/tirol.xml").primaryPolicy, "editorial");
+  assert.equal(plan.find((source) => source.url === "https://www.meinbezirk.at/tirol/rss").primaryPolicy, "lead_only");
   assert.equal(plan.some((source) => source.url === "https://www.vmobil.at/de"), false);
 });
 
