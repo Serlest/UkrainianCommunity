@@ -6,6 +6,7 @@ import {join, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 
 import {planUniqueSourceFetches} from "./newsScopeCoordination.mjs";
+import {extractORFFeedLinks, selectCoreOfficialArticles} from "./newsSourceEvidence.mjs";
 
 const maximumSourceBytes = 8_000_000;
 const maximumSourceLinks = 3_500;
@@ -153,9 +154,27 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
     const text = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
       .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
       .replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    let links = [];
+    if (response.ok && !botBlocked) {
+      const host = new URL(requestedURL).hostname;
+      links = host === "rss.orf.at" ? extractORFFeedLinks(body) :
+        requestedURL === "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de"
+          ? extractSalzburgTrafficLinks(body)
+          : host === "presse-oebb.com" && new URL(requestedURL).pathname === "/News.aspx"
+          ? extractOEBBTrafficLinks(body, response.url || requestedURL)
+          : host === "www.unsereoebb.at" && new URL(requestedURL).pathname === "/de/verkehrsmeldungen"
+          ? extractOEBBLiveLinks(body, response.url || requestedURL)
+          : host === "www.ams.at" ? extractAMSNewsLinks(body, response.url || requestedURL, now)
+          : selectCoreOfficialArticles(extractSourceLinks(body, response.url || requestedURL), body, requestedURL, now);
+      if (!links.length && ["www.ages.at", "www.bmf.gv.at", "www.integrationsfonds.at"].includes(host)) {
+        throw new Error("source-article-extraction-empty");
+      }
+    }
     return {
       sourceId: source.sourceId,
       recipients: source.recipients,
+      editorialMode: source.editorialMode,
+      discoveryOnly: source.editorialMode === "discovery",
       requestedURL,
       finalURL: response.url || requestedURL,
       checkedAt,
@@ -164,19 +183,7 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       etag: response.headers.get("etag"),
       lastModified: response.headers.get("last-modified"),
       contentHash: createHash("sha256").update(text).digest("hex"),
-      links: response.ok && !botBlocked ? (
-        requestedURL === "https://salzburg-verkehr.at/wp-json/mccom/v1/traffic/de"
-          ? extractSalzburgTrafficLinks(body)
-          : new URL(requestedURL).hostname === "presse-oebb.com" &&
-            new URL(requestedURL).pathname === "/News.aspx"
-          ? extractOEBBTrafficLinks(body, response.url || requestedURL)
-          : new URL(requestedURL).hostname === "www.unsereoebb.at" &&
-            new URL(requestedURL).pathname === "/de/verkehrsmeldungen"
-          ? extractOEBBLiveLinks(body, response.url || requestedURL)
-          : new URL(requestedURL).hostname === "www.ams.at"
-          ? extractAMSNewsLinks(body, response.url || requestedURL, now)
-          : extractSourceLinks(body, response.url || requestedURL)
-      ) : [],
+      links,
       error: botBlocked ? "source-bot-protection-page" : response.ok ? null : `http-${response.status}`,
     };
   } catch (error) {
@@ -230,7 +237,9 @@ export async function runNewsSharedScan(outputRoot, runId, {fetchImpl = fetch, n
         throw new Error(`Missing shared source state: ${source.sourceId}`);
       }
     }
-    const results = await scanNewsSources(registry, {fetchImpl, now});
+    const results = (await scanNewsSources(registry, {fetchImpl, now})).map((row) => ({
+      ...row, sourcePolicyVersion: registry.editorialPolicyVersion ?? 1,
+    }));
     await mkdir(snapshots, {recursive: true});
     const temporary = join(snapshots, `.${runId}.${token}.tmp`);
     try {

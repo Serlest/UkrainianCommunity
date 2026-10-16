@@ -92,7 +92,7 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
     throw new Error("Reviewed official primary URL must match the published direct source URL.");
   }
   const approvedAuthorityRoots = new Set(NEWS_EDITORIAL_SOURCES
-    .filter((source) => source.scopes.includes(review.scope))
+    .filter((source) => source.mode !== "discovery" && source.scopes.includes(review.scope))
     .map((source) => authorityRoot(source.url)));
   if (!approvedAuthorityRoots.has(authorityRoot(item.canonicalURL))) {
     throw new Error("Official primary site is not in the approved source registry for this scope.");
@@ -104,7 +104,13 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   substantiveText(review.practicalEffect, "practicalEffect", 40);
   substantiveText(review.territoryEvidence, "territoryEvidence", 30);
   substantiveText(review.affectedPeople, "affectedPeople", 20);
-  substantiveText(review.readerAction, "readerAction", 20);
+  // An announced service/capacity change can matter before applications open.
+  // Require concrete relevance instead of inventing an immediate reader task.
+  if (typeof review.readerAction === "string" && review.readerAction.trim().length >= 20) {
+    substantiveText(review.readerAction, "readerAction", 20);
+  } else {
+    substantiveText(review.readerRelevance, "readerRelevance", 40);
+  }
   if (review.ukDeFactParityConfirmed !== true || review.originalTextConfirmed !== true ||
       review.excludedTopicsAbsent !== true) {
     throw new Error("Both original language versions need checked fact parity and editorial relevance.");

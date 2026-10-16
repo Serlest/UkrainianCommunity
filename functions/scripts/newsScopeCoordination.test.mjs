@@ -11,6 +11,7 @@ import {
   planUniqueSourceFetches,
   prepareNewsScopeLayout,
   routeNewsCandidate,
+  mergeTodayDiscovery,
 } from "./newsScopeCoordination.mjs";
 import {extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
@@ -204,7 +205,7 @@ test("a source article after a long navigation menu is retained", () => {
   assert.equal(links.at(-1).url, "https://example.gv.at/presse/meldung/heute");
 });
 
-test("editorial policy replaces stale AMS regional feeds and shares official national sources", () => {
+test("compact discovery core keeps official sources on demand and regional ORF feeds separate", () => {
   const oldAMS = "https://www.ams.at/regionen/wien/news.html";
   const {registry} = buildNewsScopeLayout({sourceProgress: {
     oldAMS: {url: oldAMS, type: "official", scopes: ["wien"]},
@@ -214,9 +215,24 @@ test("editorial policy replaces stale AMS regional feeds and shares official nat
   const plan = planUniqueSourceFetches(curated);
   assert.equal(plan.some((source) => source.url === oldAMS), false);
   assert.deepEqual(plan.find((source) => source.url ===
-    "https://www.oebb.at/de/fahrplan/baustelleninformation").recipients,
+    "https://www.unsereoebb.at/de/verkehrsmeldungen").recipients,
     ["wien", "niederoesterreich", "oberoesterreich", "salzburg", "tirol",
       "vorarlberg", "steiermark", "kaernten", "burgenland", "austria"]);
-  assert.equal(plan.some((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html"), true);
+  assert.equal(plan.length, 16);
+  assert.equal(plan.some((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html"), false);
+  assert.equal(curated.sources.find((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html").editorialMode, "adapter");
+  assert.deepEqual(plan.find((source) => source.url === "https://rss.orf.at/noe.xml").recipients, ["niederoesterreich"]);
+  assert.equal(plan.find((source) => source.url === "https://rss.orf.at/noe.xml").type, "media");
   assert.equal(plan.some((source) => source.url === "https://www.vmobil.at/de"), false);
+});
+
+test("today's union preserves a rolled-off lead and does not mask a current source error", () => {
+  const sourceId = "https://rss.orf.at/tirol.xml";
+  const previous = [{sourceId, checkedAt: "2026-10-15T22:15:00Z", links: [{url: "https://tirol.orf.at/stories/1/", title: "First"}]},
+    {sourceId, checkedAt: "2026-10-15T20:15:00Z", links: [{url: "https://tirol.orf.at/stories/2/", title: "Yesterday"}]}];
+  const current = [{sourceId, checkedAt: "2026-10-16T07:00:00Z", error: "fetch failed", links: []}];
+  const [row] = mergeTodayDiscovery(current, [previous], "2026-10-16");
+  assert.equal(row.error, "fetch failed");
+  assert.deepEqual(row.links.map((x) => x.title), ["First"]);
+  assert.equal(row.links[0].lastSeenAt, "2026-10-15T22:15:00Z");
 });

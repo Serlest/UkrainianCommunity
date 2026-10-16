@@ -53,7 +53,7 @@ export async function stageNewsEditorialSources(root, {write = false} = {}) {
   Object.assign(manifest, {sourceCount: registry.sources.length,
     activeSourceCount: active.length,
     sharedSourceCount: active.filter((source) => source.scopes.length > 1).length,
-    editorialPolicyVersion: 1});
+    editorialPolicyVersion: registry.editorialPolicyVersion});
   await writeJSON(registryPath, registry);
   await writeJSON(sharedPath, shared);
   for (const scope of NEWS_SCOPES) await writeJSON(join(root, "scopes", `${scope}.json`), scopes[scope]);

@@ -54,6 +54,14 @@ test("news editorial gate accepts today's official date without an invented sour
   assert.equal(result.item.publishedAt.toISOString(), "2026-10-12T10:55:00.000Z");
 });
 
+test("a verified future service change needs concrete relevance but no invented immediate application step", () => {
+  const relevant = {...review, readerAction: undefined,
+    readerRelevance: "Сім’ї в регіоні отримають більше місць для домашньої психіатричної допомоги дітям у наступному році."};
+  assert.equal(validateNewsEditorialReview(manifest, relevant, now).item.regionScope, "federalState");
+  assert.throws(() => validateNewsEditorialReview(manifest,
+    {...review, readerAction: undefined, readerRelevance: "Важливо"}, now), /readerRelevance/);
+});
+
 test("today is determined in Europe/Vienna, including after UTC midnight offset", () => {
   const viennaAfterMidnight = new Date("2026-10-12T22:30:00Z");
   const item = {...manifest, publishedAt: "2026-10-12T22:25:00Z"};

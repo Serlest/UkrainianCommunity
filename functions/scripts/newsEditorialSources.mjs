@@ -17,7 +17,7 @@ const vor = ["wien", "niederoesterreich", "burgenland"];
 // adapter: official, useful, but its current listing/format needs a dedicated
 // extractor or a human check before it can enter automated discovery.
 // reference: official background only; never treat a static page as new news.
-export const NEWS_EDITORIAL_SOURCES = Object.freeze([
+const officialSources = [
   {url: "https://www.ams.at/arbeitsmarktdaten-und-medien/medien/news", scopes: all, mode: "scan", topics: ["work", "benefits"]},
   {url: "https://www.oebb.at/de/fahrplan/baustelleninformation", scopes: all, mode: "scan", topics: ["rail_planned_works"]},
   {url: "https://presse.oebb.at/de/", scopes: all, mode: "adapter", topics: ["rail_service"]},
@@ -67,4 +67,53 @@ export const NEWS_EDITORIAL_SOURCES = Object.freeze([
 
   {url: "https://www.burgenland.at/service/medienservice/aktuelle-meldungen/", scopes: ["burgenland"], mode: "scan", topics: ["state_services"]},
   {url: "https://www.verkehrsbetriebe-burgenland.at/ueber-uns/aktuelles", scopes: ["burgenland"], mode: "scan", topics: ["regional_transport"]},
+];
+
+// A small, high-signal discovery core. Public-service sites remain approved for
+// targeted primary verification; they are not all polled on every hourly scan.
+const coreOfficialURLs = new Set([
+  "https://www.ams.at/arbeitsmarktdaten-und-medien/medien/news",
+  "https://www.ages.at/mensch/produktwarnungen-produktrueckrufe",
+  "https://www.bmf.gv.at/presse/pressemeldungen.html",
+  "https://www.integrationsfonds.at/der-oeif/neuigkeiten/",
+  "https://presse-oebb.com/News.aspx?l=deutsch&menueid=27022",
+  "https://www.unsereoebb.at/de/verkehrsmeldungen",
 ]);
+const mediaFeeds = [
+  ["news", "austria"], ["wien", "wien"], ["noe", "niederoesterreich"],
+  ["ooe", "oberoesterreich"], ["salzburg", "salzburg"], ["tirol", "tirol"],
+  ["vorarlberg", "vorarlberg"], ["steiermark", "steiermark"],
+  ["kaernten", "kaernten"], ["burgenland", "burgenland"],
+].map(([feed, scope]) => ({url: `https://rss.orf.at/${feed}.xml`, scopes: [scope],
+  mode: "discovery", topics: ["public_interest_leads"]}));
+
+// These authorities are visited only when a specific lead needs their primary
+// article. Their home pages are never counted as current news or scanned feeds.
+const targetedAuthorities = [
+  ["https://www.bmi.gv.at/news.html", "austria"],
+  ["https://www.bmb.gv.at/", "austria"],
+  ["https://www.sozialministerium.gv.at/", "austria"],
+  ["https://www.gesundheit.gv.at/news/aktuelles.html", "austria"],
+  ["https://www.bbu.gv.at/", "austria"],
+  ["https://austria.mfa.gov.ua/", "austria"],
+  ["https://www.linz.at/medienservice/", "oberoesterreich"],
+  ["https://www.st-poelten.at/", "niederoesterreich"],
+  ["https://www.stadt-salzburg.at/", "salzburg"],
+  ["https://www.innsbruck.gv.at/", "tirol"],
+  ["https://www.bregenz.gv.at/", "vorarlberg"],
+  ["https://www.graz.at/", "steiermark"],
+  ["https://www.klagenfurt.at/", "kaernten"],
+  ["https://www.eisenstadt.gv.at/", "burgenland"],
+  ...[["wien", "wien"], ["noe", "niederoesterreich"], ["ooe", "oberoesterreich"],
+    ["sbg", "salzburg"], ["tirol", "tirol"], ["vbg", "vorarlberg"],
+    ["stmk", "steiermark"], ["kaernten", "kaernten"], ["bgld", "burgenland"]]
+    .map(([host, scope]) => [`https://${host}.arbeiterkammer.at/`, scope]),
+].map(([url, scope]) => ({url, scopes: [scope], mode: "adapter", topics: ["targeted_primary_verification"]}));
+
+export const NEWS_EDITORIAL_SOURCES = Object.freeze([
+  ...officialSources.map((source) => ({...source,
+    mode: source.mode === "scan" && !coreOfficialURLs.has(source.url) ? "adapter" : source.mode})),
+  ...targetedAuthorities,
+  ...mediaFeeds,
+]);
+export const NEWS_DISCOVERY_POLICY_VERSION = 2;

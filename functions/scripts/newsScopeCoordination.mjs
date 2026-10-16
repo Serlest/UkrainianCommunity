@@ -1,7 +1,8 @@
 import {mkdir, readFile, rename, rm, writeFile} from "node:fs/promises";
 import {dirname, join} from "node:path";
 import {randomUUID} from "node:crypto";
-import {NEWS_EDITORIAL_SOURCES} from "./newsEditorialSources.mjs";
+import {NEWS_DISCOVERY_POLICY_VERSION, NEWS_EDITORIAL_SOURCES} from "./newsEditorialSources.mjs";
+import {viennaDate} from "./newsSourceEvidence.mjs";
 
 export const NEWS_SCOPES = Object.freeze([
   "wien", "niederoesterreich", "oberoesterreich", "salzburg", "tirol",
@@ -121,8 +122,9 @@ export function planUniqueSourceFetches(registry, requestedScopes = NEWS_SCOPES)
   }
   return registry.sources
     .filter((source) => source.active && source.scopes.some((scope) => wanted.has(scope)))
-    .map(({sourceId, url, type, scopes}) => ({
-      sourceId, url, type, recipients: scopes.filter((scope) => wanted.has(scope)),
+    .map(({sourceId, url, type, scopes, editorialMode, topics}) => ({
+      sourceId, url, type, editorialMode, topics,
+      recipients: scopes.filter((scope) => wanted.has(scope)),
     }));
 }
 
@@ -131,7 +133,7 @@ export function applyNewsEditorialSources(registry, entries = NEWS_EDITORIAL_SOU
   for (const entry of entries) {
     const identity = canonicalNewsURL(entry.url);
     if (byURL.has(identity)) throw new Error(`Duplicate editorial source: ${identity}`);
-    if (!new Set(["scan", "adapter", "reference"]).has(entry.mode)) {
+    if (!new Set(["scan", "discovery", "adapter", "reference"]).has(entry.mode)) {
       throw new Error(`Unknown editorial source mode: ${entry.mode}`);
     }
     if (!entry.scopes.length || entry.scopes.some((scope) => !scopeSet.has(scope))) {
@@ -142,17 +144,18 @@ export function applyNewsEditorialSources(registry, entries = NEWS_EDITORIAL_SOU
   const sources = registry.sources.map((source) => {
     const entry = byURL.get(canonicalNewsURL(source.url));
     if (entry) byURL.delete(entry.url);
-    return entry ? {...source, scopes: [...entry.scopes], active: entry.mode === "scan",
+    return entry ? {...source, scopes: [...entry.scopes], active: ["scan", "discovery"].includes(entry.mode),
+      type: entry.mode === "discovery" ? "media" : source.type,
       editorialMode: entry.mode, topics: [...entry.topics]} :
       {...source, active: false, editorialMode: "excluded", topics: []};
   });
   for (const entry of byURL.values()) {
-    sources.push({sourceId: entry.url, url: entry.url, type: "official",
-      scopes: [...entry.scopes], legacyIds: [], active: entry.mode === "scan",
+    sources.push({sourceId: entry.url, url: entry.url, type: entry.mode === "discovery" ? "media" : "official",
+      scopes: [...entry.scopes], legacyIds: [], active: ["scan", "discovery"].includes(entry.mode),
       editorialMode: entry.mode, topics: [...entry.topics]});
   }
   sources.sort((a, b) => a.sourceId.localeCompare(b.sourceId));
-  return {...registry, editorialPolicyVersion: 1, sources};
+  return {...registry, editorialPolicyVersion: NEWS_DISCOVERY_POLICY_VERSION, sources};
 }
 
 export function routeNewsCandidate(candidate) {
@@ -182,8 +185,36 @@ export function buildScopeDiscoveryBatch(registry, discoveryRows, scope) {
     expectedSources: allowed.size,
     observedSources: results.length,
     missingSourceIds: [...allowed].filter((sourceId) => !seen.has(sourceId)),
+    onDemandOfficialSources: registry.sources
+      .filter((source) => source.editorialMode === "adapter" && source.scopes.includes(scope))
+      .map(({sourceId, url, topics}) => ({sourceId, url, topics})),
     results,
   };
+}
+
+// RSS windows are short. Union the same day's immutable observations so an
+// article which rolls off before the next editorial pass is still discoverable.
+// Keep current source errors: an earlier success must never mask a failed scan.
+export function mergeTodayDiscovery(currentRows, previousSnapshots, day) {
+  return currentRows.map((current) => {
+    const links = new Map();
+    const add = (row) => {
+      for (const link of row.links ?? []) {
+        const key = canonicalNewsURL(link.url);
+        const previous = links.get(key);
+        links.set(key, {...link,
+          firstSeenAt: previous?.firstSeenAt ?? row.checkedAt,
+          lastSeenAt: row.checkedAt});
+      }
+    };
+    const historical = previousSnapshots.flat().filter((row) => row.sourceId === current.sourceId &&
+      (row.sourcePolicyVersion ?? 1) === (current.sourcePolicyVersion ?? 1) &&
+      viennaDate(row.checkedAt) === day && row.checkedAt <= current.checkedAt)
+      .sort((a, b) => a.checkedAt.localeCompare(b.checkedAt));
+    for (const row of historical) add(row);
+    add(current);
+    return {...current, links: [...links.values()], discoveryWindow: "current_vienna_day"};
+  });
 }
 
 export async function prepareNewsScopeLayout(legacyPath, outputPath, {write = false} = {}) {
