@@ -46,27 +46,62 @@ test("news editorial gate accepts a fresh verified bilingual package", () => {
   assert.equal(result.item.regionScope, "federalState");
 });
 
-test("regional reporting can use a verified newspaper primary with independent confirmation", () => {
+test("ASFINAG active notices accept one official source and the checked live-list URL", () => {
+  const url = "https://routenplaner.asfinag.at/?activeTab=traffic-messages&language=de";
+  const item = {...manifest, category: "transport", sourcePolicy: "asfinag_official_notice",
+    canonicalURL: url, sources: [{url, title: "ASFINAG", isPrimary: true,
+      verificationRole: "officialPrimary"}]};
+  const checked = {...review, evidenceMode: "official", primaryURL: url,
+    primaryCheckedAt: "2026-10-12T10:58:00Z", primaryPageKind: "live_notice_list",
+    activeNoticeConfirmed: true, noticeEvidence: "A9 Plabutschtunnel northbound closure displayed in the freshly opened official list.",
+    independentURL: undefined, independentCheckedAt: undefined, independentOpened: undefined,
+    image: {...review.image, generatedForURL: url}};
+  const result = validateNewsEditorialReview(item, checked, now);
+  assert.equal(result.item.sources.length, 1);
+  assert.equal(result.item.sourcePolicy, "asfinag_official_notice");
+  assert.throws(() => validateNewsEditorialReview(item, {...checked, activeNoticeConfirmed: false}, now), /verified active notice/);
+  assert.throws(() => validateNewsEditorialReview(item, {...checked, primaryCheckedAt: "2026-10-12T10:45:00Z"}, now), /freshness window/);
+  assert.throws(() => validateNewsEditorialReview(item, {...checked, evidenceMode: "editorial"}, now), /official mode/);
+  assert.throws(() => validateNewsEditorialReview({...item, sourcePolicy: undefined}, checked, now), /actual primary/);
+  for (const badURL of ["https://asfinag.at.example.com/notice", "http://routenplaner.asfinag.at/", "https://orf.at/notice"]) {
+    assert.throws(() => validateNewsEditorialReview({...item,
+      sources: [{...item.sources[0], url: badURL}]}, checked, now), /official ASFINAG/);
+  }
+  assert.throws(() => validateNewsEditorialReview({...item, category: "health"}, checked, now), /official ASFINAG/);
+});
+
+test("regional reporting accepts one approved full newspaper article without seeking corroboration", () => {
   const url = "https://www.tt.com/artikel/123/tiroler-regionalnachricht";
   const item = {...manifest, federalState: "tirol", canonicalURL: url,
-    sources: [{url, title: "Tiroler Tageszeitung", isPrimary: true, verificationRole: "editorialPrimary"}, manifest.sources[1]]};
+    sources: [{url, title: "Tiroler Tageszeitung", isPrimary: true, verificationRole: "editorialPrimary"}]};
   const checked = {...review, scope: "tirol", primaryURL: url, evidenceMode: "editorial",
     storyClass: "public_interest", primaryPublisherConfirmed: true, primaryFullTextVerified: true,
     paywallRestricted: false, claimsRequireOfficialAuthority: false, commonWireOriginExcluded: true,
+    independentURL: undefined, independentCheckedAt: undefined, independentOpened: undefined,
     image: {...review.image, generatedForURL: url}};
   assert.equal(validateNewsEditorialReview(item, checked, now).evidenceMode, "editorial");
-  for (const field of ["primaryFullTextVerified", "primaryPublisherConfirmed", "commonWireOriginExcluded"]) {
+  for (const field of ["primaryFullTextVerified", "primaryPublisherConfirmed"]) {
     assert.throws(() => validateNewsEditorialReview(item, {...checked, [field]: false}, now), /Editorial news/);
   }
   assert.throws(() => validateNewsEditorialReview(item, {...checked, paywallRestricted: true}, now), /Editorial news/);
-  assert.throws(() => validateNewsEditorialReview({...item, category: "health"}, checked, now), /Editorial news/);
+  assert.equal(validateNewsEditorialReview({...item, category: "health"}, checked, now).evidenceMode, "editorial");
   assert.throws(() => validateNewsEditorialReview({...item, federalState: "wien"}, {...checked, scope: "wien"}, now), /primary source/);
   const lead = "https://www.meinbezirk.at/tirol/c-lokales/beispiel_a123";
   assert.throws(() => validateNewsEditorialReview({...item, canonicalURL: lead,
-    sources: [{...item.sources[0], url: lead}, item.sources[1]]}, {...checked, primaryURL: lead}, now), /primary source/);
+    sources: [{...item.sources[0], url: lead}]}, {...checked, primaryURL: lead}, now), /primary source/);
   const orf = "https://tirol.orf.at/stories/123/";
   assert.throws(() => validateNewsEditorialReview({...item, canonicalURL: orf,
-    sources: [{...item.sources[0], url: orf}, item.sources[1]]}, {...checked, primaryURL: orf}, now), /publisher group/);
+    sources: [{...item.sources[0], url: orf}, manifest.sources[1]]}, {...checked, primaryURL: orf}, now), /publisher group/);
+});
+
+test("one opened official authority article needs no independent review fields", () => {
+  const item = {...manifest, sources: [manifest.sources[0]]};
+  const checked = {...review, independentURL: undefined, independentCheckedAt: undefined,
+    independentOpened: undefined};
+  assert.equal(validateNewsEditorialReview(item, checked, now).item.sources.length, 1);
+  assert.throws(() => validateNewsEditorialReview(item, {...checked, primaryOpened: false}, now), /actual primary/);
+  assert.throws(() => validateNewsEditorialReview(item, {...checked, officialAuthorityConfirmed: false}, now), /approved source registry/);
+  assert.throws(() => validateNewsEditorialReview({...item, sources: []}, checked, now), /at least 1 verified source/);
 });
 
 test("news editorial gate accepts today's official date without an invented source time", () => {

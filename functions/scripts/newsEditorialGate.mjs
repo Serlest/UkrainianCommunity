@@ -8,7 +8,7 @@ import {pathToFileURL} from "node:url";
 import {canonicalizeURL} from "./contentPlanningBridgeSummary.mjs";
 import {NEWS_EDITORIAL_SOURCES, editorialPublisherForURL} from "./newsEditorialSources.mjs";
 import {NEWS_SCOPES} from "./newsScopeCoordination.mjs";
-import {normalizeAndValidateManifestItem} from "./verifiedContentPublisherCore.mjs";
+import {isASFINAGOfficialNotice, normalizeAndValidateManifestItem} from "./verifiedContentPublisherCore.mjs";
 
 const hour = 60 * 60 * 1000;
 const maxArticleAge = 24 * hour;
@@ -66,6 +66,16 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   if (!isAbsolute(item.imagePath)) throw new Error("The generated news imagePath must be absolute.");
 
   const evidenceMode = review.evidenceMode ?? "official";
+  const asfinagNotice = isASFINAGOfficialNotice(item);
+  if (asfinagNotice) {
+    if (evidenceMode !== "official" || review.activeNoticeConfirmed !== true) {
+      throw new Error("ASFINAG single-source news requires official mode and a verified active notice.");
+    }
+    substantiveText(review.noticeEvidence, "noticeEvidence", 40);
+    substantiveText(review.readerAction, "readerAction", 20);
+    recent(exactTime(review.primaryCheckedAt, "primaryCheckedAt"), now,
+      maxPublicationStampAge, "ASFINAG active notice check");
+  }
   if (!["official", "editorial"].includes(evidenceMode)) throw new Error("Unknown news evidenceMode.");
   const eventDate = officialDate(review.sourceEventDate);
   if (eventDate !== viennaDate(now)) {
@@ -84,11 +94,10 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
   }
   recent(exactTime(review.primaryCheckedAt, "primaryCheckedAt"), now,
     maxSourceReviewAge, "primaryCheckedAt");
-  recent(exactTime(review.independentCheckedAt, "independentCheckedAt"), now,
-    maxSourceReviewAge, "independentCheckedAt");
-  if (review.primaryOpened !== true || review.independentOpened !== true ||
-      review.primaryPageKind !== "article_or_notice") {
-    throw new Error("Open the direct primary article/notice and independent source before publication.");
+  if (review.primaryOpened !== true ||
+      !(review.primaryPageKind === "article_or_notice" ||
+        (asfinagNotice && review.primaryPageKind === "live_notice_list"))) {
+    throw new Error("Open the actual primary article/notice or ASFINAG live entry before publication.");
   }
   if (canonicalizeURL(review.primaryURL) !== item.canonicalURL) {
     throw new Error("Reviewed primary URL must match the published direct source URL.");
@@ -103,18 +112,21 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
       throw new Error("Official primary site is not in the approved source registry for this scope.");
     }
   } else {
-    const officialCategories = new Set(["lawAndDocuments", "benefitsAndSupport", "financeTaxesAndConsumerRights", "health", "safetyAndEmergencies"]);
     if (primary.verificationRole !== "editorialPrimary" || !editorialPublisherForURL(item.canonicalURL, review.scope) ||
         review.storyClass !== "public_interest" || review.primaryPublisherConfirmed !== true ||
-        review.primaryFullTextVerified !== true || review.paywallRestricted !== false ||
-        review.claimsRequireOfficialAuthority !== false || review.commonWireOriginExcluded !== true ||
-        [item.category, ...(item.additionalCategories ?? [])].some((category) => officialCategories.has(category))) {
-      throw new Error("Editorial news requires an approved opened full article, independent-origin confirmation and no claims requiring official authority.");
+        review.primaryFullTextVerified !== true || review.paywallRestricted !== false) {
+      throw new Error("Editorial news requires an approved publisher's opened full article.");
     }
   }
-  if (!item.sources.some((source) => source.verificationRole === "independent" &&
-      canonicalizeURL(source.url) === canonicalizeURL(review.independentURL))) {
-    throw new Error("Reviewed independent URL must match a verified independent source.");
+  // One opened official authority/operator or approved editorial article is
+  // sufficient. A voluntarily supplied second source must still be honest.
+  if (review.independentURL != null) {
+    if (review.independentOpened !== true || !item.sources.some((source) =>
+      source.verificationRole === "independent" && canonicalizeURL(source.url) === canonicalizeURL(review.independentURL))) {
+      throw new Error("Optional reviewed independent URL must match an opened source.");
+    }
+    recent(exactTime(review.independentCheckedAt, "independentCheckedAt"), now,
+      maxSourceReviewAge, "independentCheckedAt");
   }
   substantiveText(review.practicalEffect, "practicalEffect", 40);
   substantiveText(review.territoryEvidence, "territoryEvidence", 30);
@@ -168,6 +180,7 @@ export async function reviewNewsForPublication(manifestPath, reviewPath, now = n
     manifestSHA256: createHash("sha256").update(manifestBytes).digest("hex"),
     imageSHA256: actualImageSHA256,
     primaryURL: item.canonicalURL,
+    sourcePolicy: item.sourcePolicy ?? "trusted_primary",
   };
 }
 

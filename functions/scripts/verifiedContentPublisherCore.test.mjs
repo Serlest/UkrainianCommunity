@@ -314,18 +314,15 @@ describe("verified content publisher core", () => {
     });
   });
 
-  test("requires two unique canonical HTTP(S) news sources", () => {
+  test("accepts one news primary and rejects duplicate or falsely independent optional sources", () => {
     const oneSource = newsManifest();
     oneSource.sources = [oneSource.sources[0]];
-    assert.throws(
-      () => normalizeAndValidateManifestItem(oneSource, "wien"),
-      /at least 2 verified sources/
-    );
+    assert.equal(normalizeAndValidateManifestItem(oneSource, "wien").sources.length, 1);
     const duplicate = newsManifest();
     duplicate.sources[1].url = `${duplicate.sources[0].url}/?utm_source=second#context`;
     assert.throws(
       () => normalizeAndValidateManifestItem(duplicate, "wien"),
-      /two unique canonical source URLs/
+      /distinct canonical URLs/
     );
     const http = newsManifest();
     http.sources[1].url = "http://orf.at/example";

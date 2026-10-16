@@ -144,7 +144,11 @@ export function normalizeAndValidateManifestItem(rawItem, targetValue) {
 
   const item = flattenManifestItem(rawItem);
   const kind = enumValue(item.kind, "kind", new Set(["news", "event"]));
-  const sources = validateSources(item.sources, kind, target);
+  const asfinagNotice = isASFINAGOfficialNotice(item);
+  if (item.sourcePolicy != null && !asfinagNotice) {
+    throw new Error("sourcePolicy=asfinag_official_notice requires official ASFINAG transport/safety news.");
+  }
+  const sources = validateSources(item.sources, kind, target, asfinagNotice);
   const primarySource = sources.find((source) => source.isPrimary);
   if (item.canonicalURL != null) {
     const providedCanonicalURL = canonicalizeURL(webURL(item.canonicalURL, "canonicalURL"));
@@ -179,6 +183,7 @@ export function normalizeAndValidateManifestItem(rawItem, targetValue) {
     additionalCategories,
     tags,
     sources,
+    ...(asfinagNotice ? {sourcePolicy: "asfinag_official_notice"} : {}),
   };
 
   return kind === "news"
@@ -736,6 +741,7 @@ function flattenManifestItem(rawItem) {
   return {
     ...payload,
     kind: rawItem.kind ?? payload.kind,
+    sourcePolicy: rawItem.sourcePolicy ?? payload.sourcePolicy,
     canonicalURL: rawItem.canonicalURL ?? payload.canonicalURL,
     imagePath: rawItem.imagePath ?? payload.imagePath,
     imageAlternativeText: rawItem.imageAlternativeText ?? payload.imageAlternativeText,
@@ -900,8 +906,21 @@ function normalizeExternalAction(item, fallbackURL) {
   });
 }
 
-function validateSources(rawSources, kind, target) {
-  const minimumSources = kind === "event" ? 1 : 2;
+export function isASFINAGOfficialNotice(item) {
+  const primary = item?.sources?.find((source) => source?.isPrimary === true);
+  try {
+    const url = new URL(primary?.url);
+    return item.kind === "news" && item.sourcePolicy === "asfinag_official_notice" &&
+      ["transport", "safetyAndEmergencies"].includes(item.category) &&
+      primary.verificationRole === "officialPrimary" && url.protocol === "https:" &&
+      (url.hostname === "asfinag.at" || url.hostname.endsWith(".asfinag.at"));
+  } catch {
+    return false;
+  }
+}
+
+function validateSources(rawSources, kind, target, asfinagNotice = false) {
+  const minimumSources = 1;
   if (!Array.isArray(rawSources) || rawSources.length < minimumSources) {
     throw new Error(`Live ${kind} publication requires at least ${minimumSources} verified source${minimumSources === 1 ? "" : "s"}.`);
   }
@@ -933,16 +952,10 @@ function validateSources(rawSources, kind, target) {
     throw new Error("Only the primary source may use verificationRole=officialPrimary.");
   }
   const uniqueCanonicalURLs = new Set(sources.map((source) => canonicalizeURL(source.url)));
-  if (kind === "news" && uniqueCanonicalURLs.size < 2) {
-    throw new Error("Live publication requires at least two unique canonical source URLs.");
-  }
-  if (kind === "event" && uniqueCanonicalURLs.size !== sources.length) {
-    throw new Error("Event sources must have distinct canonical URLs.");
+  if (uniqueCanonicalURLs.size !== sources.length) {
+    throw new Error(`${kind === "event" ? "Event" : "News"} sources must have distinct canonical URLs.`);
   }
   const independent = sources.filter((source) => source.verificationRole === "independent");
-  if (kind === "news" && independent.length === 0) {
-    throw new Error(`Verified ${kind} requires an independent secondary source.`);
-  }
   const primaryHost = new URL(primary.url).hostname.toLowerCase();
   if (independent.some((source) => new URL(source.url).hostname.toLowerCase() === primaryHost)) {
     throw new Error(`The independent ${kind} source must be hosted on a different site.`);
