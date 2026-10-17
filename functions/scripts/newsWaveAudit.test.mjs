@@ -23,3 +23,27 @@ test('wave audit uses archived policy and distinguishes missing reports, evidenc
   assert.equal(await readFile(join(root,`snapshots/${run}.json`),'utf8'),snapshot);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit falls back to immutable closed-report counts after scope checkpoint advances',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-history-'));const run='news-2026-10-17T19';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const entries=[
+   {url:'a',outcome:'published',contentId:'a'},
+   {url:'b',outcome:'published',contentId:'b'},
+   {url:'c',outcome:'rejected',reason:'unverified'},
+   {url:'d',outcome:'rejected',reason:'unverified'},
+  ];
+  await writeFile(join(root,`reports/${run}/austria.json`),JSON.stringify({status:'partial',candidateDecisionsComplete:true,decidedCandidates:4,published:2,rejected:2,openedArticles:entries}));
+  const receiptA=join(root,'receipt-a.json'),receiptB=join(root,'receipt-b.json');
+  await writeFile(receiptA,JSON.stringify({contentId:'a',allVerified:true}));await writeFile(receiptB,JSON.stringify({contentId:'b',allVerified:true}));
+  await writeFile(join(root,'scopes/austria.json'),JSON.stringify({lastCandidateBatch:{runId:'news-2026-10-17T22',candidateDecisionsComplete:true,candidates:5,published:0,rejected:5},candidateDecisions:{a:{runId:run,outcome:'published',contentId:'a',readbackReceiptPath:receiptA},b:{runId:run,outcome:'published',contentId:'b',readbackReceiptPath:receiptB},c:{runId:run,outcome:'rejected',reason:'unverified'},d:{runId:'news-2026-10-17T22',outcome:'rejected',reason:'duplicate'}}}));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='austria');
+  assert.equal(scope.batch.candidates,4);assert.equal(scope.batch.published,2);assert.equal(scope.batchSource,'closed_report');
+  assert.equal(scope.decisionLedger.retainedDecisionsForWave,3);assert.equal(scope.decisionLedger.retainedDecisionCountMatches,false);
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_report');assert.equal(scope.rejectionReasons.unverified,2);
+  assert.equal(scope.publications.length,2);assert.ok(scope.publications.every(x=>x.verifiedReceipt));
+ }finally{await rm(root,{recursive:true,force:true});}
+});

@@ -22,8 +22,33 @@ export async function auditNewsWave(root, runId) {
     try { report = await read(`reports/${runId}/${scope}.json`); }
     catch (error) { if (error.code !== "ENOENT") throw error; scopes.push({scope, reportMissing: true}); continue; }
     const state = await read(`scopes/${scope}.json`);
-    const batch = state.lastCandidateBatch?.runId === runId ? state.lastCandidateBatch : null;
-    const decisions = Object.values(state.candidateDecisions ?? {}).filter((value) => value.runId === runId);
+    const currentBatch = state.lastCandidateBatch?.runId === runId ? state.lastCandidateBatch : null;
+    const retainedDecisions = Object.values(state.candidateDecisions ?? {}).filter((value) => value.runId === runId);
+    // `lastCandidateBatch` is a mutable checkpoint and is replaced by the next
+    // pass. Closed per-wave reports are immutable, so use their explicit
+    // terminal counts when auditing an older wave.
+    const reportHasTerminalCounts = report.candidateDecisionsComplete === true &&
+      Number.isInteger(report.decidedCandidates) && Number.isInteger(report.published) &&
+      Number.isInteger(report.rejected);
+    const reportBatch = reportHasTerminalCounts ? {
+      runId, candidateDecisionsComplete: true, candidates: report.decidedCandidates,
+      published: report.published, rejected: report.rejected,
+    } : null;
+    const batch = reportBatch ?? currentBatch;
+    const reportEntries = report.openedArticles;
+    const reportHasCompleteDecisionList = reportHasTerminalCounts && Array.isArray(reportEntries) &&
+      reportEntries.length === report.decidedCandidates &&
+      reportEntries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+    // Prefer the immutable per-wave decision list when it is demonstrably
+    // complete. The scope ledger is keyed by URL and later waves may replace
+    // an earlier terminal outcome for the same URL.
+    const decisions = reportHasCompleteDecisionList ? reportEntries.map((entry) => {
+      const retained = state.candidateDecisions?.[entry.url] ??
+        Object.values(state.candidateDecisions ?? {}).find((value) =>
+          value.runId === runId && entry.contentId && value.contentId === entry.contentId);
+      return {...retained, ...entry, runId,
+        readbackReceiptPath: retained?.contentId === entry.contentId ? retained.readbackReceiptPath : undefined};
+    }) : retainedDecisions;
     const publications = [];
     for (const decision of decisions.filter((value) => value.outcome === "published")) {
       try {
@@ -36,6 +61,13 @@ export async function auditNewsWave(root, runId) {
     const reasons = Object.fromEntries([...new Set(decisions.map((value) => value.reason).filter(Boolean))]
       .map((reason) => [reason, decisions.filter((value) => value.reason === reason).length]));
     scopes.push({scope, reportedStatus: report.status, batch,
+      batchSource: reportBatch ? "closed_report" : currentBatch ? "scope_state" : null,
+      decisionLedger: reportHasTerminalCounts ? {
+        reportedCandidates: report.decidedCandidates,
+        retainedDecisionsForWave: retainedDecisions.length,
+        retainedDecisionCountMatches: retainedDecisions.length === report.decidedCandidates,
+        decisionsReadFrom: reportHasCompleteDecisionList ? "closed_report" : "scope_state",
+      } : undefined,
       evidenceLimits: {unverifiedCandidates: unverified, sourceErrors: report.sourceErrors ?? [],
         coverageErrors: report.coverageErrors ?? []},
       publications, rejectionReasons: reasons,
