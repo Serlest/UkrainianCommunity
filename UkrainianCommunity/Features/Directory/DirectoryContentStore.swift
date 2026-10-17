@@ -22,23 +22,54 @@ final class DirectoryContentStore: ObservableObject {
         let placement: DirectoryManagedCategory.Placement
         let order: Int
     }
-    struct PublishedCategory {
+    struct PublishedCategory: Codable {
         let content: DirectoryManagedCategory
         let revision: Int
         let updatedAt: Date?
     }
 
     @Published private(set) var published: [String: PublishedCategory] = [:]
+    @Published private(set) var isAuthoritative = false
     @Published private(set) var isEditor = false
     @Published private(set) var syncState: SyncState = .loading
     private var deletedCategoryIDs: Set<String> = []
 
-    private let db = Firestore.firestore()
+    private lazy var db = Firestore.firestore()
+    private let cacheURL: URL?
+    private var catalogListener: ListenerRegistration?
+    private var activationInProgress = false
     private var contentListener: ListenerRegistration?
     private var accessListener: ListenerRegistration?
     private var observedUserID: String?
     private var isOwner = false
     private var isAccountUsable = false
+
+    private struct CatalogCache: Codable {
+        let schemaVersion: Int
+        let categories: [String: PublishedCategory]
+    }
+
+    nonisolated static var defaultCacheURL: URL? {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("DirectoryCatalog", isDirectory: true)
+            .appendingPathComponent("complete-v1.json")
+    }
+
+    init(cacheURL: URL? = DirectoryContentStore.defaultCacheURL) {
+        self.cacheURL = cacheURL
+        if let cacheURL, let data = try? Data(contentsOf: cacheURL),
+           let cache = try? JSONDecoder().decode(CatalogCache.self, from: data),
+           cache.schemaVersion == 1,
+           cache.categories.allSatisfy({ $0.key == $0.value.content.id && $0.value.revision > 0 }) {
+            published = cache.categories
+            isAuthoritative = true
+            syncState = .cached
+        } else if let cacheURL, FileManager.default.fileExists(atPath: cacheURL.appendingPathExtension("activated").path) {
+            // Cache loss/corruption must not revive bundled entries deleted after migration.
+            isAuthoritative = true
+            syncState = .failed
+        }
+    }
 
     var canEdit: Bool { isOwner || isEditor }
     var categories: [DirectoryCategory] {
@@ -54,10 +85,10 @@ final class DirectoryContentStore: ObservableObject {
     var supportCategories: [DirectoryCategory] { categories(in: .support) }
 
     var allManagedCategories: [DirectoryManagedCategory] {
-        let builtIn = Self.bundledCategories.map { category in
+        let builtIn = (isAuthoritative ? [] : Self.bundledCategories).map { category in
             published[category.id]?.content ?? category
         }
-        let added = published.values.map(\.content).filter { !Self.bundledIDs.contains($0.id) }
+        let added = published.values.map(\.content).filter { (isAuthoritative || !Self.bundledIDs.contains($0.id)) }
         return (builtIn + added).sorted {
             if $0.placement != $1.placement {
                 return Self.placementOrder($0.placement) < Self.placementOrder($1.placement)
@@ -67,7 +98,7 @@ final class DirectoryContentStore: ObservableObject {
     }
 
     private var displayEntries: [DisplayEntry] {
-        let builtIn = DirectoryCatalog.categories.enumerated().compactMap { index, category -> DisplayEntry? in
+        let builtIn = (isAuthoritative ? [] : DirectoryCatalog.categories).enumerated().compactMap { index, category -> DisplayEntry? in
             if let content = published[category.id]?.content {
                 guard let visible = content.visibleCategory else { return nil }
                 return DisplayEntry(category: visible, placement: content.placement, order: content.order)
@@ -77,7 +108,7 @@ final class DirectoryContentStore: ObservableObject {
             return DisplayEntry(category: category, placement: placement, order: index * 10)
         }
         let added = published.values.compactMap { item -> DisplayEntry? in
-            guard !Self.bundledIDs.contains(item.content.id),
+            guard (isAuthoritative || !Self.bundledIDs.contains(item.content.id)),
                   let visible = item.content.visibleCategory else { return nil }
             return DisplayEntry(category: visible, placement: item.content.placement, order: item.content.order)
         }
@@ -92,14 +123,14 @@ final class DirectoryContentStore: ObservableObject {
 
     func category(_ id: String) -> DirectoryManagedCategory? {
         if let published = published[id] { return published.content }
-        guard let bundled = DirectoryCatalog.categories.first(where: { $0.id == id }) else { return nil }
+        guard !isAuthoritative, let bundled = DirectoryCatalog.categories.first(where: { $0.id == id }) else { return nil }
         return .bundled(bundled)
     }
 
     func revision(_ id: String) -> Int { published[id]?.revision ?? 0 }
 
     func publicationDate(_ id: String) -> String? {
-        guard let item = published[id] else { return DirectoryGuideCatalog.checkedOn(for: id) }
+        guard let item = published[id] else { return isAuthoritative ? nil : DirectoryGuideCatalog.checkedOn(for: id) }
         guard let date = item.updatedAt else { return nil }
         return date.formatted(.dateTime.day().month().year().locale(Locale(identifier: "de_AT")))
     }
@@ -111,7 +142,7 @@ final class DirectoryContentStore: ObservableObject {
 
     func groups(for category: DirectoryCategory) -> [DirectoryTopicGroup] {
         guard let content = published[category.id]?.content else {
-            return DirectoryTopicGroups.forCategory(category)
+            return isAuthoritative ? [] : DirectoryTopicGroups.forCategory(category)
         }
         return content.groups.filter { group in
             !group.isHidden && content.topics.contains { !$0.isHidden && $0.groupID == group.id }
@@ -144,60 +175,103 @@ final class DirectoryContentStore: ObservableObject {
     }
 
     func startObserving() {
+        if catalogListener == nil {
+            catalogListener = db.collection("appConfig").document("directoryCatalog")
+                .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, _ in
+                    Task { @MainActor in
+                        guard let self, let snapshot, !snapshot.metadata.isFromCache,
+                              Self.isCompleteCatalogMarker(snapshot.data()),
+                              !self.isAuthoritative, !self.activationInProgress else { return }
+                        self.activationInProgress = true
+                        defer { self.activationInProgress = false }
+                        do {
+                            // A separate server read AFTER the marker prevents activating a partial local cache.
+                            let complete = try await self.db.collection("directoryCategories").getDocuments(source: .server)
+                            self.consume(complete, activateAuthority: true)
+                        } catch {
+                            self.syncState = .failed
+                        }
+                    }
+                }
+        }
         guard contentListener == nil else { return }
         contentListener = db.collection("directoryCategories")
-            .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, error in
+            .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, _ in
                 Task { @MainActor in
                     guard let self else { return }
-                    if error != nil {
-                        self.syncState = .failed
-                        return
-                    }
-                    guard let snapshot else {
-                        self.syncState = .failed
-                        return
-                    }
-                    var decoded: [String: PublishedCategory] = [:]
-                    var hasInvalidContent = false
-                    for document in snapshot.documents {
-                        if document.data()["isDeleted"] as? Bool == true {
-                            self.deletedCategoryIDs.insert(document.documentID)
-                            continue
-                        }
-                        guard !self.deletedCategoryIDs.contains(document.documentID) else { continue }
-                        guard let data = document.data()["payload"] as? String,
-                              let revision = document.data()["revision"] as? Int,
-                              let raw = data.data(using: .utf8),
-                              let content = try? JSONDecoder().decode(DirectoryManagedCategory.self, from: raw),
-                              content.id == document.documentID else {
-                            hasInvalidContent = true
-                            continue
-                        }
-                        decoded[content.id] = PublishedCategory(
-                            content: content, revision: revision,
-                            updatedAt: (document.data()["updatedAt"] as? Timestamp)?.dateValue()
-                        )
-                    }
-                    // Only a cached snapshot may lag behind an acknowledged save.
-                    // A server snapshot is authoritative, including missing documents.
-                    if snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites {
-                        for (id, current) in self.published where
-                            !self.deletedCategoryIDs.contains(id) &&
-                            current.revision > (decoded[id]?.revision ?? -1) {
-                            decoded[id] = current
-                        }
-                    }
-                    self.published = decoded
-                    self.syncState = hasInvalidContent ? .invalidContent
-                        : (snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites
-                            ? .cached : .current)
+                    guard let snapshot else { self.syncState = .failed; return }
+                    self.consume(snapshot)
                 }
             }
+    }
+
+    static func isCompleteCatalogMarker(_ data: [String: Any]?) -> Bool {
+        data?["schemaVersion"] as? Int == 1 && data?["source"] as? String == "firestore"
+            && data?["migrationComplete"] as? Bool == true
+    }
+
+    private func consume(_ snapshot: QuerySnapshot, activateAuthority: Bool = false) {
+        var decoded: [String: PublishedCategory] = [:]
+        var deleted = Set<String>()
+        var invalid = false
+        for document in snapshot.documents {
+            if document.data()["isDeleted"] as? Bool == true {
+                deleted.insert(document.documentID)
+                continue
+            }
+            guard let payload = document.data()["payload"] as? String,
+                  let revision = document.data()["revision"] as? Int, revision > 0,
+                  let raw = payload.data(using: .utf8),
+                  let content = try? JSONDecoder().decode(DirectoryManagedCategory.self, from: raw),
+                  content.id == document.documentID else { invalid = true; continue }
+            decoded[content.id] = PublishedCategory(content: content, revision: revision,
+                updatedAt: (document.data()["updatedAt"] as? Timestamp)?.dateValue())
+        }
+        applySnapshot(decoded, deleted: deleted,
+            cached: snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites,
+            invalid: invalid, activateAuthority: activateAuthority)
+    }
+
+    /// Applies only a whole query snapshot; never persist a partial Firestore cache as a complete catalog.
+    func applySnapshot(_ incoming: [String: PublishedCategory], deleted: Set<String> = [],
+                       cached: Bool, invalid: Bool = false, activateAuthority: Bool = false) {
+        if isAuthoritative && cached { return }
+        if invalid && (isAuthoritative || activateAuthority) {
+            syncState = .invalidContent
+            return // Preserve the last valid complete snapshot, rather than mixing bundled records into it.
+        }
+        let effectiveDeleted = cached ? deleted.union(deletedCategoryIDs) : deleted
+        var decoded = incoming
+        if cached {
+            for (id, current) in published where !effectiveDeleted.contains(id)
+                && current.revision > (decoded[id]?.revision ?? -1) { decoded[id] = current }
+        }
+        deletedCategoryIDs = effectiveDeleted
+        for id in effectiveDeleted { decoded.removeValue(forKey: id) }
+        published = decoded
+        if activateAuthority && !cached { isAuthoritative = true }
+        syncState = invalid ? .invalidContent : (cached ? .cached : .current)
+        if isAuthoritative && !cached { persistCompleteCatalog() }
+    }
+
+    private func persistCompleteCatalog() {
+        guard let cacheURL else { return }
+        do {
+            let data = try JSONEncoder().encode(CatalogCache(schemaVersion: 1, categories: published))
+            try FileManager.default.createDirectory(at: cacheURL.deletingLastPathComponent(),
+                                                   withIntermediateDirectories: true)
+            try Data("1".utf8).write(to: cacheURL.appendingPathExtension("activated"), options: .atomic)
+            try data.write(to: cacheURL, options: .atomic)
+        } catch {
+            // Current content remains usable; do not silently replace an older valid disk snapshot.
+        }
     }
 
     func retryObserving() {
         contentListener?.remove()
         contentListener = nil
+        catalogListener?.remove()
+        catalogListener = nil
         syncState = .loading
         startObserving()
     }
@@ -223,6 +297,7 @@ final class DirectoryContentStore: ObservableObject {
             published[category.id] = PublishedCategory(
                 content: category, revision: nextRevision, updatedAt: Date()
             )
+            if isAuthoritative { persistCompleteCatalog() }
         }
     }
 
@@ -241,6 +316,7 @@ final class DirectoryContentStore: ObservableObject {
         }
         deletedCategoryIDs.insert(id)
         published.removeValue(forKey: id)
+        if isAuthoritative { persistCompleteCatalog() }
     }
 
     private func categories(in placement: DirectoryManagedCategory.Placement) -> [DirectoryCategory] {
