@@ -29,7 +29,14 @@ export function closeNewsCandidateBatch(registry, state, input, decidedAt = new 
     .map((source) => [source.sourceId, source]));
   const candidateByURL = new Map();
   for (const candidate of candidates) {
-    if (!sources.has(candidate?.sourceId)) throw new Error("Candidate has no active source in this scope.");
+    const targeted = registry.sources.find((source) => source.sourceId === candidate?.sourceId &&
+      source.active && source.primaryPolicy === "editorial");
+    const publisherHost = targeted && new URL(targeted.url).hostname.replace(/^(?:www|rss)\./, "");
+    const articleHost = targeted && new URL(candidate.url).hostname;
+    const samePublisher = targeted && (articleHost === publisherHost || articleHost.endsWith(`.${publisherHost}`));
+    if (!sources.has(candidate?.sourceId) && !(candidate?.discoveryRoute === "targeted_search" && samePublisher)) {
+      throw new Error("Candidate has no active source in this scope or approved targeted-search publisher.");
+    }
     const url = canonicalNewsURL(candidate.url);
     const existing = candidateByURL.get(url);
     if (existing) existing.sourceIds.add(candidate.sourceId);

@@ -85,7 +85,10 @@ test("regional reporting accepts one approved full newspaper article without see
   }
   assert.throws(() => validateNewsEditorialReview(item, {...checked, paywallRestricted: true}, now), /Editorial news/);
   assert.equal(validateNewsEditorialReview({...item, category: "health"}, checked, now).evidenceMode, "editorial");
-  assert.throws(() => validateNewsEditorialReview({...item, federalState: "wien"}, {...checked, scope: "wien"}, now), /primary source/);
+  // Publication geography is established from the story, not the feed address.
+  assert.equal(validateNewsEditorialReview({...item, federalState: "wien"},
+    {...checked, scope: "wien"}, now).evidenceMode, "editorial");
+  assert.throws(() => validateNewsEditorialReview(item, {...checked, scope: "wien"}, now), /does not match/);
   const lead = "https://www.meinbezirk.at/tirol/c-lokales/beispiel_a123";
   assert.throws(() => validateNewsEditorialReview({...item, canonicalURL: lead,
     sources: [{...item.sources[0], url: lead}]}, {...checked, primaryURL: lead}, now), /primary source/);

@@ -24,7 +24,7 @@ const officialSources = [
   {url: "https://presse-oebb.com/News.aspx?l=deutsch&menueid=27022", scopes: all, mode: "scan", topics: ["rail_service", "rail_disruptions"]},
   {url: "https://www.unsereoebb.at/de/verkehrsmeldungen", scopes: all, mode: "scan", topics: ["rail_disruptions"]},
   {url: "https://www.ages.at/mensch/produktwarnungen-produktrueckrufe", scopes: all, mode: "scan", topics: ["product_safety"]},
-  {url: "https://www.geosphere.at/de/karten/aktuelle-erdbeben/erdbeben-karten-und-listen", scopes: all, mode: "adapter", topics: ["earthquakes"]},
+  {url: "https://www.geosphere.at/de/karten/aktuelle-erdbeben", scopes: all, mode: "adapter", topics: ["earthquakes"]},
   {url: "https://warnungen.at-alert.at/de", scopes: all, mode: "adapter", topics: ["civil_protection_alerts"]},
   {url: "https://routenplaner.asfinag.at/?activeTab=traffic-messages&language=de", scopes: all, mode: "adapter", topics: ["road_disruptions", "natural_hazards"]},
   {url: "https://www.geosphere.at/de/karten/wetterprognose", scopes: all, mode: "adapter", topics: ["severe_weather"]},
@@ -85,6 +85,9 @@ const targetedAuthorities = [
   ["https://www.bmb.gv.at/", "austria"],
   ["https://www.sozialministerium.gv.at/", "austria"],
   ["https://www.gesundheit.gv.at/news/aktuelles.html", "austria"],
+  ["https://www.statistik.at/medien/pressemitteilungen", "austria"],
+  ["https://www.parlament.gv.at/aktuelles/pk", "austria"],
+  ["https://www.wko.at/", "austria"],
   ["https://www.bbu.gv.at/", "austria"],
   ["https://austria.mfa.gov.ua/", "austria"],
   ["https://www.linz.at/medienservice/", "oberoesterreich"],
@@ -113,6 +116,8 @@ const regionalMedia = [
   ["https://www.vol.at/", "vorarlberg", "russmedia"],
   ["https://kurier.at/chronik/wien/xml/rss", "wien", "kurier"],
   ["https://www.derstandard.at/rss", "austria", "derstandard"],
+  ["https://kurier.at/politik/inland/xml/rss", "austria", "kurier"],
+  ["https://kurier.at/wirtschaft/xml/rss", "austria", "kurier"],
 ].map(([url, scope, publisherGroup]) => ({url, scopes: [scope], mode: "discovery",
   primaryPolicy: "editorial", publisherGroup, topics: ["regional_public_interest"]}));
 const localDiscovery = states.map((scope) => ({url: `https://www.meinbezirk.at/${scope}/rss`,
@@ -126,16 +131,20 @@ export const NEWS_EDITORIAL_SOURCES = Object.freeze([
       "Verified operator-reference hub, not a dated live incident feed." :
       "Listing exposes navigation; official LKORR body search requires a working adapter. Targeted verification remains available."} : source),
   ...targetedAuthorities,
-  ...mediaFeeds,
-  ...regionalMedia,
+  // National stories can surface first in a regional edition. Fetch once and
+  // let Österreich screen these leads; publication territory still needs proof.
+  ...[...mediaFeeds, ...regionalMedia].map((source) => ({...source,
+    scopes: [...new Set([...source.scopes, "austria"])]})),
   ...localDiscovery,
 ]);
-export const NEWS_DISCOVERY_POLICY_VERSION = 3;
+export const NEWS_DISCOVERY_POLICY_VERSION = 4;
 
 export function editorialPublisherForURL(value, scope) {
   const host = new URL(value).hostname.replace(/^www\./, "");
   return NEWS_EDITORIAL_SOURCES.find((source) => {
-    if (source.primaryPolicy !== "editorial" || (scope && !source.scopes.includes(scope))) return false;
+    // Feed assignment is a discovery optimization, not the article's territory
+    // or the publisher's authority. The editorial gate checks territory itself.
+    if (source.primaryPolicy !== "editorial") return false;
     const registered = new URL(source.url).hostname.replace(/^www\./, "").replace(/^rss\./, "");
     return host === registered || host.endsWith(`.${registered}`);
   }) ?? null;

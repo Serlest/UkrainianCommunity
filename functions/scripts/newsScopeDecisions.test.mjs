@@ -95,3 +95,13 @@ test("a published outcome needs a matching verified production receipt before du
     await rm(directory, {recursive: true, force: true});
   }
 });
+
+test('targeted search can use an approved newspaper assigned to another feed territory, never a lead-only or spoofed host',()=>{
+ const layout=buildNewsScopeLayout(legacy);const registry=applyNewsEditorialSources(layout.registry);
+ const c={url:'https://www.tt.com/artikel/123/ein-wiener-projekt',sourceId:'https://www.tt.com/rss/tirol.xml',discoveryRoute:'targeted_search'};
+ const batch={scope:'wien',runId,candidates:[c],decisions:[{url:c.url,outcome:'rejected',reason:'unverified'}]};
+ assert.equal(closeNewsCandidateBatch(registry,layout.scopeStates.wien,batch).lastCandidateBatch.candidates,1);
+ assert.throws(()=>closeNewsCandidateBatch(registry,layout.scopeStates.wien,{...batch,candidates:[{...c,discoveryRoute:undefined}]}),/active source/);
+ assert.throws(()=>closeNewsCandidateBatch(registry,layout.scopeStates.wien,{...batch,candidates:[{...c,url:'https://tt.com.evil.example/article'}]}),/active source/);
+ assert.throws(()=>closeNewsCandidateBatch(registry,layout.scopeStates.wien,{...batch,candidates:[{...c,sourceId:'https://www.meinbezirk.at/tirol/rss',url:'https://www.meinbezirk.at/tirol/c-lokales/example_a1'}]}),/active source/);
+});

@@ -218,10 +218,10 @@ test("regional discovery restores usable official listings and adds newspapers w
     "https://www.unsereoebb.at/de/verkehrsmeldungen").recipients,
     ["wien", "niederoesterreich", "oberoesterreich", "salzburg", "tirol",
       "vorarlberg", "steiermark", "kaernten", "burgenland", "austria"]);
-  assert.equal(plan.length, 53);
+  assert.equal(plan.length, 55);
   assert.equal(plan.some((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html"), true);
   assert.equal(curated.sources.find((source) => source.url === "https://www.noe.gv.at/noe/Uebersicht.html").editorialMode, "scan");
-  assert.deepEqual(plan.find((source) => source.url === "https://rss.orf.at/noe.xml").recipients, ["niederoesterreich"]);
+  assert.deepEqual(plan.find((source) => source.url === "https://rss.orf.at/noe.xml").recipients, ["niederoesterreich", "austria"]);
   assert.equal(plan.find((source) => source.url === "https://rss.orf.at/noe.xml").type, "media");
   assert.equal(plan.find((source) => source.url === "https://www.tt.com/rss/tirol.xml").primaryPolicy, "editorial");
   assert.equal(plan.find((source) => source.url === "https://www.meinbezirk.at/tirol/rss").primaryPolicy, "lead_only");
@@ -237,4 +237,15 @@ test("today's union preserves a rolled-off lead and does not mask a current sour
   assert.equal(row.error, "fetch failed");
   assert.deepEqual(row.links.map((x) => x.title), ["First"]);
   assert.equal(row.links[0].lastSeenAt, "2026-10-15T22:15:00Z");
+});
+
+test('national discovery sees approved regional media and dedicated national feeds without refetching sources',()=>{
+ const registry=applyNewsEditorialSources(buildNewsScopeLayout(fixture).registry);
+ const plan=planUniqueSourceFetches(registry);assert.equal(plan.length,55);
+ const batch=buildScopeDiscoveryBatch(registry,plan.map(x=>({sourceId:x.sourceId,links:[]})),'austria');
+ assert.equal(batch.expectedSources,31);
+ assert.ok(batch.results.some(x=>x.sourceId==='https://www.noen.at/'));
+ assert.ok(batch.results.some(x=>x.sourceId==='https://kurier.at/wirtschaft/xml/rss'));
+ assert.ok(!batch.results.some(x=>x.sourceId.includes('meinbezirk')));
+ assert.ok(registry.sources.find(x=>x.url==='https://www.statistik.at/medien/pressemitteilungen').editorialMode==='adapter');
 });
