@@ -7,8 +7,7 @@ import {
 import {db} from "../firebase/admin";
 import {isAppOwner, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {validateDirectoryCategoryPayload} from "./directoryValidation";
-
-import {recordDirectoryAdditions} from "./directoryRecent";
+import {publishDirectoryCategoryInTransaction} from "./directoryPublishTransaction";
 
 const callableOptions = {
   region: "europe-west3",
@@ -45,34 +44,14 @@ export const saveDirectoryCategory = onCall(callableOptions, async (request) => 
   }
   validateDirectoryCategoryPayload(input.payload, input.categoryId);
 
-  const reference = db.collection("directoryCategories").doc(input.categoryId);
-  const nextRevision = input.expectedRevision + 1;
-  await db.runTransaction(async (transaction) => {
+  const result = await db.runTransaction(async (transaction) => {
     await assertDirectoryEditor(transaction, actor);
-    const previous = await transaction.get(reference);
-    if (previous.data()?.isDeleted === true) {
-      throw new HttpsError("failed-precondition", "Deleted category cannot be republished.");
-    }
-    const currentRevision = previous.data()?.revision ?? 0;
-    if (currentRevision !== input.expectedRevision) {
-      throw new HttpsError("aborted", "Category changed on another device.");
-    }
-    await recordDirectoryAdditions(transaction, input.categoryId, previous.data()?.payload, input.payload, nextRevision);
-    const published = {
-      id: input.categoryId,
-      payload: input.payload,
-      revision: nextRevision,
-      updatedBy: actor.uid,
-      updatedAt: FieldValue.serverTimestamp(),
-    };
-    transaction.set(reference, published);
-    transaction.create(
-      reference.collection("versions").doc(String(nextRevision)),
-      {...published, previousRevision: currentRevision}
-    );
+    return publishDirectoryCategoryInTransaction(transaction, {
+      categoryId: input.categoryId, payload: input.payload,
+      expectedRevision: input.expectedRevision, updatedBy: actor.uid,
+    });
   });
-
-  return {categoryId: input.categoryId, revision: nextRevision};
+  return result;
 });
 
 export const deleteDirectoryCategory = onCall(callableOptions, async (request) => {

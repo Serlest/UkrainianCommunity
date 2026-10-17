@@ -53,6 +53,7 @@ export {cleanupUnverifiedAccounts} from "./users/unverifiedAccountRetention";
 export * from "./users/platformRoleManagement";
 export * from "./directory/directoryManagement";
 export {getDirectoryRecentAdditions} from "./directory/directoryRecent";
+export {publishDirectoryAutomation} from "./directory/directoryAutomationBridge";
 export * from "./users/userManagementQueries";
 export {updateUserPresence, getManagedUserPresence} from "./users/userPresence";
 
