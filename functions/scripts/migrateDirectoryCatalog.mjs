@@ -64,6 +64,7 @@ try {
      const doc=map.get(c.id);if(!doc) throw Error('Missing '+c.id);
      const old=backup.documents.find(d=>d.id===c.id);
      const expected=old?.data.payload??JSON.stringify(c);
+     if(old && doc.updateTime.toDate().toISOString()!==old.updateTime) throw Error('Existing document was modified '+c.id);
      if(doc.data().payload!==expected || doc.data().revision!==(old?.data.revision??1)) throw Error('Readback mismatch '+c.id);
      const state=await doc.ref.collection('recentState').doc('v1').get();
      const known=new Set(state.data()?.knownIDs??[]);
