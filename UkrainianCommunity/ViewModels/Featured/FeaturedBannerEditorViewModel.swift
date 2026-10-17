@@ -268,11 +268,11 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             return AppStrings.FeaturedEditor.validationImageURL
         }
 
-        if internalName.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.internalNameMaxLength
-            || title.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.titleMaxLength
-            || germanTitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.titleMaxLength
-            || subtitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.subtitleMaxLength
-            || germanSubtitle.trimmingCharacters(in: .whitespacesAndNewlines).count > FeaturedBannerValidationService.subtitleMaxLength {
+        if internalName.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > FeaturedBannerValidationService.internalNameMaxLength
+            || title.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > FeaturedBannerValidationService.titleMaxLength
+            || germanTitle.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > FeaturedBannerValidationService.titleMaxLength
+            || subtitle.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > FeaturedBannerValidationService.subtitleMaxLength
+            || germanSubtitle.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > FeaturedBannerValidationService.subtitleMaxLength {
             return AppStrings.FeaturedEditor.validationTextLength
         }
 

@@ -19,19 +19,20 @@ struct FeaturedBannerValidationService {
             throw AppError.validationFailed
         }
 
-        guard trimmed(banner.internalName).count <= Self.internalNameMaxLength,
-              trimmed(banner.title).count <= Self.titleMaxLength,
-              trimmed(banner.subtitle).count <= Self.subtitleMaxLength,
-              trimmed(banner.imageURL).count <= Self.URLMaxLength,
-              trimmed(banner.externalURL).count <= Self.URLMaxLength else {
+        // Match the callable's JavaScript String.length, including emoji/combined text.
+        guard trimmed(banner.internalName).utf16.count <= Self.internalNameMaxLength,
+              trimmed(banner.title).utf16.count <= Self.titleMaxLength,
+              trimmed(banner.subtitle).utf16.count <= Self.subtitleMaxLength,
+              trimmed(banner.imageURL).utf16.count <= Self.URLMaxLength,
+              trimmed(banner.externalURL).utf16.count <= Self.URLMaxLength else {
             throw AppError.validationFailed
         }
 
 
         guard banner.localizations.keys.allSatisfy({ PublishedContentLanguage(rawValue: $0) != nil }),
               banner.localizations.values.allSatisfy({
-                  trimmed($0.title).count <= Self.titleMaxLength
-                      && trimmed($0.subtitle).count <= Self.subtitleMaxLength
+                  trimmed($0.title).utf16.count <= Self.titleMaxLength
+                      && trimmed($0.subtitle).utf16.count <= Self.subtitleMaxLength
               }) else {
             throw AppError.validationFailed
         }

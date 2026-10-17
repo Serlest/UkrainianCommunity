@@ -64,6 +64,52 @@ private final class RecordingBannerRepository: FeaturedBannerRepository {
 
 @MainActor
 struct FeaturedBannerEditingTests {
+    @Test func bannerLimitsMatchServerUTF16ForEmojiAndCombinedCharacters() throws {
+        let validation = FeaturedBannerValidationService()
+        for cluster in ["😀", "e\u{301}", "👨‍👩‍👧‍👦"] {
+            let title = String(repeating: cluster, count: 120 / cluster.utf16.count)
+            let subtitle = String(repeating: cluster, count: 240 / cluster.utf16.count)
+            try validation.validate(makeBanner(title: title, subtitle: subtitle, imageURL: "https://example.com/banner.jpg"))
+            #expect(throws: (any Error).self) {
+                try validation.validate(makeBanner(title: title + cluster, subtitle: subtitle,
+                                                   imageURL: "https://example.com/banner.jpg"))
+            }
+            #expect(throws: (any Error).self) {
+                try validation.validate(makeBanner(title: title, subtitle: subtitle + cluster,
+                                                   imageURL: "https://example.com/banner.jpg"))
+            }
+            #expect(throws: (any Error).self) {
+                try validation.validate(makeBanner(title: "Fallback", subtitle: "Description",
+                    imageURL: "https://example.com/banner.jpg",
+                    localizations: ["de": .init(title: title + cluster, subtitle: "")]))
+            }
+        }
+    }
+
+    @Test func editorRejectsOverlongUTF16BeforePublishing() async throws {
+        let repository = RecordingBannerRepository()
+        let images = RecordingBannerImageService(uploadedURL: try #require(URL(string: "https://example.com/banner.jpg")))
+        let model = FeaturedBannerEditorViewModel(repository: repository,
+            mode: .edit(makeBanner(title: "Title", subtitle: "Description", imageURL: "https://example.com/banner.jpg")),
+            imageUploadService: images)
+        model.title = String(repeating: "😀", count: 60)
+        #expect(model.validationMessage == nil)
+        #expect(model.canSave)
+        model.title += "😀"
+        #expect(model.validationMessage == AppStrings.FeaturedEditor.validationTextLength)
+        #expect(!model.canSave)
+        #expect(await model.save(updatedBy: "owner-id") == false)
+        #expect(repository.updatedBanner == nil)
+        #expect(images.uploadedBannerIDs.isEmpty)
+
+        model.title = "Title"
+        model.germanTitle = String(repeating: "😀", count: 61)
+        #expect(model.validationMessage == AppStrings.FeaturedEditor.validationTextLength)
+        model.germanTitle = "Titel"
+        model.germanSubtitle = String(repeating: "😀", count: 121)
+        #expect(model.validationMessage == AppStrings.FeaturedEditor.validationTextLength)
+    }
+
     @Test func imageCropControlsClampZoomAndResetPosition() throws {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let context = try #require(CGContext(
