@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-17T15:24:57.121977+00:00",
+  "packageName": "at.serlest.ukrainiancommunity",
+  "versionName": "1.2",
+  "versionCodes": [
+    109
+  ],
+  "releaseName": "1.2 (109) – Internal",
+  "track": "internal",
+  "trackId": "4701365572505552935",
+  "releaseId": "10",
+  "consoleStatus": "Für interne Tester verfügbar",
+  "consolePublishedLabel": "17. Okt. 17:23",
+  "readbackMethod": "Authenticated Google Play Console UI; accepted artifact row 109 and published track status",
+  "publisherApiUsed": false,
+  "testersList": "UAC Internal Test",
+  "selectedUsersBeforeRelease": 2,
+  "testerAudienceChanged": false,
+  "closedAlphaChanged": false,
+  "detailsUrl": "https://play.google.com/console/u/0/developers/9121433135565744403/app/4976209024167699220/tracks/4701365572505552935/releases/10/details",
+  "testerUrl": "https://play.google.com/apps/internaltest/4701365572505552935",
+  "sourceCommit": "6cb041380d8b45d1ba8859e4d2b3f942cd2efaa4",
+  "aabSha256": "9e888f84e47da58b1128c94f0f684489f703aa76b3ffcb4045c5d74084e737f8",
+  "apkSha256": "22eb9e81018c46aed046123afc05abb50b4c4c95812815256fa7876b34830cf6",
+  "playErrors": 0,
+  "playWarnings": [
+    "Native debug symbols not uploaded; R8 mapping is attached"
+  ],
+  "devicesNoLongerSupported": 0
+}

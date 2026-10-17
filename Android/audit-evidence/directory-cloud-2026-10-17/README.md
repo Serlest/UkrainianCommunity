@@ -27,3 +27,32 @@
 ## Границы
 
 Android проверял production только на чтение. Новые production публикации, изменения пользователей, ролей, SDK App Check protections и правил этот клиентский тест не выполнял. Полный provider login/физическая Play install приёмка остаются отдельными проверками. Старые исторические audit/recent исправления `c2834f1` и `9d5dca7` входят в рабочую ветку.
+
+## Финальная доставка — 1.2 (109)
+
+**Google Play Internal Testing опубликован и доступен внутренним тестировщикам.** Прямое read-back из Console: `Für interne Tester verfügbar`, release `1.2 (109) – Internal`, versionCode **109**, существующий internal track `4701365572505552935`, release ID `10`; label Console: `17. Okt. 17:23`.
+
+- [Ссылка тестировщика](https://play.google.com/apps/internaltest/4701365572505552935).
+- [Release details в Console](https://play.google.com/console/u/0/developers/9121433135565744403/app/4976209024167699220/tracks/4701365572505552935/releases/10/details).
+- [Публикационный receipt](play-109-receipt.json), [подтверждение Console](play-109-console.jpg).
+- Аудитория сохранена: выбран прежний `UAC Internal Test`, 2 пользователя; список не редактировался. Closed Alpha и его группы не изменялись; ссылка закрытого Alpha сама по себе не доставляет эту Internal-сборку.
+- Отдельный Android Publisher API не использовался. versionCode/track/status подтверждены по принятому Console artifact и живому опубликованному track; это UI read-back, не заявленный API response.
+
+Сборка из source commit **`6cb0413`**: `productionRelease`, package `at.serlest.ukrainiancommunity`, version `1.2 (109)`, minSdk 26, targetSdk 36, upload certificate SHA-256 `c7f97bb4be68c85ead95a67d29356708874c3697a6ea69453f7837d83f7fefbe`. Явные Apple/passkey flags включены прежним release wrapper; local backend/debug App Check не включены. Signature APK проверена `apksigner verify`; R8 mapping находится в AAB и принят Play.
+
+| Artifact | SHA-256 |
+|---|---|
+| `Android/app/build/outputs/bundle/productionRelease/app-production-release.aab` | `9e888f84e47da58b1128c94f0f684489f703aa76b3ffcb4045c5d74084e737f8` |
+| `Android/app/build/outputs/apk/production/release/app-production-release.apk` | `22eb9e81018c46aed046123afc05abb50b4c4c95812815256fa7876b34830cf6` |
+
+Final release BUILD SUCCESSFUL, 1 мин 49 с, `/tmp/uac-android-109-release.log`. Перед release повторены **2028/2028 JVM PASS** и `lintLocalDebug` (0 errors, 100 warnings, 4 hints), `/tmp/uac-android-109-final-checks.log`. Play: 0 errors, 1 неблокирующее предупреждение об отсутствии native debug symbols, потери поддерживаемых устройств нет. Physical Play install, живые Google/Apple/passkey/TOTP входы и полный private CRUD на устройстве не объявляются выполненными.
+
+Отдельный production read-only callable `getDirectoryRecentAdditions` после миграции ответил HTTP 200: `items:[]`, `nextCursor:null`, `hasMore:false`. [Evidence](live-recent-read.json). Миграция не создала ложной истории «новых» старых материалов.
+
+## Синхронизация shared Directory source
+
+Без merge всей main перенесены **22 server/rules/scripts файла** из зафиксированных blobs: `a369d58` (migration/recent), `a40367e` (timestamp verification script), `2af7c31` (restricted automation bridge/helper), `da9d141` (read-only registry script). Dirty/uncommitted файлы main не копировались, iOS не редактировался. Canonical rules path в этом Git index/config — `Firebase/firestore.rules`.
+
+Локальные commits: **`cb90996`** — authoritative Android/catalog/cache + live evidence; **`5090f10`** — согласованный Directory backend; **`cc6f06c`** — registry script; **`926f607`** — marker read rule; **`6cb0413`** — version 109/diagnostic smoke build helper. Проверено побайтовое соответствие выбранным main blobs. Functions TypeScript build PASS; 12 selected recent-model/automation-policy/evidence unit tests PASS. Deployment shared функций/Rules из Android checkout не выполнялся; live gate automation не включался.
+
+Диагностический SDK smoke воспроизводится `node Android/scripts/build-production-sdk-smoke.mjs`, затем запуском `DirectoryCloudSdkReadTest` на отдельном AVD с productionDebug APK/test APK. Это build-only opt-in, не Store artifact. Созданный временный SDK AVD остановлен и удалён после сохранения evidence.
