@@ -314,6 +314,7 @@ fun BannerHero(
                                     onOpen = onTap,
                                     onDialogVisibilityChanged = onDialogVisibilityChanged,
                                     iconOnly = true,
+                                    policy = WebLinkPolicy.BANNER_ACTION,
                                 )
                             }
                         }

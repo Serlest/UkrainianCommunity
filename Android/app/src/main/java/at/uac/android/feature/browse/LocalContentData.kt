@@ -91,6 +91,7 @@ class DiskContentCache(context: Context) : ContentCache {
                             )
                         },
                         Instant.parse(json.getString("at")),
+                        json.optString("sourceStartInclusive").takeIf(String::isNotBlank)?.let(Instant::parse),
                     )
                 }
                     .getOrNull()
@@ -106,6 +107,7 @@ class DiskContentCache(context: Context) : ContentCache {
                     val json =
                         JSONObject()
                             .put("at", value.at.toString())
+                            .put("sourceStartInclusive", value.sourceStartInclusive?.toString())
                             .put(
                                 "rows",
                                 JSONArray().also { array ->

@@ -13,7 +13,7 @@ interface ContentSource {
     suspend fun auxiliary(path: String, section: String = ""): List<RawDocument>
 }
 
-data class CachedRows(val rows: List<RawDocument>, val at: Instant)
+data class CachedRows(val rows: List<RawDocument>, val at: Instant, val sourceStartInclusive: Instant? = null)
 
 interface ContentCache {
     suspend fun get(key: String): CachedRows?
@@ -53,11 +53,12 @@ class ContentRepository(
 ) {
     private suspend fun read(
         key: String,
+        sourceStartInclusive: Instant? = null,
         load: suspend () -> List<RawDocument>,
     ): ReadResult<List<RawDocument>> {
         return try {
             val rows = withTimeout(5_000) { load() }
-            cache.put(key, CachedRows(rows, clock()))
+            cache.put(key, CachedRows(rows, clock(), sourceStartInclusive))
             ReadResult(rows)
         } catch (failure: Exception) {
             val reason =
@@ -72,6 +73,8 @@ class ContentRepository(
                 cache
                     .get(key)
                     ?.takeIf { it.at.plusSeconds(86_400) >= clock() }
+                    ?.takeIf { cached -> sourceStartInclusive == null ||
+                        cached.sourceStartInclusive?.let { it <= sourceStartInclusive } == true }
                     ?.let {
                         return ReadResult(it.rows, it.at)
                     }
@@ -96,9 +99,14 @@ class ContentRepository(
         // Search/category filters scan backend pages, including pages with zero matches.
         // Bound the work; expose continuation instead of claiming an incomplete scan is empty.
         repeat(20) {
-            val key =
-                "page:${query.kind}:${query.region}:${query.past}:${query.organizationId}:${query.recommendations}:${if (query.recommendations) query.category else ""}:$cursor:$size"
-            val read = read(key) { source.page(query, cursor, size + 1) }
+            val dates = if (query.kind == ContentKind.NEWS) query.newsDates else NewsDateRange(null, null)
+            val key = listOf("page:v3", query.kind, query.region, query.past, query.organizationId,
+                query.recommendations, query.category, query.orderField, query.ascending,
+                dates.startInclusive, dates.endExclusive, cursor, size).joinToString("|")
+            // A cached future-event query remains a safe raw superset as time advances.
+            // Moving its cutoff backwards requires a new server read, not a misleading cache hit.
+            val sourceStart = query.now.takeIf { query.kind == ContentKind.EVENTS && !query.past && !query.recommendations }
+            val read = read(key, sourceStart) { source.page(query, cursor, size + 1) }
             cachedAt = listOfNotNull(cachedAt, read.cachedAt).minOrNull()
             val rows = read.value
             for ((index, row) in rows.withIndex()) {

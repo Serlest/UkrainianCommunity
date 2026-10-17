@@ -1,7 +1,10 @@
 package at.uac.android.feature.directory
 
-import at.uac.android.feature.browse.safeHttps
+import at.uac.android.feature.browse.safeWebLink
+import at.uac.android.feature.browse.WebLinkPolicy
 import java.net.URI
+import java.net.IDN
+import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -21,7 +24,23 @@ object DirectoryDraftValidation {
             Regex("^[A-Za-z][A-Za-z0-9+.-]*://").containsMatchIn(input) -> return null
             else -> "https://$input"
         }
-        return safeHttps(https)?.takeIf { it.length <= 1024 }
+        val uri = runCatching { URI(https) }.getOrNull() ?: return null
+        val authority = uri.rawAuthority ?: return null
+        if ('@' in authority) return null
+        val canonical = if (uri.host != null) https else {
+            // Foundation URL emits IDNA hosts; Java URI does not populate host for Unicode input.
+            if ('[' in authority || ']' in authority || authority.count { it == ':' } > 1) return null
+            val host = authority.substringBefore(':')
+            val port = if (':' in authority) {
+                val value = authority.substringAfter(':').takeIf { it.matches(Regex("[0-9]+")) }
+                    ?.toIntOrNull()?.takeIf { it in 0..65535 } ?: return null
+                ":$value"
+            } else ""
+            val asciiHost = runCatching { IDN.toASCII(host, IDN.USE_STD3_ASCII_RULES).lowercase(Locale.ROOT) }
+                .getOrNull()?.takeIf(String::isNotBlank) ?: return null
+            "https://$asciiHost$port${https.substring(8 + authority.length)}"
+        }
+        return safeWebLink(canonical, WebLinkPolicy.DIRECTORY_SOURCE)?.takeIf { it.length <= 1024 }
     }
 
     /** Apply the same URL conversion to every article, section and regional source before validation or upload. */

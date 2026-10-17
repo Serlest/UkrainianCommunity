@@ -44,6 +44,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 private data class PendingSectionDeletion(val topicId: String, val sectionId: String, val region: String?)
+private data class PendingEntryDeletion(val id: String, val group: Boolean)
 
 /** Publication is revision checked by the server. Drafts stay local until explicit publish. */
 @Composable
@@ -82,6 +83,7 @@ fun DirectoryEditorScreen(
     var error by remember { mutableStateOf<String?>(null) }
     var confirmDelete by remember { mutableStateOf(false) }
     var pendingSectionDeletion by remember(categoryId) { mutableStateOf<PendingSectionDeletion?>(null) }
+    var pendingEntryDeletion by remember(categoryId) { mutableStateOf<PendingEntryDeletion?>(null) }
     val scope = rememberCoroutineScope()
     val json = remember(draft) { JSONObject(draft) }
     fun mutate(change: (JSONObject) -> Unit) {
@@ -241,21 +243,13 @@ fun DirectoryEditorScreen(
                     }
                     OutlinedButton({
                         val id = group.getString("id")
-                        val remaining = (0 until topics.length()).count {
-                            topics.getJSONObject(it).getString("groupID") != id
-                        }
-                        if (groups.length() > 1 && remaining > 0) {
-                            mutate { root ->
-                                val targetTopics = root.getJSONArray("topics")
-                                for (i in targetTopics.length() - 1 downTo 0)
-                                    if (targetTopics.getJSONObject(i).getString("groupID") == id)
-                                        targetTopics.remove(i)
-                                root.getJSONArray("groups").remove(groupIndex)
-                            }
-                            pane = "category"
-                        } else error = tr(language, "Der letzte Bereich mit Beiträgen bleibt erhalten.",
-                            "Останній підрозділ зі статтями має залишитися.")
-                    }) { Text(tr(language, "Unterbereich und Beiträge entfernen", "Видалити підрозділ і статті")) }
+                        if (canDeleteDirectoryEntry(json, id, group = true))
+                            pendingEntryDeletion = PendingEntryDeletion(id, group = true)
+                        else error = tr(language, "Der letzte sichtbare Unterbereich mit Beiträgen bleibt erhalten.",
+                            "Останній видимий підрозділ зі статтями має залишитися.")
+                    }, modifier = Modifier.testTag("directory-editor-remove-group")) {
+                        Text(tr(language, "Unterbereich und Beiträge entfernen", "Видалити підрозділ і статті"))
+                    }
                 }
             }
             topicIndex != null -> {
@@ -348,12 +342,14 @@ fun DirectoryEditorScreen(
                         }) { Text(tr(language, "Regionalen Abschnitt hinzufügen", "Додати регіональний блок")) }
                     }
                     OutlinedButton({
-                        if (topics.length() > 1) {
-                            mutate { it.getJSONArray("topics").remove(topicIndex) }
-                            pane = "category"
-                        } else error = tr(language, "Der letzte Beitrag kann nicht entfernt werden.",
-                            "Останню статтю не можна видалити.")
-                    }) { Text(tr(language, "Beitrag entfernen", "Видалити статтю")) }
+                        val id = topic.getString("id")
+                        if (canDeleteDirectoryEntry(json, id, group = false))
+                            pendingEntryDeletion = PendingEntryDeletion(id, group = false)
+                        else error = tr(language, "Der letzte sichtbare Beitrag kann nicht entfernt werden.",
+                            "Останню видиму статтю не можна видалити.")
+                    }, modifier = Modifier.testTag("directory-editor-remove-topic")) {
+                        Text(tr(language, "Beitrag entfernen", "Видалити статтю"))
+                    }
                 }
             }
             else -> {
@@ -473,6 +469,38 @@ fun DirectoryEditorScreen(
             }
         }
     }
+    pendingEntryDeletion?.let { pending ->
+        AlertDialog(
+            onDismissRequest = { pendingEntryDeletion = null },
+            title = { Text(if (pending.group) tr(language, "Unterbereich und Beiträge löschen?", "Видалити підрозділ і статті?")
+                else tr(language, "Beitrag löschen?", "Видалити статтю?")) },
+            text = { Text(tr(language,
+                "Die Inhalte werden aus dem Entwurf entfernt. Für Leser gilt die Änderung erst nach der Veröffentlichung.",
+                "Матеріали буде видалено з чернетки. Читачі побачать зміну лише після публікації.")) },
+            confirmButton = { TextButton({
+                if (canDeleteDirectoryEntry(JSONObject(draft), pending.id, pending.group)) {
+                    mutate { root ->
+                        val currentTopics = root.getJSONArray("topics")
+                        if (pending.group) {
+                            for (i in currentTopics.length() - 1 downTo 0)
+                                if (currentTopics.getJSONObject(i).getString("groupID") == pending.id) currentTopics.remove(i)
+                            val currentGroups = root.getJSONArray("groups")
+                            currentGroups.remove(arrayIndexById(currentGroups, pending.id))
+                        } else currentTopics.remove(arrayIndexById(currentTopics, pending.id))
+                    }
+                    pane = "category"
+                } else error = tr(language, "Der letzte sichtbare Inhalt muss erhalten bleiben.",
+                    "Останній видимий матеріал має залишитися.")
+                pendingEntryDeletion = null
+            }, modifier = Modifier.testTag("directory-editor-confirm-remove-entry")) {
+                Text(tr(language, "Löschen", "Видалити"), color = MaterialTheme.colorScheme.error)
+            } },
+            dismissButton = { TextButton({ pendingEntryDeletion = null },
+                modifier = Modifier.testTag("directory-editor-cancel-remove-entry")) {
+                Text(tr(language, "Abbrechen", "Скасувати"))
+            } },
+        )
+    }
     pendingSectionDeletion?.let { pending ->
         AlertDialog(
             onDismissRequest = { pendingSectionDeletion = null },
@@ -517,6 +545,19 @@ fun DirectoryEditorScreen(
 
 private fun arrayIndexById(items: JSONArray, id: String): Int =
     (0 until items.length()).firstOrNull { items.getJSONObject(it).optString("id") == id } ?: -1
+
+private fun canDeleteDirectoryEntry(root: JSONObject, id: String, group: Boolean): Boolean {
+    val groups = root.getJSONArray("groups")
+    val topics = root.getJSONArray("topics")
+    if (arrayIndexById(if (group) groups else topics, id) < 0 || group && groups.length() <= 1) return false
+    return (0 until topics.length()).any { index ->
+        val topic = topics.getJSONObject(index)
+        val groupId = topic.getString("groupID")
+        val groupIndex = arrayIndexById(groups, groupId)
+        !topic.getBoolean("isHidden") && groupIndex >= 0 && !groups.getJSONObject(groupIndex).getBoolean("isHidden") &&
+            if (group) groupId != id else topic.getString("id") != id
+    }
+}
 
 private fun canDeleteOrdinarySection(topic: JSONObject, sectionId: String): Boolean {
     val sections = topic.getJSONArray("sections")

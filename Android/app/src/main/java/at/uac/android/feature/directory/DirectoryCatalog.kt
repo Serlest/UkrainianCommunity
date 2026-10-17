@@ -1,7 +1,6 @@
 package at.uac.android.feature.directory
 
 import android.content.Context
-import at.uac.android.feature.browse.safeHttps
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -11,7 +10,8 @@ data class DirectoryText(val ukrainian: String, val german: String) {
 
 data class DirectorySource(val name: String, val url: String) {
     val safeUrl: String?
-        get() = safeHttps(url)
+        get() = url.takeIf { it.trim().startsWith("https://", ignoreCase = true) }
+            ?.let(DirectoryDraftValidation::canonicalSourceUrl)
 }
 
 data class DirectoryContact(

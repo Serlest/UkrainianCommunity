@@ -165,6 +165,32 @@ class BrowseStateTest {
     }
 
     @Test
+    fun donationFailureAndOfflineCacheProvenanceSurviveOptionalRead() = runTest {
+        var donationFailure: ReadFailure? = ReadFailure.DENIED
+        val base = SyntheticContentSource(data())
+        val source = object : ContentSource by base {
+            override suspend fun document(path: String): RawDocument {
+                if (path != "appConfig/donation") return base.document(path)
+                donationFailure?.let { throw ReadException(it) }
+                return RawDocument("donation", mapOf("isEnabled" to true,
+                    "donationURL" to "https://example.org/support"))
+            }
+        }
+        val vm = model(source = source)
+        advanceUntilIdle()
+        assertTrue("donation" to ReadFailure.DENIED in vm.state.value.data.warnings)
+        donationFailure = null
+        vm.refresh()
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.data.donation)
+        donationFailure = ReadFailure.OFFLINE
+        vm.refresh()
+        advanceUntilIdle()
+        assertNotNull(vm.state.value.data.donation)
+        assertNotNull(vm.state.value.data.cachedAt)
+    }
+
+    @Test
     fun missingOptionalDonationDoesNotRenderAFeedWarning() = runTest {
         val vm = model()
         advanceUntilIdle()

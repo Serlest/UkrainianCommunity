@@ -14,7 +14,7 @@ data class PendingPushTap(
     val revision: Long,
 )
 
-/** Only explicit notification-tap intents enter navigation; receipt alone never moves the user. */
+/** Notification taps only queue allowlisted routes; the host still enforces the captured account/auth gates. */
 class PushNavigationViewModel(private val saved: SavedStateHandle) : ViewModel() {
     private val sequence = AtomicLong(saved[REVISION] ?: 0L)
     private val mutable = MutableStateFlow(restored())
@@ -22,12 +22,22 @@ class PushNavigationViewModel(private val saved: SavedStateHandle) : ViewModel()
     private val handled = linkedSetOf<String>()
 
     fun offer(intent: Intent?, ownerUid: String?): Boolean {
-        if (intent?.action != ACTION_TAP || !validUid(ownerUid)) return false
-        val data =
-            intent.extras
-                ?.keySet()
-                ?.filter { it in ALLOWED_FIELDS }
-                ?.associateWith { intent.getStringExtra(it).orEmpty() } ?: return false
+        if (intent == null || !validUid(ownerUid)) return false
+        val data = runCatching {
+            val extras = intent.extras ?: return false
+            if (extras.keySet().size > 64) return false
+            // Older deployed FCM envelopes use the package's normal launcher PendingIntent.
+            // The marker identifies a delivery shape, never authorization. No VIEW URI is accepted.
+            val legacyTap = intent.action == Intent.ACTION_MAIN && intent.data == null &&
+                intent.hasCategory(Intent.CATEGORY_LAUNCHER) &&
+                intent.getStringExtra("google.message_id")?.let(::validNotice) == true
+            if (intent.action != ACTION_TAP && !legacyTap) return false
+            extras.keySet().filter { it in ALLOWED_FIELDS }.associateWith { key ->
+                @Suppress("DEPRECATION")
+                val value = extras.get(key) as? String ?: return false
+                value
+            }
+        }.getOrNull() ?: return false
         return offer(data, ownerUid)
     }
 

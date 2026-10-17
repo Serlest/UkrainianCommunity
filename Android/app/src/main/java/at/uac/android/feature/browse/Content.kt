@@ -368,6 +368,21 @@ fun safeHttps(value: String, allowBareHost: Boolean = false): String? = runCatch
 }
     .getOrNull()
 
+/** Browser destinations use their content contract, independently of media/donation policies. */
+enum class WebLinkPolicy { STRICT_HTTPS, DIRECTORY_SOURCE, BANNER_ACTION }
+
+fun safeWebLink(value: String, policy: WebLinkPolicy): String? {
+    if (policy == WebLinkPolicy.STRICT_HTTPS) return safeHttps(value)
+    return runCatching {
+        val text = value.trim()
+        if (text.isEmpty() || text.length > 2048 || text.any { it.isWhitespace() || it.isISOControl() } || '\\' in text) return null
+        val uri = URI(text)
+        val schemes = if (policy == WebLinkPolicy.DIRECTORY_SOURCE) setOf("https") else setOf("http", "https")
+        if (uri.scheme?.lowercase() !in schemes || uri.host.isNullOrBlank() || uri.rawUserInfo != null ||
+            uri.port !in -1..65535) null else uri.toASCIIString()
+    }.getOrNull()
+}
+
 fun displayTime(
     value: Instant,
     language: String,
@@ -408,7 +423,7 @@ data class Banner(val id: String, val fields: Fields) {
                 regions.any { it.first == fields.string("federalState") }) &&
             (action !in listOf("news", "event", "organization") ||
                 fields.string("actionTargetID").let { it.isNotBlank() && '/' !in it }) &&
-            (action != "externalURL" || safeHttps(fields.string("externalURL")) != null) &&
+            (action != "externalURL" || safeWebLink(fields.string("externalURL"), WebLinkPolicy.BANNER_ACTION) != null) &&
             (fields.time("startsAt") == null ||
                 fields.time("endsAt") == null ||
                 fields.time("startsAt")!! < fields.time("endsAt")!!) &&

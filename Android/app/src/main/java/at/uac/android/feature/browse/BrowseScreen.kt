@@ -226,6 +226,38 @@ fun BrowseScreen(
                                 }
                             } else {
                                 val list = rememberLazyListState()
+                                val readingQuery = listOf(state.navigationEpoch, state.route, state.mode, state.language, state.region,
+                                    state.search, state.category, state.audience, state.past, state.eventPeriod,
+                                    state.eventAge, state.eventScope, state.organizationScope, state.newsPeriod,
+                                    state.newsOrder, state.newsSource, state.customStart, state.customEnd).toString()
+                                val currentReadingQuery by rememberUpdatedState(readingQuery)
+                                var pausedIndex by rememberSaveable { mutableIntStateOf(-1) }
+                                var pausedOffset by rememberSaveable { mutableIntStateOf(0) }
+                                var pausedQuery by rememberSaveable { mutableStateOf("") }
+                                var pausedKey by rememberSaveable { mutableStateOf<String?>(null) }
+                                var renderedKeys by remember { mutableStateOf<RenderedBrowseKeys?>(null, referentialEqualityPolicy()) }
+                                var restoreReadingPosition by remember { mutableStateOf(false) }
+                                LifecycleResumeEffect(model, state.route) {
+                                    restoreReadingPosition = pausedIndex >= 0
+                                    onPauseOrDispose {
+                                        pausedIndex = list.firstVisibleItemIndex
+                                        pausedOffset = list.firstVisibleItemScrollOffset
+                                        pausedQuery = currentReadingQuery
+                                        pausedKey = list.layoutInfo.visibleItemsInfo
+                                            .firstOrNull { it.index == list.firstVisibleItemIndex }?.key as? String
+                                        restoreReadingPosition = false
+                                    }
+                                }
+                                LaunchedEffect(restoreReadingPosition, state.data.loading, state.data.error, renderedKeys) {
+                                    val rendered = renderedKeys
+                                    if (restoreReadingPosition && !state.data.loading && rendered?.data === state.data && rendered.query == readingQuery) {
+                                        if (pausedQuery == readingQuery && state.data.error == null)
+                                            list.requestScrollToItem(pausedKey?.let(rendered.keys::indexOf)?.takeIf { it >= 0 }
+                                                ?: pausedIndex.coerceAtLeast(0), pausedOffset)
+                                        pausedIndex = -1
+                                        restoreReadingPosition = false
+                                    }
+                                }
                                 var listViewport by remember { mutableStateOf<Rect?>(null) }
                                 var filterSheetVisible by remember(state.route) { mutableStateOf(false) }
                                 var bannersWereAvailable by
@@ -248,7 +280,7 @@ fun BrowseScreen(
                                     // pull a reader back from a position they intentionally
                                     // scrolled to.
                                     if (
-                                        shouldRevealNewBanner(
+                                        !restoreReadingPosition && shouldRevealNewBanner(
                                             bannersAvailable,
                                             bannersWereAvailable,
                                             state.detailId.isNotEmpty(),
@@ -280,6 +312,8 @@ fun BrowseScreen(
                                         verticalArrangement = Arrangement.spacedBy(16.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                     ) {
+                                        val itemKeys = mutableListOf<Any>()
+                                        with(RecordingLazyListScope(this, itemKeys)) {
                                         if (state.route == "settings")
                                             item("preferences") {
                                                 Settings(state, model, diagnostics)
@@ -510,6 +544,9 @@ fun BrowseScreen(
                                                 )
                                             }
                                         }
+                                        }
+                                        if (renderedKeys?.data !== state.data || renderedKeys?.query != readingQuery || renderedKeys?.keys != itemKeys)
+                                            renderedKeys = RenderedBrowseKeys(state.data, readingQuery, itemKeys)
                                     }
                                 }
                             }
@@ -1324,8 +1361,9 @@ fun SafeLink(
     onOpen: () -> Unit = {},
     onDialogVisibilityChanged: (Boolean) -> Unit = {},
     iconOnly: Boolean = false,
+    policy: WebLinkPolicy = WebLinkPolicy.STRICT_HTTPS,
 ) {
-    val url = safeHttps(value) ?: return
+    val url = safeWebLink(value, policy) ?: return
     var show by remember(url) { mutableStateOf(false) }
     LaunchedEffect(show) { onDialogVisibilityChanged(show) }
     var failed by remember(url) { mutableStateOf(false) }

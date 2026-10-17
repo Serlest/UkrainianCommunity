@@ -109,23 +109,40 @@ class FirebaseFeaturedManagementSource(
         }
     }
 
-    private fun parse(snapshot: DocumentSnapshot): FeaturedBanner {
-        val f = snapshot.data.orEmpty()
+    private fun parse(snapshot: DocumentSnapshot): FeaturedBanner = decode(snapshot.id, snapshot.data.orEmpty())
+
+    companion object {
+    internal fun decode(documentId: String, f: Map<String, Any>): FeaturedBanner {
         fun text(key: String, max: Int) = (f[key] as? String)?.takeIf { it.length <= max }.orEmpty()
         val updated = (f["updatedAt"] as? Timestamp)?.toDate()?.toInstant() ?: Instant.EPOCH
         val created = (f["createdAt"] as? Timestamp)?.toDate()?.toInstant() ?: Instant.EPOCH
         val action = FeaturedAction.entries.firstOrNull { it.wire == f["actionType"] }
         val region = FeaturedRegion.entries.firstOrNull { it.wire == f["regionScope"] }
-        val sections = (f["visibleSections"] as? List<*>)?.mapNotNull { raw -> FeaturedSection.entries.firstOrNull { it.wire == raw } }?.toSet().orEmpty()
-        val localizations = (f["localizations"] as? Map<*, *>)?.mapNotNull { (key, raw) ->
+        val rawSections = f["visibleSections"] as? List<*>
+        val sections = rawSections?.mapNotNull { raw -> FeaturedSection.entries.firstOrNull { it.wire == raw } }?.toSet().orEmpty()
+        val rawLocalizations = f["localizations"] as? Map<*, *>
+        val localizations = rawLocalizations?.mapNotNull { (key, raw) ->
             val language = key as? String ?: return@mapNotNull null
             val map = raw as? Map<*, *> ?: return@mapNotNull null
             language to FeaturedLocalized((map["title"] as? String).orEmpty(), (map["subtitle"] as? String).orEmpty())
         }?.toMap().orEmpty()
         val allowed = setOf("id", "internalName", "localizations", "title", "subtitle", "imageURL", "actionType", "actionTargetID", "externalURL", "regionScope", "federalState", "visibleSections", "displayDurationSeconds", "priority", "isActive", "startsAt", "endsAt", "createdAt", "updatedAt", "createdBy", "updatedBy")
-        val repair = f["id"] != snapshot.id || action == null || region == null || sections.isEmpty() || f.keys.any { it !in allowed } || updated == Instant.EPOCH || created == Instant.EPOCH
+        val malformedText = mapOf("internalName" to 120, "title" to 120, "subtitle" to 240,
+            "imageURL" to 2048, "actionTargetID" to 256, "externalURL" to 2048,
+            "federalState" to 64, "createdBy" to 128, "updatedBy" to 128).any { (key, max) ->
+            f[key]?.let { it !is String || it.length > max } == true
+        }
+        val malformedLocalizations = f["localizations"] != null && (rawLocalizations == null ||
+            rawLocalizations.any { (key, value) -> key !in setOf("de", "uk") || value !is Map<*, *> ||
+                value.any { (field, text) -> field !in setOf("title", "subtitle") || text !is String } })
+        val decodingRepair = f["id"] != documentId || action == null || region == null || sections.isEmpty() ||
+            rawSections?.size != sections.size || rawLocalizations?.size?.let { it != localizations.size } == true ||
+            f.keys.any { it !in allowed } || updated == Instant.EPOCH || created == Instant.EPOCH || text("createdBy", 128).isBlank() ||
+            malformedText || malformedLocalizations || f["displayDurationSeconds"] !is Number ||
+            f["priority"] !is Number || f["isActive"] !is Boolean ||
+            listOf("startsAt", "endsAt").any { f[it] != null && f[it] !is Timestamp }
         val draft = FeaturedDraft(
-            id = snapshot.id, internalName = text("internalName", 120), localizations = localizations,
+            id = documentId, internalName = text("internalName", 120), localizations = localizations,
             title = text("title", 120), subtitle = text("subtitle", 240), imageUrl = text("imageURL", 2048),
             action = action ?: FeaturedAction.NONE, actionTargetId = text("actionTargetID", 256), externalUrl = text("externalURL", 2048),
             region = region ?: FeaturedRegion.ALL_AUSTRIA, federalState = text("federalState", 64), sections = sections.ifEmpty { setOf(FeaturedSection.HOME) },
@@ -133,8 +150,11 @@ class FirebaseFeaturedManagementSource(
             priority = (f["priority"] as? Number)?.toInt() ?: 0, active = f["isActive"] as? Boolean ?: false,
             startsAt = (f["startsAt"] as? Timestamp)?.toDate()?.toInstant(), endsAt = (f["endsAt"] as? Timestamp)?.toDate()?.toInstant(),
         )
-        val safeFingerprint = runCatching { FeaturedManagementContract.fingerprint(draft) }.getOrElse { "repair:${snapshot.id}:$updated" }
-        return FeaturedBanner(draft, FeaturedVersion(snapshot.id, updated, safeFingerprint), created, text("createdBy", 128), text("updatedBy", 128).ifEmpty { null }, repair)
+        val fingerprint = runCatching { FeaturedManagementContract.fingerprint(draft) }
+        val safeFingerprint = fingerprint.getOrElse { "repair:$documentId:$updated" }
+        return FeaturedBanner(draft, FeaturedVersion(documentId, updated, safeFingerprint), created,
+            text("createdBy", 128), text("updatedBy", 128).ifEmpty { null }, decodingRepair || fingerprint.isFailure)
+    }
     }
 
     private suspend fun <T> request(block: suspend () -> T): T = try { block() } catch (error: TimeoutCancellationException) {

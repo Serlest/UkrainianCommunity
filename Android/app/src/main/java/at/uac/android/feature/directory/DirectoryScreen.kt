@@ -60,6 +60,7 @@ import at.uac.android.design.UacSectionHeading
 import at.uac.android.design.UacSymbol
 import at.uac.android.feature.browse.Choice
 import at.uac.android.feature.browse.SafeLink
+import at.uac.android.feature.browse.WebLinkPolicy
 import at.uac.android.feature.browse.regions
 import at.uac.android.feature.browse.tr
 import kotlinx.coroutines.launch
@@ -193,7 +194,9 @@ fun DirectoryDestination(
                 UacCard {
                     UacSectionHeading(tr(language, "Quellen", "Джерела"), UacIcon.OPEN_ARROW)
                     topic.sources.distinctBy { it.url }.forEach { source ->
-                        if (source.safeUrl != null) SafeLink(source.name, source.url, language)
+                        source.safeUrl?.let { url ->
+                            SafeLink(source.name, url, language, policy = WebLinkPolicy.DIRECTORY_SOURCE)
+                        }
                     }
                 }
             }
@@ -399,7 +402,11 @@ private fun DirectorySectionCard(section: DirectorySection, language: String) {
             DirectoryPhone(contact.number)
             Text(contact.detail.forLanguage(language), style = MaterialTheme.typography.bodySmall)
         }
-        section.source?.takeIf { it.safeUrl != null }?.let { SafeLink(it.name, it.url, language) }
+        section.source?.let { source ->
+            source.safeUrl?.let { url ->
+                SafeLink(source.name, url, language, policy = WebLinkPolicy.DIRECTORY_SOURCE)
+            }
+        }
     }
 }
 

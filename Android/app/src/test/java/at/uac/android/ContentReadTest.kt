@@ -539,6 +539,54 @@ class ContentReadTest {
     }
 
     @Test
+    fun cacheDoesNotMixNewsOrderCategoryOrCalendarBoundaries() = runTest {
+        val switching = SwitchSource(source(listOf(
+            row("old", mapOf("publishedAt" to now.minusSeconds(3600))), row("new"),
+        )))
+        val repository = ContentRepository(switching, MemoryContentCache()) { now }
+        val query = ContentQuery(ContentKind.NEWS, category = "education", now = now)
+        assertEquals(listOf("new", "old"), repository.page(query).value.items.map { it.id })
+        switching.error = ReadFailure.OFFLINE
+        failure(ReadFailure.OFFLINE) { repository.page(query.copy(newsOrder = NewsOrder.OLDEST)) }
+        failure(ReadFailure.OFFLINE) { repository.page(query.copy(category = "health")) }
+        switching.error = null
+        val oldest = query.copy(newsOrder = NewsOrder.OLDEST)
+        repository.page(oldest)
+        val today = query.copy(newsPeriod = NewsPeriod.TODAY)
+        repository.page(today)
+        switching.error = ReadFailure.OFFLINE
+        assertEquals(listOf("old", "new"), repository.page(oldest).value.items.map { it.id })
+        assertEquals(2, repository.page(today.copy(now = now.plusSeconds(3600))).value.items.size)
+        failure(ReadFailure.OFFLINE) { repository.page(today.copy(now = now.plusSeconds(86400))) }
+    }
+
+    @Test
+    fun futureEventCacheCanAdvanceItsCutoffButCannotMoveItBackwards() = runTest {
+        val switching = SwitchSource(source(listOf(
+            row("ending", mapOf("details" to "Event", "startDate" to now.minusSeconds(60), "endDate" to now.plusSeconds(10))),
+            row("later", mapOf("details" to "Event", "startDate" to now.plusSeconds(100), "endDate" to now.plusSeconds(200))),
+        ), ContentKind.EVENTS))
+        val repository = ContentRepository(switching, MemoryContentCache()) { now }
+        val query = ContentQuery(ContentKind.EVENTS, now = now)
+        assertEquals(2, repository.page(query).value.items.size)
+        switching.error = ReadFailure.OFFLINE
+        assertEquals(listOf("later"), repository.page(query.copy(now = now.plusSeconds(20))).value.items.map { it.id })
+        failure(ReadFailure.OFFLINE) { repository.page(query.copy(now = now.minusSeconds(20))) }
+    }
+
+    @Test
+    fun browserPoliciesAcceptTheirContractsWithoutRelaxingStrictDestinations() {
+        assertNotNull(safeWebLink("http://example.org/path", WebLinkPolicy.BANNER_ACTION))
+        assertNotNull(safeWebLink("https://example.org:8443/path", WebLinkPolicy.DIRECTORY_SOURCE))
+        assertNull(safeHttps("http://example.org/path"))
+        assertNull(safeHttps("https://example.org:8443/path"))
+        assertTrue(Banner("http-action", banner("http-action", mapOf("actionType" to "externalURL",
+            "externalURL" to "http://example.org/path")).fields).valid())
+        for (url in listOf("javascript:alert(1)", "file:///tmp/test", "https://user@example.org", "https://example.org:99999", "https://example.org/a b"))
+            for (policy in WebLinkPolicy.entries) assertNull(url, safeWebLink(url, policy))
+    }
+
+    @Test
     fun cacheExpiresAfterOneDay() = runTest {
         var clock = now
         val source = SwitchSource(source(listOf(row("a"))))

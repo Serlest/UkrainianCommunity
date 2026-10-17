@@ -35,6 +35,75 @@ class DirectoryEditorUiTest {
         compose.onNodeWithTag(tag).performClick()
     }
 
+    private fun entryFixture(hiddenAlternative: Boolean = false): JSONObject {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val root = JSONObject(DirectoryCatalog.bundled(context).first { it.id == "safety" }.rawJson)
+        val group = root.getJSONArray("groups").getJSONObject(0)
+        val otherGroup = JSONObject(group.toString()).put("id", "other-group").put("order", 1)
+            .put("isHidden", hiddenAlternative)
+        val topic = root.getJSONArray("topics").getJSONObject(0).put("groupID", group.getString("id"))
+        val otherTopic = JSONObject(topic.toString()).put("id", "other-topic")
+            .put("groupID", "other-group").put("order", 1)
+        return root.put("groups", JSONArray().put(group).put(otherGroup))
+            .put("topics", JSONArray().put(topic).put(otherTopic))
+    }
+
+    @Test fun groupDeletionRequiresConfirmationAndKeepsVisibleContent() = verifyEntryDeletion(group = true)
+    @Test fun topicDeletionRequiresConfirmationAndKeepsVisibleContent() = verifyEntryDeletion(group = false)
+
+    private fun verifyEntryDeletion(group: Boolean) {
+        val category = DirectoryCatalog.parseCategory(entryFixture())
+        var submitted: String? = null
+        val access = object : DirectoryEditorAccess {
+            override val uid = "delegated-editor"
+            override val owner = false
+            override suspend fun publish(categoryId: String, payload: String, expectedRevision: Int): Int {
+                assertEquals(4, expectedRevision)
+                submitted = payload
+                return 5
+            }
+            override suspend fun delete(categoryId: String, expectedRevision: Int): Int = error("not requested")
+        }
+        compose.setContent { UacTheme("light") {
+            DirectoryEditorScreen("safety", "de", listOf(category), mapOf("safety" to 4), access) {}
+        } }
+        val kind = if (group) "group" else "topic"
+        open("directory-editor-open-$kind-0")
+        open("directory-editor-remove-$kind")
+        compose.onNodeWithTag("directory-editor-cancel-remove-entry").performClick()
+        compose.onNodeWithTag("directory-editor-confirm-remove-entry").assertDoesNotExist()
+        assertNull(submitted)
+        open("directory-editor-remove-$kind")
+        compose.onNodeWithTag("directory-editor-confirm-remove-entry").performClick()
+        open("directory-publish")
+        compose.waitUntil(10_000) { submitted != null }
+        assertNull(DirectoryDraftValidation.firstIssue(submitted!!))
+        val reread = DirectoryCatalog.parseCategory(JSONObject(submitted))
+        assertEquals(listOf("other-topic"), reread.topics.map { it.id })
+        assertEquals(if (group) 1 else 2, reread.groups.size)
+    }
+
+    @Test fun hiddenAlternativeCannotJustifyDeletingLastVisibleTopicOrGroup() {
+        val category = DirectoryCatalog.parseCategory(entryFixture(hiddenAlternative = true))
+        val access = object : DirectoryEditorAccess {
+            override val uid = "delegated-editor"
+            override val owner = false
+            override suspend fun publish(categoryId: String, payload: String, expectedRevision: Int): Int = error("not requested")
+            override suspend fun delete(categoryId: String, expectedRevision: Int): Int = error("not requested")
+        }
+        compose.setContent { UacTheme("light") {
+            DirectoryEditorScreen("safety", "de", listOf(category), mapOf("safety" to 4), access) {}
+        } }
+        for (kind in listOf("topic", "group")) {
+            open("directory-editor-open-$kind-0")
+            open("directory-editor-remove-$kind")
+            compose.onNodeWithTag("directory-editor-confirm-remove-entry").assertDoesNotExist()
+            compose.onNodeWithTag("directory-editor").performScrollToNode(hasTestTag("directory-editor-error"))
+            compose.onNodeWithTag("directory-editor-error").assertTextContains("sichtbare", substring = true)
+            open("directory-editor-category-back")
+        }
+    }
+
     @Test
     fun delegatedEditorConfirmsOrdinaryDeletionAndCannotRemoveLastVisibleSection() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext

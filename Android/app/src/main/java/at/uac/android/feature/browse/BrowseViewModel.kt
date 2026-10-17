@@ -879,11 +879,10 @@ class BrowseViewModel(
                     }
                     if (s.route == "home") {
                         // The first tab is the full news feed; retain its optional support card.
-                        result = result.copy(
-                            donation = optional("donation", missingIsEmpty = true) {
-                                repository.donation()
-                            }
-                        )
+                        val donation = optional("donation", missingIsEmpty = true) {
+                            repository.donation()
+                        }
+                        result = result.copy(donation = donation)
                     }
                 }
             } catch (e: CancellationException) {
