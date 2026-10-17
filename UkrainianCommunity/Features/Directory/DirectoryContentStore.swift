@@ -272,7 +272,7 @@ final class DirectoryContentStore: ObservableObject {
         contentListener = nil
         catalogListener?.remove()
         catalogListener = nil
-        syncState = .loading
+        syncState = isAuthoritative ? .cached : .loading
         startObserving()
     }
 

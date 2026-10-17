@@ -1,4 +1,6 @@
 import Foundation
+import FirebaseFirestore
+import FirebaseCore
 import Testing
 @testable import UkrainianCommunity
 
@@ -100,4 +102,70 @@ struct DirectoryFirebaseCatalogTests {
         store.applySnapshot([:], deleted: [health.id], cached: false)
         #expect(store.allManagedCategories.isEmpty)
     }
+    nonisolated private static var liveAuditFlag: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("EnableDirectoryProductionReadAudit")
+    }
+
+    /// Explicit read-only opt-in. Normal test runs never depend on production/network access.
+    @Test(.enabled(if: FileManager.default.fileExists(atPath: liveAuditFlag.path)))
+    func liveProductionCatalogDecodesAndRoundTripsOffline() async throws {
+        if FirebaseApp.app() == nil { FirebaseApp.configure() }
+        let db = Firestore.firestore()
+        #expect(db.app.options.projectID == "ukrainiancommunity-dbd5f")
+        #expect(db.settings.host == "firestore.googleapis.com")
+        let marker = try await db.collection("appConfig").document("directoryCatalog").getDocument(source: .server)
+        #expect(!marker.metadata.isFromCache)
+        #expect(DirectoryContentStore.isCompleteCatalogMarker(marker.data()))
+        let snapshot = try await db.collection("directoryCategories").getDocuments(source: .server)
+        #expect(!snapshot.metadata.isFromCache)
+        let baseline = try #require(marker.data()?["baselineCategoryIDs"] as? [String])
+        #expect(Set(snapshot.documents.map(\.documentID)).isSuperset(of: Set(baseline)))
+        var decoded: [String: DirectoryContentStore.PublishedCategory] = [:]
+        for document in snapshot.documents where document.data()["isDeleted"] as? Bool != true {
+            let payload = try #require(document.data()["payload"] as? String)
+            let content = try JSONDecoder().decode(DirectoryManagedCategory.self, from: Data(payload.utf8))
+            #expect(content.id == document.documentID)
+            let revision = try #require(document.data()["revision"] as? Int)
+            decoded[content.id] = .init(content: content, revision: revision,
+                updatedAt: (document.data()["updatedAt"] as? Timestamp)?.dateValue())
+        }
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            .appendingPathComponent("live-complete.json")
+        defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let store = DirectoryContentStore(cacheURL: url)
+        store.applySnapshot(decoded, cached: false, activateAuthority: true)
+        let offline = DirectoryContentStore(cacheURL: url)
+        #expect(offline.isAuthoritative && offline.syncState == .cached)
+        #expect(Set(offline.allManagedCategories.map(\.id)) == Set(decoded.keys))
+        for category in decoded.values {
+            #expect(offline.category(category.content.id) == category.content)
+        }
+        // Exercise a real offline retry on the Simulator's Firestore SDK, without writing production data.
+        try await db.disableNetwork()
+        do {
+            offline.retryObserving()
+            try await Task.sleep(for: .milliseconds(200))
+            #expect(offline.syncState == .cached)
+            #expect(offline.allManagedCategories.count == decoded.count)
+            try await db.enableNetwork()
+        } catch {
+            try? await db.enableNetwork()
+            throw error
+        }
+        // Neither an empty SDK cache nor a failed marker/retry may discard the last complete cache.
+        offline.applySnapshot([:], cached: true)
+        #expect(offline.allManagedCategories.count == decoded.count)
+        offline.applySnapshot([:], cached: false, invalid: true)
+        #expect(offline.allManagedCategories.count == decoded.count)
+        let receipt: [String: Any] = ["project": "ukrainiancommunity-dbd5f", "readAt": ISO8601DateFormatter().string(from: .now),
+            "categories": decoded.count, "topics": decoded.values.reduce(0) { $0 + $1.content.topics.count },
+            "regionalSections": decoded.values.reduce(0) { sum, category in
+                sum + category.content.topics.reduce(0) { $0 + $1.regionalSections.values.reduce(0) { $0 + $1.count } }
+            }, "serverMarker": true, "serverSnapshot": true, "offlineRoundTrip": true]
+        let receiptURL = Self.liveAuditFlag.deletingLastPathComponent().appendingPathComponent("DirectoryProductionReadAudit.json")
+        try JSONSerialization.data(withJSONObject: receipt, options: [.prettyPrinted, .sortedKeys]).write(to: receiptURL)
+        print("LIVE DIRECTORY READ", receipt)
+    }
+
 }
