@@ -124,3 +124,17 @@ test("category writes stay server-only even with valid shape", async () => {
   await assertFails(setDoc(doc(db("owner"), "directoryCategories", "care"),
     content("care", 2)));
 });
+
+test('cloud catalog marker is public read-only; recent journal and history identities stay private', async()=>{
+ await environment.withSecurityRulesDisabled(async context=>{
+  await setDoc(doc(context.firestore(),'appConfig','directoryCatalog'),{schemaVersion:1,migrationComplete:true});
+ });
+ await assertSucceeds(getDoc(doc(environment.unauthenticatedContext().firestore(),'appConfig','directoryCatalog')));
+ for(const actor of ['owner','editor','reader']) {
+  await assertFails(setDoc(doc(db(actor),'appConfig','directoryCatalog'),{migrationComplete:false}));
+  for(const path of ['directoryRecentAdditions/event','directoryCategories/health/recentState/v1']) {
+   await assertFails(getDoc(doc(db(actor),path)));
+   await assertFails(setDoc(doc(db(actor),path),{knownIDs:[]}));
+  }
+ }
+});
