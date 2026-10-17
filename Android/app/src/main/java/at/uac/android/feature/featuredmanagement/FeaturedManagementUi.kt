@@ -565,6 +565,7 @@ private fun featuredSectionLabel(value: FeaturedSection, language: String): Stri
     when (value.wire) {
         "home" -> if (language == "uk") "Головна" else "Startseite"
         "events" -> if (language == "uk") "Події" else "Veranstaltungen"
+        "directory" -> if (language == "uk") "Довідник" else "Ratgeber"
         else -> if (language == "uk") "Організації" else "Organisationen"
     }
 

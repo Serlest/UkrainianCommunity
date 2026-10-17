@@ -29,6 +29,13 @@ class FeaturedManagementContractTest {
         assertFails(FeaturedFailure.INVALID) { FeaturedManagementContract.validate(draft().copy(action = FeaturedAction.EXTERNAL_URL, actionTargetId = "", externalUrl = "javascript:alert(1)")) }
     }
 
+    @Test fun directoryPlacementSurvivesEditorPublicationWithoutDroppingOtherSections() {
+        val value = draft().copy(sections = FeaturedSection.entries.toSet())
+        assertEquals(listOf("directory", "events", "home", "organizations"),
+            FeaturedManagementContract.payload(value)["visibleSections"])
+        assertEquals(4, value.sections.size)
+    }
+
     @Test fun onlyReadyOwnerCanManage() {
         FeaturedManagementContract.requireOwner(owner)
         assertFails(FeaturedFailure.ACCESS) { FeaturedManagementContract.requireOwner(owner.copy(role = "admin")) }

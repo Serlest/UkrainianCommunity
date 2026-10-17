@@ -908,6 +908,15 @@ class MainActivity : FragmentActivity() {
             val announcementOwnerState by announcements.ownerState.collectAsStateWithLifecycle()
             val contentPlanningState by contentPlanning.state.collectAsStateWithLifecycle()
             val browseState by model.state.collectAsStateWithLifecycle()
+            LaunchedEffect(authSession.stage, authSession.identity?.uid, authSession.profile?.region,
+                personalState.session, personalState.profile?.draft?.federalState) {
+                if (authSession.stage != at.uac.android.feature.auth.AuthStage.RESTORING) {
+                    val uid = authSession.identity?.takeUnless { it.anonymous }?.uid
+                    val profileRegion = personalState.profile?.takeIf { it.uid == uid }?.draft?.federalState
+                        ?: authSession.profile?.takeIf { it.uid == uid }?.region
+                    model.synchronizeProfileRegion(uid, profileRegion)
+                }
+            }
             val startupState by startup.state.collectAsStateWithLifecycle()
             val hostInteractive by interactionModel.interactive.collectAsStateWithLifecycle()
             val remediationActive by remediation.active.collectAsStateWithLifecycle()

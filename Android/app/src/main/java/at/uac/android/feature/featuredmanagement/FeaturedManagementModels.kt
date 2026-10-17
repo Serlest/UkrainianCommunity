@@ -10,7 +10,7 @@ enum class FeaturedAction(val wire: String) {
 
 enum class FeaturedRegion(val wire: String) { ALL_AUSTRIA("allAustria"), FEDERAL_STATE("federalState") }
 
-enum class FeaturedSection(val wire: String) { HOME("home"), EVENTS("events"), ORGANIZATIONS("organizations") }
+enum class FeaturedSection(val wire: String) { HOME("home"), EVENTS("events"), ORGANIZATIONS("organizations"), DIRECTORY("directory") }
 
 data class FeaturedLocalized(val title: String = "", val subtitle: String = "")
 

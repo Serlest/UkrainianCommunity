@@ -43,6 +43,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -72,6 +75,7 @@ fun DirectoryDestination(
     onFeedback: (String?, String?, String) -> Unit,
     editor: DirectoryEditorAccess? = null,
     searchVisible: Boolean = false,
+    bannerContent: (@Composable (Rect?) -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val content: DirectoryViewModel = viewModel()
@@ -117,13 +121,21 @@ fun DirectoryDestination(
     val searching = query.isNotBlank()
     val results = remember(query, language, categories) { searchDirectory(categories, query, language) }
     val listState = rememberLazyListState()
+    var bannerViewport by remember { mutableStateOf<Rect?>(null) }
+    LaunchedEffect(bannerContent != null) {
+        if (bannerContent != null && listState.firstVisibleItemIndex <= 1) listState.scrollToItem(0)
+    }
     val scope = rememberCoroutineScope()
     LazyColumn(
-        Modifier.fillMaxSize().testTag("directory-list"),
+        Modifier.fillMaxSize().testTag("directory-list")
+            .onGloballyPositioned { bannerViewport = it.boundsInWindow() },
         state = listState,
         contentPadding = PaddingValues(start = UacDesign.pageInset, end = UacDesign.pageInset, bottom = 36.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        if (route == "directory" && bannerContent != null) {
+            item("directory-banners") { bannerContent(bannerViewport) }
+        }
         item("directory-status") {
             if (snapshot.status == "failed" || snapshot.invalid > 0)
                 Column {

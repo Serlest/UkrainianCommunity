@@ -114,7 +114,6 @@ fun BrowseScreen(
     UacTheme(state.theme) {
         UacPageBackground(
             Modifier.fillMaxSize(),
-            plain = state.isAccountRoute || state.route == "settings",
         ) {
             val keyboardVisible =
                 WindowInsets.ime.getBottom(androidx.compose.ui.platform.LocalDensity.current) > 0
@@ -193,6 +192,10 @@ fun BrowseScreen(
                                     },
                                     directoryEditor,
                                     searchVisible = directorySearchVisible,
+                                    bannerContent = if (state.route == "directory" && state.data.banners.isNotEmpty()) {
+                                        { viewport -> BannerCarousel(state, model, bannerMeasurementActive,
+                                            onBannerMeasurement, viewport) }
+                                    } else null,
                                 )
                             } else if (state.isAccountRoute) {
                                 Column(Modifier.fillMaxSize()) {

@@ -164,6 +164,32 @@ class BrowseViewModel(
         savedString("navigation-account")?.takeIf { it.matches(Regex("[a-f0-9]{64}")) }
     private var deletionAccountHash: String? = null
     private var hostPaused = false
+    private var profileRegionAccount: String? = null
+    private var profileRegionBound = false
+    private var manuallySelectedPublicRegion = false
+    private var pendingProfileRegion: Pair<String, String?>? = null
+
+    /** The profile seeds public browsing until the user explicitly chooses a public filter. */
+    fun synchronizeProfileRegion(uid: String?, profileRegion: String?) {
+        // Guests keep their own durable public preference; no unresolved profile can clear it.
+        if (uid == null) return
+        val hash = identityHash(uid)
+        pendingProfileRegion = uid to profileRegion
+        if (!accountBound || hash != accountHash) return
+        pendingProfileRegion = null
+        if (!profileRegionBound || profileRegionAccount != hash) {
+            profileRegionBound = true
+            profileRegionAccount = hash
+            manuallySelectedPublicRegion = false
+        }
+        if (uid != null && profileRegion == null || manuallySelectedPublicRegion) return
+        val selected = region(profileRegion)
+        if (selected == mutable.value.region) return
+        saved["region"] = selected
+        savePreference("region", selected)
+        mutable.value = mutable.value.copy(region = selected)
+        load(reset = true)
+    }
 
     private fun repository() = if (mutable.value.mode == "synthetic") synthetic else emulator
 
@@ -217,7 +243,15 @@ class BrowseViewModel(
         val nextHash = account.uid?.let(::identityHash)
         if (accountBound && nextHash == accountHash) {
             mutable.value = mutable.value.copy(accountAvailable = nextHash != null)
+            pendingProfileRegion?.takeIf { identityHash(it.first) == nextHash }?.let {
+                synchronizeProfileRegion(it.first, it.second)
+            }
             return
+        }
+        if (nextHash != accountHash) {
+            profileRegionBound = false
+            profileRegionAccount = null
+            manuallySelectedPublicRegion = false
         }
         val changed = nextHash != accountHash || !accountBound && accountHash == null
         val restoringGuest = !accountBound && nextHash == null && accountHash == null
@@ -258,6 +292,9 @@ class BrowseViewModel(
         accountHash = nextHash
         saved["navigation-account"] = nextHash
         if (changed) move()
+        pendingProfileRegion?.takeIf { identityHash(it.first) == nextHash }?.let {
+            synchronizeProfileRegion(it.first, it.second)
+        }
     }
 
     /**
@@ -525,6 +562,7 @@ class BrowseViewModel(
                 else -> false
             }
         )
+        if (name == "region") manuallySelectedPublicRegion = true
         saved[name] = value
         if (name != "mode") savePreference(name, value)
         mutable.value =
@@ -650,7 +688,7 @@ class BrowseViewModel(
         hostPaused = true
         val current = mutable.value
         if (!current.isAccountRoute && current.route != "settings" &&
-            !current.route.startsWith("directory")) {
+            !current.route.startsWith("directory/")) {
             job?.cancel()
             pastJob?.cancel()
             generation++
@@ -663,7 +701,7 @@ class BrowseViewModel(
         if (!hostPaused) return
         hostPaused = false
         if (!mutable.value.isAccountRoute && mutable.value.route != "settings" &&
-            !mutable.value.route.startsWith("directory")) load()
+            !mutable.value.route.startsWith("directory/")) load()
     }
 
     private fun load(append: Boolean = false, reset: Boolean = false, debounce: Boolean = false) {
@@ -671,7 +709,7 @@ class BrowseViewModel(
         pastJob?.cancel()
         val ticket = ++generation
         val s = mutable.value
-        if (s.route == "settings" || s.isAccountRoute || s.route == "directory" || s.route.startsWith("directory/")) {
+        if (s.route == "settings" || s.isAccountRoute || s.route.startsWith("directory/")) {
             mutable.value = s.copy(data = BrowseData(loading = false))
             return
         }
@@ -708,6 +746,11 @@ class BrowseViewModel(
                 } catch (e: ReadException) {
                     if (!(missingIsEmpty && e.reason == ReadFailure.MISSING))
                         result = result.copy(warnings = result.warnings + (label to e.reason))
+                    null
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    result = result.copy(warnings = result.warnings + (label to ReadFailure.UNKNOWN))
                     null
                 }
             try {
@@ -843,20 +886,6 @@ class BrowseViewModel(
                         )
                     }
                 }
-                if (
-                    s.detailId.isEmpty() &&
-                        s.route.substringBefore(':') in listOf("home", "events", "organizations")
-                ) {
-                    val banners =
-                        optional("banners") {
-                            repository.banners(
-                                s.route.substringBefore(':'),
-                                s.region,
-                                includeScheduled = true,
-                            )
-                        }
-                    result = result.copy(banners = banners.orEmpty())
-                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: ReadException) {
@@ -866,6 +895,13 @@ class BrowseViewModel(
                     else BrowseData(loading = false, error = e.reason)
             } catch (_: Exception) {
                 result = BrowseData(loading = false, error = ReadFailure.UNKNOWN)
+            }
+            // A feed failure must not suppress the independently readable banner carousel.
+            if (s.detailId.isEmpty() && s.route.substringBefore(':') in bannerSections) {
+                val banners = optional("banners") {
+                    repository.banners(s.route.substringBefore(':'), s.region, includeScheduled = true)
+                }
+                result = result.copy(banners = banners.orEmpty())
             }
             if (ticket == generation) {
                 mutable.value = mutable.value.copy(data = result)

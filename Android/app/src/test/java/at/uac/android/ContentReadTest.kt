@@ -408,6 +408,27 @@ class ContentReadTest {
         )
 
     @Test
+    fun productionPlacementsKeepBannersValidInEveryPublicRootAndOfflineCache() = runTest {
+        val rows = listOf(banner("all", mapOf("visibleSections" to listOf("directory", "events", "home", "organizations"))),
+            banner("tirol", mapOf("visibleSections" to listOf("directory", "events", "home", "organizations"),
+                "regionScope" to "federalState", "federalState" to "tirol")))
+        val cache = MemoryContentCache()
+        val online = ContentRepository(SyntheticContentSource(rows.associateBy { "featuredBanners/${it.id}" }), cache) { now }
+        for (section in listOf("home", "events", "organizations", "directory")) {
+            assertEquals(2, online.banners(section, "tirol").value.size)
+            assertEquals(listOf("all"), online.banners(section, "kaernten").value.map { it.id })
+        }
+        val offline = object : ContentSource {
+            override suspend fun page(query: ContentQuery, after: ContentCursor?, limit: Int): List<RawDocument> = error("unused")
+            override suspend fun document(path: String): RawDocument = error("unused")
+            override suspend fun auxiliary(path: String, section: String): List<RawDocument> = throw ReadException(ReadFailure.OFFLINE)
+        }
+        val restored = ContentRepository(offline, cache) { now }
+        assertEquals(listOf("all"), restored.banners("directory", "kaernten").value.map { it.id })
+        assertEquals(2, restored.banners("directory", "tirol").value.size)
+    }
+
+    @Test
     fun scheduledCandidatesRemainAvailableAcrossLocalTimeBoundaries() = runTest {
         val future =
             banner(

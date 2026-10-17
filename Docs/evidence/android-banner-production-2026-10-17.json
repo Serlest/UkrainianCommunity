@@ -1,0 +1,244 @@
+{
+  "checkedAt": "2026-10-17T12:16:34.963Z",
+  "project": "ukrainiancommunity-dbd5f",
+  "readOnly": true,
+  "documents": [
+    {
+      "id": "43DEE0AD-B3E6-4DA6-9E5E-DF13633CF880",
+      "isActive": false,
+      "visibleSections": [
+        "directory",
+        "events",
+        "home",
+        "organizations"
+      ],
+      "regionScope": "allAustria",
+      "federalState": null,
+      "image": null,
+      "fieldNames": [
+        "actionTargetID",
+        "actionType",
+        "createdAt",
+        "createdBy",
+        "displayDurationSeconds",
+        "id",
+        "imageURL",
+        "internalName",
+        "isActive",
+        "localizations",
+        "priority",
+        "regionScope",
+        "title",
+        "updatedAt",
+        "updatedBy",
+        "visibleSections"
+      ]
+    },
+    {
+      "id": "ivan-petruniv-petition-austria-20260910",
+      "isActive": true,
+      "visibleSections": [
+        "directory",
+        "events",
+        "home",
+        "organizations"
+      ],
+      "regionScope": "allAustria",
+      "federalState": null,
+      "image": {
+        "status": 200,
+        "contentType": "image/jpeg"
+      },
+      "fieldNames": [
+        "actionType",
+        "createdAt",
+        "createdBy",
+        "displayDurationSeconds",
+        "externalURL",
+        "id",
+        "imageURL",
+        "internalName",
+        "isActive",
+        "localizations",
+        "priority",
+        "regionScope",
+        "subtitle",
+        "title",
+        "updatedAt",
+        "updatedBy",
+        "visibleSections"
+      ]
+    },
+    {
+      "id": "kfz-profi-service-tirol-20260910",
+      "isActive": true,
+      "visibleSections": [
+        "directory",
+        "events",
+        "home",
+        "organizations"
+      ],
+      "regionScope": "federalState",
+      "federalState": "tirol",
+      "image": {
+        "status": 200,
+        "contentType": "image/jpeg"
+      },
+      "fieldNames": [
+        "actionType",
+        "createdAt",
+        "createdBy",
+        "displayDurationSeconds",
+        "externalURL",
+        "federalState",
+        "id",
+        "imageURL",
+        "internalName",
+        "isActive",
+        "localizations",
+        "priority",
+        "regionScope",
+        "subtitle",
+        "title",
+        "updatedAt",
+        "updatedBy",
+        "visibleSections"
+      ]
+    },
+    {
+      "id": "mika-italia-austria-20260910",
+      "isActive": true,
+      "visibleSections": [
+        "directory",
+        "events",
+        "home",
+        "organizations"
+      ],
+      "regionScope": "allAustria",
+      "federalState": null,
+      "image": {
+        "status": 200,
+        "contentType": "image/jpeg"
+      },
+      "fieldNames": [
+        "actionType",
+        "createdAt",
+        "createdBy",
+        "displayDurationSeconds",
+        "externalURL",
+        "id",
+        "imageURL",
+        "internalName",
+        "isActive",
+        "localizations",
+        "priority",
+        "regionScope",
+        "subtitle",
+        "title",
+        "updatedAt",
+        "updatedBy",
+        "visibleSections"
+      ]
+    },
+    {
+      "id": "organizations-platform-austria-20260910",
+      "isActive": true,
+      "visibleSections": [
+        "home",
+        "events",
+        "organizations",
+        "directory"
+      ],
+      "regionScope": "allAustria",
+      "federalState": null,
+      "image": {
+        "status": 200,
+        "contentType": "image/jpeg"
+      },
+      "fieldNames": [
+        "actionType",
+        "createdAt",
+        "createdBy",
+        "displayDurationSeconds",
+        "id",
+        "imageURL",
+        "internalName",
+        "isActive",
+        "localizations",
+        "priority",
+        "regionScope",
+        "subtitle",
+        "title",
+        "updatedAt",
+        "updatedBy",
+        "visibleSections"
+      ]
+    },
+    {
+      "id": "serlest-studio-austria-20260914",
+      "isActive": false,
+      "visibleSections": [
+        "directory",
+        "events",
+        "home",
+        "organizations"
+      ],
+      "regionScope": "allAustria",
+      "federalState": null,
+      "image": null,
+      "fieldNames": [
+        "actionType",
+        "createdAt",
+        "createdBy",
+        "displayDurationSeconds",
+        "externalURL",
+        "id",
+        "imageURL",
+        "internalName",
+        "isActive",
+        "localizations",
+        "priority",
+        "regionScope",
+        "updatedAt",
+        "updatedBy",
+        "visibleSections"
+      ]
+    },
+    {
+      "id": "telegram-development-austria-20260910",
+      "isActive": true,
+      "visibleSections": [
+        "home",
+        "events",
+        "organizations",
+        "directory"
+      ],
+      "regionScope": "allAustria",
+      "federalState": null,
+      "image": {
+        "status": 200,
+        "contentType": "image/jpeg"
+      },
+      "fieldNames": [
+        "actionType",
+        "createdAt",
+        "createdBy",
+        "displayDurationSeconds",
+        "externalURL",
+        "id",
+        "imageURL",
+        "internalName",
+        "isActive",
+        "localizations",
+        "priority",
+        "regionScope",
+        "subtitle",
+        "title",
+        "updatedAt",
+        "updatedBy",
+        "visibleSections"
+      ]
+    }
+  ],
+  "nextPage": false
+}

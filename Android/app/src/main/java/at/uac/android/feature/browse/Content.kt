@@ -400,7 +400,7 @@ data class Banner(val id: String, val fields: Fields) {
             fields.string("subtitle").length <= 240 &&
             fields.string("internalName").length <= 120 &&
             sections.isNotEmpty() &&
-            sections.all { it in listOf("home", "events", "organizations") } &&
+            sections.all { it in bannerSections } &&
             image.scheme in listOf("https", "http") &&
             !image.host.isNullOrBlank() &&
             fields.string("regionScope") in listOf("allAustria", "federalState") &&
@@ -446,6 +446,7 @@ data class Banner(val id: String, val fields: Fields) {
 }
 
 val bannerActions = listOf("none", "news", "event", "organization", "externalURL")
+val bannerSections = setOf("home", "events", "organizations", "directory")
 private val bannerFields =
     setOf(
         "id",

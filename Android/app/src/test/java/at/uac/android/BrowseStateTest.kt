@@ -67,6 +67,87 @@ class BrowseStateTest {
     }
 
     @Test
+    fun profileMayArriveBeforeAccountAndGuestPreferenceIsPreserved() = runTest {
+        val vm = model(SavedStateHandle(mapOf("region" to "kaernten")))
+        vm.synchronizeProfileRegion("late-account", "tirol")
+        vm.bindAccount(NavigationAccount("late-account"))
+        advanceUntilIdle()
+        assertEquals("tirol", vm.state.value.region)
+        val guest = model(SavedStateHandle(mapOf("region" to "tirol")))
+        guest.synchronizeProfileRegion(null, null)
+        guest.bindAccount(NavigationAccount(null))
+        guest.synchronizeProfileRegion(null, null)
+        advanceUntilIdle()
+        assertEquals("tirol", guest.state.value.region)
+    }
+
+    @Test
+    fun profileRegionMigratesStale108PreferenceButPreservesAnExplicitFilterUntilAccountSwitch() = runTest {
+        val preferences = mutableMapOf("region" to "kaernten")
+        val vm = model(SavedStateHandle(mapOf("region" to preferences["region"])),
+            save = { key, value -> preferences[key] = value })
+        vm.bindAccount(NavigationAccount("account-one"))
+        vm.synchronizeProfileRegion("account-one", "tirol")
+        advanceUntilIdle()
+        assertEquals("tirol", vm.state.value.region)
+        assertEquals("tirol", preferences["region"])
+        for (route in listOf("home", "events", "organizations", "directory")) {
+            vm.navigate(route, true)
+            advanceUntilIdle()
+            assertEquals("tirol", vm.state.value.region)
+        }
+        vm.preference("region", "kaernten")
+        vm.synchronizeProfileRegion("account-one", "tirol")
+        assertEquals("kaernten", vm.state.value.region)
+        vm.bindAccount(NavigationAccount("account-two"))
+        vm.synchronizeProfileRegion("account-one", "kaernten")
+        vm.synchronizeProfileRegion("account-two", "tirol")
+        assertEquals("tirol", vm.state.value.region)
+        vm.preference("region", "kaernten")
+        vm.bindAccount(NavigationAccount(null))
+        vm.synchronizeProfileRegion(null, null)
+        vm.bindAccount(NavigationAccount("account-two"))
+        vm.synchronizeProfileRegion("account-two", "tirol")
+        assertEquals("tirol", vm.state.value.region)
+        val restarted = model(SavedStateHandle(mapOf("region" to preferences["region"])))
+        restarted.bindAccount(NavigationAccount("account-two"))
+        restarted.synchronizeProfileRegion("account-two", "kaernten")
+        advanceUntilIdle()
+        assertEquals("kaernten", restarted.state.value.region)
+    }
+
+    @Test
+    fun bannersRemainReadableWhenFeedFailsAndDirectoryOnlyLoadsRootBanners() = runTest {
+        val calls = mutableListOf<String>()
+        val banner = RawDocument("active", mapOf("id" to "active", "createdBy" to "fixture",
+            "createdAt" to now, "updatedAt" to now, "isActive" to true, "priority" to 1,
+            "displayDurationSeconds" to 6, "actionType" to "none", "imageURL" to "https://example.org/image.jpg",
+            "regionScope" to "allAustria", "visibleSections" to listOf("home", "events", "organizations", "directory")))
+        val source = object : ContentSource {
+            override suspend fun page(query: ContentQuery, after: ContentCursor?, limit: Int): List<RawDocument> =
+                throw ReadException(ReadFailure.OFFLINE)
+            override suspend fun document(path: String): RawDocument = throw ReadException(ReadFailure.MISSING)
+            override suspend fun auxiliary(path: String, section: String): List<RawDocument> {
+                calls += section
+                return listOf(banner)
+            }
+        }
+        val vm = model(source = source)
+        advanceUntilIdle()
+        assertEquals(ReadFailure.OFFLINE, vm.state.value.data.error)
+        assertEquals(listOf("active"), vm.state.value.data.banners.map { it.id })
+        vm.navigate("directory", true)
+        advanceUntilIdle()
+        assertEquals(listOf("active"), vm.state.value.data.banners.map { it.id })
+        assertTrue("directory" in calls)
+        calls.clear()
+        vm.navigate("directory/safety")
+        advanceUntilIdle()
+        assertTrue(calls.isEmpty())
+        assertTrue(vm.state.value.data.banners.isEmpty())
+    }
+
+    @Test
     fun firstTabIsFullNewsFeedWithPagingAndFilters() = runTest {
         val vm = model()
         advanceUntilIdle()

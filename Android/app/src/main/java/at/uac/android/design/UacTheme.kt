@@ -277,7 +277,7 @@ fun UacPageBackground(
         Image(
             painterResource(R.drawable.uac_background),
             contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().testTag("uac-page-artwork"),
             contentScale = ContentScale.Crop,
         )
         Box(Modifier.fillMaxSize().background(Brush.verticalGradient(overlay)))
