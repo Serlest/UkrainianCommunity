@@ -12,6 +12,18 @@ struct DirectoryRecentAdditionsTests {
               categoryTitle: .init(ukrainian: "Категорія", german: "Kategorie"))
     }
 
+    @Test func recentValuesDecodeAndHashAwayFromMainActor() async throws {
+        let addition = item("background-route")
+        let cursor = DirectoryRecentCursor(seconds: 100, nanoseconds: 42, id: addition.id)
+        let page = DirectoryRecentPage(items: [addition], nextCursor: cursor, hasMore: true)
+        let routeCount = try await Task.detached {
+            let encoded = try JSONEncoder().encode(page)
+            let decoded = try JSONDecoder().decode(DirectoryRecentPage.self, from: encoded)
+            return Set([DirectoryRoute.recent(addition), DirectoryRoute.recent(decoded.items[0])]).count
+        }.value
+        #expect(routeCount == 1)
+    }
+
     @Test func paginationPreservesOrderDeduplicatesAndStopsNonAdvancingCursor() async {
         let cursor = DirectoryRecentCursor(seconds: 100, nanoseconds: 42, id: "b")
         var requests: [DirectoryRecentCursor?] = []

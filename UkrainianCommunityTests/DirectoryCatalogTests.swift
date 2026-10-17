@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import UkrainianCommunity
 
+@MainActor
 struct DirectoryCatalogTests {
     @Test func newCategoryStartsWithOneArticleAndCanBePublishedAfterFillingIt() throws {
         var category = DirectoryEditorDrafts.category(placement: .start, order: 0)
@@ -55,7 +56,7 @@ struct DirectoryCatalogTests {
     }
 
     @Test func editorAddsCategoriesToChosenBlockAndMovesRowsByVisiblePosition() throws {
-        let categories = DirectoryCatalog.categories.map(DirectoryManagedCategory.bundled)
+        let categories = DirectoryCatalog.categories.map { DirectoryManagedCategory.bundled($0) }
         for placement in DirectoryManagedCategory.Placement.allCases {
             let next = DirectoryEditorOrdering.nextOrder(in: placement, categories: categories)
             #expect(next > (categories.filter { $0.placement == placement }.map(\.order).max() ?? -1))

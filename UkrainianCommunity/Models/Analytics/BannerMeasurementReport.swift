@@ -8,7 +8,7 @@ struct BannerMeasurementDailyCount: Equatable {
     let clicks: Int
 }
 
-struct BannerMeasurementTotals: Equatable {
+nonisolated struct BannerMeasurementTotals: Equatable, Sendable {
     var impressions = 0
     var clicks = 0
 
@@ -16,6 +16,7 @@ struct BannerMeasurementTotals: Equatable {
         impressions > 0 ? Double(clicks) / Double(impressions) : nil
     }
 
+    @MainActor
     mutating func add(_ count: BannerMeasurementDailyCount) {
         impressions += count.impressions
         clicks += count.clicks

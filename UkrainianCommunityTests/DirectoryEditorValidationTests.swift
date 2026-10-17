@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import UkrainianCommunity
 
+@MainActor
 struct DirectoryEditorValidationTests {
     private func category() -> DirectoryManagedCategory {
         var draft = DirectoryEditorDrafts.category(placement: .start, order: 0)

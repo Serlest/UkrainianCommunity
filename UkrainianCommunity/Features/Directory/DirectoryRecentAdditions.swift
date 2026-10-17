@@ -3,14 +3,14 @@ import FirebaseFunctions
 import FirebaseSharedSwift
 import Foundation
 
-struct DirectoryRecentCursor: Codable, Hashable {
+nonisolated struct DirectoryRecentCursor: Codable, Hashable, Sendable {
     let seconds: Int
     let nanoseconds: Int
     let id: String
 }
 
-struct DirectoryRecentAddition: Codable, Hashable, Identifiable {
-    enum Kind: String, Codable { case topic, section }
+nonisolated struct DirectoryRecentAddition: Codable, Hashable, Identifiable, Sendable {
+    enum Kind: String, Codable, Sendable { case topic, section }
     let id: String
     let kind: Kind
     let categoryID: String
@@ -29,6 +29,7 @@ struct DirectoryRecentAddition: Codable, Hashable, Identifiable {
         return formatter.date(from: publishedAt) ?? ISO8601DateFormatter().date(from: publishedAt)
     }
 
+    @MainActor
     func isAvailable(in topic: DirectoryManagedTopic) -> Bool {
         guard topic.id == topicID, !topic.isHidden else { return false }
         guard kind == .section else { return true }
@@ -38,7 +39,7 @@ struct DirectoryRecentAddition: Codable, Hashable, Identifiable {
     }
 }
 
-struct DirectoryRecentPage: Codable {
+nonisolated struct DirectoryRecentPage: Codable, Sendable {
     let items: [DirectoryRecentAddition]
     let nextCursor: DirectoryRecentCursor?
     let hasMore: Bool
