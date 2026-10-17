@@ -255,13 +255,16 @@ android {
     }
 }
 
+// Explicit diagnostic opt-in only; normal builds still expose exactly localDebug/stagingDebug/productionRelease.
+val productionSdkSmoke = providers.gradleProperty("uac.production.sdkSmoke").orElse("false").get() == "true"
 androidComponents {
     beforeVariants(selector().all()) { variant ->
         val backend = variant.productFlavors.firstOrNull { it.first == "backend" }?.second
         variant.enable =
             (backend == "local" && variant.buildType == "debug") ||
                 (backend == "staging" && variant.buildType == "debug") ||
-                (backend == "production" && variant.buildType == "release")
+                (backend == "production" && variant.buildType == "release") ||
+                (productionSdkSmoke && backend == "production" && variant.buildType == "debug")
     }
 }
 

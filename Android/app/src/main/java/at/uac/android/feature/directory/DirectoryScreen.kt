@@ -79,16 +79,17 @@ fun DirectoryDestination(
     searchVisible: Boolean = false,
     bannerContent: (@Composable (Rect?) -> Unit)? = null,
     recentModel: DirectoryRecentViewModel? = null,
+    contentModel: DirectoryViewModel? = null,
 ) {
     val context = LocalContext.current
-    val content: DirectoryViewModel = viewModel()
+    val content: DirectoryViewModel = contentModel ?: viewModel()
     val snapshot by content.snapshot.collectAsState()
-    val bundled = content.bundled
+    val bundled = if (snapshot.authoritative) emptyList() else content.bundled
     val categories = remember(bundled, snapshot) {
-        DirectoryCatalog.merge(bundled, snapshot.published, snapshot.deleted)
+        DirectoryCatalog.merge(bundled, snapshot.published, snapshot.deleted, snapshot.authoritative)
     }
     val allCategories = remember(bundled, snapshot) {
-        DirectoryCatalog.allMerged(bundled, snapshot.published, snapshot.deleted)
+        DirectoryCatalog.allMerged(bundled, snapshot.published, snapshot.deleted, snapshot.authoritative)
     }
     var editorGranted by remember(editor?.uid) { mutableStateOf(false) }
     DisposableEffect(editor?.uid, editor?.owner) {
@@ -188,6 +189,9 @@ fun DirectoryDestination(
             item("directory-banners") { bannerContent(bannerViewport) }
         }
         item("directory-status") {
+            if (snapshot.cacheWriteFailed) Text(tr(language,
+                "Die Offline-Kopie konnte nicht gespeichert werden.", "Не вдалося зберегти копію для читання без мережі."),
+                color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("directory-cache-warning"))
             if ((snapshot.status == "failed" || snapshot.invalid > 0 || targetStatus == "failed") &&
                 !(targetStatus == "failed" && (missing || anchored)))
                 Column {
@@ -220,6 +224,13 @@ fun DirectoryDestination(
                         Text(tr(language, "Erneut versuchen", "Спробувати ще раз"))
                     }
                 }
+            }
+        } else if (snapshot.authoritative && !snapshot.complete) {
+            item("catalog-loading") {
+                Text(tr(language, "Der aktuelle Ratgeber ist noch nicht verfügbar. Bitte verbinden und erneut laden.",
+                    "Актуальний довідник поки недоступний. Під’єднайтеся до мережі та повторіть завантаження."),
+                    Modifier.testTag("directory-catalog-unavailable"))
+                TextButton(content::retry) { Text(tr(language, "Erneut versuchen", "Спробувати ще раз")) }
             }
         } else if (missing) {
             item("missing") {

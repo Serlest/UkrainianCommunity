@@ -126,14 +126,14 @@ object DirectoryCatalog {
     }
 
     fun merge(bundled: List<DirectoryCategory>, published: Map<String, DirectoryCategory>,
-              deleted: Set<String>): List<DirectoryCategory> =
-        allMerged(bundled, published, deleted).filter(DirectoryCategory::visible)
+              deleted: Set<String>, authoritative: Boolean = false): List<DirectoryCategory> =
+        allMerged(bundled, published, deleted, authoritative).filter(DirectoryCategory::visible)
 
     fun allMerged(bundled: List<DirectoryCategory>, published: Map<String, DirectoryCategory>,
-                  deleted: Set<String>): List<DirectoryCategory> {
-        val base = bundled.mapNotNull { if (it.id in deleted) null else published[it.id] ?: it }
+                  deleted: Set<String>, authoritative: Boolean = false): List<DirectoryCategory> {
+        val base = if (authoritative) emptyList() else bundled.mapNotNull { if (it.id in deleted) null else published[it.id] ?: it }
         val added = published.values.filter { category ->
-            category.id !in deleted && bundled.none { it.id == category.id }
+            category.id !in deleted && (authoritative || bundled.none { it.id == category.id })
         }
         val order = mapOf("start" to 0, "life" to 1, "support" to 2)
         return (base + added)
