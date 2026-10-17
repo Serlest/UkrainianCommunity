@@ -8,6 +8,8 @@ import {db} from "../firebase/admin";
 import {isAppOwner, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {validateDirectoryCategoryPayload} from "./directoryValidation";
 
+import {recordDirectoryAdditions} from "./directoryRecent";
+
 const callableOptions = {
   region: "europe-west3",
   maxInstances: 10,
@@ -55,6 +57,7 @@ export const saveDirectoryCategory = onCall(callableOptions, async (request) => 
     if (currentRevision !== input.expectedRevision) {
       throw new HttpsError("aborted", "Category changed on another device.");
     }
+    await recordDirectoryAdditions(transaction, input.categoryId, previous.data()?.payload, input.payload, nextRevision);
     const published = {
       id: input.categoryId,
       payload: input.payload,

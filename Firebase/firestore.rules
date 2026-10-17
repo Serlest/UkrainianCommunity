@@ -2780,7 +2780,7 @@ service cloud.firestore {
       }
 
 
-      allow read: if configId == 'donation';
+      allow read: if configId == 'donation' || configId == 'directoryCatalog';
       allow create, update: if configId == 'donation'
         && validDonationConfigWrite();
       allow delete: if false;
