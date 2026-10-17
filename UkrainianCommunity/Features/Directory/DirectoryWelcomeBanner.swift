@@ -2,6 +2,7 @@ import SwiftUI
 
 struct DirectoryWelcomeBanner: View {
     let onBrowse: () -> Void
+    @ScaledMetric(relativeTo: .subheadline) private var introductionMaxWidth: CGFloat = 270
 
     var body: some View {
         Button(action: onBrowse) {
@@ -37,7 +38,7 @@ struct DirectoryWelcomeBanner: View {
                     .font(.subheadline)
                     .foregroundStyle(.white.opacity(0.9))
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 270, alignment: .leading)
+                    .frame(maxWidth: introductionMaxWidth, alignment: .leading)
                 HStack(spacing: 6) {
                     Text(DirectoryStrings.browseSections)
                     Image(systemName: "arrow.right")
