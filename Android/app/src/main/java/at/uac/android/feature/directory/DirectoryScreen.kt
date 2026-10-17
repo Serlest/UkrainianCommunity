@@ -64,6 +64,7 @@ import at.uac.android.feature.browse.WebLinkPolicy
 import at.uac.android.feature.browse.regions
 import at.uac.android.feature.browse.tr
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.CancellationException
 
 /** Public catalog stays readable from the reviewed bundle while cloud edits sync. */
 @Composable
@@ -77,6 +78,7 @@ fun DirectoryDestination(
     editor: DirectoryEditorAccess? = null,
     searchVisible: Boolean = false,
     bannerContent: (@Composable (Rect?) -> Unit)? = null,
+    recentModel: DirectoryRecentViewModel? = null,
 ) {
     val context = LocalContext.current
     val content: DirectoryViewModel = viewModel()
@@ -101,7 +103,16 @@ fun DirectoryDestination(
     }
     val canEdit = editor != null && (editor.owner || editorGranted)
     val activeEditor = editor?.takeIf { canEdit }
-    val parts = route.split('/')
+    val destination = DirectoryRoute.parse(route)
+    val recent: DirectoryRecentViewModel? = if (route == "directory" || destination?.recent == true)
+        recentModel ?: viewModel(factory = DirectoryRecentViewModel.factory(context)) else null
+    val recentState = recent?.state?.collectAsState()?.value
+    LaunchedEffect(recent) { recent?.ensureLoaded() }
+    if (destination?.recent == true && recent != null && recentState != null) {
+        DirectoryRecentScreen(recentState, language, onOpen, recent::more, recent::retry, recent::refresh)
+        return
+    }
+    val parts = route.substringBefore('?').split('/')
     if (parts.getOrNull(1) == "manage") {
         if (activeEditor != null) {
             DirectoryEditorScreen(parts.getOrNull(2), language, allCategories,
@@ -114,7 +125,23 @@ fun DirectoryDestination(
     }
     val category = parts.getOrNull(1)?.let { id -> categories.firstOrNull { it.id == id } }
     val topic = category?.let { c -> parts.getOrNull(2)?.let(c::visibleTopic) }
-    val missing = (parts.size > 1 && category == null) || (parts.size > 2 && topic == null)
+    var linkedRegion by rememberSaveable(route) { mutableStateOf(destination?.region ?: if (destination?.section != null) "" else null) }
+    val readerRegion = linkedRegion ?: region
+    val anchored = destination?.section != null || destination?.region != null
+    var targetStatus by remember(route) { mutableStateOf(if (destination?.topic != null) "loading" else "ready") }
+    var targetRequest by remember(route) { mutableStateOf(0) }
+    LaunchedEffect(route, targetRequest) {
+        if (destination?.topic != null) {
+            targetStatus = "loading"
+            try {
+                content.refreshTarget(destination.category!!)
+                targetStatus = "ready"
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { targetStatus = "failed" }
+        }
+    }
+    val missing = (parts.size > 1 && category == null) || (parts.size > 2 && topic == null) ||
+        (destination?.section != null && !directoryTargetAvailable(categories, destination))
     var query by rememberSaveable(route) { mutableStateOf("") }
     LaunchedEffect(searchVisible, route) {
         if (route == "directory" && !searchVisible) query = ""
@@ -127,6 +154,29 @@ fun DirectoryDestination(
         if (bannerContent != null && listState.firstVisibleItemIndex <= 1) listState.scrollToItem(0)
     }
     val scope = rememberCoroutineScope()
+    var anchorApplied by rememberSaveable(route) { mutableStateOf(false) }
+    val targetKey = destination?.section?.let { if (destination.region == null) "section:$it" else "regional:$it" }
+    LaunchedEffect(route, targetStatus, categories) {
+        if (!anchorApplied && targetStatus == "ready" && !missing && targetKey != null && topic != null) {
+            val keys = buildList {
+                add("directory-status")
+                add("heading")
+                topic.sections.filterNot { it.hidden }.sortedBy { it.order }.forEach { add("section:${it.id}") }
+                if (topic.regionalSections.isNotEmpty()) {
+                    add("region")
+                    if (readerRegion.isNotEmpty()) {
+                        add("region-heading")
+                        topic.regionalSections[readerRegion].orEmpty().filterNot { it.hidden }.sortedBy { it.order }
+                            .forEach { add("regional:${it.id}") }
+                    }
+                }
+            }
+            keys.indexOf(targetKey).takeIf { it >= 0 }?.let {
+                listState.scrollToItem(it)
+                anchorApplied = true
+            }
+        }
+    }
     LazyColumn(
         Modifier.fillMaxSize().testTag("directory-list")
             .onGloballyPositioned { bannerViewport = it.boundsInWindow() },
@@ -138,7 +188,8 @@ fun DirectoryDestination(
             item("directory-banners") { bannerContent(bannerViewport) }
         }
         item("directory-status") {
-            if (snapshot.status == "failed" || snapshot.invalid > 0)
+            if ((snapshot.status == "failed" || snapshot.invalid > 0 || targetStatus == "failed") &&
+                !(targetStatus == "failed" && (missing || anchored)))
                 Column {
                     Text(
                         tr(language, "Aktuelle Änderungen sind nicht verfügbar. Gespeicherte Inhalte werden angezeigt.",
@@ -146,7 +197,9 @@ fun DirectoryDestination(
                         color = MaterialTheme.colorScheme.error,
                         modifier = Modifier.testTag("directory-sync-warning"),
                     )
-                    if (snapshot.status == "failed") TextButton(content::retry,
+                    if (snapshot.status == "failed" || targetStatus == "failed") TextButton({
+                        if (targetStatus == "failed") targetRequest++ else content.retry()
+                    },
                         modifier = Modifier.testTag("directory-retry")) {
                         Text(tr(language, "Erneut versuchen", "Спробувати ще раз"))
                     }
@@ -155,11 +208,24 @@ fun DirectoryDestination(
                 Text(tr(language, "Gespeicherte Fassung", "Збережена версія"),
                     style = MaterialTheme.typography.bodySmall)
         }
-        if (missing) {
+        if (destination?.topic != null && targetStatus == "loading" && (missing || anchored)) {
+            item("target-loading") {
+                Text(tr(language, "Beitrag wird geladen…", "Завантаження матеріалу…"), Modifier.testTag("directory-target-loading"))
+            }
+        } else if (destination?.topic != null && targetStatus == "failed" && (missing || anchored)) {
+            item("target-error") {
+                UacCard {
+                    Text(tr(language, "Der aktuelle Beitrag konnte nicht geladen werden.", "Не вдалося завантажити актуальний матеріал."))
+                    TextButton({ targetRequest++ }, Modifier.testTag("directory-target-retry")) {
+                        Text(tr(language, "Erneut versuchen", "Спробувати ще раз"))
+                    }
+                }
+            }
+        } else if (missing) {
             item("missing") {
                 UacCard {
                     Text(tr(language, "Dieser Beitrag ist nicht mehr verfügbar.",
-                        "Цей матеріал більше недоступний."))
+                        "Цей матеріал більше недоступний."), Modifier.testTag("directory-target-missing"))
                     TextButton({ onOpen("directory") }) {
                         Text(tr(language, "Zum Ratgeber", "До довідника"))
                     }
@@ -174,14 +240,14 @@ fun DirectoryDestination(
             items(topic.sections.filterNot { it.hidden }.sortedBy { it.order }, key = { "section:${it.id}" }) { section ->
                 DirectorySectionCard(section, language)
             }
-            val regional = topic.regionalSections[region].orEmpty().filterNot { it.hidden }.sortedBy { it.order }
+            val regional = topic.regionalSections[readerRegion].orEmpty().filterNot { it.hidden }.sortedBy { it.order }
             if (topic.regionalSections.isNotEmpty()) {
                 item("region") {
-                    Choice(tr(language, "Bundesland", "Федеральна земля"), region,
+                    Choice(tr(language, "Bundesland", "Федеральна земля"), readerRegion,
                         listOf("" to tr(language, "Österreich", "Австрія")) + regions,
-                        "directory-region", onRegion)
+                        "directory-region", { if (destination?.region != null || anchored) linkedRegion = it else onRegion(it) })
                 }
-                if (region.isNotEmpty()) {
+                if (readerRegion.isNotEmpty()) {
                     item("region-heading") {
                         UacSectionHeading(tr(language, "In Ihrem Bundesland", "У вашій землі"), UacIcon.LOCATION)
                     }
@@ -267,6 +333,9 @@ fun DirectoryDestination(
                             onOpen("directory/${safety.id}")
                         }
                     }
+                }
+                if (recent != null && recentState != null) {
+                    directoryRecentItems(recentState, language, onOpen, recent::more, recent::retry, recent::refresh)
                 }
                 listOf("start", "life", "support").forEach { placement ->
                     val section = categories.filter { it.placement == placement && it.id != "safety" }

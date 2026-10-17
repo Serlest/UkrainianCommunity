@@ -3,6 +3,7 @@ package at.uac.android.feature.browse
 import at.uac.android.feature.community.communityId
 import at.uac.android.feature.dsastatement.DsaStatementContract
 import at.uac.android.feature.feedback.feedbackId
+import at.uac.android.feature.directory.DirectoryRoute
 import at.uac.android.feature.directory.DirectoryCatalog
 import at.uac.android.feature.organization.OrganizationContract
 import at.uac.android.feature.personal.validDocumentId
@@ -133,6 +134,7 @@ private constructor(
                     route in setOf("home", "news", "events", "organizations", "directory", "settings")
             )
                 return true
+            if (route.startsWith("directory/") && DirectoryRoute.parse(route) != null) return true
             val parts = route.split('/')
             if (parts.size == 1) {
                 val section = route.substringBefore(':')

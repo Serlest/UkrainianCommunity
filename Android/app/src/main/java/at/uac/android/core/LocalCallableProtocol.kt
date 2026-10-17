@@ -71,6 +71,7 @@ object LocalCallableProtocol {
             "searchManagedUsers",
             DIRECTORY_SAVE,
             "deleteDirectoryCategory",
+            "getDirectoryRecentAdditions",
             "getManagedUserSecurityMetadata",
             "warnUser",
             "suspendUser",

@@ -3,6 +3,7 @@ package at.uac.android.feature.applinks
 import at.uac.android.feature.organization.OrganizationContract
 import at.uac.android.feature.personal.validDocumentId
 import java.net.URI
+import at.uac.android.feature.directory.DirectoryRoute
 
 enum class AppLinkAccess {
     PUBLIC,
@@ -30,7 +31,6 @@ object AppLinkContract {
         if (value.isNullOrBlank() || value.length > 2_048) return null
         val uri = runCatching { URI(value) }.getOrNull() ?: return null
         if (
-            uri.rawQuery != null ||
                 uri.rawFragment != null ||
                 uri.rawUserInfo != null ||
                 uri.port != -1
@@ -44,6 +44,11 @@ object AppLinkContract {
 
         if (scheme != CUSTOM_SCHEME) return null
         val host = uri.host?.lowercase() ?: return null
+        if (host == "directory") {
+            val directory = DirectoryRoute.parse("directory" + rawPath + (uri.rawQuery?.let { "?$it" } ?: "")) ?: return null
+            return AppLinkDestination(directory.path, AppLinkAccess.PUBLIC)
+        }
+        if (uri.rawQuery != null) return null
         val route = route(listOf(host) + segments) ?: return null
         return if (route == "profile/inbox") AppLinkDestination(route, AppLinkAccess.SIGNED_IN)
         else AppLinkDestination(route, AppLinkAccess.PUBLIC)

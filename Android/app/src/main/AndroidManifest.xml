@@ -52,6 +52,7 @@
                 <data android:scheme="ukrainiancommunity" android:host="events" />
                 <data android:scheme="ukrainiancommunity" android:host="organizations" />
                 <data android:scheme="ukrainiancommunity" android:host="inbox" />
+                <data android:scheme="ukrainiancommunity" android:host="directory" />
             </intent-filter>
         </activity>
     </application>

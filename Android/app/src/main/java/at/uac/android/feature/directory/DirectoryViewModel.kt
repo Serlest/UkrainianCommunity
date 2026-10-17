@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import at.uac.android.BuildConfig
 import at.uac.android.core.backend.AppBackend
 import com.google.firebase.firestore.ListenerRegistration
+import kotlinx.coroutines.tasks.await
+import com.google.firebase.firestore.Source
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONObject
@@ -33,6 +35,28 @@ class DirectoryViewModel(application: Application) : AndroidViewModel(applicatio
         listener = null
         mutable.value = mutable.value.copy(status = "cached")
         if (!BuildConfig.USE_LOCAL_BACKEND) observe()
+    }
+
+    /** Explicit server refresh for a linked target, with no fallback to historical feed content. */
+    suspend fun refreshTarget(categoryID: String) {
+        require(DirectoryCatalog.validId(categoryID))
+        if (BuildConfig.USE_LOCAL_BACKEND) return
+        val doc = AppBackend.firestore(getApplication()).collection("directoryCategories")
+            .document(categoryID).get(Source.SERVER).await()
+        val previous = mutable.value
+        if (!doc.exists()) return // Reviewed bundled categories have no cloud override until their first edit.
+        if (doc.getBoolean("isDeleted") == true) {
+            mutable.value = previous.copy(published = previous.published - categoryID,
+                deleted = previous.deleted + categoryID)
+            return
+        }
+        val category = DirectoryCatalog.parseCategory(JSONObject(doc.getString("payload") ?: error("Missing payload")))
+        val revision = doc.getLong("revision")?.toInt()?.takeIf { it > 0 } ?: error("Invalid revision")
+        require(category.id == categoryID)
+        if (revision >= (previous.revisions[categoryID] ?: 0)) {
+            mutable.value = previous.copy(published = previous.published + (categoryID to category),
+                deleted = previous.deleted - categoryID, revisions = previous.revisions + (categoryID to revision))
+        }
     }
 
     private fun observe() {

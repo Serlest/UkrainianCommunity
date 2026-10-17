@@ -40,6 +40,7 @@ class AppLinkNavigationViewModel(private val saved: SavedStateHandle) : ViewMode
         val canonical =
             when {
                 route == "profile/inbox" -> AppLinkDestination(route, AppLinkAccess.SIGNED_IN)
+                route == "directory" || route.startsWith("directory/") -> AppLinkContract.parse("ukrainiancommunity://$route")
                 route.startsWith("news/") -> AppLinkContract.parse("ukrainiancommunity://$route")
                 route.startsWith("events/") -> AppLinkContract.parse("ukrainiancommunity://$route")
                 route.startsWith("organizations/") ->
