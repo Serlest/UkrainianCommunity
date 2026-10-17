@@ -5,6 +5,7 @@ struct DirectoryManagedTopicView: View {
     let topic: DirectoryManagedTopic
     @Binding var selectedFederalState: AustrianFederalState?
     let feedbackRepository: FeedbackRepository
+    var initialSectionID: String? = nil
 
     @EnvironmentObject private var contentStore: DirectoryContentStore
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
@@ -41,7 +42,7 @@ struct DirectoryManagedTopicView: View {
                             if let selectedFederalState {
                                 ForEach((topic.regionalSections[selectedFederalState.rawValue] ?? [])
                                     .filter { !$0.isHidden }.sorted { $0.order < $1.order }) { section in
-                                    sectionCard(section)
+                                    sectionCard(section).id(section.id)
                                 }
                             } else {
                                 Text(DirectoryText(
@@ -70,6 +71,11 @@ struct DirectoryManagedTopicView: View {
                 .padding(.top, AppTheme.homeSectionSpacing)
                 .padding(.bottom, AppTheme.homeBottomContentPadding)
                 .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
+            }
+            .task(id: initialSectionID) {
+                guard let initialSectionID else { return }
+                await Task.yield()
+                proxy.scrollTo(initialSectionID, anchor: .top)
             }
         }
         .background(AppBackgroundView())

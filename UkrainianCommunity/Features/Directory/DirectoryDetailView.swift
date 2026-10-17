@@ -1,6 +1,7 @@
 import SwiftUI
 
 nonisolated enum DirectoryRoute: Hashable {
+    case recent(DirectoryRecentAddition)
     case manage
     case edit(String)
     case editTopic(categoryID: String, topicID: String)
@@ -17,6 +18,8 @@ nonisolated enum DirectoryRoute: Hashable {
                 !categories.contains { category in
                     category.id == categoryID && category.topics.contains { $0.id == topicID }
                 }
+            case .recent:
+                false // Destination shows a notice if its current content disappears.
             case .manage, .edit, .editTopic, .create:
                 false
             }

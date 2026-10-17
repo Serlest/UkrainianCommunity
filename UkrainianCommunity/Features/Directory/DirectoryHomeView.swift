@@ -16,6 +16,7 @@ struct DirectoryHomeView: View {
     let feedbackRepository: FeedbackRepository
 
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
+    @StateObject private var recentAdditions = DirectoryRecentAdditionsStore()
     @State private var isSearchPresented = false
     @State private var searchText = ""
     @State private var bannerViewport: CGRect = .zero
@@ -103,6 +104,10 @@ struct DirectoryHomeView: View {
             await featuredBannerViewModel.loadIfNeeded(for: .directory, federalState: selectedFederalState)
             await featuredBannerViewModel.refreshIfStale(for: .directory, federalState: selectedFederalState)
         }
+        .task(id: isActive) {
+            guard isActive else { return }
+            await recentAdditions.loadIfNeeded()
+        }
         .observesKeyboardDismissTaps()
     }
 
@@ -153,6 +158,8 @@ struct DirectoryHomeView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("directory.category.safety")
             }
+
+            DirectoryRecentAdditionsView(store: recentAdditions, language: language)
 
             categorySection(DirectoryStrings.startHeading, items: contentStore.startCategories.filter { $0.id != "safety" })
             categorySection(DirectoryStrings.lifeHeading, items: contentStore.lifeCategories)
@@ -208,6 +215,8 @@ struct DirectoryHomeView: View {
 
     @ViewBuilder private func destination(for route: DirectoryRoute) -> some View {
         switch route {
+        case let .recent(item):
+            DirectoryRecentDestinationView(item: item, feedbackRepository: feedbackRepository)
         case .manage:
             if contentStore.canEdit { DirectoryManagementView() }
         case let .edit(categoryID):
@@ -265,6 +274,8 @@ struct DirectoryHomeView: View {
 
     private func refresh() async {
         guard isAuthBootstrapReady else { return }
-        await featuredBannerViewModel.refresh(for: .directory, federalState: selectedFederalState)
+        async let banner: Void = featuredBannerViewModel.refresh(for: .directory, federalState: selectedFederalState)
+        async let recent: Void = recentAdditions.load(reset: true)
+        _ = await (banner, recent)
     }
 }
