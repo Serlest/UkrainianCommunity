@@ -1,6 +1,6 @@
 # Datenschutzerklärung für UkrainianCommunity
 
-Version 2026.21 · Gültig ab 12. Oktober 2026 · ersetzt Version 2026.20.
+Version 2026.22 · Gültig ab 15. Oktober 2026 · ersetzt Version 2026.21.
 
 ## 1. Verantwortlicher und Kontakt
 
@@ -71,7 +71,7 @@ Die App fordert derzeit weder unter iOS noch unter Android eine Standortberechti
 
 Für den technischen Betrieb verwenden wir Dienste der Google-Gruppe (Firebase Authentication, Cloud Firestore, Cloud Storage, Cloud Functions, Cloud Messaging, Firebase Installations und App Check) als Auftragsverarbeiter. Firebase kann technische Daten, Identifikatoren und Inhalte auf unserer Weisung verarbeiten. Je nach Dienst und Konfiguration findet Verarbeitung im Europäischen Wirtschaftsraum und in Drittländern statt.
 
-Wenn Sie auf iOS „Mit Apple anmelden“ wählen, fordert die App Name und E-Mail-Adresse an; Apple kann statt der persönlichen Adresse eine Weiterleitungsadresse bereitstellen. Für die Firebase-Anmeldung übermittelt die App das Apple-Identitätstoken und den Namen, soweit Apple ihn bereitstellt. Wenn Sie „Mit Google anmelden“ wählen, verwendet die App die von Google bereitgestellten Anmeldetoken zur Anmeldung bei Firebase. Firebase Authentication verarbeitet dabei die Anbieterkennung sowie die bereitgestellten Kontoangaben, insbesondere E-Mail-Adresse und gegebenenfalls Namen oder Profilbild. Apple oder Google verarbeiten die Anmeldung bei ihrem jeweiligen Dienst nach ihren eigenen Datenschutzbedingungen. Ein Anbieterwechsel verknüpft bestehende Konten nicht automatisch.
+Wenn Sie in der iOS- oder Android-App „Mit Apple anmelden“ wählen, fordert die App Name und E-Mail-Adresse an; Apple kann statt der persönlichen Adresse eine Weiterleitungsadresse bereitstellen. Für die Firebase-Anmeldung übermittelt die App das Apple-Identitätstoken und den Namen, soweit Apple ihn bereitstellt. Wenn Sie „Mit Google anmelden“ wählen, verwendet die App die von Google bereitgestellten Anmeldetoken zur Anmeldung bei Firebase. Firebase Authentication verarbeitet dabei die Anbieterkennung sowie die bereitgestellten Kontoangaben, insbesondere E-Mail-Adresse und gegebenenfalls Namen oder Profilbild. Apple oder Google verarbeiten die Anmeldung bei ihrem jeweiligen Dienst nach ihren eigenen Datenschutzbedingungen. Ein Anbieterwechsel verknüpft bestehende Konten nicht automatisch.
 
 Für Push-Nachrichten werden Apple Push Notification service (APNs) und Firebase Cloud Messaging eingesetzt. Apple und Google verarbeiten dabei Token, technische Zustelldaten und den Inhalt der Benachrichtigung nach ihren jeweiligen Bedingungen. Sensible Inhalte sollen deshalb nicht in Push-Vorschauen erscheinen.
 

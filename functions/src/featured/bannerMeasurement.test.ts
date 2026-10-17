@@ -8,7 +8,7 @@ import {analyticsRateLimitID} from "../analytics/analyticsEventGuard";
 import {
   bannerConsentDisclosureVersion, bannerConsentPrivacyVersion,
   bannerConsentPurpose, bannerConsentReceiptCollection, bannerConsentReceiptID,
-  bannerConsentStateCollection, isCurrentBannerConsent,
+  bannerConsentStateCollection, hasAcknowledgedBannerPrivacy, isCurrentBannerConsent,
   parseBannerConsentInput, persistBannerMeasurementConsent,
 } from "./bannerMeasurementConsent";
 import {
@@ -31,6 +31,10 @@ test("banner choice is separate and requires the exact disclosed purpose", () =>
   }, consentID), true);
   assert.equal(isCurrentBannerConsent({enabled: true, consentID, purpose: "owner-aggregate-analytics-v1",
     privacyVersion: bannerConsentPrivacyVersion, disclosureVersion: bannerConsentDisclosureVersion}, consentID), false);
+  assert.equal(hasAcknowledgedBannerPrivacy("2026.21", "2026.21"), true);
+  assert.equal(hasAcknowledgedBannerPrivacy("2026.21", "2026.22"), false);
+  assert.equal(hasAcknowledgedBannerPrivacy("2026.22", "2026.22"), true);
+  assert.equal(hasAcknowledgedBannerPrivacy("2026.23", "2026.23"), false);
 });
 
 test("measurement envelope contains only the banner, placement and receipt data", () => {
@@ -53,6 +57,7 @@ test("one consented measurement counts once and withdrawal stops further counts"
   const laterConsentID = randomUUID();
   const bannerID = `banner-${randomUUID()}`;
   const eventID = randomUUID();
+  const migratedEventID = randomUUID();
   const now = new Date("2026-10-12T12:00:00Z");
   const policyRef = db.doc("legalDocuments/privacy");
   const profileRef = db.doc(`users/${uid}`);
@@ -86,11 +91,16 @@ test("one consented measurement counts once and withdrawal stops further counts"
     await policyRef.set({activeVersion: "2026.22"});
     await assert.rejects(persistBannerMeasurement(uid, {...event, id: randomUUID()}, now),
       {code: "failed-precondition"});
+    await profileRef.update({acceptedPrivacyVersion: "2026.22"});
+    assert.equal(await persistBannerMeasurementConsent(uid, consent), true);
+    assert.deepEqual(await persistBannerMeasurement(uid, {...event, id: migratedEventID}, now),
+      {counted: true, duplicate: false});
     await policyRef.set({activeVersion: bannerConsentPrivacyVersion});
+    await profileRef.update({acceptedPrivacyVersion: bannerConsentPrivacyVersion});
     await assert.rejects(persistBannerMeasurement(uid, {...event, kind: "click"}, now),
       {code: "invalid-argument"});
     const shards = await db.collection(bannerMeasurementShardCollection).where("bannerID", "==", bannerID).get();
-    assert.equal(shards.docs.reduce((total, shard) => total + shard.get("impressions"), 0), 1);
+    assert.equal(shards.docs.reduce((total, shard) => total + shard.get("impressions"), 0), 2);
     assert.equal(shards.docs.reduce((total, shard) => total + shard.get("clicks"), 0), 1);
     assert.ok(shards.docs.every(shard => shard.get("day") === "2026-10-12"
       && shard.get("bannerID") === bannerID && shard.get("section") === "home"));
@@ -107,6 +117,7 @@ test("one consented measurement counts once and withdrawal stops further counts"
     await Promise.all([profileRef, bannerRef, stateRef, consentReceiptRef,
       db.collection(bannerConsentReceiptCollection).doc(bannerConsentReceiptID(uid, laterConsentID)),
       eventReceiptRef,
+      db.collection(bannerMeasurementReceiptCollection).doc(bannerMeasurementEventReceiptID(uid, migratedEventID)),
       db.collection(bannerMeasurementReceiptCollection).doc(bannerMeasurementEventReceiptID(uid, click.id)),
       db.collection(bannerMeasurementRateLimitCollection).doc(analyticsRateLimitID(uid, now))
     ].map(ref => ref.delete()));
