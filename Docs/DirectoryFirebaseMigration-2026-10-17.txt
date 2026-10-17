@@ -1,0 +1,147 @@
+UAC — перенос Довідника в Firebase
+Дата: 17 октября 2026
+
+ПОДТВЕРЖДЕНО В PRODUCTION
+Проект: ukrainiancommunity-dbd5f, Firestore default.
+25 категорий / 145 тем публично читаются без авторизации.
+24 отсутствующие категории созданы атомарно; существующий health сохранён.
+Проверены payload, revision и прежний updateTime health: документ не менялся.
+Маркер appConfig/directoryCatalog: schemaVersion=1, source=firestore,
+migrationComplete=true. Маркер создан в одной транзакции с импортом.
+Старые клиенты совместимы: читают прежнюю directoryCategories и получают все категории.
+Открытый до миграции старый черновик с revision=0 не перезапишет новую revision=1:
+публикация требует актуальную revision и возвращает конфликт.
+
+ИСТОРИЯ И ПУБЛИКАЦИЯ
+Исторические topic/section/region IDs зафиксированы в private recentState/v1.
+Перенос не создаёт события «Останнє додане»: live feed вернул items=[], hasMore=false.
+Новая тема создаёт одно событие, её начальные блоки не дублируют событие темы.
+Новый блок в существующей теме создаёт событие с sectionID/региональным адресом.
+Исправление/перестановка/повторное скрытие-показ существующего блока не поднимает его в ленте.
+Лента проверяет текущую видимость материала и не раскрывает скрытые/удалённые записи.
+Обычная публикация: проверка редактора + CAS revision + versions + recent journal
+в одной транзакции saveDirectoryCategory.
+
+SERVER DELIVERY
+Commit a369d58: migration scripts, recent journal/callable, rules.
+firebase deploy: saveDirectoryCategory update SUCCESS,
+getDirectoryRecentAdditions create SUCCESS, Firestore rules released.
+Production calls: valid recent request HTTP200; invalid limit HTTP400;
+unauthenticated publication HTTP401; private journal/state guest reads HTTP403.
+
+ПРОВЕРКИ
+7 tests: existing authorized publish/delete/section persistence integration + recent model.
+2 tests: callable pagination/current hidden content/correction stability + malformed requests.
+1 migration integration: preserves edited health; rejects stale backup; rejects repeated import;
+creates 25 categories; seeds historical IDs; no fake recent events.
+6 security rules tests including public read-only catalog marker/private journal/state.
+Server TypeScript build passed. Fresh Swift export exactly matches imported catalog hash:
+f70a810d19b2aff1265fc2beb02504b0b57078dfcdf083b9c8b0e18320ec3faa.
+
+РЕЗЕРВНАЯ КОПИЯ И ДОКАЗАТЕЛЬСТВА
+/Users/serlest/.codex/uac-content-automation/artifacts/directory-migration-2026-10-17/
+  catalog.json — исходный каталог
+  production-before.json — backup до миграции, создан с правами 0600
+  readback.json — проверка каждой категории и исторических IDs
+  public-catalog-after.json — реальное публичное содержимое после переноса
+  live-callable-checks.json — ответы production callable
+Deployment log: /tmp/uac-directory-deploy-20261017.log
+Резервные данные не добавлены в Git.
+
+КООРДИНАЦИЯ
+Чат «Довідник» уведомлён до миграции и после read-back.
+Автопубликация на время миграции приостановлена; ранее она ничего не писала.
+Исправление семейного законодательства остаётся отдельным review-only кандидатом.
+Ограниченный automation bridge разрабатывается отдельно и не включён этим deploy.
+
+КЛИЕНТЫ И ТЕСТОВЫЕ СБОРКИ
+Клиентские проверки и доставка описаны в итоговых разделах ниже.
+Встроенные данные оставляются лишь для первого offline-запуска до активации Firebase.
+После активации клиент использует полный облачный каталог/последнюю полную offline-копию;
+отсутствующие серверные категории не должны возвращаться из встроенного набора.
+
+ПОДТВЕРЖДЁННЫЕ КЛИЕНТСКИЕ ПРОВЕРКИ
+IOS: commit 8859f08 — authoritative Firebase + durable offline cache.
+57 локальных проверок (56 unit + 1 UI) прошли. Дополнительный live Firestore SDK read
+(source: server) подтвердил 25 категорий, 145 тем, 288 региональных разделов.
+Все payload декодированы Swift моделями. Полный снимок восстановлен с диска;
+после отключения сети retry сохранил содержимое.
+Commit e5e7b15: live SDK/cache tests + подготовка TestFlight 109.
+Предыдущие пользовательские правки project.pbxproj/xcstrings сохранены.
+
+ANDROID: 2028 JVM tests и 20 instrumentation tests на API37 прошли.
+Проверены cold cache, retry/offline, отсутствие возврата bundled-категорий,
+production snapshot 25 категорий / 145 тем через Android parser/renderer.
+Доставка проверяется отдельным store read-back ниже.
+
+ГРАНИЦЫ ПРОВЕРКИ
+В production не создавались пробные статьи и не менялись редакторские тексты.
+Права редактора, запись, конфликты revision и удаление проверены на эмуляторе.
+В production проверены реальные чтения, гостевой доступ/отказы и сохранность данных.
+
+СОГЛАСОВАНИЕ С АВТОЗАПОЛНЕНИЕМ
+Чат «Довідник» отдельно развернул private publishDirectoryAutomation.
+Проверки этого чата: anonymous403, authenticated malformed400,
+official-source dry-run прошёл, apply412 (публикация выключена).
+Live gate остаётся OFF; residence revision1 не изменена, receipt не создан.
+Таким образом, миграция не включила бесконтрольное автозаполнение.
+Это отдельная поставка backend; её commit фиксируется отдельно.
+
+ОТКРЫТОЕ ЗАМЕЧАНИЕ ПО СОДЕРЖАНИЮ (НЕ ОШИБКА МИГРАЦИИ)
+Чат «Довідник» готовит отдельную юридическую/двуязычную проверку блока
+social-support/family-benefits/new-law: импортирован исторический текст от 11.10,
+требующий обновления после публикации BGBl. I Nr.84/2026. В этой миграции
+содержание не переписывалось и этот блок не объявлен исправленным.
+Online-клиенты получат его последующую проверенную публикацию через Firebase;
+первый offline bootstrap остаётся историческим резервом.
+Automation bridge commit: 2af7c31 (отдельная работа чата «Довідник»).
+
+ANDROID LIVE FIREBASE SDK — ДОПОЛНИТЕЛЬНО ПОДТВЕРЖДЕНО
+Production flavor: FirebaseDirectoryCatalogSource.confirmedCatalog / Source.SERVER.
+Без входа: 25 категорий, 145 тем, 288 региональных блоков.
+Пересоздание ViewModel и чтение disk cache после отключения SDK network успешны;
+retry сохранил полный каталог. Production writes=0.
+Android implementation commit cb90996.
+Это отдельная проверка Firebase SDK, а не только REST/fixture.
+
+TESTFLIGHT
+1.2 (109): архив и загрузка успешны; App Store Connect processingState=VALID.
+Внутреннее тестирование: IN_BETA_TESTING.
+Внешняя группа Tester Serlest EXT: Apple одобрил, externalBuildState=IN_BETA_TESTING.
+Beta Tester и Tester Serlest EXT: build109Listed=true. What to Test подтверждено на UK/DE/EN.
+Публичный App Store release не запускался.
+
+ДОПОЛНИТЕЛЬНЫЕ ФАЙЛЫ ДОКАЗАТЕЛЬСТВ
+/Users/serlest/Documents/Codex/2026-10-07/uac/UAC-TestFlight-109-2026-10-17.json
+/Users/serlest/Documents/Codex/2026-10-07/uac/UAC-iOS-Firebase-Catalog-2026-10-17.md
+/Users/serlest/Developer/UAC-Android-1.2-Parity107/Android/audit-evidence/directory-cloud-2026-10-17/live-sdk.json
+
+GitHub CI на момент iOS delivery ещё выполнялся; локальные проверки и store read-back
+указаны отдельно и не выдаются за завершённый CI.
+
+GOOGLE PLAY — ПОДТВЕРЖДЕНО
+1.2 (109), Internal Testing: активен, «Für interne Tester verfügbar».
+Подтверждено через авторизованную Play Console UI и сохранённый скриншот;
+отдельный Publisher API не использовался.
+Ссылка тестировщика: https://play.google.com/apps/internaltest/4701365572505552935
+Существующая аудитория UAC Internal Test (2 пользователя) сохранена.
+Closed Alpha остался на 108; ссылка Alpha не доставляет Internal 109.
+Публичная Production-публикация не выполнялась.
+AAB SHA-256: 9e888f84e47da58b1128c94f0f684489f703aa76b3ffcb4045c5d74084e737f8
+Source commit 6cb0413; Android final pushed HEAD 6b4ab10, рабочее дерево чистое.
+22 согласованных server/rules/scripts файла совпадают с зафиксированными main blobs.
+2028 JVM + 20 instrumentation + 1 production SDK smoke PASS.
+Lint: 0 errors, 100 warnings, 4 hints. Play: 0 errors, предупреждение об отсутствии
+native debug symbols; R8 mapping приложен, потери поддержки устройств нет.
+Физическая установка из Play на телефон пользователя отдельно не проверялась.
+Receipt и screenshot:
+/Users/serlest/Developer/UAC-Android-1.2-Parity107/Android/audit-evidence/directory-cloud-2026-10-17/play-109-receipt.json
+/Users/serlest/Developer/UAC-Android-1.2-Parity107/Android/audit-evidence/directory-cloud-2026-10-17/play-109-console.jpg
+
+ИТОГ
+Технический перенос, подключение клиентов, offline-проверки и доставка тестовых
+сборок завершены. Firebase — основной источник опубликованного справочника.
+Редакторские изменения видны после «Опублікувати»; локальный черновик не является
+публичной или облачной публикацией. Для будущих изменений содержания справочника
+новая Store-сборка не нужна. Встроенный каталог сохранён только как резерв первого
+запуска без сети, а после активации полного каталога не подмешивается.
