@@ -2,6 +2,9 @@ package at.uac.android.feature.directory
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,15 +14,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.style.TextOverflow
+import at.uac.android.design.UacSymbol
 import at.uac.android.design.UacCard
 import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
@@ -47,14 +55,35 @@ internal fun LazyListScope.directoryRecentItems(state: DirectoryRecentState, lan
     item("directory-recent-heading") {
         Column(Modifier.testTag("directory-recent-heading"), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             UacSectionHeading(tr(language, "Zuletzt hinzugefügt", "Останнє додане"), UacIcon.HISTORY)
-            Text(tr(language, "Neue Themen und Abschnitte aus allen Bereichen und Bundesländern.",
+            if (!preview) Text(tr(language, "Neue Themen und Abschnitte aus allen Bereichen und Bundesländern.",
                 "Нові теми й блоки з усіх розділів і федеральних земель."), style = MaterialTheme.typography.bodyMedium)
-            TextButton(onRefresh, enabled = !state.loading, modifier = Modifier.testTag("directory-recent-refresh")) {
+            if (!preview) TextButton(onRefresh, enabled = !state.loading, modifier = Modifier.testTag("directory-recent-refresh")) {
                 Text(tr(language, "Aktualisieren", "Оновити"))
             }
         }
     }
-    items(if (preview) state.items.take(3) else state.items, key = { "recent:${it.id}" }) { item ->
+    if (preview && state.items.isNotEmpty()) item("directory-recent-preview") {
+        UacCard(Modifier.testTag("directory-recent-preview")) {
+            Column {
+                state.items.take(3).forEachIndexed { index, entry ->
+                    if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .65f))
+                    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                        .clickable(role = Role.Button) { onOpen(entry.destination) }
+                        .semantics(mergeDescendants = true) {}
+                        .testTag("directory-recent-${entry.id}")
+                        .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text(entry.title.forLanguage(language), Modifier.weight(1f),
+                            style = MaterialTheme.typography.bodyMedium, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis)
+                        UacSymbol(UacIcon.BACK, modifier = Modifier.size(18.dp).rotate(180f))
+                    }
+                }
+            }
+        }
+    }
+    if (!preview) items(state.items, key = { "recent:${it.id}" }) { item ->
         UacCard(Modifier.fillMaxWidth().clickable(role = Role.Button) { onOpen(item.destination) }
             .testTag("directory-recent-${item.id}")) {
             val kind = if (item.kind == "topic") tr(language, "Neues Thema", "Нова тема")
@@ -91,7 +120,7 @@ internal fun LazyListScope.directoryRecentItems(state: DirectoryRecentState, lan
             modifier = Modifier.testTag("directory-recent-empty"))
     }
     if (preview && (state.items.size > 3 || state.hasMore)) item("directory-recent-show-all") {
-        TextButton({ onOpen("directory/recent") }, modifier = Modifier.testTag("directory-recent-show-all")) {
+        TextButton({ onOpen("directory/recent") }, modifier = Modifier.heightIn(min = 48.dp).testTag("directory-recent-show-all")) {
             Text(tr(language, "Mehr anzeigen", "Показати більше"))
         }
     }

@@ -1,0 +1,96 @@
+> Task :app:verifyLocalOnly
+> Task :app:preBuild
+> Task :app:preLocalDebugBuild
+> Task :app:mergeLocalDebugNativeDebugMetadata NO-SOURCE
+> Task :app:generateLocalDebugBuildConfig
+> Task :app:generateLocalDebugResValues UP-TO-DATE
+> Task :app:generateLocalDebugResources UP-TO-DATE
+> Task :app:packageLocalDebugResources UP-TO-DATE
+> Task :app:processLocalDebugNavigationResources UP-TO-DATE
+> Task :app:parseLocalDebugLocalResources UP-TO-DATE
+> Task :app:generateLocalDebugRFile UP-TO-DATE
+> Task :app:javaPreCompileLocalDebug UP-TO-DATE
+> Task :app:generateLocalDebugAssets UP-TO-DATE
+> Task :app:mergeLocalDebugAssets UP-TO-DATE
+> Task :app:compressLocalDebugAssets UP-TO-DATE
+> Task :app:checkLocalDebugDuplicateClasses UP-TO-DATE
+> Task :app:desugarLocalDebugFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexLocalDebug UP-TO-DATE
+> Task :app:mergeLibDexLocalDebug UP-TO-DATE
+> Task :app:checkLocalDebugAarMetadata UP-TO-DATE
+> Task :app:compileLocalDebugNavigationResources UP-TO-DATE
+> Task :app:mapLocalDebugSourceSetPaths UP-TO-DATE
+> Task :app:mergeLocalDebugResources UP-TO-DATE
+> Task :app:createLocalDebugCompatibleScreenManifests
+> Task :app:extractDeepLinksLocalDebug UP-TO-DATE
+
+> Task :app:processLocalDebugMainManifest
+/Users/serlest/Developer/UAC-Android-1.2-Parity107/Android/app/src/local/AndroidManifest.xml:8:9-9:71 Warning:
+	receiver#com.google.firebase.iid.FirebaseInstanceIdReceiver@android:enabled was tagged at AndroidManifest.xml:8 to replace other declarations but no other declaration present
+/Users/serlest/Developer/UAC-Android-1.2-Parity107/Android/app/src/local/AndroidManifest.xml:10:9-11:71 Warning:
+	service#com.google.firebase.messaging.FirebaseMessagingService@android:enabled was tagged at AndroidManifest.xml:10 to replace other declarations but no other declaration present
+
+> Task :app:processLocalDebugManifest
+> Task :app:mergeLocalDebugJniLibFolders UP-TO-DATE
+> Task :app:mergeLocalDebugNativeLibs UP-TO-DATE
+> Task :app:stripLocalDebugDebugSymbols UP-TO-DATE
+> Task :app:validateSigningLocalDebug UP-TO-DATE
+> Task :app:writeLocalDebugAppMetadata UP-TO-DATE
+> Task :app:writeLocalDebugSigningConfigVersions UP-TO-DATE
+> Task :app:preLocalDebugAndroidTestBuild SKIPPED
+> Task :app:processLocalDebugAndroidTestManifest UP-TO-DATE
+> Task :app:generateLocalDebugAndroidTestBuildConfig UP-TO-DATE
+> Task :app:generateLocalDebugAndroidTestResValues UP-TO-DATE
+> Task :app:generateLocalDebugAndroidTestResources UP-TO-DATE
+> Task :app:packageLocalDebugAndroidTestResources UP-TO-DATE
+> Task :app:processLocalDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:parseLocalDebugAndroidTestLocalResources UP-TO-DATE
+> Task :app:generateLocalDebugAndroidTestRFile UP-TO-DATE
+> Task :app:javaPreCompileLocalDebugAndroidTest UP-TO-DATE
+> Task :app:generateLocalDebugAndroidTestAssets UP-TO-DATE
+> Task :app:mergeLocalDebugAndroidTestAssets UP-TO-DATE
+> Task :app:compressLocalDebugAndroidTestAssets UP-TO-DATE
+> Task :app:checkLocalDebugAndroidTestDuplicateClasses UP-TO-DATE
+> Task :app:desugarLocalDebugAndroidTestFileDependencies UP-TO-DATE
+> Task :app:mergeExtDexLocalDebugAndroidTest UP-TO-DATE
+> Task :app:mergeLibDexLocalDebugAndroidTest UP-TO-DATE
+> Task :app:checkLocalDebugAndroidTestAarMetadata UP-TO-DATE
+> Task :app:compileLocalDebugAndroidTestNavigationResources UP-TO-DATE
+> Task :app:mapLocalDebugAndroidTestSourceSetPaths UP-TO-DATE
+> Task :app:mergeLocalDebugAndroidTestResources UP-TO-DATE
+> Task :app:processLocalDebugAndroidTestResources UP-TO-DATE
+> Task :app:mergeLocalDebugAndroidTestJniLibFolders UP-TO-DATE
+> Task :app:mergeLocalDebugAndroidTestNativeLibs NO-SOURCE
+> Task :app:stripLocalDebugAndroidTestDebugSymbols NO-SOURCE
+> Task :app:validateSigningLocalDebugAndroidTest UP-TO-DATE
+> Task :app:writeLocalDebugAndroidTestSigningConfigVersions UP-TO-DATE
+> Task :app:processLocalDebugManifestForPackage
+> Task :app:processLocalDebugResources
+
+> Task :app:compileLocalDebugKotlin
+w: file:///Users/serlest/Developer/UAC-Android-1.2-Parity107/Android/app/src/main/java/at/uac/android/feature/browse/BrowseViewModel.kt:185:13 Condition is always 'true'.
+
+> Task :app:compileLocalDebugJavaWithJavac
+> Task :app:dexBuilderLocalDebug
+> Task :app:mergeLocalDebugGlobalSynthetics UP-TO-DATE
+> Task :app:processLocalDebugJavaRes UP-TO-DATE
+> Task :app:mergeLocalDebugJavaResource UP-TO-DATE
+> Task :app:mergeProjectDexLocalDebug
+> Task :app:bundleLocalDebugClassesToCompileJar
+> Task :app:packageLocalDebug
+> Task :app:createLocalDebugApkListingFileRedirect
+> Task :app:assembleLocalDebug
+> Task :app:compileLocalDebugAndroidTestKotlin
+> Task :app:compileLocalDebugAndroidTestJavaWithJavac UP-TO-DATE
+> Task :app:dexBuilderLocalDebugAndroidTest UP-TO-DATE
+> Task :app:mergeLocalDebugAndroidTestGlobalSynthetics UP-TO-DATE
+> Task :app:processLocalDebugAndroidTestJavaRes UP-TO-DATE
+> Task :app:mergeLocalDebugAndroidTestJavaResource UP-TO-DATE
+> Task :app:mergeProjectDexLocalDebugAndroidTest UP-TO-DATE
+> Task :app:packageLocalDebugAndroidTest UP-TO-DATE
+> Task :app:createLocalDebugAndroidTestApkListingFileRedirect UP-TO-DATE
+> Task :app:assembleLocalDebugAndroidTest UP-TO-DATE
+
+BUILD SUCCESSFUL in 12s
+73 actionable tasks: 15 executed, 58 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.1.0/userguide/configuration_cache_enabling.html
