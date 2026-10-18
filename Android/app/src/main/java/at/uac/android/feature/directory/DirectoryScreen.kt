@@ -20,7 +20,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -28,14 +27,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -58,12 +55,13 @@ import at.uac.android.design.UacDesign
 import at.uac.android.design.UacIcon
 import at.uac.android.design.UacSectionHeading
 import at.uac.android.design.UacSymbol
+import at.uac.android.feature.browse.ReadFailure
+import at.uac.android.feature.browse.failureText
 import at.uac.android.feature.browse.Choice
 import at.uac.android.feature.browse.SafeLink
 import at.uac.android.feature.browse.WebLinkPolicy
 import at.uac.android.feature.browse.regions
 import at.uac.android.feature.browse.tr
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 
 /** Public catalog stays readable from the reviewed bundle while cloud edits sync. */
@@ -78,6 +76,8 @@ fun DirectoryDestination(
     editor: DirectoryEditorAccess? = null,
     searchVisible: Boolean = false,
     bannerContent: (@Composable (Rect?) -> Unit)? = null,
+    bannerFailure: ReadFailure? = null,
+    onBannerRetry: () -> Unit = {},
     recentModel: DirectoryRecentViewModel? = null,
     contentModel: DirectoryViewModel? = null,
 ) {
@@ -154,13 +154,15 @@ fun DirectoryDestination(
     LaunchedEffect(bannerContent != null) {
         if (bannerContent != null && listState.firstVisibleItemIndex <= 1) listState.scrollToItem(0)
     }
-    val scope = rememberCoroutineScope()
+    val syncWarning = (snapshot.status == "failed" || snapshot.invalid > 0 || targetStatus == "failed") &&
+        !(targetStatus == "failed" && (missing || anchored))
+    val showStatus = snapshot.cacheWriteFailed || syncWarning || snapshot.status == "cached"
     var anchorApplied by rememberSaveable(route) { mutableStateOf(false) }
     val targetKey = destination?.section?.let { if (destination.region == null) "section:$it" else "regional:$it" }
     LaunchedEffect(route, targetStatus, categories) {
         if (!anchorApplied && targetStatus == "ready" && !missing && targetKey != null && topic != null) {
             val keys = buildList {
-                add("directory-status")
+                if (showStatus) add("directory-status")
                 add("heading")
                 topic.sections.filterNot { it.hidden }.sortedBy { it.order }.forEach { add("section:${it.id}") }
                 if (topic.regionalSections.isNotEmpty()) {
@@ -188,12 +190,19 @@ fun DirectoryDestination(
         if (route == "directory" && bannerContent != null) {
             item("directory-banners") { bannerContent(bannerViewport) }
         }
-        item("directory-status") {
+        if (route == "directory" && bannerFailure != null) item("directory-banner-error") {
+            Column(Modifier.testTag("directory-banner-error")) {
+                Text(failureText(bannerFailure, language), color = MaterialTheme.colorScheme.error)
+                TextButton(onBannerRetry, Modifier.testTag("directory-banner-retry")) {
+                    Text(tr(language, "Erneut versuchen", "Спробувати ще раз"))
+                }
+            }
+        }
+        if (showStatus) item("directory-status") {
             if (snapshot.cacheWriteFailed) Text(tr(language,
                 "Die Offline-Kopie konnte nicht gespeichert werden.", "Не вдалося зберегти копію для читання без мережі."),
                 color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("directory-cache-warning"))
-            if ((snapshot.status == "failed" || snapshot.invalid > 0 || targetStatus == "failed") &&
-                !(targetStatus == "failed" && (missing || anchored)))
+            if (syncWarning)
                 Column {
                     Text(
                         tr(language, "Aktuelle Änderungen sind nicht verfügbar. Gespeicherte Inhalte werden angezeigt.",
@@ -305,12 +314,9 @@ fun DirectoryDestination(
                 }
             }
         } else {
-            if (!searching) {
-                item("intro") {
-                    DirectoryWelcomeHero(language) { scope.launch { listState.animateScrollToItem(2) } }
-                    if (canEdit) TextButton({ onOpen("directory/manage") }) {
-                        Text(tr(language, "Ratgeber verwalten", "Керування довідником"))
-                    }
+            if (!searching && canEdit) item("directory-management") {
+                TextButton({ onOpen("directory/manage") }) {
+                    Text(tr(language, "Ratgeber verwalten", "Керування довідником"))
                 }
             }
             if (searchVisible || searching) item("search") {
@@ -346,7 +352,7 @@ fun DirectoryDestination(
                     }
                 }
                 if (recent != null && recentState != null) {
-                    directoryRecentItems(recentState, language, onOpen, recent::more, recent::retry, recent::refresh)
+                    directoryRecentItems(recentState, language, onOpen, recent::more, recent::retry, recent::refresh, preview = true)
                 }
                 listOf("start", "life", "support").forEach { placement ->
                     val section = categories.filter { it.placement == placement && it.id != "safety" }
@@ -372,33 +378,6 @@ fun DirectoryDestination(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun DirectoryWelcomeHero(language: String, onBrowse: () -> Unit) {
-    val shape = RoundedCornerShape(UacDesign.cardRadius)
-    Column(
-        Modifier.fillMaxWidth().heightIn(min = 190.dp)
-            .clip(shape)
-            .background(Brush.linearGradient(listOf(
-                Color(0xFF25498C), Color(0xFFAC3D4D), Color(0xFFC59E43),
-            )))
-            .clickable(role = Role.Button, onClick = onBrowse)
-            .testTag("directory-browse-sections")
-            .padding(22.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        CompositionLocalProvider(LocalContentColor provides Color.White) {
-            UacSymbol(UacIcon.DIRECTORY)
-        }
-        Text(tr(language, "Ratgeber", "Довідник"),
-            style = MaterialTheme.typography.headlineLarge, color = Color.White)
-        Text(tr(language, "Wichtige Themen für das Leben in Österreich – vom Ankommen bis zum Alltag.",
-            "Важливі теми для життя в Австрії — від перших кроків до щоденних питань."),
-            style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = .9f))
-        Text(tr(language, "Bereiche ansehen →", "Переглянути розділи →"),
-            style = MaterialTheme.typography.labelLarge, color = Color.White)
     }
 }
 

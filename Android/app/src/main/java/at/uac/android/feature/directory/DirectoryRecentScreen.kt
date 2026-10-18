@@ -41,7 +41,7 @@ fun DirectoryRecentScreen(state: DirectoryRecentState, language: String, onOpen:
 }
 
 internal fun LazyListScope.directoryRecentItems(state: DirectoryRecentState, language: String,
-    onOpen: (String) -> Unit, onMore: () -> Unit, onRetry: () -> Unit, onRefresh: () -> Unit) {
+    onOpen: (String) -> Unit, onMore: () -> Unit, onRetry: () -> Unit, onRefresh: () -> Unit, preview: Boolean = false) {
     val formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy · HH:mm", if (language == "uk") Locale.forLanguageTag("uk") else Locale.GERMAN)
         .withZone(ZoneId.of("Europe/Vienna"))
     item("directory-recent-heading") {
@@ -54,7 +54,7 @@ internal fun LazyListScope.directoryRecentItems(state: DirectoryRecentState, lan
             }
         }
     }
-    items(state.items, key = { "recent:${it.id}" }) { item ->
+    items(if (preview) state.items.take(3) else state.items, key = { "recent:${it.id}" }) { item ->
         UacCard(Modifier.fillMaxWidth().clickable(role = Role.Button) { onOpen(item.destination) }
             .testTag("directory-recent-${item.id}")) {
             val kind = if (item.kind == "topic") tr(language, "Neues Thema", "Нова тема")
@@ -90,7 +90,12 @@ internal fun LazyListScope.directoryRecentItems(state: DirectoryRecentState, lan
             "Нових публікацій поки немає. Нові теми й блоки з’являться тут після публікації."),
             modifier = Modifier.testTag("directory-recent-empty"))
     }
-    if (state.hasMore && !state.loading && !state.failed) item("directory-recent-more") {
+    if (preview && (state.items.size > 3 || state.hasMore)) item("directory-recent-show-all") {
+        TextButton({ onOpen("directory/recent") }, modifier = Modifier.testTag("directory-recent-show-all")) {
+            Text(tr(language, "Mehr anzeigen", "Показати більше"))
+        }
+    }
+    if (!preview && state.hasMore && !state.loading && !state.failed) item("directory-recent-more") {
         TextButton(onMore, modifier = Modifier.testTag("directory-recent-more")) {
             Text(tr(language, "Weitere laden", "Завантажити ще"))
         }

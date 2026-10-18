@@ -192,6 +192,8 @@ fun BrowseScreen(
                                     },
                                     directoryEditor,
                                     searchVisible = directorySearchVisible,
+                                    bannerFailure = state.data.warnings.firstOrNull { it.first == "banners" }?.second,
+                                    onBannerRetry = model::refresh,
                                     bannerContent = if (state.route == "directory" && state.data.banners.isNotEmpty()) {
                                         { viewport -> BannerCarousel(state, model, bannerMeasurementActive,
                                             onBannerMeasurement, viewport) }
