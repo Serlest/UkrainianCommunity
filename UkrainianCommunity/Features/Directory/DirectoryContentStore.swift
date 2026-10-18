@@ -57,6 +57,17 @@ final class DirectoryContentStore: ObservableObject {
 
     init(cacheURL: URL? = DirectoryContentStore.defaultCacheURL) {
         self.cacheURL = cacheURL
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestDirectoryRecentPreview"] == "1" {
+            published = Dictionary(uniqueKeysWithValues: Self.bundledCategories.map {
+                ($0.id, PublishedCategory(content: $0, revision: 1, updatedAt: nil))
+            })
+            isAuthoritative = true
+            syncState = .current
+            return
+        }
+#endif
         if let cacheURL, let data = try? Data(contentsOf: cacheURL),
            let cache = try? JSONDecoder().decode(CatalogCache.self, from: data),
            cache.schemaVersion == 1,
@@ -175,6 +186,10 @@ final class DirectoryContentStore: ObservableObject {
     }
 
     func startObserving() {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestDirectoryRecentPreview"] == "1" { return }
+#endif
         if catalogListener == nil {
             catalogListener = db.collection("appConfig").document("directoryCatalog")
                 .addSnapshotListener(includeMetadataChanges: true) { [weak self] snapshot, _ in

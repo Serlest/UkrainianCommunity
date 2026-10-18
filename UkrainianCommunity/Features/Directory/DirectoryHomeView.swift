@@ -68,13 +68,9 @@ struct DirectoryHomeView: View {
                     .padding(.bottom, AppTheme.homeHeaderHeroSpacing)
 
                     if query.isEmpty {
-                        banner {
-                            withAnimation(.easeInOut) {
-                                proxy.scrollTo(directoryCategoriesID, anchor: .top)
-                            }
-                        }
-                        .padding(.bottom, featuredBannerViewModel.hasResolvedCurrentQuery
-                            ? AppTheme.homeSectionSpacing : 0)
+                        banner
+                            .padding(.bottom, !featuredBannerViewModel.banners.isEmpty || featuredBannerViewModel.error != nil
+                                ? AppTheme.homeSectionSpacing : 0)
                         introductoryContent
                     } else {
                         searchContent
@@ -111,7 +107,7 @@ struct DirectoryHomeView: View {
         .observesKeyboardDismissTaps()
     }
 
-    @ViewBuilder private func banner(onBrowse: @escaping () -> Void) -> some View {
+    @ViewBuilder private var banner: some View {
         if !featuredBannerViewModel.banners.isEmpty {
             FeaturedBannerCarouselView(
                 banners: featuredBannerViewModel.banners,
@@ -126,9 +122,6 @@ struct DirectoryHomeView: View {
             FeaturedBannerLoadFailureView(error: error) {
                 await featuredBannerViewModel.refresh(for: .directory, federalState: selectedFederalState)
             }
-        } else if featuredBannerViewModel.hasResolvedCurrentQuery {
-            DirectoryWelcomeBanner(onBrowse: onBrowse)
-                .id(languageCode)
         }
     }
 
@@ -215,6 +208,17 @@ struct DirectoryHomeView: View {
 
     @ViewBuilder private func destination(for route: DirectoryRoute) -> some View {
         switch route {
+        case .recentList:
+            ScrollView {
+                DirectoryRecentAdditionsView(store: recentAdditions, language: language, isPreview: false)
+                    .padding(.horizontal, AppTheme.pageHorizontal)
+                    .padding(.bottom, AppTheme.homeBottomContentPadding)
+                    .appCenteredContent(maxWidth: AppTheme.feedContentMaxWidth)
+            }
+            .background(AppBackgroundView())
+            .navigationTitle(DirectoryText(ukrainian: "Останнє додане", german: "Zuletzt hinzugefügt").value(for: language))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.visible, for: .navigationBar)
         case let .recent(item):
             DirectoryRecentDestinationView(item: item, feedbackRepository: feedbackRepository)
         case .manage:

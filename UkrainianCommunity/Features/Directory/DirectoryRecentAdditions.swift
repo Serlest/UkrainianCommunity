@@ -52,6 +52,10 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var failed = false
     @Published private(set) var hasMore = false
+    static let previewLimit = 3
+    var previewItems: [DirectoryRecentAddition] { Array(items.prefix(Self.previewLimit)) }
+    var hasMoreThanPreview: Bool { items.count > Self.previewLimit || hasMore }
+
     private var cursor: DirectoryRecentCursor?
     private var loaded = false
     private var failedReset = true
@@ -62,6 +66,20 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
         if loader == nil, ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            ProcessInfo.processInfo.environment["UITestDirectoryRecentEmpty"] == "1" {
             self.loader = { _ in .init(items: [], nextCursor: nil, hasMore: false) }
+            return
+        }
+        if loader == nil, ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestDirectoryRecentPreview"] == "1" {
+            self.loader = { _ in
+                .init(items: (1...5).map { index in
+                    .init(id: "preview-\(index)", kind: .topic, categoryID: "registration",
+                          topicID: "housing-types", sectionID: nil, federalState: nil,
+                          publishedAt: "2026-10-17T12:00:00.000Z", revision: 1,
+                          title: .init(ukrainian: "Матеріал \(index)", german: "Beitrag \(index)"),
+                          topicTitle: .init(ukrainian: "Житло", german: "Wohnen"),
+                          categoryTitle: .init(ukrainian: "Реєстрація", german: "Registrierung"))
+                }, nextCursor: nil, hasMore: false)
+            }
             return
         }
 #endif

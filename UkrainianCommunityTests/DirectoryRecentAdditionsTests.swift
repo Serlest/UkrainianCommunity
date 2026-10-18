@@ -12,6 +12,23 @@ struct DirectoryRecentAdditionsTests {
               categoryTitle: .init(ukrainian: "Категорія", german: "Kategorie"))
     }
 
+    @Test func previewLimitsCardsButKeepsFullFeedAndServerContinuation() async {
+        for count in [0, 1, 2, 3, 4, 20] {
+            for serverHasMore in [false, true] {
+                let store = DirectoryRecentAdditionsStore { _ in
+                    .init(items: (0..<count).map { item("item-\($0)") },
+                          nextCursor: serverHasMore ? .init(seconds: 1, nanoseconds: 0, id: "next") : nil,
+                          hasMore: serverHasMore)
+                }
+                await store.loadIfNeeded()
+                #expect(store.previewItems.count == min(count, 3))
+                #expect(store.items.count == count)
+                #expect(store.previewItems.map(\.id) == Array(store.items.prefix(3)).map(\.id))
+                #expect(store.hasMoreThanPreview == (count > 3 || serverHasMore))
+            }
+        }
+    }
+
     @Test func recentValuesDecodeAndHashAwayFromMainActor() async throws {
         let addition = item("background-route")
         let cursor = DirectoryRecentCursor(seconds: 100, nanoseconds: 42, id: addition.id)

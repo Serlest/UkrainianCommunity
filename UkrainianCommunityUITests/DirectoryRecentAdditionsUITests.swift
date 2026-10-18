@@ -2,6 +2,56 @@ import XCTest
 
 final class DirectoryRecentAdditionsUITests: XCTestCase {
     @MainActor
+    func testPreviewShowsThreeThenOpensFullFeedAndReturns() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestResetUserSettings": "1", "UITestAppLanguage": "uk",
+                                 "UITestForceOwnerSession": "1", "UITestDirectoryRecentPreview": "1",
+                                 "UITestDirectoryRecentEmpty": "0", "UITestResetAppLock": "1"]
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 3)
+        XCTAssertTrue(tab.waitForExistence(timeout: 15)); tab.tap()
+        let more = app.buttons["directory.recent.showAll"]
+        for _ in 0..<10 {
+            if more.exists && more.isHittable { break }
+            app.swipeUp()
+        }
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "Three latest directory articles without placeholder hero"
+        shot.lifetime = .keepAlways; add(shot)
+        let tree = XCTAttachment(string: app.debugDescription)
+        tree.lifetime = .keepAlways; add(tree)
+        XCTAssertTrue(app.buttons["directory.recent.preview-3"].exists)
+        XCTAssertFalse(app.buttons["directory.recent.preview-4"].exists)
+        XCTAssertTrue(more.exists && more.isHittable); more.tap()
+        XCTAssertTrue(app.buttons["directory.recent.preview-5"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["directory.recent.showAll"].exists)
+        let fifth = app.buttons["directory.recent.preview-5"]
+        for _ in 0..<10 {
+            if fifth.isHittable { break }
+            app.swipeUp()
+        }
+        let full = XCTAttachment(screenshot: app.screenshot())
+        full.name = "Full recent feed includes fifth article"
+        full.lifetime = .keepAlways; add(full)
+        fifth.tap()
+        let target = XCTAttachment(screenshot: app.screenshot())
+        target.name = "Opened recent article screen"
+        target.lifetime = .keepAlways; add(target)
+        XCTAssertTrue(app.staticTexts["Яке у вас житло"].firstMatch.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Матеріал більше недоступний"].exists)
+        let article = XCTAttachment(screenshot: app.screenshot())
+        article.name = "Recent article destination"
+        article.lifetime = .keepAlways; add(article)
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["directory.recent.preview-5"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["directory.recent.showAll"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["directory.recent.preview-4"].exists)
+    }
+
+    @MainActor
     func testRecentSectionHasLocalizedEmptyStateBeforeStartCategories() {
         continueAfterFailure = false
         let app = XCUIApplication()

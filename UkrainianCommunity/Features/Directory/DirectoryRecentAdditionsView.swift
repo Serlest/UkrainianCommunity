@@ -3,6 +3,7 @@ import SwiftUI
 struct DirectoryRecentAdditionsView: View {
     @ObservedObject var store: DirectoryRecentAdditionsStore
     let language: AppLanguage
+    var isPreview = true
 
     private func text(_ uk: String, _ de: String) -> String {
         DirectoryText(ukrainian: uk, german: de).value(for: language)
@@ -12,7 +13,7 @@ struct DirectoryRecentAdditionsView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(text("Останнє додане", "Zuletzt hinzugefügt"))
                 .font(.title2.bold()).foregroundStyle(AppTheme.textPrimary)
-            ForEach(store.items) { item in
+            ForEach(isPreview ? store.previewItems : store.items) { item in
                 NavigationLink(value: DirectoryRoute.recent(item)) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(item.title.value(for: language)).font(.headline)
@@ -48,14 +49,20 @@ struct DirectoryRecentAdditionsView: View {
             } else if store.items.isEmpty {
                 Text(text("Нові матеріали з’являться тут після публікації.", "Neue Inhalte erscheinen hier nach der Veröffentlichung."))
                     .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
-            } else if store.hasMore {
+            } else if !isPreview && store.hasMore {
                 Button(text("Показати ще", "Weitere anzeigen")) {
                     Task { await store.load(reset: false) }
                 }
                 .accessibilityIdentifier("directory.recent.more")
             }
+            if isPreview && store.hasMoreThanPreview {
+                NavigationLink(value: DirectoryRoute.recentList) {
+                    Text(text("Показати більше", "Mehr anzeigen"))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                }
+                .accessibilityIdentifier("directory.recent.showAll")
+            }
         }
-        .accessibilityIdentifier("directory.recent")
     }
 }
 
