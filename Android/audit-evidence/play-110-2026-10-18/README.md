@@ -29,3 +29,13 @@
 ## Границы
 
 Backend/Rules не deploy-ились, production данные не изменялись. Аудитория Internal не расширялась; Closed Alpha и public production не входят в эту доставку. Physical Play install, полноценные Google/Apple/passkey/TOTP/private CRUD flows на телефоне и физический Duo не объявляются проверенными этим release gate.
+
+## Доставка 110 и последующее поручение
+
+**110 опубликован в существующем Internal Testing**, Console: `Für interne Tester verfügbar`, label `18. Okt. 08:58`, release ID `11`. [Receipt](delivery-receipt.json), [Console](play-console.jpg). Source commit `8620e3c`; Play подтвердил artifact 110, 0 errors, 1 неблокирующее предупреждение native debug symbols, R8 mapping принят; потери поддержки устройств нет. Аудитория прежняя `UAC Internal Test` (2), Closed Alpha/public production не менялись.
+
+- AAB SHA-256: `4b7b6d5aea8d4895313b5b1686018f4c2da0ad3208ee5ba3e4a243614e19e44a`.
+- APK SHA-256: `81a458c201fc0b5120de14c5b028ee9d93a4c75e759595a26bd41bba066e60ff`.
+- Подписанные бинарники сохранены локально отдельно: `Android/build/release-archive/1.2-110/uac-1.2-110.{aab,apk}` (не Git). Release BUILD SUCCESSFUL 1 мин 49 с; signature проверена, minSdk26/target36, production flags без debug App Check/local backend.
+
+Во время финализации пользователь добавил отдельное требование: recent preview максимум3 + кнопка полной ленты и удаление DirectoryWelcomeHero placeholder. **Эти изменения не входят в уже загруженный/опубликованный110** и выполняются следующим номером111. Каталог bundled/bootstrap fallback не является этим banner placeholder и не удаляется.
