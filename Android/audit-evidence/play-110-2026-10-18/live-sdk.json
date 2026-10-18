@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-10-18T06:47:31.089835Z",
+  "firebaseSDKVerified": true,
+  "source": "FirebaseDirectoryCatalogSource.confirmedCatalog; Source.SERVER",
+  "categoryCount": 25,
+  "topicCount": 145,
+  "regionalSectionCount": 288,
+  "guestAuth": true,
+  "coldViewModelAndDiskCacheRead": true,
+  "sdkNetworkDisabledRetryKeptCatalog": true,
+  "productionWrites": 0
+}

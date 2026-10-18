@@ -1,0 +1,10 @@
+{
+  "httpStatus": 200,
+  "response": {
+    "result": {
+      "items": [],
+      "nextCursor": null,
+      "hasMore": false
+    }
+  }
+}

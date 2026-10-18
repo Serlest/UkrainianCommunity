@@ -27,7 +27,7 @@ android {
         minSdk = 26
         targetSdk = 36
         // Internal Play candidate with the authoritative Firebase Directory and parity audit fixes.
-        versionCode = 109
+        versionCode = 110
         versionName = "1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["appLabel"] = "UAC"
