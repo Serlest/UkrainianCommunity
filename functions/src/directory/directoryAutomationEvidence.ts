@@ -70,8 +70,8 @@ export async function verifyOfficialDirectoryEvidence(
     }
     const body = new TextDecoder("utf-8", {fatal: false}).decode(bytes);
     const visible = normalized(contentType.includes("text/html") ? readableText(body) : body);
-    const excerpt = normalized(candidate.evidence.excerpt);
-    if (!visible.includes(excerpt)) {
+    const excerpts = [candidate.evidence.excerpt, ...(candidate.evidence.excerpts ?? [])];
+    if (excerpts.some((fragment) => !visible.includes(normalized(fragment)))) {
       throw new Error("Claimed evidence excerpt is absent from the official page.");
     }
     if (candidate.field === "phoneNumber" && !visible.includes(normalized(candidate.newValue))) {

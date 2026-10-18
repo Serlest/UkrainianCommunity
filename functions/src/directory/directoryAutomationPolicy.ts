@@ -1,5 +1,6 @@
 import {createHash} from "node:crypto";
 import {isDeepStrictEqual} from "node:util";
+import {validateReviewedDirectoryContent} from "./directoryAutomationContent";
 
 type RecordValue = Record<string, unknown>;
 
@@ -11,14 +12,25 @@ export interface DirectoryAutomationCandidate {
   expectedRevision: number;
   previousPayloadSHA256: string;
   nextPayload: string;
-  changeClass: "official-contact";
-  field: "source.url" | "phoneNumber";
+  changeClass: "official-contact" | "verified-content";
+  field: "source.url" | "phoneNumber" | "section" | "topic";
   newValue: string;
+  operation?: "add-section" | "replace-section" | "add-topic";
+  review?: {
+    payloadSHA256: string;
+    reviewedAt: string;
+    bilingualChecked: boolean;
+    applicabilityChecked: boolean;
+    noSourceConflict: boolean;
+    scope: string;
+    statements: Array<{ukrainian: string; german: string; excerpt: string}>;
+  };
   evidence: {
     url: string;
     authority: string;
     observedAt: string;
     excerpt: string;
+    excerpts?: string[];
   };
 }
 
@@ -82,15 +94,15 @@ export function payloadSHA256(payload: string): string {
   return createHash("sha256").update(payload, "utf8").digest("hex");
 }
 
-/** Only a single, directly evidenced contact/link field can pass unattended. */
+/** Restrict every publication to the reviewed target and the exact production baseline. */
 export function validateAutomaticDirectoryChange(
   candidate: DirectoryAutomationCandidate,
   previousPayload: string,
   currentRevision: number,
   now = new Date()
 ): {nextPayload: string; oldValue: string; newValue: string} {
-  if (!candidate || candidate.changeClass !== "official-contact" ||
-      !["source.url", "phoneNumber"].includes(candidate.field) ||
+  if (!candidate || !["official-contact", "verified-content"].includes(candidate.changeClass) ||
+      !["source.url", "phoneNumber", "section", "topic"].includes(candidate.field) ||
       !Number.isSafeInteger(candidate.expectedRevision) || candidate.expectedRevision < 1 ||
       candidate.expectedRevision !== currentRevision) {
     throw new Error("Unsupported class, field, or stale revision.");
@@ -100,6 +112,11 @@ export function validateAutomaticDirectoryChange(
   }
   const evidence = object(candidate.evidence, "evidence");
   officialDirectoryURL(String(evidence.url), "Evidence URL");
+  if (evidence.excerpts !== undefined && (!Array.isArray(evidence.excerpts) ||
+      evidence.excerpts.length > 20 || evidence.excerpts.some((fragment) =>
+        typeof fragment !== "string" || fragment.trim().length < 20 || fragment.length > 1500))) {
+    throw new Error("Additional evidence fragments are invalid.");
+  }
   if (typeof evidence.authority !== "string" || evidence.authority.trim().length < 3 ||
       typeof evidence.excerpt !== "string" || evidence.excerpt.trim().length < 20 ||
       evidence.excerpt.length > 1500) {
@@ -115,6 +132,13 @@ export function validateAutomaticDirectoryChange(
   }
   const before = object(JSON.parse(previousPayload), "previous category");
   const next = object(JSON.parse(candidate.nextPayload), "next category");
+  if (candidate.changeClass === "verified-content") {
+    validateReviewedDirectoryContent(candidate, before, next, now);
+    return {nextPayload: candidate.nextPayload, oldValue: "", newValue: candidate.newValue};
+  }
+  if (!["source.url", "phoneNumber"].includes(candidate.field)) {
+    throw new Error("Unsupported contact field.");
+  }
   const beforeSection = targetSection(before, candidate);
   const nextSection = targetSection(next, candidate);
   let oldValue: unknown;

@@ -15,7 +15,7 @@ function options(args) {
     else if (args[index] === "--url") result.url = args[++index] ?? "";
     else throw new Error(`Unknown argument ${args[index]}`);
   }
-  if (!result.file || !result.url || !result.url.startsWith("https://")) {
+  if (!result.file || result.url !== "https://publishdirectoryautomation-2kiasqpopq-ey.a.run.app") {
     throw new Error("Usage: --candidate FILE --url PRIVATE_FUNCTION_URL [--apply]");
   }
   return result;

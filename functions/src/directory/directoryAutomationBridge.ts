@@ -7,6 +7,7 @@ import {
   validateAutomaticDirectoryChange, type DirectoryAutomationCandidate,
 } from "./directoryAutomationPolicy";
 import {publishDirectoryCategoryInTransaction} from "./directoryPublishTransaction";
+import {validateDirectoryCategoryPayload} from "./directoryValidation";
 
 const automationActor = "directory-automation-v1";
 const receiptCollection = "directoryAutomationReceipts";
@@ -49,17 +50,18 @@ export async function processDirectoryAutomationRequest(
   options: {allowLive: boolean; verifyEvidence?: typeof verifyOfficialDirectoryEvidence}
 ): Promise<Record<string, unknown>> {
   const {candidate, dryRun, idempotencyKey} = input;
+  validateDirectoryCategoryPayload(candidate.nextPayload, candidate.categoryId);
   if (!dryRun && !options.allowLive) {
     throw new Error("Directory automation live publishing is disabled.");
   }
   const candidateSHA256 = digest(candidate);
-  if (!dryRun) {
+  {
     const existing = await db.collection(receiptCollection).doc(idempotencyKey).get();
     if (existing.exists) {
       if (existing.data()?.candidateSHA256 !== candidateSHA256) {
         throw new Error("Idempotency key was already used for another candidate.");
       }
-      return {dryRun: false, alreadyPublished: true,
+      return {dryRun, alreadyPublished: true, expectedRevision: candidate.expectedRevision,
         categoryId: existing.data()?.categoryId, revision: existing.data()?.revision,
         candidateSHA256};
     }
@@ -97,9 +99,10 @@ export async function processDirectoryAutomationRequest(
         migration.data()?.source !== "firestore") {
       throw new Error("Firebase directory catalog migration is not complete.");
     }
-    if (permission.data()?.allowLowRiskAutoPublish !== true ||
-        permission.data()?.policyVersion !== "directory-v1") {
-      throw new Error("Low-risk directory publication is not enabled.");
+    const grant = candidate.changeClass === "verified-content" ?
+      "allowVerifiedContentPublish" : "allowLowRiskAutoPublish";
+    if (permission.data()?.[grant] !== true || permission.data()?.policyVersion !== "directory-v1") {
+      throw new Error("This directory publication class is not enabled.");
     }
     const published = await publishDirectoryCategoryInTransaction(transaction, {
       categoryId: candidate.categoryId, payload: candidate.nextPayload,
@@ -116,6 +119,10 @@ export async function processDirectoryAutomationRequest(
       candidateSHA256, sourceURL: evidence.url,
       authority: candidate.evidence.authority,
       evidenceExcerpt: candidate.evidence.excerpt,
+      evidenceExcerpts: candidate.evidence.excerpts ?? [],
+      operation: candidate.operation ?? null,
+      review: candidate.review ?? null,
+      previousPayloadSHA256: candidate.previousPayloadSHA256,
       observedAt: candidate.evidence.observedAt, checkedAt: evidence.checkedAt,
       publishedAt: FieldValue.serverTimestamp(),
     });
@@ -126,7 +133,8 @@ export async function processDirectoryAutomationRequest(
 
 /** Cloud IAM must grant invoker only to the dedicated automation identity. */
 export const publishDirectoryAutomation = onRequest({
-  region: "europe-west3", invoker: "private", maxInstances: 2,
+  region: "europe-west3",
+  invoker: ["uac-directory-automation@ukrainiancommunity-dbd5f.iam.gserviceaccount.com"], maxInstances: 2,
   cors: false, timeoutSeconds: 45,
 }, async (request, response) => {
   response.set("Cache-Control", "no-store");

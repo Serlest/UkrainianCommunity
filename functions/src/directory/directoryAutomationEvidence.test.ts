@@ -34,3 +34,11 @@ test("rejects external redirects, absent evidence, and blocked pages", async () 
     "Unavailable", {status: 403, headers: {"content-type": "text/html"}}
   )) as typeof fetch), /HTTP 403/);
 });
+
+test("rejects a content candidate if any additional claim fragment is absent", async () => {
+  const content = {...candidate, evidence: {...candidate.evidence,
+    excerpts: ["A different supporting statement absent from this page"]}};
+  await assert.rejects(verifyOfficialDirectoryEvidence(content, (async () => new Response(
+    `<p>${candidate.evidence.excerpt}</p>`, {headers: {"content-type": "text/html"}}
+  )) as typeof fetch), /excerpt is absent/);
+});
