@@ -1,0 +1,82 @@
+- Downloading configuration data of your Firebase ANDROID app
+✔ Downloading configuration data of your Firebase ANDROID app
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Warning: SDK processing. This version only understands SDK XML versions up to 3 but an SDK XML file of version 4 was encountered. This can happen if you use versions of Android Studio and the command-line tools that were released at different times.
+> Task :app:verifyLocalOnly
+> Task :app:preBuild
+> Task :app:verifyProductionReleaseConfiguration
+> Task :app:preProductionReleaseBuild
+> Task :app:mergeProductionReleaseJniLibFolders UP-TO-DATE
+> Task :app:mergeProductionReleaseNativeLibs UP-TO-DATE
+> Task :app:stripProductionReleaseDebugSymbols UP-TO-DATE
+> Task :app:extractProductionReleaseNativeSymbolTables UP-TO-DATE
+> Task :app:mergeProductionReleaseNativeDebugMetadata NO-SOURCE
+> Task :app:checkProductionReleaseDuplicateClasses UP-TO-DATE
+> Task :app:generateProductionReleaseBuildConfig
+> Task :app:generateProductionReleaseResValues UP-TO-DATE
+> Task :app:generateProductionReleaseResources UP-TO-DATE
+> Task :app:packageProductionReleaseResources UP-TO-DATE
+> Task :app:processProductionReleaseNavigationResources UP-TO-DATE
+> Task :app:parseProductionReleaseLocalResources UP-TO-DATE
+> Task :app:generateProductionReleaseRFile UP-TO-DATE
+> Task :app:javaPreCompileProductionRelease UP-TO-DATE
+> Task :app:mergeProductionReleaseArtProfile UP-TO-DATE
+> Task :app:checkProductionReleaseAarMetadata UP-TO-DATE
+> Task :app:compileProductionReleaseNavigationResources UP-TO-DATE
+> Task :app:mapProductionReleaseSourceSetPaths UP-TO-DATE
+> Task :app:mergeProductionReleaseResources UP-TO-DATE
+> Task :app:createProductionReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksProductionRelease UP-TO-DATE
+> Task :app:processProductionReleaseMainManifest
+> Task :app:processProductionReleaseManifest
+> Task :app:extractProguardFiles UP-TO-DATE
+> Task :app:mergeProductionReleaseStartupProfile UP-TO-DATE
+> Task :app:generateProductionReleaseAssets UP-TO-DATE
+> Task :app:mergeProductionReleaseAssets UP-TO-DATE
+> Task :app:compressProductionReleaseAssets UP-TO-DATE
+> Task :app:extractProductionReleaseVersionControlInfo UP-TO-DATE
+> Task :app:collectProductionReleaseDependencies UP-TO-DATE
+> Task :app:sdkProductionReleaseDependencyData UP-TO-DATE
+> Task :app:validateSigningProductionRelease UP-TO-DATE
+> Task :app:writeProductionReleaseAppMetadata UP-TO-DATE
+> Task :app:writeProductionReleaseSigningConfigVersions UP-TO-DATE
+> Task :app:configureProductionReleaseDependencies UP-TO-DATE
+> Task :app:parseProductionReleaseIntegrityConfig UP-TO-DATE
+> Task :app:processProductionReleaseManifestForPackage
+> Task :app:processProductionReleaseResources
+
+> Task :app:compileProductionReleaseKotlin
+w: file:///Users/serlest/Developer/UAC-Android-1.2-Parity107/Android/app/src/main/java/at/uac/android/feature/browse/BrowseViewModel.kt:185:13 Condition is always 'true'.
+
+> Task :app:compileProductionReleaseJavaWithJavac
+> Task :app:mergeProductionReleaseGeneratedProguardFiles UP-TO-DATE
+> Task :app:processProductionReleaseJavaRes UP-TO-DATE
+> Task :app:mergeProductionReleaseJavaResource UP-TO-DATE
+> Task :app:generateProductionReleaseLintVitalReportModel
+> Task :app:expandProductionReleaseArtProfileWildcards
+> Task :app:produceProductionReleaseComposeMapping
+> Task :app:reportProductionReleaseComposeMappingErrors
+> Task :app:lintVitalAnalyzeProductionRelease
+> Task :app:minifyProductionReleaseWithR8
+> Task :app:lintVitalReportProductionRelease
+> Task :app:lintVitalProductionRelease
+> Task :app:mergeProductionReleaseComposeMapping
+> Task :app:buildProductionReleasePreBundle
+> Task :app:compileProductionReleaseArtProfile
+> Task :app:convertShrunkResourcesToBinaryProductionRelease
+> Task :app:optimizeProductionReleaseResources
+> Task :app:packageProductionRelease
+> Task :app:createProductionReleaseApkListingFileRedirect
+> Task :app:assembleProductionRelease
+> Task :app:packageProductionReleaseBundle
+> Task :app:signProductionReleaseBundle
+> Task :app:produceProductionReleaseBundleIdeListingFile
+> Task :app:createProductionReleaseBundleListingFileRedirect UP-TO-DATE
+> Task :app:bundleProductionRelease
+
+BUILD SUCCESSFUL in 2m
+62 actionable tasks: 28 executed, 34 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.1.0/userguide/configuration_cache_enabling.html
+Production AAB SHA-256: 1fa120533d23b1a4db8b4e2979e957848806a2ec80e5cb8527f5e5ec1b437b03
+Production APK SHA-256: 1f4ae464f190c3a65738fbcf211939109bc654c9390082fb83d4cca14023c8f2

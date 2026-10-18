@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-10-18T07:31:18.832421+00:00",
+  "versionCode": 112,
+  "sourceCommit": "2f3a19dbaad44e39e944e9c706a14ee63ad84866",
+  "aabSha256": "1fa120533d23b1a4db8b4e2979e957848806a2ec80e5cb8527f5e5ec1b437b03",
+  "apkSha256": "1f4ae464f190c3a65738fbcf211939109bc654c9390082fb83d4cca14023c8f2",
+  "internal": {
+    "trackId": "4701365572505552935",
+    "releaseId": "13",
+    "status": "Für interne Tester verfügbar",
+    "publishedLabel": "18. Okt. 09:29",
+    "link": "https://play.google.com/apps/internaltest/4701365572505552935"
+  },
+  "closedAlpha": {
+    "trackId": "4699611501751770574",
+    "releaseId": "4",
+    "status": "Wird überprüft.",
+    "submissionConfirmed": "1 Änderung wurde zur Überprüfung gesendet",
+    "prechecksInProgress": true,
+    "availableToSelectedTesters": false,
+    "currentlyAvailableVersionCode": 108,
+    "previous111Status": "Durch einen anderen Release ersetzt",
+    "reviewRestartedForLatest112": true,
+    "managedPublishing": false,
+    "rolloutPercent": 100,
+    "link": "https://play.google.com/apps/testing/at.serlest.ukrainiancommunity"
+  },
+  "playErrors": 0,
+  "playWarnings": [
+    "Native code debug symbols not uploaded; ReTrace mapping attached"
+  ],
+  "unsupportedDeviceLoss": 0,
+  "testerAudiencesChanged": false,
+  "publicProductionChanged": false,
+  "productionWrites": 0,
+  "verificationMethod": "Observed Google Play Console UI"
+}
