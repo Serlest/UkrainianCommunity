@@ -11,32 +11,65 @@ struct DirectoryRecentAdditionsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(text("Останнє додане", "Zuletzt hinzugefügt"))
-                .font(.title2.bold()).foregroundStyle(AppTheme.textPrimary)
-            ForEach(isPreview ? store.previewItems : store.items) { item in
-                NavigationLink(value: DirectoryRoute.recent(item)) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(item.title.value(for: language)).font(.headline)
-                            .foregroundStyle(AppTheme.textPrimary)
-                        Text([item.categoryTitle.value(for: language),
-                              item.kind == .section ? item.topicTitle.value(for: language) : nil]
-                            .compactMap { $0 }.joined(separator: " · "))
-                            .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
-                        HStack {
-                            Text(item.federalState.flatMap(AustrianFederalState.init(rawValue:))?.displayName
-                                 ?? text("Уся Австрія", "Ganz Österreich"))
-                            if let date = item.date {
-                                Text(date, format: .dateTime.day().month().year())
+            if isPreview {
+                Text(text("Останнє додане", "Zuletzt hinzugefügt"))
+                    .font(.title2.bold()).foregroundStyle(AppTheme.textPrimary)
+                if !store.previewItems.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(store.previewItems) { item in
+                            NavigationLink(value: DirectoryRoute.recent(item)) {
+                                HStack(spacing: 12) {
+                                    Text(item.title.value(for: language))
+                                        .font(.body)
+                                        .foregroundStyle(AppTheme.textPrimary)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(AppTheme.textSecondary)
+                                        .accessibilityHidden(true)
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(minHeight: 48)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(item.title.value(for: language))
+                            .accessibilityIdentifier("directory.recent.\(item.id)")
+                            if item.id != store.previewItems.last?.id {
+                                Divider().padding(.horizontal, 16)
                             }
                         }
-                        .font(.caption).foregroundStyle(AppTheme.textSecondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .background(AppTheme.surfacePrimary, in: RoundedRectangle(cornerRadius: 20))
+                    .appGlassCard(material: .regularMaterial)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("directory.recent.\(item.id)")
+            } else {
+                ForEach(store.items) { item in
+                    NavigationLink(value: DirectoryRoute.recent(item)) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(item.title.value(for: language)).font(.headline)
+                                .foregroundStyle(AppTheme.textPrimary)
+                            Text([item.categoryTitle.value(for: language),
+                                  item.kind == .section ? item.topicTitle.value(for: language) : nil]
+                                .compactMap { $0 }.joined(separator: " · "))
+                                .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                            HStack {
+                                Text(item.federalState.flatMap(AustrianFederalState.init(rawValue:))?.displayName
+                                     ?? text("Уся Австрія", "Ganz Österreich"))
+                                if let date = item.date {
+                                    Text(date, format: .dateTime.day().month().year())
+                                }
+                            }
+                            .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .appGlassCard()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("directory.recent.\(item.id)")
+                }
             }
             if store.isLoading {
                 ProgressView().frame(maxWidth: .infinity)
@@ -63,6 +96,7 @@ struct DirectoryRecentAdditionsView: View {
                 .accessibilityIdentifier("directory.recent.showAll")
             }
         }
+        .tint(AppTheme.accentPrimaryForeground)
     }
 }
 

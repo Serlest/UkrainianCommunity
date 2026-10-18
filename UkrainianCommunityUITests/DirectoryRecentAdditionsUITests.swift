@@ -2,6 +2,40 @@ import XCTest
 
 final class DirectoryRecentAdditionsUITests: XCTestCase {
     @MainActor
+    func testCompactPreviewLanguageAppearanceAndLargeText() {
+        continueAfterFailure = false
+        for (language, appearance, largeText) in [("uk", "light", false), ("uk", "dark", false),
+                                                   ("de", "light", false), ("de", "dark", true)] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing", "-selectedAppAppearance", appearance]
+            if largeText {
+                app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+            }
+            app.launchEnvironment = ["UITestResetUserSettings": "1", "UITestAppLanguage": language,
+                "UITestForceOwnerSession": "1", "UITestDirectoryRecentPreview": "1",
+                "UITestDirectoryRecentEmpty": "0", "UITestResetAppLock": "1"]
+            app.launch()
+            let tab = app.tabBars.buttons.element(boundBy: 3)
+            XCTAssertTrue(tab.waitForExistence(timeout: 15)); tab.tap()
+            let first = app.buttons["directory.recent.preview-1"]
+            let more = app.buttons["directory.recent.showAll"]
+            for _ in 0..<10 {
+                if more.exists && more.isHittable { break }
+                app.swipeUp()
+            }
+            XCTAssertTrue(first.exists)
+            XCTAssertGreaterThanOrEqual(first.frame.height, 44)
+            XCTAssertFalse(app.buttons["directory.recent.preview-4"].exists)
+            XCTAssertTrue(more.isHittable)
+            XCTAssertGreaterThan(first.label.count, 40, "VoiceOver keeps the complete long title")
+            let screenshot = XCTAttachment(screenshot: app.screenshot())
+            screenshot.name = "compact-\(language)-\(appearance)-\(largeText ? "AXXXL" : "standard")"
+            screenshot.lifetime = .keepAlways; add(screenshot)
+            app.terminate()
+        }
+    }
+
+    @MainActor
     func testPreviewShowsThreeThenOpensFullFeedAndReturns() {
         continueAfterFailure = false
         let app = XCUIApplication()

@@ -75,7 +75,8 @@ final class DirectoryRecentAdditionsStore: ObservableObject {
                     .init(id: "preview-\(index)", kind: .topic, categoryID: "registration",
                           topicID: "housing-types", sectionID: nil, federalState: nil,
                           publishedAt: "2026-10-17T12:00:00.000Z", revision: 1,
-                          title: .init(ukrainian: "Матеріал \(index)", german: "Beitrag \(index)"),
+                          title: .init(ukrainian: index == 1 ? "Як зареєструвати місце проживання після переїзду в іншу федеральну землю" : "Матеріал \(index)",
+                                       german: index == 1 ? "Den Wohnsitz nach einem Umzug in ein anderes Bundesland anmelden" : "Beitrag \(index)"),
                           topicTitle: .init(ukrainian: "Житло", german: "Wohnen"),
                           categoryTitle: .init(ukrainian: "Реєстрація", german: "Registrierung"))
                 }, nextCursor: nil, hasMore: false)
