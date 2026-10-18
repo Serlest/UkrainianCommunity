@@ -1,0 +1,30 @@
+{
+  "checkedAt": "2026-10-18T09:41:03.930243+02:00",
+  "readOnly": true,
+  "verificationMethod": "Freshly loaded Google Play Console track pages",
+  "internal": {
+    "versionCode": 112,
+    "releaseId": "13",
+    "status": "Für interne Tester verfügbar",
+    "currentlyAvailableVersionCode": 112,
+    "publishedLabel": "18. Okt. 09:29"
+  },
+  "closedAlpha": {
+    "versionCode": 112,
+    "releaseId": "4",
+    "status": "Wird überprüft.",
+    "currentlyAvailableVersionCode": 108,
+    "available112": false,
+    "previous111Status": "Durch einen anderen Release ersetzt"
+  },
+  "git": {
+    "head": "f12733802ae83452d355467915ba80cc1ea33566",
+    "fetchCompleted": true,
+    "ahead": 0,
+    "behind": 0,
+    "workingTreeCleanBeforeEvidence": true
+  },
+  "releaseMutations": 0,
+  "audienceMutations": 0,
+  "automationCreated": false
+}
