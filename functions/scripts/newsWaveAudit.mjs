@@ -47,7 +47,8 @@ export async function auditNewsWave(root, runId) {
         Object.values(state.candidateDecisions ?? {}).find((value) =>
           value.runId === runId && entry.contentId && value.contentId === entry.contentId);
       return {...retained, ...entry, runId,
-        readbackReceiptPath: retained?.contentId === entry.contentId ? retained.readbackReceiptPath : undefined};
+        readbackReceiptPath: retained?.contentId && retained.contentId === entry.contentId
+          ? retained.readbackReceiptPath : undefined};
     }) : retainedDecisions;
     const publications = [];
     for (const decision of decisions.filter((value) => value.outcome === "published")) {

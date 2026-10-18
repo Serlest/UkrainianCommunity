@@ -47,3 +47,23 @@ test('wave audit falls back to immutable closed-report counts after scope checkp
   assert.equal(scope.publications.length,2);assert.ok(scope.publications.every(x=>x.verifiedReceipt));
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit reports a published closed-report entry without a content ID instead of crashing',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-missing-id-'));const run='news-2026-10-18T19';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  await writeFile(join(root,`reports/${run}/niederoesterreich.json`),JSON.stringify({
+   status:'partial',candidateDecisionsComplete:true,decidedCandidates:1,published:1,rejected:0,
+   openedArticles:[{url:'https://example.at/story',outcome:'published'}],
+  }));
+  await writeFile(join(root,'scopes/niederoesterreich.json'),JSON.stringify({candidateDecisions:{}}));
+  const result=await auditNewsWave(root,run);
+  const scope=result.scopes.find(x=>x.scope==='niederoesterreich');
+  assert.equal(scope.publications.length,1);
+  assert.equal(scope.publications[0].contentId,undefined);
+  assert.equal(scope.publications[0].verifiedReceipt,false);
+  assert.match(scope.publications[0].error,/path|argument/i);
+ }finally{await rm(root,{recursive:true,force:true});}
+});
