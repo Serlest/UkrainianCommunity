@@ -1,0 +1,35 @@
+i  emulators: Starting emulators: firestore
+i  emulators: Detected demo project ID "demo-uac-directory-sync-3247979", emulated services will use a demo configuration and attempts to access non-emulated services for this project will fail.
+i  firestore: Firestore Emulator logging to firestore-debug.log
+✔  firestore: Firestore Emulator was started in standard edition.
+✔  firestore: Firestore Emulator UI websocket is running on 9151.
+i  Running script: node --test --test-concurrency=1 functions/lib/directory/directoryAutomationBridge.integration.test.js
+TAP version 13
+# (node:63873) MetadataLookupWarning: received unexpected error = All promises were rejected code = UNKNOWN
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: restricted bridge preserves the editor transaction, history and idempotency
+ok 1 - restricted bridge preserves the editor transaction, history and idempotency
+  ---
+  duration_ms: 5875.699958
+  type: 'test'
+  ...
+# Subtest: reviewed content creates one feed event, corrections do not bump it, and new topics do not duplicate sections
+ok 2 - reviewed content creates one feed event, corrections do not bump it, and new topics do not duplicate sections
+  ---
+  duration_ms: 166.515541
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6542.428791
+✔  Script exited successfully (code 0)
+i  emulators: Shutting down emulators.
+i  firestore: Stopping Firestore Emulator
+i  hub: Stopping emulator hub
+i  logging: Stopping Logging Emulator

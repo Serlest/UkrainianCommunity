@@ -1,0 +1,102 @@
+{
+  "checkedAt": "2026-10-18T09:52:20.508060+02:00",
+  "immutableSourceCommit": "32479797fde9e10424ab65225126215abe2b2f44",
+  "androidBaseCommit": "3bde432c0ce7d6f129b726c98d025ce1dc419de6",
+  "paths": [
+    {
+      "path": "Docs/DirectoryOfficialAutomationPlan-2026-10-17.md",
+      "sourceBlob": "cdffaceeaadf1938decfe64cf838b1b1ba2c7948",
+      "localBlob": "cdffaceeaadf1938decfe64cf838b1b1ba2c7948",
+      "exactMatch": true
+    },
+    {
+      "path": "Docs/DirectoryPublicationOperations-2026-10-18.md",
+      "sourceBlob": "c7437f181ca4b20f79a889ac124fb068076947c7",
+      "localBlob": "c7437f181ca4b20f79a889ac124fb068076947c7",
+      "exactMatch": true
+    },
+    {
+      "path": "functions/.env.ukrainiancommunity-dbd5f",
+      "sourceBlob": "3c03b9a0816be4a3d8c5c5a881aa10f9529a3a12",
+      "localBlob": "bc2faddbdd8c9ac863142aa18fb78311f26375a9",
+      "exactMatch": false
+    },
+    {
+      "path": "functions/scripts/publishDirectoryAutomation.mjs",
+      "sourceBlob": "aff3a3683ca60d35ac318eeab1cb5f139d5804c5",
+      "localBlob": "aff3a3683ca60d35ac318eeab1cb5f139d5804c5",
+      "exactMatch": true
+    },
+    {
+      "path": "functions/src/directory/directoryAutomationBridge.integration.test.ts",
+      "sourceBlob": "023ac63d0e8bbac0a24488d267d4fdb78d111beb",
+      "localBlob": "023ac63d0e8bbac0a24488d267d4fdb78d111beb",
+      "exactMatch": true
+    },
+    {
+      "path": "functions/src/directory/directoryAutomationBridge.ts",
+      "sourceBlob": "a176153f341f35c3a8a65313506c83e1d83aedfd",
+      "localBlob": "a176153f341f35c3a8a65313506c83e1d83aedfd",
+      "exactMatch": true
+    },
+    {
+      "path": "functions/src/directory/directoryAutomationContent.ts",
+      "sourceBlob": "caec6f1598d7acc1adc5d4a7427b0ba1c897bede",
+      "localBlob": "caec6f1598d7acc1adc5d4a7427b0ba1c897bede",
+      "exactMatch": true
+    },
+    {
+      "path": "functions/src/directory/directoryAutomationEvidence.test.ts",
+      "sourceBlob": "97600f6c54ac08f6a8ec021ad3309b8f983b8edb",
+      "localBlob": "97600f6c54ac08f6a8ec021ad3309b8f983b8edb",
+      "exactMatch": true
+    },
+    {
+      "path": "functions/src/directory/directoryAutomationEvidence.ts",
+      "sourceBlob": "e53dc3c47e1a222b12d873d60a6bc4bb89d7299d",
+      "localBlob": "e53dc3c47e1a222b12d873d60a6bc4bb89d7299d",
+      "exactMatch": true
+    },
+    {
+      "path": "functions/src/directory/directoryAutomationPolicy.ts",
+      "sourceBlob": "583023247d3d2c27b3f3731b348b349a4d737979",
+      "localBlob": "583023247d3d2c27b3f3731b348b349a4d737979",
+      "exactMatch": true
+    }
+  ],
+  "directoryModuleFilesCompared": 16,
+  "directoryModuleFilesEqual": 16,
+  "configuration": {
+    "onlyAddedLine": "DIRECTORY_AUTOMATION_PUBLISH_ENABLED=true",
+    "otherExistingEnvLinesPreserved": true,
+    "androidPasskeyOriginsPreserved": true,
+    "fullMainEnvNotCopied": true,
+    "envBlobIntentionallyDifferent": true
+  },
+  "checks": {
+    "typescriptBuild": "PASS",
+    "unitTests": 13,
+    "unitPassed": 13,
+    "unitSkipped": 0,
+    "bridgeIntegrationTests": 2,
+    "bridgeIntegrationPassed": 2,
+    "integrationSkipped": 0,
+    "integrationProject": "demo-uac-directory-sync-3247979",
+    "integrationHost": "127.0.0.1:8996",
+    "helperSyntaxCheck": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "runtimeActions": {
+    "deploy": false,
+    "productionDatabaseWrite": false,
+    "mobileBuild": false,
+    "releaseChange": false,
+    "audienceChange": false
+  },
+  "currentMobileBuildUnchanged": 112,
+  "notes": [
+    "Both bridge integration tests exercised exact revision, history, idempotency, class gate, reviewed content and recent-feed event behavior in isolated emulator.",
+    "Existing main production activation is not repeated by this source sync.",
+    "All 16 Directory module files match source commit, not only six changed paths."
+  ]
+}

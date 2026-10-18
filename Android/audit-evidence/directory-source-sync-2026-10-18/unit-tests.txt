@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: checks direct official HTML content before accepting an evidence receipt
+ok 1 - checks direct official HTML content before accepting an evidence receipt
+  ---
+  duration_ms: 30.660458
+  type: 'test'
+  ...
+# Subtest: rejects external redirects, absent evidence, and blocked pages
+ok 2 - rejects external redirects, absent evidence, and blocked pages
+  ---
+  duration_ms: 0.9455
+  type: 'test'
+  ...
+# Subtest: rejects a content candidate if any additional claim fragment is absent
+ok 3 - rejects a content candidate if any additional claim fragment is absent
+  ---
+  duration_ms: 0.261625
+  type: 'test'
+  ...
+# Subtest: accepts one official contact change on the exact published revision
+ok 4 - accepts one official contact change on the exact published revision
+  ---
+  duration_ms: 2.923417
+  type: 'test'
+  ...
+# Subtest: rejects any sibling content change hidden in a whole-category replacement
+ok 5 - rejects any sibling content change hidden in a whole-category replacement
+  ---
+  duration_ms: 0.374542
+  type: 'test'
+  ...
+# Subtest: rejects stale revision, stale hash, and unsupported official source
+ok 6 - rejects stale revision, stale hash, and unsupported official source
+  ---
+  duration_ms: 0.1385
+  type: 'test'
+  ...
+# Subtest: rejects a claimed single change when the declared value differs from payload
+ok 7 - rejects a claimed single change when the declared value differs from payload
+  ---
+  duration_ms: 0.169916
+  type: 'test'
+  ...
+# Subtest: requires the replacement link to be the directly checked official page
+ok 8 - requires the replacement link to be the directly checked official page
+  ---
+  duration_ms: 0.238542
+  type: 'test'
+  ...
+# Subtest: holds a candidate whose official observation is old
+ok 9 - holds a candidate whose official observation is old
+  ---
+  duration_ms: 0.167167
+  type: 'test'
+  ...
+# Subtest: new topic produces one event and initial sections never become duplicate additions
+ok 10 - new topic produces one event and initial sections never become duplicate additions
+  ---
+  duration_ms: 1.869625
+  type: 'test'
+  ...
+# Subtest: initial deployment suppresses existing snapshots; new sections retain destination and region
+ok 11 - initial deployment suppresses existing snapshots; new sections retain destination and region
+  ---
+  duration_ms: 0.338042
+  type: 'test'
+  ...
+# Subtest: hidden new content appears once on first publication, never again after remove/reinsert
+ok 12 - hidden new content appears once on first publication, never again after remove/reinsert
+  ---
+  duration_ms: 0.237917
+  type: 'test'
+  ...
+# Subtest: bundled IDs cannot become recent merely by first server publication
+ok 13 - bundled IDs cannot become recent merely by first server publication
+  ---
+  duration_ms: 0.107708
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 284.962083
