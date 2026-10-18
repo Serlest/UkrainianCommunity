@@ -562,6 +562,7 @@ struct DetailHeaderActionButton: View {
         .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
         .disabled(isDisabled)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("detail.header.action.\(systemImage)")
     }
 }
 
@@ -596,22 +597,13 @@ struct DetailHeaderShareButton: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .appGlassIconControl()
         .accessibilityLabel(AppStrings.Action.share)
+        .accessibilityIdentifier("detail.header.share")
     }
 
     private var shareLabel: some View {
-        Image(systemName: "square.and.arrow.up")
-            .font(AppTheme.glassIconButtonIconFont)
-            .foregroundStyle(AppTheme.accentPrimaryForeground)
-            .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
-            .appGlassSurface(
-                cornerRadius: AppTheme.glassIconButtonCornerRadius,
-                isInteractive: true,
-                fallbackRole: .control,
-                shadowRadius: AppTheme.glassIconButtonShadowRadius,
-                shadowY: AppTheme.glassIconButtonShadowY
-            )
+        AppGlassIconLabel(systemImage: "square.and.arrow.up")
     }
 }
 
@@ -701,20 +693,10 @@ struct DetailHeaderActionsMenu: View {
                     }
                 }
             } label: {
-                Image(systemName: "ellipsis")
-                    .font(AppTheme.glassIconButtonIconFont)
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .frame(width: AppTheme.detailActionButtonSize, height: AppTheme.detailActionButtonSize)
-                    .appGlassSurface(
-                        cornerRadius: AppTheme.glassIconButtonCornerRadius,
-                        isInteractive: true,
-                        fallbackRole: .control,
-                        shadowRadius: AppTheme.glassIconButtonShadowRadius,
-                        shadowY: AppTheme.glassIconButtonShadowY
-                    )
+                AppGlassIconLabel(systemImage: "ellipsis")
             }
             .menuStyle(.button)
-            .buttonStyle(.plain)
+            .appGlassIconControl()
             .accessibilityLabel(AppStrings.Safety.moreActions)
             .accessibilityIdentifier("detail.header.more-actions")
         }

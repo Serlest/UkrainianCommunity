@@ -35,28 +35,23 @@ struct AppNotificationBellButton: View {
     var body: some View {
         if configuration.isVisible {
             Button(action: action ?? configuration.action) {
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "bell")
-                        .font(.title3.weight(.medium))
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
-                        .frame(width: 40, height: 40)
-
-                    if configuration.unreadCount > 0 {
-                        Text(badgeText)
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                            .frame(minWidth: 18, minHeight: 18)
-                            .padding(.horizontal, configuration.unreadCount > 9 ? 4 : 0)
-                            .background(AppTheme.accentDestructive, in: Capsule())
-                            .offset(x: -2, y: 2)
-                    }
+                AppGlassIconLabel(systemImage: "bell")
+            }
+            .appGlassIconControl()
+            .overlay(alignment: .topTrailing) {
+                if configuration.unreadCount > 0 {
+                    Text(badgeText)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .frame(minWidth: 18, minHeight: 18)
+                        .padding(.horizontal, configuration.unreadCount > 9 ? 4 : 0)
+                        .background(AppTheme.accentDestructive, in: Capsule())
+                        .offset(x: 2, y: -2)
+                        .allowsHitTesting(false)
                 }
             }
-            .buttonStyle(.plain)
-            .frame(width: 44, height: 44)
-            .contentShape(Rectangle())
             .accessibilityLabel(AppStrings.Home.notifications)
             .accessibilityIdentifier("notificationInbox.bell")
             .accessibilityValue(AppStrings.NotificationInbox.unreadCount(configuration.unreadCount))

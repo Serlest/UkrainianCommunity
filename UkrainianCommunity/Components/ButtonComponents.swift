@@ -73,13 +73,73 @@ struct AppSearchClearButton: View {
     }
 }
 
+/// One rendering path for header Button, ShareLink and Menu controls.
+/// Keeping the native/fallback decision here prevents individual controls from
+/// silently drawing an opaque fallback next to native glass.
+private struct AppGlassIconControlStyle: ViewModifier {
+    let role: ButtonRole?
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        Group {
+            if #available(iOS 26.0, *), !reduceTransparency {
+                content
+                    .buttonStyle(.glass)
+                    .buttonBorderShape(.roundedRectangle(radius: AppTheme.glassIconButtonCornerRadius))
+                    .controlSize(.regular)
+            } else {
+                content.buttonStyle(AppGlassFallbackIconStyle(role: role))
+            }
+        }
+        .frame(minWidth: AppTheme.minimumInteractiveTarget, minHeight: AppTheme.minimumInteractiveTarget)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct AppGlassFallbackIconStyle: ButtonStyle {
+    let role: ButtonRole?
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
+            .appGlassSurface(
+                cornerRadius: AppTheme.glassIconButtonCornerRadius,
+                tint: role == .destructive ? AppTheme.accentDestructive.opacity(0.18) : nil,
+                isInteractive: false,
+                usesNativeGlass: false,
+                fallbackMaterial: AppTheme.glassIconButtonMaterial,
+                fallbackRole: .control,
+                shadowRadius: AppTheme.glassIconButtonShadowRadius,
+                shadowY: AppTheme.glassIconButtonShadowY
+            )
+    }
+}
+
+extension View {
+    func appGlassIconControl(role: ButtonRole? = nil) -> some View {
+        modifier(AppGlassIconControlStyle(role: role))
+    }
+}
+
+struct AppGlassIconLabel: View {
+    let systemImage: String
+    var role: ButtonRole? = nil
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(AppTheme.glassIconButtonIconFont)
+            .frame(width: 20, height: 20)
+            .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
+    }
+}
+
 struct AppGlassIconButton: View {
     let systemImage: String
     let accessibilityLabel: String
     let role: ButtonRole?
     let isPlaceholder: Bool
     let action: () -> Void
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     init(
         systemImage: String,
@@ -96,54 +156,14 @@ struct AppGlassIconButton: View {
     }
 
     var body: some View {
-        Group {
-            if #available(iOS 26.0, *), !reduceTransparency {
-                nativeGlassButton
-            } else {
-                fallbackButton
-            }
+        Button(role: role, action: action) {
+            AppGlassIconLabel(systemImage: systemImage, role: role)
         }
-        .contentShape(Rectangle())
+        .appGlassIconControl(role: role)
         .disabled(isPlaceholder)
         .opacity(isPlaceholder ? AppTheme.glassIconButtonPlaceholderOpacity : 1)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(isPlaceholder ? AppStrings.Action.comingSoon : "")
-    }
-
-    @available(iOS 26.0, *)
-    private var nativeGlassButton: some View {
-        Button(role: role, action: action) {
-            Image(systemName: systemImage)
-                .font(AppTheme.glassIconButtonIconFont)
-                .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
-        }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.roundedRectangle(radius: AppTheme.glassIconButtonCornerRadius))
-        .controlSize(.regular)
-    }
-
-    private var fallbackButton: some View {
-        Button(role: role, action: action) {
-            icon
-                .appGlassSurface(
-                    cornerRadius: AppTheme.glassIconButtonCornerRadius,
-                    tint: role == .destructive ? AppTheme.accentDestructive.opacity(0.18) : nil,
-                    isInteractive: false,
-                    usesNativeGlass: false,
-                    fallbackMaterial: AppTheme.glassIconButtonMaterial,
-                    fallbackRole: .control,
-                    shadowRadius: AppTheme.glassIconButtonShadowRadius,
-                    shadowY: AppTheme.glassIconButtonShadowY
-                )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var icon: some View {
-        Image(systemName: systemImage)
-            .font(AppTheme.glassIconButtonIconFont)
-            .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
-            .frame(width: AppTheme.glassIconButtonSize, height: AppTheme.glassIconButtonSize)
     }
 }
 
