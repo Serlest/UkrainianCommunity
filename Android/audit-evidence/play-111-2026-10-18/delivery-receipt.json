@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-10-18T07:11:51.119423+00:00",
+  "versionCode": 111,
+  "versionName": "1.2",
+  "sourceCommit": "b742a67c050e8cd1c7d76cea3f8b186255045c02",
+  "aabSha256": "97d65aab22f5dfbd11091b2d3aa69d974d85f6c27857226c5f4876cc8ad12e79",
+  "internal": {
+    "trackId": "4701365572505552935",
+    "releaseId": "12",
+    "name": "1.2 (111) – Internal",
+    "status": "Für interne Tester verfügbar",
+    "publishedLabel": "18. Okt. 09:10",
+    "testerList": "UAC Internal Test",
+    "testerCount": 2,
+    "link": "https://play.google.com/apps/internaltest/4701365572505552935"
+  },
+  "closedAlpha": {
+    "trackId": "4699611501751770574",
+    "releaseId": "3",
+    "name": "1.2 (111) – Closed Alpha",
+    "status": "Änderungen, die überprüft werden",
+    "submissionConfirmed": "1 Änderung wurde zur Überprüfung gesendet",
+    "prechecksInProgress": true,
+    "availableToSelectedTesters": false,
+    "currentlyAvailableVersionCode": 108,
+    "rolloutPercent": 100,
+    "testerGroup": "uac-android-closed-test@googlegroups.com",
+    "testerGroupUnchanged": true,
+    "link": "https://play.google.com/apps/testing/at.serlest.ukrainiancommunity",
+    "authorization": "Earlier direct user request in this Android chat: deliver updated beta to common closed testing group. Root coordination confirmed direct user instructions take precedence over Internal-only preference."
+  },
+  "playErrors": 0,
+  "playWarnings": [
+    "Native code debug symbols not uploaded; ReTrace mapping attached"
+  ],
+  "unsupportedDeviceLoss": 0,
+  "productionReleaseChanged": false,
+  "testerAudiencesChanged": false,
+  "preview3AndMoreIncluded": true,
+  "welcomeHeroRemoved": true,
+  "verificationMethod": "Observed Google Play Console UI, not Publisher API"
+}

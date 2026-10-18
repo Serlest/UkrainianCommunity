@@ -14,3 +14,15 @@
 - No production database writes or backend/rules changes. This is targeted regression, not a renewed claim of all private/provider/physical-device flows.
 
 Delivery and immutable artifact hashes will be recorded after signed build and Play read-back.
+
+## Final build and delivery
+- Signed AAB/APK111 source b742a67c050e8cd1c7d76cea3f8b186255045c02, pushed. Signature/package/version checked; production backend, release App Check, Apple and passkeys flags verified.
+- AAB SHA256 97d65aab22f5dfbd11091b2d3aa69d974d85f6c27857226c5f4876cc8ad12e79.
+- APK SHA256 1f1af609122838248c7de71d4a1332f8a5ddb7f94e392ff9819e7b95bfe6a374.
+- Lint0errors/100warnings/4hints. Signed release BUILD SUCCESSFUL2m11s.
+- Play Internal release12 AVAILABLE, “Für interne Tester verfügbar”,18Oct09:10. Same selected internal list2, no audience edits.
+- Same immutable111 bundle promoted to existing Closed Alpha release3 based on direct user request to deliver beta to common closed testers. One change submitted, Console confirms review workflow with prechecks.111 is NOT yet confirmed available to this group;108 remains available.100% rollout after approval, managed publishing off.
+- Play0errors,1native-debug-symbols warning, ReTrace map attached; no supported-device loss.
+- No public production release, backend writes, or tester audience changes. Physical device/provider end-to-end validation remains separate.
+- Screenshots: play-internal.jpg (available111), play-alpha-review.jpg (submitted111).
+- Owned Android emulator and Storage emulator stopped; data preserved.
