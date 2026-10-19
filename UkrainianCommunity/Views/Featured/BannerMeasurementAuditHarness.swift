@@ -10,17 +10,17 @@ struct BannerMeasurementAuditHarness: View {
     @State private var covered = false
     @State private var regionValue = ""
     private let banner = FeaturedBanner(
-        id: "audit-banner", title: "Banner audit", actionType: .externalURL,
+        id: "audit-banner", title: AppStrings.BannerReport.title, actionType: .externalURL,
         externalURL: "https://example.com", visibleSections: [.home],
         createdAt: Date(), updatedAt: Date(), createdBy: "fixture"
     )
     var body: some View {
         ScrollView {
             VStack {
-                Picker("Region", selection: $region) {
-                    Text("Austria").tag(AustrianFederalState?.none)
-                    Text("Tirol").tag(Optional(AustrianFederalState.tirol))
-                    Text("Wien").tag(Optional(AustrianFederalState.wien))
+                Picker(AppStrings.BannerReport.byRegion, selection: $region) {
+                    Text(AppStrings.BannerReport.allAustriaRegion).tag(AustrianFederalState?.none)
+                    Text(AustrianFederalState.tirol.displayName).tag(Optional(AustrianFederalState.tirol))
+                    Text(AustrianFederalState.wien.displayName).tag(Optional(AustrianFederalState.wien))
                 }.pickerStyle(.segmented)
                 FeaturedBannerCarouselView(banners: [banner], section: .home,
                     isActive: !covered, selectedFederalState: region,
@@ -30,12 +30,12 @@ struct BannerMeasurementAuditHarness: View {
                     }
                 Text("\(impressions):\(clicks):\(regionValue)")
                     .accessibilityIdentifier("bannerAudit.counts")
-                Button("Cover") { covered = true }
+                Button(AppStrings.Action.open) { covered = true }
                 Spacer().frame(height: 1200)
             }.padding()
         }
         .featuredBannerViewport($viewport)
-        .sheet(isPresented: $covered) { Text("Covered") }
+        .sheet(isPresented: $covered) { Text(AppStrings.BannerReport.title) }
     }
 }
 
