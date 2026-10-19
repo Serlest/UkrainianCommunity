@@ -78,7 +78,7 @@ export function renderPublicLegalPage(page: PublicLegalPage): string {
   <meta name="theme-color" content="#0a66c2">
   <title>${escapeHtml(label.de)} – UkrainianCommunity</title>
   <link rel="stylesheet" href="/assets/styles.css?v=uac-20261019">
-  <script src="/assets/site.js?v=uac-20261019" defer></script>
+  <script src="/assets/site.js?v=uac-20261019-bilingual" defer></script>
 </head>
 <body data-title-de="${escapeHtml(label.de)} – UkrainianCommunity" data-title-uk="${escapeHtml(label.uk)} – UkrainianCommunity">
   <a class="skip-link" href="#main"><span data-lang="de">Zum Inhalt</span><span data-lang="uk">До вмісту</span></a>

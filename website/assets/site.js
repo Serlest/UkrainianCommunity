@@ -32,13 +32,24 @@
   const supported = new Set(["de", "uk"]);
   let stored;
   try { stored = localStorage.getItem("uc-language"); } catch (_) { /* Storage may be unavailable. */ }
-  const fromLanding = document.referrer.startsWith(location.origin + "/uac");
   const browserLanguage = (navigator.language || "de").toLowerCase().startsWith("uk") ? "uk" : "de";
-  const initial = fromLanding ? "uk" : (supported.has(stored) ? stored : browserLanguage);
+  const requested = new URLSearchParams(location.search).get("lang");
+  const initial = supported.has(requested) ? requested : (supported.has(stored) ? stored : browserLanguage);
+  const translated = [...document.querySelectorAll("[data-copy-de]")].map(element => ({element, uk:element.innerHTML, de:element.dataset.copyDe}));
+  const translatedAttributes = ["aria-label", "alt", "content"].flatMap(attribute =>
+    [...document.querySelectorAll(`[data-${attribute}-de]`)].map(element => ({element, attribute, uk:element.getAttribute(attribute), de:element.getAttribute(`data-${attribute}-de`)}))
+  );
 
   function applyLanguage(language) {
     const selected = supported.has(language) ? language : "de";
     document.documentElement.lang = selected;
+    const url = new URL(location.href);
+    if (url.searchParams.has("lang")) {
+      url.searchParams.set("lang", selected);
+      history.replaceState(null, "", url);
+    }
+    translated.forEach(({element, uk, de}) => { element.innerHTML = selected === "de" ? de : uk; });
+    translatedAttributes.forEach(({element, attribute, uk, de}) => { element.setAttribute(attribute, selected === "de" ? de : uk); });
     document.querySelectorAll("[data-language-button]").forEach((button) => {
       button.setAttribute("aria-pressed", String(button.dataset.languageButton === selected));
     });
