@@ -3,17 +3,19 @@ import FirebaseAuth
 import FirebaseFunctions
 import Foundation
 import UIKit
+import Network
 
 /// Banner measurement has its own server-confirmed consent. The content analytics
 /// setting cannot grant this purpose, and an old local choice never enables it.
 @MainActor
 final class BannerMeasurementService: ObservableObject {
     private static let privacyVersion = "2026.21"
-    private static let disclosureVersion = "2026-10-12.1"
+    private static let disclosureVersion = "2026-10-19.1"
     private static let pendingWithdrawalKey = "bannerMeasurementPendingWithdrawal.v1"
 
     @Published private(set) var isAvailable = false
     @Published private(set) var isEnabled = false
+    @Published private(set) var allowsRegionalMeasurement = false
     @Published private(set) var isBusy = false
     @Published private(set) var hasError = false
 
@@ -25,6 +27,8 @@ final class BannerMeasurementService: ObservableObject {
     private var isDelivering = false
     private var stateGeneration: UInt64 = 0
     private var retryAfter: Date?
+    private var retryTask: Task<Void, Never>?
+    private var networkMonitor: NWPathMonitor?
     private var authHandle: NSObjectProtocol?
     private var foregroundHandle: NSObjectProtocol?
 
@@ -43,10 +47,25 @@ final class BannerMeasurementService: ObservableObject {
         ) { [weak self] _ in
             Task { @MainActor [weak self] in await self?.refresh() }
         }
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] path in
+            guard path.status == .satisfied else { return }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                let withdrawing = self.principalID.map { self.pendingWithdrawal(for: $0) != nil } ?? false
+                guard self.hasError || self.outbox.first != nil || withdrawing else { return }
+                self.retryAfter = nil
+                await self.refresh()
+            }
+        }
+        monitor.start(queue: DispatchQueue(label: "uac.banner-measurement.network"))
+        networkMonitor = monitor
         Task { await refresh() }
     }
 
     deinit {
+        networkMonitor?.cancel()
+        retryTask?.cancel()
         if let authHandle { Auth.auth().removeStateDidChangeListener(authHandle) }
         if let foregroundHandle { NotificationCenter.default.removeObserver(foregroundHandle) }
     }
@@ -54,7 +73,9 @@ final class BannerMeasurementService: ObservableObject {
     func record(_ measurement: FeaturedBannerMeasurement) {
         refreshIdentityIfNeeded()
         guard isEnabled, let consentID, principalID != nil else { return }
-        outbox.append(BannerMeasurementQueuedEvent(measurement, consentID: consentID))
+        var permittedMeasurement = measurement
+        if !allowsRegionalMeasurement { permittedMeasurement.displayRegion = nil }
+        outbox.append(BannerMeasurementQueuedEvent(permittedMeasurement, consentID: consentID))
         Task { await deliverPending() }
     }
 
@@ -75,6 +96,7 @@ final class BannerMeasurementService: ObservableObject {
             let grantedID = data["consentID"] as? String
             isEnabled = isAvailable && data["enabled"] as? Bool == true && grantedID != nil
             consentID = isEnabled ? grantedID : nil
+            allowsRegionalMeasurement = isEnabled && data["allowsRegion"] as? Bool == true
             if !isEnabled { outbox.removeAll() }
             hasError = false
             retryAfter = nil
@@ -102,6 +124,7 @@ final class BannerMeasurementService: ObservableObject {
                 guard self.principalID == principalID, stateGeneration == generation else { return }
                 consentID = proposedID
                 isEnabled = true
+                allowsRegionalMeasurement = true
                 hasError = false
             }
         } else {
@@ -110,6 +133,8 @@ final class BannerMeasurementService: ObservableObject {
             // so it is retried after a connection loss or app restart.
             isEnabled = false
             self.consentID = nil
+            allowsRegionalMeasurement = false
+            retryTask?.cancel()
             outbox.removeAll()
             setPendingWithdrawal(consentID, for: principalID)
             isBusy = true
@@ -184,10 +209,31 @@ final class BannerMeasurementService: ObservableObject {
                         failure.domain == FunctionsErrorDomain
                             && failure.code == FunctionsErrorCode.resourceExhausted.rawValue ? 300 : 60
                     )
+                    scheduleRetry()
                 }
                 return
             }
         }
+    }
+
+    private func scheduleRetry() {
+        retryTask?.cancel()
+        guard let retryAfter else { return }
+        let delay = max(1, retryAfter.timeIntervalSinceNow)
+        retryTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(delay)) } catch { return }
+            guard !Task.isCancelled else { return }
+            await self?.deliverPending()
+        }
+    }
+
+    func renewRegionalConsent() async {
+        // The updated disclosure is shown before this method is called.
+        if isEnabled {
+            await setEnabled(false)
+            guard !hasError else { return }
+        }
+        await setEnabled(true)
     }
 
     private func refreshIdentityIfNeeded() {
@@ -200,6 +246,8 @@ final class BannerMeasurementService: ObservableObject {
         let current = Self.verifiedUserID()
         guard principalID != current else { return }
         stateGeneration &+= 1
+        retryTask?.cancel()
+        allowsRegionalMeasurement = false
         principalID = current
         isEnabled = false
         isAvailable = false

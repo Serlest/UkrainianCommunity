@@ -1281,11 +1281,30 @@ enum AppStrings {
     }
 
     enum BannerReport {
+        static var allBanners: String { text("banner_report.allBanners", "Усі банери") }
+        static var allRegions: String { text("banner_report.allRegions", "Усі регіони показу") }
+        static var allSections: String { text("banner_report.allSections", "Усі розділи") }
+        static var byRegion: String { text("banner_report.byRegion", "Регіон показу") }
+        static var unknownRegion: String { text("banner_report.unknownRegion", "Регіон не визначено") }
+        static var allAustriaRegion: String { text("banner_report.allAustriaRegion", "Вибрано «Вся Австрія»") }
+        static var regionExplanation: String { text("banner_report.regionExplanation", "Це вибраний фільтр під час показу, а не GPS чи місце проживання. Старі події без регіону показані окремо.") }
+        static var coverage: String { text("banner_report.coverage", "Лише користувачі, які дали окрему згоду. Це дії, а не унікальні люди чи підтверджені покупки. Порожній звіт не підтверджує відсутність переглядів.") }
+        static var exportCSV: String { text("banner_report.exportCSV", "Експортувати CSV") }
+        static var filters: String { text("banner_report.filters", "Фільтри звіту") }
+        static var dailyDetails: String { text("banner_report.dailyDetails", "Деталі за днями · UTC") }
+        static var noMatchingData: String { text("banner_report.noMatchingData", "За цими фільтрами немає вимірювань") }
+        static var resetFilters: String { text("banner_report.resetFilters", "Скинути фільтри") }
+        static var renewConsent: String { text("banner_report.renewConsent", "Переглянути згоду для регіональних звітів") }
+        static var ctrNote: String { text("banner_report.ctrNote", "CTR = натискання ÷ покази. Повторні натискання можливі, тому показник іноді перевищує 100 %.") }
+        static func regionTitle(_ region: String) -> String {
+            if region == "allAustria" { return allAustriaRegion }
+            return AustrianFederalState(rawValue: region)?.displayName ?? unknownRegion
+        }
         static var title: String { text("banner_report.title", "Банери") }
         static var subtitle: String { text("banner_report.subtitle", "Покази та натискання за банерами") }
         static var entrySubtitle: String { text("banner_report.entry_subtitle", "Покази, натискання та розділи") }
         static var emptyTitle: String { text("banner_report.empty.title", "Поки немає вимірювань") }
-        static var emptyMessage: String { text("banner_report.empty.message", "Показники з’являться після запуску добровільного вимірювання банерів і згоди користувачів.") }
+        static var emptyMessage: String { text("banner_report.empty.message", "За вибраний період немає отриманих подій. Вимірювання охоплює лише користувачів з окремою згодою та версією застосунку, що підтримує збір. Дані накопичуються після оновлення.") }
         static var overview: String { text("banner_report.overview", "Загалом") }
         static var bySection: String { text("banner_report.by_section", "За розділами") }
         static var byDay: String { text("banner_report.by_day", "За днями (UTC)") }
@@ -1873,7 +1892,7 @@ enum AppStrings {
         static var analyticsCollectionUnavailableSubtitle: String { text("profile.settings.analytics.unavailable_subtitle", "Sign in with a verified account to choose whether to contribute optional aggregate analytics. Records needed to provide account features are separate from this choice.") }
         static var bannerMeasurementTitle: String { text("profile.settings.banner_measurement.title", "Banner measurement") }
         static var bannerMeasurementSubtitle: String { text("profile.settings.banner_measurement.subtitle", "Optional measurement of visible banner impressions and taps for aggregate owner reports. Separate from content analytics; no cross-app tracking.") }
-        static var bannerMeasurementDisclosure: String { text("profile.settings.banner_measurement.disclosure", "Optional: UAC counts visible banner impressions (at least 50% for one second) and taps by banner and app section. The owner receives aggregate totals. This choice applies to your account on all signed-in devices. Account, consent and event IDs support permission checks and duplicate protection. Event receipts become due for deletion after 72 hours; consent records follow the privacy policy. No advertising ID or cross-app tracking. You can withdraw in settings.") }
+        static var bannerMeasurementDisclosure: String { text("profile.settings.banner_measurement.disclosure", "Optional: UAC counts visible banner impressions (at least 50% for one second) and taps by banner and app section. The owner receives aggregate totals. This choice applies to your account on all signed-in devices. Account, consent and event IDs support permission checks and duplicate protection. Event receipts become due for deletion after 72 hours; consent records follow the privacy policy. No advertising ID or cross-app tracking. You can withdraw in settings. The selected display-region filter (or All Austria) is also recorded; this is not GPS or proof of residence. Older events without a region remain unknown.") }
         static var bannerMeasurementAgree: String { text("profile.settings.banner_measurement.agree", "Agree to measurement") }
         static var bannerMeasurementError: String { text("profile.settings.banner_measurement.error", "The banner measurement choice could not be synchronized. Please try again when online.") }
         static var regionSettings: String { text("profile.settings.region", "Регіон / федеральна земля") }

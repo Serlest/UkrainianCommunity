@@ -305,6 +305,7 @@ struct OrganizationsListView: View {
                 sizing: .responsiveHero,
                 section: .organizations,
                 isActive: isActive && navigationPath.isEmpty,
+                selectedFederalState: selectedFederalState,
                 viewportFrame: bannerViewport,
                 onBannerTap: onFeaturedBannerTap,
                 onMeasurement: onFeaturedBannerMeasurement

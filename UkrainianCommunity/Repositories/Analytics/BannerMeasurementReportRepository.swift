@@ -50,6 +50,10 @@ struct FirestoreBannerMeasurementReportRepository: BannerMeasurementReportReposi
     }
 
     static func decode(_ data: [String: Any]) -> BannerMeasurementDailyCount? {
+        if let region = data["displayRegion"] {
+            guard let name = region as? String,
+                  name == "unknown" || name == "allAustria" || AustrianFederalState(rawValue: name) != nil else { return nil }
+        }
         guard let day = data["day"] as? String,
               day.count == 10,
               let bannerID = data["bannerID"] as? String, !bannerID.isEmpty,
@@ -59,7 +63,7 @@ struct FirestoreBannerMeasurementReportRepository: BannerMeasurementReportReposi
               let clicks = data["clicks"] as? Int, clicks >= 0 else { return nil }
         return BannerMeasurementDailyCount(
             day: day, bannerID: bannerID, section: section,
-            impressions: impressions, clicks: clicks
+            impressions: impressions, clicks: clicks, displayRegion: data["displayRegion"] as? String
         )
     }
 }

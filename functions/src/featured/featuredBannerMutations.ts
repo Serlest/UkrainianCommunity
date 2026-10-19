@@ -1,3 +1,4 @@
+import {archiveBannerMeasurementConfiguration} from "./bannerMeasurementHistory";
 import { Timestamp, type DocumentData, type Transaction } from "firebase-admin/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
 
@@ -441,6 +442,7 @@ export const saveFeaturedBanner = onCall(
 
       await assertPublishableActionTarget(transaction, input.banner);
 
+      await archiveBannerMeasurementConfiguration(transaction, snapshot, committedAt);
       transaction.set(
         reference,
         canonicalFeaturedBannerData(input.banner, actorID, committedAt, snapshot.data())
@@ -485,6 +487,7 @@ export const setFeaturedBannerActive = onCall(
         }
       }
 
+      await archiveBannerMeasurementConfiguration(transaction, snapshot, committedAt);
       transaction.update(reference, {
         isActive: input.isActive,
         updatedAt: committedAt,
@@ -509,6 +512,7 @@ export const deleteFeaturedBanner = onCall(
       if (!snapshot.exists) {
         throw new HttpsError("not-found", "Featured banner does not exist.");
       }
+      await archiveBannerMeasurementConfiguration(transaction, snapshot, committedAt);
       transaction.delete(reference);
     });
 

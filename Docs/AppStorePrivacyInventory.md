@@ -21,7 +21,7 @@ Historical candidate: 1.0.3 (69). Shared Simulator checks and a local Apple Deve
 | Contact Info — Phone Number | Optional published organization/specialist telephone number | Yes | App Functionality | `ContentModels.Organization.phone`; may be a sole trader's personal contact; not phone authentication |
 | Contact Info — Physical Address | Publisher-supplied organization/specialist or event address | Yes | App Functionality | `ContentModels.address`; may be a home business; do not hide it under Other Contact Info |
 | Contact Info — Other User Contact Info | Optional Telegram username and contact links | Yes | App Functionality | User-supplied profile or published content |
-| Location — Coarse Location | Account's manually selected Austrian federal state | Yes | App Functionality, Analytics | Registration/profile regional selection and aggregate account-region reporting; not GPS or background location |
+| Location — Coarse Location | Account's manually selected Austrian federal state; separately consented banner display-region filter | Yes | App Functionality, Analytics | Registration/profile regional selection and aggregate account-region reporting; not GPS or background location |
 | User Content — Photos or Videos | Avatar, news/event/organization images and gallery media | Yes | App Functionality | Uploaded to Firebase Storage; current client selects images |
 | User Content — Customer Support | Support requests, replies, feedback and content reports | Yes | App Functionality | Account-linked conversations and moderation/support handling; no assumption of Apple's optional-disclosure exemption |
 | User Content — Other User Content | Bios, posts, events, organizations, comments, feedback and reports | Yes | App Functionality | Firestore content and moderation flows |
@@ -99,3 +99,7 @@ The local Xcode 26.6 Release-product audit on 2026-08-24 found the app manifest 
 3. Compare the report, Firebase's current SDK disclosures, this inventory, the public privacy policy and App Store Connect answers.
 4. Resolve every mismatch before upload; do not copy this table blindly into App Store Connect.
 5. Verify the production App Check parameter is enabled only after App Attest registration and enforcement metrics have been confirmed.
+
+## Banner regional measurement (source update 2026-10-19)
+
+New disclosure `2026-10-19.1` separately explains the selected display-region filter, including All Austria. This is not GPS or verified residence. Legacy grants continue to support non-regional measurements only. The new client strips the region unless the server confirms `allowsRegion`. Owner reports and CSV contain aggregate counts, no participant lists. Internal receipt/account processing remains account-linked; this is not represented as anonymous collection. Existing manifest declares CoarseLocation linked for Analytics and AppFunctionality, and ProductInteraction linked for Analytics; no new tracking SDK/IDFA/domain or collection type is introduced. Live App Store Privacy must still be re-read before the next public binary release; this source inventory is not proof of its current setting.

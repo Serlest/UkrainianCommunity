@@ -114,6 +114,7 @@ struct DirectoryHomeView: View {
                 sizing: .responsiveHero,
                 section: .directory,
                 isActive: isActive && query.isEmpty,
+                selectedFederalState: selectedFederalState,
                 viewportFrame: bannerViewport,
                 onBannerTap: onFeaturedBannerTap,
                 onMeasurement: onFeaturedBannerMeasurement

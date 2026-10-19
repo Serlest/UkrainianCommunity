@@ -62,7 +62,7 @@ test("verified choice, banner events and owner report use real SDK and callable 
     const getConsent = httpsCallable(functions, "getBannerMeasurementConsent");
     const choose = httpsCallable(functions, "updateBannerMeasurementConsent");
     const record = httpsCallable(functions, "recordBannerMeasurement");
-    assert.deepEqual((await getConsent()).data, {available: true, enabled: false, consentID: null});
+    assert.deepEqual((await getConsent()).data, {available: true, enabled: false, consentID: null, allowsRegion: false});
 
     const consentID = randomUUID();
     const event = kind => ({id: randomUUID(), consentID, bannerID, section: "home", kind,
@@ -71,7 +71,7 @@ test("verified choice, banner events and owner report use real SDK and callable 
     assert.deepEqual((await choose({enabled: true, consentID, locale: "uk",
       privacyVersion: "2026.21", disclosureVersion: "2026-10-12.1"})).data,
     {enabled: true, consentID});
-    assert.deepEqual((await getConsent()).data, {available: true, enabled: true, consentID});
+    assert.deepEqual((await getConsent()).data, {available: true, enabled: true, consentID, allowsRegion: false});
 
     const impression = event("impression");
     const click = event("click");

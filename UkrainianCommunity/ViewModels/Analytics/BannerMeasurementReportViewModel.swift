@@ -3,6 +3,13 @@ import Foundation
 
 @MainActor
 final class BannerMeasurementReportViewModel: ObservableObject {
+    @Published var selectedBannerID: String?
+    @Published var selectedRegion: String?
+    @Published var selectedSection: FeaturedBannerVisibleSection?
+    var visibleReport: BannerMeasurementReport? {
+        report?.filtered(bannerID: selectedBannerID, region: selectedRegion, section: selectedSection)
+    }
+
     @Published var selectedPeriod: AnalyticsPeriod
     @Published private(set) var report: BannerMeasurementReport?
     @Published private(set) var bannerTitles: [String: String] = [:]
@@ -42,6 +49,9 @@ final class BannerMeasurementReportViewModel: ObservableObject {
             let loaded = try await repository.fetch(period: period)
             guard selectedPeriod == period, loadID == id else { return }
             report = loaded
+            if let selectedBannerID, !loaded.banners.contains(where: { $0.id == selectedBannerID }) { self.selectedBannerID = nil }
+            if let selectedRegion, loaded.regions[selectedRegion] == nil { self.selectedRegion = nil }
+            if let selectedSection, loaded.sections[selectedSection] == nil { self.selectedSection = nil }
             bannerTitles = [:]
             namesUnavailable = false
             if loaded.banners.isEmpty {

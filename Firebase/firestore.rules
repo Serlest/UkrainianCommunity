@@ -2602,6 +2602,10 @@ service cloud.firestore {
       allow read, create, update, delete: if false;
     }
 
+    match /bannerMeasurementHistory/{bannerId} {
+      allow read, write: if false;
+    }
+
     match /bannerMeasurementDailyShards/{shardId} {
       allow read: if isOwner();
       allow create, update, delete: if false;

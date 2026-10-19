@@ -118,6 +118,10 @@ struct ProfilePreferencesView: View {
                         .disabled(bannerMeasurementService.isBusy)
                         .accessibilityIdentifier("profile.settings.bannerMeasurementConsent")
 
+                        if bannerMeasurementService.isEnabled && !bannerMeasurementService.allowsRegionalMeasurement {
+                            Button(AppStrings.BannerReport.renewConsent) { isShowingBannerConsent = true }
+                                .buttonStyle(.bordered)
+                        }
                         if bannerMeasurementService.hasError {
                             InlineMessageCard(style: .error, message: AppStrings.Profile.bannerMeasurementError)
                             Button(AppStrings.Action.retry) {
@@ -242,7 +246,7 @@ struct ProfilePreferencesView: View {
         .accessibilityIdentifier("screen.profile.preferences")
         .sheet(isPresented: $isShowingBannerConsent) {
             BannerMeasurementConsentSheet {
-                Task { await bannerMeasurementService.setEnabled(true) }
+                Task { await bannerMeasurementService.renewRegionalConsent() }
             }
         }
         .task(id: currentUser?.id) {

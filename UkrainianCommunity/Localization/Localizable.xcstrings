@@ -1,6 +1,246 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "banner_report.allBanners": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Усі банери"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Banner"
+          }
+        }
+      }
+    },
+    "banner_report.allRegions": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Усі регіони показу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Anzeigeregionen"
+          }
+        }
+      }
+    },
+    "banner_report.allSections": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Усі розділи"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Bereiche"
+          }
+        }
+      }
+    },
+    "banner_report.byRegion": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Регіон показу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anzeigeregion"
+          }
+        }
+      }
+    },
+    "banner_report.unknownRegion": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Регіон не визначено"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Region unbekannt"
+          }
+        }
+      }
+    },
+    "banner_report.allAustriaRegion": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вибрано «Вся Австрія»"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter: Ganz Österreich"
+          }
+        }
+      }
+    },
+    "banner_report.regionExplanation": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Це вибраний фільтр під час показу, а не GPS чи місце проживання. Старі події без регіону показані окремо."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dies ist der beim Anzeigen gewählte Filter, kein GPS- oder Wohnort. Ältere Ereignisse ohne Region werden getrennt gezeigt."
+          }
+        }
+      }
+    },
+    "banner_report.coverage": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лише користувачі, які дали окрему згоду. Це дії, а не унікальні люди чи підтверджені покупки. Порожній звіт не підтверджує відсутність переглядів."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur Nutzer mit gesonderter Einwilligung. Gezählt werden Aktionen, keine eindeutigen Personen oder bestätigten Käufe. Ein leerer Bericht belegt nicht, dass es keine Aufrufe gab."
+          }
+        }
+      }
+    },
+    "banner_report.exportCSV": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Експортувати CSV"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CSV exportieren"
+          }
+        }
+      }
+    },
+    "banner_report.filters": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фільтри звіту"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Berichtsfilter"
+          }
+        }
+      }
+    },
+    "banner_report.dailyDetails": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Деталі за днями · UTC"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tagesdetails · UTC"
+          }
+        }
+      }
+    },
+    "banner_report.noMatchingData": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "За цими фільтрами немає вимірювань"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Messungen für diese Filter"
+          }
+        }
+      }
+    },
+    "banner_report.resetFilters": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скинути фільтри"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filter zurücksetzen"
+          }
+        }
+      }
+    },
+    "banner_report.renewConsent": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переглянути згоду для регіональних звітів"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einwilligung für regionale Berichte prüfen"
+          }
+        }
+      }
+    },
+    "banner_report.ctrNote": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CTR = натискання ÷ покази. Повторні натискання можливі, тому показник іноді перевищує 100 %."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CTR = Klicks ÷ Einblendungen. Wiederholte Klicks sind möglich, daher kann die Rate über 100 % liegen."
+          }
+        }
+      }
+    },
     "" : {
       "localizations" : {
         "de" : {
@@ -28605,13 +28845,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Werte erscheinen nach dem Start der freiwilligen Banner-Messung und mit Einwilligung der Nutzer."
+            "value" : "Für diesen Zeitraum sind keine Ereignisse eingegangen. Gemessen werden nur Nutzer mit gesonderter Einwilligung und einer App-Version, die die Messung unterstützt. Nach dem Update sammeln sich die Daten schrittweise."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Показники з’являться після запуску добровільного вимірювання банерів і згоди користувачів."
+            "value" : "За вибраний період немає отриманих подій. Вимірювання охоплює лише користувачів з окремою згодою та версією застосунку, що підтримує збір. Дані накопичуються після оновлення."
           }
         }
       }
@@ -38297,8 +38537,8 @@
     "profile.settings.banner_measurement.disclosure" : {
       "extractionState" : "manual",
       "localizations" : {
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Optional: UAC zählt sichtbare Banner-Einblendungen (mindestens 50 % für eine Sekunde) und Tippen je Banner und App-Bereich. Der Plattforminhaber erhält zusammengefasste Werte. Die Wahl gilt für dieses Konto auf allen angemeldeten Geräten. Konto-, Zustimmungs- und Ereignis-IDs dienen der Berechtigungsprüfung und dem Schutz vor Doppelzählung. Ereignisbelege werden nach 72 Stunden zur Löschung fällig; Zustimmungsnachweise folgen der Datenschutzerklärung. Keine Werbe-ID und kein appübergreifendes Tracking. Sie können jederzeit in den Einstellungen widerrufen." } },
-        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Необов’язково: UAC рахує видимі покази банерів (щонайменше 50 % протягом секунди) та натискання за банером і розділом застосунку. Власник платформи отримує зведені показники. Вибір діє для цього акаунта на всіх пристроях, де виконано вхід. ID акаунта, згоди та події потрібні для перевірки прав і захисту від повторного підрахунку. Квитанції подій підлягають видаленню через 72 години; докази згоди зберігаються відповідно до політики приватності. Без рекламного ID та відстеження між застосунками. Згоду можна відкликати в налаштуваннях будь-коли." } }
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Optional: UAC zählt sichtbare Banner-Einblendungen (mindestens 50 % für eine Sekunde) und Tippen je Banner und App-Bereich. Der Plattforminhaber erhält zusammengefasste Werte. Die Wahl gilt für dieses Konto auf allen angemeldeten Geräten. Konto-, Zustimmungs- und Ereignis-IDs dienen der Berechtigungsprüfung und dem Schutz vor Doppelzählung. Ereignisbelege werden nach 72 Stunden zur Löschung fällig; Zustimmungsnachweise folgen der Datenschutzerklärung. Keine Werbe-ID und kein appübergreifendes Tracking. Sie können jederzeit in den Einstellungen widerrufen. Zusätzlich wird der beim Anzeigen gewählte Bundeslandfilter (oder Ganz Österreich) gespeichert. Dies ist keine GPS-Position und kein Nachweis des Wohnorts. Alte Messungen ohne diese Angabe bleiben als unbekannt gekennzeichnet." } },
+        "uk" : { "stringUnit" : { "state" : "translated", "value" : "Необов’язково: UAC рахує видимі покази банерів (щонайменше 50 % протягом секунди) та натискання за банером і розділом застосунку. Власник платформи отримує зведені показники. Вибір діє для цього акаунта на всіх пристроях, де виконано вхід. ID акаунта, згоди та події потрібні для перевірки прав і захисту від повторного підрахунку. Квитанції подій підлягають видаленню через 72 години; докази згоди зберігаються відповідно до політики приватності. Без рекламного ID та відстеження між застосунками. Згоду можна відкликати в налаштуваннях будь-коли. Додатково зберігається вибраний під час показу фільтр федеральної землі (або Вся Австрія). Це не GPS-позиція й не підтвердження місця проживання. Старі вимірювання без цієї ознаки позначаються як невідомі." } }
       }
     },
     "profile.settings.banner_measurement.error" : {

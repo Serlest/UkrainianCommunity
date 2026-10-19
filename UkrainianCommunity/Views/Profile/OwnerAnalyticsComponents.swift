@@ -30,7 +30,10 @@ enum OwnerAnalyticsDateFormatting {
         let formatter = RelativeDateTimeFormatter()
         formatter.locale = locale
         formatter.unitsStyle = .full
-        return formatter.localizedString(for: date, relativeTo: referenceDate)
+        formatter.dateTimeStyle = .named
+        // A freshly loaded result can be milliseconds newer than TimelineView's tick.
+        let displayDate = abs(date.timeIntervalSince(referenceDate)) < 1 ? referenceDate : date
+        return formatter.localizedString(for: displayDate, relativeTo: referenceDate)
     }
 
     static func absoluteFreshnessText(

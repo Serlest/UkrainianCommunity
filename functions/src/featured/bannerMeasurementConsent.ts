@@ -11,7 +11,8 @@ import {userPermissionSnapshotFromData} from "../permissions/userPermissions";
 export const bannerConsentStateCollection = "bannerMeasurementConsentStates";
 export const bannerConsentReceiptCollection = "bannerMeasurementConsentReceipts";
 export const bannerConsentPrivacyVersion = "2026.21";
-export const bannerConsentDisclosureVersion = "2026-10-12.1";
+export const bannerConsentDisclosureVersion = "2026-10-19.1";
+const supportedDisclosureVersions = new Set(["2026-10-12.1", bannerConsentDisclosureVersion]);
 export const bannerConsentPurpose = "first-party-banner-measurement-v1";
 // 2026.22 only clarifies Apple login on Android; the separate banner disclosure
 // and purpose are unchanged. Preserve existing explicit banner choices after
@@ -44,6 +45,11 @@ const disclosure: Record<Locale, string> = {
   uk: "Необов’язково: UAC вимірює видимі покази та натискання своїх банерів за банером і розділом застосунку для зведених звітів власнику платформи. Показ зараховується після щонайменше однієї секунди за видимості не менш ніж 50 %; натискання зараховується окремо. Вибір діє для цього акаунта на всіх пристроях, де виконано вхід. Для перевірки прав і захисту від дублювання обробляються ID акаунта, згоди та події. Квитанції подій підлягають видаленню через 72 години; докази згоди зберігаються відповідно до політики приватності. Без рекламного ID, відстеження між застосунками й списків користувачів для рекламодавців. Згоду можна відкликати в налаштуваннях будь-коли.",
 };
 
+const regionalDisclosure: Record<Locale, string> = {
+  de: " Zusätzlich wird der beim Anzeigen gewählte Bundeslandfilter (oder Ganz Österreich) gespeichert. Dies ist keine GPS-Position und kein Nachweis des Wohnorts. Alte Messungen ohne diese Angabe bleiben als unbekannt gekennzeichnet.",
+  uk: " Додатково зберігається вибраний під час показу фільтр федеральної землі (або Вся Австрія). Це не GPS-позиція й не підтвердження місця проживання. Старі вимірювання без цієї ознаки позначаються як невідомі.",
+};
+
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export function bannerConsentReceiptID(uid: string, consentID: string): string {
@@ -54,7 +60,7 @@ export function isCurrentBannerConsent(data: DocumentData | undefined, consentID
   return data?.enabled === true && data?.consentID === consentID
     && data?.purpose === bannerConsentPurpose
     && data?.privacyVersion === bannerConsentPrivacyVersion
-    && data?.disclosureVersion === bannerConsentDisclosureVersion
+    && supportedDisclosureVersions.has(data?.disclosureVersion)
     && data?.withdrawnAt == null;
 }
 
@@ -67,7 +73,7 @@ export function parseBannerConsentInput(value: unknown): ConsentInput {
       || typeof data.consentID !== "string" || !uuid.test(data.consentID)
       || (data.locale !== "de" && data.locale !== "uk")
       || (data.enabled && (data.privacyVersion !== bannerConsentPrivacyVersion
-        || data.disclosureVersion !== bannerConsentDisclosureVersion))
+        || !supportedDisclosureVersions.has(data.disclosureVersion as string)))
       || (!data.enabled && (typeof data.privacyVersion !== "string"
         || typeof data.disclosureVersion !== "string"))) throw invalidInput();
   return data as unknown as ConsentInput;
@@ -92,7 +98,7 @@ export const updateBannerMeasurementConsent = onCall(
 
 export const getBannerMeasurementConsent = onCall(
   {region: "europe-west3", maxInstances: 10, enforceAppCheck: enforceBannerMeasurementAppCheck},
-  async (request): Promise<{available: boolean; enabled: boolean; consentID: string | null}> => {
+  async (request): Promise<{available: boolean; enabled: boolean; consentID: string | null; allowsRegion: boolean}> => {
     const auth = await requireVerifiedActiveUser(request);
     const [state, profile, policy] = await db.getAll(
       db.collection(bannerConsentStateCollection).doc(auth.uid),
@@ -110,7 +116,8 @@ export const getBannerMeasurementConsent = onCall(
     const enabled = available && typeof consentID === "string"
       && isCurrentBannerConsent(state.data(), consentID)
       && receipt?.get("enabled") === true && receipt.get("withdrawnAt") == null;
-    return {available, enabled, consentID: enabled ? consentID : null};
+    return {available, enabled, consentID: enabled ? consentID : null,
+      allowsRegion: enabled && state.get("disclosureVersion") === bannerConsentDisclosureVersion};
   }
 );
 
@@ -155,8 +162,9 @@ export async function persistBannerMeasurementConsent(uid: string, input: Consen
     const record = {
       userId: uid, consentID: input.consentID, purpose: bannerConsentPurpose,
       privacyVersion: bannerConsentPrivacyVersion,
-      disclosureVersion: bannerConsentDisclosureVersion,
-      disclosureLocale: input.locale, disclosureText: disclosure[input.locale],
+      disclosureVersion: input.disclosureVersion,
+      disclosureLocale: input.locale, disclosureText: input.disclosureVersion === bannerConsentDisclosureVersion
+        ? disclosure[input.locale] + regionalDisclosure[input.locale] : disclosure[input.locale],
       enabled: true, grantedAt: FieldValue.serverTimestamp(), withdrawnAt: null,
     };
     transaction.create(receiptRef, record);

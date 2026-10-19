@@ -7,6 +7,7 @@ struct BannerMeasurementQueuedEvent: Codable {
     let kind: String
     let occurredAtMilliseconds: Int64
     let consentID: String
+    var displayRegion: String? = nil
 
     init(_ measurement: FeaturedBannerMeasurement, consentID: String) {
         id = measurement.id.uuidString.lowercased()
@@ -15,11 +16,14 @@ struct BannerMeasurementQueuedEvent: Codable {
         kind = measurement.kind.rawValue
         occurredAtMilliseconds = Int64(measurement.occurredAt.timeIntervalSince1970 * 1_000)
         self.consentID = consentID
+        displayRegion = measurement.displayRegion
     }
 
     var payload: [String: Any] {
-        ["id": id, "bannerID": bannerID, "section": section, "kind": kind,
+        var result: [String: Any] = ["id": id, "bannerID": bannerID, "section": section, "kind": kind,
          "occurredAtMilliseconds": occurredAtMilliseconds, "consentID": consentID]
+        if let displayRegion { result["displayRegion"] = displayRegion }
+        return result
     }
 }
 
@@ -28,7 +32,7 @@ struct BannerMeasurementQueuedEvent: Codable {
 final class BannerMeasurementQueueStore {
     private static let queueKey = "bannerMeasurementQueue.v1"
     private static let ownerKey = "bannerMeasurementQueueOwner.v1"
-    private static let maximumCount = 100
+    private static let maximumCount = 500
     private static let maximumAge: TimeInterval = 48 * 60 * 60
 
     private let defaults: UserDefaults

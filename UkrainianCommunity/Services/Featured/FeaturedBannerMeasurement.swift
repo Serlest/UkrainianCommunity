@@ -6,28 +6,13 @@ enum FeaturedBannerMeasurementKind: String, Equatable {
     case click
 }
 
-private struct FeaturedBannerViewportPreferenceKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
-    }
-}
-
 private struct FeaturedBannerViewportModifier: ViewModifier {
     @Binding var frame: CGRect
 
     func body(content: Content) -> some View {
-        content
-            .background {
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: FeaturedBannerViewportPreferenceKey.self,
-                        value: proxy.frame(in: .global)
-                    )
-                }
-            }
-            .onPreferenceChange(FeaturedBannerViewportPreferenceKey.self) { frame = $0 }
+        content.onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .global)
+        } action: { frame = $0 }
     }
 }
 
@@ -43,6 +28,7 @@ struct FeaturedBannerMeasurement: Equatable {
     let section: FeaturedBannerVisibleSection
     let kind: FeaturedBannerMeasurementKind
     let occurredAt: Date
+    var displayRegion: String? = nil
 }
 
 /// Defines a local exposure. Delivery is deliberately separate: banner metrics
@@ -135,7 +121,7 @@ struct FeaturedBannerExposureTracker {
         return measurements
     }
 
-    private mutating func endExposure() {
+    mutating func endExposure() {
         currentBannerID = nil
         visibleSince = nil
         impressionRecordedForExposure = false

@@ -526,6 +526,7 @@ struct EventsListView: View {
                 sizing: .responsiveHero,
                 section: .events,
                 isActive: isActive && navigationPath.isEmpty,
+                selectedFederalState: selectedFederalState,
                 viewportFrame: bannerViewport,
                 onBannerTap: onFeaturedBannerTap,
                 onMeasurement: onFeaturedBannerMeasurement

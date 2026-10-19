@@ -222,17 +222,35 @@ struct UkrainianCommunityApp: App {
         }
     }
 
+    @ViewBuilder private var rootContent: some View {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestBannerAudit"] == "1" {
+            BannerMeasurementAuditHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+                  ProcessInfo.processInfo.environment["UITestBannerReportAudit"] == "1" {
+            BannerReportAuditHarness()
+        } else { standardRootContent }
+#else
+        standardRootContent
+#endif
+    }
+
+    @ViewBuilder private var standardRootContent: some View {
+        if let container {
+            AppStartupGate(container: container)
+                .environmentObject(authState)
+                .onChange(of: presenceUserID, initial: true) { _, userID in
+                    presence.update(userID: userID, isActive: scenePhase == .active)
+                }
+        } else {
+            Color.clear
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
-            if let container {
-                AppStartupGate(container: container)
-                    .environmentObject(authState)
-                    .onChange(of: presenceUserID, initial: true) { _, userID in
-                        presence.update(userID: userID, isActive: scenePhase == .active)
-                    }
-            } else {
-                Color.clear
-            }
+            rootContent
         }
         .onChange(of: scenePhase) { _, phase in
             // System overlays (including screenshots) can briefly make the

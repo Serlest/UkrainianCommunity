@@ -1,3 +1,4 @@
+import {bannerConfigurationAt, bannerMeasurementHistoryCollection} from "./bannerMeasurementHistory";
 import {createHash} from "node:crypto";
 
 import {FieldValue, Timestamp, type DocumentData} from "firebase-admin/firestore";
@@ -26,6 +27,7 @@ interface MeasurementInput {
   kind: Kind;
   occurredAtMilliseconds: number;
   consentID: string;
+  displayRegion?: string;
 }
 
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -46,8 +48,11 @@ export function bannerMeasurementEventReceiptID(uid: string, eventID: string): s
 export function parseBannerMeasurement(value: unknown, now: Date): MeasurementInput {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw invalidInput();
   const data = value as Record<string, unknown>;
-  const allowed = new Set(["id", "bannerID", "section", "kind", "occurredAtMilliseconds", "consentID"]);
+  const allowed = new Set(["id", "bannerID", "section", "kind", "occurredAtMilliseconds", "consentID", "displayRegion"]);
   if (Object.keys(data).some(key => !allowed.has(key))
+      || (data.displayRegion !== undefined && (typeof data.displayRegion !== "string"
+        || !["allAustria", "burgenland", "kaernten", "niederoesterreich", "oberoesterreich",
+          "salzburg", "steiermark", "tirol", "vorarlberg", "wien"].includes(data.displayRegion)))
       || typeof data.id !== "string" || !uuid.test(data.id)
       || typeof data.consentID !== "string" || !uuid.test(data.consentID)
       || typeof data.bannerID !== "string" || !bannerIDPattern.test(data.bannerID)
@@ -96,6 +101,7 @@ export async function persistBannerMeasurement(
       .doc(bannerConsentReceiptID(uid, input.consentID));
     const profileRef = db.doc(`users/${uid}`);
     const policyRef = db.doc("legalDocuments/privacy");
+    const historyRef = db.collection(bannerMeasurementHistoryCollection).doc(input.bannerID);
     const bannerRef = db.collection("featuredBanners").doc(input.bannerID);
     const rateRef = db.collection(bannerMeasurementRateLimitCollection).doc(analyticsRateLimitID(uid, now));
     const day = new Date(input.occurredAtMilliseconds).toISOString().slice(0, 10);
@@ -104,13 +110,13 @@ export async function persistBannerMeasurement(
     );
     const shard = parseInt(digest([input.id]).slice(0, 2), 16) % 16;
     const shardRef = db.collection(bannerMeasurementShardCollection)
-      .doc(`${day}_${digest([input.bannerID])}_${input.section}_${shard}`);
+      .doc(`${day}_${digest([input.bannerID])}_${input.section}_${input.displayRegion ?? "unknown"}_${shard}`);
     const payloadHash = digest([input.consentID, input.bannerID, input.section,
-      input.kind, String(input.occurredAtMilliseconds)]);
+      input.kind, String(input.occurredAtMilliseconds), ...(input.displayRegion ? [input.displayRegion] : [])]);
 
     return db.runTransaction(async transaction => {
-      const [receipt, consent, consentReceipt, profile, policy, banner, rate] = await transaction.getAll(
-        receiptRef, consentRef, consentReceiptRef, profileRef, policyRef, bannerRef, rateRef
+      const [receipt, consent, consentReceipt, profile, policy, banner, rate, history] = await transaction.getAll(
+        receiptRef, consentRef, consentReceiptRef, profileRef, policyRef, bannerRef, rateRef, historyRef
       );
       if (!profile.exists) throw new HttpsError("permission-denied", "Account no longer exists.");
       assertActiveUser(userPermissionSnapshotFromData(uid, profile.data()));
@@ -121,11 +127,14 @@ export async function persistBannerMeasurement(
           || consentReceipt.get("enabled") !== true || consentReceipt.get("withdrawnAt") != null) {
         throw new HttpsError("failed-precondition", "Current banner-measurement consent is required.");
       }
+      if (input.displayRegion && consent.get("disclosureVersion") !== "2026-10-19.1") {
+        throw new HttpsError("failed-precondition", "Regional measurement requires the updated disclosure.");
+      }
       if (receipt.exists) {
         if (receipt.get("payloadHash") !== payloadHash) throw invalidInput();
         return {counted: true, duplicate: true};
       }
-      if (!validBannerForMeasurement(banner.data(), input)) {
+      if (!validBannerForMeasurement(bannerConfigurationAt(banner.data(), history.data(), input.occurredAtMilliseconds), input)) {
         throw new HttpsError("not-found", "Banner is not eligible for this measurement.");
       }
       const rateState = nextAnalyticsRateLimitState(rate.get("count"), now);
@@ -136,6 +145,7 @@ export async function persistBannerMeasurement(
       });
       transaction.set(shardRef, {
         day, bannerID: input.bannerID, section: input.section, shard,
+        displayRegion: input.displayRegion ?? "unknown",
         impressions: FieldValue.increment(input.kind === "impression" ? 1 : 0),
         clicks: FieldValue.increment(input.kind === "click" ? 1 : 0),
         expiresAt: aggregateExpiresAt,

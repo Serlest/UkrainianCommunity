@@ -1,3 +1,4 @@
+import {bannerMeasurementHistoryCollection} from "../featured/bannerMeasurementHistory";
 import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {
   DocumentReference,
@@ -68,6 +69,7 @@ type CleanupSummary = {
   bannerMeasurementReceipts: number;
   bannerMeasurementRateLimits: number;
   bannerMeasurementDailyShards: number;
+  bannerMeasurementHistory: number;
   analyticsUserActivity: number;
   analyticsUserRegistrationEvents: number;
   analyticsDeletedUserEvents: number;
@@ -115,6 +117,7 @@ export const cleanupExpiredData = onSchedule(
       bannerMeasurementRateLimits: await cleanupExpiredAnalyticsGuards(
         bannerMeasurementRateLimitCollection, now,
       ),
+      bannerMeasurementHistory: await cleanupExpiredAnalyticsGuards(bannerMeasurementHistoryCollection, now),
       bannerMeasurementDailyShards: await cleanupExpiredAnalyticsGuards(
         bannerMeasurementShardCollection, now,
       ),

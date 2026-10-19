@@ -135,6 +135,7 @@ struct NewsHomeView: View {
             FeaturedBannerCarouselView(banners: featuredBannerViewModel.banners,
                                        sizing: .responsiveHero, section: .home,
                                        isActive: isActive && navigationPath.isEmpty,
+                                       selectedFederalState: selectedFederalState,
                                        viewportFrame: bannerViewport,
                                        onBannerTap: onFeaturedBannerTap,
                                        onMeasurement: onFeaturedBannerMeasurement)

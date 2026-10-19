@@ -1,14 +1,6 @@
 import SwiftUI
 import UIKit
 
-private struct FeaturedBannerFramePreferenceKey: PreferenceKey {
-    static var defaultValue: CGRect = .zero
-
-    static func reduce(value: inout CGRect, nextValue: () -> CGRect) {
-        value = nextValue()
-    }
-}
-
 enum FeaturedBannerCarouselSizing {
     case fixedHeight(CGFloat)
     case aspectRatio(CGFloat, maxHeight: CGFloat? = nil)
@@ -71,6 +63,7 @@ struct FeaturedBannerCarouselView: View {
     let sizing: FeaturedBannerCarouselSizing
     let section: FeaturedBannerVisibleSection
     let isActive: Bool
+    let selectedFederalState: AustrianFederalState?
     let viewportFrame: CGRect
     let onBannerTap: (FeaturedBanner) -> Void
     let onMeasurement: (FeaturedBannerMeasurement) -> Void
@@ -92,6 +85,7 @@ struct FeaturedBannerCarouselView: View {
         sizing: FeaturedBannerCarouselSizing = .responsiveHero,
         section: FeaturedBannerVisibleSection,
         isActive: Bool,
+        selectedFederalState: AustrianFederalState? = nil,
         viewportFrame: CGRect,
         onBannerTap: @escaping (FeaturedBanner) -> Void,
         onMeasurement: @escaping (FeaturedBannerMeasurement) -> Void = { _ in }
@@ -100,6 +94,7 @@ struct FeaturedBannerCarouselView: View {
         self.sizing = sizing
         self.section = section
         self.isActive = isActive
+        self.selectedFederalState = selectedFederalState
         self.viewportFrame = viewportFrame
         self.onBannerTap = onBannerTap
         self.onMeasurement = onMeasurement
@@ -131,7 +126,10 @@ struct FeaturedBannerCarouselView: View {
             .task(id: rotationTaskID) {
                 await runRotationLoop()
             }
+            .onDisappear { exposureTracker.endExposure() }
             .task(id: exposureTaskID) {
+                // A new region/visibility context must satisfy its own continuous dwell.
+                exposureTracker.endExposure()
                 let bannerID = selectedBannerID
                 _ = exposureTracker.observe(
                     bannerID: bannerID,
@@ -148,7 +146,7 @@ struct FeaturedBannerCarouselView: View {
                     visibleFraction: visibleFraction,
                     isEligible: true
                 ) {
-                    onMeasurement(measurement)
+                    emit(measurement)
                 }
             }
         }
@@ -170,15 +168,9 @@ struct FeaturedBannerCarouselView: View {
                 }
             }
         }
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: FeaturedBannerFramePreferenceKey.self,
-                    value: proxy.frame(in: .global)
-                )
-            }
-        }
-        .onPreferenceChange(FeaturedBannerFramePreferenceKey.self) { bannerFrame = $0 }
+        .onGeometryChange(for: CGRect.self) { proxy in
+            proxy.frame(in: .global)
+        } action: { bannerFrame = $0 }
     }
 
     private func resolvedMaximumHeight(_ configuredMaximum: CGFloat?) -> CGFloat? {
@@ -214,7 +206,7 @@ struct FeaturedBannerCarouselView: View {
                     visibleFraction: visibleFraction,
                     isEligible: canMeasureExposure
                 ) {
-                    onMeasurement(measurement)
+                    emit(measurement)
                 }
                 for measurement in exposureTracker.click(
                     bannerID: banner.id,
@@ -222,7 +214,7 @@ struct FeaturedBannerCarouselView: View {
                     visibleFraction: visibleFraction,
                     isEligible: canMeasureExposure
                 ) {
-                    onMeasurement(measurement)
+                    emit(measurement)
                 }
                 onBannerTap(banner)
             } label: {
@@ -264,8 +256,14 @@ struct FeaturedBannerCarouselView: View {
             .contains { $0.rootViewController?.presentedViewController != nil }
     }
 
+    private func emit(_ measurement: FeaturedBannerMeasurement) {
+        var event = measurement
+        event.displayRegion = selectedFederalState?.rawValue ?? "allAustria"
+        onMeasurement(event)
+    }
+
     private var exposureTaskID: String {
-        "\(selectedBannerID ?? "none"):\(canMeasureExposure)"
+        "\(selectedBannerID ?? "none"):\(canMeasureExposure):\(selectedFederalState?.rawValue ?? "allAustria")"
     }
 
     private func isActionable(_ banner: FeaturedBanner) -> Bool {
