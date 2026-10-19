@@ -62,8 +62,13 @@ export function buildNewsAmendment(before, oldRaw, newRaw, organizationId, now =
 async function requireOwnedLocks(runId, threadId, now) {
   if (!runId || !threadId) throw new Error("Live amendment requires runId and threadId.");
   const base = join(homedir(), ".codex/uac-content-automation");
-  const owners = await Promise.all(["content-work.lock", "progress-v2/news-austria-regions.json.lock"].map((p) => load(join(base, p, "owner.json"))));
-  if (!owners[0].generation || owners.some((o) => (o.runId ?? o.ownerRunId) !== runId || o.threadId !== threadId || !(Date.parse(o.expiresAt) > now.getTime())) || owners[0].generation !== owners[1].generation) throw new Error("Both unexpired news locks must belong to this run/thread/generation.");
+  const owners = await Promise.all([
+    load(join(base, "content-publish.lock/owner.json")),
+    load(join(base, "progress-v2/news-austria-regions.json.lock/owner.json")),
+  ]);
+  if (!owners[0].generation || owners.some((owner) => (owner.runId ?? owner.ownerRunId) !== runId || owner.threadId !== threadId || !(Date.parse(owner.expiresAt) > now.getTime())) || owners[0].generation !== owners[1].generation) {
+    throw new Error("Both unexpired news locks must belong to this run/thread/generation.");
+  }
 }
 
 export async function amendPublishedNews(config, {apply = false, fetchImpl = fetch, getAccessToken = contentAutomationAccessToken, checkLocks = requireOwnedLocks, now = new Date()} = {}) {
