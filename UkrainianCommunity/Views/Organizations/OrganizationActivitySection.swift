@@ -54,7 +54,7 @@ extension OrganizationDetailView {
             OrganizationPhotoGallerySection(
                 organizationId: organization.id,
                 canManage: presentationMode.allowsManagementControls
-                    && PermissionService.canModerateOrganizationContent(organization, user: authState.user),
+                    && PermissionService.canManageOrganizationPhotos(organization, user: authState.user),
                 currentUser: authState.user,
                 onPhotosChanged: { photos in
                     previewPhotos = photos

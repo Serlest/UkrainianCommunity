@@ -161,6 +161,7 @@ struct OrganizationPhotoGallerySection: View {
     @State private var replacementPickerItem: PhotosPickerItem?
     @State private var replacementTarget: OrganizationPhoto?
     @State private var isShowingReplacementPicker = false
+    @State private var photoEditorGeneration = UUID()
     @State private var pendingPhotoData: Data?
     @State private var pendingCaption = ""
     @State private var isPreparingPhoto = false
@@ -202,6 +203,10 @@ struct OrganizationPhotoGallerySection: View {
             await viewModel.refresh()
             if canManage { await viewModel.refreshReplacementAvailability() }
         }
+        .onChange(of: canManage) { _, allowed in
+            if !allowed { revokePhotoEditor() }
+        }
+        .onChange(of: currentUser?.id) { _, _ in revokePhotoEditor() }
         .onChange(of: selectedPickerItem) { _, item in
             replacementTarget = nil
             Task {
@@ -230,9 +235,11 @@ struct OrganizationPhotoGallerySection: View {
         ) {
             if let pendingDeletePhoto {
                 Button(AppStrings.Organizations.photosDelete, role: .destructive) {
+                    let generation = photoEditorGeneration
                     Task {
+                        guard canManage, photoEditorGeneration == generation else { return }
                         await viewModel.deletePhoto(pendingDeletePhoto)
-                        self.pendingDeletePhoto = nil
+                        if photoEditorGeneration == generation { self.pendingDeletePhoto = nil }
                     }
                 }
             }
@@ -439,44 +446,63 @@ struct OrganizationPhotoGallerySection: View {
     }
 
     private func prepareSelectedPhoto(_ item: PhotosPickerItem?) async {
-        guard let item else { return }
+        guard canManage, let item else { return }
+        let generation = photoEditorGeneration
         isPreparingPhoto = true
         defer {
-            isPreparingPhoto = false
-            if replacementTarget == nil { selectedPickerItem = nil }
-            replacementPickerItem = nil
+            if photoEditorGeneration == generation {
+                isPreparingPhoto = false
+                if replacementTarget == nil { selectedPickerItem = nil }
+                replacementPickerItem = nil
+            }
         }
 
         do {
-            guard let data = try await item.loadTransferable(type: Data.self) else {
+            let selection = try await item.loadTransferable(type: Data.self)
+            guard photoEditorGeneration == generation, !Task.isCancelled else { return }
+            guard let data = selection else {
                 viewModel.errorMessage = AppStrings.Organizations.photosSelectionFailed
                 return
             }
             let processedImage = try await ImageProcessingService.process(data: data, profile: .galleryPhoto)
+            guard photoEditorGeneration == generation, !Task.isCancelled else { return }
             viewModel.clearEditorFailure()
             pendingPhotoData = processedImage.data
             pendingCaption = replacementTarget?.caption ?? ""
             isShowingCaptionSheet = true
         } catch {
+            guard photoEditorGeneration == generation else { return }
             viewModel.errorMessage = AppStrings.Organizations.photosSelectionFailed
         }
     }
 
     private func uploadPendingPhoto() {
-        guard let pendingPhotoData, let currentUser else { return }
+        guard canManage, let pendingPhotoData, let currentUser else { return }
         guard !viewModel.isUploading else { return }
+        let generation = photoEditorGeneration
         let caption = pendingCaption
         let target = replacementTarget
         Task {
+            guard photoEditorGeneration == generation else { return }
             if let target {
                 await viewModel.replacePhoto(target, imageData: pendingPhotoData, caption: caption)
             } else {
                 await viewModel.addPhoto(imageData: pendingPhotoData, caption: caption, uploadedBy: currentUser.id)
             }
-            if viewModel.errorMessage == nil {
+            if photoEditorGeneration == generation, viewModel.errorMessage == nil {
                 resetPendingPhoto()
             }
         }
+    }
+
+    private func revokePhotoEditor() {
+        photoEditorGeneration = UUID()
+        isPreparingPhoto = false
+        isShowingReplacementPicker = false
+        pendingDeletePhoto = nil
+        selectedPickerItem = nil
+        replacementPickerItem = nil
+        resetPendingPhoto()
     }
 
     private func resetPendingPhoto() {
