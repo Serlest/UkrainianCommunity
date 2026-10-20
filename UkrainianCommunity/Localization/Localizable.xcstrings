@@ -36627,13 +36627,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Prüfung ausstehender Inhalte und Organisationsanfragen."
+            "value" : "Nachrichten und Termine prüfen, die auf Moderation warten."
           }
         },
         "uk" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Перевірка матеріалів і запитів організацій, що очікують розгляду."
+            "value" : "Перевірка новин і подій, що очікують модерації."
           }
         }
       }

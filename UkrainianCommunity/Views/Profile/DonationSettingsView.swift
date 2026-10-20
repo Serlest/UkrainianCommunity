@@ -234,7 +234,7 @@ enum DonationLocalization {
     }
 
     static func settingsTitle(for language: AppLanguage = LocalizationStore.language) -> String {
-        localized(uk: "Підтримка проєкту", de: "Projekt unterstützen", language: language)
+        localized(uk: "Налаштування підтримки проєкту", de: "Einstellungen zur Projektunterstützung", language: language)
     }
 
     static func settingsSubtitle(for language: AppLanguage = LocalizationStore.language) -> String {

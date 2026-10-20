@@ -1771,7 +1771,7 @@ enum AppStrings {
         static var ownerEvents: String { text("profile.owner.events", "Події") }
         static var ownerEventsSubtitle: String { text("profile.owner.events.subtitle", "Створення, редагування, реєстрації.") }
         static var ownerModeration: String { text("profile.owner.moderation", "Модерація") }
-        static var ownerModerationSubtitle: String { text("profile.owner.moderation.subtitle", "Review pending content and organization requests.") }
+        static var ownerModerationSubtitle: String { text("profile.owner.moderation.subtitle", "Review news and events awaiting moderation.") }
         static var ownerPendingReview: String { text("profile.owner.pending_review", "Очікують перевірки") }
         static var ownerPendingReviewSubtitle: String { text("profile.owner.pending_review.subtitle", "Новини, події та організації на перевірці.") }
         static var ownerUserReports: String { text("profile.owner.user_reports", "Скарги користувачів") }

@@ -108,9 +108,15 @@ struct OrganizationManagementHubView: View {
         PermissionService.canCreateOrganization(user: authorityUser)
     }
 
+    private var managementTitle: String {
+        PermissionService.isAppOwner(user: authorityUser)
+            ? DirectoryEditorText.value("Керування організаціями", "Organisationen verwalten")
+            : AppStrings.Profile.myOrganizations
+    }
+
     var body: some View {
         ProfileDestinationLayout(
-            title: AppStrings.Profile.myOrganizations,
+            title: managementTitle,
             introSubtitle: AppStrings.Profile.organizationManagementIntro
         ) {
             if canCreateOrganization {
@@ -236,7 +242,7 @@ struct OrganizationManagementHubView: View {
             // cannot confirm them, keep the snapshot for a retry but do not
             // present its owner/admin/moderator role as current authority.
             ErrorStateCard(
-                title: AppStrings.Profile.myOrganizations,
+                title: managementTitle,
                 message: organizationErrorMessage(error),
                 retryTitle: AppStrings.Action.retry
             ) {
@@ -248,7 +254,7 @@ struct OrganizationManagementHubView: View {
             }
         } else if let error = organizationsViewModel.error, allOrganizationSectionsAreEmpty {
             ErrorStateCard(
-                title: AppStrings.Profile.myOrganizations,
+                title: managementTitle,
                 message: organizationErrorMessage(error),
                 retryTitle: AppStrings.Action.retry
             ) {
@@ -261,13 +267,13 @@ struct OrganizationManagementHubView: View {
         } else if allOrganizationSectionsAreEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "building.2",
-                title: AppStrings.Profile.myOrganizations,
+                title: managementTitle,
                 message: AppStrings.Profile.noOrganizations
             )
         } else {
             if let error = authoringOrganizations.error {
                 ErrorStateCard(
-                    title: AppStrings.Profile.myOrganizations,
+                    title: managementTitle,
                     message: organizationErrorMessage(error),
                     retryTitle: AppStrings.Action.retry
                 ) {

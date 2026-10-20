@@ -848,7 +848,7 @@ struct ProfileView: View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: mode)
         platformOperationsSection
         platformAdministrationSection
-        quickActionsSection(for: user)
+        quickActionsSection(for: user, includeMyOrganizations: !PermissionService.isAppOwner(user: user))
         activityNavigationSection
         supportNavigationSection(for: user)
         preferencesNavigationSection
@@ -1108,6 +1108,17 @@ struct ProfileView: View {
                 subtitle: AppStrings.Profile.platformAdministrationSubtitle
             ) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    if PermissionService.isAppOwner(user: permissionUser) {
+                        NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
+                            ProfileModuleRow(
+                                title: DirectoryEditorText.value("Керування організаціями", "Organisationen verwalten"),
+                                subtitle: DirectoryEditorText.value("Усі організації платформи та допомога їхнім власникам.", "Alle Organisationen der Plattform und Unterstützung ihrer Eigentümer."),
+                                systemImage: "building.2"
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.organizationManagement")
+                    }
                     if canShowAdminTools {
                         NavigationLink(value: ProfileNavigationRoute.userManagement) {
                             ProfileModuleRow(
@@ -1134,7 +1145,7 @@ struct ProfileView: View {
                     if PermissionService.isAppOwner(user: permissionUser) {
                         NavigationLink(value: ProfileNavigationRoute.directoryEditors) {
                             ProfileModuleRow(
-                                title: DirectoryEditorText.value("Довідник", "Ratgeber"),
+                                title: DirectoryEditorText.value("Редактори довідника", "Ratgeberredakteure"),
                                 subtitle: DirectoryEditorText.value(
                                     "Хто може додавати й редагувати матеріали.",
                                     "Zugriff auf die Bearbeitung der Inhalte."
@@ -1194,7 +1205,7 @@ struct ProfileView: View {
     private var platformOwnerAdministrationRows: some View {
         NavigationLink(value: ProfileNavigationRoute.donationSettings) {
             ProfileModuleRow(
-                title: DonationLocalization.publicSectionTitle(for: appLanguage),
+                title: DonationLocalization.settingsTitle(for: appLanguage),
                 subtitle: DonationLocalization.platformEntrySubtitle(for: appLanguage),
                 systemImage: "heart.circle"
             )

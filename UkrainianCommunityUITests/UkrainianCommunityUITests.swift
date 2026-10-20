@@ -885,6 +885,19 @@ final class UkrainianCommunityUITests: XCTestCase {
     }
 
     @MainActor
+    func testOwnerOrganizationManagementOpensFromAdministration() throws {
+        let app = launchOwnerApp()
+        tapRootTab(rootTabs[4], in: app, timeout: 20)
+        let management = element("profile.organizationManagement", in: app)
+        scrollToElement(management, in: app, maxSwipes: 14)
+        XCTAssertTrue(management.isHittable)
+        management.tap()
+        XCTAssertTrue(app.staticTexts["Organisationen verwalten"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(element("navigation.back", in: app).exists)
+        attachScreenshot(named: "owner-organization-management", from: app)
+    }
+
+    @MainActor
     func testOwnerContentPlanningExposesFourStableSections() throws {
         let app = launchOwnerApp()
         tapRootTab(rootTabs[4], in: app, timeout: 20)
