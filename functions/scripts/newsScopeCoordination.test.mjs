@@ -13,7 +13,7 @@ import {
   routeNewsCandidate,
   mergeTodayDiscovery,
 } from "./newsScopeCoordination.mjs";
-import {extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, extractWienerLinienNewsLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -196,6 +196,19 @@ test("ÖBB live service listing excludes sharing links and fails when notices va
   ]);
   assert.throws(() => extractOEBBLiveLinks('<a href="/de">Menu</a>',
     "https://www.unsereoebb.at/de/verkehrsmeldungen"), /invalid-oebb-live-listing/);
+});
+
+test("Wiener Linien news discovery keeps only titled news cards, not navigation", () => {
+  const html = '<a href="/web/guest/news/teaser">Navigation teaser</a>' +
+    '<div class="journal-content-article" data-analytics-asset-title="Linie 12 fährt länger">' +
+    '<a href="/web/guest/news/linie-12-verlaengerung">Details</a></div>' +
+    '<div class="journal-content-article" data-analytics-asset-title="Nicht News">' +
+    '<a href="/web/guest/digitalisierung">Service</a></div>';
+  assert.deepEqual(extractWienerLinienNewsLinks(html, "https://tramwm.wienerlinien.at/web/guest/news"), [
+    {url: "https://tramwm.wienerlinien.at/web/guest/news/linie-12-verlaengerung", title: "Linie 12 fährt länger"},
+  ]);
+  assert.throws(() => extractWienerLinienNewsLinks('<a href="/web/guest/">Home</a>',
+    "https://tramwm.wienerlinien.at/web/guest/news"), /invalid-wiener-linien-news-listing/);
 });
 
 test("a source article after a long navigation menu is retained", () => {

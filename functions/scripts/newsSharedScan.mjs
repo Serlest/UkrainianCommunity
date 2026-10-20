@@ -154,6 +154,31 @@ export function extractOEBBLiveLinks(html, baseURL) {
   return links;
 }
 
+// Wiener Linien's Liferay page has a large generic link surface (menus,
+// service tools and corporate links). Only its article-card assets point to
+// /web/guest/news/<slug>; retain their asset title as a discovery lead.
+export function extractWienerLinienNewsLinks(html, baseURL) {
+  const base = new URL(baseURL);
+  const cards = [...html.matchAll(/<div\b[^>]*class=["'][^"']*journal-content-article[^"']*["'][^>]*>/gi)];
+  const links = new Map();
+  for (let index = 0; index < cards.length; index++) {
+    const start = cards[index].index;
+    const end = cards[index + 1]?.index ?? html.length;
+    const card = html.slice(start, end);
+    const title = card.match(/\bdata-analytics-asset-title=["']([^"']+)["']/i)?.[1];
+    const href = card.match(/<a\b[^>]*href=["']([^"']+)["']/i)?.[1];
+    if (!title || !href) continue;
+    let url;
+    try { url = new URL(href.replace(/&amp;/g, "&"), base); } catch { continue; }
+    if (url.protocol !== "https:" || url.hostname !== "tramwm.wienerlinien.at" ||
+        !/^\/web\/guest\/news\/[^/]+\/?$/.test(url.pathname)) continue;
+    url.hash = "";
+    links.set(url.href, {url: url.href, title: plainText(title).slice(0, 240)});
+  }
+  if (!links.size) throw new Error("invalid-wiener-linien-news-listing");
+  return [...links.values()];
+}
+
 export async function inspectNewsSource(source, fetchImpl = fetch, now = new Date()) {
   const requestedURL = requestURLForSource(source, now);
   const checkedAt = now.toISOString();
@@ -175,6 +200,8 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
     if (response.ok && !botBlocked) {
       const host = new URL(requestedURL).hostname;
       links = host === "rss.orf.at" ? extractORFFeedLinks(body) :
+        source.sourceId === "https://www.wienerlinien.at/news" ?
+          extractWienerLinienNewsLinks(body, response.url || requestedURL) :
         source.editorialMode === "discovery" ? (
           /<(?:rss|rdf:RDF|feed)\b/i.test(body) ? extractMediaFeedLinks(body, requestedURL) :
             extractMediaListingLinks(body, requestedURL, extractSourceLinks(body, response.url || requestedURL))) :
