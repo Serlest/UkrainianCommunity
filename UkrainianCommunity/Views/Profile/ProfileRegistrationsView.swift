@@ -106,7 +106,7 @@ struct MyRegistrationsView: View {
 
     var body: some View {
         ProfileDestinationLayout(
-            title: AppStrings.Profile.myRegistrations,
+            title: PermissionService.isAppOwner(user: authState.user) ? OwnerProfileText.registrations : AppStrings.Profile.myRegistrations,
             introSubtitle: AppStrings.Profile.myEventsIntro
         ) {
             filtersRow
@@ -148,7 +148,7 @@ struct MyRegistrationsView: View {
             LoadingStateCard(title: AppStrings.Profile.registrationsLoading)
         } else if let error = viewModel.error, viewModel.events.isEmpty {
             ErrorStateCard(
-                title: AppStrings.Profile.myRegistrations,
+                title: PermissionService.isAppOwner(user: authState.user) ? OwnerProfileText.registrations : AppStrings.Profile.myRegistrations,
                 message: readableRegistrationsErrorText(error),
                 retryTitle: AppStrings.Action.retry
             ) {

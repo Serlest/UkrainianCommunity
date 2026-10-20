@@ -339,9 +339,11 @@ struct ProfileView: View {
 
                             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                                 profileHeader
-                                NavigationLink(value: ProfileNavigationRoute.announcementHistory) {
-                                    ProfileModuleRow(title: AnnouncementStrings.history, subtitle: "", systemImage: "megaphone")
-                                }.buttonStyle(.plain).accessibilityIdentifier("profile.announcementHistory")
+                                if !PermissionService.isAppOwner(user: displayUser) {
+                                    NavigationLink(value: ProfileNavigationRoute.announcementHistory) {
+                                        ProfileModuleRow(title: AnnouncementStrings.history, subtitle: "", systemImage: "megaphone")
+                                    }.buttonStyle(.plain).accessibilityIdentifier("profile.announcementHistory")
+                                }
 
                                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                                     if let user = displayUser {
@@ -686,7 +688,8 @@ struct ProfileView: View {
         case .notifications:
             NotificationInboxView(
                 viewModel: notificationInboxViewModel,
-                onNotificationTap: onNotificationTap
+                onNotificationTap: onNotificationTap,
+                subtitle: PermissionService.isAppOwner(user: permissionUser) ? OwnerProfileText.notificationsSubtitle : nil
             )
         case let .myFeedback(userID):
             MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: userID)
@@ -847,10 +850,15 @@ struct ProfileView: View {
     private func platformProfileContent(for user: AppUser, mode: ProfileDashboardMode) -> some View {
         OwnerHeroCard(user: user, readableFederalState: readableFederalState, mode: mode)
         platformOperationsSection
-        platformAdministrationSection
-        quickActionsSection(for: user, includeMyOrganizations: !PermissionService.isAppOwner(user: user))
-        activityNavigationSection
-        supportNavigationSection(for: user)
+        if PermissionService.isAppOwner(user: user) {
+            ownerAdministrationSections
+            ownerPersonalSection
+        } else {
+            platformAdministrationSection
+            quickActionsSection(for: user)
+            activityNavigationSection
+            supportNavigationSection(for: user)
+        }
         preferencesNavigationSection
         sessionActionSection
     }
@@ -965,18 +973,19 @@ struct ProfileView: View {
                 }
             }
         }
+        .accessibilityIdentifier("profile.supportSection")
     }
 
     private var preferencesNavigationSection: some View {
         ProfileSectionCard(
-            title: AppStrings.Profile.settingsSection,
-            subtitle: AppStrings.Settings.preferencesSubtitle
+            title: PermissionService.isAppOwner(user: permissionUser) ? AppStrings.Profile.accountSection : AppStrings.Profile.settingsSection,
+            subtitle: PermissionService.isAppOwner(user: permissionUser) ? OwnerProfileText.accountSubtitle : AppStrings.Settings.preferencesSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
                 NavigationLink(value: ProfileNavigationRoute.notifications) {
                     ProfileModuleRow(
                         title: AppStrings.NotificationInbox.title,
-                        subtitle: AppStrings.NotificationInbox.subtitle,
+                        subtitle: PermissionService.isAppOwner(user: permissionUser) ? OwnerProfileText.notificationsSubtitle : AppStrings.NotificationInbox.subtitle,
                         systemImage: "tray.full",
                         countBadge: notificationInboxViewModel.unreadCount
                     )
@@ -1007,7 +1016,6 @@ struct ProfileView: View {
             } label: {
                 ProfileModuleRow(
                     title: AppStrings.Profile.signOut,
-                    subtitle: AppStrings.Settings.sessionSubtitle,
                     systemImage: "rectangle.portrait.and.arrow.right",
                     tint: AppTheme.accentDestructiveForeground,
                     status: .available
@@ -1056,6 +1064,7 @@ struct ProfileView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.organizationRequests")
                     }
 
                     if canShowModerationTools {
@@ -1068,12 +1077,13 @@ struct ProfileView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.moderation")
                     }
 
                     if canShowFeedbackReports {
                         NavigationLink(value: ProfileNavigationRoute.feedbackInbox) {
                             ProfileModuleRow(
-                                title: AppStrings.Profile.ownerUserFeedback,
+                                title: PermissionService.isAppOwner(user: permissionUser) ? AppStrings.Feedback.inboxTitle : AppStrings.Profile.ownerUserFeedback,
                                 subtitle: AppStrings.Feedback.inboxSubtitle,
                                 systemImage: "bubble.left.and.bubble.right",
                                 status: .available,
@@ -1081,6 +1091,7 @@ struct ProfileView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.feedbackInbox")
                     }
 
                     if ownerVisibilityViewModel.hasCountLoadFailure {
@@ -1100,145 +1111,95 @@ struct ProfileView: View {
         }
     }
 
+    private func ownerLink(_ route: ProfileNavigationRoute, title: String, subtitle: String? = nil,
+                           icon: String, id: String) -> some View {
+        NavigationLink(value: route) {
+            ProfileModuleRow(title: title, subtitle: subtitle, systemImage: icon)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(id)
+    }
+
     @ViewBuilder
-    private var platformAdministrationSection: some View {
-        if hasPlatformAdministrationItems {
-            ProfileSectionCard(
-                title: AppStrings.Profile.platformAdministrationTitle,
-                subtitle: AppStrings.Profile.platformAdministrationSubtitle
-            ) {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    if PermissionService.isAppOwner(user: permissionUser) {
-                        NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
-                            ProfileModuleRow(
-                                title: DirectoryEditorText.value("Керування організаціями", "Organisationen verwalten"),
-                                subtitle: DirectoryEditorText.value("Усі організації платформи та допомога їхнім власникам.", "Alle Organisationen der Plattform und Unterstützung ihrer Eigentümer."),
-                                systemImage: "building.2"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("profile.organizationManagement")
-                    }
-                    if canShowAdminTools {
-                        NavigationLink(value: ProfileNavigationRoute.userManagement) {
-                            ProfileModuleRow(
-                                title: AppStrings.Profile.ownerUsers,
-                                subtitle: AppStrings.Profile.ownerUsersSubtitle,
-                                systemImage: "person.3"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("profile.userManagement")
-                    }
-
-                    if canShowFeaturedBanners {
-                        NavigationLink(value: ProfileNavigationRoute.featuredBannerManagement) {
-                            ProfileModuleRow(
-                                title: AppStrings.FeaturedManagement.profileEntryTitle,
-                                subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle,
-                                systemImage: "sparkles.rectangle.stack"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    if PermissionService.isAppOwner(user: permissionUser) {
-                        NavigationLink(value: ProfileNavigationRoute.directoryEditors) {
-                            ProfileModuleRow(
-                                title: DirectoryEditorText.value("Редактори довідника", "Ratgeberredakteure"),
-                                subtitle: DirectoryEditorText.value(
-                                    "Хто може додавати й редагувати матеріали.",
-                                    "Zugriff auf die Bearbeitung der Inhalte."
-                                ),
-                                systemImage: "books.vertical"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("profile.directoryEditors")
-                        NavigationLink(value: ProfileNavigationRoute.announcementManagement) {
-                            ProfileModuleRow(title: AnnouncementStrings.title, subtitle: AnnouncementStrings.subtitle, systemImage: "megaphone")
-                        }.buttonStyle(.plain).accessibilityIdentifier("profile.announcements")
-                        NavigationLink(value: ProfileNavigationRoute.contentPlanning(draftID: nil)) {
-                            ProfileModuleRow(
-                                title: AppStrings.ContentPlanning.title,
-                                subtitle: AppStrings.ContentPlanning.profileSubtitle,
-                                systemImage: "doc.text.magnifyingglass"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("profile.contentPlanning")
-
-                        NavigationLink(value: ProfileNavigationRoute.ownerAnalytics) {
-                            ProfileModuleRow(
-                                title: AppStrings.OwnerAnalytics.title,
-                                subtitle: AppStrings.OwnerAnalytics.subtitle,
-                                systemImage: "chart.bar.xaxis"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("profile.owner.analytics")
-
-                        platformOwnerAdministrationRows
-                    } else if PermissionService.isAppAdmin(user: permissionUser) {
-                        NavigationLink(value: ProfileNavigationRoute.systemLogs(.appAdmin)) {
-                            ProfileModuleRow(
-                                title: AppStrings.SystemLogs.appAdminTitle,
-                                subtitle: AppStrings.SystemLogs.appAdminSubtitle,
-                                systemImage: "doc.text.magnifyingglass"
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
+    private var ownerAdministrationSections: some View {
+        ProfileSectionCard(title: OwnerProfileText.accessTitle) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                ownerLink(.organizationManagement, title: OwnerProfileText.organizations,
+                          subtitle: OwnerProfileText.organizationsSubtitle, icon: "building.2", id: "profile.organizationManagement")
+                ownerLink(.userManagement, title: AppStrings.Profile.ownerUsers,
+                          subtitle: AppStrings.Profile.ownerUsersSubtitle, icon: "person.3", id: "profile.userManagement")
+                ownerLink(.directoryEditors, title: OwnerProfileText.directoryEditors,
+                          subtitle: OwnerProfileText.directoryEditorsSubtitle, icon: "books.vertical", id: "profile.directoryEditors")
+            }
+        }
+        ProfileSectionCard(title: OwnerProfileText.contentTitle) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                ownerLink(.contentPlanning(draftID: nil), title: AppStrings.ContentPlanning.title,
+                          subtitle: AppStrings.ContentPlanning.profileSubtitle, icon: "calendar.badge.clock", id: "profile.contentPlanning")
+                ownerLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
+                          subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle, icon: "sparkles.rectangle.stack", id: "profile.featuredBanners")
+                ownerLink(.announcementManagement, title: AnnouncementStrings.title,
+                          subtitle: AnnouncementStrings.subtitle, icon: "megaphone", id: "profile.announcements")
+            }
+        }
+        ProfileSectionCard(title: OwnerProfileText.reportsTitle) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                ownerLink(.ownerAnalytics, title: AppStrings.OwnerAnalytics.title,
+                          subtitle: AppStrings.OwnerAnalytics.subtitle, icon: "chart.bar.xaxis", id: "profile.owner.analytics")
+                ownerLink(.systemLogs(.owner), title: AppStrings.SystemLogs.ownerTitle,
+                          subtitle: AppStrings.SystemLogs.ownerProfileSubtitle, icon: "waveform.path.ecg.rectangle", id: "profile.owner.systemLogs")
+            }
+        }
+        ProfileSectionCard(title: OwnerProfileText.platformSettingsTitle) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                ownerLink(.legalDocumentManagement, title: AppStrings.Profile.ownerLegalDocuments,
+                          subtitle: OwnerProfileText.legalDocumentsSubtitle, icon: "doc.text", id: "profile.owner.legalDocuments")
+                ownerLink(.legalEvidence, title: AppStrings.LegalEvidence.title,
+                          subtitle: AppStrings.LegalEvidence.profileSubtitle, icon: "signature", id: "profile.owner.legalEvidence")
+                ownerLink(.donationSettings, title: DonationLocalization.settingsTitle(for: appLanguage),
+                          subtitle: DonationLocalization.platformEntrySubtitle(for: appLanguage), icon: "heart.circle", id: "profile.owner.donationSettings")
             }
         }
     }
 
-    private var hasPlatformAdministrationItems: Bool {
-        canShowAdminTools
-            || canShowFeaturedBanners
-            || PermissionService.isAppOwner(user: permissionUser)
-            || PermissionService.isAppAdmin(user: permissionUser)
+    private var ownerPersonalSection: some View {
+        ProfileSectionCard(title: AppStrings.Profile.personalContentTitle) {
+            VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                ownerLink(.registrations, title: OwnerProfileText.registrations,
+                          subtitle: AppStrings.Profile.quickActionRegisteredEventsSubtitle, icon: "calendar", id: "profile.registrations")
+                ownerLink(.savedContent, title: AppStrings.Profile.savedContent,
+                          icon: "bookmark", id: "profile.savedContent")
+                ownerLink(.followedOrganizations, title: AppStrings.Profile.organizationSubscriptions,
+                          icon: "person.2", id: "profile.followedOrganizations")
+                ownerLink(.recentViews, title: AppStrings.Profile.recentlyViewed,
+                          icon: "clock.arrow.circlepath", id: "profile.recentViews")
+                ownerLink(.activityHistory, title: AppStrings.Profile.activityHistoryModule,
+                          subtitle: AppStrings.Profile.quickActionActivitySubtitle, icon: "list.bullet.rectangle", id: "profile.activityHistory")
+            }
+        }
     }
 
     @ViewBuilder
-    private var platformOwnerAdministrationRows: some View {
-        NavigationLink(value: ProfileNavigationRoute.donationSettings) {
-            ProfileModuleRow(
-                title: DonationLocalization.settingsTitle(for: appLanguage),
-                subtitle: DonationLocalization.platformEntrySubtitle(for: appLanguage),
-                systemImage: "heart.circle"
-            )
+    private var platformAdministrationSection: some View {
+        if canShowAdminTools || canShowFeaturedBanners || PermissionService.isAppAdmin(user: permissionUser) {
+            ProfileSectionCard(title: AppStrings.Profile.platformAdministrationTitle,
+                               subtitle: AppStrings.Profile.platformAdministrationSubtitle) {
+                VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                    if canShowAdminTools {
+                        ownerLink(.userManagement, title: AppStrings.Profile.ownerUsers,
+                                  subtitle: AppStrings.Profile.ownerUsersSubtitle, icon: "person.3", id: "profile.userManagement")
+                    }
+                    if canShowFeaturedBanners {
+                        ownerLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
+                                  subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle, icon: "sparkles.rectangle.stack", id: "profile.featuredBanners")
+                    }
+                    if PermissionService.isAppAdmin(user: permissionUser) {
+                        ownerLink(.systemLogs(.appAdmin), title: AppStrings.SystemLogs.appAdminTitle,
+                                  subtitle: AppStrings.SystemLogs.appAdminSubtitle, icon: "doc.text.magnifyingglass", id: "profile.admin.systemLogs")
+                    }
+                }
+            }
         }
-        .buttonStyle(.plain)
-
-        NavigationLink(value: ProfileNavigationRoute.legalDocumentManagement) {
-            ProfileModuleRow(
-                title: AppStrings.Profile.ownerLegalDocuments,
-                subtitle: AppStrings.Profile.ownerLegalDocumentsSubtitle,
-                systemImage: "doc.text.magnifyingglass"
-            )
-        }
-        .buttonStyle(.plain)
-
-        NavigationLink(value: ProfileNavigationRoute.legalEvidence) {
-            ProfileModuleRow(
-                title: AppStrings.LegalEvidence.title,
-                subtitle: AppStrings.LegalEvidence.profileSubtitle,
-                systemImage: "signature"
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("profile.owner.legalEvidence")
-
-        NavigationLink(value: ProfileNavigationRoute.systemLogs(.owner)) {
-            ProfileModuleRow(
-                title: AppStrings.SystemLogs.ownerTitle,
-                subtitle: AppStrings.SystemLogs.ownerProfileSubtitle,
-                systemImage: "waveform.path.ecg.rectangle"
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     private func communityRoleTitle(_ role: CommunityRole) -> String {

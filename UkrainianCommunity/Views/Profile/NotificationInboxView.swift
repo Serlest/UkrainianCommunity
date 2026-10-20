@@ -4,6 +4,7 @@ struct NotificationInboxView: View {
     @ObservedObject var viewModel: NotificationInboxViewModel
     let onNotificationTap: (AppNotification) -> Void
     let onClose: (() -> Void)?
+    let subtitle: String?
     @State private var isShowingClearConfirmation = false
     @State private var selectedNotification: AppNotification?
     @State private var pendingDestination: AppNotification?
@@ -11,17 +12,19 @@ struct NotificationInboxView: View {
     init(
         viewModel: NotificationInboxViewModel,
         onNotificationTap: @escaping (AppNotification) -> Void = { _ in },
-        onClose: (() -> Void)? = nil
+        onClose: (() -> Void)? = nil,
+        subtitle: String? = nil
     ) {
         self.viewModel = viewModel
         self.onNotificationTap = onNotificationTap
         self.onClose = onClose
+        self.subtitle = subtitle
     }
 
     var body: some View {
         PushedScreenShell(
             title: AppStrings.NotificationInbox.title,
-            subtitle: AppStrings.NotificationInbox.subtitle,
+            subtitle: subtitle ?? AppStrings.NotificationInbox.subtitle,
             tabBarHidden: true,
             backAction: onClose
         ) {

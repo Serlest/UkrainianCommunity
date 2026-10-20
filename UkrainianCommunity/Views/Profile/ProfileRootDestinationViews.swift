@@ -16,7 +16,7 @@ struct ProfilePreferencesView: View {
     var body: some View {
         PushedScreenShell(
             title: AppStrings.Profile.settingsSection,
-            subtitle: AppStrings.Settings.preferencesSubtitle
+            subtitle: PermissionService.isAppOwner(user: currentUser) ? OwnerProfileText.accountSubtitle : AppStrings.Settings.preferencesSubtitle
         ) {
             ProfileSectionCard(title: AppStrings.Profile.appSettings) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
@@ -221,7 +221,15 @@ struct ProfilePreferencesView: View {
                 }
             }
 
-            if currentUser != nil {
+            if PermissionService.isAppOwner(user: currentUser) {
+                ProfileSectionCard(title: OwnerProfileText.ownerAccountTitle) {
+                    Text(AppStrings.Profile.deleteAccountPlatformOwnerBlocked)
+                        .font(.subheadline)
+                        .foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("profile.owner.deletionRestriction")
+                }
+            } else if currentUser != nil {
                 ProfileSectionCard(
                     title: AppStrings.Profile.criticalActions,
                     subtitle: AppStrings.Profile.deleteAccountSubtitle

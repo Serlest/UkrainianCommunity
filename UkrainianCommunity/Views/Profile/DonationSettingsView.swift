@@ -227,8 +227,8 @@ enum DonationLocalization {
 
     static func platformEntrySubtitle(for language: AppLanguage = LocalizationStore.language) -> String {
         localized(
-            uk: "Керування текстом і зовнішнім donation URL.",
-            de: "Text und externe Spenden-URL verwalten.",
+            uk: "Тексти та посилання для підтримки проєкту.",
+            de: "Texte und Link zur Unterstützung des Projekts.",
             language: language
         )
     }

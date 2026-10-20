@@ -110,7 +110,7 @@ struct OrganizationManagementHubView: View {
 
     private var managementTitle: String {
         PermissionService.isAppOwner(user: authorityUser)
-            ? DirectoryEditorText.value("Керування організаціями", "Organisationen verwalten")
+            ? OwnerProfileText.organizations
             : AppStrings.Profile.myOrganizations
     }
 
