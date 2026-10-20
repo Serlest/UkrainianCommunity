@@ -90,6 +90,9 @@ test("a published outcome needs a matching verified production receipt before du
     assert.equal(result.published, 1);
     const state = JSON.parse(await readFile(join(root, "scopes", "wien.json"), "utf8"));
     assert.equal(state.candidateDecisions["https://example.gv.at/story"].contentId, "news-1");
+    assert.equal(state.candidateDecisions["https://example.gv.at/story"].manifestPath, manifestFile);
+    assert.equal(state.candidateDecisions["https://example.gv.at/story"].editorialReceiptPath, editorialPath);
+    assert.equal(state.candidateDecisions["https://example.gv.at/story"].readbackReceiptPath, readbackPath);
     await assert.rejects(() => recordNewsCandidateBatch(root, publication, {write: true}), /already closed/);
   } finally {
     await rm(directory, {recursive: true, force: true});

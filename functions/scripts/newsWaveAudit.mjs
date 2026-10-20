@@ -55,6 +55,7 @@ export async function auditNewsWave(root, runId) {
       try {
         const receipt = JSON.parse(await readFile(decision.readbackReceiptPath, "utf8"));
         publications.push({contentId: decision.contentId, receiptPath: decision.readbackReceiptPath,
+          manifestPath: decision.manifestPath, editorialReceiptPath: decision.editorialReceiptPath,
           verifiedReceipt: receipt.allVerified === true && receipt.contentId === decision.contentId});
       } catch (error) { publications.push({contentId: decision.contentId, verifiedReceipt: false, error: error.message}); }
     }

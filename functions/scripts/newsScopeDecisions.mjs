@@ -78,6 +78,8 @@ export function closeNewsCandidateBatch(registry, state, input, decidedAt = new 
       outcome: decision.outcome,
       ...(decision.outcome === "rejected" ? {reason: decision.reason} : {
         contentId: decision.contentId,
+        manifestPath: decision.manifestPath,
+        editorialReceiptPath: decision.editorialReceiptPath,
         readbackReceiptPath: decision.productionReadback.receiptPath,
       }),
       sourceIds: [...candidate.sourceIds], runId, decidedAt,
