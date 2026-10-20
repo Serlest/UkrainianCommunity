@@ -285,3 +285,5 @@ export {cleanupOrganizationPhotoLifecycle} from "./organizations/organizationPho
 export {manageAnnouncements, getAnnouncements, acknowledgeAnnouncement, registerAnnouncementDevice, deliverAnnouncements, cleanupAnnouncements} from "./announcements/service";
 
 export {translateContent} from "./translation/service";
+
+export {maintainAdminUserSearchIndex} from "./users/adminUserSearchIndex";

@@ -1,6 +1,7 @@
 import {type Readable} from "node:stream";
 import {FieldPath, type DocumentData, type Firestore, type QueryDocumentSnapshot} from "firebase-admin/firestore";
 
+export const adminSearchControlPath = "internalSearchState/usersV1";
 export const adminSearchIndexField = "adminSearchGramsV1";
 export const adminSearchOverflow = "!overflow-v1";
 export const adminSearchFields = [
@@ -37,21 +38,27 @@ export function adminSearchAnchor(normalizedQuery: string): string | null {
   return tokens[0]?.slice(0, 3).join("") || null;
 }
 
-/** No environment/client flag can activate this unfinished rollout.
- * Current call sites use the default incomplete gate and ALWAYS read all users.
- * Supplying ready belongs to a future coordinated atomic-writer/Rules package.
+/** Explicit overrides are for verification/migration. Production uses a private,
+ * server-owned switch, enabled only after backfill and indexed-query verification.
+ * The source document remains authoritative; Firestore events refresh derived data.
  */
-export type AdminSearchReadiness = "incomplete" | "ready";
+export type AdminSearchReadiness = "incomplete" | "ready" | "automatic";
+
+export async function isAdminSearchReady(firestore: Firestore): Promise<boolean> {
+  const state = await firestore.doc(adminSearchControlPath).get();
+  return state.get("ready") === true && state.get("version") === 1;
+}
 
 export async function* adminSearchDocuments(
   firestore: Firestore,
   normalizedQuery: string,
   fields: readonly string[],
-  readiness: AdminSearchReadiness = "incomplete"
+  readiness: AdminSearchReadiness = "automatic"
 ): AsyncGenerator<QueryDocumentSnapshot> {
   const anchor = adminSearchAnchor(normalizedQuery);
   const users = firestore.collection("users");
-  const candidates = readiness === "ready" && anchor
+  const ready = readiness === "automatic" ? await isAdminSearchReady(firestore) : readiness === "ready";
+  const candidates = ready && anchor
     ? users.where(adminSearchIndexField, "array-contains-any", [anchor, adminSearchOverflow])
     : users;
   // One streaming query preserves full coverage; no first-page cut-off, offsets,
