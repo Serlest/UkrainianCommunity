@@ -2401,6 +2401,12 @@ enum AppStrings {
         static var emailNotVerified: String { text("user_management.security.email_not_verified", "Email не підтверджено") }
         static var lastSignIn: String { text("user_management.security.last_sign_in", "Остання авторизація") }
         static var neverSignedIn: String { text("user_management.security.never_signed_in", "Вхід ще не зафіксовано") }
+        static var unrestrictedStatus: String { text("user_management.status.unrestricted", "Без обмежень") }
+        static var presenceStale: String { text("user_management.presence.stale", "Немає свіжого підтвердження. Показано останні отримані дані.") }
+        static var presenceAccuracy: String { text("user_management.presence.accuracy", "Після втрати зв’язку статус «Онлайн» може зберігатися до 3 хвилин.") }
+        static var securityTitle: String { text("user_management.security.title", "Вхід і безпека") }
+        static var securitySubtitle: String { text("user_management.security.subtitle", "Остання авторизація — це вхід в акаунт, а не остання активність у застосунку.") }
+        static var securityLoadHint: String { text("user_management.security.load_hint", "Дані безпеки ще не завантажено.") }
         static var presenceTitle: String { text("user_management.presence.title", "Активність у застосунку") }
         static var presenceOnline: String { text("user_management.presence.online", "Онлайн") }
         static var presenceLastSeen: String { text("user_management.presence.last_seen", "Востаннє в мережі") }

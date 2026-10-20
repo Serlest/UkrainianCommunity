@@ -15,6 +15,12 @@ private struct PendingOwnershipTransfer: Identifiable {
 }
 
 struct UserDetailView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var profileIdentityLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+    }
     let userID: String
     let fallbackUser: AppUser
     @ObservedObject var viewModel: UserManagementViewModel
@@ -144,7 +150,7 @@ struct UserDetailView: View {
 
     private var availableAccountActions: [UserAdminAction] {
         let regularActions: [UserAdminAction]
-        switch user.blockState {
+        switch user.managedAccountState {
         case .active:
             regularActions = [.warningIssued, .suspended, .banned, .deactivated]
         case .warned:
@@ -228,6 +234,7 @@ struct UserDetailView: View {
                         InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
                             .accessibilityIdentifier("user.detail.refreshError")
                     }
+                    securityCard
                     platformRolesCard
                     organizationRolesCard
                     roleAssignmentCard
@@ -272,7 +279,7 @@ struct UserDetailView: View {
     private var profileCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                HStack(alignment: .top, spacing: 12) {
+                profileIdentityLayout {
                     UserManagementAvatar(user: user, size: 64)
 
                     VStack(alignment: .leading, spacing: 6) {
@@ -287,7 +294,7 @@ struct UserDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
 
                         UserManagementBadgeFlowLayout(spacing: 6) {
-                            UserManagementStatusBadge(title: user.blockState.title, tint: statusTint)
+                            UserManagementStatusBadge(title: user.managedAccountState == .active ? AppStrings.UserManagement.unrestrictedStatus : user.managedAccountState.title, tint: statusTint)
                             UserManagementStatusBadge(title: user.globalRole.title, tint: PermissionService.hasOwnerRoleForDisplay(user: user) ? AppTheme.accentSupportForeground : AppTheme.textSecondary)
                             if !organizationRoles.isEmpty {
                                 UserManagementStatusBadge(
@@ -302,12 +309,27 @@ struct UserDetailView: View {
 
                 Divider()
 
+                ManagedUserPresenceView(userID: userID, actor: actor,
+                    refreshToken: "\(viewModel.mutationRevision)", model: presenceModel)
+
+                Divider()
+
                 UserManagementMetadataRow(systemImage: "number", title: AppStrings.UserManagement.uid, value: user.id)
                 UserManagementMetadataRow(systemImage: "at", title: "Telegram", value: telegramDisplayText)
                 UserManagementMetadataRow(systemImage: "mappin.and.ellipse", title: AppStrings.UserManagement.cityRegion, value: locationText)
-                UserManagementMetadataRow(systemImage: "calendar", title: AppStrings.UserManagement.joined, value: LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
-                ManagedUserPresenceView(userID: userID, actor: actor,
-                    refreshToken: "\(viewModel.mutationRevision)", model: presenceModel)
+                UserManagementMetadataRow(systemImage: "calendar", title: AppStrings.UserManagement.joined, value: user.createdAt == .distantPast ? AppStrings.Common.notAvailable : LocalizationStore.dateString(from: user.createdAt, dateStyle: .medium, timeStyle: .none))
+                if let banExpiresAt = user.banExpiresAt {
+                    UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.blockedUntil, value: LocalizationStore.dateString(from: banExpiresAt, dateStyle: .medium, timeStyle: .short))
+                }
+            }
+        }
+    }
+
+    private var securityCard: some View {
+        AppEditorSectionCard {
+            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                SectionHeaderBlock(title: AppStrings.UserManagement.securityTitle,
+                                   subtitle: AppStrings.UserManagement.securitySubtitle)
                 if let securityMetadata {
                     UserManagementMetadataRow(
                         systemImage: securityMetadata.authDisabled ? "lock.fill" : "lock.open.fill",
@@ -315,23 +337,13 @@ struct UserDetailView: View {
                             "user_management.security.auth_status",
                             defaultValue: "Статус входу"
                         ),
-                        value: LocalizationStore.localizedString(
+                        value: user.managedAccountState.isRestricted ? user.managedAccountState.title : LocalizationStore.localizedString(
                             securityMetadata.authDisabled
                                 ? "user_management.security.auth_disabled"
                                 : "user_management.security.auth_enabled",
                             defaultValue: securityMetadata.authDisabled ? "Вхід вимкнено" : "Вхід дозволено"
                         ),
-                        tint: securityMetadata.authDisabled ? AppTheme.accentDestructiveForeground : nil
-                    )
-                    UserManagementMetadataRow(
-                        systemImage: "person.badge.clock",
-                        title: LocalizationStore.localizedString(
-                            "user_management.security.auth_created_at",
-                            defaultValue: "Створено в Auth"
-                        ),
-                        value: securityMetadata.creationTime.map {
-                            LocalizationStore.dateString(from: $0, dateStyle: .medium, timeStyle: .short)
-                        } ?? AppStrings.Common.notAvailable
+                        tint: (securityMetadata.authDisabled || user.managedAccountState.isRestricted) ? AppTheme.accentDestructiveForeground : nil
                     )
                     UserManagementMetadataRow(
                         systemImage: securityMetadata.emailVerified ? "checkmark.seal.fill" : "exclamationmark.triangle.fill",
@@ -362,8 +374,16 @@ struct UserDetailView: View {
                             }.joined(separator: ", ")
                     )
                 }
-                if let banExpiresAt = user.banExpiresAt {
-                    UserManagementMetadataRow(systemImage: "clock", title: AppStrings.UserManagement.blockedUntil, value: LocalizationStore.dateString(from: banExpiresAt, dateStyle: .medium, timeStyle: .short))
+                if viewModel.loadingSecurityUserIDs.contains(userID) {
+                    ProgressView().frame(maxWidth: .infinity)
+                } else if securityMetadata == nil || viewModel.failedSecurityUserIDs.contains(userID) {
+                    Text(viewModel.failedSecurityUserIDs.contains(userID)
+                         ? AppStrings.UserManagement.refreshFailed : AppStrings.UserManagement.securityLoadHint)
+                        .font(.caption)
+                        .foregroundStyle(AppTheme.textSecondary)
+                    Button(AppStrings.UserManagement.retry) {
+                        Task { await viewModel.loadSecurityMetadata(userID: userID, actor: actor) }
+                    }
                 }
             }
         }
@@ -653,7 +673,7 @@ struct UserDetailView: View {
     }
 
     private var statusTint: Color {
-        switch user.blockState {
+        switch user.managedAccountState {
         case .active:
             AppTheme.accentPrimaryForeground
         case .warned:
@@ -979,16 +999,37 @@ private struct UserAuditHistoryItem: Identifiable {
     var changeSummary: String? {
         let keys = ["accountStatus", "blockState", "globalRole", "role", "organizationId"]
         let changes = keys.compactMap { key -> String? in
-            let previous = displayValue(previousValue[key])
-            let next = displayValue(newValue[key])
+            let previous = displayValue(previousValue[key], key: key)
+            let next = displayValue(newValue[key], key: key)
             guard previous != next, previous != nil || next != nil else { return nil }
-            return "\(key): \(previous ?? "—") → \(next ?? "—")"
+            let label: String = switch key {
+            case "accountStatus", "blockState": AppStrings.Common.status
+            case "globalRole": AppStrings.UserManagement.currentPlatformRole
+            case "role": AppStrings.Profile.role
+            default: AppStrings.Organizations.title
+            }
+            return "\(label): \(previous ?? "—") → \(next ?? "—")"
         }
-        return changes.isEmpty ? nil : changes.joined(separator: " · ")
+        var seen = Set<String>()
+        let unique = changes.filter { seen.insert($0).inserted }
+        return unique.isEmpty ? nil : unique.joined(separator: " · ")
     }
 
-    private func displayValue(_ value: Any?) -> String? {
-        switch value {
+    private func displayValue(_ value: Any?, key: String) -> String? {
+        if let raw = value as? String {
+            if key == "accountStatus", let status = AccountStatus(rawValue: raw) { return status.title }
+            if key == "blockState", let status = UserBlockState(rawValue: raw) { return status.title }
+            if key == "globalRole", let role = GlobalRole(rawValue: raw) { return role.title }
+            if key == "role", let role = CommunityRole(rawValue: raw) {
+                return switch role {
+                case .communityOwner: AppStrings.Organizations.communityOwner
+                case .communityAdmin: AppStrings.Organizations.communityAdmin
+                case .communityModerator: AppStrings.Organizations.communityModerator
+                case .member: AppStrings.Organizations.communityMember
+                }
+            }
+        }
+        return switch value {
         case let string as String: string
         case let number as NSNumber: number.stringValue
         case nil: nil

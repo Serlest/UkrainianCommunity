@@ -182,7 +182,11 @@ struct ManagedUserSecurityMetadata: Equatable {
 @MainActor
 final class UserManagementViewModel: ObservableObject {
     @Published private(set) var users: [AppUser] = []
-    @Published private(set) var organizations: [ManagedOrganization] = []
+    @Published private(set) var organizations: [ManagedOrganization] = [] {
+        didSet { rebuildOrganizationRoleIndex() }
+    }
+    private var organizationRolesByUserID: [String: [UserOrganizationRole]] = [:]
+    private var detailUsersByID: [String: AppUser] = [:]
     @Published private(set) var organizationsLoaded = false
     @Published private(set) var isLoading = false
     @Published private(set) var isLoadingMore = false
@@ -190,6 +194,8 @@ final class UserManagementViewModel: ObservableObject {
     @Published private(set) var searchResults: [AppUser] = []
     @Published private(set) var searchTotalMatches = 0
     @Published private(set) var searchFailed = false
+    @Published private(set) var loadingSecurityUserIDs = Set<String>()
+    @Published private(set) var failedSecurityUserIDs = Set<String>()
     @Published private(set) var securityMetadataByUserID: [String: ManagedUserSecurityMetadata] = [:]
     @Published private(set) var canLoadMore = false
     @Published private(set) var error: AppError?
@@ -245,6 +251,7 @@ final class UserManagementViewModel: ObservableObject {
             }
             guard session == sessionRevision, revision == refreshRevision, !Task.isCancelled else { return }
             users = page.users
+            for user in page.users { detailUsersByID.removeValue(forKey: user.id) }
             lastUserDocument = page.cursor
             canLoadMore = page.hasMore
         } catch {
@@ -328,6 +335,7 @@ final class UserManagementViewModel: ObservableObject {
             }
             guard generation == searchGeneration, !Task.isCancelled else { return }
             searchResults = response.users
+            for user in response.users { detailUsersByID.removeValue(forKey: user.id) }
             searchTotalMatches = response.totalMatches
         } catch {
             guard generation == searchGeneration, !Task.isCancelled else { return }
@@ -335,6 +343,11 @@ final class UserManagementViewModel: ObservableObject {
             searchTotalMatches = 0
             searchFailed = true
         }
+    }
+
+    func prepareSearch() {
+        clearSearch()
+        isSearching = true
     }
 
     func clearSearch() {
@@ -347,7 +360,11 @@ final class UserManagementViewModel: ObservableObject {
 
     func loadSecurityMetadata(userID: String, actor: AppUser?) async {
         guard PermissionService.canManageUsers(user: actor), managementActorKey(for: actor) == loadedActorKey else { return }
+        guard !loadingSecurityUserIDs.contains(userID) else { return }
+        loadingSecurityUserIDs.insert(userID)
+        failedSecurityUserIDs.remove(userID)
         let session = sessionRevision
+        defer { if session == sessionRevision { loadingSecurityUserIDs.remove(userID) } }
         metadataRevisions[userID, default: 0] &+= 1
         let revision = metadataRevisions[userID]
         do {
@@ -356,6 +373,7 @@ final class UserManagementViewModel: ObservableObject {
             securityMetadataByUserID[userID] = metadata
         } catch {
             guard session == sessionRevision, revision == metadataRevisions[userID], !Task.isCancelled else { return }
+            failedSecurityUserIDs.insert(userID)
             self.error = .network
         }
     }
@@ -552,14 +570,23 @@ final class UserManagementViewModel: ObservableObject {
     }
 
     func user(withID id: String) -> AppUser? {
-        users.first { $0.id == id } ?? searchResults.first { $0.id == id }
+        detailUsersByID[id] ?? users.first { $0.id == id } ?? searchResults.first { $0.id == id }
     }
 
     func organizationRoles(for user: AppUser) -> [UserOrganizationRole] {
-        organizations.compactMap { organization in
-            guard let role = organization.role(for: user.id) else { return nil }
-            return UserOrganizationRole(organization: organization, role: role)
+        organizationRolesByUserID[user.id] ?? []
+    }
+
+    private func rebuildOrganizationRoleIndex() {
+        var index: [String: [UserOrganizationRole]] = [:]
+        for organization in organizations {
+            let members = Set(([organization.ownerId].compactMap { $0 }) + organization.adminIds + organization.moderatorIds)
+            for id in members {
+                guard let role = organization.role(for: id) else { continue }
+                index[id, default: []].append(UserOrganizationRole(organization: organization, role: role))
+            }
         }
+        organizationRolesByUserID = index
     }
 
     func sessionRevocationRetryAction(for userID: String) -> UserAdminAction? {
@@ -642,7 +669,7 @@ final class UserManagementViewModel: ObservableObject {
                 return
             }
             if let index = users.firstIndex(where: { $0.id == id }) { users[index] = refreshedUser }
-            else { users.append(refreshedUser) }
+            detailUsersByID[id] = refreshedUser
             if let index = searchResults.firstIndex(where: { $0.id == id }) { searchResults[index] = refreshedUser }
         } catch {
             guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
@@ -872,6 +899,33 @@ final class UserManagementViewModel: ObservableObject {
         lastUserDocument = nil
         clearSearch()
         securityMetadataByUserID = [:]
+        loadingSecurityUserIDs = []
+        failedSecurityUserIDs = []
+        detailUsersByID = [:]
     }
 
+}
+
+/// Presentation uses the more restrictive persisted field, including legacy profiles.
+/// A stale blockState must never label a banned account as active.
+extension AppUser {
+    var managedAccountState: UserBlockState {
+        let account: UserBlockState = switch accountStatus {
+        case .active: .active
+        case .warned: .warned
+        case .suspendedUntil, .temporarilyBanned: .suspendedUntil
+        case .bannedPermanent, .permanentlyBanned: .bannedPermanent
+        case .deactivated: .deactivated
+        }
+        func rank(_ state: UserBlockState) -> Int {
+            switch state {
+            case .active: 0
+            case .warned: 1
+            case .suspendedUntil, .blocked: 2
+            case .bannedPermanent: 3
+            case .deactivated: 4
+            }
+        }
+        return rank(account) > rank(blockState) ? account : blockState
+    }
 }

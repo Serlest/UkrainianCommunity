@@ -20,6 +20,11 @@ struct ManagedUserPresenceView: View {
                         ManagedUserPresenceStatus(snapshot: snapshot)
                     }
                     if model.failed {
+                        Label(AppStrings.UserManagement.presenceStale, systemImage: "wifi.exclamationmark")
+                            .font(.caption)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("user.presence.stale")
                         Button(AppStrings.UserManagement.retry) { retry += 1 }
                             .font(.caption)
                             .accessibilityHint(AppStrings.UserManagement.presenceUnavailable)
@@ -36,13 +41,19 @@ struct ManagedUserPresenceView: View {
                         value: AppStrings.UserManagement.presenceLoading
                     )
                 }
+                Text(AppStrings.UserManagement.presenceAccuracy)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("user.presence.section")
             .task(id: loadKey) {
                 guard scenePhase != .background else { model.cancelPending(); return }
                 repeat {
                     await model.refresh(userID: userID, actor: actor)
                     guard !Task.isCancelled else { return }
-                    do { try await Task.sleep(for: .seconds(30)) } catch { return }
+                    do { try await Task.sleep(for: model.pollingDelay) } catch { return }
                 } while !Task.isCancelled
             }
             .onDisappear { model.cancelPending() }

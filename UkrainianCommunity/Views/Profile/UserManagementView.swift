@@ -6,6 +6,7 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
     case warned
     case suspended
     case banned
+    case deactivated
     case organizationOwners
     case organizationAdmins
     case organizationModerators
@@ -23,13 +24,15 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
         case .all:
             AppStrings.UserManagement.filterAll
         case .active:
-            AppStrings.UserManagement.filterActive
+            AppStrings.UserManagement.unrestrictedStatus
         case .warned:
             AppStrings.UserManagement.filterWarned
         case .suspended:
             AppStrings.UserManagement.filterSuspended
         case .banned:
             AppStrings.UserManagement.filterBanned
+        case .deactivated:
+            AppStrings.Common.deactivated
         case .organizationOwners:
             AppStrings.UserManagement.filterOrganizationOwners
         case .organizationAdmins:
@@ -51,6 +54,8 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
             "clock.badge.exclamationmark"
         case .banned:
             "lock"
+        case .deactivated:
+            "person.crop.circle.badge.xmark"
         case .organizationOwners:
             "crown"
         case .organizationAdmins:
@@ -65,13 +70,15 @@ private enum UserManagementFilter: CaseIterable, Identifiable {
         case .all:
             true
         case .active:
-            user.blockState == .active && user.accountStatus == .active
+            user.managedAccountState == .active
         case .warned:
-            user.blockState == .warned || user.accountStatus == .warned
+            user.managedAccountState == .warned
         case .suspended:
-            user.blockState == .suspendedUntil || user.blockState == .blocked || user.accountStatus == .suspendedUntil || user.accountStatus == .temporarilyBanned
+            user.managedAccountState == .suspendedUntil || user.managedAccountState == .blocked
         case .banned:
-            user.blockState == .bannedPermanent || user.blockState == .deactivated || user.accountStatus == .bannedPermanent || user.accountStatus == .permanentlyBanned || user.accountStatus == .deactivated
+            user.managedAccountState == .bannedPermanent
+        case .deactivated:
+            user.managedAccountState == .deactivated
         case .organizationOwners:
             organizationRoles.contains { $0.role == .communityOwner }
         case .organizationAdmins:
@@ -150,12 +157,13 @@ struct UserManagementView: View {
         .task(id: actorLoadKey) {
             await viewModel.load(actor: actor)
         }
-        .task(id: normalizedSearch) {
+        .task(id: "\(actorLoadKey)|\(normalizedSearch)") {
             guard normalizedSearch.count >= 2 else {
                 viewModel.clearSearch()
                 return
             }
-            try? await Task.sleep(for: .milliseconds(350))
+            viewModel.prepareSearch()
+            try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
             await viewModel.search(query: normalizedSearch, actor: actor)
         }
@@ -365,7 +373,7 @@ struct UserManagementView: View {
                 if normalizedSearch.count < 2 { loadMoreButton }
             }
         } else {
-            VStack(spacing: AppTheme.feedRowSpacing) {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 if viewModel.error != nil {
                     InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
                 }

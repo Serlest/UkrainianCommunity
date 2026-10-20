@@ -261,6 +261,76 @@ struct PullToRefreshTests {
         #expect(model.snapshot == nil)
     }
 
+    @Test func presenceFailureBackoffIsBoundedAndResetsAfterRecovery() async {
+        var fail = true
+        let model = ManagedUserPresenceViewModel(load: { _ in
+            if fail { throw AppError.network }
+            return Self.presence(online: true, requestStartedAt: .now)
+        })
+        let owner = MockContentBuilder.ownerUser()
+        for delay in [60, 120, 180, 180] {
+            await model.refresh(userID: "member", actor: owner)
+            #expect(model.pollingDelay == .seconds(delay))
+        }
+        fail = false
+        await model.refresh(userID: "member", actor: owner)
+        #expect(model.pollingDelay == .seconds(30))
+        #expect(!model.failed)
+    }
+
+    @Test func detailRefreshOutsidePageDoesNotInflateListOrLoseUpdatedUser() async {
+        let fixture = ManagementReadFixture()
+        var reads = fixture.reads
+        reads.users = { _ in .init(users: [MockContentBuilder.ownerUser()], cursor: nil, hasMore: false) }
+        let model = UserManagementViewModel(reads: reads)
+        let owner = MockContentBuilder.ownerUser()
+        await model.load(actor: owner)
+        await model.refreshDetail(userID: fixture.member.id, actor: owner)
+        #expect(model.users.map(\.id) == [owner.id])
+        #expect(model.user(withID: fixture.member.id)?.id == fixture.member.id)
+        await model.refresh(actor: nil)
+        #expect(model.user(withID: fixture.member.id) == nil)
+    }
+
+    @Test func roleIndexDeduplicatesOverlappingRolesAndResetsWithAccount() async {
+        let fixture = ManagementReadFixture()
+        var reads = fixture.reads
+        let id = fixture.member.id
+        reads.organizations = { [ManagedOrganization(id: "org", name: "Organization", city: "Wien",
+            logoURL: nil, ownerId: id, adminIds: [id, id], moderatorIds: [id])] }
+        let model = UserManagementViewModel(reads: reads)
+        await model.load(actor: MockContentBuilder.ownerUser())
+        #expect(model.organizationRoles(for: fixture.member).count == 1)
+        #expect(model.organizationRoles(for: fixture.member).first?.role == .communityOwner)
+        await model.refresh(actor: nil)
+        #expect(model.organizationRoles(for: fixture.member).isEmpty)
+    }
+
+    @Test func managementStatusHonorsRestrictionsInEitherPersistedField() {
+        for state in ["bannedPermanent", "permanentlyBanned", "deactivated", "temporarilyBanned"] {
+            let user = UserManagementViewModel.makeUser(id: "member", data: ["accountStatus": state, "blockState": "active"])
+            #expect(user.managedAccountState.isRestricted)
+        }
+        let user = UserManagementViewModel.makeUser(id: "member", data: ["accountStatus": "warned", "blockState": "bannedPermanent"])
+        #expect(user.managedAccountState == .bannedPermanent)
+    }
+
+    @Test func editingSearchImmediatelyInvalidatesPreviousResults() async {
+        let fixture = ManagementReadFixture()
+        var reads = fixture.reads
+        reads.search = { _ in .init(users: [fixture.member], totalMatches: 1) }
+        let model = UserManagementViewModel(reads: reads)
+        let owner = MockContentBuilder.ownerUser()
+        await model.load(actor: owner)
+        await model.search(query: "olena", actor: owner)
+        #expect(!model.searchResults.isEmpty)
+        model.prepareSearch()
+        #expect(model.searchResults.isEmpty)
+        #expect(model.isSearching)
+        model.clearSearch()
+        #expect(!model.isSearching)
+    }
+
     private static func presence(
         online: Bool,
         requestStartedAt: ContinuousClock.Instant

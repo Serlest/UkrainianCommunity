@@ -941,6 +941,32 @@ final class UkrainianCommunityUITests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testUserManagementActivityAndSecurityReadableInBothLanguages() throws {
+        for language in ["uk", "de"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+            app.launchEnvironment["UITestResetUserSettings"] = "1"
+            app.launchEnvironment["UITestAppLanguage"] = language
+            app.launchEnvironment["UITestAppAppearance"] = language == "uk" ? "light" : "dark"
+            app.launchEnvironment["UITestForceOwnerSession"] = "1"
+            app.launchEnvironment["UITestUserRefresh"] = "1"
+            app.launch()
+            openRefreshTestUser(in: app)
+            let online = element("user.presence.section", in: app)
+            scrollToElement(online, in: app, maxSwipes: 10)
+            XCTAssertTrue(online.waitForExistence(timeout: 8))
+            XCTAssertGreaterThanOrEqual(online.frame.minX, app.frame.minX)
+            XCTAssertLessThanOrEqual(online.frame.maxX, app.frame.maxX)
+            attachScreenshot(named: "users-activity-\(language)-large", from: app)
+            let security = app.staticTexts[language == "uk" ? "Вхід і безпека" : "Anmeldung und Sicherheit"]
+            scrollToElement(security, in: app, maxSwipes: 12)
+            XCTAssertTrue(security.isHittable)
+            attachScreenshot(named: "users-security-\(language)-large", from: app)
+            app.terminate()
+        }
+    }
+
     private func launchUserRefreshApp(failing: Bool, longContent: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]

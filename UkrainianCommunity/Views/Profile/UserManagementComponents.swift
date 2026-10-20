@@ -29,13 +29,14 @@ struct UserManagementStatusBadge: View {
             .foregroundStyle(tint)
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .background(tint.opacity(0.10), in: Capsule())
+            .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .fixedSize(horizontal: false, vertical: true)
             .multilineTextAlignment(.leading)
     }
 }
 
 struct UserManagementMetadataRow: View {
+    @ScaledMetric(relativeTo: .caption) private var iconWidth: CGFloat = 18
     let systemImage: String
     let title: String
     let value: String
@@ -59,7 +60,7 @@ struct UserManagementMetadataRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 label
                 valueText.multilineTextAlignment(.leading)
-                    .padding(.leading, 28)
+                    .padding(.leading, iconWidth + 10)
             }
         }
     }
@@ -73,7 +74,7 @@ struct UserManagementMetadataRow: View {
             Image(systemName: systemImage)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(tint ?? AppTheme.accentPrimaryForeground)
-                .frame(width: 18)
+                .frame(width: iconWidth)
         }
     }
 
@@ -199,13 +200,19 @@ struct UserRolePermissionsSheet: View {
 }
 
 struct ManagedUserRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    private var identityLayout: AnyLayout {
+        dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+    }
     let user: AppUser
     let organizationRoles: [UserOrganizationRole]
 
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .top, spacing: 12) {
+                identityLayout {
                     UserManagementAvatar(user: user, size: 46)
                     identityText
                 }
@@ -232,7 +239,11 @@ struct ManagedUserRow: View {
 
     private var badges: some View {
         UserManagementBadgeFlowLayout(spacing: 6) {
-            UserManagementStatusBadge(title: user.blockState.title, tint: statusTint)
+            UserManagementStatusBadge(title: user.managedAccountState == .active ? AppStrings.UserManagement.unrestrictedStatus : user.managedAccountState.title, tint: statusTint)
+
+            if user.globalRole.authorizationRole != .user {
+                UserManagementStatusBadge(title: user.globalRole.title, tint: AppTheme.accentSupportForeground)
+            }
 
             if !user.city.isEmpty {
                 UserManagementStatusBadge(title: user.city, tint: AppTheme.textSecondary)
@@ -250,7 +261,7 @@ struct ManagedUserRow: View {
 
     private var registrationDate: some View {
         Label(
-            LocalizationStore.dateString(from: user.createdAt, dateStyle: .short, timeStyle: .none),
+            user.createdAt == .distantPast ? AppStrings.Common.notAvailable : LocalizationStore.dateString(from: user.createdAt, dateStyle: .short, timeStyle: .none),
             systemImage: "calendar"
         )
         .font(.caption2)
@@ -267,7 +278,7 @@ struct ManagedUserRow: View {
     }
 
     private var statusTint: Color {
-        switch user.blockState {
+        switch user.managedAccountState {
         case .active:
             AppTheme.accentPrimaryForeground
         case .warned:

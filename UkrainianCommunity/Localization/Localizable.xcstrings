@@ -1,6 +1,102 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+  "user_management.status.unrestricted": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Без обмежень"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Ohne Einschränkungen"
+        }
+      }
+    }
+  },
+  "user_management.presence.stale": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Немає свіжого підтвердження. Показано останні отримані дані."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Keine aktuelle Bestätigung. Die zuletzt empfangenen Daten werden angezeigt."
+        }
+      }
+    }
+  },
+  "user_management.presence.accuracy": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Після втрати зв’язку статус «Онлайн» може зберігатися до 3 хвилин."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Nach einem Verbindungsabbruch kann „Online“ noch bis zu 3 Minuten angezeigt werden."
+        }
+      }
+    }
+  },
+  "user_management.security.title": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Вхід і безпека"
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Anmeldung und Sicherheit"
+        }
+      }
+    }
+  },
+  "user_management.security.subtitle": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Остання авторизація — це вхід в акаунт, а не остання активність у застосунку."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die letzte Anmeldung ist der Kontozugriff, nicht die letzte Aktivität in der App."
+        }
+      }
+    }
+  },
+  "user_management.security.load_hint": {
+    "localizations": {
+      "uk": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Дані безпеки ще не завантажено."
+        }
+      },
+      "de": {
+        "stringUnit": {
+          "state": "translated",
+          "value": "Die Sicherheitsdaten wurden noch nicht geladen."
+        }
+      }
+    }
+  },
     "banner_report.allBanners": {
       "localizations": {
         "uk": {

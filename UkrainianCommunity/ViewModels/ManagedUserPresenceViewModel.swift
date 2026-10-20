@@ -10,6 +10,10 @@ final class ManagedUserPresenceViewModel: ObservableObject {
     private let load: (String) async throws -> ManagedUserPresenceSnapshot
     private let readDeadline: RefreshRequest.Deadline
     private let onRequestCoalesced: () -> Void
+    private var consecutiveFailures = 0
+    var pollingDelay: Duration {
+        .seconds(consecutiveFailures == 0 ? 30 : min(180, 30 * (1 << min(consecutiveFailures, 3))))
+    }
     private var key: String?
     private var revision = 0
     private var request: Task<Void, Never>?
@@ -32,6 +36,7 @@ final class ManagedUserPresenceViewModel: ObservableObject {
             key = nextKey
             snapshot = nil
             failed = false
+            consecutiveFailures = 0
         }
         guard allowed else { return }
         // Polling and a manual pull share the same real request and both await it.
@@ -51,11 +56,13 @@ final class ManagedUserPresenceViewModel: ObservableObject {
                 guard current == revision, key == nextKey else { return }
                 snapshot = value
                 failed = false
+                consecutiveFailures = 0
             } catch is CancellationError {
                 return
             } catch {
                 guard current == revision, key == nextKey else { return }
                 failed = true
+                consecutiveFailures = min(consecutiveFailures + 1, 3)
             }
         }
         request = task
