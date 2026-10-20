@@ -189,6 +189,12 @@ final class OwnerProfileAuditUITests: XCTestCase {
         }
         field.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        let existing = field.value as? String ?? ""
+        if existing.isEmpty || existing == field.placeholderValue {
+            field.typeText(value)
+            XCTAssertEqual(field.value as? String, value)
+            return
+        }
         field.press(forDuration: 1.2)
         let selectAll = app.menuItems.matching(NSPredicate(format: "label IN %@", ["Select All", "Alles auswählen", "Вибрати все", "Вибрати всі"])).firstMatch
         XCTAssertTrue(selectAll.waitForExistence(timeout: 3), app.debugDescription)
@@ -235,6 +241,62 @@ final class OwnerProfileAuditUITests: XCTestCase {
         app.buttons["profile.edit.open"].tap()
         XCTAssertEqual(name.value as? String, original)
         XCTAssertFalse((app.textFields["profile.edit.fullName"].value as? String ?? "").isEmpty)
+    }
+
+    @MainActor
+    func testOrganizationRolesExposeOnlyTheirOwnManagementActions() {
+        continueAfterFailure = false
+        for role in ["org-owner", "org-admin", "org-moderator", "mixed"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing"]
+            app.launchEnvironment = ["UITestProfileRole": role, "UITestResetUserSettings": "1",
+                "UITestAppLanguage": "uk", "UITestResetAppLock": "1", "UITestFeedbackInbox": "1"]
+            app.launch()
+            let tab = app.tabBars.buttons.element(boundBy: 4)
+            XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+            let entry = app.buttons["profile.organizationManagement"].firstMatch
+            reveal(entry, in: app); entry.tap()
+            let manage = app.buttons["organization.manage.role-fixture"].firstMatch
+            reveal(manage, in: app); manage.tap()
+            let news = app.buttons["organization.management.createNews"].firstMatch
+            reveal(news, in: app)
+            XCTAssertTrue(news.exists)
+            XCTAssertEqual(app.buttons["organization.management.editInfo"].exists, role != "org-moderator")
+            XCTAssertTrue(app.buttons["organization.management.createEvent"].exists)
+            capture(app, "organization-role-" + role)
+            let team = app.buttons["organization.management.addTeamMember"].firstMatch
+            if role == "org-owner" {
+                reveal(team, in: app)
+                XCTAssertTrue(team.isHittable)
+            } else {
+                XCTAssertFalse(team.exists)
+            }
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testAdminProfileSeparatesOperationalAndOwnerPermissions() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestProfileRole": "admin", "UITestResetUserSettings": "1",
+            "UITestAppLanguage": "uk", "UITestResetAppLock": "1", "UITestFeedbackInbox": "1"]
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+        for id in ["profile.directoryEditors", "profile.featuredBanners", "profile.owner.analytics",
+                   "profile.owner.legalDocuments", "profile.owner.donationSettings", "profile.contentPlanning"] {
+            XCTAssertFalse(app.buttons[id].exists, "Owner-only entry exposed: \(id)")
+        }
+        for id in ["profile.userManagement", "profile.organizationManagement", "profile.savedContent",
+                   "profile.settings.open"] {
+            let entry = app.buttons[id].firstMatch
+            reveal(entry, in: app); capture(app, "admin-" + id)
+            entry.tap()
+            XCTAssertFalse(app.otherElements["profile.accessDenied"].exists)
+            back(app)
+        }
+        app.terminate()
     }
 
     @MainActor

@@ -35,6 +35,8 @@ private enum OrganizationManagementContentStatsCache {
 
 struct OrganizationManagementHubView: View {
     @EnvironmentObject private var authState: AuthState
+    @ObservedObject private var accessStore = OrganizationAccessStore.shared
+    private var accessIdentity: ProfileAccessIdentity { ProfileAccessIdentity(user: authorityUser) }
     let focusedOrganizationID: String?
 
     private let repository: OrganizationRepository
@@ -125,7 +127,7 @@ struct OrganizationManagementHubView: View {
 
             managedOrganizationsContent
         }
-        .task(id: authorityUser?.id) {
+        .task(id: accessIdentity) {
             // This screen exposes current server-authorized roles. A shared
             // editor snapshot may survive an account switch and may contain an
             // organization deleted by another account, so reconcile it here.
@@ -149,23 +151,16 @@ struct OrganizationManagementHubView: View {
                 await loadManageableOrganizationContentStats(force: true)
             }
         }
-        .onChange(of: authState.user?.id) { _, newUserID in
-            if newUserID == nil {
-                isShowingCreateOrganization = false
-                organizationContentStats = [:]
-                loadingContentStatOrganizationIDs = []
-                OrganizationManagementContentStatsCache.removeAll()
-            } else {
-                Task {
-                    organizationContentStats = [:]
-                    loadingContentStatOrganizationIDs = []
-                    OrganizationManagementContentStatsCache.removeAll()
-                    await organizationsViewModel.refresh()
-                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
-                    await loadManageableOrganizationContentStats(force: true)
-                }
-            }
+        .onChange(of: accessIdentity) { _, _ in
+            editingOrganizationRequest = nil
+            previewingOrganizationRequest = nil
+            pendingDeleteOrganizationRequest = nil
+            isShowingCreateOrganization = false
+            organizationContentStats = [:]
+            loadingContentStatOrganizationIDs = []
+            OrganizationManagementContentStatsCache.removeAll()
         }
+
         .sheet(isPresented: $isShowingCreateOrganization) {
             NavigationStack {
                 OrganizationEditorView(
@@ -355,6 +350,7 @@ struct OrganizationManagementHubView: View {
     }
 
     private func loadManageableOrganizationContentStats(force: Bool = false) async {
+        let expected = accessIdentity
         let organizationIDs = Set(manageableOrganizations.map(\.id))
         organizationContentStats = organizationContentStats.filter { organizationIDs.contains($0.key) }
         loadingContentStatOrganizationIDs = loadingContentStatOrganizationIDs.intersection(organizationIDs)
@@ -389,6 +385,7 @@ struct OrganizationManagementHubView: View {
 
             for task in tasks {
                 let (organizationID, stats) = await task.value
+                guard accessIdentity == expected, !Task.isCancelled else { return }
                 organizationContentStats[organizationID] = stats
                 if let stats {
                     OrganizationManagementContentStatsCache.store(stats, for: organizationID)

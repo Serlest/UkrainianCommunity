@@ -415,6 +415,13 @@ final class OrganizationsViewModel: ObservableObject {
         ))
     }
 
+    func observeManagedOrganization(id: String,
+        onChange: @escaping @MainActor (Organization) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener? {
+        (repository as? OrganizationRealtimeRepository)?.listenManagedOrganization(
+            organizationID: id, onChange: onChange, onError: onError)
+    }
+
     func resolveOrganization(id organizationID: String, force: Bool = false) async -> Organization? {
         let trimmedID = organizationID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedID.isEmpty else { return nil }

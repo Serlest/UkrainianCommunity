@@ -12,6 +12,7 @@ final class OrganizationTeamViewModel: ObservableObject {
     @Published private(set) var candidateErrorMessage: String?
     @Published var statusMessage: String?
 
+    private var generation = 0
     private let organizationRepository: OrganizationRepository
     private let roleManagementService: OrganizationRoleManagementService
 
@@ -23,10 +24,19 @@ final class OrganizationTeamViewModel: ObservableObject {
         self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
     }
 
+    func reset() {
+        generation &+= 1
+        members = []; candidateMembers = []; updatingUserIDs = []
+        isLoading = false; isLoadingCandidates = false
+        errorMessage = nil; candidateErrorMessage = nil; statusMessage = nil
+    }
+
     func load(organization: Organization, actor: AppUser?) async {
+        let expected = generation
+        guard PermissionService.canAccessManagedOrganization(organization, user: actor) else { reset(); return }
         isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
+        defer { if generation == expected { isLoading = false } }
 
         do {
             let subscriberIDs: [String]
@@ -39,6 +49,7 @@ final class OrganizationTeamViewModel: ObservableObject {
             let profiles = try await organizationRepository.fetchPublicUserProfiles(
                 userIDs: Array(Set(teamIDs + subscriberIDs))
             )
+            guard generation == expected, !Task.isCancelled else { return }
             members = Self.makeMembers(
                 organization: organization,
                 profiles: profiles,
@@ -46,6 +57,7 @@ final class OrganizationTeamViewModel: ObservableObject {
             )
             statusMessage = nil
         } catch {
+            guard generation == expected, !Task.isCancelled else { return }
             errorMessage = AppStrings.Profile.organizationTeamLoadFailed
         }
     }
@@ -72,9 +84,10 @@ final class OrganizationTeamViewModel: ObservableObject {
         actor: AppUser?,
         allowsExistingTeamMembers: Bool = false
     ) async {
+        let expected = generation
         isLoadingCandidates = true
         candidateErrorMessage = nil
-        defer { isLoadingCandidates = false }
+        defer { if generation == expected { isLoadingCandidates = false } }
 
         guard PermissionService.canManageOrganizationRoles(organization, user: actor) else {
             candidateMembers = []
@@ -83,6 +96,7 @@ final class OrganizationTeamViewModel: ObservableObject {
         }
 
         await load(organization: organization, actor: actor)
+        guard generation == expected, !Task.isCancelled else { return }
         guard errorMessage == nil else {
             candidateMembers = []
             candidateErrorMessage = AppStrings.Profile.organizationTeamUserSearchFailed
@@ -215,18 +229,21 @@ final class OrganizationTeamViewModel: ObservableObject {
         actor: AppUser,
         operation: () async throws -> Void
     ) async -> Bool {
+        let expected = generation
         guard !updatingUserIDs.contains(targetUserID) else { return false }
         updatingUserIDs.insert(targetUserID)
         errorMessage = nil
         statusMessage = nil
-        defer { updatingUserIDs.remove(targetUserID) }
+        defer { if generation == expected { updatingUserIDs.remove(targetUserID) } }
 
         do {
             try await operation()
+            guard generation == expected, !Task.isCancelled else { return false }
             statusMessage = AppStrings.Profile.organizationTeamUpdated
             await load(organization: organization, actor: actor)
             return true
         } catch {
+            guard generation == expected, !Task.isCancelled else { return false }
             errorMessage = AppStrings.Profile.organizationTeamSaveFailed
             return false
         }

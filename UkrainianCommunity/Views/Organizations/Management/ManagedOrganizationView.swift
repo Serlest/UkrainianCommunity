@@ -6,8 +6,13 @@ struct ManagedOrganizationView: View {
 
     let organization: Organization
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
+    @ObservedObject private var accessStore = OrganizationAccessStore.shared
 
     @StateObject private var teamViewModel = OrganizationTeamViewModel()
+    @State private var authorityOrganization: Organization?
+    @State private var authorityDenied = false
+    @State private var authorityListener: AppRealtimeListener?
+    @State private var authorityObservationID = UUID()
     @State private var isShowingNewsEditor = false
     @State private var isShowingEventEditor = false
     @State private var isShowingOrganizationEditor = false
@@ -21,7 +26,7 @@ struct ManagedOrganizationView: View {
     @State private var isChangingOwner = false
 
     private var currentOrganization: Organization {
-        organizationsViewModel.organization(for: organization.id) ?? organization
+        authorityOrganization ?? organizationsViewModel.organization(for: organization.id) ?? organization
     }
 
     private var canCreateNews: Bool {
@@ -41,23 +46,33 @@ struct ManagedOrganizationView: View {
     }
 
     private var canManagePhotos: Bool {
-        PermissionService.canModerateOrganizationContent(currentOrganization, user: authState.user)
+        PermissionService.canManageOrganizationPhotos(currentOrganization, user: authState.user)
     }
 
     private var canDeleteOrganization: Bool {
         PermissionService.canDeleteOrganization(currentOrganization, user: authState.user)
     }
 
+    private var canAccessManagement: Bool {
+        !authorityDenied && PermissionService.canAccessManagedOrganization(currentOrganization, user: authState.user)
+    }
+
+    private var accessIdentity: ProfileAccessIdentity { ProfileAccessIdentity(user: authState.user) }
+
     var body: some View {
         ProfileDestinationLayout(
             title: currentOrganization.localizedName,
             introSubtitle: AppStrings.Profile.organizationManagementSubtitle
         ) {
-            organizationSummaryCard
-            managementHubCard
-            contactSectionCard
-            teamSectionCard
-            photoSectionCard
+            if canAccessManagement {
+                organizationSummaryCard
+                managementHubCard
+                contactSectionCard
+                teamSectionCard
+                photoSectionCard
+            } else {
+                InlineMessageCard(style: .error, message: AppStrings.Errors.permissionDenied)
+            }
         }
         .sheet(isPresented: $isShowingNewsEditor) {
             NavigationStack {
@@ -118,8 +133,31 @@ struct ManagedOrganizationView: View {
             },
             set: { if $0 == nil { deleteErrorMessage = nil } }
         ))
-        .task(id: currentOrganization.id) {
+        .task(id: accessIdentity) {
+            beginAuthorityObservation()
+            guard canAccessManagement else { return }
             await teamViewModel.load(organization: currentOrganization, actor: authState.user)
+        }
+        .onDisappear { stopAuthorityObservation() }
+        .onChange(of: accessIdentity) { _, _ in closeManagementSheets() }
+        .onChange(of: canAccessManagement) { _, allowed in
+            if !allowed { closeManagementSheets() }
+            else { reloadAuthorizedTeam() }
+        }
+        .onChange(of: canManageTeam) { _, allowed in
+            if !allowed { isShowingTeamSearch = false; pendingTeamAction = nil }
+        }
+        .onChange(of: canEditOrganization) { _, allowed in
+            if !allowed { isShowingOrganizationEditor = false }
+        }
+        .onChange(of: canCreateNews) { _, allowed in
+            if !allowed { isShowingNewsEditor = false }
+        }
+        .onChange(of: canCreateEvent) { _, allowed in
+            if !allowed { isShowingEventEditor = false }
+        }
+        .onChange(of: canDeleteOrganization) { _, allowed in
+            if !allowed { isShowingDeleteConfirmation = false }
         }
         .sheet(isPresented: $isShowingTeamSearch) {
             NavigationStack {
@@ -158,6 +196,56 @@ struct ManagedOrganizationView: View {
                 pendingTeamAction = nil
             }
         }
+    }
+
+    private func stopAuthorityObservation() {
+        authorityObservationID = UUID()
+        authorityListener?.cancel()
+        authorityListener = nil
+    }
+
+    private func beginAuthorityObservation() {
+        stopAuthorityObservation()
+        let observationID = authorityObservationID
+        let identity = accessIdentity
+        authorityDenied = false
+        authorityListener = organizationsViewModel.observeManagedOrganization(id: organization.id) { updated in
+            guard authorityObservationID == observationID, accessIdentity == identity else { return }
+            let previous = currentOrganization
+            let previouslyAllowed = canAccessManagement
+            authorityOrganization = updated
+            if previous.ownerId != updated.ownerId || previous.adminIds != updated.adminIds ||
+                previous.moderatorIds != updated.moderatorIds || previous.moderationStatus != updated.moderationStatus {
+                if let uid = identity.userID { accessStore.invalidateAuthority(for: uid) }
+                closeManagementSheets()
+                if previouslyAllowed && canAccessManagement { reloadAuthorizedTeam() }
+            }
+        } onError: { error in
+            guard authorityObservationID == observationID, accessIdentity == identity else { return }
+            if error == .permissionDenied || error == .notFound {
+                authorityDenied = true
+                closeManagementSheets()
+            }
+        }
+    }
+
+    private func reloadAuthorizedTeam() {
+        let identity = accessIdentity
+        let observationID = authorityObservationID
+        Task { @MainActor in
+            guard accessIdentity == identity, authorityObservationID == observationID, canAccessManagement else { return }
+            await teamViewModel.load(organization: currentOrganization, actor: authState.user)
+        }
+    }
+
+    private func closeManagementSheets() {
+        isShowingNewsEditor = false
+        isShowingEventEditor = false
+        isShowingOrganizationEditor = false
+        isShowingTeamSearch = false
+        isShowingDeleteConfirmation = false
+        pendingTeamAction = nil
+        teamViewModel.reset()
     }
 
     private var organizationSummaryCard: some View {
@@ -243,12 +331,7 @@ struct ManagedOrganizationView: View {
                     ) {
                         isShowingOrganizationEditor = true
                     }
-                } else {
-                    disabledManagementHubRow(
-                        title: AppStrings.Profile.organizationInfoSection,
-                        subtitle: AppStrings.Profile.organizationInfoLockedSubtitle,
-                        systemImage: "building.2"
-                    )
+                    .accessibilityIdentifier("organization.management.editInfo")
                 }
 
                 if canCreateNews {
@@ -259,6 +342,7 @@ struct ManagedOrganizationView: View {
                     ) {
                         isShowingNewsEditor = true
                     }
+                    .accessibilityIdentifier("organization.management.createNews")
                 }
 
                 if canCreateEvent {
@@ -269,6 +353,7 @@ struct ManagedOrganizationView: View {
                     ) {
                         isShowingEventEditor = true
                     }
+                    .accessibilityIdentifier("organization.management.createEvent")
                 }
 
                 if canDeleteOrganization {
@@ -338,6 +423,7 @@ struct ManagedOrganizationView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("organization.management.addTeamMember")
                         }
                     }
                 }
@@ -617,17 +703,6 @@ struct ManagedOrganizationView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(title)
-    }
-
-    private func disabledManagementHubRow(title: String, subtitle: String, systemImage: String) -> some View {
-        OrganizationManagementRow(
-            title: title,
-            subtitle: subtitle,
-            systemImage: systemImage,
-            tint: AppTheme.textSecondary,
-            isEnabled: false
-        )
-        .accessibilityHint(AppStrings.Profile.accessLocked)
     }
 
     private func managementCompactActionLabel(title: String, systemImage: String) -> some View {

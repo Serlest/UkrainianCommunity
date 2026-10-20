@@ -4,6 +4,7 @@ actor MockRepositoryStore {
     static let shared = MockRepositoryStore()
 
     var user: AppUser = {
+        if let fixture = MockContentBuilder.profileRoleFixture() { return fixture }
         #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            ProcessInfo.processInfo.environment["UITestForceOwnerSession"] == "1" {
@@ -14,7 +15,7 @@ actor MockRepositoryStore {
     }()
     var news = MockContentBuilder.newsPosts()
     var events = MockContentBuilder.events()
-    var organizations = MockContentBuilder.organizations()
+    var organizations = MockContentBuilder.profileOrganizationsFixture() ?? MockContentBuilder.organizations()
     var organizationComments: [String: [Comment]] = [:]
     var feedbackItems: [FeedbackItem] = MockContentBuilder.feedbackFixtures()
     var feedbackMessages: [String: [FeedbackMessage]] = [:]

@@ -4,22 +4,28 @@ import Foundation
 /// A synthetic auth dependency paired with the existing mock UI-test repositories.
 /// Not compiled into device/Release builds; it never authenticates against Firebase.
 final class UITestOwnerAuthBackend: AuthBackendProviding {
-    private var session: UITestOwnerSession? = UITestOwnerSession()
+    private var session: UITestOwnerSession?
     private let hasSecondFactor: Bool
     var currentSessionUser: (any AuthSessionUserProviding)? { session }
 
-    private init(hasSecondFactor: Bool) { self.hasSecondFactor = hasSecondFactor }
+    private init(hasSecondFactor: Bool, uid: String) {
+        self.hasSecondFactor = hasSecondFactor
+        session = UITestOwnerSession(uid: uid)
+    }
 
     static func makeIfRequested(
         arguments: [String] = ProcessInfo.processInfo.arguments,
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> UITestOwnerAuthBackend? {
-        guard arguments.contains("-ui-testing"), environment["UITestForceOwnerSession"] == "1" else { return nil }
-        return UITestOwnerAuthBackend(hasSecondFactor: environment["UITestOwnerSecondFactor"] != "missing")
+        guard arguments.contains("-ui-testing") else { return nil }
+        let fixtureRole = environment["UITestProfileRole"] ?? ""
+        let isAdmin = ["admin", "mixed"].contains(fixtureRole)
+        guard isAdmin || environment["UITestForceOwnerSession"] == "1" else { return nil }
+        return UITestOwnerAuthBackend(hasSecondFactor: environment["UITestOwnerSecondFactor"] != "missing", uid: isAdmin ? fixtureRole + "-1" : "owner-1")
     }
 
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
-        guard session?.uid == "owner-1", session?.isEmailVerified == true else { return false }
+        guard session != nil, session?.isEmailVerified == true else { return false }
         return AuthMultiFactorService.claimsContainTOTPSignIn([
             "firebase": ["sign_in_second_factor": hasSecondFactor ? "totp" : "password"]
         ])
@@ -33,7 +39,8 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
 }
 
 private final class UITestOwnerSession: AuthSessionUserProviding {
-    let uid = "owner-1"
+    let uid: String
+    init(uid: String) { self.uid = uid }
     let email: String? = "owner@example.test"
     let isAnonymous = false
     let isEmailVerified = true

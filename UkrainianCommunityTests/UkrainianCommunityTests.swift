@@ -194,6 +194,60 @@ struct UkrainianCommunityTests {
         #expect(ownerPermissions.canAccessOwnerTools == true)
     }
 
+    @Test func profileRoutesRespectPlatformAuthorityAndPersonalOwnership() {
+        let owner = makeUser(id: "owner", globalRole: .owner)
+        let admin = makeUser(id: "admin", globalRole: .admin)
+        let member = makeUser(id: "member", globalRole: .user)
+        let ownerOnly: [ProfileNavigationRoute] = [.announcementManagement, .directoryEditors,
+            .featuredBannerManagement, .contentPlanning(draftID: nil), .legalDocumentManagement,
+            .legalEvidence, .ownerAnalytics, .donationSettings, .systemLogs(.owner)]
+        for route in ownerOnly {
+            #expect(ProfileAccessPolicy(user: owner).allows(route))
+            #expect(!ProfileAccessPolicy(user: admin).allows(route))
+            #expect(!ProfileAccessPolicy(user: member).allows(route))
+            #expect(!ProfileAccessPolicy(user: nil).allows(route))
+        }
+        let staff: [ProfileNavigationRoute] = [.userManagement, .organizationRequests,
+            .moderationTools, .feedbackInbox, .feedbackDetail(feedbackID: "request")]
+        for route in staff {
+            #expect(ProfileAccessPolicy(user: owner).allows(route))
+            #expect(ProfileAccessPolicy(user: admin).allows(route))
+            #expect(!ProfileAccessPolicy(user: member).allows(route))
+        }
+        #expect(ProfileAccessPolicy(user: member).allows(.myFeedback(userID: "member")))
+        #expect(!ProfileAccessPolicy(user: member).allows(.myFeedback(userID: "other")))
+        #expect(!ProfileAccessPolicy(user: owner).allows(.feedbackComposer))
+        #expect(ProfileAccessPolicy(user: admin).allows(.feedbackComposer))
+        #expect(ProfileAccessIdentity(user: admin) != ProfileAccessIdentity(user: makeUser(id: "admin", globalRole: .user)))
+    }
+
+    @Test func restrictedAccountsKeepTheirOwnDecisionAndHistoryButLoseOperationalAccess() {
+        let restricted = makeUser(id: "restricted", globalRole: .admin, blockState: .bannedPermanent)
+        let policy = ProfileAccessPolicy(user: restricted)
+        #expect(!policy.allows(.userManagement))
+        #expect(!policy.allows(.organizationManagement))
+        #expect(!policy.allows(.feedbackComposer))
+        #expect(policy.allows(.dsaStatement(statementID: "decision")))
+        #expect(policy.allows(.myFeedback(userID: "restricted")))
+        #expect(!policy.allows(.myFeedback(userID: "someone-else")))
+        #expect(policy.allows(.accountSecurity))
+    }
+
+    @Test func accountSnapshotRevokesRoleWithoutLosingProfile() {
+        let owner = makeUser(id: "same-account", globalRole: .owner)
+        let update = AccountStatusSnapshotUpdate(requiresMultiFactorAuth: false,
+            blockState: .active, accountStatus: .active, banExpiresAt: nil,
+            warningCount: 0, statusReason: nil, statusMessage: nil,
+            statusUpdatedAt: nil, statusUpdatedBy: nil, statusAcknowledgedAt: nil,
+            globalRole: .user)
+        let changed = update.applying(to: owner)
+        #expect(changed.globalRole == .user)
+        #expect(changed.id == owner.id)
+        #expect(changed.fullName == owner.fullName)
+        #expect(!ProfileAccessPolicy(user: changed).allows(.userManagement))
+        #expect(ProfileAccessIdentity(user: owner) != ProfileAccessIdentity(user: changed))
+    }
+
     @Test func finalPlatformRoleMatrixMatchesContract() {
         let owner = makeUser(id: "owner", globalRole: .owner)
         let admin = makeUser(id: "admin", globalRole: .admin)
@@ -216,7 +270,7 @@ struct UkrainianCommunityTests {
         #expect(PermissionService.canManageUsers(user: admin))
         #expect(PermissionService.canManageFeedback(user: admin))
         #expect(PermissionService.canManageReports(user: admin))
-        #expect(PermissionService.canAssignGlobalRoles(user: admin))
+        #expect(!PermissionService.canAssignGlobalRoles(user: admin))
         #expect(PermissionService.canTemporarilyBan(user: admin))
         #expect(PermissionService.canPermanentlyBan(user: admin))
         #expect(PermissionService.canAssignAppAdmin(user: admin) == false)

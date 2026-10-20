@@ -454,6 +454,12 @@ struct PermissionService {
         false
     }
 
+    static func canManageOrganizationPhotos(_ organization: Organization, user: AppUser?) -> Bool {
+        guard hasUsableAccount(user) else { return false }
+        return OrganizationAccessStore.shared.allows("managePhotos", organizationID: organization.id, userID: user?.id,
+            legacy: canModerateOrganizationContent(organization, user: user))
+    }
+
     static func canModerateOrganizationContent(_ organization: Organization, user: AppUser?) -> Bool {
         guard let user else { return false }
         guard hasUsableAccount(user) else { return false }
@@ -574,7 +580,7 @@ struct PermissionService {
     }
 
     static func canDeleteNews(user: AppUser?) -> Bool {
-        guard let user else { return false }
+        guard let user, hasUsableAccount(user) else { return false }
 
         switch user.globalRole.authorizationRole {
         case .owner:
@@ -611,7 +617,7 @@ struct PermissionService {
     }
 
     static func canDeleteEvent(user: AppUser?) -> Bool {
-        guard let user else { return false }
+        guard let user, hasUsableAccount(user) else { return false }
 
         switch user.globalRole.authorizationRole {
         case .owner:
@@ -662,7 +668,7 @@ struct PermissionService {
     }
 
     static func canDeleteOrganization(user: AppUser?) -> Bool {
-        guard let user else { return false }
+        guard let user, hasUsableAccount(user) else { return false }
 
         switch user.globalRole.authorizationRole {
         case .owner:
@@ -673,7 +679,7 @@ struct PermissionService {
     }
 
     static func canAssignGlobalRoles(user: AppUser) -> Bool {
-        isOwner(user) || isAppAdmin(user: user)
+        canAssignAppAdmin(user: user)
     }
 
     static func canPermanentlyBan(user: AppUser) -> Bool {

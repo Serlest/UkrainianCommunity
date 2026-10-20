@@ -321,7 +321,7 @@ private struct LegalDocumentEditorView: View {
                         .appEditorInputStyle()
 
                     TextEditor(text: localizedMarkdownBinding)
-                        .frame(minHeight: 260)
+                        .frame(height: 320)
                         .scrollContentBackground(.hidden)
                         .appEditorInputStyle(minHeight: 260)
                 }

@@ -96,6 +96,30 @@ enum MockContentBuilder {
 
     nonisolated private static let calendar = Calendar.current
 
+    nonisolated static func profileRoleFixture() -> AppUser? {
+#if DEBUG && targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+              let role = ProcessInfo.processInfo.environment["UITestProfileRole"],
+              ["admin", "org-owner", "org-admin", "org-moderator", "mixed"].contains(role) else { return nil }
+        let admin = role == "admin" || role == "mixed"
+        return AppUser(id: role + "-1", fullName: "Profile Role Fixture", city: "Innsbruck",
+            email: "profile@example.com", bio: "", role: .user, globalRole: admin ? .admin : .user,
+            requiresMultiFactorAuth: admin, blockState: .active, selectedFederalState: .tirol,
+            acceptedTermsAt: .now, acceptedPrivacyAt: .now,
+            acceptedTermsVersion: AuthService.currentTermsVersion,
+            acceptedPrivacyVersion: AuthService.currentPrivacyVersion, createdAt: .now, updatedAt: .now)
+#else
+        return nil
+#endif
+    }
+
+    nonisolated static func profileOrganizationsFixture() -> [Organization]? {
+        guard profileRoleFixture() != nil else { return nil }
+        return [Organization(id: "role-fixture", name: "Role Test Organization", description: "Role fixture", federalState: .tirol, city: "Innsbruck", ownerId: "org-owner-1", adminIds: ["org-admin-1", "mixed-1"],
+            moderatorIds: ["org-moderator-1"], createdAt: .now, updatedAt: .now,
+            moderationStatus: .approved, likeCount: 0, likeState: .notLiked)]
+    }
+
     nonisolated static func currentUser() -> AppUser {
         AppUser(
             id: "user-1",

@@ -174,6 +174,9 @@ struct ProfileView: View {
         authState.user
     }
 
+    private var accessPolicy: ProfileAccessPolicy { ProfileAccessPolicy(user: permissionUser) }
+    private var accessIdentity: ProfileAccessIdentity { ProfileAccessIdentity(user: permissionUser) }
+
     private var appLanguage: AppLanguage {
         DonationLocalization.language(from: locale)
     }
@@ -200,19 +203,7 @@ struct ProfileView: View {
     }
 
     private var displayUser: AppUser? {
-        guard authState.isAuthenticated else {
-            return nil
-        }
-
-        if let authenticatedUser = authState.user {
-            return authenticatedUser
-        }
-
-        guard viewModel.user.id != AppUser.placeholder.id else {
-            return nil
-        }
-
-        return viewModel.user
+        authState.isAuthenticated ? authState.user : nil
     }
 
     private var readableFederalState: String? {
@@ -347,11 +338,6 @@ struct ProfileView: View {
 
                             VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                                 profileHeader
-                                if !PermissionService.isAppOwner(user: displayUser) {
-                                    NavigationLink(value: ProfileNavigationRoute.announcementHistory) {
-                                        ProfileModuleRow(title: AnnouncementStrings.history, subtitle: "", systemImage: "megaphone")
-                                    }.buttonStyle(.plain).accessibilityIdentifier("profile.announcementHistory")
-                                }
 
                                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                                     if let user = displayUser {
@@ -379,21 +365,38 @@ struct ProfileView: View {
         .tint(AppTheme.accentPrimary)
         .toolbar(.hidden, for: .navigationBar)
         .navigationDestination(for: ProfileNavigationRoute.self) { route in
-            profileDestination(for: route)
-                .id(locale.identifier)
+            Group {
+                if accessPolicy.allows(route) {
+                    profileDestination(for: route)
+                } else {
+                    PushedScreenShell(title: AppStrings.Profile.title) {
+                        InlineMessageCard(style: .error, message: AppStrings.Errors.permissionDenied)
+                    }
+                    .accessibilityIdentifier("profile.accessDenied")
+                }
+            }
+            .id(locale.identifier)
         }
         .task(id: authState.user?.id) {
             isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
             async let profile: Void = viewModel.loadIfNeeded()
             async let donation: Void = donationConfigViewModel.loadIfNeeded()
-            if authState.isAuthenticated {
-                await loadOwnerVisibilityIfAllowed()
-            } else {
+            if !authState.isAuthenticated {
                 registrationsViewModel.resetForGuest()
                 myFeedbackViewModel.reset()
                 ownerVisibilityViewModel.reset()
             }
             _ = await (profile, donation)
+        }
+        .task(id: accessIdentity) {
+            ownerVisibilityViewModel.reset()
+            await loadOwnerVisibilityIfAllowed()
+        }
+        .onChange(of: accessIdentity) { _, _ in
+            navigationPath.removeAll()
+            isShowingEditProfileSheet = false
+            isShowingAvatarCrop = false
+            avatarSelectionTask?.cancel()
         }
         .appRefreshable {
             async let profile: Void = viewModel.refresh()
@@ -411,7 +414,6 @@ struct ProfileView: View {
             isAnalyticsCollectionEnabled = analyticsService.isCollectionEnabled
             registrationsViewModel.resetForAuthChange()
             myFeedbackViewModel.reset()
-            ownerVisibilityViewModel.reset()
             feedbackMessage = ""
             selectedFeedbackType = .question
         }
@@ -698,7 +700,7 @@ struct ProfileView: View {
             NotificationInboxView(
                 viewModel: notificationInboxViewModel,
                 onNotificationTap: onNotificationTap,
-                subtitle: PermissionService.isAppOwner(user: permissionUser) ? OwnerProfileText.notificationsSubtitle : nil
+                subtitle: PermissionService.canManageFeedback(user: permissionUser) ? OwnerProfileText.notificationsSubtitle : nil
             )
         case let .myFeedback(userID):
             MyFeedbackView(viewModel: myFeedbackViewModel, currentUserID: userID)
@@ -880,9 +882,11 @@ struct ProfileView: View {
                 readableFederalState: readableFederalState
             )
 
-            quickActionsSection(for: user)
-            activityNavigationSection
-            supportNavigationSection(for: user)
+            if accessPolicy.canUsePersonalFeatures {
+                personalOrganizationsSection
+                personalContentSection
+                supportNavigationSection(for: user)
+            }
             preferencesNavigationSection
             sessionActionSection
         }
@@ -894,88 +898,24 @@ struct ProfileView: View {
         platformOperationsSection
         if PermissionService.isAppOwner(user: user) {
             ownerAdministrationSections
-            ownerPersonalSection
+            personalContentSection
         } else {
             platformAdministrationSection
-            quickActionsSection(for: user)
-            activityNavigationSection
-            supportNavigationSection(for: user)
+            if accessPolicy.canUsePersonalFeatures {
+                personalOrganizationsSection
+                personalContentSection
+                supportNavigationSection(for: user)
+            }
         }
         preferencesNavigationSection
         sessionActionSection
     }
 
-    private func quickActionsSection(for user: AppUser, includeMyOrganizations: Bool = true) -> some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.personalContentTitle,
-            subtitle: AppStrings.Profile.personalContentSubtitle
-        ) {
-            AppAdaptiveGrid(
-                minimumWidth: 145,
-                maximumWidth: 260,
-                spacing: AppTheme.eventsMetadataSpacing
-            ) {
-                if includeMyOrganizations {
-                    myOrganizationsQuickAction
-                }
-
-                NavigationLink(value: ProfileNavigationRoute.registrations) {
-                    ProfileQuickActionCard(item: ProfileQuickActionItem(
-                        title: AppStrings.Profile.myEvents,
-                        subtitle: AppStrings.Profile.quickActionRegisteredEventsSubtitle,
-                        systemImage: "calendar",
-                        status: .available
-                    ))
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.savedContent) {
-                    ProfileQuickActionCard(item: ProfileQuickActionItem(
-                        title: AppStrings.Profile.savedContent,
-                        subtitle: AppStrings.Profile.quickActionSavedContentSubtitle,
-                        systemImage: "bookmark",
-                        status: .available
-                    ))
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.followedOrganizations) {
-                    ProfileQuickActionCard(item: ProfileQuickActionItem(
-                        title: AppStrings.Profile.organizationSubscriptions,
-                        subtitle: AppStrings.Profile.quickActionSubscriptionsSubtitle,
-                        systemImage: "person.2",
-                        status: .available
-                    ))
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
-
-    private var activityNavigationSection: some View {
-        ProfileSectionCard(
-            title: AppStrings.Profile.myActivity,
-            subtitle: AppStrings.Profile.activitySectionSummary
-        ) {
-            VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                NavigationLink(value: ProfileNavigationRoute.recentViews) {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.recentlyViewed,
-                        subtitle: AppStrings.Profile.recentlyViewedSubtitle,
-                        systemImage: "clock.arrow.circlepath"
-                    )
-                }
-                .buttonStyle(.plain)
-
-                NavigationLink(value: ProfileNavigationRoute.activityHistory) {
-                    ProfileModuleRow(
-                        title: AppStrings.Profile.activityHistoryModule,
-                        subtitle: AppStrings.Profile.quickActionActivitySubtitle,
-                        systemImage: "list.bullet.rectangle"
-                    )
-                }
-                .buttonStyle(.plain)
-            }
+    private var personalOrganizationsSection: some View {
+        ProfileSectionCard(title: AppStrings.Organizations.title) {
+            profileLink(.organizationManagement, title: AppStrings.Profile.myOrganizations,
+                      subtitle: AppStrings.Profile.organizationManagementIntro,
+                      icon: "building.2", id: "profile.organizationManagement")
         }
     }
 
@@ -1024,16 +964,23 @@ struct ProfileView: View {
             subtitle: PermissionService.isAppOwner(user: permissionUser) ? OwnerProfileText.accountSubtitle : AppStrings.Settings.preferencesSubtitle
         ) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                if accessPolicy.canUsePersonalFeatures {
                 NavigationLink(value: ProfileNavigationRoute.notifications) {
                     ProfileModuleRow(
                         title: AppStrings.NotificationInbox.title,
-                        subtitle: PermissionService.isAppOwner(user: permissionUser) ? OwnerProfileText.notificationsSubtitle : AppStrings.NotificationInbox.subtitle,
+                        subtitle: PermissionService.canManageFeedback(user: permissionUser) ? OwnerProfileText.notificationsSubtitle : AppStrings.NotificationInbox.subtitle,
                         systemImage: "tray.full",
                         countBadge: notificationInboxViewModel.unreadCount
                     )
                 }
                 .accessibilityIdentifier("profile.notifications.open")
                 .buttonStyle(.plain)
+
+                if !PermissionService.isAppOwner(user: permissionUser) {
+                    profileLink(.announcementHistory, title: AnnouncementStrings.history,
+                              icon: "megaphone", id: "profile.announcementHistory")
+                }
+                }
 
                 NavigationLink(value: ProfileNavigationRoute.profileSettings) {
                     ProfileModuleRow(
@@ -1073,18 +1020,6 @@ struct ProfileView: View {
         donationConfigViewModel.hasLoadedData
             && donationConfigViewModel.config.isEnabled
             && donationConfigViewModel.config.validDonationURL != nil
-    }
-
-    private var myOrganizationsQuickAction: some View {
-        NavigationLink(value: ProfileNavigationRoute.organizationManagement) {
-            ProfileQuickActionCard(item: ProfileQuickActionItem(
-                title: AppStrings.Profile.myOrganizations,
-                subtitle: AppStrings.Profile.organizationManagementIntro,
-                systemImage: "building.2",
-                status: .available
-            ))
-        }
-        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -1153,69 +1088,72 @@ struct ProfileView: View {
         }
     }
 
-    private func ownerLink(_ route: ProfileNavigationRoute, title: String, subtitle: String? = nil,
-                           icon: String, id: String) -> some View {
-        NavigationLink(value: route) {
-            ProfileModuleRow(title: title, subtitle: subtitle, systemImage: icon)
+    @ViewBuilder
+    private func profileLink(_ route: ProfileNavigationRoute, title: String, subtitle: String? = nil,
+                             icon: String, id: String) -> some View {
+        if accessPolicy.allows(route) {
+            NavigationLink(value: route) {
+                ProfileModuleRow(title: title, subtitle: subtitle, systemImage: icon)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(id)
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(id)
     }
 
     @ViewBuilder
     private var ownerAdministrationSections: some View {
         ProfileSectionCard(title: OwnerProfileText.accessTitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ownerLink(.organizationManagement, title: OwnerProfileText.organizations,
+                profileLink(.organizationManagement, title: OwnerProfileText.organizations,
                           subtitle: OwnerProfileText.organizationsSubtitle, icon: "building.2", id: "profile.organizationManagement")
-                ownerLink(.userManagement, title: AppStrings.Profile.ownerUsers,
+                profileLink(.userManagement, title: AppStrings.Profile.ownerUsers,
                           subtitle: AppStrings.Profile.ownerUsersSubtitle, icon: "person.3", id: "profile.userManagement")
-                ownerLink(.directoryEditors, title: OwnerProfileText.directoryEditors,
+                profileLink(.directoryEditors, title: OwnerProfileText.directoryEditors,
                           subtitle: OwnerProfileText.directoryEditorsSubtitle, icon: "books.vertical", id: "profile.directoryEditors")
             }
         }
         ProfileSectionCard(title: OwnerProfileText.contentTitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ownerLink(.contentPlanning(draftID: nil), title: AppStrings.ContentPlanning.title,
+                profileLink(.contentPlanning(draftID: nil), title: AppStrings.ContentPlanning.title,
                           subtitle: AppStrings.ContentPlanning.profileSubtitle, icon: "calendar.badge.clock", id: "profile.contentPlanning")
-                ownerLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
+                profileLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
                           subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle, icon: "sparkles.rectangle.stack", id: "profile.featuredBanners")
-                ownerLink(.announcementManagement, title: AnnouncementStrings.title,
+                profileLink(.announcementManagement, title: AnnouncementStrings.title,
                           subtitle: AnnouncementStrings.subtitle, icon: "megaphone", id: "profile.announcements")
             }
         }
         ProfileSectionCard(title: OwnerProfileText.reportsTitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ownerLink(.ownerAnalytics, title: AppStrings.OwnerAnalytics.title,
+                profileLink(.ownerAnalytics, title: AppStrings.OwnerAnalytics.title,
                           subtitle: AppStrings.OwnerAnalytics.subtitle, icon: "chart.bar.xaxis", id: "profile.owner.analytics")
-                ownerLink(.systemLogs(.owner), title: AppStrings.SystemLogs.ownerTitle,
+                profileLink(.systemLogs(.owner), title: AppStrings.SystemLogs.ownerTitle,
                           subtitle: AppStrings.SystemLogs.ownerProfileSubtitle, icon: "waveform.path.ecg.rectangle", id: "profile.owner.systemLogs")
             }
         }
         ProfileSectionCard(title: OwnerProfileText.platformSettingsTitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ownerLink(.legalDocumentManagement, title: AppStrings.Profile.ownerLegalDocuments,
+                profileLink(.legalDocumentManagement, title: AppStrings.Profile.ownerLegalDocuments,
                           subtitle: OwnerProfileText.legalDocumentsSubtitle, icon: "doc.text", id: "profile.owner.legalDocuments")
-                ownerLink(.legalEvidence, title: AppStrings.LegalEvidence.title,
+                profileLink(.legalEvidence, title: AppStrings.LegalEvidence.title,
                           subtitle: AppStrings.LegalEvidence.profileSubtitle, icon: "signature", id: "profile.owner.legalEvidence")
-                ownerLink(.donationSettings, title: DonationLocalization.settingsTitle(for: appLanguage),
+                profileLink(.donationSettings, title: DonationLocalization.settingsTitle(for: appLanguage),
                           subtitle: DonationLocalization.platformEntrySubtitle(for: appLanguage), icon: "heart.circle", id: "profile.owner.donationSettings")
             }
         }
     }
 
-    private var ownerPersonalSection: some View {
+    private var personalContentSection: some View {
         ProfileSectionCard(title: AppStrings.Profile.personalContentTitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                ownerLink(.registrations, title: OwnerProfileText.registrations,
+                profileLink(.registrations, title: OwnerProfileText.registrations,
                           subtitle: AppStrings.Profile.quickActionRegisteredEventsSubtitle, icon: "calendar", id: "profile.registrations")
-                ownerLink(.savedContent, title: AppStrings.Profile.savedContent,
+                profileLink(.savedContent, title: AppStrings.Profile.savedContent,
                           icon: "bookmark", id: "profile.savedContent")
-                ownerLink(.followedOrganizations, title: AppStrings.Profile.organizationSubscriptions,
+                profileLink(.followedOrganizations, title: AppStrings.Profile.organizationSubscriptions,
                           icon: "person.2", id: "profile.followedOrganizations")
-                ownerLink(.recentViews, title: AppStrings.Profile.recentlyViewed,
+                profileLink(.recentViews, title: AppStrings.Profile.recentlyViewed,
                           icon: "clock.arrow.circlepath", id: "profile.recentViews")
-                ownerLink(.activityHistory, title: AppStrings.Profile.activityHistoryModule,
+                profileLink(.activityHistory, title: AppStrings.Profile.activityHistoryModule,
                           subtitle: AppStrings.Profile.quickActionActivitySubtitle, icon: "list.bullet.rectangle", id: "profile.activityHistory")
             }
         }
@@ -1225,18 +1163,18 @@ struct ProfileView: View {
     private var platformAdministrationSection: some View {
         if canShowAdminTools || canShowFeaturedBanners || PermissionService.isAppAdmin(user: permissionUser) {
             ProfileSectionCard(title: AppStrings.Profile.platformAdministrationTitle,
-                               subtitle: AppStrings.Profile.platformAdministrationSubtitle) {
+                               subtitle: OwnerProfileText.adminToolsSubtitle) {
                 VStack(spacing: AppTheme.eventsMetadataSpacing) {
                     if canShowAdminTools {
-                        ownerLink(.userManagement, title: AppStrings.Profile.ownerUsers,
-                                  subtitle: AppStrings.Profile.ownerUsersSubtitle, icon: "person.3", id: "profile.userManagement")
+                        profileLink(.userManagement, title: AppStrings.Profile.ownerUsers,
+                                  subtitle: OwnerProfileText.adminUsersSubtitle, icon: "person.3", id: "profile.userManagement")
                     }
                     if canShowFeaturedBanners {
-                        ownerLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
+                        profileLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
                                   subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle, icon: "sparkles.rectangle.stack", id: "profile.featuredBanners")
                     }
                     if PermissionService.isAppAdmin(user: permissionUser) {
-                        ownerLink(.systemLogs(.appAdmin), title: AppStrings.SystemLogs.appAdminTitle,
+                        profileLink(.systemLogs(.appAdmin), title: AppStrings.SystemLogs.appAdminTitle,
                                   subtitle: AppStrings.SystemLogs.appAdminSubtitle, icon: "doc.text.magnifyingglass", id: "profile.admin.systemLogs")
                     }
                 }

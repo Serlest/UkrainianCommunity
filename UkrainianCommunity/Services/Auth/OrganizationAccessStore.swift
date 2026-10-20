@@ -48,6 +48,17 @@ final class OrganizationAccessStore: ObservableObject {
         revision &+= 1
     }
 
+    /// Revoke cached decisions immediately when the same account changes authority.
+    /// Keep enforcement mode, so invalidation never falls back to broader legacy access.
+    func invalidateAuthority(for userID: String) {
+        guard principalID == userID else { return }
+        generation &+= 1
+        refreshTask?.cancel(); refreshTask = nil
+        records.removeAll(); pending.removeAll(); unavailableUntil = nil
+        legacyDecisions.removeAll()
+        revision &+= 1
+    }
+
     func allows(_ action: String, organizationID: String, userID: String?, legacy: Bool) -> Bool {
         guard let userID, userID == principalID else { return legacy }
         legacyDecisions[organizationID, default: [:]][action] = legacy

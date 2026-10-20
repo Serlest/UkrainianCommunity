@@ -167,6 +167,11 @@ final class AuthState: ObservableObject {
             return false
         }
 
+        if currentUser.globalRole != updatedUser.globalRole
+            || currentUser.accountStatus != updatedUser.accountStatus
+            || currentUser.blockState != updatedUser.blockState {
+            OrganizationAccessStore.shared.invalidateAuthority(for: updatedUser.id)
+        }
         user = updatedUser
         return true
     }

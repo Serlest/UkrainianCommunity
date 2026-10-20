@@ -17,6 +17,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     private let feedbackRepository: FeedbackRepository
     private let organizationRepository: OrganizationRepository
     private let listenerBag = RealtimeListenerBag()
+    private var generation = 0
     private var hasLoadedFeedback = false
     private var hasLoadedOrganizationRequests = false
 
@@ -41,6 +42,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     }
 
     func loadIfNeeded(includeOrganizationRequests: Bool, includeFeedback: Bool) async {
+        let expected = generation
         startListening(includeOrganizationRequests: includeOrganizationRequests, includeFeedback: includeFeedback)
 
         if includeFeedback, !hasLoadedFeedback {
@@ -49,6 +51,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
             resetFeedback()
         }
 
+        guard generation == expected, !Task.isCancelled else { return }
         if includeOrganizationRequests, !hasLoadedOrganizationRequests {
             await refreshOrganizationRequests()
         } else if !includeOrganizationRequests {
@@ -57,6 +60,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     }
 
     func refresh(includeOrganizationRequests: Bool, includeFeedback: Bool) async {
+        let expected = generation
         startListening(includeOrganizationRequests: includeOrganizationRequests, includeFeedback: includeFeedback)
 
         if includeFeedback {
@@ -65,6 +69,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
             resetFeedback()
         }
 
+        guard generation == expected, !Task.isCancelled else { return }
         if includeOrganizationRequests {
             await refreshOrganizationRequests()
         } else {
@@ -73,18 +78,23 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     }
 
     func reset() {
+        generation &+= 1
         resetFeedback()
         resetOrganizationRequests()
     }
 
     private func refreshFeedback() async {
+        let expected = generation
         feedbackCountState = .loading
 
         do {
-            ownerFeedbackItems = try await RefreshRequest.run { [self] in try await feedbackRepository.fetchFeedback() }
+            let items = try await RefreshRequest.run { [self] in try await feedbackRepository.fetchFeedback() }
+            guard generation == expected, !Task.isCancelled else { return }
+            ownerFeedbackItems = items
             hasLoadedFeedback = true
             feedbackCountState = .loaded(unreadFeedbackCount ?? 0)
         } catch {
+            guard generation == expected, !Task.isCancelled else { return }
             hasLoadedFeedback = false
             if feedbackCountState == .loading {
                 feedbackCountState = .failed
@@ -93,13 +103,17 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     }
 
     private func refreshOrganizationRequests() async {
+        let expected = generation
         organizationRequestCountState = .loading
 
         do {
-            pendingOrganizationRequests = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPendingOrganizations() }
+            let items = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPendingOrganizations() }
+            guard generation == expected, !Task.isCancelled else { return }
+            pendingOrganizationRequests = items
             hasLoadedOrganizationRequests = true
             organizationRequestCountState = .loaded(pendingOrganizationRequestCount ?? 0)
         } catch {
+            guard generation == expected, !Task.isCancelled else { return }
             hasLoadedOrganizationRequests = false
             if organizationRequestCountState == .loading {
                 organizationRequestCountState = .failed
@@ -122,14 +136,17 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     }
 
     private func startListening(includeOrganizationRequests: Bool, includeFeedback: Bool) {
+        let expected = generation
         if includeFeedback,
            !listenerBag.contains("ownerFeedback"),
            let realtimeRepository = feedbackRepository as? FeedbackRealtimeRepository {
             listenerBag.set(realtimeRepository.listenOwnerFeedbackInbox { [weak self] items in
+                guard self?.generation == expected else { return }
                 self?.ownerFeedbackItems = items
                 self?.hasLoadedFeedback = true
                 self?.feedbackCountState = .loaded(items.filter(\.unreadForOwner).count)
             } onError: { [weak self] _ in
+                guard self?.generation == expected else { return }
                 self?.hasLoadedFeedback = false
                 self?.feedbackCountState = .failed
                 self?.listenerBag.remove("ownerFeedback")
@@ -142,10 +159,12 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
            !listenerBag.contains("pendingOrganizationRequests"),
            let realtimeRepository = organizationRepository as? OrganizationRealtimeRepository {
             listenerBag.set(realtimeRepository.listenPendingOrganizationRequestsForOwner { [weak self] organizations in
+                guard self?.generation == expected else { return }
                 self?.pendingOrganizationRequests = organizations
                 self?.hasLoadedOrganizationRequests = true
                 self?.organizationRequestCountState = .loaded(organizations.count)
             } onError: { [weak self] _ in
+                guard self?.generation == expected else { return }
                 self?.hasLoadedOrganizationRequests = false
                 self?.organizationRequestCountState = .failed
                 self?.listenerBag.remove("pendingOrganizationRequests")

@@ -101,6 +101,12 @@ protocol EventRealtimeRepository {
 }
 
 protocol OrganizationRealtimeRepository {
+    func listenManagedOrganization(
+        organizationID: String,
+        onChange: @escaping @MainActor (Organization) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void
+    ) -> AppRealtimeListener?
+
     func listenOrganizationComments(
         organizationID: String,
         onChange: @escaping @MainActor ([Comment]) -> Void,
@@ -117,4 +123,10 @@ protocol OrganizationRealtimeRepository {
         onChange: @escaping @MainActor ([Organization]) -> Void,
         onError: @escaping @MainActor (AppError) -> Void
     ) -> AppRealtimeListener
+}
+
+extension OrganizationRealtimeRepository {
+    func listenManagedOrganization(organizationID: String,
+        onChange: @escaping @MainActor (Organization) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener? { nil }
 }

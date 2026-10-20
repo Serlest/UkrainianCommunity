@@ -186,7 +186,9 @@ struct UkrainianCommunityApp: App {
         }
 
         Task { @MainActor in
-            if shouldForceOwnerSession {
+            if let fixture = MockContentBuilder.profileRoleFixture() {
+                sharedAuthState.setAuthenticatedSession(user: fixture)
+            } else if shouldForceOwnerSession {
 #if DEBUG && targetEnvironment(simulator)
                 let owner = MockContentBuilder.ownerUser(requiresMultiFactorAuth: isUITesting)
 #else

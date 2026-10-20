@@ -1379,6 +1379,26 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
 }
 
 extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
+    func listenManagedOrganization(organizationID: String,
+        onChange: @escaping @MainActor (Organization) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener? {
+        let registration = collection.document(organizationID).addSnapshotListener { [self] snapshot, error in
+            if let error {
+                Task { @MainActor in onError(Self.appError(from: error)) }
+                return
+            }
+            do {
+                guard let snapshot, snapshot.exists else { throw AppError.notFound }
+                let organization = try Organization(dto: makeOrganizationDTO(from: snapshot,
+                    likedOrganizationIDs: [], subscribedOrganizationIDs: [], bookmarkedOrganizationIDs: []))
+                Task { @MainActor in onChange(organization) }
+            } catch {
+                Task { @MainActor in onError((error as? AppError) ?? .unknown) }
+            }
+        }
+        return FirebaseRealtimeListener(registration)
+    }
+
     func listenOrganizationComments(
         organizationID: String,
         onChange: @escaping @MainActor ([Comment]) -> Void,

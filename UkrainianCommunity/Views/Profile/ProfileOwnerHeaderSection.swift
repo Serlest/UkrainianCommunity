@@ -5,6 +5,7 @@ enum ProfileDashboardMode {
     case admin
 
     init?(user: AppUser) {
+        guard PermissionService.isUsableAccount(user: user) else { return nil }
         switch user.globalRole.authorizationRole {
         case .owner:
             self = .owner
@@ -120,6 +121,8 @@ enum OwnerProfileText {
     static func value(_ uk: String, _ de: String) -> String {
         AppLanguage.stored == .german ? de : uk
     }
+    static var adminToolsSubtitle: String { value("Користувачі та журнал адміністративних дій.", "Nutzer und Protokoll der Verwaltungsaktionen.") }
+    static var adminUsersSubtitle: String { value("Пошук, попередження та статуси користувачів.", "Suche, Verwarnungen und Kontostatus.") }
     static var accessTitle: String { value("Організації та доступ", "Organisationen und Zugriff") }
     static var contentTitle: String { value("Публікації та повідомлення", "Inhalte und Mitteilungen") }
     static var reportsTitle: String { value("Аналітика та контроль", "Auswertung und Kontrolle") }

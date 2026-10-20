@@ -163,7 +163,8 @@ final class AccountStatusMonitorService: ObservableObject {
             statusMessage: data["statusMessage"] as? String,
             statusUpdatedAt: (data["statusUpdatedAt"] as? Timestamp)?.dateValue(),
             statusUpdatedBy: data["statusUpdatedBy"] as? String,
-            statusAcknowledgedAt: (data["statusAcknowledgedAt"] as? Timestamp)?.dateValue()
+            statusAcknowledgedAt: (data["statusAcknowledgedAt"] as? Timestamp)?.dateValue(),
+            globalRole: (data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user
         )
         return update.applying(to: currentUser)
     }
@@ -195,6 +196,8 @@ struct AccountStatusSnapshotUpdate {
     let statusUpdatedBy: String?
     let statusAcknowledgedAt: Date?
 
+    var globalRole: GlobalRole? = nil
+
     func applying(to user: AppUser) -> AppUser {
         AppUser(
             id: user.id,
@@ -206,7 +209,7 @@ struct AccountStatusSnapshotUpdate {
             bio: user.bio,
             telegramUsername: user.telegramUsername,
             role: user.role,
-            globalRole: user.globalRole,
+            globalRole: globalRole ?? user.globalRole,
             requiresMultiFactorAuth: requiresMultiFactorAuth,
             moderatorSections: user.moderatorSections,
             blockState: blockState,

@@ -9,6 +9,19 @@ struct OrganizationAccessRolloutTests {
         Organization(id: "org", name: "Fixture", description: "Fixture", city: "Wien", ownerId: "a", adminIds: [], moderatorIds: [], createdAt: .now, updatedAt: .now, moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
     }
 
+    @Test func sameAccountRevocationDiscardsCachedGrantWithoutFailingOpen() async throws {
+        let store = OrganizationAccessStore(currentUID: { "a" }, call: { _, _ in
+            ["principalId": "a", "schemaVersion": 1, "mode": "enforced", "commandsEnabled": true,
+             "records": [["organizationId": "org", "actions": ["managePhotos"]]],
+             "commands": ["saveOrganizationPhoto": true]]
+        })
+        _ = try await store.preparePhotoCommand(organizationID: "org")
+        #expect(store.allows("managePhotos", organizationID: "org", userID: "a", legacy: true))
+        store.invalidateAuthority(for: "a")
+        #expect(!store.allows("managePhotos", organizationID: "org", userID: "a", legacy: true))
+        store.transition(to: nil)
+    }
+
     @Test func separateActionsAndRollbackSelectTheCorrectWriteRoute() async throws {
         var mode = "shadow"
         var commandCalls = 0
