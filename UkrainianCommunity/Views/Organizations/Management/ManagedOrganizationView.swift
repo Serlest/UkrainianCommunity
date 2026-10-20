@@ -214,12 +214,21 @@ struct ManagedOrganizationView: View {
             let previous = currentOrganization
             let previouslyAllowed = canAccessManagement
             authorityOrganization = updated
-            if previous.ownerId != updated.ownerId || previous.adminIds != updated.adminIds ||
-                previous.moderatorIds != updated.moderatorIds || previous.moderationStatus != updated.moderationStatus {
+            let teamChanged = previous.ownerId != updated.ownerId || Set(previous.adminIds) != Set(updated.adminIds)
+                || Set(previous.moderatorIds) != Set(updated.moderatorIds)
+            let actorRoleChanged = identity.userID.map { uid in
+                (previous.ownerId == uid) != (updated.ownerId == uid)
+                    || previous.adminIds.contains(uid) != updated.adminIds.contains(uid)
+                    || previous.moderatorIds.contains(uid) != updated.moderatorIds.contains(uid)
+            } ?? false
+            let authorityChanged = previous.moderationStatus != updated.moderationStatus
+                || (identity.role != GlobalRole.owner.rawValue && actorRoleChanged)
+            if authorityChanged {
                 if let uid = identity.userID { accessStore.invalidateAuthority(for: uid) }
                 closeManagementSheets()
-                if previouslyAllowed && canAccessManagement { reloadAuthorizedTeam() }
             }
+            // Another teammate's role change must not discard this user's open draft.
+            if (teamChanged || authorityChanged) && previouslyAllowed && canAccessManagement { reloadAuthorizedTeam() }
         } onError: { error in
             guard authorityObservationID == observationID, accessIdentity == identity else { return }
             if error == .permissionDenied || error == .notFound {
