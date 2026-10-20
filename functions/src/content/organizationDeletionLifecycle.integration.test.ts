@@ -1,3 +1,4 @@
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 import {resolve} from "node:path";
@@ -155,6 +156,7 @@ test("owner callable removes organization, news and actual stored images and not
   const coverPath = `news/${newsId}/cover.jpg`;
   const bucket = adminStorage.bucket();
   await db.doc(`users/${actorUserId}`).set({globalRole: "owner", accountStatus: "active"});
+  await seedCurrentLegalForIntegration(actorUserId);
   await db.doc(`organizations/${organizationId}`).set({name: "Test", ownerId: ownerUserId, moderationStatus: "approved"});
   await db.doc(`organizations/${organizationId}/photos/test`).set({uploadedBy: ownerUserId});
   await db.doc(`news/${newsId}`).set({organizationId, authorId: ownerUserId});
@@ -195,6 +197,7 @@ test("all organization deletion collection-group queries have deployment indexes
 
 test("missing organization deletion index leaves the organization and owner intact", {skip: !live}, async t => {
   await db.doc(`users/${actorUserId}`).set({globalRole: "owner", accountStatus: "active"});
+  await seedCurrentLegalForIntegration(actorUserId);
   await db.doc(`organizations/${organizationId}`).set({name: "Test", ownerId: ownerUserId});
   const original = db.collectionGroup.bind(db);
   const mocked = t.mock.method(db, "collectionGroup", (name: string) => {

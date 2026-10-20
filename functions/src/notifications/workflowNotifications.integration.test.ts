@@ -3,13 +3,14 @@ import {after, before, test} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
 import type {BatchResponse, SendResponse} from "firebase-admin/messaging";
 import {db} from "../firebase/admin";
+import {seedVerifiedAuthForIntegration, deleteAuthForIntegration} from "../auth/authIntegrationFixture";
 import {notifyOrganizationSubmission, notifyContentComment, isOrganizationSubmission, organizationStaff, canReceiveScopedNotification} from "./workflowNotifications";
 import {deliverPushDurably, notificationPushIsExpired, terminalTargetIds} from "./durablePushDelivery";
 import {countsAsUnread, unreadNotificationCount} from "./notificationBadge";
 import {shouldDeliverInboxNotificationPush, synchronizeNotificationBadge} from "./inboxPushDelivery";
 import type {PushRegistrationDocument} from "./pushRegistrations";
 
-const live = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+const live = Boolean(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
 const owner = "notification-audit-owner", admin = "notification-audit-admin", author = "notification-audit-author", staff = "notification-audit-staff";
 const badgeUser = "notification-badge-test-user";
 const orgId = "notification-audit-org";
@@ -17,6 +18,7 @@ const inbox = (id: string) => db.collection("users").doc(id).collection("notific
 before(async () => {
   if (!live) return;
   await cleanup();
+  await seedVerifiedAuthForIntegration(owner, admin, author, staff, badgeUser);
   for (const [id, globalRole] of [[owner, "owner"], [admin, "admin"], [author, "user"], [staff, "user"]]) {
     await db.collection("users").doc(id).set({globalRole, accountStatus: "active", blockState: "active"});
   }
@@ -24,6 +26,7 @@ before(async () => {
 });
 after(async () => {if (live) await cleanup();});
 async function cleanup() {
+  await deleteAuthForIntegration(owner, admin, author, staff, badgeUser);
   for (const id of [owner, admin, author, staff, badgeUser]) await db.recursiveDelete(db.collection("users").doc(id));
   await db.recursiveDelete(db.collection("organizations").doc(orgId));
 }

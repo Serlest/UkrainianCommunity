@@ -1,3 +1,4 @@
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {strict as assert} from "node:assert";
 import {test, before, after} from "node:test";
 import {db} from "../firebase/admin";
@@ -28,6 +29,7 @@ before(async () => {
   if (!process.env.GCLOUD_PROJECT?.startsWith("demo-")) throw new Error("Tests require a demo emulator project.");
   await cleanup();
   await db.doc(`users/${actor}`).set({globalRole: "user", accountStatus: "active", blockState: "active"});
+  await seedCurrentLegalForIntegration(actor);
   for (const id of [first, second]) await db.doc(`organizations/${id}`).set({
     name: id, ownerId: other, adminIds: [actor], moderatorIds: [], moderationStatus: "approved",
   });

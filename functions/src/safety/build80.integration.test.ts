@@ -1,3 +1,4 @@
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
@@ -14,6 +15,7 @@ function request(uid: string, data: unknown) {
 }
 async function actor(uid: string, globalRole = "owner") {
   await db.doc(`users/${uid}`).set({globalRole, accountStatus: "active", blockState: "active", displayName: uid});
+  await seedCurrentLegalForIntegration(uid);
 }
 
 test("Build80 moderation commits one concurrent decision, replays the receipt, and rejects stale or unauthorized changes", {skip: !enabled}, async () => {

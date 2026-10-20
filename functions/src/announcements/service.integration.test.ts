@@ -1,3 +1,4 @@
+import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {createHash} from "node:crypto";
 import {strict as assert} from "node:assert";
 import {before, after, test} from "node:test";
@@ -13,6 +14,7 @@ before(async () => {
   if (!enabled) return;
   await db.doc("appConfig/announcements").set({enabled:true,iosEnabled:true,pushEnabled:true});
   for (const uid of userIDs) await db.collection("users").doc(uid).set({globalRole: uid === "ann-owner" ? "owner" : uid === "ann-admin" ? "admin" : "user", selectedFederalState: uid === "ann-tirol" ? "tirol" : "wien", accountStatus: "active", requiresMultiFactorAuth: uid === "ann-owner"});
+  await seedCurrentLegalForIntegration(...userIDs);
   await db.recursiveDelete(db.collection("announcements").doc(draft.id));
 });
 after(async () => {

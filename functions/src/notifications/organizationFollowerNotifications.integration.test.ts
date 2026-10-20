@@ -4,6 +4,7 @@ import {after, before, test} from "node:test";
 import {Timestamp} from "firebase-admin/firestore";
 
 import {db} from "../firebase/admin";
+import {seedVerifiedAuthForIntegration, deleteAuthForIntegration} from "../auth/authIntegrationFixture";
 import {shouldDeliverInboxNotificationPush} from "./inboxPushDelivery";
 import {
   followerImmediatePushWindowMs,
@@ -12,7 +13,7 @@ import {
   type PublishedOrganizationContent,
 } from "./organizationFollowerNotifications";
 
-const live = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+const live = Boolean(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
 const organizationId = "follower-notification-test-organization";
 const contentId = "follower-notification-test-news";
 const germanRecipientId = "follower-notification-test-german";
@@ -29,6 +30,7 @@ const recipientIds = [
 before(async () => {
   if (!live) return;
   await cleanup();
+  await seedVerifiedAuthForIntegration(...recipientIds);
 
   await Promise.all([
     writeUser(germanRecipientId, "active", "active", "de"),
@@ -152,6 +154,7 @@ function notification(userId: string) {
 }
 
 async function cleanup(): Promise<void> {
+  await deleteAuthForIntegration(...recipientIds);
   await Promise.all(recipientIds.map((userId) =>
     db.recursiveDelete(db.collection("users").doc(userId))
   ));
