@@ -225,6 +225,22 @@ function isBlockedStatus(status: AccountStatus): boolean {
     || status === "deactivated";
 }
 
+/** Keep the server transition graph aligned with the available account actions.
+ * In particular, a stale warning request must never lift an existing restriction.
+ */
+export function assertAccountStatusTransition(current: AccountStatus, next: AccountStatus): void {
+  const allowed: Record<AccountStatus, readonly AccountStatus[]> = {
+    active: ["active", "warned", "suspendedUntil", "bannedPermanent", "deactivated"],
+    warned: ["active", "warned", "suspendedUntil", "bannedPermanent", "deactivated"],
+    suspendedUntil: ["active", "suspendedUntil", "bannedPermanent", "deactivated"],
+    bannedPermanent: ["active", "bannedPermanent"],
+    deactivated: ["active", "deactivated"],
+  };
+  if (!allowed[current].includes(next)) {
+    throw new HttpsError("failed-precondition", "Restore account access before changing this status.");
+  }
+}
+
 function timestampToISO(timestamp: Timestamp | null): string | null {
   return timestamp?.toDate().toISOString() ?? null;
 }
@@ -285,8 +301,9 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
 
       const reason = notificationReason;
       const next = mutation.apply(target, statusRequest);
-      const repeatsExistingRestriction = isBlockedStatus(next.accountStatus)
-        && target.accountStatus === next.accountStatus
+      assertAccountStatusTransition(target.accountStatus, next.accountStatus);
+      assertAccountStatusTransition(target.blockState, next.accountStatus);
+      const repeatsExistingStatus = target.accountStatus === next.accountStatus
         && target.blockState === next.blockState;
       const nextWarningCount = next.warningCount ? target.warningCount + 1 : target.warningCount;
       const nextBanTimestamp = next.banExpiresAt instanceof Timestamp ? next.banExpiresAt : null;
@@ -295,15 +312,16 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
       previousBlockState = target.blockState;
       newAccountStatus = next.accountStatus;
       newBlockState = next.blockState;
-      warningCount = nextWarningCount;
-      banExpiresAt = repeatsExistingRestriction
+      warningCount = repeatsExistingStatus ? target.warningCount : nextWarningCount;
+      banExpiresAt = repeatsExistingStatus
         ? timestampToISO(target.banExpiresAt)
         : timestampToISO(nextBanTimestamp);
 
+      // Repeating the current state must not duplicate warnings or restoration notices.
       // A retry after a partial revoke failure must not duplicate the status
       // mutation, audit entry or notification. It still reaches the revoke call
       // below, so an already-restricted account can retry the missing side effect.
-      if (repeatsExistingRestriction) {
+      if (repeatsExistingStatus) {
         return;
       }
 

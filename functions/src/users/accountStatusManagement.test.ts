@@ -5,6 +5,7 @@ import {HttpsError} from "firebase-functions/v2/https";
 
 import {
   assertMutableAccountStatusTarget,
+  assertAccountStatusTransition,
   type AccountStatusSnapshot,
 } from "./accountStatusManagement";
 import {type UserPermissionSnapshot} from "../permissions/userPermissions";
@@ -52,4 +53,16 @@ test("app owner account status is immutable through user management", () => {
     () => assertMutableAccountStatusTarget(actor("owner"), target("owner")),
     assertPermissionDenied
   );
+});
+
+
+test("restriction transitions cannot restore access through warning or downgrade a permanent ban", () => {
+  for (const status of ["suspendedUntil", "bannedPermanent", "deactivated"] as const) {
+    assert.throws(() => assertAccountStatusTransition(status, "warned"), {code: "failed-precondition"});
+    assert.doesNotThrow(() => assertAccountStatusTransition(status, "active"));
+    assert.doesNotThrow(() => assertAccountStatusTransition(status, status));
+  }
+  assert.throws(() => assertAccountStatusTransition("bannedPermanent", "suspendedUntil"), {code: "failed-precondition"});
+  assert.throws(() => assertAccountStatusTransition("deactivated", "suspendedUntil"), {code: "failed-precondition"});
+  assert.doesNotThrow(() => assertAccountStatusTransition("suspendedUntil", "bannedPermanent"));
 });
