@@ -510,6 +510,7 @@ struct FirestoreUserRepository: UserRepository {
     }
 
     func updateProfile(_ profile: EditableUserProfileDraft) async throws -> AppUser {
+        guard profile.validationMessage == nil else { throw AppError.validationFailed }
         guard let uid = Auth.auth().currentUser?.uid else {
             throw AppError.permissionDenied
         }

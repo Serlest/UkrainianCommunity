@@ -9,6 +9,9 @@ struct PasskeyManagementView: View {
     @State private var passkeyPendingRemoval: PasskeyRecord?
     @State private var isRegistering = false
     @State private var isRemoving = false
+    @State private var isLoading = false
+    @State private var hasLoaded = false
+    @State private var loadFailed = false
     @State private var message: String?
 
     private var requiresAuthenticator: Bool { isPrivileged && !isTOTPAuthenticated }
@@ -19,6 +22,16 @@ struct PasskeyManagementView: View {
             subtitle: AppStrings.AccountSecurity.passkeySubtitle
         ) {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                if isLoading {
+                    ProgressView()
+                        .accessibilityLabel(AppStrings.Common.loading)
+                }
+                if loadFailed {
+                    InlineMessageCard(style: .error, message: AppStrings.AccountSecurity.passkeyLoadFailed)
+                    Button(AppStrings.Action.retry) { Task { await reload() } }
+                        .disabled(isLoading)
+                        .accessibilityIdentifier("accountSecurity.passkey.retry")
+                }
                 ForEach(passkeys) { passkey in
                     HStack(spacing: AppTheme.dashboardSpacing) {
                         Image(systemName: "key.fill")
@@ -34,7 +47,7 @@ struct PasskeyManagementView: View {
                             } label: {
                                 Image(systemName: "trash")
                             }
-                            .disabled(isRemoving)
+                            .disabled(isRemoving || isRegistering || isLoading || loadFailed)
                             .accessibilityLabel(AppStrings.AccountSecurity.passkeyRemove)
                         }
                     }
@@ -52,7 +65,7 @@ struct PasskeyManagementView: View {
                         ? AppStrings.AccountSecurity.passkeyAdd
                         : AppStrings.AccountSecurity.passkeyAddAnother,
                     loadingTitle: AppStrings.AccountSecurity.passkeyAdding,
-                    isEnabled: !requiresAuthenticator && !isRegistering,
+                    isEnabled: hasLoaded && !loadFailed && !requiresAuthenticator && !isRegistering && !isRemoving && !isLoading,
                     isLoading: isRegistering,
                     systemImage: "person.badge.key.fill"
                 ) {
@@ -83,10 +96,15 @@ struct PasskeyManagementView: View {
     }
 
     private func reload() async {
+        guard !isLoading else { return }
+        isLoading = true
+        loadFailed = false
+        defer { isLoading = false }
         do {
             passkeys = try await PasskeyService.shared.listPasskeys()
+            hasLoaded = true
         } catch {
-            message = AppStrings.AccountSecurity.passkeyLoadFailed
+            loadFailed = true
         }
     }
 

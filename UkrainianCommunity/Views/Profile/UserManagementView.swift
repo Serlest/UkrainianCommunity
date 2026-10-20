@@ -169,7 +169,7 @@ struct UserManagementView: View {
             UserDetailView(userID: route.user.id, fallbackUser: route.user, viewModel: viewModel, actor: actor)
         }
         .alert(AppStrings.UserManagement.title, isPresented: Binding(
-            get: { viewModel.statusMessage != nil },
+            get: { selectedUserRoute == nil && viewModel.statusMessage != nil },
             set: { if !$0 { viewModel.statusMessage = nil } }
         )) {
             Button(AppStrings.Common.ok, role: .cancel) {}

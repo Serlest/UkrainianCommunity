@@ -187,6 +187,7 @@ struct ProfilePreferencesView: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("profile.settings.blockedUsers")
                         }
                     }
                 }

@@ -44,6 +44,7 @@ struct BlockedUsersView: View {
             Text(AppStrings.Safety.unblockConfirmationMessage(user.displayName))
         }
         .refreshable { await coordinator.reload() }
+        .accessibilityIdentifier("screen.profile.blockedUsers")
     }
 
     @ViewBuilder

@@ -3,7 +3,15 @@ import Foundation
 actor MockRepositoryStore {
     static let shared = MockRepositoryStore()
 
-    var user = MockContentBuilder.currentUser()
+    var user: AppUser = {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestForceOwnerSession"] == "1" {
+            return MockContentBuilder.ownerUser(requiresMultiFactorAuth: true)
+        }
+        #endif
+        return MockContentBuilder.currentUser()
+    }()
     var news = MockContentBuilder.newsPosts()
     var events = MockContentBuilder.events()
     var organizations = MockContentBuilder.organizations()
@@ -26,6 +34,7 @@ actor MockRepositoryStore {
             telegramUsername: profile.telegramUsername,
             role: user.role,
             globalRole: user.globalRole,
+            requiresMultiFactorAuth: user.requiresMultiFactorAuth,
             moderatorSections: user.moderatorSections,
             blockState: user.blockState,
             accountStatus: user.accountStatus,

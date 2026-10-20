@@ -1251,6 +1251,7 @@ private struct FeedbackConversationView: View {
                             }
 
                             TextEditor(text: $replyText)
+                                .accessibilityIdentifier("feedback.reply.text")
                                 .scrollContentBackground(.hidden)
                                 .frame(minHeight: 86, maxHeight: 120)
                                 .padding(8)
@@ -1402,6 +1403,7 @@ private struct FeedbackConversationView: View {
         ) {
             submitReply()
         }
+        .accessibilityIdentifier("feedback.reply.send")
 
         if allowsClose, onClose != nil {
             Button {

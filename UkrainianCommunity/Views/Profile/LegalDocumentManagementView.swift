@@ -172,6 +172,7 @@ private struct LegalDocumentManagementCard: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("legal.manage.edit.\(type.rawValue)")
             }
         }
     }
@@ -288,9 +289,11 @@ private struct LegalDocumentEditorView: View {
                     )
 
                     TextField(AppStrings.LegalManagement.changeSummaryGerman, text: changeSummaryBinding(locale: "de"), axis: .vertical)
+                        .accessibilityIdentifier("legal.edit.summary.de")
                         .lineLimit(2...4)
                         .appEditorInputStyle(minHeight: 72)
                     TextField(AppStrings.LegalManagement.changeSummaryUkrainian, text: changeSummaryBinding(locale: "uk"), axis: .vertical)
+                        .accessibilityIdentifier("legal.edit.summary.uk")
                         .lineLimit(2...4)
                         .appEditorInputStyle(minHeight: 72)
                 }
@@ -335,6 +338,7 @@ private struct LegalDocumentEditorView: View {
                     ) {
                         Task { _ = await saveDraft() }
                     }
+                    .accessibilityIdentifier("legal.edit.save")
 
                     Button {
                         isShowingPreview = true

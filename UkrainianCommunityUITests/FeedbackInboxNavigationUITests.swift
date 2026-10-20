@@ -86,8 +86,157 @@ final class FeedbackInboxNavigationUITests: XCTestCase {
 }
 
 
-/// Read-only navigation checks. These never submit, publish, revoke access or delete data.
+/// Owner journeys use isolated UI-test repositories. No live mutations.
 final class OwnerProfileAuditUITests: XCTestCase {
+    @MainActor
+    func testOwnerEditorGermanDarkLargeTextKeepsEveryFieldReachable() {
+        let app = launch(language: "de", darkLarge: true)
+        app.buttons["profile.edit.open"].tap()
+        for id in ["displayName", "fullName", "city", "telegram"] {
+            let field = app.textFields["profile.edit.\(id)"]
+            reveal(field, in: app)
+            XCTAssertTrue(field.isHittable)
+            capture(app, "owner-editor-de-large-" + id)
+        }
+        XCTAssertFalse(app.buttons["profile.edit.save"].isEnabled)
+    }
+
+    @MainActor
+    func testOwnerReplyPersistsInTheConversationAndAnsweredList() {
+        let app = launch()
+        let entry = app.buttons["profile.feedbackInbox"]
+        reveal(entry, in: app); entry.tap()
+        let row = app.buttons["feedbackInbox.open.directory-feedback-fixture"]
+        XCTAssertTrue(row.waitForExistence(timeout: 8)); row.tap()
+        let reply = app.textViews["feedback.reply.text"]
+        XCTAssertTrue(reply.waitForExistence(timeout: 8))
+        reply.tap(); reply.typeText("Owner reply persistence audit")
+        app.buttons["feedback.reply.send"].tap()
+        XCTAssertTrue(app.staticTexts["Owner reply persistence audit"].firstMatch.waitForExistence(timeout: 10))
+        app.buttons["Готово"].firstMatch.tap()
+        let answered = app.segmentedControls.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Відповіді надано")).firstMatch
+        XCTAssertTrue(answered.waitForExistence(timeout: 5)); answered.tap()
+        XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
+        XCTAssertTrue(app.staticTexts["Owner reply persistence audit"].firstMatch.waitForExistence(timeout: 8))
+        capture(app, "owner-feedback-reply-persisted")
+    }
+    @MainActor
+    func testDonationEditorValidatesAndPersistsChanges() {
+        let app = launch()
+        let entry = app.buttons["profile.owner.donationSettings"]
+        reveal(entry, in: app); entry.tap()
+        let url = app.textFields["donation.edit.url"]
+        reveal(url, in: app)
+        url.tap(); url.typeText("http://unsafe.example.org")
+        let save = app.buttons["donation.edit.save"]
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        reveal(save, in: app)
+        XCTAssertFalse(save.isEnabled)
+        // Return to the URL field without leaving the unsaved editor.
+        for _ in 0..<12 {
+            if url.exists && url.isHittable { break }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.3))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.8)))
+        }
+        replace(url, with: "https://example.org/support")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        reveal(save, in: app); XCTAssertTrue(save.isEnabled); save.tap()
+        expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: save)
+        waitForExpectations(timeout: 10)
+        back(app)
+        XCTAssertTrue(entry.waitForExistence(timeout: 5)); entry.tap()
+        reveal(url, in: app)
+        XCTAssertEqual(url.value as? String, "https://example.org/support")
+        capture(app, "owner-donation-saved")
+    }
+
+    @MainActor
+    func testLegalDraftCanBeSavedAndReopenedWithoutPublishing() {
+        let app = launch()
+        let entry = app.buttons["profile.owner.legalDocuments"]
+        reveal(entry, in: app); entry.tap()
+        let edit = app.buttons["legal.manage.edit.terms"]
+        reveal(edit, in: app); edit.tap()
+        let german = app.textFields["legal.edit.summary.de"]
+        reveal(german, in: app); german.tap(); german.typeText("Lokaler Testentwurf")
+        let ukrainian = app.textFields["legal.edit.summary.uk"]
+        replace(ukrainian, with: "Локальний тестовий опис")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        let save = app.buttons["legal.edit.save"]
+        reveal(save, in: app); save.tap()
+        let saved = NSPredicate(format: "enabled == false")
+        expectation(for: saved, evaluatedWith: save)
+        waitForExpectations(timeout: 10)
+        back(app)
+        XCTAssertTrue(edit.waitForExistence(timeout: 5)); edit.tap()
+        XCTAssertEqual(german.value as? String, "Lokaler Testentwurf")
+        XCTAssertEqual(ukrainian.value as? String, "Локальний тестовий опис")
+        capture(app, "owner-legal-draft-saved")
+    }
+    @MainActor
+    private func replace(_ field: XCUIElement, with value: String) {
+        let app = XCUIApplication()
+        if app.keyboards.firstMatch.exists {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        }
+        reveal(field, in: app)
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        // Keep the control above the keyboard and the pinned save action before focusing it.
+        for _ in 0..<5 where field.frame.midY > app.frame.height * 0.45 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.7))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.55)), withVelocity: .slow, thenHoldForDuration: 0.3)
+        }
+        field.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        field.press(forDuration: 1.2)
+        let selectAll = app.menuItems.matching(NSPredicate(format: "label IN %@", ["Select All", "Alles auswählen", "Вибрати все", "Вибрати всі"])).firstMatch
+        XCTAssertTrue(selectAll.waitForExistence(timeout: 3), app.debugDescription)
+        selectAll.tap()
+        field.typeText(XCUIKeyboardKey.delete.rawValue + value)
+        if !value.isEmpty { XCTAssertEqual(field.value as? String, value) }
+    }
+
+    @MainActor
+    func testOwnerEditsSavesAndReopensProfileWithoutLosingAdministration() {
+        let app = launch()
+        app.buttons["profile.edit.open"].tap()
+        let name = app.textFields["profile.edit.displayName"]
+        replace(name, with: "Owner Audit Saved")
+        replace(app.textFields["profile.edit.fullName"], with: "Owner Complete Name")
+        let save = app.buttons["profile.edit.save"]
+        XCTAssertTrue(save.isEnabled); save.tap()
+        XCTAssertTrue(app.buttons["profile.edit.open"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Owner Audit Saved"].exists)
+        XCTAssertTrue(app.buttons["profile.organizationRequests"].exists)
+        app.buttons["profile.edit.open"].tap()
+        XCTAssertEqual(name.value as? String, "Owner Audit Saved")
+        XCTAssertEqual(app.textFields["profile.edit.fullName"].value as? String, "Owner Complete Name")
+        XCTAssertFalse(save.isEnabled)
+        capture(app, "owner-profile-saved-and-reopened")
+    }
+
+    @MainActor
+    func testProfileValidationAndDiscardProtectExistingData() {
+        let app = launch()
+        app.buttons["profile.edit.open"].tap()
+        let name = app.textFields["profile.edit.displayName"]
+        let original = name.value as? String
+        replace(app.textFields["profile.edit.fullName"], with: "")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        capture(app, "owner-empty-name-validation")
+        XCTAssertFalse(app.buttons["profile.edit.save"].isEnabled, "Full name value: \(String(describing: app.textFields["profile.edit.fullName"].value))")
+        reveal(app.staticTexts["Вкажіть повне ім’я."], in: app)
+        XCTAssertTrue(app.staticTexts["Вкажіть повне ім’я."].exists)
+        app.buttons["Скасувати"].firstMatch.tap()
+        let discard = app.buttons["Відхилити зміни"].firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 5)); discard.tap()
+        XCTAssertTrue(app.buttons["profile.edit.open"].waitForExistence(timeout: 5))
+        app.buttons["profile.edit.open"].tap()
+        XCTAssertEqual(name.value as? String, original)
+        XCTAssertFalse((app.textFields["profile.edit.fullName"].value as? String ?? "").isEmpty)
+    }
+
     @MainActor
     private func launch(language: String = "uk", darkLarge: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
@@ -108,9 +257,14 @@ final class OwnerProfileAuditUITests: XCTestCase {
     private func reveal(_ item: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<30 {
             if item.exists && item.isHittable { return }
-            app.swipeUp()
+            let scrollBack = item.exists && item.frame.maxY < app.frame.height * 0.3
+            let from: CGFloat = scrollBack ? 0.3 : 0.8
+            let to: CGFloat = scrollBack ? 0.8 : 0.3
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: from))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: to)), withVelocity: .slow, thenHoldForDuration: 0.3)
         }
-        XCTFail("Cannot reach \(item)")
+        capture(app, "unreachable-control")
+        XCTFail("Cannot reach \(item): \(app.debugDescription)")
     }
 
     @MainActor
@@ -183,6 +337,12 @@ final class OwnerProfileAuditUITests: XCTestCase {
         reveal(security, in: app); security.tap()
         XCTAssertTrue(app.otherElements["screen.accountSecurity"].waitForExistence(timeout: 10))
         capture(app, "owner-account-security"); back(app)
+        for id in ["blockedOrganizations", "blockedUsers"] {
+            let link = app.buttons["profile.settings.\(id)"]
+            reveal(link, in: app); link.tap()
+            XCTAssertTrue(app.otherElements["screen.profile.\(id)"].waitForExistence(timeout: 8))
+            back(app)
+        }
         for (id, screen) in [("profile.legal.terms", "legal.terms.screen"), ("profile.legal.privacy", "legal.privacy.screen")] {
             let link = app.buttons[id]; reveal(link, in: app); link.tap()
             XCTAssertTrue(app.otherElements[screen].waitForExistence(timeout: 10))

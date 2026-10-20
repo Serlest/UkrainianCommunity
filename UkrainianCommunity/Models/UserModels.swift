@@ -281,6 +281,29 @@ struct EditableUserProfileDraft: Equatable {
     let selectedFederalState: AustrianFederalState
     let avatarURL: URL?
 
+    /// Match the self-profile write contract before starting any upload or write.
+    var validationMessage: String? {
+        let german = AppLanguage.stored == .german
+        if displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return AppStrings.Profile.displayNameRequired
+        }
+        if fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return german ? "Bitte geben Sie Ihren vollständigen Namen ein." : "Вкажіть повне ім’я."
+        }
+        for (value, title, limit) in [
+            (displayName, AppStrings.Profile.displayName, 160),
+            (fullName, AppStrings.Profile.fullName, 160),
+            (city, AppStrings.Common.city, 160),
+            (bio, AppStrings.Profile.bio, 2000),
+            (telegramUsername ?? "", AppStrings.Profile.telegramUsername, 80)
+        ] where value.trimmingCharacters(in: .whitespacesAndNewlines).count > limit {
+            return german
+                ? "\(title): höchstens \(limit) Zeichen."
+                : "\(title): не більше \(limit) символів."
+        }
+        return nil
+    }
+
     init(
         fullName: String,
         displayName: String,

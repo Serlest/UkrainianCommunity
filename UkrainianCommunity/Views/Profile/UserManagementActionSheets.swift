@@ -51,6 +51,10 @@ struct AccountActionConfirmationSheet: View {
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
 
+                    if let message = viewModel.statusMessage {
+                        UserManagementOperationMessage(message: message)
+                    }
+
                     PrimaryActionButton(
                         title: action.title,
                         isEnabled: canSubmit,
@@ -66,11 +70,14 @@ struct AccountActionConfirmationSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel) { dismiss() }
+                        .disabled(viewModel.updatingUserIDs.contains(target.id))
                         .accessibilityIdentifier("user.action.cancel")
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        .interactiveDismissDisabled(viewModel.updatingUserIDs.contains(target.id))
+        .onAppear { viewModel.statusMessage = nil }
     }
 
     private func performAction() {
@@ -102,9 +109,11 @@ struct PlatformRoleConfirmationSheet: View {
             actionImage: action.systemImage,
             isEnabled: canSubmit,
             isLoading: viewModel.updatingUserIDs.contains(target.id),
+            message: viewModel.statusMessage,
             onCancel: { dismiss() },
             onConfirm: performAction
         )
+        .onAppear { viewModel.statusMessage = nil }
     }
 
     private var canSubmit: Bool {
@@ -141,9 +150,11 @@ struct OrganizationRoleRemovalSheet: View {
             actionImage: "minus.circle",
             isEnabled: canSubmit,
             isLoading: viewModel.updatingUserIDs.contains(target.id),
+            message: viewModel.statusMessage,
             onCancel: { dismiss() },
             onConfirm: performAction
         )
+        .onAppear { viewModel.statusMessage = nil }
     }
 
     private var canSubmit: Bool {
@@ -170,6 +181,7 @@ private struct AdminReasonSheetLayout: View {
     let actionImage: String
     let isEnabled: Bool
     let isLoading: Bool
+    let message: String?
     let onCancel: () -> Void
     let onConfirm: () -> Void
 
@@ -191,6 +203,9 @@ private struct AdminReasonSheetLayout: View {
                     Text(notice)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
+                    if let message {
+                        UserManagementOperationMessage(message: message)
+                    }
                     PrimaryActionButton(
                         title: actionTitle,
                         isEnabled: isEnabled,
@@ -206,10 +221,25 @@ private struct AdminReasonSheetLayout: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel, action: onCancel)
+                        .disabled(isLoading)
                         .accessibilityIdentifier("user.action.cancel")
                 }
             }
         }
         .presentationDetents([.medium, .large])
+        .interactiveDismissDisabled(isLoading)
+    }
+}
+
+struct UserManagementOperationMessage: View {
+    let message: String
+    private var style: InlineMessageStyle {
+        if message == AppStrings.UserManagement.changesSaved { return .success }
+        if message == AppStrings.UserManagement.changesSavedRefreshFailed { return .info }
+        return .error
+    }
+    var body: some View {
+        InlineMessageCard(style: style, message: message)
+            .accessibilityIdentifier("user.action.result")
     }
 }

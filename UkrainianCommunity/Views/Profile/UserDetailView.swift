@@ -221,6 +221,9 @@ struct UserDetailView: View {
             AppGroupedContentPlane {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     profileCard
+                    if let message = viewModel.statusMessage {
+                        UserManagementOperationMessage(message: message)
+                    }
                     if viewModel.error != nil {
                         InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
                             .accessibilityIdentifier("user.detail.refreshError")

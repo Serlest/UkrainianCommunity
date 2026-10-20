@@ -76,6 +76,7 @@ struct ProfileView: View {
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @State private var isShowingEditProfileSheet = false
+    @State private var isShowingProfileDiscardConfirmation = false
     @State private var fullNameDraft = ""
     @State private var displayNameDraft = ""
     @State private var telegramUsernameDraft = ""
@@ -89,6 +90,7 @@ struct ProfileView: View {
     @State private var isShowingAvatarCrop = false
     @State private var ignoresNextAvatarPhotoClear = false
     @State private var isLoadingAvatarSelection = false
+    @State private var avatarSelectionTask: Task<Void, Never>?
     @State private var selectedFeedbackType: FeedbackType = .question
     @State private var feedbackMessage = ""
     @State private var guestAccessAction: GuestAccessAction?
@@ -114,7 +116,7 @@ struct ProfileView: View {
         ownerContentDraftRepository: OwnerContentDraftRepository = FirestoreOwnerContentDraftRepository(),
         analyticsService: AnalyticsTracking = NoopAnalyticsService(),
         bannerMeasurementService: BannerMeasurementService,
-        donationConfigRepository: DonationConfigRepository = FirestoreDonationConfigRepository(),
+        donationConfigRepository: DonationConfigRepository = DonationConfigRepositories.makeDefault(),
         notificationInboxRepository: NotificationInboxRepository = FirestoreNotificationInboxRepository(),
         notificationInboxViewModel: NotificationInboxViewModel? = nil,
         userBlockingCoordinator: UserBlockingCoordinator,
@@ -288,9 +290,7 @@ struct ProfileView: View {
     }
 
     private var profileValidationHint: String? {
-        if displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return AppStrings.Profile.displayNameRequired
-        }
+        if let validationMessage = profileDraft.validationMessage { return validationMessage }
 
         if isLoadingAvatarSelection {
             return AppStrings.Profile.avatarLoading
@@ -321,7 +321,15 @@ struct ProfileView: View {
         !viewModel.isSavingProfile &&
         !isLoadingAvatarSelection &&
         hasProfileChanges &&
-        !displayNameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        profileDraft.validationMessage == nil
+    }
+
+    private var profileDraft: EditableUserProfileDraft {
+        EditableUserProfileDraft(
+            fullName: fullNameDraft, displayName: displayNameDraft,
+            telegramUsername: telegramUsernameDraft, city: cityDraft, bio: bioDraft,
+            selectedFederalState: selectedFederalStateDraft, avatarURL: displayUser?.avatarURL
+        )
     }
 
     var body: some View {
@@ -470,6 +478,7 @@ struct ProfileView: View {
                     AppGlassIconButton(systemImage: "pencil", accessibilityLabel: AppStrings.Profile.editProfile) {
                         beginEditingProfile()
                     }
+                    .accessibilityIdentifier("profile.edit.open")
                 }
             }
         }
@@ -707,7 +716,11 @@ struct ProfileView: View {
             closeStyle: .cancel,
             closeAction: {
                 guard !viewModel.isSavingProfile else { return }
-                isShowingEditProfileSheet = false
+                if hasProfileChanges {
+                    isShowingProfileDiscardConfirmation = true
+                } else {
+                    isShowingEditProfileSheet = false
+                }
             }
         ) {
             ProfileAvatarEditorCard(
@@ -743,6 +756,7 @@ struct ProfileView: View {
                 ) {
                     saveProfileChanges()
                 }
+                .accessibilityIdentifier("profile.edit.save")
                 .padding(.horizontal, AppTheme.pageHorizontal)
                 .padding(.top, AppTheme.eventsMetadataSpacing)
                 .padding(.bottom, AppTheme.eventsMetadataSpacing)
@@ -756,7 +770,17 @@ struct ProfileView: View {
                 }
             }
         }
-        .interactiveDismissDisabled(viewModel.isSavingProfile)
+        .interactiveDismissDisabled(viewModel.isSavingProfile || hasProfileChanges || isLoadingAvatarSelection)
+        .confirmationDialog(
+            AppLanguage.stored == .german ? "Profiländerungen verwerfen?" : "Відхилити зміни профілю?",
+            isPresented: $isShowingProfileDiscardConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button(AppStrings.FeaturedEditor.discardChanges, role: .destructive) {
+                isShowingEditProfileSheet = false
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        }
         .sheet(isPresented: $isShowingAvatarCrop, onDismiss: resetAvatarCropSelection) {
             if let cropSourceAvatarImage {
                 ImageCropView(
@@ -774,17 +798,29 @@ struct ProfileView: View {
                 ignoresNextAvatarPhotoClear = false
                 return
             }
-            Task {
+            avatarSelectionTask?.cancel()
+            avatarSelectionTask = Task {
                 await loadSelectedAvatarPhoto(item: newValue)
             }
+        }
+        .onDisappear {
+            avatarSelectionTask?.cancel()
+            avatarSelectionTask = nil
+            isLoadingAvatarSelection = false
         }
     }
 
     private var editProfileIdentitySection: some View {
         ProfileSectionCard(title: AppStrings.Profile.mainInformation) {
             VStack(spacing: AppTheme.dashboardSpacing) {
-                EditorTextField(AppStrings.Profile.displayName, text: $displayNameDraft, systemImage: "person", autocapitalization: .words)
-                EditorTextField(AppStrings.Profile.fullName, text: $fullNameDraft, systemImage: "person.text.rectangle", autocapitalization: .words)
+                AppEditorField(title: AppStrings.Profile.displayName) {
+                    EditorTextField(AppStrings.Profile.displayName, text: $displayNameDraft, systemImage: "person", autocapitalization: .words)
+                        .accessibilityIdentifier("profile.edit.displayName")
+                }
+                AppEditorField(title: AppStrings.Profile.fullName) {
+                    EditorTextField(AppStrings.Profile.fullName, text: $fullNameDraft, systemImage: "person.text.rectangle", autocapitalization: .words)
+                        .accessibilityIdentifier("profile.edit.fullName")
+                }
                 ProfileEditorTextArea(
                     title: AppStrings.Profile.bio,
                     text: $bioDraft,
@@ -801,7 +837,10 @@ struct ProfileView: View {
             subtitle: AppStrings.Profile.personalRegionSubtitle
         ) {
             VStack(spacing: AppTheme.dashboardSpacing) {
-                EditorTextField(AppStrings.Common.city, text: $cityDraft, systemImage: "mappin.and.ellipse", autocapitalization: .words)
+                AppEditorField(title: AppStrings.Common.city) {
+                    EditorTextField(AppStrings.Common.city, text: $cityDraft, systemImage: "mappin.and.ellipse", autocapitalization: .words)
+                        .accessibilityIdentifier("profile.edit.city")
+                }
                 ProfileEditorPickerRow(title: AppStrings.Auth.federalState, systemImage: "globe.europe.africa") {
                     Picker(AppStrings.Auth.federalState, selection: $selectedFederalStateDraft) {
                         ForEach(AustrianFederalState.allCases) { state in
@@ -817,13 +856,16 @@ struct ProfileView: View {
     private var editProfileContactSection: some View {
         ProfileSectionCard(title: AppStrings.Profile.contactsSection) {
             VStack(spacing: AppTheme.dashboardSpacing) {
-                EditorTextField(
-                    AppStrings.Profile.telegramUsername,
-                    text: $telegramUsernameDraft,
-                    systemImage: "paperplane",
-                    autocapitalization: .never,
-                    autocorrectionDisabled: true
-                )
+                AppEditorField(title: AppStrings.Profile.telegramUsername) {
+                    EditorTextField(
+                        AppStrings.Profile.telegramUsername,
+                        text: $telegramUsernameDraft,
+                        systemImage: "paperplane",
+                        autocapitalization: .never,
+                        autocorrectionDisabled: true
+                    )
+                    .accessibilityIdentifier("profile.edit.telegram")
+                }
             }
         }
     }
@@ -1222,6 +1264,8 @@ struct ProfileView: View {
         }
 
         fullNameDraft = displayUser?.fullName ?? ""
+        avatarSelectionTask?.cancel()
+        isLoadingAvatarSelection = false
         displayNameDraft = displayUser?.displayName ?? ""
         telegramUsernameDraft = displayUser?.telegramUsername ?? ""
         cityDraft = displayUser?.city ?? ""
@@ -1232,6 +1276,7 @@ struct ProfileView: View {
         avatarPreviewImage = nil
         cropSourceAvatarImage = nil
         isShowingAvatarCrop = false
+        isShowingProfileDiscardConfirmation = false
         ignoresNextAvatarPhotoClear = false
         viewModel.profileMessage = nil
         isShowingEditProfileSheet = true
@@ -1242,15 +1287,7 @@ struct ProfileView: View {
 
         Task {
             let updatedUser = await viewModel.saveProfile(
-                EditableUserProfileDraft(
-                    fullName: fullNameDraft,
-                    displayName: displayNameDraft,
-                    telegramUsername: telegramUsernameDraft,
-                    city: cityDraft,
-                    bio: bioDraft,
-                    selectedFederalState: selectedFederalStateDraft,
-                    avatarURL: displayUser?.avatarURL
-                ),
+                profileDraft,
                 avatarImageData: selectedAvatarImageData
             )
             guard let updatedUser else { return }
@@ -1271,6 +1308,7 @@ struct ProfileView: View {
         isLoadingAvatarSelection = true
         do {
             let data = try await item.loadTransferable(type: Data.self)
+            guard !Task.isCancelled else { return }
             guard
                 let data,
                 let image = UIImage(data: data)
@@ -1285,6 +1323,7 @@ struct ProfileView: View {
             viewModel.profileMessage = nil
             isLoadingAvatarSelection = false
         } catch {
+            guard !Task.isCancelled else { return }
             viewModel.profileMessage = AppStrings.Profile.avatarSelectionFailed
             isLoadingAvatarSelection = false
         }

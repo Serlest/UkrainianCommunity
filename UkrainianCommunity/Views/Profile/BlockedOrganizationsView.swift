@@ -62,6 +62,7 @@ struct BlockedOrganizationsView: View {
             }
         }
         .task { await coordinator.reload() }
+        .accessibilityIdentifier("screen.profile.blockedOrganizations")
     }
 }
 

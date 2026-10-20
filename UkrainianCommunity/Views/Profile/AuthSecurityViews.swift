@@ -122,6 +122,7 @@ struct MultiFactorSignInView: View {
 final class AccountSecurityViewModel: ObservableObject {
     @Published private(set) var factors: [AuthMultiFactorFactor] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var hasLoadedFactors = false
     @Published private(set) var isStartingEnrollment = false
     @Published private(set) var isConfirmingEnrollment = false
     @Published private(set) var removingFactorID: String?
@@ -133,9 +134,12 @@ final class AccountSecurityViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private let multiFactorService: AuthMultiFactorService
+    private let loadFactors: () async throws -> [AuthMultiFactorFactor]
 
-    init(multiFactorService: AuthMultiFactorService) {
+    init(multiFactorService: AuthMultiFactorService,
+         loadFactors: (() async throws -> [AuthMultiFactorFactor])? = nil) {
         self.multiFactorService = multiFactorService
+        self.loadFactors = loadFactors ?? { try await multiFactorService.enrolledTOTPFactors() }
     }
 
     convenience init() {
@@ -143,12 +147,15 @@ final class AccountSecurityViewModel: ObservableObject {
     }
 
     func load() async {
+        guard !isLoading else { return }
         isLoading = true
+        hasLoadedFactors = false
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            factors = try await multiFactorService.enrolledTOTPFactors()
+            factors = try await loadFactors()
+            hasLoadedFactors = true
         } catch {
             errorMessage = AppStrings.AccountSecurity.loadFailed
         }
@@ -386,6 +393,9 @@ struct AccountSecurityView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .accessibilityLabel(AppStrings.Common.loading)
+            } else if !viewModel.hasLoadedFactors {
+                Button(AppStrings.Action.retry) { Task { await viewModel.load() } }
+                    .accessibilityIdentifier("accountSecurity.mfa.retry")
             } else if viewModel.factors.isEmpty {
                 InlineMessageCard(
                     style: .info,

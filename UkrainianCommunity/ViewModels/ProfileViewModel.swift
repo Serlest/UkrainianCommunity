@@ -48,6 +48,7 @@ final class ProfileViewModel: ObservableObject {
     private var notificationPreferencesSessionUserID: String?
     private var notificationPreferencesSessionGeneration = 0
     private var feedbackSubmissionGeneration = 0
+    private var profileSaveGeneration = 0
     private var pendingFeedbackAttempt: FeedbackSubmissionAttempt?
 
     init(
@@ -84,6 +85,7 @@ final class ProfileViewModel: ObservableObject {
     }
 
     func resetForAuthChange() {
+        profileSaveGeneration &+= 1
         notificationPreferencesSessionGeneration &+= 1
         notificationPreferencesSessionUserID = nil
         feedbackSubmissionGeneration &+= 1
@@ -334,15 +336,18 @@ final class ProfileViewModel: ObservableObject {
     func saveProfile(_ profile: EditableUserProfileDraft, avatarImageData: Data? = nil) async -> AppUser? {
         guard !isSavingProfile else { return nil }
 
-        let trimmedDisplayName = profile.displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedDisplayName.isEmpty else {
-            profileMessage = AppStrings.Profile.displayNameRequired
+        if let validationMessage = profile.validationMessage {
+            profileMessage = validationMessage
             return nil
         }
 
+        let generation = profileSaveGeneration
         isSavingProfile = true
         profileMessage = nil
-        defer { isSavingProfile = false }
+        var uploadingAvatar = avatarImageData != nil
+        defer {
+            if generation == profileSaveGeneration { isSavingProfile = false }
+        }
 
         do {
             let resolvedProfile: EditableUserProfileDraft
@@ -352,6 +357,8 @@ final class ProfileViewModel: ObservableObject {
                     data: avatarImageData,
                     userID: avatarUserID
                 )
+                guard generation == profileSaveGeneration else { return nil }
+                uploadingAvatar = false
                 resolvedProfile = EditableUserProfileDraft(
                     fullName: profile.fullName,
                     displayName: profile.displayName,
@@ -366,19 +373,22 @@ final class ProfileViewModel: ObservableObject {
             }
 
             let updatedUser = try await repository.updateProfile(resolvedProfile)
+            guard generation == profileSaveGeneration else { return nil }
             user = updatedUser
             error = nil
             profileMessage = AppStrings.Profile.profileSaved
             return updatedUser
         } catch let appError as AppError {
+            guard generation == profileSaveGeneration else { return nil }
             error = appError
-            profileMessage = avatarImageData != nil || appError == .network
+            profileMessage = uploadingAvatar
                 ? AppStrings.Profile.avatarUploadFailed
                 : AppStrings.Profile.profileSaveFailed
             return nil
         } catch {
+            guard generation == profileSaveGeneration else { return nil }
             self.error = .unknown
-            profileMessage = avatarImageData != nil
+            profileMessage = uploadingAvatar
                 ? AppStrings.Profile.avatarUploadFailed
                 : AppStrings.Profile.profileSaveFailed
             return nil
@@ -550,20 +560,28 @@ final class ProfileViewModel: ObservableObject {
             guard let self else { return }
             await self.performLoad()
         }
+        let generation = profileSaveGeneration
         loadTask = task
         await task.value
-        self.loadTask = nil
+        if generation == profileSaveGeneration { self.loadTask = nil }
     }
 
     private func performLoad() async {
+        let generation = profileSaveGeneration
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if generation == profileSaveGeneration { isLoading = false }
+        }
 
         do {
             if !(repository is FirestoreUserRepository) {
-                user = try await RefreshRequest.run { [self] in try await repository.fetchCurrentUser() }
+                let loadedUser = try await RefreshRequest.run { [self] in try await repository.fetchCurrentUser() }
+                guard generation == profileSaveGeneration, !Task.isCancelled else { return }
+                user = loadedUser
             }
-            settings = try await RefreshRequest.run { [self] in try await repository.fetchSettings() }
+            let loadedSettings = try await RefreshRequest.run { [self] in try await repository.fetchSettings() }
+            guard generation == profileSaveGeneration, !Task.isCancelled else { return }
+            settings = loadedSettings
             settings.language = LocalizationStore.language
             error = nil
             profileMessage = nil
@@ -571,10 +589,10 @@ final class ProfileViewModel: ObservableObject {
             lastLoadedAt = Date()
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard generation == profileSaveGeneration, !Task.isCancelled else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard generation == profileSaveGeneration, !Task.isCancelled else { return }
             self.error = .unknown
         }
     }

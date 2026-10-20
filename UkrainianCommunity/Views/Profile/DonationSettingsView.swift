@@ -103,11 +103,14 @@ struct DonationSettingsView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
-                    TextField(DonationLocalization.urlPlaceholder(for: language), text: $draft.donationURL)
-                        .textInputAutocapitalization(.never)
-                        .keyboardType(.URL)
-                        .autocorrectionDisabled()
-                        .appEditorInputStyle(minHeight: 52)
+                    AppEditorField(title: DonationLocalization.urlPlaceholder(for: language)) {
+                        TextField(DonationLocalization.urlPlaceholder(for: language), text: $draft.donationURL)
+                            .accessibilityIdentifier("donation.edit.url")
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.URL)
+                            .autocorrectionDisabled()
+                            .appEditorInputStyle(minHeight: 52)
+                    }
                 }
             }
 
@@ -115,7 +118,8 @@ struct DonationSettingsView: View {
                 title: DonationLocalization.ukrainianTextSection(for: language),
                 titleText: $draft.titleUK,
                 messageText: $draft.messageUK,
-                buttonText: $draft.buttonTitleUK
+                buttonText: $draft.buttonTitleUK,
+                identifier: "uk"
             )
 
             AppEditorSectionCard {
@@ -130,7 +134,8 @@ struct DonationSettingsView: View {
                 title: DonationLocalization.germanTextSection(for: language),
                 titleText: $draft.titleDE,
                 messageText: $draft.messageDE,
-                buttonText: $draft.buttonTitleDE
+                buttonText: $draft.buttonTitleDE,
+                identifier: "de"
             )
 
             PrimaryActionButton(
@@ -142,6 +147,7 @@ struct DonationSettingsView: View {
             ) {
                 Task { await save() }
             }
+            .accessibilityIdentifier("donation.edit.save")
         }
     }
 
@@ -155,7 +161,8 @@ struct DonationSettingsView: View {
         title: String,
         titleText: Binding<String>,
         messageText: Binding<String>,
-        buttonText: Binding<String>
+        buttonText: Binding<String>,
+        identifier: String
     ) -> some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
@@ -164,15 +171,22 @@ struct DonationSettingsView: View {
                     subtitle: DonationLocalization.localizedTextSubtitle(for: language)
                 )
 
-                TextField(DonationLocalization.titlePlaceholder(for: language), text: titleText)
-                    .appEditorInputStyle(minHeight: 52)
+                AppEditorField(title: DonationLocalization.titlePlaceholder(for: language)) {
+                    TextField(DonationLocalization.titlePlaceholder(for: language), text: titleText)
+                        .accessibilityIdentifier("donation.edit.title.\(identifier)")
+                        .appEditorInputStyle(minHeight: 52)
+                }
 
-                TextField(DonationLocalization.messagePlaceholder(for: language), text: messageText, axis: .vertical)
-                    .lineLimit(3...6)
-                    .appEditorInputStyle(minHeight: 112)
+                AppEditorField(title: DonationLocalization.messagePlaceholder(for: language)) {
+                    TextField(DonationLocalization.messagePlaceholder(for: language), text: messageText, axis: .vertical)
+                        .lineLimit(3...6)
+                        .appEditorInputStyle(minHeight: 112)
+                }
 
-                TextField(DonationLocalization.buttonTextPlaceholder(for: language), text: buttonText)
-                    .appEditorInputStyle(minHeight: 52)
+                AppEditorField(title: DonationLocalization.buttonTextPlaceholder(for: language)) {
+                    TextField(DonationLocalization.buttonTextPlaceholder(for: language), text: buttonText)
+                        .appEditorInputStyle(minHeight: 52)
+                }
             }
         }
     }
@@ -251,7 +265,7 @@ enum DonationLocalization {
 
     static func ownerOnlyMessage(for language: AppLanguage = LocalizationStore.language) -> String {
         localized(
-            uk: "Налаштування підтримки проєкту може змінювати тільки owner платформи.",
+            uk: "Налаштування підтримки проєкту може змінювати тільки власник застосунку.",
             de: "Die Einstellungen zur Projektunterstützung kann nur der Plattform-Owner ändern.",
             language: language
         )
@@ -274,7 +288,7 @@ enum DonationLocalization {
     }
 
     static func urlPlaceholder(for language: AppLanguage = LocalizationStore.language) -> String {
-        localized(uk: "Donation URL", de: "Spenden-URL", language: language)
+        localized(uk: "Посилання для підтримки", de: "Spenden-URL", language: language)
     }
 
     static func ukrainianTextSection(for language: AppLanguage = LocalizationStore.language) -> String {
@@ -287,7 +301,7 @@ enum DonationLocalization {
 
     static func localizedTextSubtitle(for language: AppLanguage = LocalizationStore.language) -> String {
         localized(
-            uk: "Текст відображається в Profile відповідно до мови застосунку.",
+            uk: "Текст відображається в профілі відповідно до мови застосунку.",
             de: "Der Text wird im Profil entsprechend der App-Sprache angezeigt.",
             language: language
         )
