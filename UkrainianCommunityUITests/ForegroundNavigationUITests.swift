@@ -88,6 +88,51 @@ final class ForegroundNavigationUITests: XCTestCase {
         XCTAssertTrue(app.tabBars.buttons.element(boundBy: 0).isSelected)
     }
 
+    func testColdOfflineAuthShowsConnectionAndRetryInBothLanguages() {
+        for language in ["uk", "de"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing"]
+            app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestColdStartConnectionFailure": "1",
+                                     "UITestAppLanguage": language, "UITestAppAppearance": "dark",
+                                     "UITestResetAppLock": "1"]
+            app.launch()
+            let retry = app.buttons["auth.session_recovery.retry"].firstMatch
+            XCTAssertTrue(retry.waitForExistence(timeout: 20))
+            let title = language == "uk" ? "Немає з’єднання" : "Keine Verbindung"
+            XCTAssertTrue(app.staticTexts[title].exists)
+            XCTAssertFalse(app.staticTexts["Не вдалося перевірити статус підтвердження. Спробуйте ще раз."].exists)
+            XCTAssertFalse(app.tabBars.firstMatch.exists)
+            let shot = XCTAttachment(screenshot: app.screenshot())
+            shot.name = "cold-auth-offline-" + language
+            shot.lifetime = .keepAlways
+            add(shot)
+            retry.tap()
+            XCTAssertTrue(retry.waitForExistence(timeout: 15))
+            XCTAssertTrue(app.staticTexts[title].exists)
+            app.terminate()
+        }
+    }
+
+    func testColdOfflineLegalShowsConnectionThenRetryOpensApp() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestForceAuthenticatedSession": "1", "UITestLegalReverification": "cold-offline",
+                                 "UITestAppLanguage": "uk", "UITestAppAppearance": "light",
+                                 "UITestResetAppLock": "1"]
+        app.launch()
+        let retry = app.buttons["startup.retry"].firstMatch
+        XCTAssertTrue(retry.waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Немає з’єднання"].exists)
+        XCTAssertFalse(app.buttons["legal.required.accept"].exists)
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "cold-legal-offline"
+        shot.lifetime = .keepAlways
+        add(shot)
+        retry.tap()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.staticTexts["Немає з’єднання"].exists)
+    }
+
     private func launch(scenario: String = "success", owner: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]

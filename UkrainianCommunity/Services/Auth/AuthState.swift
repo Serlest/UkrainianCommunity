@@ -41,6 +41,7 @@ final class AuthState: ObservableObject {
     @Published var errorMessage: String?
     @Published private(set) var pendingVerificationEmail: String?
     @Published private(set) var emailVerificationNotice: EmailVerificationNotice?
+    @Published private(set) var sessionRecoveryFailure: StartupVerificationFailure?
     @Published private(set) var pendingSessionUserID: String?
     @Published private(set) var sessionState: AuthSessionState = .restoring
     @Published var presentedAuthFlow: AuthFlowDestination?
@@ -221,7 +222,8 @@ final class AuthState: ObservableObject {
     func setSessionUnavailable(
         userID: String,
         email: String?,
-        errorMessage: String
+        errorMessage: String,
+        failure: StartupVerificationFailure = .service
     ) {
         OrganizationAccessStore.shared.transition(to: userID)
         LocalReminderSession.shared.transition(to: userID)
@@ -232,6 +234,7 @@ final class AuthState: ObservableObject {
         pendingVerificationEmail = email?.trimmingCharacters(in: .whitespacesAndNewlines)
         emailVerificationNotice = nil
         sessionState = .sessionUnavailable
+        sessionRecoveryFailure = failure
         self.errorMessage = errorMessage
     }
 
@@ -284,6 +287,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     private func invalidateUserLoad() {
+        sessionRecoveryFailure = nil
         userLoadGeneration &+= 1
         isLoading = false
     }

@@ -8,9 +8,9 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
     private let hasSecondFactor: Bool
     var currentSessionUser: (any AuthSessionUserProviding)? { session }
 
-    private init(hasSecondFactor: Bool, uid: String) {
+    private init(hasSecondFactor: Bool, uid: String, connectionFailure: Bool) {
         self.hasSecondFactor = hasSecondFactor
-        session = UITestOwnerSession(uid: uid)
+        session = UITestOwnerSession(uid: uid, connectionFailure: connectionFailure)
     }
 
     static func makeIfRequested(
@@ -21,7 +21,7 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
         let fixtureRole = environment["UITestProfileRole"] ?? ""
         let isAdmin = ["admin", "mixed"].contains(fixtureRole)
         guard isAdmin || environment["UITestForceOwnerSession"] == "1" else { return nil }
-        return UITestOwnerAuthBackend(hasSecondFactor: environment["UITestOwnerSecondFactor"] != "missing", uid: isAdmin ? fixtureRole + "-1" : "owner-1")
+        return UITestOwnerAuthBackend(hasSecondFactor: environment["UITestOwnerSecondFactor"] != "missing", uid: isAdmin ? fixtureRole + "-1" : "owner-1", connectionFailure: environment["UITestColdStartConnectionFailure"] == "1")
     }
 
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
@@ -40,11 +40,17 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
 
 private final class UITestOwnerSession: AuthSessionUserProviding {
     let uid: String
-    init(uid: String) { self.uid = uid }
+    let connectionFailure: Bool
+    init(uid: String, connectionFailure: Bool) {
+        self.uid = uid
+        self.connectionFailure = connectionFailure
+    }
     let email: String? = "owner@example.test"
     let isAnonymous = false
     let isEmailVerified = true
-    func reload() async throws {}
+    func reload() async throws {
+        if connectionFailure { throw URLError(.notConnectedToInternet) }
+    }
     func refreshIDToken() async throws {}
     func sendVerificationEmail() async throws { throw AppError.permissionDenied }
     func updateDisplayName(_ displayName: String) async throws { throw AppError.permissionDenied }

@@ -18,7 +18,8 @@ struct StartupAccessFailureView: View {
                         title: failure == .connection
                             ? AppStrings.Startup.connectionTitle : AppStrings.Startup.serviceTitle,
                         message: failure == .connection
-                            ? AppStrings.Startup.connectionMessage : AppStrings.Startup.serviceMessage
+                            ? AppStrings.Startup.connectionMessage : AppStrings.Startup.serviceMessage,
+                        messageLineLimit: nil
                     ) {
                         PrimaryActionButton(
                             title: AppStrings.Action.retry,

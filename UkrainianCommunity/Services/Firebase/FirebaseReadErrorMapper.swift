@@ -1,3 +1,4 @@
+import FirebaseAuth
 import FirebaseFirestore
 import Foundation
 
@@ -9,6 +10,10 @@ enum FirebaseReadErrorMapper {
 
         let error = error as NSError
         if error.domain == NSURLErrorDomain {
+            return .network
+        }
+
+        if error.domain == AuthErrorDomain, error.code == AuthErrorCode.networkError.rawValue {
             return .network
         }
 

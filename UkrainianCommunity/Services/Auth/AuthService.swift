@@ -1040,6 +1040,7 @@ final class AuthService {
                     try await user.refreshIDToken()
                 }
             } catch {
+                if FirebaseReadErrorMapper.map(error) == .network { throw AppError.network }
                 throw AuthVerificationError.checkFailed
             }
 
@@ -1183,7 +1184,8 @@ final class AuthService {
         authState.setSessionUnavailable(
             userID: userToPublish.uid,
             email: userToPublish.email,
-            errorMessage: readableSessionFailure(error)
+            errorMessage: readableSessionFailure(error),
+            failure: StartupVerificationFailure(error: error)
         )
         authState.presentAuthFlow(.sessionRecovery)
     }
@@ -1340,6 +1342,9 @@ final class AuthService {
     }
 
     private func readableSessionFailure(_ error: Error) -> String {
+        if FirebaseReadErrorMapper.map(error) == .network {
+            return AppStrings.Startup.connectionMessage
+        }
         if error is AuthVerificationError {
             return mapVerificationFlowMessage(for: error)
         }
@@ -1404,26 +1409,32 @@ final class AuthService {
         return .profileUnknown
     }
 
-    private func mapAuthVerificationError(_ error: Error) -> AuthVerificationError {
+    private func mapAuthVerificationError(_ error: Error) -> Error {
+        if FirebaseReadErrorMapper.map(error) == .network {
+            return AppError.network
+        }
         guard let nsError = error as NSError?, let code = AuthErrorCode(rawValue: nsError.code) else {
-            return .unknown
+            return AuthVerificationError.unknown
         }
 
         switch code {
         case .tooManyRequests:
-            return .tooManyRequests
+            return AuthVerificationError.tooManyRequests
         case .userNotFound:
-            return .checkFailed
+            return AuthVerificationError.checkFailed
         case .networkError:
-            return .checkFailed
+            return AuthVerificationError.checkFailed
         case .userDisabled:
-            return .checkFailed
+            return AuthVerificationError.checkFailed
         default:
-            return .unknown
+            return AuthVerificationError.unknown
         }
     }
 
     private func mapVerificationFlowMessage(for error: Error) -> String {
+        if FirebaseReadErrorMapper.map(error) == .network {
+            return AppStrings.Startup.connectionMessage
+        }
         if let verificationError = error as? AuthVerificationError {
             return switch verificationError {
             case .alreadyVerified:

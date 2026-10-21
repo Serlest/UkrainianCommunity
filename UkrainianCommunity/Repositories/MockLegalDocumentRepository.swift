@@ -51,6 +51,7 @@ private actor MockLegalDocumentStorage {
            let scenario = ProcessInfo.processInfo.environment["UITestLegalReverification"] {
             let count = (authoritativeFetchCounts[type] ?? 0) + 1
             authoritativeFetchCounts[type] = count
+            if scenario == "cold-offline", count == 1 { throw AppError.network }
             if count > 1 {
                 try await Task.sleep(for: .seconds(4))
                 if scenario == "offline", count == 2 { throw AppError.network }

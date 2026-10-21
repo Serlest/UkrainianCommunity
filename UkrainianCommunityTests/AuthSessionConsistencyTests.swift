@@ -240,6 +240,55 @@ struct AuthSessionConsistencyTests {
         #expect(state.presentedAuthFlow == .sessionRecovery)
     }
 
+    @Test(arguments: ["reload", "token", "profile"], ["firebase", "url"])
+    func coldStartNetworkFailureRemainsRecoverable(stage: String, transport: String) async {
+        let state = AuthState()
+        let identity = FakeAuthSessionUser(uid: "user-a", email: "a@example.com", isEmailVerified: true)
+        let backend = FakeAuthBackend(currentUser: identity)
+        let profiles = FakeAuthProfileProvider(profiles: ["user-a": makeUser(id: "user-a")])
+        let error = transport == "firebase"
+            ? NSError(domain: AuthErrorDomain, code: AuthErrorCode.networkError.rawValue)
+            : NSError(domain: NSURLErrorDomain, code: NSURLErrorTimedOut)
+        if stage == "reload" { identity.reloadError = error }
+        if stage == "token" { identity.tokenRefreshError = error }
+        if stage == "profile" { profiles.fetchError = error }
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+
+        await service.restoreSession()
+
+        #expect(state.sessionState == .sessionUnavailable)
+        #expect(state.sessionRecoveryFailure == .connection)
+        #expect(state.errorMessage == AppStrings.Startup.connectionMessage)
+        #expect(state.presentedAuthFlow == .sessionRecovery)
+        #expect(state.user == nil)
+        #expect(backend.signOutCallCount == 0)
+        #expect(backend.currentSessionUser?.uid == "user-a")
+
+        identity.reloadError = nil
+        identity.tokenRefreshError = nil
+        profiles.fetchError = nil
+        await service.retryUnavailableSession()
+
+        #expect(state.isAuthenticated)
+        #expect(state.user?.id == "user-a")
+        #expect(state.sessionRecoveryFailure == nil)
+        #expect(state.errorMessage == nil)
+        #expect(backend.signOutCallCount == 0)
+    }
+
+    @Test
+    func nonNetworkVerificationFailureDoesNotClaimNoInternet() async {
+        let state = AuthState()
+        let identity = FakeAuthSessionUser(uid: "user-a", email: "a@example.com", isEmailVerified: true)
+        identity.reloadError = NSError(domain: AuthErrorDomain, code: AuthErrorCode.userDisabled.rawValue)
+        let service = makeService(state: state, backend: FakeAuthBackend(currentUser: identity),
+                                  profiles: FakeAuthProfileProvider())
+        await service.restoreSession()
+        #expect(state.sessionRecoveryFailure == .service)
+        #expect(state.errorMessage != AppStrings.Startup.connectionMessage)
+        #expect(!state.isAuthenticated)
+    }
+
     @Test
     func failedAnonymousCleanupDuringRestoreDoesNotPublishFalseGuest() async {
         let state = AuthState()

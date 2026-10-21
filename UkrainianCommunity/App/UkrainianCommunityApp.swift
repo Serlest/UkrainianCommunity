@@ -186,7 +186,9 @@ struct UkrainianCommunityApp: App {
         }
 
         Task { @MainActor in
-            if let fixture = MockContentBuilder.profileRoleFixture() {
+            if isUITesting, environment["UITestColdStartConnectionFailure"] == "1" {
+                await AuthService.shared.restoreSession()
+            } else if let fixture = MockContentBuilder.profileRoleFixture() {
                 sharedAuthState.setAuthenticatedSession(user: fixture)
             } else if shouldForceOwnerSession {
 #if DEBUG && targetEnvironment(simulator)

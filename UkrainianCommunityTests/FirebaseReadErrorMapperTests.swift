@@ -1,3 +1,4 @@
+import FirebaseAuth
 import FirebaseFirestore
 import Foundation
 import Testing
@@ -42,6 +43,16 @@ struct FirebaseReadErrorMapperTests {
     @Test
     func existingAppErrorIsPreserved() {
         #expect(FirebaseReadErrorMapper.map(AppError.permissionDenied) == .permissionDenied)
+    }
+
+    @Test
+    func authConnectivityIsDistinctFromDisabledAccounts() {
+        #expect(FirebaseReadErrorMapper.map(NSError(domain: AuthErrorDomain,
+            code: AuthErrorCode.networkError.rawValue)) == .network)
+        #expect(FirebaseReadErrorMapper.map(NSError(domain: AuthErrorDomain,
+            code: AuthErrorCode.userDisabled.rawValue)) != .network)
+        #expect(FirebaseReadErrorMapper.map(URLError(.notConnectedToInternet)) == .network)
+        #expect(FirebaseReadErrorMapper.map(URLError(.timedOut)) == .network)
     }
 
     private func firestoreError(_ code: Int) -> NSError {

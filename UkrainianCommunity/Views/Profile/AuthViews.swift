@@ -761,47 +761,65 @@ struct SessionRecoveryView: View {
         isRetrying || isSigningOut
     }
 
+    private var isConnectionFailure: Bool { authState.sessionRecoveryFailure == .connection }
+
     var body: some View {
         AuthScreenScaffold {
-            AuthHeaderView(
-                title: AppStrings.Auth.title,
-                subtitle: AppStrings.Auth.loadUserProfileFailed
-            )
+            if isConnectionFailure {
+                UnifiedEmptyStateCard(
+                    systemImage: "wifi.slash",
+                    title: AppStrings.Startup.connectionTitle,
+                    message: AppStrings.Startup.connectionMessage,
+                    messageLineLimit: nil
+                ) {
+                    recoveryActions
+                }
+            } else {
+                AuthHeaderView(
+                    title: AppStrings.Auth.title,
+                    subtitle: AppStrings.Auth.loadUserProfileFailed
+                )
 
-            AppEditorSectionCard {
-                VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    InlineMessageCard(
-                        style: .error,
-                        message: message ?? authState.errorMessage ?? AppStrings.Auth.loadUserProfileFailed
-                    )
-
-                    PrimaryActionButton(
-                        title: AppStrings.Action.retry,
-                        isEnabled: !isBusy,
-                        isLoading: isRetrying,
-                        systemImage: "arrow.clockwise"
-                    ) {
-                        retrySession()
+                AppEditorSectionCard {
+                    VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
+                        InlineMessageCard(
+                            style: .error,
+                            message: message ?? authState.errorMessage ?? AppStrings.Auth.loadUserProfileFailed
+                        )
+                        recoveryActions
                     }
-                    .accessibilityIdentifier("auth.session_recovery.retry")
-
-                    Button(AppStrings.Auth.emailVerificationChangeAccount) {
-                        signOut()
-                    }
-                    .appActionButtonStyle(.secondary)
-                    .frame(minHeight: AppTheme.iconButtonSize)
-                    .disabled(isBusy)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityIdentifier("auth.session_recovery.sign_out")
                 }
             }
         }
         .navigationTitle(AppStrings.Auth.title)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.session_recovery.screen")
-        .onAppear {
-            message = authState.errorMessage
+        .onAppear { message = authState.errorMessage }
+    }
+
+    @ViewBuilder
+    private var recoveryActions: some View {
+        if isConnectionFailure, message == AppStrings.Profile.signOutFailed {
+            InlineMessageCard(style: .error, message: AppStrings.Profile.signOutFailed)
         }
+        PrimaryActionButton(
+            title: AppStrings.Action.retry,
+            isEnabled: !isBusy,
+            isLoading: isRetrying,
+            systemImage: "arrow.clockwise"
+        ) {
+            retrySession()
+        }
+        .accessibilityIdentifier("auth.session_recovery.retry")
+
+        Button(AppStrings.Auth.emailVerificationChangeAccount) {
+            signOut()
+        }
+        .appActionButtonStyle(.secondary)
+        .frame(minHeight: AppTheme.iconButtonSize)
+        .disabled(isBusy)
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("auth.session_recovery.sign_out")
     }
 
     private func retrySession() {
