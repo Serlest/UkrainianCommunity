@@ -13,7 +13,7 @@ import {
   routeNewsCandidate,
   mergeTodayDiscovery,
 } from "./newsScopeCoordination.mjs";
-import {extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, extractWienerLinienNewsLinks, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
+import {extractAMSNewsLinks, extractOEBBLiveLinks, extractOEBBTrafficLinks, extractSalzburgTrafficLinks, extractSourceLinks, extractWienerLinienNewsLinks, inspectNewsSource, requestURLForSource, runNewsSharedScan, scanNewsSources} from "./newsSharedScan.mjs";
 
 const fixture = {
   sourceProgress: {
@@ -121,6 +121,27 @@ test("shared scan fetches a multi-scope source once and preserves immutable snap
   } finally {
     await rm(directory, {recursive: true, force: true});
   }
+});
+
+test("shared source scan retries temporary network and server failures, then extracts the successful response", async () => {
+  const url = "https://www.unsereoebb.at/de/verkehrsmeldungen";
+  const source = {sourceId: url, url, recipients: ["niederoesterreich"], editorialMode: "scan"};
+  let attempts = 0;
+  const result = await inspectNewsSource(source, async () => {
+    attempts++;
+    if (attempts === 1) throw new TypeError("temporary network failure");
+    if (attempts === 2) return new Response("temporarily unavailable", {status: 503});
+    return new Response('<h2><a href="https://www.unsereoebb.at/de/verkehrsmeldungen~stoerfall-test-21102026~">Fischamend–Maria Ellend</a></h2>', {
+      status: 200, headers: {"content-type": "text/html; charset=utf-8"},
+    });
+  }, new Date("2026-10-21T08:00:00Z"));
+
+  assert.equal(attempts, 3);
+  assert.equal(result.fetchAttempts, 3);
+  assert.equal(result.httpStatus, 200);
+  assert.equal(result.error, null);
+  assert.equal(result.links.length, 1);
+  assert.match(result.links[0].url, /stoerfall-test-21102026/);
 });
 
 test("shared scan rejects missing source state before fetching or creating a snapshot", async () => {

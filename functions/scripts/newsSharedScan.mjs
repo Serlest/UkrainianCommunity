@@ -10,6 +10,10 @@ import {extractMediaFeedLinks, extractMediaListingLinks, extractORFFeedLinks, pl
 
 const maximumSourceBytes = 8_000_000;
 const maximumSourceLinks = 3_500;
+const maximumFetchAttempts = 3;
+const retryDelaysMs = [250, 750];
+
+const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 export function requestURLForSource(source, now = new Date()) {
   const url = new URL(source.url);
@@ -183,12 +187,26 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
   const requestedURL = requestURLForSource(source, now);
   const checkedAt = now.toISOString();
   let observedResponse;
+  let fetchAttempts = 0;
   try {
-    const response = await fetchImpl(requestedURL, {
-      redirect: "follow",
-      signal: AbortSignal.timeout(16_000),
-      headers: {"user-agent": "UAC News source monitor"},
-    });
+    let response;
+    for (let attempt = 1; attempt <= maximumFetchAttempts; attempt++) {
+      fetchAttempts = attempt;
+      try {
+        response = await fetchImpl(requestedURL, {
+          redirect: "follow",
+          signal: AbortSignal.timeout(16_000),
+          headers: {"user-agent": "UAC News source monitor"},
+        });
+      } catch (error) {
+        if (attempt === maximumFetchAttempts) throw error;
+        await wait(retryDelaysMs[attempt - 1]);
+        continue;
+      }
+      if (response.status < 500 || response.status >= 600 || attempt === maximumFetchAttempts) break;
+      try { await response.body?.cancel(); } catch { /* discard the failed response before retrying */ }
+      await wait(retryDelaysMs[attempt - 1]);
+    }
     observedResponse = response;
     const body = await boundedText(response);
     const botBlocked = response.ok && source.sourceId === "https://www.wienerlinien.at/news" &&
@@ -227,6 +245,7 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       requestedURL,
       finalURL: response.url || requestedURL,
       checkedAt,
+      fetchAttempts,
       httpStatus: response.status,
       contentType: response.headers.get("content-type"),
       etag: response.headers.get("etag"),
@@ -241,6 +260,7 @@ export async function inspectNewsSource(source, fetchImpl = fetch, now = new Dat
       recipients: source.recipients,
       requestedURL,
       checkedAt,
+      fetchAttempts,
       httpStatus: observedResponse?.status ?? 0,
       finalURL: observedResponse?.url || requestedURL,
       links: [],
