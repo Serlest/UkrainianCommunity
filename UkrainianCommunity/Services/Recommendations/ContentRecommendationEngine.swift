@@ -69,6 +69,8 @@ struct EventContentRecommendation: Identifiable {
 /// scoring and diversity re-ranking. It intentionally does not pretend to be
 /// behaviorally personalized; all signals come from published content metadata.
 struct ContentRecommendationEngine {
+    static let candidateLimit = 60
+
     private static let minimumNewsScore = 30
     private static let minimumEventScore = 30
     private static let minute: TimeInterval = 60
@@ -118,7 +120,7 @@ struct ContentRecommendationEngine {
             return EventContentRecommendation(event: candidate, score: result.score, reasons: result.reasons)
         }
 
-        return diversifyEvents(scored, limit: limit)
+        return diversifyEvents(scored, limit: limit, now: now)
     }
 }
 
@@ -131,32 +133,20 @@ private extension ContentRecommendationEngine {
     static func newsScore(_ candidate: NewsPost, comparedTo source: NewsPost, now: Date) -> ScoreResult? {
         var score = 0
         var reasonWeights: [(ContentRecommendationReason, Int)] = []
-        var hasSemanticAnchor = false
+        let connection = topicConnection(
+            sourceHeadlines: newsHeadlines(source), candidateHeadlines: newsHeadlines(candidate),
+            sourceDescriptions: newsDescriptions(source), candidateDescriptions: newsDescriptions(candidate),
+            sourceTags: source.tags, candidateTags: candidate.tags
+        )
+        guard connection.isRelated else { return nil }
+        score += connection.score
+        reasonWeights.append((connection.reason, connection.score))
 
         let topicScore = newsTopicScore(candidate, source)
         if topicScore > 0 {
             score += topicScore
             reasonWeights.append((.sharedTopic, topicScore))
-            hasSemanticAnchor = true
         }
-
-        let sharedTagCount = normalizedTags(candidate.tags).intersection(normalizedTags(source.tags)).count
-        if sharedTagCount > 0 {
-            let value = min(sharedTagCount, 2) * 18
-            score += value
-            reasonWeights.append((.sharedTags, value))
-            hasSemanticAnchor = true
-        }
-
-        let sharedTerms = newsTerms(candidate).intersection(newsTerms(source)).count
-        if sharedTerms >= 2 {
-            let value = min(sharedTerms, 4) * 5
-            score += value
-            reasonWeights.append((.sharedTopic, value))
-            hasSemanticAnchor = true
-        }
-
-        guard hasSemanticAnchor else { return nil }
 
         let location = locationScore(
             candidateScope: candidate.regionScope,
@@ -191,29 +181,19 @@ private extension ContentRecommendationEngine {
     static func eventScore(_ candidate: Event, comparedTo source: Event, now: Date) -> ScoreResult? {
         var score = 0
         var reasonWeights: [(ContentRecommendationReason, Int)] = []
-        var hasSemanticAnchor = false
+        let connection = topicConnection(
+            sourceHeadlines: eventHeadlines(source), candidateHeadlines: eventHeadlines(candidate),
+            sourceDescriptions: eventDescriptions(source), candidateDescriptions: eventDescriptions(candidate),
+            sourceTags: source.tags, candidateTags: candidate.tags
+        )
+        guard connection.isRelated else { return nil }
+        score += connection.score
+        reasonWeights.append((connection.reason, connection.score))
 
         let topicScore = eventTopicScore(candidate, source)
         if topicScore > 0 {
             score += topicScore
             reasonWeights.append((.sharedTopic, topicScore))
-            hasSemanticAnchor = true
-        }
-
-        let sharedTagCount = normalizedTags(candidate.tags).intersection(normalizedTags(source.tags)).count
-        if sharedTagCount > 0 {
-            let value = min(sharedTagCount, 2) * 18
-            score += value
-            reasonWeights.append((.sharedTags, value))
-            hasSemanticAnchor = true
-        }
-
-        let sharedTerms = eventTerms(candidate).intersection(eventTerms(source)).count
-        if sharedTerms >= 2 {
-            let value = min(sharedTerms, 4) * 5
-            score += value
-            reasonWeights.append((.sharedTopic, value))
-            hasSemanticAnchor = true
         }
 
         let location = eventLocationScore(candidate, source)
@@ -227,11 +207,6 @@ private extension ContentRecommendationEngine {
             score += audienceScore
             reasonWeights.append((.similarAudience, audienceScore))
         }
-
-        // A local event for the same audience is useful even when an organizer
-        // selected only broad/legacy categories. Everything else needs a real
-        // topic, tag or title connection.
-        guard hasSemanticAnchor || (location.score >= 18 && audienceScore > 0) else { return nil }
 
         if samePublisher(candidate.source, source.source) {
             score += 8
@@ -258,30 +233,30 @@ private extension ContentRecommendationEngine {
 
     static func newsTopicScore(_ candidate: NewsPost, _ source: NewsPost) -> Int {
         if candidate.category == source.category {
-            return [.news, .other].contains(source.category) ? 0 : 42
+            return [.news, .other].contains(source.category) ? 0 : 12
         }
 
         if candidate.additionalCategories.contains(source.category)
             || source.additionalCategories.contains(candidate.category) {
-            return 30
+            return 8
         }
 
         let overlap = Set(candidate.additionalCategories).intersection(source.additionalCategories).count
-        return min(overlap, 2) * 16
+        return min(overlap, 2) * 4
     }
 
     static func eventTopicScore(_ candidate: Event, _ source: Event) -> Int {
         if candidate.category == source.category {
-            return [.unspecified, .other].contains(source.category) ? 0 : 42
+            return [.unspecified, .other].contains(source.category) ? 0 : 12
         }
 
         if candidate.additionalCategories.contains(source.category)
             || source.additionalCategories.contains(candidate.category) {
-            return 30
+            return 8
         }
 
         let overlap = Set(candidate.additionalCategories).intersection(source.additionalCategories).count
-        return min(overlap, 2) * 16
+        return min(overlap, 2) * 4
     }
 
     static func locationScore(
@@ -363,7 +338,7 @@ private extension ContentRecommendationEngine {
         return selected
     }
 
-    static func diversifyEvents(_ input: [EventContentRecommendation], limit: Int) -> [EventContentRecommendation] {
+    static func diversifyEvents(_ input: [EventContentRecommendation], limit: Int, now: Date) -> [EventContentRecommendation] {
         var remaining = input
         var selected: [EventContentRecommendation] = []
 
@@ -373,8 +348,8 @@ private extension ContentRecommendationEngine {
             }.sorted { lhs, rhs in
                 if lhs.1 != rhs.1 { return lhs.1 > rhs.1 }
                 if lhs.0.score != rhs.0.score { return lhs.0.score > rhs.0.score }
-                let lhsDate = lhs.0.event.nextOccurrence()?.startDate ?? lhs.0.event.startDate
-                let rhsDate = rhs.0.event.nextOccurrence()?.startDate ?? rhs.0.event.startDate
+                let lhsDate = lhs.0.event.nextOccurrence(relativeTo: now)?.startDate ?? lhs.0.event.startDate
+                let rhsDate = rhs.0.event.nextOccurrence(relativeTo: now)?.startDate ?? rhs.0.event.startDate
                 if lhsDate != rhsDate { return lhsDate < rhsDate }
                 return lhs.0.id < rhs.0.id
             }
@@ -430,14 +405,150 @@ private extension ContentRecommendationEngine {
     static func newsTerms(_ post: NewsPost) -> Set<String> {
         // Summaries often contain generic community boilerplate. Restrict the
         // fallback text signal to headlines so it cannot manufacture relevance.
-        let localizedTitles = post.localizations.values.map(\.title)
-        return normalizedTerms(([post.title] + localizedTitles).joined(separator: " "))
+        normalizedTerms(newsHeadlines(post).joined(separator: " "))
     }
 
     static func eventTerms(_ event: Event) -> Set<String> {
-        let localizedTitles = event.localizations.values.map(\.title)
-        return normalizedTerms(([event.title] + localizedTitles).joined(separator: " "))
+        normalizedTerms(eventHeadlines(event).joined(separator: " "))
     }
+
+    struct TopicConnection {
+        let score: Int
+        let reason: ContentRecommendationReason
+        var isRelated: Bool { score > 0 }
+    }
+
+    static func newsHeadlines(_ post: NewsPost) -> [String] {
+        [post.title] + post.localizations.values.map(\.title)
+    }
+
+    static func newsDescriptions(_ post: NewsPost) -> [String] {
+        [post.subtitle] + post.localizations.values.map(\.subtitle)
+    }
+
+    static func eventHeadlines(_ event: Event) -> [String] {
+        [event.title] + event.localizations.values.map(\.title)
+    }
+
+    static func eventDescriptions(_ event: Event) -> [String] {
+        [event.summary] + event.localizations.values.map(\.summary)
+    }
+
+    /// Require a concrete subject. A category, city, publisher, audience, or
+    /// translated copies of one generic word must never create a connection.
+    static func topicConnection(
+        sourceHeadlines: [String], candidateHeadlines: [String],
+        sourceDescriptions: [String], candidateDescriptions: [String],
+        sourceTags: [String], candidateTags: [String]
+    ) -> TopicConnection {
+        let tags = meaningfulTags(sourceTags).intersection(meaningfulTags(candidateTags))
+        let sourceTopics = specificTopics(in: sourceHeadlines + sourceDescriptions + sourceTags)
+        let candidateTopics = specificTopics(in: candidateHeadlines + candidateDescriptions + candidateTags)
+        let commonTopics = sourceTopics.intersection(candidateTopics)
+
+        if !commonTopics.isEmpty {
+            return TopicConnection(score: 60 + min(commonTopics.count - 1, 2) * 6, reason: .sharedTopic)
+        }
+        // If both texts have recognized but different subjects, incidental
+        // wording or a broad tag cannot overrule that disagreement.
+        if !sourceTopics.isEmpty && !candidateTopics.isEmpty {
+            return TopicConnection(score: 0, reason: .sharedTopic)
+        }
+        if !tags.isEmpty {
+            return TopicConnection(score: 48 + min(tags.count - 1, 2) * 6, reason: .sharedTags)
+        }
+        // Compare each headline separately. Joining UK/DE translations would
+        // incorrectly count one translated concept as two independent words.
+        for source in sourceHeadlines {
+            let sourceTerms = normalizedTerms(source)
+            for candidate in candidateHeadlines {
+                let candidateTerms = normalizedTerms(candidate)
+                let shared = sourceTerms.intersection(candidateTerms).count
+                let smaller = min(sourceTerms.count, candidateTerms.count)
+                if shared >= 2 && smaller > 0 && Double(shared) / Double(smaller) >= 0.5 {
+                    return TopicConnection(score: 42, reason: .sharedTopic)
+                }
+            }
+        }
+        return TopicConnection(score: 0, reason: .sharedTopic)
+    }
+
+    static func meaningfulTags(_ tags: [String]) -> Set<String> {
+        normalizedTags(tags).filter { tag in
+            !genericTags.contains(tag) && !normalizedTerms(tag).subtracting(genericTags).isEmpty
+        }
+    }
+
+    static func specificTopics(in texts: [String]) -> Set<Int> {
+        let tokenSets = texts.map { text in
+            normalizedPhrase(text).components(separatedBy: CharacterSet.alphanumerics.inverted)
+                .filter { !$0.isEmpty }
+        }
+        return Set(specificTopicPatterns.indices.filter { index in
+            specificTopicPatterns[index].contains { pattern in
+                let roots = normalizedPhrase(pattern).split(separator: " ").map(String.init)
+                return tokenSets.contains { tokens in
+                    roots.allSatisfy { root in
+                        tokens.contains { root.count < 3 ? $0 == root : $0.hasPrefix(root) }
+                    }
+                }
+            }
+        })
+    }
+
+    // Specific, multilingual subjects, not broad editorial categories. Prefixes
+    // handle grammatical forms; all roots in a pattern must occur in one field.
+    static let specificTopicPatterns: [[String]] = [
+        ["медич страхув", "медстрах", "krankenkass", "krankenversicher", "health insurance", "e card"],
+        ["лікар", "амбулатор", "hausarzt", "arzttermin", "arztpraxi", "medical appointment"],
+        ["психолог", "психіч", "psycholog", "psychisch", "mental health"],
+        ["вакцин", "щеплен", "impfung", "impfstoff", "vaccin"],
+        ["тимчасов захист", "vertrieben", "temporary protection", "ausweis vertriebene"],
+        ["посвідк прожив", "дозвіл прожив", "aufenthaltstitel", "residence permit", "rot weiss rot"],
+        ["громадянств", "staatsburgerschaft", "citizenship"],
+        ["сімейн допомог", "дитяч виплат", "familienbeihilfe", "kinderbetreuungsgeld", "family allowance"],
+        ["соціаль допомог", "соціаль виплат", "sozialhilfe", "grundversorgung", "social assistance"],
+        ["пенсі", "pension", "retirement"],
+        ["подат", "steuer", "tax return", "taxation"],
+        ["споживач", "гаранті", "gewahrleistung", "verbraucher", "consumer rights"],
+        ["ваканс", "працевлаштуван", "пошук робот", "jobsuche", "stellenangebot", "job search"],
+        ["трудов прав", "заробітн плат", "arbeitsrecht", "mindestlohn", "employment rights"],
+        ["професійн навчан", "berufsausbildung", "lehrstelle", "vocational training"],
+        ["мовн курс", "курс німецьк", "deutschkurs", "sprachkurs", "language course"],
+        ["школ", "schule", "schuljahr", "schulpflicht", "schulplatz", "schulkind", "schulstart", "school"],
+        ["університет", "стипенді", "universitat", "stipendium", "university", "scholarship"],
+        ["дитяч сад", "kindergarten", "kinderkrippe", "childcare"],
+        ["оренд", "житл", "miet", "wohnung", "rental housing"],
+        ["теплов насос", "електроенерг", "електромереж", "warmepump", "strompreis", "netztarif", "electricity"],
+        ["громадськ транспорт", "поїзд", "залізниц", "квитк", "bahn", "offi", "klimaticket", "public transport"],
+        ["дорожн рух", "водійськ", "fuhrerschein", "strassenverkehr", "driving licence"],
+        ["повін", "лавин", "hochwasser", "lawin", "flood", "avalanche"],
+        ["шахрай", "фішинг", "betrug", "phishing", "scam"],
+        ["музик", "музич", "концерт", "musik", "konzert", "concert", "live music"],
+        ["виставк", "живопис", "галере", "ausstellung", "galerie", "exhibition", "painting"],
+        ["театр", "театраль", "theater", "schauspiel", "theatre"],
+        ["кіно", "фільм", "kino", "film", "cinema"],
+        ["танц", "tanz", "dance", "dancing"],
+        ["йог", "yoga"],
+        ["футбол", "fussball", "football", "soccer"],
+        ["похід", "поход", "пішохід", "wandern", "wanderung", "hiking"],
+        ["кулінар", "приготув", "kochkur", "kochen", "cooking"],
+        ["підприєм", "бізнес", "unternehm", "grundung", "business", "entrepreneur"],
+        ["волонтер", "ehrenamt", "freiwilligen", "volunteer"],
+        ["богослуж", "літургі", "gottesdienst", "liturgie", "church service"],
+        ["великод", "ostern", "osterfest", "ostermarkt", "ostersonntag", "ostermontag", "easter"],
+        ["різдв", "weihnacht", "christmas"]
+    ]
+
+    static let genericTags: Set<String> = Set([
+        "новини", "новина", "новости", "news", "nachrichten", "подія", "подіі", "event", "events",
+        "австрія", "австрия", "austria", "osterreich", "украіна", "ukraine", "украінці", "ukrainisch",
+        "здоров'я", "здоров’я", "здоровя", "gesundheit", "health", "культура", "kultur", "culture",
+        "освіта", "bildung", "education", "допомога", "hilfe", "support", "інтеграція", "integration",
+        "burgenland", "karnten", "niederosterreich", "oberosterreich", "salzburg", "steiermark", "tirol", "vorarlberg", "wien",
+        "бургенланд", "каринтія", "нижня австрія", "верхня австрія", "зальцбург", "штирія", "тіроль", "форарльберг", "відень",
+        "громада", "community", "безкоштовно", "kostenlos", "free", "сім'я", "сім’я", "familie", "family"
+    ].map { normalizedPhrase($0) })
 
     static func normalizedTerms(_ text: String) -> Set<String> {
         let components = normalizedPhrase(text)
@@ -513,7 +624,7 @@ private extension ContentRecommendationEngine {
         value * .pi / 180
     }
 
-    static let stopWords: Set<String> = [
+    static let stopWords: Set<String> = Set([
         // Ukrainian
         "адже", "але", "буде", "бути", "вас", "вам", "для", "його", "коли", "може", "нова", "новини",
         "після", "понад", "про", "року", "свою", "також", "того", "україни", "українців", "цей", "цієї", "щодо",
@@ -521,6 +632,11 @@ private extension ContentRecommendationEngine {
         "aber", "auch", "dass", "eine", "einer", "eines", "einem", "einen", "fur", "haben", "mehr", "nach",
         "nicht", "oder", "sich", "uber", "unter", "vom", "werden", "wird", "zwischen",
         // English and generic content words
+        "австріі", "австрія", "украінські", "украінська", "украінськии", "громади", "громада",
+        "інсбрук", "інсбруку", "відень", "відні", "тироль", "тіролі", "сьогодні", "новий", "нові", "нове", "важливо", "важливі", "правила", "зміни", "оновлення", "безкоштовні",
+        "osterreich", "ukraine", "ukrainische", "ukrainischer", "ukrainischen", "ukrainisches",
+        "innsbruck", "wien", "tirol", "heute", "neue", "neuen", "neuer", "neues", "informationen", "community",
+        "regeln", "regelungen", "anderungen", "angebote", "aktuell", "aktuelle", "kostenlos", "kostenlose",
         "about", "after", "also", "event", "events", "from", "into", "news", "that", "their", "this", "with"
-    ]
+    ].map { normalizedPhrase($0) })
 }

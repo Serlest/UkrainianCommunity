@@ -170,6 +170,80 @@ struct ContentRecommendationEngineTests {
         #expect(result.isEmpty)
     }
 
+    @Test func broadHealthCategoryAndGenericTagsDoNotConnectDifferentSubjects() {
+        let source = news(id: "insurance", title: "Медичне страхування для родини", category: .health, tags: ["здоров’я", "Австрія"])
+        let unrelated = news(id: "vaccine", title: "Нові правила вакцинації восени", category: .health, tags: ["здоров’я", "Австрія"])
+        let related = news(id: "ecard", title: "Як отримати e-card у страховій касі", category: .lawAndDocuments)
+
+        let result = ContentRecommendationEngine.newsRecommendations(for: source, candidates: [unrelated, related], now: now)
+        #expect(result.map(\.id) == [related.id])
+    }
+
+    @Test func translatedGenericWordsDoNotManufactureSemanticOverlap() {
+        let source = news(
+            id: "generic-source", title: "Нові можливості в Австрії", category: .communityAndIntegration,
+            localizations: ["de": NewsLocalizedContent(title: "Neue Möglichkeiten in Österreich", subtitle: "", body: "")]
+        )
+        let unrelated = news(
+            id: "generic-other", title: "Нові зустрічі в Австрії", category: .communityAndIntegration,
+            localizations: ["de": NewsLocalizedContent(title: "Neue Treffen in Österreich", subtitle: "", body: "")]
+        )
+        #expect(ContentRecommendationEngine.newsRecommendations(for: source, candidates: [unrelated], now: now).isEmpty)
+    }
+
+    @Test func specificSubjectMatchesAcrossLanguagesAndAdditionalCategories() {
+        let source = news(id: "source-uk", title: "Як оформити медичне страхування", category: .health)
+        let related = news(
+            id: "candidate-de", title: "Krankenversicherung: Anmeldung bei der ÖGK",
+            category: .lawAndDocuments, additionalCategories: [.health]
+        )
+        let result = ContentRecommendationEngine.newsRecommendations(for: source, candidates: [related], now: now)
+        #expect(result.map(\.id) == [related.id])
+        #expect(result.first?.primaryReason == .sharedTopic)
+    }
+
+    @Test func specificSubjectCanComeFromDescriptionWithoutUsingGenericBoilerplate() {
+        let source = news(id: "description-source", title: "Важливі зміни з листопада", category: .health,
+                          subtitle: "Нові умови медичного страхування для родин")
+        let related = news(id: "description-related", title: "Anmeldung bei der Krankenkasse", category: .health)
+        let unrelated = news(id: "description-other", title: "Мистецька виставка", category: .culture)
+        #expect(ContentRecommendationEngine.newsRecommendations(for: source, candidates: [unrelated, related], now: now).map(\.id) == [related.id])
+    }
+
+    @Test func samePlaceAudienceAndDateNeverReplaceEventSubject() {
+        let source = event(id: "yoga-source", title: "Ранкова йога в парку", category: .sportsAndWellness, audience: .adults)
+        let unrelated = event(id: "football-other", title: "Футбольний турнір", category: .sportsAndWellness, audience: .adults)
+        let related = event(id: "yoga-related", title: "Yoga am Abend", category: .training, audience: .adults)
+        let result = ContentRecommendationEngine.eventRecommendations(for: source, candidates: [unrelated, related], now: now)
+        #expect(result.map(\.id) == [related.id])
+    }
+
+    @Test func sameBroadCategoryWithoutConcreteConnectionProducesNoRecommendations() {
+        let source = news(id: "broad-source", title: "Підтримка людей старшого віку", category: .benefitsAndSupport)
+        let unrelated = news(id: "broad-other", title: "Допомога підприємцям-початківцям", category: .benefitsAndSupport)
+        #expect(ContentRecommendationEngine.newsRecommendations(for: source, candidates: [unrelated], now: now).isEmpty)
+    }
+
+    @Test func olderRelevantCandidateSurvivesMoreThanTwelveUnrelatedItems() {
+        let source = news(id: "wide-source", title: "Медичне страхування", category: .health)
+        let unrelated = (0..<25).map { news(id: "unrelated-\($0)", title: "Вакцинація: оновлення номер \($0)", category: .health) }
+        let related = news(id: "older-related", title: "Krankenversicherung für Familien", category: .health,
+                           publishedAt: now.addingTimeInterval(-20 * 86_400))
+        #expect(ContentRecommendationEngine.newsRecommendations(for: source, candidates: unrelated + [related], now: now).map(\.id) == [related.id])
+    }
+
+    @Test func regionTagsAndPublisherCannotConnectUnrelatedNews() {
+        let source = news(id: "region-source", title: "Оновлення міських послуг", category: .news, tags: ["Niederösterreich"])
+        let unrelated = news(id: "region-other", title: "Відкриття мистецької галереї", category: .news, tags: ["Niederösterreich"])
+        #expect(ContentRecommendationEngine.newsRecommendations(for: source, candidates: [unrelated], now: now).isEmpty)
+    }
+
+    @Test func austriaInGermanIsNotAnEasterSubject() {
+        let source = news(id: "austria-source", title: "Neue Angebote in Österreich", category: .news)
+        let unrelated = news(id: "austria-other", title: "Osterfest für Familien", category: .culture)
+        #expect(ContentRecommendationEngine.newsRecommendations(for: source, candidates: [unrelated], now: now).isEmpty)
+    }
+
     private func news(
         id: String,
         title: String,
@@ -178,12 +252,15 @@ struct ContentRecommendationEngineTests {
         tags: [String] = [],
         publishedAt: Date? = nil,
         moderationStatus: ModerationStatus = .approved,
-        publisherID: String = "publisher-source"
+        publisherID: String = "publisher-source",
+        subtitle: String = "Корисна інформація для української громади",
+        localizations: [String: NewsLocalizedContent] = [:]
     ) -> NewsPost {
         NewsPost(
             id: id,
+            localizations: localizations,
             title: title,
-            subtitle: "Корисна інформація для української громади",
+            subtitle: subtitle,
             regionScope: .federalState,
             federalState: .tirol,
             city: "Innsbruck",

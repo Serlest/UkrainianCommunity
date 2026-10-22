@@ -159,30 +159,40 @@ struct FirestoreEventRepository: EventRepository {
     }
 
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
-        let boundedLimit = min(max(1, limit), 12)
-        let snapshot = try await collection
+        let boundedLimit = min(max(1, limit), ContentRecommendationEngine.candidateLimit)
+        let categories = Array(Set(([source.category] + source.additionalCategories).map(\.rawValue))).sorted()
+        let base = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-            .whereField("category", isEqualTo: source.category.rawValue)
+        // Three bounded channels: main categories, additional categories and
+        // recent cross-category content. Rank the union before truncating it.
+        async let primary = base.whereField("category", in: categories)
             .order(by: "createdAt", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
-            .limit(to: boundedLimit)
-            .getDocuments()
-        let documents = snapshot.documents.filter { $0.documentID != source.id }
-        let documentIDs = documents.map(\.documentID)
-        async let liked = fetchLikedEventIDs(for: documentIDs)
-        async let registered = fetchRegisteredEventIDs(for: documentIDs)
-        async let bookmarked = fetchBookmarkedEventIDs(for: documentIDs)
-        let (likedEventIDs, registeredEventIDs, bookmarkedEventIDs) = try await (liked, registered, bookmarked)
-
-        return try documents.map { document in
+            .limit(to: boundedLimit).getDocuments()
+        async let additional = base.whereField("additionalCategories", arrayContainsAny: categories)
+            .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: boundedLimit).getDocuments()
+        async let recent = base
+            .order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: boundedLimit).getDocuments()
+        let snapshots = try await [primary, additional, recent]
+        var seen = Set<String>()
+        let documents = snapshots.flatMap(\.documents).filter {
+            $0.documentID != source.id && seen.insert($0.documentID).inserted
+        }
+        // Recommendation cards show content metadata. Interaction states are
+        // loaded by the destination detail; avoid per-candidate marker reads.
+        let candidates = try documents.map { document in
             try Event(dto: makeEventDTO(
-                from: document,
-                likedEventIDs: likedEventIDs,
-                registeredEventIDs: registeredEventIDs,
-                bookmarkedEventIDs: bookmarkedEventIDs
+                from: document, likedEventIDs: [], registeredEventIDs: [], bookmarkedEventIDs: []
             ))
         }
+        return ContentRecommendationEngine.eventRecommendations(
+            for: source, candidates: candidates, limit: boundedLimit
+        ).map(\.event)
     }
 
     func fetchEvent(id: String) async throws -> Event {

@@ -742,9 +742,10 @@ extension NewsRepository {
     }
 
     func fetchNewsRecommendationCandidates(for source: NewsPost, limit: Int) async throws -> [NewsPost] {
-        Array(try await fetchNews()
-            .filter { $0.id != source.id && $0.category == source.category }
-            .prefix(min(max(1, limit), 12)))
+        ContentRecommendationEngine.newsRecommendations(
+            for: source, candidates: try await fetchNews(),
+            limit: min(max(1, limit), ContentRecommendationEngine.candidateLimit)
+        ).map(\.post)
     }
 }
 
@@ -849,9 +850,10 @@ extension EventRepository {
     }
 
     func fetchEventRecommendationCandidates(for source: Event, limit: Int) async throws -> [Event] {
-        Array(try await fetchEvents()
-            .filter { $0.id != source.id && $0.category == source.category }
-            .prefix(min(max(1, limit), 12)))
+        ContentRecommendationEngine.eventRecommendations(
+            for: source, candidates: try await fetchEvents(),
+            limit: min(max(1, limit), ContentRecommendationEngine.candidateLimit)
+        ).map(\.event)
     }
 }
 

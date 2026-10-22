@@ -57,15 +57,27 @@ struct EventRegistrationRaceTests {
         let repository = ControlledEventRepository()
         let model = EventsViewModel(repository: repository)
         let source = makeEvent(id: "recommendation-source")
-        repository.recommendationCandidates = (0..<20).map { makeEvent(id: "recommendation-\($0)") }
+        repository.recommendationCandidates = (0..<80).map { makeEvent(id: "recommendation-\($0)") }
 
         let first = await model.recommendationCandidates(for: source, limit: 99)
         let second = await model.recommendationCandidates(for: source, limit: 99)
 
         #expect(repository.recommendationRequestCount == 1)
-        #expect(repository.lastRecommendationLimit == 12)
-        #expect(first.count == 12)
+        #expect(repository.lastRecommendationLimit == ContentRecommendationEngine.candidateLimit)
+        #expect(first.count == ContentRecommendationEngine.candidateLimit)
         #expect(second.map(\.id) == first.map(\.id))
+    }
+
+    @Test func smallRecommendationRequestDoesNotTruncateTheSharedCandidateCache() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        let source = makeEvent(id: "small-limit-source")
+        repository.recommendationCandidates = (0..<80).map { makeEvent(id: "candidate-\($0)") }
+        let first = await model.recommendationCandidates(for: source, limit: 1)
+        let second = await model.recommendationCandidates(for: source)
+        #expect(first.count == 1)
+        #expect(second.count == ContentRecommendationEngine.candidateLimit)
+        #expect(repository.recommendationRequestCount == 1)
     }
 
     @Test func forcedEventDetailRefreshPreservesOtherCachedPages() async {

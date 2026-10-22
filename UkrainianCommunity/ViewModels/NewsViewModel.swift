@@ -664,24 +664,26 @@ final class NewsViewModel: ObservableObject {
         }
     }
 
-    func recommendationCandidates(for source: NewsPost, limit: Int = 12) async -> [NewsPost] {
-        let boundedLimit = min(max(1, limit), 12)
+    func recommendationCandidates(for source: NewsPost, limit: Int = ContentRecommendationEngine.candidateLimit) async -> [NewsPost] {
+        let boundedLimit = min(max(1, limit), ContentRecommendationEngine.candidateLimit)
         if let cached = recommendationCandidateCache[source.id] {
             return Array(cached.prefix(boundedLimit))
         }
-        if let existingTask = recommendationCandidateTasks[source.id] {
-            return Array((await existingTask.value).prefix(boundedLimit))
-        }
-
         let generation = authGeneration
-        let fallback = Array(posts
-            .filter { $0.id != source.id && $0.category == source.category }
-            .prefix(boundedLimit))
+        if let existingTask = recommendationCandidateTasks[source.id] {
+            let fetched = await existingTask.value
+            guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return [] }
+            return Array(visibilityPolicy.visibleNews(fetched)
+                .filter { $0.id != source.id }.deduplicatedNewsByID().prefix(boundedLimit))
+        }
+        let fallback = ContentRecommendationEngine.newsRecommendations(
+            for: source, candidates: posts, limit: ContentRecommendationEngine.candidateLimit
+        ).map(\.post)
         let task = Task { [repository] in
             do {
                 return try await repository.fetchNewsRecommendationCandidates(
                     for: source,
-                    limit: boundedLimit
+                    limit: ContentRecommendationEngine.candidateLimit
                 )
             } catch {
                 return fallback

@@ -40,15 +40,27 @@ struct ContentInteractionRaceTests {
         let repository = ControlledNewsRepository()
         let model = NewsViewModel(repository: repository)
         let source = makeNewsPost(id: "recommendation-source")
-        repository.recommendationCandidates = (0..<20).map { makeNewsPost(id: "recommendation-\($0)") }
+        repository.recommendationCandidates = (0..<80).map { makeNewsPost(id: "recommendation-\($0)") }
 
         let first = await model.recommendationCandidates(for: source, limit: 99)
         let second = await model.recommendationCandidates(for: source, limit: 99)
 
         #expect(repository.recommendationRequestCount == 1)
-        #expect(repository.lastRecommendationLimit == 12)
-        #expect(first.count == 12)
+        #expect(repository.lastRecommendationLimit == ContentRecommendationEngine.candidateLimit)
+        #expect(first.count == ContentRecommendationEngine.candidateLimit)
         #expect(second.map(\.id) == first.map(\.id))
+    }
+
+    @Test func smallRecommendationRequestDoesNotTruncateTheSharedCandidateCache() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let source = makeNewsPost(id: "small-limit-source")
+        repository.recommendationCandidates = (0..<80).map { makeNewsPost(id: "candidate-\($0)") }
+        let first = await model.recommendationCandidates(for: source, limit: 1)
+        let second = await model.recommendationCandidates(for: source)
+        #expect(first.count == 1)
+        #expect(second.count == ContentRecommendationEngine.candidateLimit)
+        #expect(repository.recommendationRequestCount == 1)
     }
 
     @Test func forcedNewsDetailRefreshRemovesOnlyUnavailableCachedPost() async {

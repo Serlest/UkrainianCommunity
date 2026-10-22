@@ -189,28 +189,40 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func fetchNewsRecommendationCandidates(for source: NewsPost, limit: Int) async throws -> [NewsPost] {
-        let boundedLimit = min(max(1, limit), 12)
-        let snapshot = try await collection
+        let boundedLimit = min(max(1, limit), ContentRecommendationEngine.candidateLimit)
+        let categories = Array(Set(([source.category] + source.additionalCategories).map(\.rawValue))).sorted()
+        let base = collection
             .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
             .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
-            .whereField("category", isEqualTo: source.category.rawValue)
+        // Three bounded channels: main categories, additional categories and
+        // recent cross-category content. Rank the union before truncating it.
+        async let primary = base.whereField("category", in: categories)
             .order(by: "publishedAt", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
-            .limit(to: boundedLimit)
-            .getDocuments()
-        let documents = snapshot.documents.filter { $0.documentID != source.id }
-        let documentIDs = documents.map(\.documentID)
-        async let liked = fetchLikedNewsIDs(for: documentIDs)
-        async let bookmarked = fetchBookmarkedNewsIDs(for: documentIDs)
-        let (likedNewsIDs, bookmarkedNewsIDs) = try await (liked, bookmarked)
-
-        return try documents.map { document in
+            .limit(to: boundedLimit).getDocuments()
+        async let additional = base.whereField("additionalCategories", arrayContainsAny: categories)
+            .order(by: "publishedAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: boundedLimit).getDocuments()
+        async let recent = base
+            .order(by: "publishedAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: boundedLimit).getDocuments()
+        let snapshots = try await [primary, additional, recent]
+        var seen = Set<String>()
+        let documents = snapshots.flatMap(\.documents).filter {
+            $0.documentID != source.id && seen.insert($0.documentID).inserted
+        }
+        // Recommendation cards show content metadata. Interaction states are
+        // loaded by the destination detail; avoid per-candidate marker reads.
+        let candidates = try documents.map { document in
             try NewsPost(dto: makeNewsPostDTO(
-                from: document,
-                likedNewsIDs: likedNewsIDs,
-                bookmarkedNewsIDs: bookmarkedNewsIDs
+                from: document, likedNewsIDs: [], bookmarkedNewsIDs: []
             ))
         }
+        return ContentRecommendationEngine.newsRecommendations(
+            for: source, candidates: candidates, limit: boundedLimit
+        ).map(\.post)
     }
 
     func fetchOrganizationNews(organizationID: String, limit: Int) async throws -> [NewsPost] {

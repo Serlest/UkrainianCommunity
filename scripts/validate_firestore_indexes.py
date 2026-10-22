@@ -54,6 +54,16 @@ for topic in (None, "category", "additionalCategories"):
                 f"news browse topic={topic} region={region} order={direction}"
             )
 
+# Related events include additional categories and a recent cross-category pool.
+for additional in (False, True):
+    fields = ([("additionalCategories", None, "CONTAINS", None)] if additional else [])
+    fields += [("moderationStatus", "ASCENDING", None, None),
+               ("sourceType", "ASCENDING", None, None),
+               ("createdAt", "DESCENDING", None, None)]
+    REQUIRED_COMPOSITE_INDEXES[("events", "COLLECTION", tuple(fields))] = (
+        f"related events additionalCategories={additional}"
+    )
+
 REQUIRED_COLLECTION_GROUP_FIELDS = {
     ("contentPlanningDrafts", "publishedContentId"): "planning link lookup",
 }

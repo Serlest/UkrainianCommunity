@@ -919,24 +919,26 @@ final class EventsViewModel: ObservableObject {
         }
     }
 
-    func recommendationCandidates(for source: Event, limit: Int = 12) async -> [Event] {
-        let boundedLimit = min(max(1, limit), 12)
+    func recommendationCandidates(for source: Event, limit: Int = ContentRecommendationEngine.candidateLimit) async -> [Event] {
+        let boundedLimit = min(max(1, limit), ContentRecommendationEngine.candidateLimit)
         if let cached = recommendationCandidateCache[source.id] {
             return Array(cached.prefix(boundedLimit))
         }
-        if let existingTask = recommendationCandidateTasks[source.id] {
-            return Array((await existingTask.value).prefix(boundedLimit))
-        }
-
         let generation = sessionGeneration
-        let fallback = Array(events
-            .filter { $0.id != source.id && $0.category == source.category }
-            .prefix(boundedLimit))
+        if let existingTask = recommendationCandidateTasks[source.id] {
+            let fetched = await existingTask.value
+            guard !Task.isCancelled, isCurrentSession(generation) else { return [] }
+            return Array(visibilityPolicy.visibleEvents(fetched)
+                .filter { $0.id != source.id }.deduplicatedEventsByID().prefix(boundedLimit))
+        }
+        let fallback = ContentRecommendationEngine.eventRecommendations(
+            for: source, candidates: events, limit: ContentRecommendationEngine.candidateLimit
+        ).map(\.event)
         let task = Task { [repository] in
             do {
                 return try await repository.fetchEventRecommendationCandidates(
                     for: source,
-                    limit: boundedLimit
+                    limit: ContentRecommendationEngine.candidateLimit
                 )
             } catch {
                 return fallback
