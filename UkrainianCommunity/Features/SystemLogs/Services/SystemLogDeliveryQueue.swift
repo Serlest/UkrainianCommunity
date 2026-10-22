@@ -67,7 +67,8 @@ final class SystemLogDeliveryQueue {
         prune()
         // Preserve the newest bounded diagnostic evidence rather than growing without limit.
         if pending.count >= 200 { pending.removeFirst(pending.count - 199) }
-        pending.append(Envelope(id: UUID().uuidString, occurredAt: now(), principalID: uid, draft: draft))
+        let occurredAt = Date(timeIntervalSince1970: (now().timeIntervalSince1970 * 1000).rounded() / 1000)
+        pending.append(Envelope(id: UUID().uuidString, occurredAt: occurredAt, principalID: uid, draft: draft))
         try save()
         if automaticallyDelivers { resume() }
     }

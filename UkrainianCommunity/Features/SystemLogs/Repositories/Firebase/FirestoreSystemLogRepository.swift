@@ -318,7 +318,7 @@ private nonisolated struct SystemDiagnosticFunctionRequest: Encodable {
 
     @MainActor init(draft: SystemLogDraft, eventID: String?, occurredAt: Date?) {
         clientEventId = eventID
-        occurredAtMilliseconds = occurredAt.map { Int64($0.timeIntervalSince1970 * 1000) }
+        occurredAtMilliseconds = occurredAt.map { Int64(($0.timeIntervalSince1970 * 1000).rounded()) }
         principalId = draft.actorUserId
         eventType = draft.eventType.rawValue
         severity = draft.severity.rawValue
