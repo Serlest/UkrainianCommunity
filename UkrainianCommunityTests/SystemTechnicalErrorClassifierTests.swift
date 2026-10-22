@@ -16,6 +16,21 @@ struct SystemTechnicalErrorClassifierTests {
         #expect(!SystemTechnicalErrorClassifier.isPrivilegedMFAFailure(other))
     }
 
+    @Test func capturesOnlySafeStructuredServerReasonCodes() {
+        let safe = NSError(domain: FunctionsErrorDomain, code: 9, userInfo: [
+            FunctionsErrorDetailsKey: ["reasonCode": "organization.not_active", "message": "private@example.com"]
+        ])
+        let classification = SystemTechnicalErrorClassifier.classify(safe, context: context)
+        #expect(classification.metadata["serverReasonCode"] == "organization.not_active")
+        #expect(!String(describing: classification).contains("private@example.com"))
+
+        let unsafe = NSError(domain: FunctionsErrorDomain, code: 9, userInfo: [
+            FunctionsErrorDetailsKey: ["reasonCode": "private@example.com"]
+        ])
+        let unsafeClassification = SystemTechnicalErrorClassifier.classify(unsafe, context: context)
+        #expect(unsafeClassification.metadata["serverReasonCode"] == nil)
+    }
+
     @Test func preservesTLSCauseWithoutPrivatePayload() {
         let cause = NSError(domain: "kCFErrorDomainCFNetwork", code: -1200, userInfo: ["_kCFStreamErrorCodeKey": -9824, "_kCFStreamErrorDomainKey": 3, NSLocalizedDescriptionKey: "private@example.com bearer secret", NSURLErrorFailingURLErrorKey: URL(string: "https://example.com/private?token=secret")!])
         let error = NSError(domain: NSURLErrorDomain, code: -1200, userInfo: [NSUnderlyingErrorKey: cause])
