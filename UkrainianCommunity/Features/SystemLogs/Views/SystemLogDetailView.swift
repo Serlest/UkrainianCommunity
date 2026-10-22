@@ -80,6 +80,16 @@ struct SystemLogDetailView: View {
             SystemLogActorSection(log: log)
 
             if SystemLogExplanation.isFailure(log) {
+                // Put recorded action evidence above the collapsed technical details so
+                // reviewers can identify the failed request without guessing its intent.
+                detailSection(SystemLogExplanation.text("action"), rows: [
+                    (SystemLogExplanation.text("action"), SystemLogExplanation.action(log)),
+                    (AppStrings.SystemLogs.operationLabel, nonEmpty(log.operationName)),
+                    (AppStrings.SystemLogs.moduleLabel, nonEmpty(log.moduleName)),
+                    (AppStrings.SystemLogs.screenLabel, nonEmpty(log.screenName)),
+                    (AppStrings.SystemLogs.errorCodeLabel, nonEmpty(log.errorCode))
+                ])
+
                 detailSection(SystemLogExplanation.text("section"), rows: [
                     (SystemLogExplanation.text("cause"), SystemLogExplanation.cause(log)),
                     (SystemLogExplanation.text("next"), SystemLogExplanation.nextStep(log))
