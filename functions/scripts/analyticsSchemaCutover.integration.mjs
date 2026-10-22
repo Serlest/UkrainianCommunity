@@ -27,9 +27,10 @@ const database = getFirestore(app);
 const deployedCommit = "abcdef1234567890abcdef1234567890abcdef12";
 
 test("gated cutover rejects traffic, archives lifetime detail, and rematerializes cleanly", async () => {
-  // Keep the synthetic boundary safely in the past so the real materializer's
-  // own clock accepts post-boundary profiles instead of rejecting future data.
+  // Keep the boundary in the past and away from Vienna midnight: prepare and
+  // finalize must share a calendar day regardless of the time CI runs.
   const prepareTime = new Date(Date.now() - 24 * 60 * 60 * 1_000);
+  prepareTime.setUTCHours(10, 0, 0, 0);
   const deployedAt = new Date(prepareTime.getTime() + 60_000);
   const finalizeTime = new Date(deployedAt.getTime() + 11 * 60_000);
   const cutoverDay = analyticsCutoverDayID(prepareTime);
