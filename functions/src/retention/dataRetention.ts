@@ -60,6 +60,8 @@ export const systemLogRetentionDays = {
 type ContentKind = "news" | "events";
 
 type CleanupSummary = {
+  systemLogQueryCursors: number;
+  systemLogDiagnosticReceipts: number;
   news: number;
   events: number;
   systemLogs: number;
@@ -104,6 +106,8 @@ export const cleanupExpiredData = onSchedule(
       systemLogs: await cleanupExpiredSystemLogs(now),
       closedFeedback: await cleanupExpiredClosedFeedback(now),
       auditLogs: await cleanupExpiredAuditLogs(now),
+      systemLogQueryCursors: await cleanupExpiredAnalyticsGuards("systemLogQueryCursors", now),
+      systemLogDiagnosticReceipts: await cleanupExpiredAnalyticsGuards("systemLogDiagnosticReceipts", now),
       analyticsEventReceipts: await cleanupExpiredAnalyticsGuards(
         analyticsEventReceiptCollection,
         now,

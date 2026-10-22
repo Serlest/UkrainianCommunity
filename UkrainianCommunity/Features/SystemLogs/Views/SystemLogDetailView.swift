@@ -66,7 +66,7 @@ struct SystemLogDetailView: View {
             }
 
             DetailHeaderCard(title: SystemLogExplanation.title(log), subtitle: SystemLogExplanation.action(log)) {
-                AppHorizontalChipRow(spacing: 8) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), alignment: .leading)], alignment: .leading, spacing: 8) {
                     AppInfoChip(
                         title: SystemLogDisplayFormatting.severityTitle(log.severity),
                         tint: SystemLogDisplayFormatting.severityTint(log.severity),
@@ -76,8 +76,6 @@ struct SystemLogDetailView: View {
                     AppInfoChip(title: log.isReviewed ? AppStrings.SystemLogs.reviewed : AppStrings.SystemLogs.notReviewed, systemImage: log.isReviewed ? "checkmark.seal" : "circle.badge.questionmark")
                 }
             }
-
-            SystemLogActorSection(log: log)
 
             if SystemLogExplanation.isFailure(log) {
                 detailSection(SystemLogExplanation.text("section"), rows: [
@@ -90,10 +88,14 @@ struct SystemLogDetailView: View {
                     (SystemLogExplanation.text("validationRule"), SystemLogExplanation.contextValue(log.metadata["validationRule"], prefix: "rule")),
                     (SystemLogExplanation.text("deliveryDisposition"), SystemLogExplanation.contextValue(log.metadata["deliveryDisposition"], prefix: "disposition")),
                     (SystemLogExplanation.text("retryCount"), log.metadata["retryCount"]),
-                    (SystemLogExplanation.text("appBuild"), log.metadata["appBuild"]),
+
                     (SystemLogExplanation.text("next"), SystemLogExplanation.nextStep(log))
                 ])
             }
+
+            reviewActionSection
+
+            SystemLogActorSection(log: log)
 
             detailSection(AppStrings.SystemLogs.targetSection, rows: [
                 (AppStrings.SystemLogs.typeLabel, targetTypeValue),
@@ -111,7 +113,6 @@ struct SystemLogDetailView: View {
             }
             .tint(AppTheme.accentPrimary)
 
-            reviewActionSection
         }
     }
 
@@ -319,6 +320,7 @@ private struct SystemLogDetailRow: View {
                 valueLabel
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var titleLabel: some View {

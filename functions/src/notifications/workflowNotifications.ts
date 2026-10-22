@@ -26,6 +26,12 @@ export async function platformReviewers(): Promise<string[]> {
 }
 
 export async function canReceiveScopedNotification(userId: string, metadata: Record<string, unknown>): Promise<boolean> {
+  if (metadata.recipientScope === "appOwnerJournal") {
+    const user = await db.collection("users").doc(userId).get();
+    const logId = text(metadata.routeTargetId);
+    if (user.get("globalRole") !== "owner" || (user.get("accountStatus") ?? "active") !== "active" || !logId || logId.includes("/")) return false;
+    if (!(await db.collection("systemLogs").doc(logId).get()).exists) return false;
+  }
   if (metadata.recipientScope === "platformReviewers") {
     const user = await db.collection("users").doc(userId).get();
     if (!canManageOrganizationRequests(userPermissionSnapshotFromData(userId, user.data()))) return false;

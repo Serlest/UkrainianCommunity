@@ -28,7 +28,7 @@ final class SystemLogsViewModel: ObservableObject {
     @Published private(set) var refreshingDetailLogIDs = Set<String>()
     @Published private(set) var detailRefreshErrorMessages: [String: String] = [:]
 
-    private let repository: SystemLogRepositoryProtocol
+    let repository: SystemLogRepositoryProtocol
     let accessMode: SystemLogsAccessMode
     let calendar: Calendar
     let nowProvider: () -> Date
@@ -36,6 +36,58 @@ final class SystemLogsViewModel: ObservableObject {
     private let fetchLimit = 100
     private var hasLoadedInitialPage = false
     private var dataRequestRevision: UInt = 0
+    private var nextCursor: String?
+    private var loadedQueryKey: String?
+    private var lastLoadedAt: Date?
+    private var reviewedOverrides: [String: (String, Date)] = [:]
+
+    var queryKey: String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        return (try? String(data: encoder.encode(queryFilter), encoding: .utf8))! + sortOption.rawValue
+    }
+
+    var queryFilter: SystemLogFilter {
+        var filter = SystemLogFilter(section: selectedSection.rawValue, categories: selectedCategories,
+            severities: selectedSeverities, outcomes: selectedOutcomes,
+            isReviewed: reviewFilter == .all ? nil : reviewFilter == .reviewed,
+            searchText: searchText.trimmingCharacters(in: .whitespacesAndNewlines),
+            isAppAdminReadable: accessMode == .appAdmin ? true : nil)
+        if selectedFilters.contains(.unreviewed) { filter.isReviewed = false }
+        if selectedFilters.contains(.critical) {
+            // Contradictory selections intentionally produce no matches.
+            if !selectedSeverities.isEmpty && !selectedSeverities.contains(.critical) { filter.targetId = "__no_matching_journal_entry__" }
+            filter.severities = [.critical]
+        }
+        var dates: [Date] = []
+        let now = calendar.startOfDay(for: nowProvider())
+        if selectedFilters.contains(.today) || datePreset == .today { dates.append(calendar.startOfDay(for: now)) }
+        if selectedFilters.contains(.sevenDays) || datePreset == .sevenDays { dates.append(calendar.date(byAdding: .day, value: -7, to: now) ?? now) }
+        if datePreset == .thirtyDays { dates.append(calendar.date(byAdding: .day, value: -30, to: now) ?? now) }
+        filter.startDate = dates.max()
+        if selectedFilters.contains(.today) { filter.endDate = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))?.addingTimeInterval(-0.001) }
+        if selectedFilters.contains(.unreviewed) && reviewFilter == .reviewed { filter.targetId = "__no_matching_journal_entry__" }
+        return filter
+    }
+
+    func refreshIfStale() async {
+        guard !isLoading else { return }
+        if loadedQueryKey != queryKey || lastLoadedAt.map({ nowProvider().timeIntervalSince($0) >= 60 || !calendar.isDate($0, inSameDayAs: nowProvider()) }) != false {
+            await refresh()
+        }
+    }
+
+    func queryChanged() async {
+        guard loadedQueryKey != queryKey else { await loadIfNeeded(); return }
+        if repository.usesServerFiltering {
+            dataRequestRevision &+= 1
+            logs = []; nextCursor = nil; canLoadMore = false
+        }
+        do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+        guard !Task.isCancelled, loadedQueryKey != queryKey else { return }
+        await refresh()
+    }
+
 
     init(
         repository: SystemLogRepositoryProtocol? = nil,
@@ -79,13 +131,16 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
-        guard !hasLoadedInitialPage else { return }
+        guard !hasLoadedInitialPage else { await refreshIfStale(); return }
         await refresh()
     }
 
     func refresh() async {
         dataRequestRevision &+= 1
         let requestRevision = dataRequestRevision
+        let key = queryKey
+        let filter = repository.usesServerFiltering ? queryFilter : SystemLogFilter(isAppAdminReadable: accessMode == .appAdmin ? true : nil)
+        let sort = sortOption
         isLoading = true
         defer {
             if requestRevision == dataRequestRevision {
@@ -94,10 +149,17 @@ final class SystemLogsViewModel: ObservableObject {
         }
 
         do {
-            let refreshedLogs = try await RefreshRequest.run { [self] in try await fetchLogsForAccessMode() }
-            guard requestRevision == dataRequestRevision else { return }
-            logs = refreshedLogs
-            canLoadMore = logs.count >= fetchLimit
+            var page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: nil)
+            for _ in 0..<7 {
+                guard page.entries.isEmpty, let cursor = page.cursor, !Task.isCancelled, requestRevision == dataRequestRevision else { break }
+                page = try await repository.queryPage(filter: filter, sortOption: sort, limit: fetchLimit, cursor: cursor)
+            }
+            guard requestRevision == dataRequestRevision, key == queryKey, !Task.isCancelled else { return }
+            logs = page.entries.map(applyingReviewOverride)
+            nextCursor = page.cursor
+            canLoadMore = page.cursor != nil
+            loadedQueryKey = key
+            lastLoadedAt = nowProvider()
             hasLoadedInitialPage = true
             errorMessage = nil
         } catch {
@@ -110,15 +172,24 @@ final class SystemLogsViewModel: ObservableObject {
         guard canLoadMore, !isLoading, !isLoadingNextPage else { return }
         let requestRevision = dataRequestRevision
         let requestedSortOption = sortOption
+        let key = queryKey
+        let filter = queryFilter
         isLoadingNextPage = true
         defer { isLoadingNextPage = false }
 
         do {
-            let nextPage = try await repository.fetchNextPage()
+            var page = try await repository.queryPage(filter: filter, sortOption: requestedSortOption, limit: fetchLimit, cursor: nextCursor)
+            for _ in 0..<7 {
+                guard page.entries.isEmpty, let cursor = page.cursor, !Task.isCancelled, requestRevision == dataRequestRevision else { break }
+                page = try await repository.queryPage(filter: filter, sortOption: requestedSortOption, limit: fetchLimit, cursor: cursor)
+            }
+            guard key == queryKey else { return }
+            let nextPage = page.entries.map(applyingReviewOverride)
             guard requestRevision == dataRequestRevision, requestedSortOption == sortOption else { return }
             let existingIDs = Set(logs.map(\.id))
             logs.append(contentsOf: nextPage.filter { !existingIDs.contains($0.id) })
-            canLoadMore = nextPage.count >= fetchLimit
+            nextCursor = page.cursor
+            canLoadMore = page.cursor != nil
             errorMessage = nil
         } catch {
             guard requestRevision == dataRequestRevision, requestedSortOption == sortOption else { return }
@@ -129,19 +200,6 @@ final class SystemLogsViewModel: ObservableObject {
     func ensureSelectedSectionIsVisible() {
         guard !accessMode.visibleSections.contains(selectedSection) else { return }
         selectedSection = .all
-    }
-
-    private func fetchLogsForAccessMode() async throws -> [SystemLogEntry] {
-        switch accessMode {
-        case .owner:
-            try await repository.fetchLogs(filter: .empty, sortOption: sortOption, limit: fetchLimit)
-        case .appAdmin:
-            try await repository.fetchLogs(
-                filter: SystemLogFilter(isAppAdminReadable: true),
-                sortOption: sortOption,
-                limit: fetchLimit
-            )
-        }
     }
 
     private func readableErrorMessage(for error: Error) -> String {
@@ -218,8 +276,14 @@ final class SystemLogsViewModel: ObservableObject {
     }
 
     private func applyReviewedState(logID: String, reviewedByUserId: String, reviewedAt: Date) {
+        reviewedOverrides[logID] = (reviewedByUserId, reviewedAt)
         guard let index = logs.firstIndex(where: { $0.id == logID }) else { return }
         logs[index] = logs[index].markedReviewed(at: reviewedAt, reviewedByUserId: reviewedByUserId)
+    }
+
+    private func applyingReviewOverride(_ entry: SystemLogEntry) -> SystemLogEntry {
+        guard let (reviewer, date) = reviewedOverrides[entry.id], !entry.isReviewed else { return entry }
+        return entry.markedReviewed(at: date, reviewedByUserId: reviewer)
     }
 
     private func readableReviewErrorMessage(for error: Error) -> String {
@@ -334,6 +398,9 @@ final class SystemLogsViewModel: ObservableObject {
 
         do {
             _ = try await repository.clearAllLogs()
+            dataRequestRevision &+= 1
+            isLoading = false
+            nextCursor = nil
             logs = []
             canLoadMore = false
             errorMessage = nil

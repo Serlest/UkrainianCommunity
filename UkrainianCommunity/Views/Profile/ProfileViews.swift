@@ -38,6 +38,7 @@ enum ProfileNavigationRoute: Hashable {
     case feedbackDetail(feedbackID: String)
     case myFeedbackDetail(userID: String, feedbackID: String)
     case systemLogs(SystemLogsAccessMode)
+    case systemLogDetail(String)
     case notifications
     case myFeedback(userID: String)
     case dsaStatement(statementID: String)
@@ -701,6 +702,8 @@ struct ProfileView: View {
                 currentUserID: userID,
                 initialFeedbackID: feedbackID
             )
+        case let .systemLogDetail(logID):
+            if PermissionService.isAppOwner(user: permissionUser) { SystemLogNotificationDestinationView(logID: logID) }
         case let .systemLogs(accessMode):
             switch accessMode {
             case .owner:

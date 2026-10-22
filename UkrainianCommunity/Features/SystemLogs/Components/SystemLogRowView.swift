@@ -31,7 +31,7 @@ struct SystemLogRowView: View {
                 metadataLine
                 contextLine
 
-                AppHorizontalChipRow(spacing: 6) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), alignment: .leading)], alignment: .leading, spacing: 6) {
                     AppInfoChip(
                         title: SystemLogDisplayFormatting.severityTitle(log.severity),
                         tint: SystemLogDisplayFormatting.severityTint(log.severity),
@@ -80,9 +80,10 @@ struct SystemLogRowView: View {
     private var metadataLine: some View {
         HStack(spacing: 6) {
             Text(log.actorDisplayName ?? SystemLogDisplayFormatting.actorRoleTitle(log.actorRole))
-            Image(systemName: "arrow.right")
-                .font(.caption2.weight(.semibold))
-            Text(log.targetTitle ?? SystemLogDisplayFormatting.targetTypeTitle(log.targetType))
+            if log.targetTitle != nil || (log.targetType != .none && log.targetType != .unknown) {
+                Image(systemName: "arrow.right").font(.caption2.weight(.semibold))
+                Text(log.targetTitle ?? SystemLogDisplayFormatting.targetTypeTitle(log.targetType))
+            }
         }
         .font(.caption.weight(.medium))
         .foregroundStyle(AppTheme.textSecondary)

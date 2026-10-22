@@ -65,13 +65,11 @@ struct SystemLogsDashboardView: View {
             filters
             content
         }
-        .task {
+        .task(id: viewModel.queryKey) {
             viewModel.ensureSelectedSectionIsVisible()
-            await viewModel.loadIfNeeded()
+            await viewModel.queryChanged()
         }
-        .onChange(of: viewModel.sortOption) {
-            Task { await viewModel.refresh() }
-        }
+        .analyticsRefreshLifecycle { await viewModel.refreshIfStale() }
         .appRefreshable {
             await viewModel.refresh()
         }
@@ -156,7 +154,7 @@ struct SystemLogsDashboardView: View {
 
             if viewModel.hasActiveFilters {
                 HStack(spacing: 8) {
-                    Label(AppStrings.SystemLogs.filteredLoadedScope, systemImage: "line.3.horizontal.decrease.circle.fill")
+                    Label(LocalizationStore.localizedString("system_logs.query.scope", defaultValue: "Пошук і фільтри застосовано до всього журналу", table: "SystemLogJournal"), systemImage: "line.3.horizontal.decrease.circle.fill")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(AppTheme.textSecondary)
 
@@ -231,7 +229,7 @@ struct SystemLogsDashboardView: View {
                         .foregroundStyle(AppTheme.textSecondary)
                 }
             }
-        } else if viewModel.visibleLogs.isEmpty && !viewModel.isLoading {
+        } else if viewModel.visibleLogs.isEmpty && !viewModel.isLoading && !viewModel.canLoadMore {
             emptyState
         } else {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
@@ -247,6 +245,10 @@ struct SystemLogsDashboardView: View {
                     InlineMessageCard(style: .error, message: bulkReviewErrorMessage)
                 }
 
+                if viewModel.visibleLogs.isEmpty && viewModel.canLoadMore {
+                    Text(LocalizationStore.localizedString("system_logs.query.continue", defaultValue: "У перевіреній частині збігів немає. Продовжіть пошук у старіших записах.", table: "SystemLogJournal"))
+                        .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                }
                 DashboardSectionHeader(
                     title: AppStrings.SystemLogs.records,
                     subtitle: "\(viewModel.visibleLogs.count) \(AppStrings.SystemLogs.recordsCountSuffix)"

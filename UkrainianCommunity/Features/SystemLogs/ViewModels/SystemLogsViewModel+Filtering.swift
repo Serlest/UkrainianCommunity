@@ -2,7 +2,10 @@ import Foundation
 
 extension SystemLogsViewModel {
     var filteredLogs: [SystemLogEntry] {
-        logs.filter { log in
+        if repository.usesServerFiltering {
+            return logs.filter { matchesSection($0) && matchesQuickFilters($0) && matchesAdvancedFilters($0) }
+        }
+        return logs.filter { log in
             matchesSection(log)
                 && matchesQuickFilters(log)
                 && matchesAdvancedFilters(log)
@@ -55,7 +58,7 @@ extension SystemLogsViewModel {
             case .today:
                 calendar.isDate(log.createdAt, inSameDayAs: nowProvider())
             case .sevenDays:
-                log.createdAt >= calendar.date(byAdding: .day, value: -7, to: nowProvider()) ?? nowProvider()
+                log.createdAt >= calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: nowProvider())) ?? nowProvider()
             }
         }
     }
@@ -88,9 +91,9 @@ extension SystemLogsViewModel {
         case .today:
             startDate = calendar.startOfDay(for: nowProvider())
         case .sevenDays:
-            startDate = calendar.date(byAdding: .day, value: -7, to: nowProvider())
+            startDate = calendar.date(byAdding: .day, value: -7, to: calendar.startOfDay(for: nowProvider()))
         case .thirtyDays:
-            startDate = calendar.date(byAdding: .day, value: -30, to: nowProvider())
+            startDate = calendar.date(byAdding: .day, value: -30, to: calendar.startOfDay(for: nowProvider()))
         }
         return startDate.map { log.createdAt >= $0 } ?? true
     }

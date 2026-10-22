@@ -84,6 +84,7 @@ final class SystemAuditLoggingService {
         do {
             try await loggingService.logAudit(draft)
         } catch {
+            await deduplicator.release(key: dedupeKey)
             // Best-effort audit logging only: logging must never block the user action.
         }
     }
@@ -150,6 +151,8 @@ actor SystemAuditLogDeduplicator {
         self.interval = interval
         self.nowProvider = nowProvider
     }
+
+    func release(key: String) { recentKeys[key] = nil }
 
     func shouldLog(key: String) -> Bool {
         let now = nowProvider()

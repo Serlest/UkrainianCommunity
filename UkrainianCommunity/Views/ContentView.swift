@@ -1008,6 +1008,10 @@ struct ContentView: View {
 
         isShowingNotificationInbox = false
 
+        if notification.metadata["scope"] == "systemLogAlert" {
+            routeToSystemLog(notification.destinationTargetID)
+            return
+        }
         if routeToModeratedMaterial(type: notification.type, sourceID: notification.sourceId) { return }
 
         switch notification.actionType {
@@ -1038,6 +1042,14 @@ struct ContentView: View {
         case .openURL:
             routeToURL(notification)
         }
+    }
+
+    private func routeToSystemLog(_ id: String?) {
+        guard PermissionService.isAppOwner(user: authState.user), let id, !id.isEmpty, !id.contains("/") else {
+            showNotificationRouteUnavailable(); return
+        }
+        selectTabIfNeeded(.profile)
+        profileNavigationPath = [.systemLogDetail(id)]
     }
 
     private func routeToLegalDocument(targetID: String?) {
@@ -1202,6 +1214,8 @@ struct ContentView: View {
         if routeToModeratedMaterial(type: route.type, sourceID: route.sourceId) { return }
 
         switch route.destination {
+        case let .openSystemLog(logID):
+            routeToSystemLog(logID)
         case .openNews(let newsId):
             routeToNews(newsID: newsId)
         case .openEvent(let eventId):

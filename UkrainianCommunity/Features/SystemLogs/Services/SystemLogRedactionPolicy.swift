@@ -26,7 +26,7 @@ struct SystemLogRedactionPolicy: Codable, Equatable {
         var redactedDraft = draft
         redactedDraft.summary = trimmed(draft.summary, maxLength: Self.maxSummaryLength)
         redactedDraft.technicalMessage = draft.technicalMessage.map {
-            trimmed($0, maxLength: Self.maxTechnicalMessageLength)
+            looksLikeToken($0) ? Self.redactedValue : trimmed($0, maxLength: Self.maxTechnicalMessageLength)
         }
         redactedDraft.metadata = redactedMetadata(from: draft.metadata)
         return redactedDraft
@@ -92,6 +92,7 @@ extension SystemLogRedactionPolicy {
     nonisolated static let `default` = SystemLogRedactionPolicy()
 
     nonisolated static let defaultBlockedMetadataKeys: Set<String> = [
+        "email",
         "password",
         "passcode",
         "token",

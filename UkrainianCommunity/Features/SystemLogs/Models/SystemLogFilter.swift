@@ -1,6 +1,7 @@
 import Foundation
 
 struct SystemLogFilter: Codable, Equatable {
+    var section: String?
     var categories: Set<SystemLogCategory>
     var severities: Set<SystemLogSeverity>
     var eventTypes: Set<SystemLogEventType>
@@ -17,6 +18,7 @@ struct SystemLogFilter: Codable, Equatable {
     var isAppAdminReadable: Bool?
 
     nonisolated init(
+        section: String? = nil,
         categories: Set<SystemLogCategory> = [],
         severities: Set<SystemLogSeverity> = [],
         eventTypes: Set<SystemLogEventType> = [],
@@ -32,6 +34,7 @@ struct SystemLogFilter: Codable, Equatable {
         endDate: Date? = nil,
         isAppAdminReadable: Bool? = nil
     ) {
+        self.section = section
         self.categories = categories
         self.severities = severities
         self.eventTypes = eventTypes

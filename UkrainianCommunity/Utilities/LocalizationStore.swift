@@ -13,9 +13,9 @@ enum LocalizationStore {
         Locale(identifier: language.localeIdentifier)
     }
 
-    nonisolated static func localizedString(_ key: String, defaultValue: String) -> String {
+    nonisolated static func localizedString(_ key: String, defaultValue: String, table: String? = nil) -> String {
         let bundle = bundle(for: language.rawValue) ?? .main
-        return bundle.localizedString(forKey: key, value: defaultValue, table: nil)
+        return bundle.localizedString(forKey: key, value: defaultValue, table: table)
     }
 
     nonisolated static func localizedFormat(_ key: String, defaultValue: String, arguments: [CVarArg]) -> String {

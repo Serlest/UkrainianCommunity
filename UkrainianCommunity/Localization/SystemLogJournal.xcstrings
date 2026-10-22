@@ -1,0 +1,38 @@
+{
+  "sourceLanguage": "uk",
+  "strings": {
+    "system_logs.query.scope": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук і фільтри застосовано до всього журналу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suche und Filter gelten für das gesamte Protokoll"
+          }
+        }
+      }
+    },
+    "system_logs.query.continue": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У перевіреній частині збігів немає. Продовжіть пошук у старіших записах."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Im geprüften Teil gibt es keine Treffer. Suchen Sie in älteren Einträgen weiter."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

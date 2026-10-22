@@ -287,7 +287,7 @@ export function shouldDeliverInboxNotificationPush(
 
 export function inboxAPNSAlert(type: NotificationType, metadata: Record<string, unknown>, title: string, body: string) {
   // Raw text also works on released binaries that lack a dedicated directory key.
-  if (type === "systemAnnouncement" && metadata.scope === "directoryEditorAccess") return {title, body};
+  if (type === "systemAnnouncement" && ["directoryEditorAccess", "systemLogAlert"].includes(String(metadata.scope))) return {title, body};
   const keys = localizedAlertKeys(type, metadata);
   return {titleLocKey:keys.titleLocKey, locKey:keys.bodyLocKey,
     locArgs:Array.isArray(metadata.bodyLocArgs) ? metadata.bodyLocArgs.filter((value): value is string => typeof value === "string") : []};

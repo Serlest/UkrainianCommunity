@@ -2,6 +2,12 @@ import Foundation
 
 /// Explains the recorded evidence; it never infers an incident's root cause from timing alone.
 enum SystemLogExplanation {
+    static func operationAliases(matching query: String) -> [String] {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [] }
+        return defaults.keys.filter { $0.hasPrefix("action.") && LocalSearchMatcher.matches(query: query, values: [text($0)]) }
+            .map { String($0.dropFirst("action.".count)) }.sorted()
+    }
+
     nonisolated static func text(_ key: String) -> String {
         LocalizationStore.localizedString("system_logs.explanation." + key, defaultValue: defaults[key] ?? key)
     }

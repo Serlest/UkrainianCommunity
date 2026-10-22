@@ -1,6 +1,13 @@
 import Foundation
 
+struct SystemLogPage {
+    let entries: [SystemLogEntry]
+    let cursor: String?
+}
+
 protocol SystemLogRepositoryProtocol {
+    var usesServerFiltering: Bool { get }
+    func queryPage(filter: SystemLogFilter, sortOption: SystemLogSortOption, limit: Int, cursor: String?) async throws -> SystemLogPage
     func fetchLogs(
         filter: SystemLogFilter,
         sortOption: SystemLogSortOption,
@@ -19,6 +26,12 @@ protocol SystemLogRepositoryProtocol {
 }
 
 extension SystemLogRepositoryProtocol {
+    var usesServerFiltering: Bool { false }
+    func queryPage(filter: SystemLogFilter, sortOption: SystemLogSortOption, limit: Int, cursor: String?) async throws -> SystemLogPage {
+        let entries = try await cursor == nil ? fetchLogs(filter: filter, sortOption: sortOption, limit: limit) : fetchNextPage()
+        return SystemLogPage(entries: entries, cursor: entries.count >= limit ? "legacy" : nil)
+    }
+
     func fetchNextPage() async throws -> [SystemLogEntry] { [] }
 
     func clearAllLogs() async throws -> Int { 0 }

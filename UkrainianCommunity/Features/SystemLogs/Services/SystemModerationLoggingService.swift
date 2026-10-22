@@ -93,6 +93,7 @@ final class SystemModerationLoggingService {
         do {
             try await loggingService.logModeration(draft)
         } catch {
+            await deduplicator.release(key: dedupeKey)
             // Best-effort moderation logging only: logging must never block the moderated action.
         }
     }
@@ -159,6 +160,8 @@ actor SystemModerationLogDeduplicator {
         self.interval = interval
         self.nowProvider = nowProvider
     }
+
+    func release(key: String) { recentKeys[key] = nil }
 
     func shouldLog(key: String) -> Bool {
         let now = nowProvider()

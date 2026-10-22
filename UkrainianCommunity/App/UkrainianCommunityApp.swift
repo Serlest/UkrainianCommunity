@@ -167,6 +167,7 @@ struct UkrainianCommunityApp: App {
         }
 
         FirebaseBootstrap.ensureConfigured()
+        if !isUITesting { _ = SystemLogDeliveryQueue.shared }
         _authState = StateObject(wrappedValue: AuthService.shared.authState)
 
         if isUITesting {

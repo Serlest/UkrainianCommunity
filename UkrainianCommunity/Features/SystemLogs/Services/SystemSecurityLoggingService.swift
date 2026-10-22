@@ -88,6 +88,7 @@ final class SystemSecurityLoggingService {
         do {
             try await loggingService.logSecurity(draft)
         } catch {
+            await deduplicator.release(key: dedupeKey)
             // Best-effort security logging only: logging must never alter the protected operation result.
         }
     }
@@ -154,6 +155,8 @@ actor SystemSecurityLogDeduplicator {
         self.interval = interval
         self.nowProvider = nowProvider
     }
+
+    func release(key: String) { recentKeys[key] = nil }
 
     func shouldLog(key: String) -> Bool {
         let now = nowProvider()

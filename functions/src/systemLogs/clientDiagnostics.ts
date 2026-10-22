@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import {Timestamp} from "firebase-admin/firestore";
 import {HttpsError, onCall} from "firebase-functions/v2/https";
 
@@ -17,7 +18,7 @@ const allowedFields = new Set([
   "eventType", "severity", "targetType", "targetId", "targetTitle",
   "organizationId", "organizationName", "summary", "technicalMessage",
   "errorCode", "moduleName", "screenName", "operationName", "appVersion",
-  "osVersion", "deviceModel", "metadata", "correlationId", "principalId",
+  "osVersion", "deviceModel", "metadata", "correlationId", "principalId", "clientEventId", "occurredAtMilliseconds",
 ]);
 
 const allowedSeverities = new Set([
@@ -38,30 +39,49 @@ export const writeClientDiagnostic = onCall(
     const parsed = parseDiagnostic(request.data);
     assertDiagnosticPrincipal(parsed.principalId, actor.uid);
     const input = redactDiagnostic(parsed);
-    const createdAt = Timestamp.now();
+    const receivedAt = Timestamp.now();
+    if (input.occurredAtMilliseconds !== undefined && (input.occurredAtMilliseconds < receivedAt.toMillis() - 48 * 3600000 || input.occurredAtMilliseconds > receivedAt.toMillis() + 300000)) {
+      throw new HttpsError("out-of-range", "Diagnostic occurrence is outside the accepted delivery window.");
+    }
+    let createdAt = input.occurredAtMilliseconds === undefined ? receivedAt : Timestamp.fromMillis(input.occurredAtMilliseconds);
+    const receipt = input.clientEventId ? db.collection("systemLogDiagnosticReceipts").doc(createHash("sha256").update(actor.uid + ":" + input.clientEventId).digest("hex")) : undefined;
+    const payloadHash = createHash("sha256").update(JSON.stringify(input)).digest("hex");
+    let resultID: string;
+
     const reference = db.collection("systemLogs").doc();
     const actorRole = normalizedActorRole(actor.permissions.globalRole);
 
     const quotaReference = db.collection("systemLogDiagnosticRateLimits").doc(actor.uid);
+    resultID = reference.id;
     await db.runTransaction(async (transaction) => {
+      if (receipt) {
+        const existing = (await transaction.get(receipt)).data();
+        if (existing) {
+          if (existing.payloadHash !== payloadHash) throw new HttpsError("invalid-argument", "Diagnostic event ID is already bound to another payload.");
+          resultID = existing.logId; createdAt = existing.createdAt;
+          return;
+        }
+      }
       const quotaSnapshot = await transaction.get(quotaReference);
       const quota = quotaSnapshot.data();
       const previousStart = quota?.windowStartedAt instanceof Timestamp ?
         quota.windowStartedAt.toMillis() : 0;
-      const isCurrentWindow = createdAt.toMillis() - previousStart < quotaWindowMilliseconds;
+      const isCurrentWindow = receivedAt.toMillis() - previousStart < quotaWindowMilliseconds;
       const previousCount = isCurrentWindow && typeof quota?.count === "number" ? quota.count : 0;
       if (previousCount >= quotaMaximumWrites) {
         throw new HttpsError("resource-exhausted", "Diagnostic log rate limit exceeded.");
       }
 
       transaction.set(quotaReference, {
-        windowStartedAt: isCurrentWindow ? quota?.windowStartedAt : createdAt,
+        windowStartedAt: isCurrentWindow ? quota?.windowStartedAt : receivedAt,
         count: previousCount + 1,
-        updatedAt: createdAt,
+        updatedAt: receivedAt,
       });
+      if (receipt) transaction.set(receipt, {logId: reference.id, createdAt, payloadHash, expiresAt: Timestamp.fromMillis(receivedAt.toMillis() + 72 * 3600000)});
       transaction.set(reference, {
         id: reference.id,
         createdAt,
+        receivedAt,
         category: "diagnostics",
         severity: input.severity,
         severityRank: severityRank(input.severity),
@@ -79,12 +99,14 @@ export const writeClientDiagnostic = onCall(
       });
     });
 
-    return {id: reference.id, createdAt: createdAt.toDate().toISOString()};
+    return {id: resultID, createdAt: createdAt.toDate().toISOString()};
   }
 );
 
 interface DiagnosticInput {
   principalId?: string;
+  clientEventId?: string;
+  occurredAtMilliseconds?: number;
   eventType: string;
   severity: string;
   targetType: string;
@@ -118,7 +140,12 @@ export function parseDiagnostic(value: unknown): DiagnosticInput {
     throw new HttpsError("invalid-argument", "severity is not supported.");
   }
 
+  const clientEventId = optionalString(value.clientEventId, "clientEventId", 36);
+  if (clientEventId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clientEventId)) throw new HttpsError("invalid-argument", "Invalid diagnostic event ID.");
+  if (value.occurredAtMilliseconds !== undefined && (!Number.isSafeInteger(value.occurredAtMilliseconds) || (value.occurredAtMilliseconds as number) < 0)) throw new HttpsError("invalid-argument", "Invalid diagnostic occurrence date.");
   return {
+    ...(clientEventId ? {clientEventId} : {}),
+    ...(value.occurredAtMilliseconds !== undefined ? {occurredAtMilliseconds: value.occurredAtMilliseconds as number} : {}),
     principalId: optionalString(value.principalId, "principalId", 128),
     eventType: requiredString(value.eventType, "eventType", 80),
     severity,

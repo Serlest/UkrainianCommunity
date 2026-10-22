@@ -1,0 +1,57 @@
+import {strict as assert} from "node:assert";
+import {after, before, test} from "node:test";
+import {Timestamp} from "firebase-admin/firestore";
+import {db} from "../firebase/admin";
+import {seedVerifiedAuthForIntegration, deleteAuthForIntegration} from "../auth/authIntegrationFixture";
+import {journalAlertEligible, notifyJournalIssue} from "./journalAlerts";
+import {canReceiveScopedNotification} from "../notifications/workflowNotifications";
+import {inboxAPNSAlert, shouldDeliverInboxNotificationPush} from "../notifications/inboxPushDelivery";
+import {deliverPushDurably} from "../notifications/durablePushDelivery";
+import {buildNotificationDataPayload} from "../notifications/notificationPayloads";
+const skip = !(process.env.FIRESTORE_EMULATOR_HOST && process.env.FIREBASE_AUTH_EMULATOR_HOST);
+const owner = "journal-alert-owner", admin = "journal-alert-admin";
+const now = new Date(), inbox = db.collection("users").doc(owner).collection("notificationInbox");
+const source = {createdAt: Timestamp.fromDate(now), category: "diagnostics", severity: "error", outcome: "failed", operationName: "publishNews", moduleName: "CloudFunctions", errorCode: "cloudFunctions.internal", metadata: {privateMessage: "Must stay out of push"}};
+before(async () => {
+  if (skip) return;
+  await seedVerifiedAuthForIntegration(owner, admin);
+  await db.doc(`users/${owner}`).set({globalRole: "owner", accountStatus: "active", appLanguage: "de"});
+  await db.doc(`users/${admin}`).set({globalRole: "admin", accountStatus: "active"});
+});
+after(async () => {
+  if (skip) return;
+  await deleteAuthForIntegration(owner, admin);
+  await db.recursiveDelete(db.doc(`users/${owner}`)); await db.recursiveDelete(db.doc(`users/${admin}`));
+  for (const id of ["journal-alert-one", "journal-alert-two", "journal-alert-three"]) await db.doc(`systemLogs/${id}`).delete();
+});
+test("alerts select actual failures and exclude old, reviewed or informational entries", () => {
+  assert.equal(journalAlertEligible(source, now), true);
+  for (const patch of [{severity: "info"}, {isReviewed: true}, {createdAt: Timestamp.fromMillis(now.getTime() - 25 * 3600000)}, {createdAt: undefined}]) assert.equal(journalAlertEligible({...source, ...patch}, now), false);
+});
+test("one owner notification per issue window; retry, index update and admin cannot duplicate it", {skip}, async () => {
+  await db.doc("systemLogs/journal-alert-one").set(source); await db.doc("systemLogs/journal-alert-two").set(source);
+  await Promise.all([notifyJournalIssue("journal-alert-one", now), notifyJournalIssue("journal-alert-one", now), notifyJournalIssue("journal-alert-two", now)]);
+  const records = await inbox.get(); assert.equal(records.size, 1);
+  const data = records.docs[0].data();
+  assert.equal(data.title, "Systemfehler"); assert.equal(data.metadata.scope, "systemLogAlert");
+  assert.ok(["journal-alert-one", "journal-alert-two"].includes(data.actionTargetId));
+  assert.equal((await db.doc(`users/${admin}`).collection("notificationInbox").get()).size, 0);
+  assert.ok(!JSON.stringify(data).includes("Must stay out of push"));
+  assert.equal(shouldDeliverInboxNotificationPush(data.type, data.metadata), true);
+  assert.deepEqual(inboxAPNSAlert(data.type, data.metadata, data.title, data.message), {title: data.title, body: data.message});
+  assert.equal(await canReceiveScopedNotification(owner, data.metadata), true);
+  await db.doc(`users/${owner}`).update({globalRole: "admin"});
+  assert.equal(await canReceiveScopedNotification(owner, data.metadata), false);
+  await db.doc(`users/${owner}`).update({globalRole: "owner"});
+  const ref = records.docs[0].ref;
+  let calls = 0;
+  const payload = buildNotificationDataPayload({notificationId: ref.id, type: data.type, sourceType: "system", sourceId: data.sourceId, actionType: "openProfile", actionTargetId: data.actionTargetId, route: data.metadata.route, routeTargetId: data.metadata.routeTargetId});
+  assert.equal(payload.route, "openSystemLog");
+  const registration = {id: "fake", data: () => ({token: "fake-token"}), ref: {delete: async () => {}}};
+  const sender = async (message: any) => { calls++; assert.equal(message.data.route, "openSystemLog"); assert.equal(message.apns.payload.aps.sound, "default"); return {responses: [{success: true, messageId: "accepted"}], successCount: 1, failureCount: 0}; };
+  await deliverPushDurably(ref, {data: payload, apns: {payload: {aps: {sound: "default"}}}}, [registration], sender);
+  await deliverPushDurably(ref, {data: payload}, [registration], sender);
+  assert.equal(calls, 1);
+  await db.doc("systemLogs/journal-alert-three").set({...source, errorCode: "differentFailure"});
+  await notifyJournalIssue("journal-alert-three", now); assert.equal((await inbox.get()).size, 2);
+});

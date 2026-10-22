@@ -14,6 +14,9 @@ struct SystemTechnicalErrorContext {
     let metadata: [String: String]
     let isDestructiveAccountOperation: Bool
     let principalID: String?
+    let failureStage: String?
+    let executionMode: String?
+    let correlationID: String?
 
     init(
         moduleName: String,
@@ -26,7 +29,10 @@ struct SystemTechnicalErrorContext {
         organizationName: String? = nil,
         metadata: [String: String] = [:],
         isDestructiveAccountOperation: Bool = false,
-        principalID: String? = nil
+        principalID: String? = nil,
+        failureStage: String? = nil,
+        executionMode: String? = nil,
+        correlationID: String? = nil
     ) {
         self.moduleName = moduleName
         self.operationName = operationName
@@ -39,6 +45,9 @@ struct SystemTechnicalErrorContext {
         self.metadata = metadata
         self.isDestructiveAccountOperation = isDestructiveAccountOperation
         self.principalID = principalID
+        self.failureStage = failureStage
+        self.executionMode = executionMode
+        self.correlationID = correlationID
     }
 }
 
@@ -65,7 +74,10 @@ final class SystemTechnicalErrorLoggingService {
             context.operationName,
             context.targetType.rawValue,
             context.targetId ?? "none",
-            classification.errorCode
+            classification.errorCode,
+            context.failureStage ?? "",
+            context.metadata["diagnosticReason"] ?? "",
+            context.metadata["invalidField"] ?? ""
         ].joined(separator: "|")
 
         guard await deduplicator.shouldLog(key: dedupeKey) else { return }
@@ -83,6 +95,9 @@ final class SystemTechnicalErrorLoggingService {
             metadata: classification.metadata
         )
         draft.actorUserId = principalID
+        draft.correlationId = context.correlationID ?? UUID().uuidString
+        if let stage = context.failureStage { draft.metadata["failureStage"] = stage }
+        if let mode = context.executionMode { draft.metadata["executionMode"] = mode }
         draft.metadata["appBuild"] = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
         draft.severity = classification.severity
         draft.screenName = context.screenName
@@ -94,7 +109,8 @@ final class SystemTechnicalErrorLoggingService {
         do {
             try await loggingService.logError(draft)
         } catch {
-            // Best-effort diagnostics only: logging must never block the user flow.
+            await deduplicator.release(key: dedupeKey)
+            // A failed local enqueue must not suppress the next occurrence.
         }
     }
 }
@@ -108,6 +124,8 @@ actor SystemTechnicalErrorDeduplicator {
         self.interval = interval
         self.nowProvider = nowProvider
     }
+
+    func release(key: String) { recentKeys[key] = nil }
 
     func shouldLog(key: String) -> Bool {
         let now = nowProvider()

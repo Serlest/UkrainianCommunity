@@ -43,6 +43,8 @@ struct ProfileAccessPolicy {
             return PermissionService.canManageUsers(user: user)
         case .feedbackInbox, .feedbackDetail:
             return PermissionService.canManageFeedback(user: user)
+        case .systemLogDetail:
+            return PermissionService.isAppOwner(user: user)
         case .systemLogs(let mode):
             switch mode {
             case .owner: return PermissionService.isAppOwner(user: user)

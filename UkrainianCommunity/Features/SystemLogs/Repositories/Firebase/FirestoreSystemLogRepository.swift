@@ -8,6 +8,7 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
     private let redactionPolicy: SystemLogRedactionPolicy
     private let functions: Functions
 
+    private var fetchRevision = 0
     private var lastFilter: SystemLogFilter = .empty
     private var lastSortOption: SystemLogSortOption = .newestFirst
     private var lastLimit = 50
@@ -24,11 +25,38 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
         self.redactionPolicy = redactionPolicy
     }
 
+    var usesServerFiltering: Bool { true }
+
+    func queryPage(filter: SystemLogFilter, sortOption: SystemLogSortOption, limit: Int, cursor: String?) async throws -> SystemLogPage {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .millisecondsSince1970
+        var request: [String: Any] = [
+            "filter": try JSONSerialization.jsonObject(with: encoder.encode(filter)),
+            "sort": sortOption.rawValue, "limit": limit,
+            "operationAliases": SystemLogExplanation.operationAliases(matching: filter.searchText ?? "")
+        ]
+        if let cursor { request["cursor"] = cursor }
+        let response = try await functions.httpsCallable("listSystemLogs").call(request)
+        guard let payload = response.data as? [String: Any], let rows = payload["items"] as? [[String: Any]] else {
+            throw NSError(domain: "SystemLogs", code: 1, userInfo: [NSLocalizedDescriptionKey: "Invalid journal response"])
+        }
+        let entries = rows.compactMap { row -> SystemLogEntry? in
+            guard let id = row["id"] as? String else { return nil }
+            var data = row
+            for key in ["createdAt", "reviewedAt"] {
+                if let milliseconds = data[key] as? Double { data[key] = Timestamp(date: Date(timeIntervalSince1970: milliseconds / 1000)) }
+            }
+            return FirestoreSystemLogDTO(id: id, data: data).entry
+        }
+        return SystemLogPage(entries: entries, cursor: payload["cursor"] as? String)
+    }
+
     func fetchLogs(
         filter: SystemLogFilter,
         sortOption: SystemLogSortOption,
         limit: Int
     ) async throws -> [SystemLogEntry] {
+        fetchRevision += 1
         lastFilter = filter
         lastSortOption = sortOption
         lastLimit = max(1, limit)
@@ -59,21 +87,26 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
         return FirestoreSystemLogDTO(id: snapshot.documentID, data: data).entry
     }
 
-    func createLog(from draft: SystemLogDraft) async throws -> SystemLogEntry {
+    func createLog(from draft: SystemLogDraft, eventID: String? = nil, occurredAt: Date? = nil) async throws -> SystemLogEntry {
         let redactedDraft = redactionPolicy.redactedDraft(from: draft)
 
         if redactedDraft.category == .diagnostics {
-            return try await createServerDiagnostic(from: redactedDraft)
+            return try await createServerDiagnostic(from: redactedDraft, eventID: eventID, occurredAt: occurredAt)
         }
 
-        let id = UUID().uuidString
-        let createdAt = Date()
+        let id = eventID ?? UUID().uuidString
+        let createdAt = occurredAt ?? Date()
         let entry = SystemLogEntry(id: id, createdAt: createdAt, draft: redactedDraft)
         let dto = FirestoreSystemLogDTO(entry: entry)
         var data = dto.data
         data[SystemLogFirestoreContract.Field.createdAt.rawValue] = FieldValue.serverTimestamp()
 
-        try await collection.document(id).setData(data)
+        do { try await collection.document(id).setData(data) }
+        catch {
+            // A lost acknowledgement may leave an immutable record already committed.
+            if eventID != nil, let existing = try? await fetchLog(id: id), existing.actorUserId == draft.actorUserId { return existing }
+            throw error
+        }
         return entry
     }
 
@@ -122,7 +155,7 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
     }
 
     func log(_ draft: SystemLogDraft) async throws {
-        _ = try await createLog(from: draft)
+        try SystemLogDeliveryQueue.shared.enqueue(draft)
     }
 
     func clearAllLogs() async throws -> Int {
@@ -150,8 +183,9 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
             query = query.start(afterDocument: cursor)
         }
 
+        let revision = fetchRevision
         let snapshot = try await query.getDocuments(source: .server)
-        lastDocument = snapshot.documents.last
+        if revision == fetchRevision { lastDocument = snapshot.documents.last }
 
         return snapshot.documents.map { document in
             FirestoreSystemLogDTO(id: document.documentID, data: document.data()).entry
@@ -236,8 +270,8 @@ final class FirestoreSystemLogRepository: SystemLogRepositoryProtocol, SystemLog
         }
     }
 
-    private func createServerDiagnostic(from draft: SystemLogDraft) async throws -> SystemLogEntry {
-        let request = SystemDiagnosticFunctionRequest(draft: draft)
+    private func createServerDiagnostic(from draft: SystemLogDraft, eventID: String?, occurredAt: Date?) async throws -> SystemLogEntry {
+        let request = SystemDiagnosticFunctionRequest(draft: draft, eventID: eventID, occurredAt: occurredAt)
         let callable: Callable<SystemDiagnosticFunctionRequest, SystemDiagnosticFunctionResponse> =
             functions.httpsCallable("writeClientDiagnostic")
         let response = try await callable.call(request)
@@ -260,6 +294,8 @@ struct SystemLogBulkReviewPartialError: LocalizedError {
 }
 
 private nonisolated struct SystemDiagnosticFunctionRequest: Encodable {
+    let clientEventId: String?
+    let occurredAtMilliseconds: Int64?
     let principalId: String?
     let eventType: String
     let severity: String
@@ -280,7 +316,9 @@ private nonisolated struct SystemDiagnosticFunctionRequest: Encodable {
     let metadata: [String: String]
     let correlationId: String?
 
-    @MainActor init(draft: SystemLogDraft) {
+    @MainActor init(draft: SystemLogDraft, eventID: String?, occurredAt: Date?) {
+        clientEventId = eventID
+        occurredAtMilliseconds = occurredAt.map { Int64($0.timeIntervalSince1970 * 1000) }
         principalId = draft.actorUserId
         eventType = draft.eventType.rawValue
         severity = draft.severity.rawValue

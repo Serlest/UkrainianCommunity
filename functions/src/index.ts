@@ -301,3 +301,7 @@ export {manageOrganizationWorkspace, maintainOrganizationWorkspaceIndex} from ".
 export {manageUserDirectory} from "./users/userDirectory";
 
 export * from "./publicationControl/publicationControl";
+
+export {listSystemLogs, maintainSystemLogSearchIndex} from "./systemLogs/journalQuery";
+
+export {notifySystemLogIssue} from "./systemLogs/journalAlerts";
