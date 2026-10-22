@@ -56,7 +56,8 @@ enum SystemLogExplanation {
             // An unknown operation still has a recorded technical name. Never hide that
             // evidence or replace it with an invented human-readable user intent.
             let module = log.moduleName?.trimmingCharacters(in: .whitespacesAndNewlines)
-            let identifier = (module?.isEmpty == false ? "\(module!)." : "") + operation
+            let modulePrefix = module.map { $0.isEmpty ? "" : "\($0)." } ?? ""
+            let identifier = modulePrefix + operation
             return "\(text("action.technical")): \(identifier)"
         }
         return isFailure(log) ? text("action.unknown") : SystemLogDisplayFormatting.eventTypeTitle(log.eventType)
