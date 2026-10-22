@@ -133,28 +133,36 @@ def german_tone_failure(key: str, value: str) -> str | None:
     return None
 
 
+def load_catalogs(directory: Path) -> tuple[dict[str, object], list[str]]:
+    """Validate every shipped table; feature tables use the same translation gates."""
+    strings: dict[str, object] = {}
+    failures: list[str] = []
+    catalogs = sorted(directory.glob("*.xcstrings"))
+    if not catalogs or not (directory / "Localizable.xcstrings").exists():
+        raise ValueError("Main Localizable.xcstrings catalog is missing")
+    for path in catalogs:
+        catalog = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+        entries = catalog.get("strings")
+        if not isinstance(entries, dict):
+            raise ValueError(f"{path.name}: catalog has no strings object")
+        if catalog.get("sourceLanguage") != SOURCE_LANGUAGE:
+            failures.append(f"{path.name}: sourceLanguage must be {SOURCE_LANGUAGE!r}, found {catalog.get('sourceLanguage')!r}")
+        # UAC keys are namespaced and unique, including feature-specific tables.
+        # Reject ambiguous coverage instead of allowing one table to hide another.
+        for key, entry in entries.items():
+            if key in strings:
+                failures.append(f"{path.name}: key {key!r} also exists in another catalog")
+            else:
+                strings[key] = entry
+    return strings, failures
+
+
 def main() -> int:
     try:
-        catalog = json.loads(
-            CATALOG.read_text(encoding="utf-8"),
-            object_pairs_hook=reject_duplicate_keys,
-        )
-    except (OSError, json.JSONDecodeError, DuplicateJSONKeyError) as error:
+        strings, failures = load_catalogs(CATALOG.parent)
+    except (OSError, ValueError) as error:
         print(f"Localization catalog cannot be read: {error}", file=sys.stderr)
         return 1
-
-    strings = catalog.get("strings", {})
-    if not isinstance(strings, dict):
-        print("Localization catalog has no strings object.", file=sys.stderr)
-        return 1
-
-    failures: list[str] = []
-
-    if catalog.get("sourceLanguage") != SOURCE_LANGUAGE:
-        failures.append(
-            f"catalog sourceLanguage must be {SOURCE_LANGUAGE!r}, "
-            f"found {catalog.get('sourceLanguage')!r}"
-        )
 
     missing_references = sorted(referenced_localization_keys() - strings.keys())
     for key in missing_references:

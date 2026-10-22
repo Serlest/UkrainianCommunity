@@ -81,7 +81,9 @@ jobs:
         run: python3 scripts/validate_repository_structure.py
 
       - name: Validate localization catalog
-        run: python3 scripts/validate_localizations.py
+        run: |
+          python3 scripts/test_validate_localization_tables.py
+          python3 scripts/validate_localizations.py
 
       - name: Validate shared content category contract
         run: python3 scripts/validate_content_category_contract.py
