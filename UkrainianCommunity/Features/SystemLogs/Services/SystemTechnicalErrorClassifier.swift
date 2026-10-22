@@ -228,6 +228,20 @@ enum SystemTechnicalErrorClassifier {
         metadata["errorNumber"] = "\(nsError.code)"
         metadata["classification"] = errorCode
         metadata["targetType"] = context.targetType.rawValue
+        // Callable errors can supply a stable, non-sensitive machine-readable
+        // reason via HttpsError.details. Never persist arbitrary server messages.
+        if nsError.domain == FunctionsErrorDomain,
+           let details = nsError.userInfo[FunctionsErrorDetailsKey] as? [String: Any] {
+            for key in ["reasonCode", "errorCode"] {
+                guard let value = details[key] as? String else { continue }
+                let code = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard code.count <= 80,
+                      code.range(of: "^[A-Za-z][A-Za-z0-9._-]*$", options: .regularExpression) != nil
+                else { continue }
+                metadata["serverReasonCode"] = code
+                break
+            }
+        }
         // Preserve structured causes, never arbitrary userInfo, URLs, headers or server text.
         var cause: NSError? = nsError
         var visited = Set<ObjectIdentifier>()
