@@ -1531,6 +1531,57 @@
       },
       "extractionState" : "manual"
     },
+    "system_logs.explanation.action.listFeedbackInbox": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантаження звернень і скарг"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anfragen und Beschwerden laden"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "system_logs.explanation.action.manageOrganizationWorkspace": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Керування організаціями"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organisationen verwalten"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
+    "system_logs.explanation.action.manageContentModeration": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Керування модерацією контенту"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhaltsmoderation verwalten"
+          }
+        }
+      },
+      "extractionState": "manual"
+    },
     "system_logs.explanation.action.deleteFeedback" : {
       "localizations" : {
         "uk" : {

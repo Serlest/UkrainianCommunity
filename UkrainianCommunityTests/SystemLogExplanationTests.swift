@@ -56,8 +56,8 @@ extension SystemLogExplanationTests {
                 severity: .warning, eventType: .technicalError, actorRole: .user,
                 targetType: .none, outcome: .failed, summary: "Technical failure",
                 errorCode: "cloudFunctions.failedPrecondition", moduleName: "CloudFunctions", operationName: function.rawValue)
-            #expect(SystemLogExplanation.action(log) != SystemLogExplanation.text("action.unknown"))
-            #expect(!SystemLogExplanation.action(log).hasPrefix(SystemLogExplanation.text("action.technical")))
+            #expect(SystemLogExplanation.action(log) != SystemLogExplanation.text("action.unknown"), "Callable: \(function.rawValue)")
+            #expect(!SystemLogExplanation.action(log).hasPrefix(SystemLogExplanation.text("action.technical")), "Callable: \(function.rawValue)")
         }
     }
 
