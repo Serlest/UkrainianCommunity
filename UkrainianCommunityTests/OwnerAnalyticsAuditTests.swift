@@ -718,3 +718,17 @@ struct OwnerAnalyticsAuditTests {
         )
     }
 }
+
+
+extension OwnerAnalyticsAuditTests {
+    @Test @MainActor func supplementarySearchResultsNeverReportAnEmptySearch() {
+        let model = OwnerAnalyticsViewModel(repository: MockOwnerAnalyticsRepository())
+        for term in [AppStrings.BannerReport.title, AppStrings.BannerReport.clicks, AppStrings.OwnerAnalytics.totalUsers] {
+            model.searchText = term
+            #expect(model.hasSearchResults)
+            #expect(model.hasSupplementalSearchResults)
+        }
+        model.searchText = "zzzz-nonexistent-result"
+        #expect(!model.hasSearchResults)
+    }
+}

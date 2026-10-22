@@ -40,18 +40,20 @@ struct BannerMeasurementReport {
     let regions: [String: BannerMeasurementTotals]
     let period: AnalyticsPeriod
     let generatedAt: Date
+    let periodAnchor: Date
     let totals: BannerMeasurementTotals
     let sections: [FeaturedBannerVisibleSection: BannerMeasurementTotals]
     let banners: [BannerRow]
     let days: [DayRow]
 
-    init(period: AnalyticsPeriod, counts: [BannerMeasurementDailyCount], generatedAt: Date = Date()) {
+    init(period: AnalyticsPeriod, counts: [BannerMeasurementDailyCount], generatedAt: Date = Date(), periodAnchor: Date? = nil) {
         self.counts = counts
         var regions: [String: BannerMeasurementTotals] = [:]
         for count in counts { regions[count.displayRegion ?? "unknown", default: .init()].add(count) }
         self.regions = regions
         self.period = period
         self.generatedAt = generatedAt
+        self.periodAnchor = periodAnchor ?? generatedAt
 
         var total = BannerMeasurementTotals()
         var bySection: [FeaturedBannerVisibleSection: BannerMeasurementTotals] = [:]
@@ -94,7 +96,7 @@ extension BannerMeasurementReport {
         format.dateFormat = "yyyy-MM-dd"
         let byDay = Dictionary(uniqueKeysWithValues: days.map { ($0.id, $0.totals) })
         return (0..<period.dayCount).reversed().compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: -offset, to: generatedAt) else { return nil }
+            guard let date = calendar.date(byAdding: .day, value: -offset, to: periodAnchor) else { return nil }
             let day = format.string(from: date)
             return DayRow(id: day, totals: byDay[day] ?? BannerMeasurementTotals())
         }
@@ -105,7 +107,7 @@ extension BannerMeasurementReport {
             (bannerID == nil || $0.bannerID == bannerID)
                 && (region == nil || ($0.displayRegion ?? "unknown") == region)
                 && (section == nil || $0.section == section)
-        }, generatedAt: generatedAt)
+        }, generatedAt: generatedAt, periodAnchor: periodAnchor)
     }
 
     func csv(titles: [String: String]) -> String {

@@ -15,6 +15,18 @@ struct MockOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         self.organizationDetailsByKey = organizationDetailsByKey
     }
 
+    func fetchCurrentAccountCount() async throws -> Int {
+        snapshotsByPeriod[.today]?.userStats.totalUsers ?? 0
+    }
+
+    func fetchBannerOverview(period: AnalyticsPeriod) async throws -> BannerMeasurementReport {
+        let now = Date()
+        let day = FirestoreBannerMeasurementReportRepository.utcDayRange(period: .today, now: now).0
+        return BannerMeasurementReport(period: period, counts: [
+            .init(day: day, bannerID: "all", section: .home, impressions: 120, clicks: 6, displayRegion: "tirol")
+        ], generatedAt: now)
+    }
+
     func fetchSnapshot(period: AnalyticsPeriod) async throws -> OwnerAnalyticsSnapshot {
         snapshotsByPeriod[period] ?? .empty(period: period)
     }

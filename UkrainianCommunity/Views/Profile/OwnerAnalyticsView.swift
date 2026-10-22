@@ -20,16 +20,21 @@ struct OwnerAnalyticsView: View {
             scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize
         ) {
             periodPicker
+            Text(AnalyticsPresentationText.viennaTime).font(.caption).foregroundStyle(AppTheme.textSecondary)
             searchField
-            if matchesSupplemental([AppStrings.BannerReport.currentAccounts, AppStrings.OwnerAnalytics.totalUsers]) {
-                RegisteredUserCountCard(refreshID: supplementalRefreshID)
+            if viewModel.showsCurrentAccounts {
+                RegisteredUserCountCard(refreshID: supplementalRefreshID, load: { try await repository.fetchCurrentAccountCount() })
             }
             content
-            if matchesSupplemental([AppStrings.BannerReport.title, AppStrings.BannerReport.impressions, AppStrings.BannerReport.clicks]) {
-                BannerAnalyticsOverviewSection(period: viewModel.selectedPeriod, refreshID: supplementalRefreshID)
+            if viewModel.showsBannerAnalytics {
+                BannerAnalyticsOverviewSection(period: viewModel.selectedPeriod,
+                    repository: OwnerAnalyticsBannerOverviewRepository(ownerRepository: repository), refreshID: supplementalRefreshID)
             }
         }
         .task(id: viewModel.selectedPeriod) {
+            await viewModel.loadIfNeeded()
+        }
+        .analyticsRefreshLifecycle {
             await viewModel.loadIfNeeded()
         }
         .appRefreshable {
@@ -37,11 +42,6 @@ struct OwnerAnalyticsView: View {
             await viewModel.load()
         }
         .accessibilityIdentifier("screen.ownerAnalytics")
-    }
-
-    private func matchesSupplemental(_ values: [String]) -> Bool {
-        viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || LocalSearchMatcher.matches(query: viewModel.searchText, values: values)
     }
 
     private var periodPicker: some View {
@@ -99,7 +99,9 @@ struct OwnerAnalyticsView: View {
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.isLoading && !viewModel.hasContent {
+        if viewModel.hasActiveSearch && viewModel.hasSupplementalSearchResults && !viewModel.hasContent {
+            EmptyView()
+        } else if viewModel.isLoading && !viewModel.hasContent {
             LoadingStateCard(title: AppStrings.OwnerAnalytics.loading)
         } else if let errorMessage = viewModel.errorMessage, !viewModel.hasContent {
             ErrorStateCard(

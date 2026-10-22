@@ -170,3 +170,55 @@ extension BannerMeasurementReportTests {
         #expect(report.timeline.reduce(0) { $0 + $1.totals.impressions } == report.totals.impressions)
     }
 }
+
+
+@MainActor private final class RefreshingBannerReportFixture: BannerMeasurementReportRepository {
+    var queries: [String?] = []
+    func fetch(period: AnalyticsPeriod) async throws -> BannerMeasurementReport {
+        try await fetch(period: period, bannerID: nil)
+    }
+    func fetch(period: AnalyticsPeriod, bannerID: String?) async throws -> BannerMeasurementReport {
+        queries.append(bannerID)
+        return BannerMeasurementReport(period: period, counts: [])
+    }
+}
+
+extension BannerMeasurementReportTests {
+    @Test @MainActor func bannerCacheExpiresOnAgeAndUTCMidnightAndKeepsBannerIdentity() async {
+        let source = RefreshingBannerReportFixture()
+        var now = Date(timeIntervalSince1970: 1792713590) // Immediately before a UTC midnight.
+        let model = BannerMeasurementReportViewModel(repository: source,
+            bannerRepository: MockFeaturedBannerRepository(banners: [FeaturedBanner(id: "a", title: "A",
+                actionType: .externalURL, externalURL: "https://example.com", visibleSections: [.home],
+                createdAt: now, updatedAt: now, createdBy: "fixture")]), initialPeriod: .today,
+            cacheTTL: 3600, now: { now })
+        await model.loadIfNeeded()
+        await model.loadIfNeeded()
+        #expect(source.queries.count == 1)
+        now = now.addingTimeInterval(20)
+        // Crossing UTC midnight invalidates Today even though its cache is young.
+        await model.loadIfNeeded()
+        #expect(source.queries.count == 2)
+        now = now.addingTimeInterval(3601)
+        await model.loadIfNeeded()
+        #expect(source.queries.count == 3)
+        model.selectedBannerID = "a"
+        await model.loadIfNeeded()
+        #expect(source.queries.count == 4)
+        #expect(source.queries.last! == "a")
+        await model.loadIfNeeded()
+        #expect(source.queries.count == 4)
+    }
+}
+
+
+extension BannerMeasurementReportTests {
+    @Test func summaryFreshnessDoesNotMoveTheQueryWindowToYesterday() {
+        let before = Date(timeIntervalSince1970: 1792713590)
+        let after = before.addingTimeInterval(20)
+        let report = BannerMeasurementReport(period: .today, counts: [], generatedAt: before, periodAnchor: after)
+        #expect(report.timeline.map(\.id) == ["2026-10-23"])
+        #expect(report.filtered(bannerID: nil, region: nil, section: nil).periodAnchor == after)
+        #expect(report.generatedAt == before)
+    }
+}

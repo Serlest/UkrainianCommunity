@@ -23,15 +23,18 @@ struct BannerMeasurementReportView: View {
             introSubtitle: AppStrings.BannerReport.subtitle,
             scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize) {
             Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
-                ForEach(AnalyticsPeriod.allCases) { Text($0.analyticsTitle).tag($0) }
+                ForEach(AnalyticsPeriod.allCases) { Text(AnalyticsPresentationText.bannerPeriod($0)).tag($0) }
             }.pickerStyle(.menu).accessibilityIdentifier("bannerReport.period")
+            Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             content
         }
         .fileExporter(isPresented: $isExporting, document: exportDocument,
             contentType: .commaSeparatedText, defaultFilename: "UAC-banners-UTC") { result in
             if case .failure(let error) = result { exportError = error.localizedDescription }
         }
-        .task(id: viewModel.selectedPeriod) { await viewModel.loadIfNeeded() }
+        .task(id: viewModel.queryKey) { await viewModel.loadIfNeeded() }
+        .analyticsRefreshLifecycle { await viewModel.loadIfNeeded() }
         .appRefreshable { await viewModel.load() }
         .accessibilityIdentifier("screen.bannerReport")
     }
@@ -71,8 +74,16 @@ struct BannerMeasurementReportView: View {
                             Text(viewModel.title(for: banner.id)).font(.headline).foregroundStyle(AppTheme.textPrimary)
                             Text(banner.isActive ? AppStrings.FeaturedManagement.activeToggle : AppStrings.BannerReport.inactive)
                                 .font(.caption).foregroundStyle(AppTheme.textSecondary)
-                            BannerAnalyticsValueRow(title: AppStrings.BannerReport.total,
-                                totals: report.filtered(bannerID: banner.id, region: nil, section: nil).totals)
+                            if viewModel.selectedBannerID != nil {
+                                BannerAnalyticsValueRow(title: AppStrings.BannerReport.total, totals: report.totals)
+                            } else {
+                                NavigationLink {
+                                    BannerMeasurementReportView(repository: viewModel.repository,
+                                        bannerRepository: viewModel.bannerRepository, initialPeriod: viewModel.selectedPeriod,
+                                        bannerID: banner.id, bannerTitle: viewModel.title(for: banner.id))
+                                } label: { Label(AppStrings.OwnerAnalytics.detailAnalyticsTitle, systemImage: "chart.bar") }
+                                .tint(AppTheme.accentPrimaryForeground)
+                            }
                         }.padding(.vertical, 6)
                     }
                     if viewModel.displayedBanners.isEmpty { Text(AppStrings.BannerReport.noCurrentBanners).foregroundStyle(AppTheme.textSecondary) }
@@ -81,7 +92,7 @@ struct BannerMeasurementReportView: View {
             Button {
                 guard let export = viewModel.exportReport() else { return }
                 exportDocument = BannerMeasurementCSVDocument(text: export.csv(titles:
-                    viewModel.bannerTitles.merging(["removed": AppStrings.BannerReport.removedTotals]) { a, _ in a }))
+                    viewModel.bannerTitles.merging(["removed": AppStrings.BannerReport.removedTotals, "all": AppStrings.BannerReport.allBanners]) { a, _ in a }))
                 isExporting = true
             } label: { Label(AppStrings.BannerReport.exportCSV, systemImage: "square.and.arrow.up") }
             .buttonStyle(.bordered).accessibilityIdentifier("bannerReport.export")
@@ -190,14 +201,18 @@ struct BannerAnalyticsOverviewSection: View {
     let period: AnalyticsPeriod
     var repository: BannerMeasurementReportRepository = FirestoreBannerMeasurementReportRepository()
     var refreshID = 0
+    @State private var loadingKey: String?
+    @State private var lastLoadedAt: Date?
     @State private var report: BannerMeasurementReport?
     @State private var error: String?
     @State private var isLoading = false
     @State private var loadID: UUID?
     var body: some View {
-        OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.title, subtitle: period.analyticsTitle) {
+        OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.title, subtitle: AnalyticsPresentationText.bannerPeriod(period)) {
             if let report, report.period == period {
                 BannerAnalyticsMetricsView(totals: report.totals)
+                Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(AppStrings.BannerReport.coverageShort).font(.footnote).foregroundStyle(AppTheme.textSecondary)
                 OwnerAnalyticsFreshnessLabel(updatedAt: report.generatedAt)
                 BannerAnalyticsTrendView(report: report)
@@ -205,9 +220,18 @@ struct BannerAnalyticsOverviewSection: View {
             if let error { Text(error).font(.footnote).foregroundStyle(AppTheme.textSecondary) }
             if error != nil { Button(AppStrings.Action.retry) { Task { await load() } } }
         }.task(id: "\(period.rawValue)|\(refreshID)") { await load() }
+        .analyticsRefreshLifecycle(id: period.rawValue) {
+            if report?.period != period || lastLoadedAt.map({ Date().timeIntervalSince($0) >= 60
+                || FirestoreBannerMeasurementReportRepository.utcDayRange(period: .today, now: $0).0 != FirestoreBannerMeasurementReportRepository.utcDayRange(period: .today, now: Date()).0 }) ?? true {
+                await load()
+            }
+        }
         .accessibilityIdentifier("ownerAnalytics.bannerOverview")
     }
     private func load() async {
+        let key = "\(period.rawValue)|\(refreshID)"
+        guard !isLoading || loadingKey != key else { return }
+        loadingKey = key
         let selected = period
         let id = UUID()
         loadID = id
@@ -216,6 +240,7 @@ struct BannerAnalyticsOverviewSection: View {
         do {
             let loaded = try await RefreshRequest.run { try await repository.fetch(period: selected) }
             guard !Task.isCancelled, loadID == id else { return }
+            lastLoadedAt = Date()
             report = loaded
         } catch { guard !Task.isCancelled, loadID == id else { return }; self.error = OwnerAnalyticsErrorPresentation.message(for: error) }
     }
@@ -227,6 +252,7 @@ struct RegisteredUserCountCard: View {
     @State private var count: Int?
     @State private var updatedAt: Date?
     @State private var failed = false
+    @State private var isLoading = false
     @State private var loadID: UUID?
     var body: some View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.currentAccounts) {
@@ -237,8 +263,14 @@ struct RegisteredUserCountCard: View {
                 .font(.footnote).foregroundStyle(AppTheme.textSecondary)
             if failed { Button(AppStrings.Action.retry) { Task { await reload() } } }
         }.task(id: refreshID) { await reload() }
+        .analyticsRefreshLifecycle {
+            if updatedAt.map({ Date().timeIntervalSince($0) >= 60 }) ?? true { await reload() }
+        }
     }
     private func reload() async {
+        guard !isLoading else { return }
+        isLoading = true
+        defer { isLoading = false }
         let id = UUID()
         loadID = id
         do {

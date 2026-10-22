@@ -28,6 +28,7 @@ struct AnalyticsContentDetailView: View {
             }
         }
         .task(id: viewModel.selectedPeriod) { await viewModel.loadIfNeeded() }
+        .analyticsRefreshLifecycle { await viewModel.loadIfNeeded() }
         .appRefreshable { await viewModel.load() }
         .accessibilityIdentifier("screen.ownerAnalytics.contentDetail")
     }
@@ -144,6 +145,7 @@ struct AnalyticsOrganizationDetailView: View {
             }
         }
         .task(id: viewModel.selectedPeriod) { await viewModel.loadIfNeeded() }
+        .analyticsRefreshLifecycle { await viewModel.loadIfNeeded() }
         .appRefreshable { await viewModel.load() }
         .accessibilityIdentifier("screen.ownerAnalytics.organizationDetail")
     }

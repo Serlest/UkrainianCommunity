@@ -24,6 +24,7 @@ export * from "./featured/featuredBannerCleanup";
 export * from "./featured/featuredBannerMutations";
 export * from "./featured/bannerMeasurementConsent";
 export * from "./featured/bannerMeasurementTracking";
+export {getBannerMeasurementReport, rollupBannerMeasurementReports} from "./featured/bannerMeasurementReports";
 export * from "./feedback/feedbackManagement";
 export * from "./legal/legalDocuments";
 export * from "./legal/legalPublicPage";

@@ -1,4 +1,4 @@
-import FirebaseFirestore
+import FirebaseFunctions
 import Foundation
 import CoreFoundation
 
@@ -14,40 +14,44 @@ extension BannerMeasurementReportRepository {
 }
 
 struct FirestoreBannerMeasurementReportRepository: BannerMeasurementReportRepository {
-    private let database = Firestore.firestore()
-    private let pageSize = 500
-
     func fetch(period: AnalyticsPeriod) async throws -> BannerMeasurementReport {
         try await fetch(period: period, bannerID: nil)
     }
 
     func fetch(period: AnalyticsPeriod, bannerID: String?) async throws -> BannerMeasurementReport {
-        let now = Date()
-        let (firstDay, lastDay) = Self.utcDayRange(period: period, now: now)
-        var collection: Query = database.collection("bannerMeasurementDailyShards")
-        if let bannerID { collection = collection.whereField("bannerID", isEqualTo: bannerID) }
-        let baseQuery = collection
-            .whereField("day", isGreaterThanOrEqualTo: firstDay)
-            .whereField("day", isLessThanOrEqualTo: lastDay)
-            .order(by: "day")
-            .limit(to: pageSize)
-
-        var counts: [BannerMeasurementDailyCount] = []
-        var lastDocument: QueryDocumentSnapshot?
-        while true {
-            let query = lastDocument.map { baseQuery.start(afterDocument: $0) } ?? baseQuery
-            let page = try await query.getDocuments(source: .server)
-            for document in page.documents {
-                guard let count = Self.decode(document.data()) else {
-                    throw AppError.validationFailed
-                }
-                counts.append(count)
+        try Task.checkCancellation()
+        var payload: [String: Any] = ["dayCount": period.dayCount]
+        if let bannerID { payload["bannerID"] = bannerID }
+        do {
+            let result = try await Functions.functions(region: "europe-west3")
+                .httpsCallable("getBannerMeasurementReport").call(payload)
+            try Task.checkCancellation()
+            guard let data = result.data as? [String: Any], data["calendar"] as? String == "UTC",
+                  let rows = data["counts"] as? [[String: Any]],
+                  let milliseconds = data["generatedAtMilliseconds"] as? NSNumber,
+                  let anchor = data["periodAnchorMilliseconds"] as? NSNumber else {
+                throw AppError.validationFailed
             }
-            guard page.documents.count == pageSize, let last = page.documents.last else { break }
-            lastDocument = last
+            let counts = try rows.map { row in
+                guard let count = Self.decode(row) else { throw AppError.validationFailed }
+                return count
+            }
+            return BannerMeasurementReport(period: period, counts: counts,
+                generatedAt: Date(timeIntervalSince1970: milliseconds.doubleValue / 1000),
+                periodAnchor: Date(timeIntervalSince1970: anchor.doubleValue / 1000))
+        } catch is CancellationError { throw CancellationError() }
+        catch {
+            if let appError = error as? AppError { throw appError }
+            let failure = error as NSError
+            if failure.domain == FunctionsErrorDomain {
+                switch FunctionsErrorCode(rawValue: failure.code) {
+                case .permissionDenied, .unauthenticated: throw AppError.permissionDenied
+                case .unavailable, .deadlineExceeded: throw AppError.network
+                default: break
+                }
+            }
+            throw AppError.unknown
         }
-
-        return BannerMeasurementReport(period: period, counts: counts, generatedAt: now)
     }
 
     static func utcDayRange(period: AnalyticsPeriod, now: Date) -> (String, String) {

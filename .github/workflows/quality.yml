@@ -322,6 +322,7 @@ jobs:
           "-skip-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/latestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-skip-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-skip-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
+          "-skip-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/dismissedDetailDoesNotRecordWhenConsentFinishesLater()"
 
       - name: Run timeout-sensitive analytics unit tests in isolation
         if: needs.changes.outputs.ios_unit == 'true'
@@ -339,6 +340,7 @@ jobs:
           "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/latestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-only-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
+          "-only-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/dismissedDetailDoesNotRecordWhenConsentFinishesLater()"
 
       - name: Verify Swift unit tests were discovered
         if: ${{ always() && needs.changes.outputs.ios_unit == 'true' }}

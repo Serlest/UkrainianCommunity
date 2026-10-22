@@ -270,6 +270,17 @@ final class OwnerAnalyticsViewModel: ObservableObject {
         !normalizedSearchText.isEmpty
     }
 
+    var showsCurrentAccounts: Bool {
+        matchesSupplemental([AppStrings.BannerReport.currentAccounts, AppStrings.OwnerAnalytics.totalUsers])
+    }
+    var showsBannerAnalytics: Bool {
+        matchesSupplemental([AppStrings.BannerReport.title, AppStrings.BannerReport.impressions, AppStrings.BannerReport.clicks])
+    }
+    var hasSupplementalSearchResults: Bool { showsCurrentAccounts || showsBannerAnalytics }
+    private func matchesSupplemental(_ values: [String]) -> Bool {
+        !hasActiveSearch || LocalSearchMatcher.matches(query: searchText, values: values)
+    }
+
     var hasSearchResults: Bool {
         overviewMetricItems.isEmpty == false
             || contentViewMetricItems.isEmpty == false
@@ -278,6 +289,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
             || topContentSections.isEmpty == false
             || userFederalStateRows.isEmpty == false
             || regionRows.isEmpty == false
+            || hasSupplementalSearchResults
     }
 
     var trendMetricOptions: [AnalyticsMetricType] {
@@ -401,6 +413,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
+        guard !isLoading else { return }
         let period = selectedPeriod
         if let cacheEntry = snapshotByPeriod[period] {
             snapshot = cacheEntry.value
@@ -476,6 +489,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
 
     private func isCacheExpired(_ entry: OwnerAnalyticsCacheEntry<OwnerAnalyticsSnapshot>) -> Bool {
         now().timeIntervalSince(entry.loadedAt) >= cacheTTL
+            || !AnalyticsFirestoreSchema.analyticsCalendar.isDate(entry.loadedAt, inSameDayAs: now())
     }
 
 }

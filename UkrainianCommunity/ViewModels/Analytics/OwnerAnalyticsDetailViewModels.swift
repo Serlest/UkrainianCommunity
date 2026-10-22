@@ -151,6 +151,7 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
     var isShowingStaleData: Bool { errorMessage != nil && hasContent }
 
     func loadIfNeeded() async {
+        guard !isLoading else { return }
         let period = selectedPeriod
         if let cacheEntry = snapshotByPeriod[period] {
             snapshot = cacheEntry.value
@@ -218,6 +219,7 @@ final class AnalyticsContentDetailViewModel: ObservableObject {
 
     private func isCacheExpired(_ entry: OwnerAnalyticsCacheEntry<AnalyticsContentDetailSnapshot>) -> Bool {
         now().timeIntervalSince(entry.loadedAt) >= cacheTTL
+            || !AnalyticsFirestoreSchema.analyticsCalendar.isDate(entry.loadedAt, inSameDayAs: now())
     }
 
 }
@@ -346,6 +348,7 @@ final class AnalyticsOrganizationDetailViewModel: ObservableObject {
     }
 
     func loadIfNeeded() async {
+        guard !isLoading else { return }
         let period = selectedPeriod
         if let cacheEntry = snapshotByPeriod[period] {
             snapshot = cacheEntry.value
@@ -409,6 +412,7 @@ final class AnalyticsOrganizationDetailViewModel: ObservableObject {
 
     private func isCacheExpired(_ entry: OwnerAnalyticsCacheEntry<AnalyticsOrganizationDetailSnapshot>) -> Bool {
         now().timeIntervalSince(entry.loadedAt) >= cacheTTL
+            || !AnalyticsFirestoreSchema.analyticsCalendar.isDate(entry.loadedAt, inSameDayAs: now())
     }
 
     private var filteredTopNews: [AnalyticsOrganizationTopContentItem] {

@@ -1,3 +1,4 @@
+import {bannerReportCollection, bannerProjectionCollection} from "../featured/bannerMeasurementReports";
 import {bannerMeasurementHistoryCollection} from "../featured/bannerMeasurementHistory";
 import {CheckedBulkWriter} from "../firebase/checkedBulkWriter";
 import {
@@ -118,9 +119,11 @@ export const cleanupExpiredData = onSchedule(
         bannerMeasurementRateLimitCollection, now,
       ),
       bannerMeasurementHistory: await cleanupExpiredAnalyticsGuards(bannerMeasurementHistoryCollection, now),
-      bannerMeasurementDailyShards: await cleanupExpiredAnalyticsGuards(
-        bannerMeasurementShardCollection, now,
-      ),
+      bannerMeasurementDailyShards: (await Promise.all([
+        cleanupExpiredAnalyticsGuards(bannerMeasurementShardCollection, now),
+        cleanupExpiredAnalyticsGuards(bannerReportCollection, now),
+        cleanupExpiredAnalyticsGuards(bannerProjectionCollection, now),
+      ])).reduce((sum, value) => sum + value, 0),
       analyticsUserActivity: await cleanupExpiredAnalyticsGuards(
         analyticsUserActivityCollection,
         now,

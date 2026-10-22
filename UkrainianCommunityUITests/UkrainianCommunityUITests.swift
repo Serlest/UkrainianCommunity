@@ -2258,6 +2258,14 @@ final class UkrainianCommunityUITests: XCTestCase {
         clearSearchButton.tap()
         XCTAssertFalse(element("ownerAnalytics.search.empty", in: app).exists)
 
+        searchField.tap()
+        searchField.typeText("Banner\n")
+        XCTAssertFalse(element("ownerAnalytics.search.empty", in: app).exists)
+        XCTAssertTrue(element("ownerAnalytics.bannerOverview", in: app).exists)
+        XCTAssertTrue(app.staticTexts["120"].waitForExistence(timeout: 5))
+        attachScreenshot(named: "Analytics banner search has results", from: app)
+        clearSearchButton.tap()
+
         let sevenDayButton = app.buttons["7 Tage"].firstMatch
         XCTAssertTrue(sevenDayButton.waitForExistence(timeout: 5))
         sevenDayButton.tap()
