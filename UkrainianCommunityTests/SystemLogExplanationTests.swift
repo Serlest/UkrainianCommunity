@@ -19,10 +19,19 @@ struct SystemLogExplanationTests {
         #expect(SystemLogExplanation.action(log) == SystemLogExplanation.text("action.listenEventComments"))
     }
 
-    @Test func newUnknownCodeDoesNotInventAnExplanation() {
+    @Test func newUnknownCodeShowsRecordedOperationWithoutInventingACause() {
         let log = entry(code: "future.error.99", operation: "newOperation")
         #expect(SystemLogExplanation.kind(log) == "unknown")
         #expect(SystemLogExplanation.cause(log) == SystemLogExplanation.text("unknown.cause"))
+        #expect(SystemLogExplanation.action(log).contains("CloudFunctions.newOperation"))
+        #expect(SystemLogExplanation.action(log) != SystemLogExplanation.text("action.unknown"))
+    }
+
+    @Test func missingOperationStillReportsThatActionIsUnknown() {
+        let log = SystemLogEntry(id: "legacy", createdAt: Date(), category: .diagnostics,
+            severity: .warning, eventType: .technicalError, actorRole: .user,
+            targetType: .none, outcome: .failed, summary: "Old error record",
+            errorCode: "cloudFunctions.failedPrecondition")
         #expect(SystemLogExplanation.action(log) == SystemLogExplanation.text("action.unknown"))
     }
 
