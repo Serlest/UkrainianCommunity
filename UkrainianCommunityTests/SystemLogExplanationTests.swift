@@ -23,7 +23,14 @@ struct SystemLogExplanationTests {
         let log = entry(code: "future.error.99", operation: "newOperation")
         #expect(SystemLogExplanation.kind(log) == "unknown")
         #expect(SystemLogExplanation.cause(log) == SystemLogExplanation.text("unknown.cause"))
+        #expect(SystemLogExplanation.action(log).contains("CloudFunctions.newOperation"))
+        #expect(SystemLogExplanation.action(log) != SystemLogExplanation.text("action.unknown"))
+    }
+
+    @Test func missingOperationDoesNotInventAnAttemptedAction() {
+        let log = entry(code: "cloudFunctions.failedPrecondition", operation: "")
         #expect(SystemLogExplanation.action(log) == SystemLogExplanation.text("action.unknown"))
+        #expect(SystemLogExplanation.kind(log) == "precondition")
     }
 
     @Test func timeoutDoesNotAssertWriteFailedOrRecommendBlindRetry() {
