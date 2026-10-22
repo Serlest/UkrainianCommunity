@@ -25,7 +25,7 @@ struct BannerMeasurementReportView: View {
             Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
                 ForEach(AnalyticsPeriod.allCases) { Text(AnalyticsPresentationText.bannerPeriod($0)).tag($0) }
             }.pickerStyle(.menu).accessibilityIdentifier("bannerReport.period")
-            Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+            Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary).lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
             content
         }
@@ -211,7 +211,7 @@ struct BannerAnalyticsOverviewSection: View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.title, subtitle: AnalyticsPresentationText.bannerPeriod(period)) {
             if let report, report.period == period {
                 BannerAnalyticsMetricsView(totals: report.totals)
-                Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary).lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(AppStrings.BannerReport.coverageShort).font(.footnote).foregroundStyle(AppTheme.textSecondary)
                 OwnerAnalyticsFreshnessLabel(updatedAt: report.generatedAt)
