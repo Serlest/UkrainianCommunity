@@ -97,6 +97,8 @@ test("decision notifications identify the moderator and reach both author and st
   for (const recipient of [ids[2], ids[3]]) {
     const docs = await db.collection(`users/${recipient}/notificationInbox`).get();
     assert.equal(docs.size, 1); const n = docs.docs[0].data();
+    assert.equal(n.metadata.titleLocKey, "notifications.push.content_moderated.title");
+    assert.equal(n.metadata.displayTitleLocKey, "notifications.push.content_moderated.needsRevision.title");
     assert.equal(n.actorUserId, ids[0]); assert.equal(n.sourceId, "news:notice"); assert.ok(n.message.includes("Fix source"));
   }
   assert.equal((await db.collection(`users/${ids[0]}/notificationInbox`).get()).size, 0);

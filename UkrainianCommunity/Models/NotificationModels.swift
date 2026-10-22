@@ -642,7 +642,7 @@ private enum AppNotificationDisplayResolver {
         switch notification.type {
         case .organizationRequestSubmitted, .commentAdded, .contentModerationChanged, .eventParticipationChanged:
             let fallback = firstNonEmpty(notification.title) ?? AppStrings.NotificationInbox.title
-            let title = notification.metadata["titleLocKey"].map {
+            let title = (notification.metadata["displayTitleLocKey"] ?? notification.metadata["titleLocKey"]).map {
                 LocalizationStore.localizedString($0, defaultValue: fallback)
             } ?? fallback
             return AppNotificationDisplayContent(

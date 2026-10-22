@@ -156,12 +156,14 @@ export async function notifyContentModeration(eventId: string, collection: "news
     action: orgId ? "openOrganization" : "openProfile", sourceType: "system",
     // Older clients keep their supported organization route; newer clients resolve this exact material.
     sourceId: `${collection === "news" ? "news" : "event"}:${contentId}`,
-    titleKey: `notifications.push.content_moderated.${after.moderationStatus}.title`, title: outcome[after.moderationStatus],
+    // Keep a push localization key present in installed builds; newer inboxes use the specific display key.
+    titleKey: "notifications.push.content_moderated.title", title: outcome[after.moderationStatus],
     body: `${text(after.title) ?? ""}${reason ? ` — ${reason}` : ""}`,
     actor: after.moderationStatus === "pendingReview" ? text(after.resubmittedByUserId) ?? text(after.updatedByUserId) : text(after.moderatedByUserId),
     recipients: [...staff, ...(text(after.authorId) ? [after.authorId] : [])],
     metadata: {organizationId: orgId ?? "", recipientScope: "contentContributors", moderationStatus: after.moderationStatus,
       contentId, contentCollection: collection, moderationReason: reason,
+      displayTitleLocKey: `notifications.push.content_moderated.${after.moderationStatus}.title`,
       route: orgId ? "openOrganization" : "openProfile", routeTargetId: orgId ?? contentId},
   });
 }
