@@ -1,3 +1,4 @@
+import {runAdminMutation} from "./adminMutationTransaction";
 import { FieldValue, Timestamp, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
@@ -99,7 +100,7 @@ function normalizedRequiredString(value: unknown, field: string): string {
   }
 
   const trimmedValue = value.trim();
-  if (trimmedValue.length === 0) {
+  if (trimmedValue.length === 0 || trimmedValue.length > 128 || trimmedValue.includes("/")) {
     throw new HttpsError("invalid-argument", `${field} must not be empty.`);
   }
 
@@ -286,8 +287,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
     let banExpiresAt: string | null = null;
     const notificationReason = statusRequest.reason ?? mutation.defaultReason;
 
-    await db.runTransaction(async (transaction) => {
-      const targetSnapshot = await transaction.get(targetReference);
+    const result = await runAdminMutation(request.data, auth, mutation.actionType, statusRequest.targetUserId, async (transaction, targetSnapshot) => {
 
       if (!targetSnapshot.exists) {
         throw new HttpsError("not-found", "Target user does not exist.");
@@ -385,7 +385,8 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
         },
         dedupeKey: `accountStatus:${notificationReference.id}`,
       }));
-    });
+    }, () => ({targetUserId:statusRequest.targetUserId,previousAccountStatus,newAccountStatus,previousBlockState,newBlockState,warningCount,banExpiresAt,updatedAt:committedAt}));
+    newAccountStatus = result.newAccountStatus;
 
     if (isBlockedStatus(newAccountStatus)) {
       try {
@@ -410,16 +411,7 @@ function createAccountStatusCallable(mutation: AccountStatusMutation) {
       }
     }
 
-    return {
-      targetUserId: statusRequest.targetUserId,
-      previousAccountStatus,
-      newAccountStatus,
-      previousBlockState,
-      newBlockState,
-      warningCount,
-      banExpiresAt,
-      updatedAt: committedAt,
-    };
+    return result;
   });
 }
 

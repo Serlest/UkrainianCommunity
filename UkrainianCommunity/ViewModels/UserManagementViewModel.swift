@@ -1,4 +1,5 @@
 import Combine
+import CryptoKit
 import FirebaseFunctions
 import FirebaseFirestore
 import Foundation
@@ -58,7 +59,7 @@ enum UserAdminAction: String, Identifiable, CaseIterable {
     }
 }
 
-enum PlatformRoleAction: Identifiable {
+enum PlatformRoleAction: String, Identifiable {
     case assignAppAdmin
     case removeAppAdmin
 
@@ -97,7 +98,7 @@ enum PlatformRoleAction: Identifiable {
 
 }
 
-struct ManagedOrganization: Identifiable, Hashable {
+struct ManagedOrganization: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let city: String
@@ -105,9 +106,11 @@ struct ManagedOrganization: Identifiable, Hashable {
     let ownerId: String?
     let adminIds: [String]
     let moderatorIds: [String]
+    var accessRevision: String? = nil
+    var moderationStatus: ModerationStatus? = nil
 
     func asOrganization() -> Organization {
-        Organization(
+        var value = Organization(
             id: id,
             name: name,
             description: name,
@@ -119,10 +122,12 @@ struct ManagedOrganization: Identifiable, Hashable {
             moderatorIds: moderatorIds,
             createdAt: .distantPast,
             updatedAt: .distantPast,
-            moderationStatus: .approved,
+            moderationStatus: moderationStatus ?? .approved,
             likeCount: 0,
             likeState: .notLiked
         )
+        value.accessRevision = accessRevision
+        return value
     }
 
     func role(for userId: String) -> CommunityRole? {
@@ -220,6 +225,7 @@ final class UserManagementViewModel: ObservableObject {
     private var loadedActorKey: String?
     private var lastUserDocument: QueryDocumentSnapshot?
     private var searchGeneration = 0
+    private var adminMutationJournal = AdminUserMutationJournal()
 
     private var usersCollection: CollectionReference { db.collection("users") }
     private var organizationsCollection: CollectionReference { db.collection("organizations") }
@@ -227,6 +233,74 @@ final class UserManagementViewModel: ObservableObject {
     init(roleManagementService: OrganizationRoleManagementService? = nil, reads: UserManagementReads? = nil) {
         self.suppliedRoleManagementService = roleManagementService
         self.reads = reads ?? .live
+    }
+
+    var usesDirectory: Bool { reads.directory != nil }
+    @Published private(set) var directoryTotal = 0
+    @Published private(set) var directoryCursor: String?
+    private var directoryQuery: UserDirectoryQuery?
+    private var directoryGeneration = UUID()
+    @Published private(set) var organizationCursor: String?
+    @Published private(set) var isLoadingOrganizations = false
+    private var organizationQuery = ""
+    private var organizationGeneration = UUID()
+
+    func prepareDirectory() { directoryGeneration = UUID(); users = []; directoryCursor = nil; isLoading = true; isLoadingMore = false; error = nil }
+
+    func loadDirectory(actor: AppUser?, query: UserDirectoryQuery, more: Bool = false) async {
+        let actorKey = managementActorKey(for: actor)
+        if actorKey != loadedActorKey { reset(for: actorKey) }
+        guard let actor, actorKey != nil, let fetch = reads.directory else { return }
+        if more { guard query == directoryQuery, directoryCursor != nil, !isLoading, !isLoadingMore else { return } }
+        else { directoryGeneration = UUID(); directoryCursor = nil; if query != directoryQuery { users = [] }; directoryQuery = query }
+        let generation = directoryGeneration
+        let after = more ? directoryCursor : nil
+        if more { isLoadingMore = true } else { isLoading = true }
+        error = nil
+        defer { if generation == directoryGeneration { isLoading = false; isLoadingMore = false } }
+        do {
+            let page = try await RefreshRequest.run { try await fetch(actor.id, query, after) }
+            guard generation == directoryGeneration, actorKey == loadedActorKey, !Task.isCancelled else { return }
+            let ids = Set(users.map(\.id))
+            users = more ? users + page.users.filter { !ids.contains($0.id) } : page.users
+            for user in page.users { detailUsersByID.removeValue(forKey: user.id) }
+            for org in page.organizations { if let i = organizations.firstIndex(where: { $0.id == org.id }) { organizations[i] = org } else { organizations.append(org) } }
+            organizationsLoaded = true
+            directoryTotal = page.total; directoryCursor = page.cursor
+            if query.search.isEmpty && query.region == nil && query.filter == "all" { totalRegisteredUsers = page.total }
+            else if totalRegisteredUsers == nil { await refreshTotalCount(session: sessionRevision, revision: refreshRevision) }
+        } catch {
+            guard generation == directoryGeneration, actorKey == loadedActorKey, !Task.isCancelled else { return }
+            self.error = .network
+        }
+    }
+
+    func loadOrganizationChoices(actor: AppUser?, search: String = "", more: Bool = false) async {
+        guard let actor, managementActorKey(for: actor) == loadedActorKey, let fetch = reads.organizationPage else { return }
+        if more { guard !isLoadingOrganizations, organizationCursor != nil, search == organizationQuery else { return } }
+        else { organizationGeneration = UUID(); organizationCursor = nil; organizationQuery = search; organizationChoices = [] }
+        let generation = organizationGeneration, session = sessionRevision
+        isLoadingOrganizations = true
+        defer { if generation == organizationGeneration { isLoadingOrganizations = false } }
+        do {
+            let page = try await RefreshRequest.run { try await fetch(actor.id, search, more ? self.organizationCursor : nil) }
+            guard generation == organizationGeneration, session == sessionRevision, !Task.isCancelled else { return }
+            let ids = Set(organizationChoices.map(\.id)); organizationChoices += page.organizations.filter { !ids.contains($0.id) }
+            organizationCursor = page.cursor; organizationsLoaded = true
+        } catch { guard generation == organizationGeneration, session == sessionRevision else { return }; statusMessage = AppStrings.UserManagement.refreshFailed }
+    }
+    @Published private(set) var organizationChoices: [ManagedOrganization] = []
+
+    func loadMemberships(userID: String, actor: AppUser?) async {
+        guard let actor, managementActorKey(for: actor) == loadedActorKey, let fetch = reads.memberships else { return }
+        let session = sessionRevision
+        do {
+            let items = try await RefreshRequest.run { try await fetch(actor.id, userID) }
+            guard session == sessionRevision, !Task.isCancelled else { return }
+            organizations.removeAll { $0.role(for: userID) != nil }
+            organizations += items.filter { item in !organizations.contains { $0.id == item.id } }
+            organizationsLoaded = true
+        } catch { guard session == sessionRevision else { return }; self.error = .network }
     }
 
     func load(actor: AppUser?) async {
@@ -428,7 +502,7 @@ final class UserManagementViewModel: ObservableObject {
         // Keep list, search and pagination intact while refreshing this destination.
         async let user: Void = reloadUser(id: userID, actor: actor, afterMutation: false)
         async let metadata: Void = loadSecurityMetadata(userID: userID, actor: actor)
-        async let roles: Void = refreshOrganizations(session: sessionRevision)
+        async let roles: Void = usesDirectory ? loadMemberships(userID: userID, actor: actor) : refreshOrganizations(session: sessionRevision)
         _ = await (user, metadata, roles)
     }
 
@@ -450,6 +524,7 @@ final class UserManagementViewModel: ObservableObject {
             return
         }
 
+        let mutation = adminMutationJournal.request(actor: actor.id, target: target, action: action.rawValue, reason: trimmedReason, days: suspensionDays)
         await updateUser(
             target,
             actor: actor,
@@ -458,17 +533,16 @@ final class UserManagementViewModel: ObservableObject {
         ) {
             switch action {
             case .warningIssued:
-                _ = try await CloudFunctionsClient.shared.warnUser(userId: target.id, reason: trimmedReason)
+                _ = try await CloudFunctionsClient.shared.warnUser(userId: target.id, reason: trimmedReason, review: mutation?.review)
             case .suspended:
-                let safeDays = min(max(suspensionDays, 1), 365)
-                let suspendedUntil = Calendar.current.date(byAdding: .day, value: safeDays, to: Date()) ?? Date().addingTimeInterval(TimeInterval(safeDays * 24 * 60 * 60))
-                _ = try await CloudFunctionsClient.shared.suspendUser(userId: target.id, until: suspendedUntil, reason: trimmedReason)
+                let suspendedUntil = mutation?.until ?? Date().addingTimeInterval(TimeInterval(suspensionDays * 86400))
+                _ = try await CloudFunctionsClient.shared.suspendUser(userId: target.id, until: suspendedUntil, reason: trimmedReason, review: mutation?.review)
             case .banned:
-                _ = try await CloudFunctionsClient.shared.banUser(userId: target.id, reason: trimmedReason)
+                _ = try await CloudFunctionsClient.shared.banUser(userId: target.id, reason: trimmedReason, review: mutation?.review)
             case .unblocked:
-                _ = try await CloudFunctionsClient.shared.restoreUser(userId: target.id, reason: trimmedReason)
+                _ = try await CloudFunctionsClient.shared.restoreUser(userId: target.id, reason: trimmedReason, review: mutation?.review)
             case .deactivated:
-                _ = try await CloudFunctionsClient.shared.deactivateUser(userId: target.id, reason: trimmedReason)
+                _ = try await CloudFunctionsClient.shared.deactivateUser(userId: target.id, reason: trimmedReason, review: mutation?.review)
             }
         }
     }
@@ -580,12 +654,13 @@ final class UserManagementViewModel: ObservableObject {
             return
         }
 
+        let mutation = adminMutationJournal.request(actor: actor.id, target: target, action: action.rawValue, reason: trimmedReason)
         await updateUser(target, actor: actor, failureMessage: platformRoleFailureMessage(from:)) {
             switch action {
             case .assignAppAdmin:
-                _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: trimmedReason)
+                _ = try await CloudFunctionsClient.shared.assignAppAdmin(userId: target.id, reason: trimmedReason, review: mutation?.review)
             case .removeAppAdmin:
-                _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: trimmedReason)
+                _ = try await CloudFunctionsClient.shared.removeAppAdmin(userId: target.id, reason: trimmedReason, review: mutation?.review)
             }
         }
     }
@@ -656,6 +731,11 @@ final class UserManagementViewModel: ObservableObject {
             await reloadUser(id: target.id, actor: actor)
         } catch {
             guard session == sessionRevision else { return }
+            if (error as NSError).domain == FunctionsErrorDomain && (error as NSError).code == FunctionsErrorCode.aborted.rawValue {
+                await refreshDetail(userID: target.id, actor: actor)
+                if session == sessionRevision { statusMessage = UserDirectoryCopy.changed }
+                return
+            }
             if Self.isCommittedSessionRevocationFailure(error) {
                 if let sessionRevocationAction {
                     sessionRevocationRetryActions[target.id] = sessionRevocationAction
@@ -714,7 +794,7 @@ final class UserManagementViewModel: ObservableObject {
     }
 
     private func reloadOrganizationAfterSuccessfulMutation(id: String) async {
-        guard statusMessage == AppStrings.UserManagement.changesSaved else { return }
+        guard statusMessage == AppStrings.UserManagement.changesSaved || statusMessage == UserDirectoryCopy.changed else { return }
         let session = sessionRevision
         do {
             let document = try await organizationsCollection.document(id).getDocument(source: .server)
@@ -724,6 +804,7 @@ final class UserManagementViewModel: ObservableObject {
                 return
             }
             let refreshedOrganization = Self.makeManagedOrganization(id: document.documentID, data: data)
+            if let index = organizationChoices.firstIndex(where: { $0.id == id }) { organizationChoices[index] = refreshedOrganization }
             if let index = organizations.firstIndex(where: { $0.id == id }) {
                 organizations[index] = refreshedOrganization
             } else {
@@ -848,16 +929,23 @@ final class UserManagementViewModel: ObservableObject {
         )
     }
 
+    static func adminReviewRevision(_ data: [String: Any]) -> String {
+        func stamp(_ key: String) -> String { (data[key] as? Timestamp).map { "\($0.seconds):\($0.nanoseconds)" } ?? "" }
+        var parts = ["globalRole", "accountStatus", "blockState"].map { data[$0] as? String ?? "" }
+        parts += [String(data["warningCount"] as? Int ?? 0), (data["isBlocked"] as? Bool == true) ? "true" : "false", stamp("banExpiresAt"), stamp("statusUpdatedAt"), stamp("roleUpdatedAt")]
+        return SHA256.hash(data: Data(parts.joined(separator: "\u{0}").utf8)).map { String(format: "%02x", $0) }.joined()
+    }
+
     static func makeUser(from document: QueryDocumentSnapshot) -> AppUser {
         Self.makeUser(id: document.documentID, data: document.data())
     }
 
-    static func makeUser(id: String, data: [String: Any]) -> AppUser {
+    static func makeUser(id: String, data: [String: Any], revision: String? = nil) -> AppUser {
         let legacyRole = UserRole(rawValue: data["role"] as? String ?? "") ?? .user
         let globalRole = (data["globalRole"] as? String).flatMap(GlobalRole.init(rawValue:)) ?? .user
         let isBlocked = data["isBlocked"] as? Bool ?? false
         let blockState = UserBlockState(rawValue: data["blockState"] as? String ?? "") ?? (isBlocked ? .suspendedUntil : .active)
-        return AppUser(
+        var result = AppUser(
             id: id,
             fullName: data["fullName"] as? String ?? "",
             displayName: data["displayName"] as? String ?? data["fullName"] as? String ?? "",
@@ -887,6 +975,8 @@ final class UserManagementViewModel: ObservableObject {
             createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast,
             updatedAt: (data["updatedAt"] as? Timestamp)?.dateValue() ?? .distantPast
         )
+        result.managementRevision = revision ?? adminReviewRevision(data)
+        return result
     }
 
     static func makeManagedOrganization(from document: QueryDocumentSnapshot) -> ManagedOrganization {
@@ -901,7 +991,9 @@ final class UserManagementViewModel: ObservableObject {
             logoURL: data["logoURL"] as? String ?? data["imageURL"] as? String,
             ownerId: data["ownerId"] as? String,
             adminIds: data["adminIds"] as? [String] ?? [],
-            moderatorIds: data["moderatorIds"] as? [String] ?? []
+            moderatorIds: data["moderatorIds"] as? [String] ?? [],
+            accessRevision: (data["updatedAt"] as? Timestamp).map { "\($0.seconds):\($0.nanoseconds)" },
+            moderationStatus: (data["moderationStatus"] as? String).flatMap(ModerationStatus.init(rawValue:))
         )
     }
 
@@ -917,6 +1009,8 @@ final class UserManagementViewModel: ObservableObject {
 
     private func reset(for actorKey: String?) {
         loadedActorKey = actorKey
+        directoryGeneration = UUID(); directoryQuery = nil; directoryCursor = nil; directoryTotal = 0
+        organizationGeneration = UUID(); organizationChoices = []; organizationCursor = nil; isLoadingOrganizations = false
         sessionRevision &+= 1
         refreshRevision &+= 1
         isLoading = false

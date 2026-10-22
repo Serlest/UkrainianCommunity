@@ -1,6 +1,6 @@
 import SwiftUI
 
-private enum UserManagementFilter: CaseIterable, Identifiable {
+private enum UserManagementFilter: String, CaseIterable, Identifiable {
     case all
     case active
     case warned
@@ -111,6 +111,9 @@ struct UserManagementView: View {
     @State private var isShowingRoleGuide = false
     @FocusState private var isSearchFocused: Bool
 
+    private var directoryQuery: UserDirectoryQuery {
+        UserDirectoryQuery(search: normalizedSearch, region: selectedRegion, filter: selectedFilter.rawValue, sort: sortOption.rawValue)
+    }
     private var actor: AppUser? { authState.user }
     private var canAccessUserManagement: Bool {
         PermissionService.canManageUsers(user: actor)
@@ -122,7 +125,8 @@ struct UserManagementView: View {
     }
 
     private var filteredUsers: [AppUser] {
-        candidateUsers.filter { user in
+        if viewModel.usesDirectory { return viewModel.users }
+        return candidateUsers.filter { user in
             selectedFilter.matches(user, organizationRoles: viewModel.organizationRoles(for: user))
         }.sorted(by: userSort)
     }
@@ -149,16 +153,27 @@ struct UserManagementView: View {
     var body: some View {
         AdminScreenShell(
             title: AppStrings.UserManagement.title,
-            subtitle: AppStrings.UserManagement.contentSubtitle,
-            tabBarHidden: false
+            subtitle: "",
+            tabBarHidden: true
         ) {
             userManagementContent
         }
         .onChange(of: actorLoadKey) { _, _ in selectedUserRoute = nil }
-        .task(id: actorLoadKey) {
-            await viewModel.load(actor: actor)
+        .onChange(of: viewModel.mutationRevision) { _, _ in
+            guard viewModel.usesDirectory else { return }
+            Task { await viewModel.loadDirectory(actor: actor, query: directoryQuery) }
         }
-        .task(id: "\(actorLoadKey)|\(normalizedSearch)|\(selectedRegion ?? "all")") {
+        .task(id: actorLoadKey) {
+            if !viewModel.usesDirectory { await viewModel.load(actor: actor) }
+        }
+        .task(id: "\(actorLoadKey)|\(normalizedSearch)|\(selectedRegion ?? "all")|\(selectedFilter.rawValue)|\(sortOption.rawValue)") {
+            if viewModel.usesDirectory {
+                viewModel.prepareDirectory()
+                try? await Task.sleep(for: .milliseconds(searchText.isEmpty ? 0 : 350))
+                guard !Task.isCancelled else { return }
+                await viewModel.loadDirectory(actor: actor, query: directoryQuery)
+                return
+            }
             guard normalizedSearch.count >= 2 || selectedRegion != nil else {
                 viewModel.clearSearch()
                 return
@@ -169,6 +184,7 @@ struct UserManagementView: View {
             await viewModel.search(query: normalizedSearch, actor: actor, region: selectedRegion)
         }
         .appRefreshable {
+            if viewModel.usesDirectory { await viewModel.loadDirectory(actor: actor, query: directoryQuery); return }
             await viewModel.refresh(actor: actor)
             if normalizedSearch.count >= 2 || selectedRegion != nil {
                 await viewModel.search(query: normalizedSearch, actor: actor, region: selectedRegion)
@@ -176,6 +192,7 @@ struct UserManagementView: View {
         }
         .navigationDestination(item: $selectedUserRoute) { route in
             UserDetailView(userID: route.user.id, fallbackUser: route.user, viewModel: viewModel, actor: actor)
+                .toolbar(.hidden, for: .tabBar)
         }
         .alert(AppStrings.UserManagement.title, isPresented: Binding(
             get: { selectedUserRoute == nil && viewModel.statusMessage != nil },
@@ -202,7 +219,7 @@ struct UserManagementView: View {
             } else {
                 summaryCard
                 searchField
-                if normalizedSearch.count == 1 {
+                if normalizedSearch.count == 1 && !viewModel.usesDirectory {
                     Label(AppStrings.UserManagement.searchMinimumCharacters, systemImage: "info.circle")
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -232,7 +249,7 @@ struct UserManagementView: View {
                     }
                 }
 
-                Text(AppStrings.UserManagement.loadedCount(selectedRegion == nil ? viewModel.users.count : viewModel.searchResults.count, total: selectedRegion == nil ? viewModel.totalRegisteredUsers : viewModel.searchTotalMatches))
+                Text(AppStrings.UserManagement.loadedCount(viewModel.usesDirectory ? viewModel.users.count : selectedRegion == nil ? viewModel.users.count : viewModel.searchResults.count, total: viewModel.usesDirectory ? viewModel.directoryTotal : selectedRegion == nil ? viewModel.totalRegisteredUsers : viewModel.searchTotalMatches))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
                     .accessibilityIdentifier("userManagement.loadedCount")
@@ -295,7 +312,7 @@ struct UserManagementView: View {
                 Text(AppStrings.UserManagement.unknownRegion).tag(Optional("unknown"))
             }.pickerStyle(.menu).tint(AppTheme.accentPrimaryForeground)
             .accessibilityIdentifier("userManagement.regionFilter")
-            if selectedRegion != nil {
+            if selectedRegion != nil && !viewModel.usesDirectory {
                 Text(AppStrings.UserManagement.regionMatches(viewModel.searchTotalMatches))
                     .font(.caption).foregroundStyle(AppTheme.textSecondary)
             }
@@ -303,7 +320,7 @@ struct UserManagementView: View {
                 HStack { filterMenu; Spacer(minLength: 8); sortMenu }
                 VStack(alignment: .leading, spacing: 8) { filterMenu; sortMenu }
             }
-            if viewModel.regionalNextCursor != nil || (viewModel.canLoadMore && normalizedSearch.count < 2 && selectedRegion == nil) {
+            if !viewModel.usesDirectory && (viewModel.regionalNextCursor != nil || (viewModel.canLoadMore && normalizedSearch.count < 2 && selectedRegion == nil)) {
                 Text(AppStrings.UserManagement.loadedScope)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
@@ -315,8 +332,8 @@ struct UserManagementView: View {
         Menu {
             Picker(AppStrings.UserManagement.title, selection: $selectedFilter) {
                 ForEach(UserManagementFilter.allCases) { filter in
-                    Text("\(filter.title) · \(countLabel(for: filter))").tag(filter)
-                        .disabled(filter.isOrganizationFilter && !viewModel.organizationsLoaded)
+                    Text(viewModel.usesDirectory ? filter.title : "\(filter.title) · \(countLabel(for: filter))").tag(filter)
+                        .disabled(!viewModel.usesDirectory && filter.isOrganizationFilter && !viewModel.organizationsLoaded)
                 }
             }
         } label: {
@@ -371,13 +388,13 @@ struct UserManagementView: View {
                 message: AppStrings.UserManagement.loadError
             ) {
                 PrimaryActionButton(title: AppStrings.UserManagement.retry, systemImage: "arrow.clockwise") {
-                    Task { await viewModel.refresh(actor: actor) }
+                    Task { if viewModel.usesDirectory { await viewModel.loadDirectory(actor: actor, query: directoryQuery) } else { await viewModel.refresh(actor: actor) } }
                 }
             }
-        } else if selectedFilter.isOrganizationFilter && !viewModel.organizationsLoaded {
+        } else if !viewModel.usesDirectory && selectedFilter.isOrganizationFilter && !viewModel.organizationsLoaded {
             InlineMessageCard(style: .error, message: AppStrings.UserManagement.organizationsNotLoaded)
             PrimaryActionButton(title: AppStrings.UserManagement.retry, systemImage: "arrow.clockwise") {
-                Task { await viewModel.refresh(actor: actor) }
+                Task { if viewModel.usesDirectory { await viewModel.loadDirectory(actor: actor, query: directoryQuery) } else { await viewModel.refresh(actor: actor) } }
             }
         } else if filteredUsers.isEmpty {
             VStack(spacing: AppTheme.dashboardSpacing) {
@@ -402,7 +419,7 @@ struct UserManagementView: View {
                         .accessibilityAction { selectedUserRoute = ManagedUserRoute(user: user) }
                         .accessibilityIdentifier("userManagement.user.\(user.id)")
                 }
-                if selectedRegion != nil || normalizedSearch.count < 2 {
+                if viewModel.usesDirectory || selectedRegion != nil || normalizedSearch.count < 2 {
                     loadMoreButton
                 } else if normalizedSearch.count >= 2 {
                     VStack(spacing: 6) {
@@ -433,7 +450,13 @@ struct UserManagementView: View {
 
     @ViewBuilder
     private var loadMoreButton: some View {
-        if selectedRegion != nil, viewModel.regionalNextCursor != nil {
+        if viewModel.usesDirectory {
+            if viewModel.directoryCursor != nil {
+                PrimaryActionButton(title: AppStrings.UserManagement.loadMore, isEnabled: !viewModel.isLoading && !viewModel.isLoadingMore, isLoading: viewModel.isLoadingMore, systemImage: "arrow.down.circle") {
+                    Task { await viewModel.loadDirectory(actor: actor, query: directoryQuery, more: true) }
+                }
+            }
+        } else if selectedRegion != nil, viewModel.regionalNextCursor != nil {
             PrimaryActionButton(title: AppStrings.UserManagement.loadMore, isEnabled: !viewModel.isLoadingMore,
                 isLoading: viewModel.isLoadingMore, systemImage: "arrow.down.circle") {
                 Task { await viewModel.loadMoreRegional(actor: actor) }

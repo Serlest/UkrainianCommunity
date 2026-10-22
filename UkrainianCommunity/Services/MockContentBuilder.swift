@@ -38,7 +38,7 @@ enum MockContentBuilder {
             blockState: .active, createdAt: .now, updatedAt: .now) : currentUser()
         let users = regional ? (0..<45).map { index in
             AppUser(id: "region-\(index)", fullName: "Region User \(index)", displayName: "Region User \(index)",
-                city: "", email: "region\(index)@example.test", bio: "", role: .user, blockState: .active,
+                city: "", email: "region\(index)@example.test", bio: "", role: .user, blockState: ProcessInfo.processInfo.environment["UITestUserDirectory"] == "1" && index == 44 ? .bannedPermanent : .active,
                 selectedFederalState: index < 40 ? .tirol : .wien, createdAt: .now, updatedAt: .now)
         } : longContent
             ? [member] + (2...18).map { index in
@@ -69,7 +69,7 @@ enum MockContentBuilder {
                 )
             }
             : []
-        return UserManagementReads(users: { _ in
+        var reads = UserManagementReads(users: { _ in
             .init(users: regional ? Array(users.prefix(40)) : users, cursor: nil, hasMore: regional)
         }, user: { id in
             if id == ownerUser().id { return ownerUser() }
@@ -89,7 +89,7 @@ enum MockContentBuilder {
             if failOnce && presenceReads == 2 { throw AppError.network }
             let now = Date().timeIntervalSince1970 * 1_000
             return ManagedUserPresenceSnapshot(response: .init(targetUserId: id, lastSeenAt: now,
-                onlineUntil: presenceReads == 1 ? now + 90_000 : nil, serverTime: now), requestStartedAt: .now)
+                onlineUntil: presenceReads == 1 && id != "region-44" ? now + 90_000 : nil, serverTime: now), requestStartedAt: .now)
         }, regionalSearch: { query, region, cursor in
             let matches = users.filter { user in
                 let regionMatches = region == "unknown" ? user.selectedFederalState == nil : user.selectedFederalState?.rawValue == region
@@ -105,6 +105,25 @@ enum MockContentBuilder {
             }
             return .init(users: matches, totalMatches: matches.count)
         })
+        if ProcessInfo.processInfo.environment["UITestUserDirectory"] == "1" {
+            reads.directory = { _, query, cursor in
+                if query.search == "error" { throw AppError.network }
+                var matches = users.filter { user in
+                    (query.region == nil || user.selectedFederalState?.rawValue == query.region)
+                    && (query.search.isEmpty || LocalSearchMatcher.matches(query: query.search, values: [user.displayName, user.email]))
+                    && (query.filter == "all" || query.filter == "banned" && user.id == "region-44")
+                }
+                matches.sort { a, b in
+                    if query.sort == "oldest" { return a.id > b.id }
+                    return a.id < b.id
+                }
+                let start = cursor.flatMap(Int.init) ?? 0, end = min(start + 40, matches.count)
+                return .init(users: Array(matches[start..<end]), organizations: managedOrganizations, total: matches.count, cursor: end < matches.count ? String(end) : nil)
+            }
+            reads.memberships = { _, _ in managedOrganizations }
+            reads.organizationPage = { _, _, _ in .init(organizations: managedOrganizations, cursor: nil) }
+        }
+        return reads
     }
 
     nonisolated private static let calendar = Calendar.current

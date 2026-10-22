@@ -324,6 +324,7 @@ struct EditableUserProfileDraft: Equatable {
 }
 
 struct AppUser: Identifiable, Codable {
+    var managementRevision: String? = nil
     let id: String
     let fullName: String
     let displayName: String

@@ -1,3 +1,4 @@
+import {runAdminMutation} from "./adminMutationTransaction";
 import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 
@@ -75,7 +76,7 @@ function normalizedRequiredString(value: unknown, field: string): string {
   }
 
   const trimmedValue = value.trim();
-  if (trimmedValue.length === 0) {
+  if (trimmedValue.length === 0 || trimmedValue.length > 128 || trimmedValue.includes("/")) {
     throw new HttpsError("invalid-argument", `${field} must not be empty.`);
   }
 
@@ -154,8 +155,7 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
     let previousGlobalRole: ActiveGlobalRole = "user";
     let newGlobalRole: ActiveGlobalRole = "user";
 
-    await db.runTransaction(async (transaction) => {
-      const targetSnapshot = await transaction.get(targetReference);
+    const result = await runAdminMutation(request.data, auth, mutation.actionType, roleRequest.targetUserId, async (transaction, targetSnapshot) => {
 
       if (!targetSnapshot.exists) {
         throw new HttpsError("not-found", "Target user does not exist.");
@@ -222,14 +222,9 @@ function createAppAdminRoleCallable(mutation: AppAdminRoleMutation) {
         },
         dedupeKey: `platformRole:${notificationReference.id}`,
       }));
-    });
+    }, () => ({targetUserId:roleRequest.targetUserId,previousGlobalRole,newGlobalRole,updatedAt:committedAt}));
 
-    return {
-      targetUserId: roleRequest.targetUserId,
-      previousGlobalRole,
-      newGlobalRole,
-      updatedAt: committedAt,
-    };
+    return result;
   });
 }
 

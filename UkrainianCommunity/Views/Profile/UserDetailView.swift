@@ -30,6 +30,7 @@ struct UserDetailView: View {
     @State private var selectedRole: CommunityRole = .communityModerator
     @State private var organizationSearchText = ""
     @State private var roleReason = ""
+    @State private var isChoosingOrganization = false
     @State private var pendingAction: UserAdminAction?
     @State private var pendingRoleRemoval: ManagedOrganization?
     @State private var pendingPlatformRoleAction: PlatformRoleAction?
@@ -67,7 +68,7 @@ struct UserDetailView: View {
 
     private var assignmentOrganizations: [ManagedOrganization] {
         guard let actor else { return [] }
-        return organizations.filter { viewModel.canManageOrganizationRoles(in: $0, actor: actor) }
+        return (viewModel.usesDirectory ? viewModel.organizationChoices : organizations).filter { viewModel.canManageOrganizationRoles(in: $0, actor: actor) }
     }
 
     private var filteredOrganizations: [ManagedOrganization] {
@@ -118,7 +119,7 @@ struct UserDetailView: View {
     }
 
     private var roleAssignmentBlockingMessage: String? {
-        guard viewModel.organizationsLoaded, !organizations.isEmpty else {
+        guard viewModel.organizationsLoaded else {
             return AppStrings.UserManagement.organizationsNotLoaded
         }
         guard !assignmentOrganizations.isEmpty else {
@@ -170,6 +171,7 @@ struct UserDetailView: View {
 
     var body: some View {
         lifecycleScreen
+            .toolbar(.hidden, for: .tabBar)
             .sheet(item: $pendingAction) { action in
                 AccountActionConfirmationSheet(
                     action: action,
@@ -222,7 +224,8 @@ struct UserDetailView: View {
 
     private var baseScreen: some View {
         PushedScreenShell(
-            title: user.preferredDisplayName
+            title: AppStrings.UserManagement.title,
+            tabBarHidden: true
         ) {
             AppGroupedContentPlane {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
@@ -234,11 +237,17 @@ struct UserDetailView: View {
                         InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
                             .accessibilityIdentifier("user.detail.refreshError")
                     }
-                    securityCard
+                    accountActionsCard
                     platformRolesCard
                     organizationRolesCard
-                    roleAssignmentCard
-                    accountActionsCard
+                    if viewModel.usesDirectory {
+                        AppEditorSectionCard {
+                            DisclosureGroup(AppStrings.UserManagement.assignRoleSectionTitle, isExpanded: $isChoosingOrganization) { roleAssignmentCard }
+                                .tint(AppTheme.accentPrimaryForeground)
+                                .accessibilityIdentifier("user.detail.organizationAssignment")
+                        }
+                    } else { roleAssignmentCard }
+                    securityCard
                     UserAuditHistoryCard(userId: user.id, refreshToken: viewModel.mutationRevision)
                 }
             }
@@ -258,8 +267,18 @@ struct UserDetailView: View {
             .task {
                 ensureSelectedOrganization()
                 ensureSelectedRole()
-                await viewModel.loadSecurityMetadata(userID: userID, actor: actor)
+                async let security: Void = viewModel.loadSecurityMetadata(userID: userID, actor: actor)
+                async let memberships: Void = viewModel.loadMemberships(userID: userID, actor: actor)
+                _ = await (security, memberships)
             }
+            .task(id: "\(isChoosingOrganization)|\(organizationSearchText)") {
+                guard viewModel.usesDirectory, isChoosingOrganization else { return }
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+                await viewModel.loadOrganizationChoices(actor: actor, search: organizationSearchText)
+                ensureSelectedOrganization(); ensureSelectedRole()
+            }
+            .onChange(of: viewModel.organizationChoices.count) { _, _ in ensureSelectedOrganization(); ensureSelectedRole() }
             .onChange(of: viewModel.organizations.count) { _, _ in
                 ensureSelectedOrganization()
                 ensureSelectedRole()
@@ -534,7 +553,7 @@ struct UserDetailView: View {
                     RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
                         .strokeBorder(AppTheme.borderSubtle)
                 )
-                .disabled(assignmentOrganizations.isEmpty)
+                .disabled(!viewModel.usesDirectory && assignmentOrganizations.isEmpty)
 
                 Picker(AppStrings.UserManagement.organizationPicker, selection: Binding(
                     get: { selectedOrganizationID ?? assignmentOrganizations.first?.id ?? "" },
@@ -545,8 +564,14 @@ struct UserDetailView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                .tint(AppTheme.accentPrimaryForeground)
                 .disabled(filteredOrganizations.isEmpty)
 
+                if viewModel.isLoadingOrganizations { ProgressView() }
+                if viewModel.usesDirectory, viewModel.organizationCursor != nil {
+                    Button(AppStrings.UserManagement.loadMore) { Task { await viewModel.loadOrganizationChoices(actor: actor, search: organizationSearchText, more: true) } }
+                        .disabled(viewModel.isLoadingOrganizations)
+                }
                 if assignmentOrganizations.isEmpty {
                     Text(AppStrings.UserManagement.roleAssignmentUnavailable)
                         .font(.caption)

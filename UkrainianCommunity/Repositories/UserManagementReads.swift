@@ -27,6 +27,10 @@ struct UserManagementReads {
         return SearchResult(users: users, totalMatches: response.totalMatches, nextCursor: response.nextCursor)
     }
 
+    var directory: ((String, UserDirectoryQuery, String?) async throws -> UserDirectoryPage)? = nil
+    var organizationPage: ((String, String, String?) async throws -> UserOrganizationChoicePage)? = nil
+    var memberships: ((String, String) async throws -> [ManagedOrganization])? = nil
+
     var totalCount: () async throws -> Int? = { nil }
 
     var search: (String) async throws -> SearchResult = liveSearch
@@ -36,7 +40,7 @@ struct UserManagementReads {
         return SearchResult(users: try await fetchUsers(ids: response.userIds), totalMatches: response.totalMatches)
     }
 
-    private static func fetchUsers(ids: [String]) async throws -> [AppUser] {
+    static func fetchUsers(ids: [String]) async throws -> [AppUser] {
         var usersByID: [String: AppUser] = [:]
         for batch in ids.chunked(into: 30) where !batch.isEmpty {
             try Task.checkCancellation()
@@ -80,6 +84,9 @@ struct UserManagementReads {
             guard response.targetUserId == id else { throw AppError.permissionDenied }
             return ManagedUserSecurityMetadata(response: response)
         },
+        directory: UserDirectoryAPI.page,
+        organizationPage: UserDirectoryAPI.organizations,
+        memberships: UserDirectoryAPI.memberships,
         totalCount: { try await RegisteredUserCountReader.fetch() }
     )
 }

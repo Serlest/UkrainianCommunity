@@ -840,6 +840,16 @@ final class UkrainianCommunityUITests: XCTestCase {
         for action in ["warningIssued", "suspended", "banned", "deactivated"] {
             let button = app.buttons["user.detail.accountAction.\(action)"]
             scrollToElement(button, in: app, maxSwipes: 20)
+            // A floating system tab bar can leave isHittable true for a partly
+            // covered control. Bring the complete action into the viewport.
+            for _ in 0..<12 {
+                let frame = button.frame
+                if frame.minY > 150 && frame.maxY < app.frame.maxY - 120 && button.isHittable { break }
+                let scroll = app.scrollViews.firstMatch
+                let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+                let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: frame.minY < 150 ? 0.72 : 0.48))
+                start.press(forDuration: 0.05, thenDragTo: end)
+            }
             XCTAssertTrue(button.isHittable, "Account action is not reachable: \(action)")
             button.tap()
             let cancel = app.buttons["user.action.cancel"]

@@ -271,13 +271,23 @@ enum CloudPlatformGlobalRole: String, Codable, Equatable {
     case user
 }
 
+struct AdminMutationReview: Codable, Equatable {
+    let operationId: String
+    let principalId: String
+    let expectedRevision: String
+}
+
 struct PlatformRoleChangeFunctionRequest: Codable, Equatable {
     let targetUserId: String
     let reason: String?
+    let operationId: String?
+    let principalId: String?
+    let expectedRevision: String?
 
-    init(targetUserId: String, reason: String? = nil) {
+    init(targetUserId: String, reason: String? = nil, review: AdminMutationReview? = nil) {
         self.targetUserId = targetUserId
         self.reason = reason
+        operationId = review?.operationId; principalId = review?.principalId; expectedRevision = review?.expectedRevision
     }
 }
 
@@ -300,11 +310,15 @@ struct AccountStatusChangeFunctionRequest: Codable, Equatable {
     let targetUserId: String
     let until: String?
     let reason: String?
+    let operationId: String?
+    let principalId: String?
+    let expectedRevision: String?
 
-    init(targetUserId: String, until: String? = nil, reason: String? = nil) {
+    init(targetUserId: String, until: String? = nil, reason: String? = nil, review: AdminMutationReview? = nil) {
         self.targetUserId = targetUserId
         self.until = until
         self.reason = reason
+        operationId = review?.operationId; principalId = review?.principalId; expectedRevision = review?.expectedRevision
     }
 }
 
@@ -640,52 +654,52 @@ final class CloudFunctionsClient {
         try await call(.transferOrganizationOwnership, request: request)
     }
 
-    func assignAppAdmin(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+    func assignAppAdmin(userId: String, reason: String? = nil, review: AdminMutationReview? = nil) async throws -> PlatformRoleChangeFunctionResponse {
         try await call(
             .assignAppAdmin,
-            request: platformRoleChangeRequest(userId: userId, reason: reason)
+            request: platformRoleChangeRequest(userId: userId, reason: reason, review: review)
         )
     }
 
-    func removeAppAdmin(userId: String, reason: String? = nil) async throws -> PlatformRoleChangeFunctionResponse {
+    func removeAppAdmin(userId: String, reason: String? = nil, review: AdminMutationReview? = nil) async throws -> PlatformRoleChangeFunctionResponse {
         try await call(
             .removeAppAdmin,
-            request: platformRoleChangeRequest(userId: userId, reason: reason)
+            request: platformRoleChangeRequest(userId: userId, reason: reason, review: review)
         )
     }
 
-    func warnUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+    func warnUser(userId: String, reason: String? = nil, review: AdminMutationReview? = nil) async throws -> AccountStatusChangeFunctionResponse {
         try await call(
             .warnUser,
-            request: accountStatusChangeRequest(userId: userId, reason: reason)
+            request: accountStatusChangeRequest(userId: userId, reason: reason, review: review)
         )
     }
 
-    func suspendUser(userId: String, until: Date, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+    func suspendUser(userId: String, until: Date, reason: String? = nil, review: AdminMutationReview? = nil) async throws -> AccountStatusChangeFunctionResponse {
         try await call(
             .suspendUser,
-            request: accountStatusChangeRequest(userId: userId, until: until, reason: reason)
+            request: accountStatusChangeRequest(userId: userId, until: until, reason: reason, review: review)
         )
     }
 
-    func banUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+    func banUser(userId: String, reason: String? = nil, review: AdminMutationReview? = nil) async throws -> AccountStatusChangeFunctionResponse {
         try await call(
             .banUser,
-            request: accountStatusChangeRequest(userId: userId, reason: reason)
+            request: accountStatusChangeRequest(userId: userId, reason: reason, review: review)
         )
     }
 
-    func deactivateUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+    func deactivateUser(userId: String, reason: String? = nil, review: AdminMutationReview? = nil) async throws -> AccountStatusChangeFunctionResponse {
         try await call(
             .deactivateUser,
-            request: accountStatusChangeRequest(userId: userId, reason: reason)
+            request: accountStatusChangeRequest(userId: userId, reason: reason, review: review)
         )
     }
 
-    func restoreUser(userId: String, reason: String? = nil) async throws -> AccountStatusChangeFunctionResponse {
+    func restoreUser(userId: String, reason: String? = nil, review: AdminMutationReview? = nil) async throws -> AccountStatusChangeFunctionResponse {
         try await call(
             .restoreUser,
-            request: accountStatusChangeRequest(userId: userId, reason: reason)
+            request: accountStatusChangeRequest(userId: userId, reason: reason, review: review)
         )
     }
 
@@ -1500,25 +1514,29 @@ final class CloudFunctionsClient {
 
     private func platformRoleChangeRequest(
         userId: String,
-        reason: String?
+        reason: String?,
+        review: AdminMutationReview? = nil
     ) -> PlatformRoleChangeFunctionRequest {
         let trimmedReason = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
         return PlatformRoleChangeFunctionRequest(
             targetUserId: userId,
-            reason: trimmedReason?.isEmpty == false ? trimmedReason : nil
+            reason: trimmedReason?.isEmpty == false ? trimmedReason : nil,
+            review: review
         )
     }
 
     private func accountStatusChangeRequest(
         userId: String,
         until: Date? = nil,
-        reason: String?
+        reason: String?,
+        review: AdminMutationReview? = nil
     ) -> AccountStatusChangeFunctionRequest {
         let trimmedReason = reason?.trimmingCharacters(in: .whitespacesAndNewlines)
         return AccountStatusChangeFunctionRequest(
             targetUserId: userId,
             until: until.map(Self.cloudFunctionDateFormatter.string(from:)),
-            reason: trimmedReason?.isEmpty == false ? trimmedReason : nil
+            reason: trimmedReason?.isEmpty == false ? trimmedReason : nil,
+            review: review
         )
     }
 
