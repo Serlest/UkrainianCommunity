@@ -1,216 +1,193 @@
 import SwiftUI
 
 struct DirectoryEditorsView: View {
-    @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @EnvironmentObject private var authState: AuthState
-    @StateObject private var users = DirectoryEditorCandidatesStore()
-    @StateObject private var access = DirectoryEditorAccessStore()
+    @StateObject private var users: DirectoryEditorCandidatesStore
+    @StateObject private var access: DirectoryEditorAccessStore
     @State private var searchText = ""
-    @State private var pendingRevocation: String?
+    @State private var pending: Review?
 
+    private struct Review: Identifiable {
+        let id = UUID()
+        let actorID: String
+        let grant: DirectoryEditorGrant
+        let enabled: Bool
+        let identity: String
+        let user: AppUser?
+    }
+    @MainActor init(users: DirectoryEditorCandidatesStore? = nil, access: DirectoryEditorAccessStore? = nil) {
+        _users = StateObject(wrappedValue: users ?? DirectoryEditorCandidatesStore()); _access = StateObject(wrappedValue: access ?? DirectoryEditorAccessStore())
+    }
     private var actor: AppUser? { authState.user }
-    private var isOwner: Bool { PermissionService.isAppOwner(user: actor) }
-    private var normalizedSearch: String {
-        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-    private var candidates: [AppUser] {
-        if normalizedSearch.count >= 2 { return users.searchResults }
-        return users.users.filter { user in
-            normalizedSearch.isEmpty ||
-            [user.displayName, user.fullName, user.email].contains {
-                $0.localizedStandardContains(normalizedSearch)
-            }
-        }
-    }
+    private var isOwner: Bool { PermissionService.isAppOwner(user: actor) && PermissionService.isUsableAccount(user: actor) }
+    private var principal: String { isOwner ? actor?.id ?? "" : "" }
+    private var query: String { searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var searchKey: String { principal + "|" + query }
+    private func text(_ uk: String, _ de: String) -> String { DirectoryEditorText.value(uk, de) }
 
     var body: some View {
-        List {
+        AdminScreenShell(title: OwnerProfileText.directoryEditors, subtitle: text("Керуйте доступом до всіх матеріалів довідника.", "Verwalten Sie den Zugriff auf alle Ratgeberinhalte.")) {
             if !isOwner {
-                ContentUnavailableView(
-                    DirectoryEditorText.value("Лише для власника", "Nur für Eigentümer"),
-                    systemImage: "lock"
-                )
+                ContentUnavailableView(text("Лише для власника", "Nur für Eigentümer"), systemImage: "lock")
             } else {
-                Section {
-                    Text(DirectoryEditorText.value(
-                        "Редактори можуть публікувати, змінювати й приховувати всі матеріали довідника. Власник завжди має цей доступ.",
-                        "Redakteure können alle Ratgeberinhalte veröffentlichen, ändern und ausblenden. Der Eigentümer behält diesen Zugriff immer."
-                    ))
-                    .font(.subheadline).foregroundStyle(.secondary)
+                AppEditorSectionCard {
+                    Label(text("Доступ до всього довідника", "Zugriff auf den gesamten Ratgeber"), systemImage: "book.closed")
+                        .font(.headline)
+                    Text(text("Редактори можуть публікувати, змінювати й приховувати всі матеріали. Власник застосунку завжди має цей доступ. Зміни прав записуються в журнал, користувач отримує сповіщення.", "Redakteure können alle Inhalte veröffentlichen, ändern und ausblenden. Der App-Eigentümer behält diesen Zugriff immer. Änderungen werden protokolliert und dem Nutzer mitgeteilt."))
+                        .font(.subheadline).foregroundStyle(.secondary)
                 }
-                Section(DirectoryEditorText.value("Мають доступ", "Mit Zugriff")) {
-                    if access.isLoading { ProgressView() }
-                    if !access.isLoading && !access.loadFailed && access.editorIDs.isEmpty {
-                        Text(DirectoryEditorText.value("Редакторів поки немає", "Noch keine Redakteure"))
-                    }
-                    if access.loadFailed {
-                        Button(DirectoryEditorText.value("Не вдалося завантажити права. Повторити", "Zugriffsrechte nicht geladen. Erneut versuchen")) {
-                            guard let actorID = actor?.id, isOwner else { return }
-                            Task { await access.load(actorID: actorID) }
+                AppEditorSectionCard {
+                    VStack(alignment: .leading, spacing: 16) {
+                        AppEditorSectionTitle(title: text("Мають доступ", "Mit Zugriff"))
+                        if access.isLoading { ProgressView() }
+                        if !access.isLoading && !access.loadFailed && access.editorIDs.isEmpty {
+                            Text(text("Доступ іншим користувачам ще не надано.", "Noch kein Zugriff für andere Nutzer erteilt.")).foregroundStyle(.secondary)
                         }
-                    }
-                    ForEach(sortedEditorIDs, id: \.self) { id in
-                        HStack {
-                            editorIdentity(id)
-                            Spacer()
-                            Button(role: .destructive) {
-                                pendingRevocation = id
-                            } label: {
-                                Text(DirectoryEditorText.value("Зняти", "Entziehen"))
+                        if access.loadFailed { retryButton { await access.load(actorID: principal) } }
+                        ForEach(sortedEditorIDs, id: \.self) { id in
+                            VStack(alignment: .leading, spacing: 10) {
+                                adaptiveRow {
+                                    editorIdentity(id)
+                                } action: {
+                                    Button(role: .destructive) { review(id, enabled: false) } label: { Text(text("Відкликати доступ", "Zugriff entziehen")) }
+                                        .disabled(access.busyIDs.contains(id) || access.grants[id] == nil)
+                                        .accessibilityIdentifier("directoryAccess.revoke.\(id)")
+                                }
+                                if let milliseconds = access.grants[id]?.grantedAt {
+                                    Text(text("Надано: ", "Erteilt: ") + Date(timeIntervalSince1970: milliseconds / 1000).formatted(.dateTime.day().month(.abbreviated).year().hour().minute().locale(LocalizationStore.locale)))
+                                        .font(.caption).foregroundStyle(.secondary)
+                                }
+                                Divider()
                             }
-                            .disabled(access.isLoading || access.busyIDs.contains(id))
+                        }
+                        if access.canLoadMore {
+                            Button(text("Показати ще", "Weitere anzeigen")) { Task { await access.loadMore(actorID: principal) } }.disabled(access.isLoadingMore)
                         }
                     }
                 }
-                Section(DirectoryEditorText.value("Зареєстровані користувачі", "Registrierte Nutzer")) {
-                    TextField(DirectoryEditorText.value("Ім’я або email", "Name oder E-Mail"),
-                              text: $searchText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                    if users.isSearching { ProgressView() }
-                    if users.isLoading { ProgressView() }
-                    ForEach(candidates) { user in
-                        if user.id != actor?.id && user.globalRole.authorizationRole != .owner {
+                AppEditorSectionCard {
+                    VStack(alignment: .leading, spacing: 16) {
+                        AppEditorSectionTitle(title: text("Зареєстровані користувачі", "Registrierte Nutzer"))
+                        HStack {
+                            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                            TextField(text("Ім’я або email", "Name oder E-Mail"), text: $searchText).textInputAutocapitalization(.never).autocorrectionDisabled()
+                                .accessibilityIdentifier("directoryAccess.search")
+                            if !searchText.isEmpty { Button { searchText = "" } label: { Image(systemName: "xmark.circle.fill") }.accessibilityLabel(text("Очистити пошук", "Suche löschen")) }
+                        }.padding(12).background(AppTheme.textPrimary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                        Text(text("Знайдено: ", "Gefunden: ") + String(users.total)).font(.caption).foregroundStyle(.secondary)
+                        if users.isLoading { ProgressView() }
+                        if users.loadFailed { retryButton { await users.load(actorID: principal, query: query) } }
+                        if !users.isLoading && !users.loadFailed && users.users.isEmpty {
+                            Text(text("Користувачів не знайдено. Спробуйте інше ім’я або email.", "Keine Nutzer gefunden. Versuchen Sie einen anderen Namen oder eine E-Mail-Adresse.")).foregroundStyle(.secondary)
+                        }
+                        ForEach(users.users.filter { $0.id != actor?.id && $0.globalRole.authorizationRole != .owner }) { user in
                             userRow(user)
+                            Divider()
                         }
-                    }
-                    if normalizedSearch.isEmpty && users.canLoadMore {
-                        Button(DirectoryEditorText.value("Показати ще", "Weitere anzeigen")) {
-                            Task { await users.loadMore() }
+                        if users.canLoadMore {
+                            Button(text("Показати ще", "Weitere anzeigen")) { Task { await users.loadMore() } }.disabled(users.isLoadingMore)
                         }
-                        .disabled(users.isLoadingMore)
-                    }
-                    if users.searchFailed {
-                        Text(DirectoryEditorText.value("Пошук не вдався", "Suche fehlgeschlagen"))
-                            .foregroundStyle(.red)
-                    }
-                    if users.loadFailed {
-                        Button(DirectoryEditorText.value("Не вдалося завантажити. Повторити", "Laden fehlgeschlagen. Erneut versuchen")) {
-                            Task { await users.load() }
-                        }
+                        if users.isLoadingMore { ProgressView() }
                     }
                 }
             }
         }
-        .buttonStyle(.borderless)
-        .scrollContentBackground(.hidden)
-        .background(AppBackgroundView())
         .tint(AppTheme.accentPrimaryForeground)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(DirectoryEditorText.value("Редактори довідника", "Ratgeberredakteure"))
-        .task(id: actor?.id) {
-            guard isOwner, let actorID = actor?.id else { return }
-            async let candidates: Void = users.load()
-            async let grants: Void = access.load(actorID: actorID)
-            _ = await (candidates, grants)
+        .refreshable { await refresh() }
+        .task(id: principal) {
+            pending = nil; users.reset(); access.reset()
+            guard !principal.isEmpty else { return }
+            await access.load(actorID: principal)
         }
-        .task(id: normalizedSearch) {
-            guard isOwner else { return }
-            if normalizedSearch.count < 2 {
-                users.clearSearch()
-                return
-            }
-            try? await Task.sleep(for: .milliseconds(350))
+        .task(id: searchKey) {
+            let id = principal, requestedQuery = query
+            guard !id.isEmpty else { return }
+            users.invalidate(actorID: id, query: requestedQuery)
+            do { try await Task.sleep(for: .milliseconds(350)) } catch { return }
             guard !Task.isCancelled else { return }
-            await users.search(normalizedSearch)
+            await users.load(actorID: id, query: requestedQuery)
         }
-        .confirmationDialog(
-            DirectoryEditorText.value("Забрати доступ до довідника?", "Ratgeberzugriff entziehen?"),
-            isPresented: Binding(
-                get: { pendingRevocation != nil },
-                set: { if !$0 { pendingRevocation = nil } }
-            )
-        ) {
-            if let pendingRevocation {
-                Button(DirectoryEditorText.value("Забрати доступ", "Zugriff entziehen"), role: .destructive) {
-                    self.pendingRevocation = nil
-                    Task { await setAccess(false, userID: pendingRevocation) }
+        .task(id: users.users.map(\.id).joined(separator: "|") + "|" + String(access.isLoading)) {
+            guard !principal.isEmpty, !access.isLoading else { return }
+            await access.inspect(users.users.map(\.id), actorID: principal)
+        }
+        .confirmationDialog(text("Змінити доступ до довідника?", "Ratgeberzugriff ändern?"), isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }), titleVisibility: .visible) {
+            if let item = pending {
+                Button(item.enabled ? text("Надати доступ", "Zugriff erteilen") : text("Відкликати доступ", "Zugriff entziehen"), role: item.enabled ? nil : .destructive) {
+                    pending = nil
+                    guard principal == item.actorID, isOwner else { return }
+                    Task { await access.setAccess(item.enabled, userID: item.grant.id, knownUser: item.user, actorID: item.actorID, reviewed: item.grant) }
                 }
             }
-            Button(DirectoryEditorText.value("Скасувати", "Abbrechen"), role: .cancel) { pendingRevocation = nil }
+            Button(text("Скасувати", "Abbrechen"), role: .cancel) { pending = nil }
         } message: {
-            if let id = pendingRevocation {
-                Text(revocationDescription(id))
+            if let item = pending {
+                Text(item.identity + "\n" + (item.enabled ? text("Зможе публікувати, змінювати й приховувати всі матеріали довідника. Користувач отримає сповіщення.", "Kann alle Ratgeberinhalte veröffentlichen, ändern und ausblenden. Der Nutzer wird benachrichtigt.") : text("Більше не зможе редагувати довідник. Користувач отримає сповіщення.", "Kann den Ratgeber nicht mehr bearbeiten. Der Nutzer wird benachrichtigt.")))
             }
         }
-        .alert(DirectoryEditorText.value("Помилка доступу", "Zugriffsfehler"),
-               isPresented: Binding(get: { access.errorMessage != nil },
-                                    set: { if !$0 { access.errorMessage = nil } })) {
-            Button(DirectoryEditorText.value("Гаразд", "OK")) { access.errorMessage = nil }
-        } message: {
-            Text(access.errorMessage ?? "")
+        .alert(text("Помилка доступу", "Zugriffsfehler"), isPresented: Binding(get: { access.errorMessage != nil }, set: { if !$0 { access.errorMessage = nil } })) {
+            Button(text("Гаразд", "OK")) { access.errorMessage = nil }
+        } message: { Text(access.errorMessage ?? "") }
+    }
+    @ViewBuilder private func adaptiveRow<Identity: View, Action: View>(@ViewBuilder identity: () -> Identity, @ViewBuilder action: () -> Action) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: 16) { identity().fixedSize(); Spacer(minLength: 12); action().fixedSize() }
+            VStack(alignment: .leading, spacing: 12) { identity(); action() }
         }
     }
-
+    private func retryButton(_ action: @escaping () async -> Void) -> some View {
+        Button(text("Не вдалося завантажити. Повторити", "Laden fehlgeschlagen. Erneut versuchen")) { Task { await action() } }
+    }
     @ViewBuilder private func userRow(_ user: AppUser) -> some View {
-        let usable = (user.accountStatus == .active || user.accountStatus == .warned) &&
-            (user.blockState == .active || user.blockState == .warned)
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(user.preferredDisplayName)
-                Text(user.email).font(.caption).foregroundStyle(.secondary)
+        let usable = (user.accountStatus == .active || user.accountStatus == .warned) && (user.blockState == .active || user.blockState == .warned)
+        adaptiveRow {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(user.preferredDisplayName).font(.headline)
+                Text(user.email).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                if !usable { Text(text("Обмежений акаунт — доступ надати не можна", "Eingeschränktes Konto – keine Freigabe möglich")).font(.caption).foregroundStyle(.secondary) }
             }
-            Spacer()
-            if access.editorIDs.contains(user.id) {
-                Label(DirectoryEditorText.value("Має доступ", "Zugriff aktiv"),
-                      systemImage: "checkmark.circle.fill")
-                    .font(.caption).foregroundStyle(.green)
+        } action: {
+            if access.grants[user.id]?.enabled == true {
+                Label(text("Має доступ", "Zugriff aktiv"), systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
+            } else if access.grants[user.id] == nil {
+                Button(text("Перевірити доступ", "Zugriff prüfen")) { Task { await access.inspect([user.id], actorID: principal) } }.font(.caption)
             } else {
-                Button(DirectoryEditorText.value("Надати", "Freigeben")) {
-                    Task { await setAccess(true, userID: user.id, knownUser: user) }
-                }
-                .disabled(!usable || access.isLoading || access.busyIDs.contains(user.id))
+                Button(text("Надати доступ", "Zugriff erteilen")) { review(user.id, enabled: true, user: user) }
+                    .disabled(!usable || access.busyIDs.contains(user.id))
+                    .accessibilityIdentifier("directoryAccess.grant.\(user.id)")
             }
         }
     }
-
     private var sortedEditorIDs: [String] {
         access.editorIDs.sorted { lhs, rhs in
-            let first = profile(lhs)?.preferredDisplayName ?? lhs
-            let second = profile(rhs)?.preferredDisplayName ?? rhs
-            let comparison = LocalizationStore.compareForSorting(first, second)
+            let comparison = LocalizationStore.compareForSorting(profile(lhs)?.preferredDisplayName ?? lhs, profile(rhs)?.preferredDisplayName ?? rhs)
             return comparison == .orderedSame ? lhs < rhs : comparison == .orderedAscending
         }
     }
-
-    private func profile(_ id: String) -> AppUser? {
-        (users.searchResults + users.users).first { $0.id == id } ?? access.profiles[id]
-    }
-
-    @ViewBuilder
-    private func editorIdentity(_ id: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    private func profile(_ id: String) -> AppUser? { access.profiles[id] ?? users.users.first { $0.id == id } }
+    @ViewBuilder private func editorIdentity(_ id: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
             if let user = profile(id) {
-                Text(user.preferredDisplayName).font(.body)
-                Text(user.email).font(.caption).foregroundStyle(.secondary)
-                    .textSelection(.enabled)
+                Text(user.preferredDisplayName).font(.headline)
+                Text(user.email).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             } else {
-                Text(access.missingProfileIDs.contains(id)
-                     ? DirectoryEditorText.value("Профіль користувача відсутній", "Nutzerprofil nicht vorhanden")
-                     : DirectoryEditorText.value("Дані користувача не завантажено", "Nutzerdaten nicht geladen"))
-                Text(verbatim: "ID: \(id)").font(.caption).foregroundStyle(.secondary)
-                    .textSelection(.enabled)
+                Text(access.missingProfileIDs.contains(id) ? text("Профіль користувача відсутній", "Nutzerprofil nicht vorhanden") : text("Дані користувача не завантажено", "Nutzerdaten nicht geladen"))
+                Text(verbatim: "ID: \(id)").font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 if access.failedProfileIDs.contains(id) {
-                    Button(DirectoryEditorText.value("Повторити", "Erneut versuchen")) {
-                        guard let actorID = actor?.id, isOwner else { return }
-                        Task { await access.loadProfile(id, actorID: actorID) }
-                    }
+                    Button(text("Повторити", "Erneut versuchen")) { Task { await access.loadProfile(id, actorID: principal) } }
                 }
             }
-        }
-        .fixedSize(horizontal: false, vertical: true)
+        }.fixedSize(horizontal: false, vertical: true)
     }
-
-    private func revocationDescription(_ id: String) -> String {
-        let identity = profile(id).map { "\($0.preferredDisplayName) · \($0.email)" } ?? "ID: \(id)"
-        return DirectoryEditorText.value(
-            "\(identity) більше не зможе редагувати довідник.",
-            "\(identity) kann den Ratgeber danach nicht mehr bearbeiten."
-        )
+    private func review(_ id: String, enabled: Bool, user: AppUser? = nil) {
+        guard isOwner, let grant = access.grants[id] else { return }
+        let target = user ?? profile(id)
+        pending = Review(actorID: principal, grant: grant, enabled: enabled, identity: target.map { "\($0.preferredDisplayName) · \($0.email)" } ?? "ID: \(id)", user: target)
     }
-
-    private func setAccess(_ enabled: Bool, userID: String, knownUser: AppUser? = nil) async {
-        guard isOwner, let actorID = actor?.id else { return }
-        await access.setAccess(enabled, userID: userID, knownUser: knownUser, actorID: actorID)
+    private func refresh() async {
+        guard !principal.isEmpty else { return }
+        async let grants: Void = access.load(actorID: principal)
+        async let candidates: Void = users.load(actorID: principal, query: query)
+        _ = await (grants, candidates)
     }
 }

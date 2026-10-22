@@ -603,7 +603,11 @@ struct ProfileView: View {
             UserManagementView(reads: MockContentBuilder.userManagementRefreshFixture() ?? .live)
         case .directoryEditors:
             if PermissionService.isAppOwner(user: permissionUser) {
-                DirectoryEditorsView()
+                if let fixture = MockContentBuilder.directoryAccessFixture() {
+                    DirectoryEditorsView(users: fixture.users, access: fixture.access)
+                } else {
+                    DirectoryEditorsView()
+                }
             }
         case .featuredBannerManagement:
             FeaturedBannerManagementView(

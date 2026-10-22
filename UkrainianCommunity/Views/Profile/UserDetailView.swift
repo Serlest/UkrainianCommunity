@@ -1014,6 +1014,8 @@ private struct UserAuditHistoryItem: Identifiable {
         case "userRestored": AppStrings.UserManagement.actionUnblock
         case "appAdminAssigned": AppStrings.UserManagement.assignAppAdmin
         case "appAdminRemoved": AppStrings.UserManagement.removeAppAdmin
+        case "directoryEditorGranted": DirectoryEditorText.value("Надано доступ до довідника", "Ratgeberzugriff erteilt")
+        case "directoryEditorRevoked": DirectoryEditorText.value("Відкликано доступ до довідника", "Ratgeberzugriff entzogen")
         case "organizationRoleAssigned": AppStrings.UserManagement.assignRoleButton
         case "organizationRoleRemoved": AppStrings.UserManagement.removeOrganizationRoleButton
         case "organizationOwnerChanged": AppStrings.UserManagement.changeOwnerButton
@@ -1022,7 +1024,7 @@ private struct UserAuditHistoryItem: Identifiable {
     }
 
     var changeSummary: String? {
-        let keys = ["accountStatus", "blockState", "globalRole", "role", "organizationId"]
+        let keys = ["accountStatus", "blockState", "globalRole", "role", "organizationId", "directoryEditorEnabled"]
         let changes = keys.compactMap { key -> String? in
             let previous = displayValue(previousValue[key], key: key)
             let next = displayValue(newValue[key], key: key)
@@ -1031,6 +1033,7 @@ private struct UserAuditHistoryItem: Identifiable {
             case "accountStatus", "blockState": AppStrings.Common.status
             case "globalRole": AppStrings.UserManagement.currentPlatformRole
             case "role": AppStrings.Profile.role
+            case "directoryEditorEnabled": DirectoryEditorText.value("Редагування довідника", "Ratgeber bearbeiten")
             default: AppStrings.Organizations.title
             }
             return "\(label): \(previous ?? "—") → \(next ?? "—")"
@@ -1041,6 +1044,9 @@ private struct UserAuditHistoryItem: Identifiable {
     }
 
     private func displayValue(_ value: Any?, key: String) -> String? {
+        if key == "directoryEditorEnabled", let enabled = value as? Bool {
+            return enabled ? DirectoryEditorText.value("Доступ надано", "Zugriff erteilt") : DirectoryEditorText.value("Без доступу", "Kein Zugriff")
+        }
         if let raw = value as? String {
             if key == "accountStatus", let status = AccountStatus(rawValue: raw) { return status.title }
             if key == "blockState", let status = UserBlockState(rawValue: raw) { return status.title }

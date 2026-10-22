@@ -251,7 +251,6 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
     const routeTargetId = stringValue(metadata.routeTargetId);
     const title = stringValue(notification.title) ?? fallbackTitle(type);
     const body = stringValue(notification.message) ?? title;
-    const localizedAlert = localizedAlertKeys(type, metadata);
     await deliverPushDurably(event.data!.ref, {
       notification: { title, body },
       data: buildNotificationDataPayload({
@@ -267,12 +266,7 @@ export const deliverInboxNotificationPushOnCreate = onDocumentCreated(
       apns: {
         payload: {
           aps: {
-            alert: {
-              titleLocKey: localizedAlert.titleLocKey,
-              locKey: localizedAlert.bodyLocKey,
-              locArgs: Array.isArray(metadata.bodyLocArgs)
-                ? metadata.bodyLocArgs.filter((value): value is string => typeof value === "string") : [],
-            },
+            alert: inboxAPNSAlert(type, metadata, title, body),
             sound: "default",
           },
         },
@@ -289,6 +283,14 @@ export function shouldDeliverInboxNotificationPush(
   const metadata = recordValue(metadataValue);
   return (centrallyDeliveredTypes.has(type) || metadata.pushDelivery === "central")
     && metadata.pushManagedByWriter !== true;
+}
+
+export function inboxAPNSAlert(type: NotificationType, metadata: Record<string, unknown>, title: string, body: string) {
+  // Raw text also works on released binaries that lack a dedicated directory key.
+  if (type === "systemAnnouncement" && metadata.scope === "directoryEditorAccess") return {title, body};
+  const keys = localizedAlertKeys(type, metadata);
+  return {titleLocKey:keys.titleLocKey, locKey:keys.bodyLocKey,
+    locArgs:Array.isArray(metadata.bodyLocArgs) ? metadata.bodyLocArgs.filter((value): value is string => typeof value === "string") : []};
 }
 
 export function localizedAlertKeys(

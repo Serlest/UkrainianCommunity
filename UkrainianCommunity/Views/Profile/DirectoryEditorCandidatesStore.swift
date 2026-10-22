@@ -1,83 +1,53 @@
 import Combine
-import FirebaseFirestore
+import Foundation
 
-/// User lookup for the directory grant screen. It avoids loading organization
-/// roles and security metadata needed by the broader user-management screen.
+/// Uses the paginated server search without unrelated organization hydration.
 @MainActor
 final class DirectoryEditorCandidatesStore: ObservableObject {
     @Published private(set) var users: [AppUser] = []
-    @Published private(set) var searchResults: [AppUser] = []
     @Published private(set) var isLoading = false
     @Published private(set) var isLoadingMore = false
-    @Published private(set) var isSearching = false
     @Published private(set) var canLoadMore = false
-    @Published private(set) var searchFailed = false
     @Published private(set) var loadFailed = false
+    @Published private(set) var total = 0
+    private var actorID: String?
+    private var query = ""
+    private var cursor: String?
+    private var generation = UUID()
+    private let page: (String, String, String?) async throws -> UserDirectoryPage
 
-    private let pageSize = 40
-    private let reads = UserManagementReads.live
-    private var lastDocument: QueryDocumentSnapshot?
-    private var searchGeneration = 0
+    init(page: @escaping (String, String, String?) async throws -> UserDirectoryPage = UserDirectoryAPI.candidates) { self.page = page }
 
-    func load() async {
-        guard !isLoading else { return }
-        isLoading = true
-        loadFailed = false
-        defer { isLoading = false }
-        do {
-            let page = try await reads.users(pageSize)
-            guard !Task.isCancelled else { return }
-            users = page.users
-            lastDocument = page.cursor
-            canLoadMore = page.hasMore
-        } catch {
-            loadFailed = true
-        }
+    func reset() {
+        generation = UUID(); actorID = nil; query = ""; cursor = nil
+        users = []; total = 0; isLoading = false; isLoadingMore = false; canLoadMore = false; loadFailed = false
     }
-
+    func invalidate(actorID: String, query: String) {
+        reset(); self.actorID = actorID; self.query = query; isLoading = true
+    }
+    func load(actorID: String, query: String) async {
+        invalidate(actorID: actorID, query: query)
+        await fetch(more: false)
+    }
     func loadMore() async {
-        guard !isLoadingMore, canLoadMore, let lastDocument else { return }
-        isLoadingMore = true
-        defer { isLoadingMore = false }
+        guard canLoadMore, !isLoading, !isLoadingMore else { return }
+        await fetch(more: true)
+    }
+    private func fetch(more: Bool) async {
+        guard let actorID else { return }
+        let requestGeneration = generation
+        if more { isLoadingMore = true } else { isLoading = true }
+        loadFailed = false
+        defer { if generation == requestGeneration { isLoading = false; isLoadingMore = false } }
         do {
-            let snapshot = try await Firestore.firestore().collection("users")
-                .order(by: "createdAt", descending: true)
-                .start(afterDocument: lastDocument)
-                .limit(to: pageSize)
-                .getDocuments(source: .server)
-            guard !Task.isCancelled else { return }
-            let known = Set(users.map(\.id))
-            users.append(contentsOf: snapshot.documents
-                .map(UserManagementViewModel.makeUser(from:))
-                .filter { !known.contains($0.id) })
-            self.lastDocument = snapshot.documents.last
-            canLoadMore = snapshot.documents.count == pageSize
+            let result = try await page(actorID, query, more ? cursor : nil)
+            guard requestGeneration == generation, !Task.isCancelled else { return }
+            let known = Set(more ? users.map(\.id) : [])
+            users = (more ? users : []) + result.users.filter { !known.contains($0.id) }
+            total = result.total; cursor = result.cursor; canLoadMore = result.cursor != nil
         } catch {
+            guard requestGeneration == generation, !Task.isCancelled else { return }
             loadFailed = true
         }
-    }
-
-    func search(_ query: String) async {
-        searchGeneration &+= 1
-        let generation = searchGeneration
-        isSearching = true
-        searchFailed = false
-        defer { if generation == searchGeneration { isSearching = false } }
-        do {
-            let result = try await reads.search(query)
-            guard generation == searchGeneration, !Task.isCancelled else { return }
-            searchResults = result.users
-        } catch {
-            guard generation == searchGeneration, !Task.isCancelled else { return }
-            searchResults = []
-            searchFailed = true
-        }
-    }
-
-    func clearSearch() {
-        searchGeneration &+= 1
-        isSearching = false
-        searchResults = []
-        searchFailed = false
     }
 }

@@ -117,8 +117,9 @@ export const manageUserDirectory = onCall({region:"europe-west3",maxInstances:10
     },41,(a,b)=>compare({id:a.id,key:key(a)},{id:b.id,key:key(b)}));
     items = result.items.slice(0,40); hasMore = result.items.length > 40;
   }
+  if (data.includeOrganizations != null && typeof data.includeOrganizations !== "boolean") throw new HttpsError("invalid-argument","Invalid organization option.");
   const organizations = new Map<string,ReturnType<typeof organization>>();
-  for (let offset=0;offset<items.length;offset+=30) {
+  for (let offset=0;data.includeOrganizations !== false && offset<items.length;offset+=30) {
     const ids = items.slice(offset,offset+30).map(d=>d.id);
     const pages = await Promise.all([db.collection("organizations").where("ownerId","in",ids).get(),db.collection("organizations").where("adminIds","array-contains-any",ids).get(),db.collection("organizations").where("moderatorIds","array-contains-any",ids).get()]);
     for (const doc of pages.flatMap(p=>p.docs)) organizations.set(doc.id,organization(doc));

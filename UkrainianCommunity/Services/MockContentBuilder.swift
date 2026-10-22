@@ -24,6 +24,33 @@ enum MockContentBuilder {
     }
 
     @MainActor
+    static func directoryAccessFixture() -> (users: DirectoryEditorCandidatesStore, access: DirectoryEditorAccessStore)? {
+#if DEBUG && targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestDirectoryAccess"] == "1" else { return nil }
+        let members = (0..<3).map { index in
+            AppUser(id: "directory-member-\(index)", fullName: index == 0 ? "Олена Марія Коваль — координаторка української спільноти в Австрії" : "Candidate \(index)", displayName: index == 0 ? "Олена Марія Коваль — координаторка української спільноти в Австрії" : "Candidate \(index)", city: "Wien", email: index == 0 ? "olena.community.coordinator.with.a.very.long.address@example.test" : "candidate\(index)@example.test", bio: "", role: .user, blockState: .active, createdAt: .now, updatedAt: .now)
+        }
+        var grants = [members[0].id: DirectoryEditorGrant(id: members[0].id, enabled: true, revision: "initial", grantedAt: Date.now.timeIntervalSince1970 * 1000)]
+        let candidates = DirectoryEditorCandidatesStore(page: { _, query, _ in
+            let result = members.filter { query.isEmpty || LocalSearchMatcher.matches(query: query, values: [$0.displayName, $0.email]) }
+            return .init(users: result, organizations: [], total: result.count, cursor: nil)
+        })
+        let access = DirectoryEditorAccessStore(api: .init(enabledIDs: { [] }, user: { id in members.first { $0.id == id } }, setAccess: { _, _, _ in },
+            page: { _,_ in .init(grants: Array(grants.values.filter(\.enabled))) },
+            inspect: { _, ids in ids.map { grants[$0] ?? .init(id: $0, enabled: false, revision: nil, grantedAt: nil) } },
+            mutate: { _, previous, enabled, _ in
+                guard grants[previous.id]?.revision == previous.revision else { throw AppError.network }
+                let result = DirectoryEditorGrant(id: previous.id, enabled: enabled, revision: UUID().uuidString, grantedAt: enabled ? Date.now.timeIntervalSince1970 * 1000 : nil)
+                grants[previous.id] = result
+                return result
+            }, profiles: { ids in members.filter { ids.contains($0.id) } }))
+        return (candidates, access)
+#else
+        return nil
+#endif
+    }
+
+    @MainActor
     static func userManagementRefreshFixture() -> UserManagementReads? {
         guard ProcessInfo.processInfo.arguments.contains("-ui-testing"),
               ProcessInfo.processInfo.environment["UITestUserRefresh"] == "1" else { return nil }

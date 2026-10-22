@@ -4,6 +4,7 @@ import {test} from "node:test";
 import {
   assertCanSendTestPush,
   localizedAlertKeys,
+  inboxAPNSAlert,
   shouldDeliverInboxNotificationPush,
 } from "./inboxPushDelivery";
 
@@ -71,4 +72,10 @@ test("moderation pushes use localized notification keys", () => {
     titleLocKey: "notifications.inbox.organization_rejected.title",
     bodyLocKey: "notifications.inbox.generic.body",
   });
+});
+
+test("directory access push preserves the actual permission message on released clients", () => {
+  assert.deepEqual(inboxAPNSAlert("systemAnnouncement",{scope:"directoryEditorAccess"},"Ratgeberzugriff erteilt","Öffnen Sie den Tab Ratgeber."),{title:"Ratgeberzugriff erteilt",body:"Öffnen Sie den Tab Ratgeber."});
+  assert.equal(shouldDeliverInboxNotificationPush("systemAnnouncement",{scope:"directoryEditorAccess",pushDelivery:"central"}),true);
+  assert.ok("locKey" in inboxAPNSAlert("systemAnnouncement",{},"Title","Body"));
 });

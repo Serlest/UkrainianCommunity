@@ -23,6 +23,7 @@ nonisolated private struct UserDirectoryRequest: Encodable {
     var sort: String? = nil
     var cursor: String? = nil
     var userId: String? = nil
+    var includeOrganizations: Bool? = nil
 }
 private struct UserDirectoryResponse: Decodable {
     var userIds: [String]? = nil
@@ -39,6 +40,10 @@ private struct UserDirectoryResponse: Decodable {
     static func page(actor: String, query: UserDirectoryQuery, cursor: String?) async throws -> UserDirectoryPage {
         let response = try await call(UserDirectoryRequest(action: "list", principalId: actor, query: query.search, region: query.region, filter: query.filter, sort: query.sort, cursor: cursor))
         return UserDirectoryPage(users: try await UserManagementReads.fetchUsers(ids: response.userIds ?? []), organizations: response.organizations ?? [], total: response.totalMatches ?? 0, cursor: response.cursor)
+    }
+    static func candidates(actor: String, search: String, cursor: String?) async throws -> UserDirectoryPage {
+        let response = try await call(UserDirectoryRequest(action: "list", principalId: actor, query: search, filter: "all", sort: "newest", cursor: cursor, includeOrganizations: false))
+        return UserDirectoryPage(users: try await UserManagementReads.fetchUsers(ids: response.userIds ?? []), organizations: [], total: response.totalMatches ?? 0, cursor: response.cursor)
     }
     static func organizations(actor: String, search: String, cursor: String?) async throws -> UserOrganizationChoicePage {
         let response = try await call(UserDirectoryRequest(action: "organizations", principalId: actor, query: search, cursor: cursor))

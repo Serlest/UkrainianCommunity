@@ -129,7 +129,7 @@ enum OwnerProfileText {
     static var platformSettingsTitle: String { value("Налаштування платформи", "Plattformeinstellungen") }
     static var organizations: String { value("Керування організаціями", "Organisationen verwalten") }
     static var organizationsSubtitle: String { value("Усі організації платформи та допомога їхнім власникам.", "Alle Organisationen der Plattform und Unterstützung ihrer Eigentümer.") }
-    static var directoryEditors: String { value("Редактори довідника", "Ratgeberredakteure") }
+    static var directoryEditors: String { value("Доступ до редагування довідника", "Bearbeitungszugriff auf den Ratgeber") }
     static var directoryEditorsSubtitle: String { value("Хто може додавати й редагувати матеріали.", "Zugriff auf die Bearbeitung der Inhalte.") }
     static var notificationsSubtitle: String { value("Сповіщення про заявки, звернення та роботу платформи.", "Benachrichtigungen zu Anträgen, Anfragen und zum Plattformbetrieb.") }
     static var accountSubtitle: String { value("Сповіщення, безпека та особисті налаштування.", "Benachrichtigungen, Sicherheit und persönliche Einstellungen.") }

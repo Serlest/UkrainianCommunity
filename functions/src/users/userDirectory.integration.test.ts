@@ -30,6 +30,8 @@ test("directory searches, filters and sorts the entire dataset with stable pages
  assert.equal((await list({filter:"banned"})).totalMatches,1);
  assert.equal((await list({region:"tirol"})).totalMatches,68);
  assert.equal((await list({query:"",region:"wien",sort:"oldest"})).userIds![0],`${prefix}-000`);
+ const compact=await list({includeOrganizations:false});assert.deepEqual(compact.organizations,[]);assert.equal(compact.totalMatches,137);
+ await assert.rejects(list({includeOrganizations:"false"}),{code:"invalid-argument"});
  const page=await list();await assert.rejects(list({cursor:page.cursor,region:"wien"}),{code:"invalid-argument"});
  await assert.rejects(manageUserDirectory.run(request({action:"list",principalId:"other"})),{code:"permission-denied"});
  await assert.rejects(manageUserDirectory.run({data:{action:"list"}} as never),{code:"unauthenticated"});

@@ -27,6 +27,8 @@ export type AuditActionType =
   | "systemLogsClearRequested"
   | "systemLogsCleared"
   | "systemLogDeleted"
+  | "directoryEditorGranted"
+  | "directoryEditorRevoked"
   | "feedbackDeleted"
   | "feedbackInboxCleared";
 

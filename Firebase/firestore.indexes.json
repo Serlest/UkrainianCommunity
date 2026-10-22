@@ -1953,6 +1953,12 @@
   ],
   "fieldOverrides": [
     {
+      "collectionGroup": "directoryEditorOperations",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": []
+    },
+    {
       "collectionGroup": "contentPlanningDrafts",
       "fieldPath": "publishedContentId",
       "indexes": [
