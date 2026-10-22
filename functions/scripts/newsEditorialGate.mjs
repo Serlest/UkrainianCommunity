@@ -6,6 +6,7 @@ import {isAbsolute, resolve} from "node:path";
 import {pathToFileURL} from "node:url";
 
 import {canonicalizeURL} from "./contentPlanningBridgeSummary.mjs";
+import {readNewsArticle} from "./newsReadArticle.mjs";
 import {NEWS_EDITORIAL_SOURCES, editorialPublisherForURL} from "./newsEditorialSources.mjs";
 import {NEWS_SCOPES} from "./newsScopeCoordination.mjs";
 import {isASFINAGOfficialNotice, normalizeAndValidateManifestItem} from "./verifiedContentPublisherCore.mjs";
@@ -162,7 +163,7 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
     sourceEventAt: eventAt};
 }
 
-export async function reviewNewsForPublication(manifestPath, reviewPath, now = new Date()) {
+export async function reviewNewsForPublication(manifestPath, reviewPath, now = new Date(), {readArticle = readNewsArticle} = {}) {
   const manifestBytes = await readFile(manifestPath);
   const raw = JSON.parse(manifestBytes.toString("utf8"));
   const rawItems = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [raw];
@@ -170,6 +171,24 @@ export async function reviewNewsForPublication(manifestPath, reviewPath, now = n
   const review = JSON.parse(await readFile(reviewPath, "utf8"));
   const {item, evidenceMode, imageSHA256, sourceEventDate, sourceEventAt} =
     validateNewsEditorialReview(rawItems[0], review, now);
+  let primaryReadback = null;
+  if (evidenceMode === "editorial") {
+    const article = await readArticle(item.canonicalURL);
+    if (canonicalizeURL(article.requestedArticleURL) !== item.canonicalURL || article.accessRestricted !== false) {
+      throw new Error("Editorial primary is restricted or does not match the opened direct article.");
+    }
+    if (typeof article.text !== "string" || article.text.trim().length < 180) {
+      throw new Error("Editorial primary does not expose a substantive article body.");
+    }
+    primaryReadback = {
+      requestedArticleURL: article.requestedArticleURL,
+      title: article.title,
+      textLength: article.text.length,
+      textSHA256: createHash("sha256").update(article.text).digest("hex"),
+      accessRestricted: article.accessRestricted,
+      checkedAt: now.toISOString(),
+    };
+  }
   const actualImageSHA256 = createHash("sha256").update(await readFile(item.imagePath)).digest("hex");
   if (actualImageSHA256 !== imageSHA256) throw new Error("Generated image hash does not match the reviewed cover.");
   return {
@@ -179,6 +198,7 @@ export async function reviewNewsForPublication(manifestPath, reviewPath, now = n
     publishedAt: item.publishedAt.toISOString(),
     manifestSHA256: createHash("sha256").update(manifestBytes).digest("hex"),
     imageSHA256: actualImageSHA256,
+    primaryReadback,
     primaryURL: item.canonicalURL,
     sourcePolicy: item.sourcePolicy ?? "trusted_primary",
   };

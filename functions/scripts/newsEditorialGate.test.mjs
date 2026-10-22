@@ -177,6 +177,39 @@ test("editorial receipt is bound to exact manifest and generated cover bytes", a
   }
 });
 
+test("editorial publication re-reads the direct primary and blocks a declared paywall", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "uac-news-editorial-primary-"));
+  try {
+    const url = "https://steiermark.orf.at/stories/123/";
+    const manifestPath = join(directory, "manifest.json");
+    const reviewPath = join(directory, "review.json");
+    const imagePath = join(directory, "cover.png");
+    const item = {...manifest, federalState: "steiermark", canonicalURL: url, imagePath,
+      sources: [{url, title: "ORF Steiermark", isPrimary: true, verificationRole: "editorialPrimary"}],
+      sourceName: "ORF Steiermark"};
+    const checked = {...review, scope: "steiermark", evidenceMode: "editorial", primaryURL: url,
+      primaryPageKind: "article_or_notice", storyClass: "public_interest", primaryPublisherConfirmed: true,
+      primaryFullTextVerified: true, paywallRestricted: false, independentURL: undefined,
+      independentCheckedAt: undefined, independentOpened: undefined,
+      image: {...review.image, generatedForURL: url}};
+    await writeFile(manifestPath, JSON.stringify(item));
+    await writeFile(reviewPath, JSON.stringify(checked));
+    await writeFile(imagePath, "generated-image-bytes");
+    const article = {requestedArticleURL: url, title: "Eine offene ORF-Meldung", text: "A".repeat(500), accessRestricted: true};
+    await assert.rejects(() => reviewNewsForPublication(manifestPath, reviewPath, now,
+      {readArticle: async () => article}), /Editorial primary is restricted/);
+    article.accessRestricted = false;
+    const receipt = await reviewNewsForPublication(manifestPath, reviewPath, now,
+      {readArticle: async () => article});
+    assert.equal(receipt.primaryReadback.accessRestricted, false);
+    assert.equal(receipt.primaryReadback.requestedArticleURL, url);
+    assert.equal(receipt.primaryReadback.textLength, 500);
+    assert.match(receipt.primaryReadback.textSHA256, /^[a-f0-9]{64}$/);
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
+
 test("news publishing bridge requires review and receipt and keeps publisher options", () => {
   assert.throws(() => parseNewsPublishArguments(["publish", "manifest.json", "--dry-run"]),
     /requires review and receipt/);
