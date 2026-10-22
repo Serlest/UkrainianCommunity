@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct OrganizationTeamMemberRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let member: OrganizationTeamMember
     let canManage: Bool
     let canChangeRole: Bool
@@ -30,10 +31,11 @@ struct OrganizationTeamMemberRow: View {
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(1)
                 }
+                if dynamicTypeSize.isAccessibilitySize { roleBadge }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            roleBadge
+            if !dynamicTypeSize.isAccessibilitySize { roleBadge }
 
             if isUpdating {
                 ProgressView()
@@ -84,7 +86,8 @@ struct OrganizationTeamMemberRow: View {
             .font(.caption2.weight(.bold))
             .foregroundStyle(member.role.tint)
             .padding(.horizontal, 8)
-            .frame(height: 22)
+            .padding(.vertical, 4)
+            .fixedSize(horizontal: false, vertical: true)
             .background(member.role.tint.opacity(0.12), in: Capsule())
             .overlay(Capsule().strokeBorder(member.role.tint.opacity(0.22)))
     }

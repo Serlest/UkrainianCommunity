@@ -11,7 +11,7 @@ enum ManagedOrganizationRole {
         case .owner:
             return AppStrings.Profile.organizationRoleOwner
         case .platformOwner:
-            return AppStrings.Profile.organizationRolePlatformOwner
+            return OrganizationWorkspaceCopy.platformOwner
         case .admin:
             return AppStrings.Profile.organizationRoleAdmin
         case .moderator:
@@ -284,6 +284,8 @@ struct ManagedOrganizationCard: View {
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     let contentStats: ManagedOrganizationContentStats?
     let isLoadingContentStats: Bool
+    var statsError: String? = nil
+    var retryStats: (() -> Void)? = nil
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -322,6 +324,11 @@ struct ManagedOrganizationCard: View {
                 }
 
                 statsRow
+                Text(OrganizationWorkspaceCopy.allStatuses).font(.caption2).foregroundStyle(AppTheme.textSecondary)
+                if let statsError {
+                    Text(statsError).font(.caption).foregroundStyle(AppTheme.accentDestructiveForeground)
+                    Button(AppStrings.Action.retry) { retryStats?() }.font(.caption.weight(.semibold))
+                }
 
                 Group {
                     if dynamicTypeSize.isAccessibilitySize {
@@ -434,7 +441,6 @@ struct ManagedOrganizationCard: View {
             Text(title)
                 .font(.caption2.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.horizontal, 9)

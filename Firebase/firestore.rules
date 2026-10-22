@@ -1530,7 +1530,8 @@ service cloud.firestore {
       return isOrganizationContent(data)
         && canModerateOrganizationContent(data.organizationId)
         && (
-          data.moderationStatus == 'pendingReview'
+          data.moderationStatus == 'draft'
+          || data.moderationStatus == 'pendingReview'
           || data.moderationStatus == 'needsRevision'
           || data.moderationStatus == 'rejected'
           || data.moderationStatus == 'archived'

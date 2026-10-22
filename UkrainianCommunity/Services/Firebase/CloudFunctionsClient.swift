@@ -46,6 +46,7 @@ enum CloudFunctionName: String, CaseIterable {
     case getMyDsaStatement
     case reviewContentModeration
     case listFeedbackInbox
+    case manageOrganizationWorkspace
     case manageContentModeration
     case setUserBlocked
     case getBlockedOrganizations
@@ -228,11 +229,24 @@ struct OrganizationRoleChangeFunctionRequest: Codable, Equatable {
     let organizationId: String
     let targetUserId: String
     let reason: String?
+    let operationId: String?
+    let principalId: String?
+    let expectedRevision: String?
+    let expectedRole: String?
 
-    init(organizationId: String, targetUserId: String, reason: String? = nil) {
-        self.organizationId = organizationId
-        self.targetUserId = targetUserId
-        self.reason = reason
+    init(organizationId: String, targetUserId: String, reason: String? = nil,
+         operationId: String? = nil, principalId: String? = nil, expectedRevision: String? = nil, expectedRole: String? = nil) {
+        self.organizationId = organizationId; self.targetUserId = targetUserId; self.reason = reason
+        self.operationId = operationId; self.principalId = principalId; self.expectedRevision = expectedRevision; self.expectedRole = expectedRole
+    }
+    enum CodingKeys: String, CodingKey { case organizationId, targetUserId, reason, operationId, principalId, expectedRevision, expectedRole }
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(organizationId, forKey: .organizationId); try values.encode(targetUserId, forKey: .targetUserId)
+        try values.encodeIfPresent(reason, forKey: .reason); try values.encodeIfPresent(operationId, forKey: .operationId)
+        try values.encodeIfPresent(principalId, forKey: .principalId); try values.encodeIfPresent(expectedRole, forKey: .expectedRole)
+        if principalId != nil { try values.encode(expectedRevision, forKey: .expectedRevision) }
+        else { try values.encodeIfPresent(expectedRevision, forKey: .expectedRevision) }
     }
 }
 
@@ -1019,6 +1033,7 @@ final class CloudFunctionsClient {
              .assignOrganizationModerator,
              .removeOrganizationModerator,
              .transferOrganizationOwnership,
+             .manageOrganizationWorkspace,
              .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
@@ -1117,6 +1132,7 @@ final class CloudFunctionsClient {
              .submitContentReport,
              .reviewContentModeration,
              .listFeedbackInbox,
+             .manageOrganizationWorkspace,
              .manageContentModeration,
              .setUserBlocked,
              .getBlockedOrganizations,
@@ -1189,6 +1205,7 @@ final class CloudFunctionsClient {
              .submitContentReport,
              .reviewContentModeration,
              .listFeedbackInbox,
+             .manageOrganizationWorkspace,
              .manageContentModeration,
              .decideDsaCase,
              .submitDsaAppeal,
@@ -1367,6 +1384,13 @@ final class CloudFunctionsClient {
             metadata["contentType"] = request.contentType
             metadata["contentId"] = request.contentId
             metadata["operationId"] = request.operationId
+        } else if let request = request as? OrganizationWorkspaceRequest {
+            metadata["action"] = request.action
+            metadata["organizationId"] = request.organizationId
+            metadata["contentType"] = request.contentType
+            metadata["status"] = request.status
+            metadata["region"] = request.region
+            metadata["hasSearch"] = String(!(request.search ?? "").isEmpty)
         } else if let request = request as? OrganizationRoleChangeFunctionRequest {
             metadata["organizationId"] = request.organizationId
             metadata["targetUserId"] = request.targetUserId
@@ -1421,6 +1445,7 @@ final class CloudFunctionsClient {
     ) -> String? {
         if let request = request as? ContentModerationQuery { return request.contentId }
         if let request = request as? ContentModerationFunctionRequest { return request.contentId }
+        if let request = request as? OrganizationWorkspaceRequest { return request.organizationId }
         if let request = request as? OrganizationRoleChangeFunctionRequest {
             return request.organizationId
         }

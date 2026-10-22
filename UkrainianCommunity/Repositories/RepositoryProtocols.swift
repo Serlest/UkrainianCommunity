@@ -653,6 +653,7 @@ struct OrganizationReviewHistoryRequest: Encodable {
 }
 
 protocol OrganizationRepository {
+    func fetchManagedOrganizationPage(query: ManagedOrganizationQuery, after: String?) async throws -> ManagedOrganizationPage
     func fetchOrganizationReviewPage(limit: Int, after: OrganizationPageCursor?) async throws -> OrganizationReviewPage
     func fetchOrganizationReviewSnapshot(id: String) async throws -> OrganizationReviewSnapshot
     func fetchPendingOrganizationCount() async throws -> Int
@@ -1143,5 +1144,16 @@ extension FeedbackRepository {
         return FeedbackInboxPage(items: page, counts: counts, cursor: start + page.count < rows.count ? page.last.map {
             FeedbackInboxCursor(seconds: Int64(($0.lastMessageAt ?? $0.updatedAt).timeIntervalSince1970), nanoseconds: 0, id: $0.id)
         } : nil)
+    }
+}
+
+extension OrganizationRepository {
+    func fetchManagedOrganizationPage(query: ManagedOrganizationQuery, after: String?) async throws -> ManagedOrganizationPage {
+        let all = try await fetchAuthoringOrganizations(user: query.actor).filter { organization in
+            (query.organizationID == nil || organization.id == query.organizationID) && (query.region == nil || organization.federalState == query.region) && LocalSearchMatcher.matches(query: query.search,
+                values: [organization.name, organization.localizedName, organization.city]) && organization.moderationStatus == .approved
+        }.sorted { $0.id < $1.id }
+        let remaining = all.filter { after == nil || $0.id > after! }; let items = Array(remaining.prefix(30))
+        return .init(items: items, cursor: remaining.count > 30 ? items.last?.id : nil)
     }
 }

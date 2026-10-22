@@ -10,7 +10,7 @@ before(async()=>{
   const db=ctx.firestore();
   for(const uid of ['org-owner','org-admin','org-moderator','outsider','platform-owner','platform-admin']) await setDoc(doc(db,'users',uid),{globalRole:uid==='platform-owner'?'owner':uid==='platform-admin'?'admin':'user',accountStatus:'active',blockState:'active'});
   await setDoc(doc(db,'organizations','review-org'),{id:'review-org',ownerId:'org-owner',adminIds:['org-admin'],moderatorIds:['org-moderator'],sourceType:'organization',moderationStatus:'approved'});
-  for(const kind of ['news','events']) for(const status of ['pendingReview','needsRevision','rejected','archived']) await setDoc(doc(db,kind,status),{id:status,moderationStatus:status,sourceType:'organization',organizationId:'review-org'});
+  for(const kind of ['news','events']) for(const status of ['draft','pendingReview','needsRevision','rejected','archived']) await setDoc(doc(db,kind,status),{id:status,moderationStatus:status,sourceType:'organization',organizationId:'review-org'});
  });
  await seedCurrentLegalVersions(env);
 });
@@ -53,5 +53,13 @@ test('new publications cannot forge review or resubmission evidence',async()=>{
  for(const kind of ['news','events']) {
   const id='forged-'+kind, fields=fullDocument(kind,id,'approved');
   await assertFails(setDoc(doc(db('org-owner'),kind,id),fields));
+ }
+});
+
+test('organization workspace draft reads are limited to current team and app owner',async()=>{
+ for(const kind of ['news','events']){
+  for(const uid of ['org-owner','org-admin','org-moderator','platform-owner'])await assertSucceeds(getDoc(doc(db(uid),kind,'draft')));
+  await assertFails(getDoc(doc(db('outsider'),kind,'draft')));
+  await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),kind,'draft')));
  }
 });

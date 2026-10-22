@@ -15,6 +15,15 @@ struct FirestoreNewsRepository: NewsRepository {
         try await fetchNewsPage(limit: 30, after: nil).items
     }
 
+    func fetchManagedNews(id: String, organizationID: String) async throws -> NewsPost {
+        guard Auth.auth().currentUser != nil, !organizationID.isEmpty else { throw AppError.permissionDenied }
+        let doc = try await collection.document(id).getDocument(source: .server)
+        guard doc.exists else { throw AppError.notFound }
+        let post = try NewsPost(dto: makeNewsPostDTO(from: doc, likedNewsIDs: [], bookmarkedNewsIDs: []))
+        guard post.isOrganizationNews, doc.get("organizationId") as? String == organizationID else { throw AppError.permissionDenied }
+        return post
+    }
+
     func fetchNews(id: String) async throws -> NewsPost {
         do {
             let document = try await collection.document(id).getDocument()

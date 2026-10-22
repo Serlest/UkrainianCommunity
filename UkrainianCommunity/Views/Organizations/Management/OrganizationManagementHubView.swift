@@ -43,7 +43,12 @@ struct OrganizationManagementHubView: View {
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
-    @StateObject private var authoringOrganizations: AuthoringOrganizationsViewModel
+    @StateObject private var authoringOrganizations: OrganizationManagementListModel
+    @FocusState private var searchFocused: Bool
+    @State private var searchText = ""
+    @State private var region: AustrianFederalState?
+    @State private var statsEpoch = UUID()
+    @State private var statsErrors: [String: String] = [:]
     @State private var isShowingCreateOrganization = false
     @State private var editingOrganizationRequest: Organization?
     @State private var previewingOrganizationRequest: Organization?
@@ -65,7 +70,7 @@ struct OrganizationManagementHubView: View {
     ) {
         self.focusedOrganizationID = focusedOrganizationID
         self.organizationsViewModel = organizationsViewModel
-        _authoringOrganizations = StateObject(wrappedValue: AuthoringOrganizationsViewModel(repository: repository))
+        _authoringOrganizations = StateObject(wrappedValue: OrganizationManagementListModel(repository: repository))
         self.repository = repository
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
@@ -82,7 +87,11 @@ struct OrganizationManagementHubView: View {
     }
 
     private var organizationRequests: [Organization] {
-        focusedOrganizationID == nil ? organizationsViewModel.organizationRequests : []
+        guard focusedOrganizationID == nil else { return [] }
+        return organizationsViewModel.organizationRequests.filter { organization in
+            (region == nil || organization.federalState == region) && LocalSearchMatcher.matches(query: searchText,
+                values: [organization.name, organization.localizedName, organization.city])
+        }
     }
 
     private var allOrganizationSectionsAreEmpty: Bool {
@@ -125,33 +134,33 @@ struct OrganizationManagementHubView: View {
                 createOrganizationCard
             }
 
+            searchControls
             managedOrganizationsContent
         }
-        .task(id: accessIdentity) {
+        .task(id: "\(accessIdentity)-\(searchText)-\(region?.rawValue ?? "all")") {
             // This screen exposes current server-authorized roles. A shared
             // editor snapshot may survive an account switch and may contain an
             // organization deleted by another account, so reconcile it here.
-            await authoringOrganizations.load(for: authorityUser, force: true)
-            await organizationsViewModel.loadIfNeeded()
-            await organizationsViewModel.refreshIfStale()
+            if !searchText.isEmpty { try? await Task.sleep(for: .milliseconds(300)); guard !Task.isCancelled else { return } }
+            await reloadOrganizations()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
-            await loadManageableOrganizationContentStats()
         }
         .appRefreshable {
-            await authoringOrganizations.load(for: authorityUser)
-            await organizationsViewModel.refresh()
+            await reloadOrganizations()
             await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
-            await loadManageableOrganizationContentStats(force: true)
+            invalidateStats()
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { _ in
             Task {
-                await authoringOrganizations.load(for: authorityUser)
-                await organizationsViewModel.refresh()
+                await reloadOrganizations()
                 await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
-                await loadManageableOrganizationContentStats(force: true)
+                invalidateStats()
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in invalidateStats() }
+        .onReceive(NotificationCenter.default.publisher(for: .eventsChanged)) { _ in invalidateStats() }
         .onChange(of: accessIdentity) { _, _ in
+            authoringOrganizations.reset()
             editingOrganizationRequest = nil
             previewingOrganizationRequest = nil
             pendingDeleteOrganizationRequest = nil
@@ -166,8 +175,7 @@ struct OrganizationManagementHubView: View {
                 OrganizationEditorView(
                     organizationsViewModel: organizationsViewModel,
                     onSaved: {
-                        await organizationsViewModel.refresh()
-                        await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                     }
                 )
             }
@@ -218,7 +226,7 @@ struct OrganizationManagementHubView: View {
             SoftContentCard(padding: AppTheme.rowCardPadding) {
                 AppNavigationRow(
                     title: AppStrings.Profile.ownerCreateOrganization,
-                    subtitle: AppStrings.Profile.organizationManagementSubtitle,
+                    subtitle: OrganizationWorkspaceCopy.createSubtitle,
                     systemImage: "plus.circle"
                 )
             }
@@ -242,9 +250,8 @@ struct OrganizationManagementHubView: View {
                 retryTitle: AppStrings.Action.retry
             ) {
                 Task {
-                    await authoringOrganizations.load(for: authorityUser)
-                    await organizationsViewModel.refresh()
-                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                    await reloadOrganizations()
+                            await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                 }
             }
         } else if let error = organizationsViewModel.error, allOrganizationSectionsAreEmpty {
@@ -254,16 +261,15 @@ struct OrganizationManagementHubView: View {
                 retryTitle: AppStrings.Action.retry
             ) {
                 Task {
-                    await authoringOrganizations.load(for: authorityUser)
-                    await organizationsViewModel.refresh()
-                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                    await reloadOrganizations()
+                            await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                 }
             }
         } else if allOrganizationSectionsAreEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "building.2",
                 title: managementTitle,
-                message: AppStrings.Profile.noOrganizations
+                message: !searchText.isEmpty || region != nil ? OrganizationWorkspaceCopy.noMatches : AppStrings.Profile.noOrganizations
             )
         } else {
             if let error = authoringOrganizations.error {
@@ -273,9 +279,8 @@ struct OrganizationManagementHubView: View {
                     retryTitle: AppStrings.Action.retry
                 ) {
                     Task {
-                        await authoringOrganizations.load(for: authorityUser)
-                        await organizationsViewModel.refresh()
-                        await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
+                        await reloadOrganizations()
+                                    await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                     }
                 }
             }
@@ -291,10 +296,20 @@ struct OrganizationManagementHubView: View {
                             role: organizationRole(for: organization) ?? .moderator,
                             organizationsViewModel: organizationsViewModel,
                             contentStats: organizationContentStats[organization.id],
-                            isLoadingContentStats: loadingContentStatOrganizationIDs.contains(organization.id)
+                            isLoadingContentStats: loadingContentStatOrganizationIDs.contains(organization.id),
+                            statsError: statsErrors[organization.id],
+                            retryStats: { Task { await loadStats(for: organization.id, force: true) } }
                         )
+                        .task(id: "\(accessIdentity)-\(organization.id)-\(statsEpoch)") { await loadStats(for: organization.id) }
                     }
                 }
+            }
+
+            if authoringOrganizations.hasMore {
+                PrimaryActionButton(title: AppStrings.Search.loadMoreContent, isEnabled: !authoringOrganizations.isLoading,
+                    isLoading: authoringOrganizations.isLoading, systemImage: "arrow.down.circle") {
+                    Task { await authoringOrganizations.load(actor: authorityUser, search: searchText, region: region, more: true, organizationID: focusedOrganizationID) }
+                }.accessibilityIdentifier("organization.management.more")
             }
 
             if !organizationRequests.isEmpty {
@@ -349,66 +364,54 @@ struct OrganizationManagementHubView: View {
         }
     }
 
-    private func loadManageableOrganizationContentStats(force: Bool = false) async {
-        let expected = accessIdentity
-        let organizationIDs = Set(manageableOrganizations.map(\.id))
-        organizationContentStats = organizationContentStats.filter { organizationIDs.contains($0.key) }
-        loadingContentStatOrganizationIDs = loadingContentStatOrganizationIDs.intersection(organizationIDs)
-
-        var organizationIDsToLoad: [String] = []
-        for organizationID in organizationIDs.sorted() {
-            if !force && organizationContentStats[organizationID] != nil {
-                continue
-            }
-            if !force, let cachedStats = OrganizationManagementContentStatsCache.stats(for: organizationID) {
-                organizationContentStats[organizationID] = cachedStats
-                continue
-            }
-            if loadingContentStatOrganizationIDs.contains(organizationID) {
-                continue
-            }
-
-            loadingContentStatOrganizationIDs.insert(organizationID)
-            organizationIDsToLoad.append(organizationID)
-        }
-
-        // Start a small batch at a time. Network work can overlap while the cap
-        // prevents the platform-owner account from issuing an unbounded burst.
-        for batchStart in stride(from: 0, to: organizationIDsToLoad.count, by: 4) {
-            let batchEnd = min(batchStart + 4, organizationIDsToLoad.count)
-            let batch = organizationIDsToLoad[batchStart..<batchEnd]
-            let tasks = batch.map { organizationID in
-                Task { @MainActor in
-                    (organizationID, await fetchContentStats(for: organizationID))
+    private func reloadOrganizations() async {
+        await authoringOrganizations.load(actor: authorityUser, search: searchText, region: region, organizationID: focusedOrganizationID)
+    }
+    private func invalidateStats() {
+        OrganizationManagementContentStatsCache.removeAll(); organizationContentStats = [:]; statsErrors = [:]; loadingContentStatOrganizationIDs = []; statsEpoch = UUID()
+    }
+    private var searchControls: some View {
+        VStack(spacing: 12) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass").foregroundStyle(AppTheme.textSecondary)
+                TextField(OrganizationWorkspaceCopy.search, text: $searchText)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().focused($searchFocused)
+                    .submitLabel(.search).onSubmit { searchFocused = false }
+                    .accessibilityIdentifier("organization.management.search")
+                if !searchText.isEmpty {
+                    AppSearchClearButton { searchText = ""; searchFocused = false }
+                        .accessibilityIdentifier("organization.management.search.clear")
                 }
-            }
-
-            for task in tasks {
-                let (organizationID, stats) = await task.value
-                guard accessIdentity == expected, !Task.isCancelled else { return }
-                organizationContentStats[organizationID] = stats
-                if let stats {
-                    OrganizationManagementContentStatsCache.store(stats, for: organizationID)
-                }
-                loadingContentStatOrganizationIDs.remove(organizationID)
-            }
+            }.padding(.horizontal, 12).frame(minHeight: AppTheme.searchControlHeight)
+                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12))
+            Picker(AppStrings.Profile.region, selection: $region) {
+                Text(OrganizationWorkspaceCopy.allRegions).tag(Optional<AustrianFederalState>.none)
+                ForEach(AustrianFederalState.allCases) { Text($0.displayName).tag(Optional($0)) }
+            }.pickerStyle(.menu).tint(AppTheme.accentPrimaryForeground).frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("organization.management.region")
         }
     }
-
-    private func fetchContentStats(for organizationID: String) async -> ManagedOrganizationContentStats? {
+    private func loadStats(for id: String, force: Bool = false) async {
+        let expected = accessIdentity, epoch = statsEpoch
+        guard let user = authorityUser, !loadingContentStatOrganizationIDs.contains(id) else { return }
+        if !force, let cached = OrganizationManagementContentStatsCache.stats(for: id) { organizationContentStats[id] = cached; return }
+        loadingContentStatOrganizationIDs.insert(id); statsErrors[id] = nil
+        defer { if accessIdentity == expected, statsEpoch == epoch { loadingContentStatOrganizationIDs.remove(id) } }
         do {
-            async let newsCount = RefreshRequest.run { [self] in
-                try await newsRepository.fetchOrganizationNewsCount(organizationID: organizationID)
+            let stats: ManagedOrganizationContentStats
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+                async let news = newsRepository.fetchOrganizationNewsCount(organizationID: id)
+                async let events = eventRepository.fetchOrganizationEventCount(organizationID: id)
+                stats = try await .init(newsCount: news, eventCount: events)
+            } else {
+                let response: OrganizationWorkspaceResponse = try await CloudFunctionsClient.shared.call(.manageOrganizationWorkspace,
+                    request: OrganizationWorkspaceRequest(action: "stats", principalId: user.id, organizationId: id))
+                stats = .init(newsCount: response.counts?["news"] ?? 0, eventCount: response.counts?["events"] ?? 0)
             }
-            async let eventCount = RefreshRequest.run { [self] in
-                try await eventRepository.fetchOrganizationEventCount(organizationID: organizationID)
-            }
-            return ManagedOrganizationContentStats(
-                newsCount: try await newsCount,
-                eventCount: try await eventCount
-            )
+            guard accessIdentity == expected, statsEpoch == epoch else { return }
+            organizationContentStats[id] = stats; OrganizationManagementContentStatsCache.store(stats, for: id)
         } catch {
-            return nil
+            if accessIdentity == expected, statsEpoch == epoch { statsErrors[id] = AppStrings.Organizations.loadUnknownError }
         }
     }
 }

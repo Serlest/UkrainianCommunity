@@ -147,6 +147,43 @@ final class OwnerProfileAuditUITests: XCTestCase {
     }
 
     @MainActor
+    func testOrganizationWorkspaceSearchAndContentListsInBothLanguages() {
+        for language in ["uk", "de"] {
+            let app = launch(language: language, darkLarge: language == "de")
+            let entry = app.buttons["profile.organizationManagement"]
+            reveal(entry, in: app); entry.tap()
+            let search = app.textFields["organization.management.search"]
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            search.tap(); search.typeText("zzzz-no-organization")
+            XCTAssertTrue(app.buttons["organization.manage.org-1"].waitForNonExistence(timeout: 8))
+            app.buttons["organization.management.search.clear"].tap()
+            let manage = app.buttons["organization.manage.org-1"]
+            reveal(manage, in: app); XCTAssertTrue(manage.waitForExistence(timeout: 10)); manage.tap()
+            for (buttonID, label) in [("organization.management.createNews", "news"), ("organization.management.createEvent", "events")] {
+                let button = app.buttons[buttonID]; reveal(button, in: app); button.tap()
+                XCTAssertTrue(app.buttons["organization.content.status"].waitForExistence(timeout: 8))
+                XCTAssertTrue(app.buttons["organization.content.create"].exists)
+                capture(app, "organization-workspace-" + label + "-" + language)
+                back(app)
+            }
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testOrganizationWorkspaceGermanDarkStatusContrast() {
+        let app = launch(language: "de", darkLarge: true)
+        let entry = app.buttons["profile.organizationManagement"]
+        reveal(entry, in: app); entry.tap()
+        let manage = app.buttons["organization.manage.org-1"]
+        reveal(manage, in: app); manage.tap()
+        let news = app.buttons["organization.management.createNews"]
+        reveal(news, in: app); news.tap()
+        XCTAssertTrue(app.buttons["organization.content.status"].waitForExistence(timeout: 8))
+        capture(app, "organization-workspace-dark-status-contrast")
+    }
+
+    @MainActor
     func testDonationEditorValidatesAndPersistsChanges() {
         let app = launch()
         let entry = app.buttons["profile.owner.donationSettings"]

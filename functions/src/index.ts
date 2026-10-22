@@ -293,3 +293,5 @@ export {listOrganizationReviewHistory} from "./organizations/approvalWorkflow";
 export {manageContentModeration} from "./safety/contentModeration";
 
 export {listFeedbackInbox, maintainFeedbackInboxIndex} from "./feedback/feedbackInbox";
+
+export {manageOrganizationWorkspace, maintainOrganizationWorkspaceIndex} from "./organizations/managementWorkspace";

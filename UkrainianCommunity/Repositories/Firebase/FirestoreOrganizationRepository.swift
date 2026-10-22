@@ -19,6 +19,17 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         try await fetchOrganizationsPage(limit: 30, after: nil).items
     }
 
+    func fetchManagedOrganizationPage(query: ManagedOrganizationQuery, after: String?) async throws -> ManagedOrganizationPage {
+        guard Auth.auth().currentUser?.uid == query.actor.id else { throw AppError.permissionDenied }
+        let response: OrganizationWorkspaceResponse = try await CloudFunctionsClient.shared.call(.manageOrganizationWorkspace,
+            request: OrganizationWorkspaceRequest(action: "list", principalId: query.actor.id, organizationId: query.organizationID, cursor: after, search: query.search, region: query.region?.rawValue))
+        guard Auth.auth().currentUser?.uid == query.actor.id else { throw AppError.permissionDenied }
+        let ids = response.ids ?? []; guard !ids.isEmpty else { return .init(items: [], cursor: response.cursor) }
+        let snapshot = try await collection.whereField(FieldPath.documentID(), in: ids).getDocuments(source: .server)
+        let items = try snapshot.documents.map { try Organization(dto: makeOrganizationDTO(from: $0, likedOrganizationIDs: [], subscribedOrganizationIDs: [], bookmarkedOrganizationIDs: [])) }
+        return .init(items: PermissionService.manageableOrganizations(from: items, user: query.actor), cursor: response.cursor)
+    }
+
     func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization] {
         guard PermissionService.isUsableAccount(user: user), Auth.auth().currentUser?.uid == user.id else {
             throw AppError.permissionDenied

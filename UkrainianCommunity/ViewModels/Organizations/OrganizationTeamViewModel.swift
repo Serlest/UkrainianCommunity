@@ -1,5 +1,6 @@
 import Combine
 import Foundation
+import FirebaseFunctions
 
 @MainActor
 final class OrganizationTeamViewModel: ObservableObject {
@@ -12,20 +13,29 @@ final class OrganizationTeamViewModel: ObservableObject {
     @Published private(set) var candidateErrorMessage: String?
     @Published var statusMessage: String?
 
+    @Published private(set) var hasMoreCandidates = false
+    private var candidateCursor: String?
+    private var candidateGeneration = UUID()
+    private var loadGeneration = UUID()
     private var generation = 0
+    private let workspaceRead: (OrganizationWorkspaceRequest) async throws -> OrganizationWorkspaceResponse
     private let organizationRepository: OrganizationRepository
     private let roleManagementService: OrganizationRoleManagementService
 
     init(
         organizationRepository: OrganizationRepository? = nil,
-        roleManagementService: OrganizationRoleManagementService? = nil
+        roleManagementService: OrganizationRoleManagementService? = nil,
+        workspaceRead: ((OrganizationWorkspaceRequest) async throws -> OrganizationWorkspaceResponse)? = nil
     ) {
-        self.organizationRepository = organizationRepository ?? FirestoreOrganizationRepository()
+        if let organizationRepository { self.organizationRepository = organizationRepository }
+        else if ProcessInfo.processInfo.arguments.contains("-ui-testing") { self.organizationRepository = MockOrganizationRepository() }
+        else { self.organizationRepository = FirestoreOrganizationRepository() }
         self.roleManagementService = roleManagementService ?? FirestoreOrganizationRoleManagementService()
+        self.workspaceRead = workspaceRead ?? { try await CloudFunctionsClient.shared.call(.manageOrganizationWorkspace, request: $0) }
     }
 
     func reset() {
-        generation &+= 1
+        generation &+= 1; loadGeneration = UUID(); candidateGeneration = UUID(); candidateCursor = nil; hasMoreCandidates = false
         members = []; candidateMembers = []; updatingUserIDs = []
         isLoading = false; isLoadingCandidates = false
         errorMessage = nil; candidateErrorMessage = nil; statusMessage = nil
@@ -33,86 +43,64 @@ final class OrganizationTeamViewModel: ObservableObject {
 
     func load(organization: Organization, actor: AppUser?) async {
         let expected = generation
+        loadGeneration = UUID(); let expectedLoad = loadGeneration
         guard PermissionService.canAccessManagedOrganization(organization, user: actor) else { reset(); return }
         isLoading = true
         errorMessage = nil
-        defer { if generation == expected { isLoading = false } }
+        defer { if generation == expected, loadGeneration == expectedLoad { isLoading = false } }
 
         do {
-            let subscriberIDs: [String]
-            if PermissionService.canViewOrganizationSubscriberIdentities(organization, user: actor) {
-                subscriberIDs = try await fetchSubscriberIDs(organizationID: organization.id)
-            } else {
-                subscriberIDs = []
-            }
+            let subscriberIDs: [String] = []
             let teamIDs = Self.teamIDs(for: organization)
             let profiles = try await organizationRepository.fetchPublicUserProfiles(
                 userIDs: Array(Set(teamIDs + subscriberIDs))
             )
-            guard generation == expected, !Task.isCancelled else { return }
+            guard generation == expected, loadGeneration == expectedLoad, !Task.isCancelled else { return }
             members = Self.makeMembers(
                 organization: organization,
                 profiles: profiles,
                 subscriberIDs: subscriberIDs
             )
-            statusMessage = nil
         } catch {
-            guard generation == expected, !Task.isCancelled else { return }
+            guard generation == expected, loadGeneration == expectedLoad, !Task.isCancelled else { return }
             errorMessage = AppStrings.Profile.organizationTeamLoadFailed
         }
     }
 
-    private func fetchSubscriberIDs(organizationID: String) async throws -> [String] {
-        var cursor: OrganizationSubscriberCursor?
-        var userIDs: [String] = []
-
-        repeat {
-            let page = try await organizationRepository.fetchOrganizationSubscriberPage(
-                organizationID: organizationID,
-                limit: 100,
-                after: cursor
-            )
-            userIDs.append(contentsOf: page.items.map(\.userID))
-            cursor = page.nextCursor
-        } while cursor != nil
-
-        return Array(NSOrderedSet(array: userIDs)) as? [String] ?? userIDs
-    }
-
-    func loadCandidateUsers(
-        excluding organization: Organization,
-        actor: AppUser?,
-        allowsExistingTeamMembers: Bool = false
-    ) async {
-        let expected = generation
-        isLoadingCandidates = true
-        candidateErrorMessage = nil
-        defer { if generation == expected { isLoadingCandidates = false } }
-
-        guard PermissionService.canManageOrganizationRoles(organization, user: actor) else {
-            candidateMembers = []
-            candidateErrorMessage = AppStrings.Profile.organizationTeamPermissionDenied
-            return
+    func loadCandidateUsers(excluding organization: Organization, actor: AppUser?, allowsExistingTeamMembers: Bool = false,
+                            search: String = "", more: Bool = false) async {
+        guard let actor, PermissionService.canManageOrganizationRoles(organization, user: actor) else {
+            candidateMembers = []; candidateErrorMessage = AppStrings.Profile.organizationTeamPermissionDenied; return
         }
-
-        await load(organization: organization, actor: actor)
-        guard generation == expected, !Task.isCancelled else { return }
-        guard errorMessage == nil else {
-            candidateMembers = []
-            candidateErrorMessage = AppStrings.Profile.organizationTeamUserSearchFailed
-            return
+        if more { guard hasMoreCandidates, !isLoadingCandidates else { return } }
+        else { candidateGeneration = UUID(); candidateCursor = nil; candidateMembers = []; hasMoreCandidates = false }
+        let expected = generation, requestID = candidateGeneration
+        isLoadingCandidates = true; candidateErrorMessage = nil
+        defer { if generation == expected, candidateGeneration == requestID { isLoadingCandidates = false } }
+        do {
+            let fresh: [OrganizationTeamMember]; let cursor: String?
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+                let page = try await organizationRepository.fetchOrganizationSubscriberPage(organizationID: organization.id, limit: 30, after: nil)
+                let profiles = try await organizationRepository.fetchPublicUserProfiles(userIDs: page.items.map(\.userID))
+                let excluded = allowsExistingTeamMembers ? [organization.ownerId].compactMap { $0 } : Self.teamIDs(for: organization)
+                fresh = profiles.filter { !excluded.contains($0.id) && LocalSearchMatcher.matches(query: search, values: [$0.displayName, $0.city]) }
+                    .map { .init(profile: $0, userID: $0.id, role: .member) }
+                cursor = nil
+            } else {
+                let result = try await workspaceRead(OrganizationWorkspaceRequest(action: "candidates", principalId: actor.id, organizationId: organization.id,
+                        cursor: more ? candidateCursor : nil, search: search, transfer: allowsExistingTeamMembers))
+                fresh = (result.users ?? []).map { user in
+                    .init(profile: PublicUserProfile(id: user.id, displayName: user.displayName, avatarURL: user.avatarURL.flatMap(URL.init(string:)),
+                        city: user.city, federalState: user.federalState.flatMap(AustrianFederalState.init(rawValue:)), updatedAt: nil), userID: user.id, role: .member)
+                }
+                cursor = result.cursor
+            }
+            guard generation == expected, candidateGeneration == requestID, !Task.isCancelled else { return }
+            var byID = Dictionary(uniqueKeysWithValues: (more ? candidateMembers : []).map { ($0.id, $0) }); fresh.forEach { byID[$0.id] = $0 }
+            candidateMembers = byID.values.sorted { $0.id < $1.id }; candidateCursor = cursor; hasMoreCandidates = cursor != nil
+        } catch {
+            if generation == expected, candidateGeneration == requestID { candidateErrorMessage = AppStrings.Profile.organizationTeamUserSearchFailed }
         }
-
-        let excludedIDs: Set<String>
-        if allowsExistingTeamMembers {
-            excludedIDs = Set([organization.ownerId].compactMap { $0 }.filter { !$0.isEmpty })
-        } else {
-            excludedIDs = Set(Self.teamIDs(for: organization))
-        }
-
-        candidateMembers = members
-            .filter { !excludedIDs.contains($0.userID) }
-            .filter { allowsExistingTeamMembers || $0.role == .member }
     }
 
     func apply(
@@ -240,11 +228,11 @@ final class OrganizationTeamViewModel: ObservableObject {
             try await operation()
             guard generation == expected, !Task.isCancelled else { return false }
             statusMessage = AppStrings.Profile.organizationTeamUpdated
-            await load(organization: organization, actor: actor)
             return true
         } catch {
             guard generation == expected, !Task.isCancelled else { return false }
-            errorMessage = AppStrings.Profile.organizationTeamSaveFailed
+            let code = FunctionsErrorCode(rawValue: (error as NSError).code)
+            errorMessage = code == .aborted || code == .alreadyExists ? OrganizationWorkspaceCopy.conflict : AppStrings.Profile.organizationTeamSaveFailed
             return false
         }
     }

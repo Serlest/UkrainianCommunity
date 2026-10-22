@@ -195,6 +195,15 @@ struct FirestoreEventRepository: EventRepository {
         ).map(\.event)
     }
 
+    func fetchManagedEvent(id: String, organizationID: String) async throws -> Event {
+        guard Auth.auth().currentUser != nil, !organizationID.isEmpty else { throw AppError.permissionDenied }
+        let doc = try await collection.document(id).getDocument(source: .server)
+        guard doc.exists else { throw AppError.notFound }
+        let event = try Event(dto: makeEventDTO(from: doc, likedEventIDs: [], registeredEventIDs: [], bookmarkedEventIDs: []))
+        guard event.isOrganizationEvent, doc.get("organizationId") as? String == organizationID else { throw AppError.permissionDenied }
+        return event
+    }
+
     func fetchEvent(id: String) async throws -> Event {
         do {
             let snapshot = try await collection.document(id).getDocument()

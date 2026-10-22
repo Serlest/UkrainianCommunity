@@ -262,6 +262,7 @@ struct ContentModerationDetail: View {
     @Environment(\.dismiss) private var dismiss
     let contentType: String
     let contentID: String
+    var allowsPublishedEditing = false
     @StateObject private var model = ContentReviewDetailModel()
     @State private var language: PublishedContentLanguage = LocalizationStore.language == .german ? .german : .ukrainian
     @State private var decision: ModerationStatus?
@@ -289,7 +290,7 @@ struct ContentModerationDetail: View {
                         ContentMaterialPreview(item: item, language: language)
                         if !item.reason.isEmpty { InlineMessageCard(style: .info, message: item.reason) }
                         if let editError { InlineMessageCard(style: .error, message: editError) }
-                        if item.canEdit == true && [.needsRevision, .rejected].contains(item.status) {
+                        if item.canEdit == true && ([.needsRevision, .rejected].contains(item.status) || allowsPublishedEditing && item.status != .archived) {
                             Text(ContentModerationCopy.editHelper).font(.footnote).foregroundStyle(AppTheme.textSecondary)
                             PrimaryActionButton(title: ContentModerationCopy.editMaterial, isEnabled: !editLoading,
                                 isLoading: editLoading, systemImage: "square.and.pencil") { Task { await openEditor(item) } }
@@ -337,8 +338,8 @@ struct ContentModerationDetail: View {
         guard !editLoading, item.canEdit == true else { return }
         editLoading = true; defer { editLoading = false }
         do {
-            if item.contentType == "news" { editingNews = try await FirestoreNewsRepository().fetchNews(id: item.id) }
-            else { editingEvent = try await FirestoreEventRepository().fetchEvent(id: item.id) }
+            if item.contentType == "news" { editingNews = try await FirestoreNewsRepository().fetchManagedNews(id: item.id, organizationID: item.organizationId) }
+            else { editingEvent = try await FirestoreEventRepository().fetchManagedEvent(id: item.id, organizationID: item.organizationId) }
             editError = nil
         } catch { editError = ContentModerationCopy.error(error) }
     }

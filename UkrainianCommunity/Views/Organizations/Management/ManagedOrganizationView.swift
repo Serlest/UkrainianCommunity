@@ -13,6 +13,8 @@ struct ManagedOrganizationView: View {
     @State private var authorityDenied = false
     @State private var authorityListener: AppRealtimeListener?
     @State private var authorityObservationID = UUID()
+    @State private var contentDestination: String?
+    @State private var isShowingSubscribers = false
     @State private var isShowingNewsEditor = false
     @State private var isShowingEventEditor = false
     @State private var isShowingOrganizationEditor = false
@@ -69,11 +71,21 @@ struct ManagedOrganizationView: View {
                 managementHubCard
                 contactSectionCard
                 teamSectionCard
+                if PermissionService.canViewOrganizationSubscriberIdentities(currentOrganization, user: authState.user) {
+                    AppEditorSectionCard {
+                        managementHubButton(title: OrganizationWorkspaceCopy.subscribers, subtitle: OrganizationWorkspaceCopy.subscribersHelper,
+                            systemImage: "person.2") { isShowingSubscribers = true }
+                    }
+                }
                 photoSectionCard
             } else {
                 InlineMessageCard(style: .error, message: AppStrings.Errors.permissionDenied)
             }
         }
+        .navigationDestination(isPresented: Binding(get: { contentDestination != nil }, set: { if !$0 { contentDestination = nil } })) {
+            if let type = contentDestination { OrganizationWorkspaceContentList(organization: currentOrganization, contentType: type) }
+        }
+        .navigationDestination(isPresented: $isShowingSubscribers) { OrganizationWorkspaceSubscribers(organization: currentOrganization) }
         .sheet(isPresented: $isShowingNewsEditor) {
             NavigationStack {
                 NewsEditorView(
@@ -172,7 +184,8 @@ struct ManagedOrganizationView: View {
                         }
                     }
             }
-            .task(id: isChangingOwner) {
+            .task(id: "\(isChangingOwner)-\(teamSearchText)-\(accessIdentity)") {
+                if !teamSearchText.isEmpty { try? await Task.sleep(for: .milliseconds(300)); guard !Task.isCancelled else { return } }
                 await reloadTeamCandidates()
             }
         }
@@ -248,6 +261,7 @@ struct ManagedOrganizationView: View {
     }
 
     private func closeManagementSheets() {
+        contentDestination = nil; isShowingSubscribers = false
         isShowingNewsEditor = false
         isShowingEventEditor = false
         isShowingOrganizationEditor = false
@@ -346,10 +360,10 @@ struct ManagedOrganizationView: View {
                 if canCreateNews {
                     managementHubButton(
                         title: AppStrings.News.title,
-                        subtitle: AppStrings.Profile.organizationNewsActionSubtitle,
+                        subtitle: OrganizationWorkspaceCopy.contentHelper,
                         systemImage: "newspaper"
                     ) {
-                        isShowingNewsEditor = true
+                        contentDestination = "news"
                     }
                     .accessibilityIdentifier("organization.management.createNews")
                 }
@@ -357,10 +371,10 @@ struct ManagedOrganizationView: View {
                 if canCreateEvent {
                     managementHubButton(
                         title: AppStrings.Events.title,
-                        subtitle: AppStrings.Profile.organizationEventActionSubtitle,
+                        subtitle: OrganizationWorkspaceCopy.contentHelper,
                         systemImage: "calendar.badge.plus"
                     ) {
-                        isShowingEventEditor = true
+                        contentDestination = "event"
                     }
                     .accessibilityIdentifier("organization.management.createEvent")
                 }
@@ -437,6 +451,7 @@ struct ManagedOrganizationView: View {
                     }
                 }
 
+                Text(OrganizationWorkspaceCopy.teamHelper).font(.footnote).foregroundStyle(AppTheme.textSecondary)
                 if isPlatformOwner {
                     Text(AppStrings.Profile.organizationTeamOwnerRequiredExplanation)
                         .font(.caption)
@@ -538,7 +553,7 @@ struct ManagedOrganizationView: View {
             }
 
             Section {
-                Text(AppStrings.Profile.organizationTeamSubscribeToAssign)
+                Text(isPlatformOwner ? OrganizationWorkspaceCopy.candidateHelper : AppStrings.Profile.organizationTeamSubscribeToAssign)
                     .font(.footnote)
                     .foregroundStyle(AppTheme.textSecondary)
 
@@ -576,6 +591,10 @@ struct ManagedOrganizationView: View {
                         .buttonStyle(.plain)
                     }
                 }
+                if teamViewModel.hasMoreCandidates {
+                    Button(AppStrings.Search.loadMoreContent) { Task { await reloadTeamCandidates(more: true) } }
+                        .disabled(teamViewModel.isLoadingCandidates)
+                }
             }
         }
         .searchable(
@@ -597,11 +616,11 @@ struct ManagedOrganizationView: View {
     }
 
     @MainActor
-    private func reloadTeamCandidates() async {
+    private func reloadTeamCandidates(more: Bool = false) async {
         await teamViewModel.loadCandidateUsers(
             excluding: currentOrganization,
             actor: authState.user,
-            allowsExistingTeamMembers: isChangingOwner
+            allowsExistingTeamMembers: isChangingOwner, search: teamSearchText, more: more
         )
     }
 
