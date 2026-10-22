@@ -47,8 +47,18 @@ enum SystemLogExplanation {
     }
 
     nonisolated static func action(_ log: SystemLogEntry) -> String {
-        if let operation = log.operationName, defaults["action." + operation] != nil {
-            return text("action." + operation)
+        if let operation = log.operationName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !operation.isEmpty {
+            if defaults["action." + operation] != nil {
+                return text("action." + operation)
+            }
+
+            // An unknown operation still has a recorded technical name. Never hide that
+            // evidence or replace it with an invented human-readable user intent.
+            let module = log.moduleName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let modulePrefix = module.map { $0.isEmpty ? "" : "\($0)." } ?? ""
+            let identifier = modulePrefix + operation
+            return "\(text("action.technical")): \(identifier)"
         }
         return isFailure(log) ? text("action.unknown") : SystemLogDisplayFormatting.eventTypeTitle(log.eventType)
     }
@@ -84,6 +94,7 @@ enum SystemLogExplanation {
         "cancelled.cause": "Операцію скасовано. Сам запис не вказує, чи це сталося через вихід з екрана, зміну сесії або іншу причину.",
         "parsing.title": "Не вдалося прочитати отримані дані",
         "parsing.cause": "Структура отриманих даних не відповідає формату, який очікував застосунок. Конкретне поле може бути не записане.",
+        "action.technical": "Технічна операція",
         "action.unknown": "Дію не уточнено; технічна назва — у подробицях",
         "secure.title": "Не вдалося встановити захищене з’єднання",
         "secure.cause": "Перевірка захищеного з’єднання не пройшла. Цей запис сам по собі не доводить проблему сертифіката, VPN або мережі.",
