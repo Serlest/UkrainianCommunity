@@ -178,6 +178,7 @@ enum SystemLogExplanation {
         "action.assignOrganizationModerator": "Надання прав модератора організації",
         "action.removeOrganizationModerator": "Відкликання прав модератора організації",
         "action.transferOrganizationOwnership": "Передача власності організації",
+        "action.listOrganizationReviewHistory": "Перегляд історії рішень щодо організацій",
         "action.approveOrganization": "Схвалення організації",
         "action.rejectOrganization": "Відхилення організації",
         "action.requestOrganizationRevision": "Повернення організації на доопрацювання",

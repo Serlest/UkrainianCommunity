@@ -59,8 +59,9 @@ final class SystemModerationLoggingService {
         self.deduplicator = deduplicator
     }
 
-    func logSuccess(_ context: SystemModerationLogContext) async {
-        guard let actor = await actorResolver.resolveModerationActor() else { return }
+    func logSuccess(_ context: SystemModerationLogContext, expectedActorID: String? = nil) async {
+        guard let actor = await actorResolver.resolveModerationActor(),
+              expectedActorID == nil || actor.userId == expectedActorID else { return }
         let dedupeKey = [
             actor.userId,
             context.moduleName,

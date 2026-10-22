@@ -127,6 +127,21 @@ enum MockContentBuilder {
     }
 
     nonisolated static func profileOrganizationsFixture() -> [Organization]? {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestOrganizationReview"] == "1" {
+            return (0..<37).map { index in
+                let german = ProcessInfo.processInfo.environment["UITestAppLanguage"] == "de"
+                return Organization(id: "audit-review-\(index)",
+                    name: german ? "Testantrag der ukrainischen Gemeinschaft \(index)" : "Тестова заявка української спільноти \(index)",
+                    description: german ? "Unterstützung für Familien, Sprachkurse und ehrenamtliche Veranstaltungen." : "Допомога родинам, мовні зустрічі та волонтерські події.",
+                    city: "Innsbruck", submittedByUserId: "audit-applicant", submittedByDisplayName: "Test Applicant",
+                    submittedAt: Date().addingTimeInterval(-Double(index)),
+                    createdAt: Date().addingTimeInterval(-Double(index)), updatedAt: Date(timeIntervalSince1970: 1000),
+                    moderationStatus: .pendingReview, likeCount: 0, likeState: .notLiked)
+            }
+        }
+        #endif
         guard profileRoleFixture() != nil else { return nil }
         return [Organization(id: "role-fixture", name: "Role Test Organization", description: "Role fixture", federalState: .tirol, city: "Innsbruck", ownerId: "org-owner-1", adminIds: ["org-admin-1", "mixed-1"],
             moderatorIds: ["org-moderator-1"], createdAt: .now, updatedAt: .now,

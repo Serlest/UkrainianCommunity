@@ -10,7 +10,7 @@ enum OwnerVisibilityCountState: Equatable {
 @MainActor
 final class OwnerProfileVisibilityViewModel: ObservableObject {
     @Published private var ownerFeedbackItems: [FeedbackItem]?
-    @Published private var pendingOrganizationRequests: [Organization]?
+    @Published private var pendingOrganizationRequests: Int?
     @Published private(set) var feedbackCountState: OwnerVisibilityCountState = .idle
     @Published private(set) var organizationRequestCountState: OwnerVisibilityCountState = .idle
 
@@ -34,7 +34,7 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
     }
 
     var pendingOrganizationRequestCount: Int? {
-        pendingOrganizationRequests?.count
+        pendingOrganizationRequests
     }
 
     var hasCountLoadFailure: Bool {
@@ -102,12 +102,12 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
         }
     }
 
-    private func refreshOrganizationRequests() async {
+    func refreshOrganizationRequests() async {
         let expected = generation
         organizationRequestCountState = .loading
 
         do {
-            let items = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPendingOrganizations() }
+            let items = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPendingOrganizationCount() }
             guard generation == expected, !Task.isCancelled else { return }
             pendingOrganizationRequests = items
             hasLoadedOrganizationRequests = true
@@ -155,22 +155,8 @@ final class OwnerProfileVisibilityViewModel: ObservableObject {
             resetFeedback()
         }
 
-        if includeOrganizationRequests,
-           !listenerBag.contains("pendingOrganizationRequests"),
-           let realtimeRepository = organizationRepository as? OrganizationRealtimeRepository {
-            listenerBag.set(realtimeRepository.listenPendingOrganizationRequestsForOwner { [weak self] organizations in
-                guard self?.generation == expected else { return }
-                self?.pendingOrganizationRequests = organizations
-                self?.hasLoadedOrganizationRequests = true
-                self?.organizationRequestCountState = .loaded(organizations.count)
-            } onError: { [weak self] _ in
-                guard self?.generation == expected else { return }
-                self?.hasLoadedOrganizationRequests = false
-                self?.organizationRequestCountState = .failed
-                self?.listenerBag.remove("pendingOrganizationRequests")
-            }, for: "pendingOrganizationRequests")
-        } else if !includeOrganizationRequests {
-            resetOrganizationRequests()
-        }
+        // The profile needs only a count. The request queue owns its paginated
+        // documents; refresh the count on entry and organization-change events.
+        if !includeOrganizationRequests { resetOrganizationRequests() }
     }
 }

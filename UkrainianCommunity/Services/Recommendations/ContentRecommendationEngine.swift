@@ -69,7 +69,7 @@ struct EventContentRecommendation: Identifiable {
 /// scoring and diversity re-ranking. It intentionally does not pretend to be
 /// behaviorally personalized; all signals come from published content metadata.
 struct ContentRecommendationEngine {
-    static let candidateLimit = 60
+    nonisolated static let candidateLimit = 60
 
     private static let minimumNewsScore = 30
     private static let minimumEventScore = 30

@@ -27,6 +27,7 @@ test("organization moderation input is normalized and required review text is en
     reason: undefined,
     operationId: "operation-1",
     expectedRevision: "10:20",
+    principalId: undefined,
   });
   assert.equal(requiredReviewText(revision, "message"), "Add a public phone number");
   assert.throws(
@@ -78,3 +79,13 @@ test("approve, revision, and rejection notifications carry actionable organizati
 function isHttpsError(code: string): (error: unknown) => boolean {
   return (error: unknown) => error instanceof HttpsError && error.code === code;
 }
+
+test("review text and history page inputs are bounded", async () => {
+  const {parseReviewHistoryRequest} = await import("./approvalWorkflow");
+  assert.throws(() => requiredReviewText({organizationId: "org", reason: "x".repeat(2001)}, "reason"), isHttpsError("invalid-argument"));
+  assert.equal(requiredReviewText({organizationId: "org", reason: "x".repeat(2000)}, "reason").length, 2000);
+  assert.deepEqual(parseReviewHistoryRequest({limit: 30}), {limit: 30});
+  for (const data of [{limit: 500}, {limit: true}, {cursor: {seconds: 1, nanoseconds: 1000000000, id: "a"}}, {cursor: {seconds: 1, nanoseconds: 0, id: "a/b"}}]) {
+    assert.throws(() => parseReviewHistoryRequest(data), isHttpsError("invalid-argument"));
+  }
+});

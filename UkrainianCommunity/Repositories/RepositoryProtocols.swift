@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseFirestore
 
 protocol UserRepository {
     func fetchCurrentUser() async throws -> AppUser
@@ -604,7 +605,56 @@ extension EventRepository {
     }
 }
 
+struct OrganizationReviewSnapshot {
+    let organization: Organization
+    let revision: String
+    var applicantDisplayName: String? = nil
+}
+
+struct OrganizationReviewPage {
+    let items: [OrganizationReviewSnapshot]
+    let nextCursor: OrganizationPageCursor?
+    let hasMore: Bool
+}
+
+enum OrganizationReviewDecision: String, CaseIterable, Identifiable, Codable {
+    case approve, requestRevision, reject
+    var id: String { rawValue }
+}
+
+struct OrganizationReviewHistoryCursor: Codable, Equatable {
+    let seconds: Int64
+    let nanoseconds: Int32
+    let id: String
+}
+
+struct OrganizationReviewHistoryEntry: Decodable, Identifiable {
+    let id: String
+    let organizationId: String
+    let organizationName: String
+    let reviewerDisplayName: String
+    let status: ModerationStatus
+    let reason: String
+    let createdAtMilliseconds: Double
+    var createdAt: Date { Date(timeIntervalSince1970: createdAtMilliseconds / 1000) }
+}
+
+struct OrganizationReviewHistoryPage: Decodable {
+    let items: [OrganizationReviewHistoryEntry]
+    let nextCursor: OrganizationReviewHistoryCursor?
+}
+
+struct OrganizationReviewHistoryRequest: Encodable {
+    let limit: Int
+    let cursor: OrganizationReviewHistoryCursor?
+}
+
 protocol OrganizationRepository {
+    func fetchOrganizationReviewPage(limit: Int, after: OrganizationPageCursor?) async throws -> OrganizationReviewPage
+    func fetchOrganizationReviewSnapshot(id: String) async throws -> OrganizationReviewSnapshot
+    func fetchPendingOrganizationCount() async throws -> Int
+    func fetchOrganizationReviewHistory(limit: Int, after: OrganizationReviewHistoryCursor?) async throws -> OrganizationReviewHistoryPage
+    func reviewOrganizationRequest(id: String, reviewerID: String, expectedRevision: String, decision: OrganizationReviewDecision, message: String) async throws
     func fetchOrganizations() async throws -> [Organization]
     func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization]
     func fetchBookmarkedOrganizations() async throws -> [Organization]
@@ -1006,5 +1056,40 @@ extension OrganizationPhotoRepository {
     func supportsPhotoReplacement(organizationId: String) async throws -> Bool { false }
     func replacePhoto(_ photo: OrganizationPhoto, imageData: Data, caption: String?) async throws -> OrganizationPhoto {
         throw OrganizationAccessFailure(reason: "route_disabled")
+    }
+}
+
+
+extension OrganizationRepository {
+    func fetchPendingOrganizationCount() async throws -> Int { try await fetchPendingOrganizations().count }
+    func fetchOrganizationReviewSnapshot(id: String) async throws -> OrganizationReviewSnapshot {
+        let organization = try await fetchOrganization(id: id)
+        let time = Timestamp(date: organization.updatedAt)
+        return OrganizationReviewSnapshot(organization: organization, revision: "\(time.seconds):\(time.nanoseconds)")
+    }
+    func fetchOrganizationReviewPage(limit: Int, after: OrganizationPageCursor?) async throws -> OrganizationReviewPage {
+        let all = try await fetchPendingOrganizations().sorted {
+            $0.createdAt == $1.createdAt ? $0.id > $1.id : $0.createdAt > $1.createdAt
+        }
+        let remaining = all.filter { item in
+            guard let after else { return true }
+            return item.createdAt < after.createdAt || (item.createdAt == after.createdAt && item.id < after.documentID)
+        }
+        let page = Array(remaining.prefix(max(1, min(limit, 50))))
+        return OrganizationReviewPage(items: page.map {
+            let time = Timestamp(date: $0.updatedAt)
+            return OrganizationReviewSnapshot(organization: $0, revision: "\(time.seconds):\(time.nanoseconds)")
+        }, nextCursor: page.last.map { OrganizationPageCursor(createdAt: $0.createdAt, documentID: $0.id) }, hasMore: remaining.count > page.count)
+    }
+    func fetchOrganizationReviewHistory(limit: Int, after: OrganizationReviewHistoryCursor?) async throws -> OrganizationReviewHistoryPage {
+        OrganizationReviewHistoryPage(items: [], nextCursor: nil)
+    }
+    func reviewOrganizationRequest(id: String, reviewerID: String, expectedRevision: String, decision: OrganizationReviewDecision, message: String) async throws {
+        guard try await fetchOrganizationReviewSnapshot(id: id).revision == expectedRevision else { throw AppError.validationFailed }
+        switch decision {
+        case .approve: try await approveOrganizationRequest(id: id, reviewerID: reviewerID)
+        case .requestRevision: try await requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
+        case .reject: try await rejectOrganizationRequest(id: id, reason: message, reviewerID: reviewerID)
+        }
     }
 }

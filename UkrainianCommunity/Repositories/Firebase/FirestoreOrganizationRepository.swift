@@ -223,24 +223,96 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
     }
 
     func fetchPendingOrganizations() async throws -> [Organization] {
-        let snapshot = try await collection
-            .whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
-            .order(by: "createdAt", descending: true)
-            .getDocuments()
+        try await fetchOrganizationReviewPage(limit: 30, after: nil).items.map(\.organization)
+    }
 
-        let documentIDs = snapshot.documents.map(\.documentID)
-        async let liked = fetchLikedOrganizationIDs(for: documentIDs)
-        async let subscribed = fetchSubscribedOrganizationIDs(for: documentIDs)
-        async let bookmarked = fetchBookmarkedOrganizationIDs(for: documentIDs)
-        let (likedOrganizationIDs, subscribedOrganizationIDs, bookmarkedOrganizationIDs) = try await (liked, subscribed, bookmarked)
+    func fetchPendingOrganizationCount() async throws -> Int {
+        let result = try await collection.whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
+            .count.getAggregation(source: .server)
+        return result.count.intValue
+    }
 
-        return try snapshot.documents.map { document in
-            try Organization(dto: makeOrganizationDTO(
-                from: document,
-                likedOrganizationIDs: likedOrganizationIDs,
-                subscribedOrganizationIDs: subscribedOrganizationIDs,
-                bookmarkedOrganizationIDs: bookmarkedOrganizationIDs
-            ))
+    func fetchOrganizationReviewSnapshot(id: String) async throws -> OrganizationReviewSnapshot {
+        let document = try await collection.document(id).getDocument(source: .server)
+        guard document.exists else { throw AppError.notFound }
+        return try await hydrateReviewApplicants([reviewSnapshot(document)])[0]
+    }
+
+    private func hydrateReviewApplicants(_ snapshots: [OrganizationReviewSnapshot]) async throws -> [OrganizationReviewSnapshot] {
+        let ids = Array(Set(snapshots.compactMap { snapshot -> String? in
+            let name = snapshot.organization.submittedByDisplayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            return name.isEmpty || name == snapshot.organization.submittedByUserId ? snapshot.organization.submittedByUserId : nil
+        }))
+        guard !ids.isEmpty else { return snapshots }
+        let profiles = try await fetchPublicUserProfiles(userIDs: ids)
+        let names = Dictionary(uniqueKeysWithValues: profiles.map { ($0.id, $0.preferredDisplayName) })
+        return snapshots.map { snapshot in
+            var value = snapshot
+            if let id = snapshot.organization.submittedByUserId { value.applicantDisplayName = names[id] }
+            return value
+        }
+    }
+
+    func fetchOrganizationReviewPage(limit: Int, after: OrganizationPageCursor?) async throws -> OrganizationReviewPage {
+        let size = min(max(1, limit), 50)
+        var query = collection.whereField("moderationStatus", isEqualTo: ModerationStatus.pendingReview.rawValue)
+            .order(by: "createdAt", descending: true).order(by: FieldPath.documentID(), descending: true)
+            .limit(to: size + 1)
+        if let after {
+            let timestamp = after.exactTimestamp.map { Timestamp(seconds: $0.seconds, nanoseconds: $0.nanoseconds) }
+                ?? Timestamp(date: after.createdAt)
+            query = query.start(after: [timestamp, after.documentID])
+        }
+        let snapshot = try await query.getDocuments()
+        let documents = Array(snapshot.documents.prefix(size))
+        let last = documents.last
+        let timestamp = last?.data()["createdAt"] as? Timestamp
+        return OrganizationReviewPage(items: try await hydrateReviewApplicants(documents.map(reviewSnapshot)),
+            nextCursor: last.flatMap { document in timestamp.map {
+                OrganizationPageCursor(createdAt: $0.dateValue(), documentID: document.documentID,
+                    exactTimestamp: PageCursorTimestamp(seconds: $0.seconds, nanoseconds: $0.nanoseconds))
+            } }, hasMore: snapshot.count > size)
+    }
+
+    private func reviewSnapshot(_ document: DocumentSnapshot) throws -> OrganizationReviewSnapshot {
+        guard let timestamp = document.data()?["updatedAt"] as? Timestamp else { throw AppError.validationFailed }
+        let organization = try Organization(dto: makeOrganizationDTO(from: document,
+            likedOrganizationIDs: [], subscribedOrganizationIDs: [], bookmarkedOrganizationIDs: []))
+        return OrganizationReviewSnapshot(organization: organization, revision: "\(timestamp.seconds):\(timestamp.nanoseconds)")
+    }
+
+    func fetchOrganizationReviewHistory(limit: Int, after: OrganizationReviewHistoryCursor?) async throws -> OrganizationReviewHistoryPage {
+        try await CloudFunctionsClient.shared.call(.listOrganizationReviewHistory,
+            request: OrganizationReviewHistoryRequest(limit: min(max(1, limit), 50), cursor: after))
+    }
+
+    func reviewOrganizationRequest(id: String, reviewerID: String, expectedRevision: String, decision: OrganizationReviewDecision, message: String) async throws {
+        let text = decision == .approve ? nil : message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard decision == .approve || (text?.isEmpty == false && (text?.count ?? 0) <= 2000) else { throw AppError.validationFailed }
+        let operation = try await prepareReviewOperation(organizationID: id, reviewerID: reviewerID,
+            action: decision.rawValue, text: text, reviewedRevision: expectedRevision)
+        do {
+            let request = OrganizationReviewFunctionRequest(organizationId: id,
+                message: decision == .requestRevision ? text : nil, reason: decision == .reject ? text : nil,
+                operationId: operation.id, expectedRevision: operation.expectedRevision, principalId: reviewerID)
+            switch decision {
+            case .approve: _ = try await CloudFunctionsClient.shared.approveOrganization(request)
+            case .requestRevision: _ = try await CloudFunctionsClient.shared.requestOrganizationRevision(request)
+            case .reject: _ = try await CloudFunctionsClient.shared.rejectOrganization(request)
+            }
+            await OrganizationReviewOperationJournal.shared.complete(operation.key)
+            let status: ModerationStatus = decision == .approve ? .approved : decision == .reject ? .rejected : .needsRevision
+            await SystemModerationLoggingService.shared.logSuccess(SystemModerationLogContext(
+                operationName: decision == .approve ? "approveOrganizationRequest" : decision == .reject ? "rejectOrganizationRequest" : "requestOrganizationRevision",
+                eventType: decision == .approve ? .organizationRequestApproved : decision == .reject ? .organizationRequestRejected : .contentUpdated,
+                targetType: .organizationRequest, targetId: id, organizationId: id,
+                outcome: decision == .approve ? .approved : decision == .reject ? .rejected : .success,
+                summary: decision == .approve ? "Запит організації схвалено" : decision == .reject ? "Запит організації відхилено" : "Заявку організації повернено на доопрацювання",
+                metadata: ["newStatus": status.rawValue]), expectedActorID: reviewerID)
+        } catch {
+            let mapped = Self.organizationReviewError(from: error)
+            if mapped != .network { await OrganizationReviewOperationJournal.shared.complete(operation.key) }
+            throw mapped
         }
     }
 
@@ -1541,7 +1613,8 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
         organizationID: String,
         reviewerID: String,
         action: String,
-        text: String?
+        text: String?,
+        reviewedRevision: String? = nil
     ) async throws -> (key: String, id: String, expectedRevision: String?) {
         do {
             let snapshot = try await collection.document(organizationID).getDocument(source: .server)
@@ -1550,6 +1623,7 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
             let timestamp = data["updatedAt"] as? Timestamp
             let revision = timestamp.map { "\($0.seconds):\($0.nanoseconds)" }
             let isPending = data["moderationStatus"] as? String == ModerationStatus.pendingReview.rawValue
+            if isPending, let reviewedRevision, revision != reviewedRevision { throw AppError.validationFailed }
             let key = Self.reviewOperationKey(
                 organizationID: organizationID,
                 action: action,
@@ -1557,7 +1631,7 @@ extension FirestoreOrganizationRepository: OrganizationRealtimeRepository {
             )
             let entry = await OrganizationReviewOperationJournal.shared.operation(
                 for: key,
-                currentRevision: revision,
+                currentRevision: reviewedRevision ?? revision,
                 isPending: isPending
             )
             return (key, entry.id, entry.expectedRevision)

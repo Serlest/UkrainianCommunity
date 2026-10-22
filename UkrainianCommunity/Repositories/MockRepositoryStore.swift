@@ -16,6 +16,7 @@ actor MockRepositoryStore {
     var news = MockContentBuilder.newsPosts()
     var events = MockContentBuilder.events()
     var organizations = MockContentBuilder.profileOrganizationsFixture() ?? MockContentBuilder.organizations()
+    var organizationReviewHistory: [OrganizationReviewHistoryEntry] = []
     var organizationComments: [String: [Comment]] = [:]
     var feedbackItems: [FeedbackItem] = MockContentBuilder.feedbackFixtures()
     var feedbackMessages: [String: [FeedbackMessage]] = [:]
@@ -932,6 +933,28 @@ actor MockRepositoryStore {
     func updateOrganizationModerationStatus(id: String, newStatus: ModerationStatus) throws {
         guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
         organizations[index].moderationStatus = newStatus
+    }
+
+    func recordOrganizationReview(id: String, status: ModerationStatus, reason: String) {
+        guard let organization = organizations.first(where: { $0.id == id }) else { return }
+        organizationReviewHistory.insert(OrganizationReviewHistoryEntry(id: UUID().uuidString,
+            organizationId: id, organizationName: organization.localizedName, reviewerDisplayName: "Test Reviewer",
+            status: status, reason: reason, createdAtMilliseconds: Date().timeIntervalSince1970 * 1000), at: 0)
+    }
+
+    func organizationReviewHistoryPage(limit: Int, after: OrganizationReviewHistoryCursor?) -> OrganizationReviewHistoryPage {
+        let start = after.flatMap { cursor in organizationReviewHistory.firstIndex { $0.id == cursor.id }.map { $0 + 1 } } ?? 0
+        let items = Array(organizationReviewHistory.dropFirst(start).prefix(limit))
+        let cursor = start + items.count < organizationReviewHistory.count ? items.last.map {
+            OrganizationReviewHistoryCursor(seconds: Int64($0.createdAtMilliseconds / 1000), nanoseconds: 0, id: $0.id)
+        } : nil
+        return OrganizationReviewHistoryPage(items: items, nextCursor: cursor)
+    }
+
+    func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) throws {
+        guard let index = organizations.firstIndex(where: { $0.id == id }) else { throw AppError.notFound }
+        organizations[index] = organizations[index].updatingReview(status: .rejected, reviewMessage: nil,
+            reviewedByUserId: reviewerID, rejectionReason: reason)
     }
 
     func approveOrganizationRequest(id: String, reviewerID: String) throws {

@@ -10,6 +10,7 @@ enum CloudFunctionName: String, CaseIterable {
     case removeOrganizationModerator
     case transferOrganizationOwnership
     case approveOrganization
+    case listOrganizationReviewHistory
     case rejectOrganization
     case requestOrganizationRevision
     case cancelEvent
@@ -413,6 +414,7 @@ struct LegalEvidenceFunctionEvent: Codable, Equatable {
 }
 
 struct OrganizationReviewFunctionRequest: Codable, Equatable {
+    let principalId: String?
     let organizationId: String
     let message: String?
     let reason: String?
@@ -424,8 +426,10 @@ struct OrganizationReviewFunctionRequest: Codable, Equatable {
         message: String? = nil,
         reason: String? = nil,
         operationId: String? = nil,
-        expectedRevision: String? = nil
+        expectedRevision: String? = nil,
+        principalId: String? = nil
     ) {
+        self.principalId = principalId
         self.organizationId = organizationId
         self.message = message
         self.reason = reason
@@ -1002,6 +1006,7 @@ final class CloudFunctionsClient {
              .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
+             .listOrganizationReviewHistory,
              .cancelEvent,
              .registerForEvent,
              .unregisterFromEvent,
@@ -1083,6 +1088,7 @@ final class CloudFunctionsClient {
         case .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
+             .listOrganizationReviewHistory,
              .acceptOrganizationRules,
              .acceptLegalDocument,
              .deleteOwnAccount,
@@ -1143,6 +1149,7 @@ final class CloudFunctionsClient {
         case .approveOrganization,
              .rejectOrganization,
              .requestOrganizationRevision,
+             .listOrganizationReviewHistory,
              .cancelEvent,
              .registerForEvent,
              .unregisterFromEvent,

@@ -11,7 +11,7 @@ import {
   type NotificationType,
   userNotificationRef,
 } from "../notifications/notificationPayloads";
-import {canManageOrganizationRequests} from "../permissions/userPermissions";
+import {canManageOrganizationRequests, userPermissionSnapshotFromData} from "../permissions/userPermissions";
 import {type OrganizationModerationStatus} from "./types";
 
 export type ReviewAction = "approve" | "requestRevision" | "reject";
@@ -22,6 +22,7 @@ export interface OrganizationReviewRequest {
   reason?: string;
   operationId?: string;
   expectedRevision?: string | null;
+  principalId?: string;
 }
 
 interface OrganizationReviewResponse {
@@ -75,6 +76,7 @@ export function parseReviewRequest(data: unknown): OrganizationReviewRequest {
     reason: optionalTrimmedString(data.reason, "reason"),
     operationId: optionalIdentifier(data.operationId, "operationId"),
     expectedRevision: optionalNullableString(data.expectedRevision, "expectedRevision"),
+    principalId: optionalIdentifier(data.principalId, "principalId"),
   };
 }
 
@@ -165,6 +167,9 @@ export function requiredReviewText(
     throw new HttpsError("invalid-argument", `${field} must not be empty.`);
   }
 
+  if (value.length > 2000) {
+    throw new HttpsError("invalid-argument", `${field} must not exceed 2000 characters.`);
+  }
   return value;
 }
 
@@ -307,8 +312,17 @@ export async function commitOrganizationReview(
     assertReviewableStatus(organization.previousStatus);
 
     const submitterReference = db.collection("users").doc(organization.submittedByUserId);
-    const submitterDocument = await transaction.get(submitterReference);
+    const [submitterDocument, reviewerDocument] = await transaction.getAll(submitterReference, db.collection("users").doc(actorUid));
+    if (!canManageOrganizationRequests(userPermissionSnapshotFromData(actorUid, reviewerDocument.data()))) {
+      throw new HttpsError("permission-denied", "Review permissions changed.");
+    }
+    const reviewer = reviewerDocument.data();
+    const reviewerDisplayName = [reviewer?.displayName, reviewer?.fullName].find((v) => typeof v === "string" && !!v.trim()) ?? "";
     const submitterData = submitterDocument.data();
+    if (workflow.action === "approve" && (!submitterDocument.exists ||
+        submitterData?.accountStatus === "deleted" || submitterData?.blockState === "deleted")) {
+      throw new HttpsError("failed-precondition", "Organization applicant no longer exists.");
+    }
     const accountStatus = typeof submitterData?.accountStatus === "string"
       ? submitterData.accountStatus
       : "active";
@@ -352,6 +366,8 @@ export async function commitOrganizationReview(
         moderationStatus: organization.previousStatus,
       },
       newValue: {
+        organizationName: organization.name,
+        reviewerDisplayName,
         organizationId: organization.organizationId,
         moderationStatus: workflow.moderationStatus,
       },
@@ -405,6 +421,9 @@ function createReviewCallable(workflow: ReviewWorkflow) {
   return onCall(callableOptions, async (request): Promise<OrganizationReviewResponse> => {
     const auth = await requireVerifiedActiveUser(request);
     const reviewRequest = parseReviewRequest(request.data);
+    if (reviewRequest.principalId !== undefined && reviewRequest.principalId !== auth.uid) {
+      throw new HttpsError("failed-precondition", "Review account changed.");
+    }
     const actorPermissions = auth.permissions;
 
     if (!canManageOrganizationRequests(actorPermissions)) {
@@ -453,3 +472,67 @@ export const requestOrganizationRevision = createReviewCallable(
   requestOrganizationRevisionWorkflow
 );
 export const rejectOrganization = createReviewCallable(rejectOrganizationWorkflow);
+
+
+interface ReviewHistoryCursor {
+  seconds: number;
+  nanoseconds: number;
+  id: string;
+}
+
+export function parseReviewHistoryRequest(data: unknown): {limit: number; cursor?: ReviewHistoryCursor} {
+  if (!isRecord(data)) throw new HttpsError("invalid-argument", "Request must be an object.");
+  const limit = data.limit ?? 30;
+  if (!Number.isInteger(limit) || (limit as number) < 1 || (limit as number) > 50) {
+    throw new HttpsError("invalid-argument", "Invalid page size.");
+  }
+  if (data.cursor === undefined || data.cursor === null) return {limit: limit as number};
+  const cursor = data.cursor;
+  if (!isRecord(cursor) || !Number.isSafeInteger(cursor.seconds) || (cursor.seconds as number) < 0 || (cursor.seconds as number) > 253402300799 ||
+      !Number.isInteger(cursor.nanoseconds) || (cursor.nanoseconds as number) < 0 ||
+      (cursor.nanoseconds as number) >= 1_000_000_000 || typeof cursor.id !== "string" ||
+      !cursor.id || cursor.id.length > 200 || cursor.id.includes("/")) {
+    throw new HttpsError("invalid-argument", "Invalid history cursor.");
+  }
+  return {limit: limit as number, cursor: cursor as unknown as ReviewHistoryCursor};
+}
+
+export async function organizationReviewHistoryPage(limit: number, cursor?: ReviewHistoryCursor) {
+  let query = db.collection("auditLogs")
+    .where("actionType", "in", ["organizationRequestApproved", "organizationRequestNeedsRevision", "organizationRequestRejected"])
+    .orderBy("createdAt", "desc").orderBy("__name__", "desc").limit(limit + 1);
+  if (cursor) query = query.startAfter(new Timestamp(cursor.seconds, cursor.nanoseconds), cursor.id);
+  const snapshot = await query.get();
+  const documents = snapshot.docs.slice(0, limit);
+  const organizationIds = [...new Set(documents.map((d) => d.get("newValue.organizationId"))
+    .filter((id): id is string => typeof id === "string" && !!id && !id.includes("/")))];
+  const organizations = organizationIds.length ? await db.getAll(...organizationIds.map((id) => db.collection("organizations").doc(id))) : [];
+  const names = new Map(organizations.map((d) => [d.id, d.get("name")]));
+  const items = documents.map((document) => {
+    const data = document.data();
+    const timestamp = data.createdAt instanceof Timestamp ? data.createdAt : Timestamp.fromMillis(0);
+    const organizationId = typeof data.newValue?.organizationId === "string" ? data.newValue.organizationId : "";
+    return {
+      id: document.id, organizationId,
+      organizationName: typeof data.newValue?.organizationName === "string" ? data.newValue.organizationName : names.get(organizationId) ?? "",
+      reviewerDisplayName: typeof data.newValue?.reviewerDisplayName === "string" ? data.newValue.reviewerDisplayName : "",
+      status: data.actionType === "organizationRequestApproved" ? "approved" :
+        data.actionType === "organizationRequestNeedsRevision" ? "needsRevision" : "rejected",
+      reason: typeof data.reason === "string" && data.reason !== "Organization request review" ? data.reason : "",
+      createdAtMilliseconds: timestamp.toMillis(),
+    };
+  });
+  const last = documents.at(-1);
+  const timestamp = last?.get("createdAt");
+  return {items, nextCursor: snapshot.size > limit && last && timestamp instanceof Timestamp ?
+    {seconds: timestamp.seconds, nanoseconds: timestamp.nanoseconds, id: last.id} : null};
+}
+
+export const listOrganizationReviewHistory = onCall(callableOptions, async (request) => {
+  const auth = await requireVerifiedActiveUser(request);
+  if (!canManageOrganizationRequests(auth.permissions)) {
+    throw new HttpsError("permission-denied", "Owner or App Admin permissions are required.");
+  }
+  const input = parseReviewHistoryRequest(request.data);
+  return organizationReviewHistoryPage(input.limit, input.cursor);
+});

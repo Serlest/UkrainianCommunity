@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import UkrainianCommunity
 
+@Suite(.serialized)
 @MainActor
 struct OrganizationSafetyRoutingTests {
     @Test func pushSubmissionRetainsTheExactRequestAndReviewerDestination() throws {
@@ -124,6 +125,96 @@ struct OrganizationSafetyRoutingTests {
         #expect(await coordinator.setBlocked(organizationID: "org-a", isBlocked: true) == false)
         #expect(coordinator.blockedOrganizationIDs.isEmpty)
         #expect(coordinator.errorMessage != nil)
+    }
+
+    @Test func reviewQueuePagesWithoutTruncatingTheProfileCount() async throws {
+        let repository = MockOrganizationRepository()
+        let prefix = "paged-review-\(UUID().uuidString)"
+        for index in 0..<37 {
+            try await repository.createOrganization(Organization(id: "\(prefix)-\(index)", name: "Request \(index)",
+                description: "Description", city: "Innsbruck", submittedByUserId: "applicant",
+                createdAt: Date(timeIntervalSince1970: Double(index)), updatedAt: .now,
+                moderationStatus: .pendingReview, likeCount: 0, likeState: .notLiked))
+        }
+        let model = ModerationQueueViewModel(newsRepository: MockNewsRepository(), eventRepository: MockEventRepository(), organizationRepository: repository)
+        model.setAllowedSections([.organizations])
+        await model.loadIfNeeded()
+        #expect(model.items.count == 30)
+        #expect(model.hasMoreRequests)
+        let profile = OwnerProfileVisibilityViewModel(feedbackRepository: MockFeedbackRepository(), organizationRepository: repository)
+        await profile.loadIfNeeded(includeOrganizationRequests: true, includeFeedback: false)
+        #expect(profile.pendingOrganizationRequestCount == 37)
+        await model.loadMoreRequests()
+        #expect(model.items.count == 37)
+        #expect(Set(model.items.map(\.id)).count == 37)
+        #expect(!model.hasMoreRequests)
+        for index in 0..<37 { try await repository.deleteOrganization(id: "\(prefix)-\(index)") }
+    }
+
+    @Test func staleReviewAndRevokedAccessCannotApproveTheRequest() async throws {
+        let repository = MockOrganizationRepository()
+        let id = "stale-review-\(UUID().uuidString)"
+        func request(updatedAt: Date) -> Organization {
+            Organization(id: id, name: "Request", description: "Description", city: "Innsbruck",
+                submittedByUserId: "applicant", createdAt: .now, updatedAt: updatedAt,
+                moderationStatus: .pendingReview, likeCount: 0, likeState: .notLiked)
+        }
+        try await repository.createOrganization(request(updatedAt: Date(timeIntervalSince1970: 100)))
+        let model = ModerationQueueViewModel(newsRepository: MockNewsRepository(), eventRepository: MockEventRepository(), organizationRepository: repository, requestedOrganizationID: id)
+        model.setAllowedSections([.organizations]); await model.loadIfNeeded()
+        let item = try #require(model.items.first)
+        try await repository.updateOrganization(request(updatedAt: Date(timeIntervalSince1970: 101)))
+        #expect(!(await model.updateStatus(for: item, to: .approved, reviewerID: "owner-1")))
+        #expect(model.actionError == .validationFailed)
+        #expect(try await repository.fetchOrganization(id: id).moderationStatus == .pendingReview)
+        model.setAllowedSections([])
+        #expect(!(await model.updateStatus(for: item, to: .approved, reviewerID: "owner-1")))
+        #expect(model.actionError == .permissionDenied)
+        try await repository.deleteOrganization(id: id)
+    }
+
+    @Test func historyDecodingPreservesReasonsAndExactPageCursor() throws {
+        let data = Data(#"{"items":[{"id":"decision","organizationId":"org","organizationName":"Name","reviewerDisplayName":"Reviewer","status":"needsRevision","reason":"Add contact details","createdAtMilliseconds":1000}],"nextCursor":{"seconds":1,"nanoseconds":123456789,"id":"decision"}}"#.utf8)
+        let page = try JSONDecoder().decode(OrganizationReviewHistoryPage.self, from: data)
+        #expect(page.items.first?.reason == "Add contact details")
+        #expect(page.items.first?.status == .needsRevision)
+        #expect(page.nextCursor?.nanoseconds == 123456789)
+    }
+
+    @Test func allReviewDecisionsReachTheirStatusAndHistory() async throws {
+        let repository = MockOrganizationRepository()
+        for decision in OrganizationReviewDecision.allCases {
+            let id = "decision-flow-\(UUID().uuidString)"
+            let organization = Organization(id: id, name: "Decision fixture", description: "Description", city: "Innsbruck",
+                submittedByUserId: "applicant", createdAt: Date(timeIntervalSince1970: 1000),
+                updatedAt: Date(timeIntervalSince1970: 1000), moderationStatus: .pendingReview, likeCount: 0, likeState: .notLiked)
+            try await repository.createOrganization(organization)
+            let model = ModerationQueueViewModel(newsRepository: MockNewsRepository(), eventRepository: MockEventRepository(),
+                organizationRepository: repository, requestedOrganizationID: id)
+            model.setAllowedSections([.organizations]); await model.loadIfNeeded()
+            let item = try #require(model.items.first)
+            let succeeded: Bool
+            let expected: ModerationStatus
+            switch decision {
+            case .approve:
+                expected = .approved
+                succeeded = await model.updateStatus(for: item, to: .approved, reviewerID: "owner-1")
+            case .requestRevision:
+                expected = .needsRevision
+                succeeded = await model.requestRevision(for: item, message: "Add contacts", reviewerID: "owner-1")
+            case .reject:
+                expected = .rejected
+                succeeded = await model.rejectOrganizationRequest(for: item, reason: "Duplicate", reviewerID: "owner-1")
+            }
+            #expect(succeeded)
+            #expect(model.items.isEmpty)
+            #expect(try await repository.fetchOrganization(id: id).moderationStatus == expected)
+            await model.loadHistory(reset: true)
+            let record = try #require(model.history.first(where: { $0.organizationId == id }))
+            #expect(record.status == expected)
+            #expect(record.reason == (decision == .approve ? "" : decision == .reject ? "Duplicate" : "Add contacts"))
+            try await repository.deleteOrganization(id: id)
+        }
     }
 
     private func makeOrganization(id: String, status: ModerationStatus = .approved) -> Organization {

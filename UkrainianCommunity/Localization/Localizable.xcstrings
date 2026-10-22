@@ -1,6 +1,278 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "organization.review.section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розділ заявок"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antragsbereich"
+          }
+        }
+      }
+    },
+    "organization.review.pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На перевірці"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zur Prüfung"
+          }
+        }
+      }
+    },
+    "organization.review.history" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Історія рішень"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidungsverlauf"
+          }
+        }
+      }
+    },
+    "organization.review.historyEmpty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рішень щодо заявок поки немає."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es gibt noch keine Entscheidungen zu Anträgen."
+          }
+        }
+      }
+    },
+    "organization.review.loadMore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Показати ще"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere laden"
+          }
+        }
+      }
+    },
+    "organization.review.loadedSearch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук серед завантажених заявок. Для старіших завантажте наступну сторінку."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Suche umfasst die geladenen Anträge. Laden Sie für ältere Anträge die nächste Seite."
+          }
+        }
+      }
+    },
+    "organization.review.changed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заявку або стан її автора змінено. Закрийте заявку й оновіть список перед повторною перевіркою."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Antrag oder der Status der antragstellenden Person hat sich geändert. Schließen Sie den Antrag und aktualisieren Sie die Liste vor einer erneuten Prüfung."
+          }
+        }
+      }
+    },
+    "organization.review.chooseDecision" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обрати рішення"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidung auswählen"
+          }
+        }
+      }
+    },
+    "organization.review.decision" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рішення щодо заявки"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidung zum Antrag"
+          }
+        }
+      }
+    },
+    "organization.review.request" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевірка заявки"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antrag prüfen"
+          }
+        }
+      }
+    },
+    "organization.review.confirmDecision" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердити рішення"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidung bestätigen"
+          }
+        }
+      }
+    },
+    "organization.review.confirmHelper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус заявки буде змінено. Автор отримає повідомлення про ваше рішення."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Antragsstatus wird geändert. Die antragstellende Person erhält eine Mitteilung über Ihre Entscheidung."
+          }
+        }
+      }
+    },
+    "organization.review.reasonHelper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поясніть, що потрібно виправити або чому заявку відхилено. Цей текст отримає автор. До 2000 символів."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreiben Sie die nötigen Änderungen oder den Ablehnungsgrund. Dieser Text wird der antragstellenden Person zugestellt. Maximal 2000 Zeichen."
+          }
+        }
+      }
+    },
+    "organization.review.applicant" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заявник"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Antragstellende Person"
+          }
+        }
+      }
+    },
+    "organization.review.technicalDetails" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Технічні відомості"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Technische Angaben"
+          }
+        }
+      }
+    },
+    "system_logs.explanation.action.listOrganizationReviewHistory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перегляд історії рішень щодо організацій"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidungsverlauf für Organisationen ansehen"
+          }
+        }
+      }
+    },
     "system_logs.explanation.action.reviewContentModeration" : {
       "localizations" : {
         "uk" : {

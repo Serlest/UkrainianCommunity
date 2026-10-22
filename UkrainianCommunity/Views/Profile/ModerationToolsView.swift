@@ -50,6 +50,15 @@ struct ModerationQueueItem: Identifiable {
 
 @MainActor
 final class ModerationQueueViewModel: ObservableObject {
+    @Published private(set) var hasMoreRequests = false
+    @Published private(set) var isLoadingMore = false
+    @Published private(set) var history: [OrganizationReviewHistoryEntry] = []
+    @Published private(set) var isLoadingHistory = false
+    @Published private(set) var historyError: AppError?
+    @Published private(set) var hasMoreHistory = false
+    private var requestCursor: OrganizationPageCursor?
+    private var historyCursor: OrganizationReviewHistoryCursor?
+    private var generation = 0
     @Published private(set) var items: [ModerationQueueItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
@@ -99,6 +108,13 @@ final class ModerationQueueViewModel: ObservableObject {
     func setAllowedSections(_ sections: Set<AppSection>) {
         let normalizedSections = sections.intersection([.news, .events, .organizations])
         if allowedSections != normalizedSections {
+            generation += 1
+            history = []
+            historyCursor = nil
+            historyError = nil
+            isLoadingHistory = false
+            isLoadingMore = false
+            processingItemIDs = []
             allowedSections = normalizedSections
             loadTask?.cancel()
             items = []
@@ -138,8 +154,9 @@ final class ModerationQueueViewModel: ObservableObject {
                 )
                 pendingContentOperationIDs[operationKey] = nil
             case .organization:
-                guard newStatus == .approved, let reviewerID else { throw AppError.permissionDenied }
-                try await organizationRepository.approveOrganizationRequest(id: item.contentID, reviewerID: reviewerID)
+                guard allowedSections.contains(.organizations), item.canReview, newStatus == .approved, let reviewerID else { throw AppError.permissionDenied }
+                try await organizationRepository.reviewOrganizationRequest(id: item.contentID, reviewerID: reviewerID,
+                    expectedRevision: item.expectedRevision, decision: .approve, message: "")
                 AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
             }
 
@@ -157,7 +174,7 @@ final class ModerationQueueViewModel: ObservableObject {
 
     @discardableResult
     func requestRevision(for item: ModerationQueueItem, message: String, reviewerID: String?) async -> Bool {
-        guard item.type == .organization, let reviewerID else {
+        guard allowedSections.contains(.organizations), item.canReview, item.type == .organization, let reviewerID else {
             actionError = .permissionDenied
             return false
         }
@@ -167,7 +184,8 @@ final class ModerationQueueViewModel: ObservableObject {
         defer { processingItemIDs.remove(item.id) }
 
         do {
-            try await organizationRepository.requestOrganizationRevision(id: item.contentID, message: message, reviewerID: reviewerID)
+            try await organizationRepository.reviewOrganizationRequest(id: item.contentID, reviewerID: reviewerID,
+                expectedRevision: item.expectedRevision, decision: .requestRevision, message: message)
             items.removeAll { $0.id == item.id }
             actionError = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
@@ -183,7 +201,7 @@ final class ModerationQueueViewModel: ObservableObject {
 
     @discardableResult
     func rejectOrganizationRequest(for item: ModerationQueueItem, reason: String, reviewerID: String?) async -> Bool {
-        guard item.type == .organization, let reviewerID else {
+        guard allowedSections.contains(.organizations), item.canReview, item.type == .organization, let reviewerID else {
             actionError = .permissionDenied
             return false
         }
@@ -193,7 +211,8 @@ final class ModerationQueueViewModel: ObservableObject {
         defer { processingItemIDs.remove(item.id) }
 
         do {
-            try await organizationRepository.rejectOrganizationRequest(id: item.contentID, reason: reason, reviewerID: reviewerID)
+            try await organizationRepository.reviewOrganizationRequest(id: item.contentID, reviewerID: reviewerID,
+                expectedRevision: item.expectedRevision, decision: .reject, message: reason)
             items.removeAll { $0.id == item.id }
             actionError = nil
             AppContentChangeBus.postOrganizationsChanged(organizationID: item.contentID)
@@ -209,8 +228,10 @@ final class ModerationQueueViewModel: ObservableObject {
 
     private func startLoad(force: Bool) async {
         guard force || !hasLoaded else { return }
-        startListeningPendingOrganizationRequestsIfNeeded()
-
+        generation += 1
+        isLoadingMore = false
+        requestCursor = nil
+        hasMoreRequests = false
         loadTask?.cancel()
         let task = Task { [weak self] in
             guard let self else { return }
@@ -221,8 +242,10 @@ final class ModerationQueueViewModel: ObservableObject {
     }
 
     private func performLoad() async {
+        guard !Task.isCancelled else { return }
+        let expected = generation
         isLoading = true
-        defer { isLoading = false }
+        defer { if generation == expected { isLoading = false } }
 
         do {
             let allItems = try await RefreshRequest.run { [self] in try await loadAllowedItems() }
@@ -247,9 +270,9 @@ final class ModerationQueueViewModel: ObservableObject {
 
         if let requestedOrganizationID {
             guard allowedSections.contains(.organizations) else { throw AppError.permissionDenied }
-            let organization = try await organizationRepository.fetchOrganization(id: requestedOrganizationID)
-            guard organization.id == requestedOrganizationID else { throw AppError.validationFailed }
-            return makeItems(from: [organization])
+            let snapshot = try await organizationRepository.fetchOrganizationReviewSnapshot(id: requestedOrganizationID)
+            guard snapshot.organization.id == requestedOrganizationID else { throw AppError.validationFailed }
+            return makeReviewItems(from: [snapshot])
         }
 
         if let organizationID {
@@ -267,7 +290,12 @@ final class ModerationQueueViewModel: ObservableObject {
             loadedItems.append(contentsOf: makeItems(from: try await eventRepository.fetchPendingEvents()))
         }
         if allowedSections.contains(.organizations) {
-            loadedItems.append(contentsOf: makeItems(from: try await organizationRepository.fetchPendingOrganizations()))
+            let expected = generation
+            let page = try await organizationRepository.fetchOrganizationReviewPage(limit: 30, after: nil)
+            guard generation == expected, !Task.isCancelled else { throw CancellationError() }
+            requestCursor = page.nextCursor
+            hasMoreRequests = page.hasMore
+            loadedItems.append(contentsOf: makeReviewItems(from: page.items))
         }
 
         return loadedItems.sorted {
@@ -275,27 +303,63 @@ final class ModerationQueueViewModel: ObservableObject {
         }
     }
 
-    private func startListeningPendingOrganizationRequestsIfNeeded() {
-        let key = "pendingOrganizationRequests"
-        guard organizationID == nil, requestedOrganizationID == nil,
-              allowedSections.contains(.organizations),
-              !listenerBag.contains(key),
-              let realtimeRepository = organizationRepository as? OrganizationRealtimeRepository else { return }
+    func freshReviewItem(_ item: ModerationQueueItem) async -> ModerationQueueItem? {
+        guard allowedSections.contains(.organizations), !processingItemIDs.contains(item.id) else { return nil }
+        let expected = generation
+        processingItemIDs.insert(item.id)
+        actionError = nil
+        defer { processingItemIDs.remove(item.id) }
+        do {
+            let snapshot = try await organizationRepository.fetchOrganizationReviewSnapshot(id: item.contentID)
+            guard expected == generation, !Task.isCancelled else { return nil }
+            return makeReviewItems(from: [snapshot]).first
+        } catch { if expected == generation { actionError = FirebaseReadErrorMapper.map(error) }; return nil }
+    }
 
-        listenerBag.set(realtimeRepository.listenPendingOrganizationRequestsForOwner { [weak self] organizations in
-            guard let self else { return }
-            self.items.removeAll { $0.type == .organization }
-            self.items.append(contentsOf: self.makeItems(from: organizations))
-            self.items.sort { $0.createdAt > $1.createdAt }
-            self.error = nil
-            self.hasLoaded = true
-        } onError: { [weak self] appError in
-            self?.listenerBag.remove(key)
-            self?.error = appError
-            #if DEBUG
-            print("Realtime listener failed: purpose=pendingOrganizationRequests key=\(key) error=\(appError)")
-            #endif
-        }, for: key)
+    func loadMoreRequests() async {
+        guard hasMoreRequests, !isLoadingMore, allowedSections.contains(.organizations) else { return }
+        let expected = generation
+        isLoadingMore = true
+        defer { if generation == expected { isLoadingMore = false } }
+        do {
+            let page = try await organizationRepository.fetchOrganizationReviewPage(limit: 30, after: requestCursor)
+            guard generation == expected, !Task.isCancelled else { return }
+            let ids = Set(items.map(\.id))
+            items += makeReviewItems(from: page.items).filter { !ids.contains($0.id) }
+            requestCursor = page.nextCursor
+            hasMoreRequests = page.hasMore
+            error = nil
+        } catch { if generation == expected { self.error = FirebaseReadErrorMapper.map(error) } }
+    }
+
+    func loadHistory(reset: Bool = false) async {
+        guard allowedSections.contains(.organizations), !isLoadingHistory else { return }
+        if !reset, !history.isEmpty, !hasMoreHistory { return }
+        let expected = generation
+        isLoadingHistory = true
+        defer { if generation == expected { isLoadingHistory = false } }
+        do {
+            let page = try await organizationRepository.fetchOrganizationReviewHistory(limit: 30, after: reset ? nil : historyCursor)
+            guard generation == expected, !Task.isCancelled else { return }
+            let ids = reset ? Set<String>() : Set(history.map(\.id))
+            history = (reset ? [] : history) + page.items.filter { !ids.contains($0.id) }
+            historyCursor = page.nextCursor
+            hasMoreHistory = page.nextCursor != nil
+            historyError = nil
+        } catch { if generation == expected { historyError = FirebaseReadErrorMapper.map(error) } }
+    }
+
+    private func makeReviewItems(from snapshots: [OrganizationReviewSnapshot]) -> [ModerationQueueItem] {
+        snapshots.map { snapshot in
+            let organization = snapshot.organization
+            return ModerationQueueItem(contentID: organization.id, type: .organization,
+                title: organization.localizedName, summary: organization.localizedShortDescription,
+                createdAt: organization.submittedAt ?? organization.createdAt, expectedRevision: snapshot.revision,
+                submittedBy: snapshot.applicantDisplayName ?? organization.submittedByDisplayName.flatMap {
+                    let name = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                    return name.isEmpty || name == organization.submittedByUserId ? nil : name
+                }, organization: organization)
+        }
     }
 
     private func makeItems(from news: [NewsPost]) -> [ModerationQueueItem] {
@@ -328,21 +392,6 @@ final class ModerationQueueViewModel: ObservableObject {
         }
     }
 
-    private func makeItems(from organizations: [Organization]) -> [ModerationQueueItem] {
-        organizations.map {
-            ModerationQueueItem(
-                contentID: $0.id,
-                type: .organization,
-                title: $0.name,
-                summary: $0.description,
-                createdAt: $0.createdAt,
-                expectedRevision: revision($0.updatedAt),
-                submittedBy: $0.submittedByDisplayName ?? $0.submittedByUserId,
-                organization: $0
-            )
-        }
-    }
-
     private func revision(_ date: Date) -> String {
         let timestamp = Timestamp(date: date)
         return "\(timestamp.seconds):\(timestamp.nanoseconds)"
@@ -357,6 +406,7 @@ struct ModerationToolsView: View {
     @State private var pendingRejectedItem: ModerationQueueItem?
     @State private var isShowingRejectConfirmation = false
     @State private var permissionOrganization: Organization?
+    @State private var showsHistory = false
     @State private var searchText = ""
     @State private var selectedContentType: ModeratedContentType?
     @State private var sortOption: AppListSortOption = .newest
@@ -452,10 +502,20 @@ struct ModerationToolsView: View {
             subtitle: screenSubtitle,
             tabBarHidden: false
         ) {
-            moderationContent
+            if scope == .organizationRequests && requestedOrganizationID == nil && canAccessModeration {
+                Picker(AppStrings.OrganizationReview.section, selection: $showsHistory) {
+                    Text(AppStrings.OrganizationReview.pending).tag(false)
+                    Text(AppStrings.OrganizationReview.history).tag(true)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("organization.requests.mode")
+            }
+            if showsHistory && canAccessModeration { historyContent } else { moderationContent }
         }
+        .task(id: showsHistory) { if showsHistory { await viewModel.loadHistory(reset: true) } }
         .appRefreshable {
-            await viewModel.refresh()
+            guard viewModel.processingItemIDs.isEmpty else { return }
+            if showsHistory { await viewModel.loadHistory(reset: true) } else { await viewModel.refresh() }
         }
         .task {
             await loadPermissionOrganizationIfNeeded()
@@ -495,7 +555,7 @@ struct ModerationToolsView: View {
             ModerationOrganizationRequestSheet(
                 item: item,
                 isProcessing: viewModel.processingItemIDs.contains(item.id),
-                actionErrorMessage: viewModel.actionError.map(actionErrorMessage(for:)),
+                actionErrorMessage: viewModel.actionError.map { $0 == .validationFailed ? AppStrings.OrganizationReview.changed : actionErrorMessage(for: $0) },
                 approveAction: {
                     let succeeded = await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
                     if succeeded { selectedOrganizationRequest = nil }
@@ -564,6 +624,13 @@ struct ModerationToolsView: View {
 
                 moderationFilters
 
+                if scope == .organizationRequests && !searchText.isEmpty && viewModel.hasMoreRequests {
+                    InlineMessageCard(style: .info, message: AppStrings.OrganizationReview.loadedSearch)
+                    if visibleItems.isEmpty {
+                        Button(AppStrings.OrganizationReview.loadMore) { Task { await viewModel.loadMoreRequests() } }
+                            .disabled(viewModel.isLoadingMore)
+                    }
+                }
                 if visibleItems.isEmpty {
                     UnifiedEmptyStateCard(
                         systemImage: "line.3.horizontal.decrease.circle",
@@ -584,7 +651,8 @@ struct ModerationToolsView: View {
                                 item: item,
                                 isProcessing: viewModel.processingItemIDs.contains(item.id),
                                 approveAction: {
-                                    await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id)
+                                    if item.type == .organization { selectedOrganizationRequest = item }
+                                    else { await viewModel.updateStatus(for: item, to: .approved, reviewerID: authState.user?.id) }
                                 },
                                 rejectAction: {
                                     if item.type == .organization {
@@ -595,11 +663,53 @@ struct ModerationToolsView: View {
                                     }
                                 },
                                 detailsAction: item.type == .organization ? {
-                                    selectedOrganizationRequest = item
+                                    Task { selectedOrganizationRequest = await viewModel.freshReviewItem(item) }
                                 } : nil
                             )
                         }
                     }
+                    if scope == .organizationRequests && viewModel.hasMoreRequests {
+                        PrimaryActionButton(title: AppStrings.OrganizationReview.loadMore,
+                            isEnabled: !viewModel.isLoadingMore, isLoading: viewModel.isLoadingMore,
+                            systemImage: "arrow.down") { Task { await viewModel.loadMoreRequests() } }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var historyContent: some View {
+        if let error = viewModel.historyError {
+            InlineMessageCard(style: .error, message: errorMessage(for: error))
+            Button(AppStrings.Moderation.retry) { Task { await viewModel.loadHistory(reset: true) } }
+        }
+        if viewModel.isLoadingHistory && viewModel.history.isEmpty {
+            LoadingStateCard(title: AppStrings.OrganizationReview.history)
+        } else if viewModel.history.isEmpty && viewModel.historyError == nil {
+            UnifiedEmptyStateCard(systemImage: "clock.arrow.circlepath", title: AppStrings.OrganizationReview.history,
+                message: AppStrings.OrganizationReview.historyEmpty)
+        } else {
+            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                ForEach(viewModel.history) { entry in
+                    AppEditorSectionCard {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text(entry.organizationName.isEmpty ? AppStrings.Organizations.title : entry.organizationName)
+                                .font(.headline)
+                            Text(entry.status.title).foregroundStyle(AppTheme.accentPrimaryForeground)
+                            if !entry.reviewerDisplayName.isEmpty {
+                                Text(entry.reviewerDisplayName).font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                            }
+                            Text(LocalizationStore.dateString(from: entry.createdAt, timeStyle: .short)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            if !entry.reason.isEmpty { Text(entry.reason).font(.subheadline).textSelection(.enabled) }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                if viewModel.hasMoreHistory {
+                    PrimaryActionButton(title: AppStrings.OrganizationReview.loadMore,
+                        isEnabled: !viewModel.isLoadingHistory, isLoading: viewModel.isLoadingHistory,
+                        systemImage: "arrow.down") { Task { await viewModel.loadHistory() } }
                 }
             }
         }
@@ -628,6 +738,7 @@ struct ModerationToolsView: View {
                 }
 
                 AppHorizontalFilterRow {
+                    if scope != .organizationRequests {
                     Button {
                         selectedContentType = nil
                     } label: {
@@ -654,6 +765,7 @@ struct ModerationToolsView: View {
                         selection: $sortOption,
                         options: [.newest, .oldest, .nameAscending, .nameDescending]
                     )
+                    }
                 }
             }
         }
@@ -780,12 +892,11 @@ private struct ModerationItemRow: View {
                     .frame(minHeight: AppTheme.iconButtonSize)
             }
             .buttonStyle(.bordered)
+            .accessibilityIdentifier("organization.requests.open.\(item.contentID)")
             .disabled(isProcessing)
         }
 
-        if item.canReview {
-            reviewButtons
-        }
+        if item.canReview && detailsAction == nil { reviewButtons }
     }
 
     @ViewBuilder
@@ -832,139 +943,116 @@ private struct ModerationOrganizationRequestSheet: View {
     let approveAction: () async -> Void
     let revisionAction: (String) async -> Void
     let rejectAction: (String) async -> Void
-    @State private var reviewMessage = ""
-    @State private var rejectionReason = ""
-    @State private var isShowingApproveConfirmation = false
-    @State private var isShowingRejectConfirmation = false
+    @State private var decision: OrganizationReviewDecision?
+    @State private var reason = ""
+    @State private var confirmsDecision = false
+
+    private func title(for option: OrganizationReviewDecision) -> String {
+        switch option {
+        case .approve: AppStrings.Moderation.approveOrganization
+        case .requestRevision: AppStrings.Moderation.requestRevision
+        case .reject: AppStrings.Moderation.rejectRequest
+        }
+    }
+    private var decisionTitle: String { decision.map(title(for:)) ?? AppStrings.OrganizationReview.chooseDecision }
+    private var needsReason: Bool { decision == .requestRevision || decision == .reject }
+    private var valid: Bool {
+        decision != nil && (!needsReason || (!reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && reason.utf16.count <= 2000))
+    }
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                    if let organization = item.organization {
-                        OrganizationRequestPreviewContent(
-                            organization: organization,
-                            item: item
-                        )
-                    } else {
-                        requestFallbackCard
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                        if let organization = item.organization {
+                            OrganizationRequestPreviewContent(organization: organization, item: item)
+                        }
+                        if let actionErrorMessage { InlineMessageCard(style: .error, message: actionErrorMessage) }
+                        if item.canReview {
+                            AppEditorSectionCard {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    AppEditorSectionTitle(title: AppStrings.OrganizationReview.decision)
+                                    ForEach(OrganizationReviewDecision.allCases) { option in
+                                        Button { decision = option } label: {
+                                            HStack(spacing: 10) {
+                                                Image(systemName: decision == option ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                                                Text(title(for: option)).multilineTextAlignment(.leading)
+                                                    .foregroundStyle(option == .reject ? AppTheme.accentDestructiveForeground : AppTheme.textPrimary)
+                                                    .fixedSize(horizontal: false, vertical: true)
+                                                Spacer(minLength: 0)
+                                            }
+                                            .padding(10).frame(maxWidth: .infinity, minHeight: 44)
+                                            .background(decision == option ? AppTheme.accentPrimary.opacity(0.12) : AppTheme.surfaceControl.opacity(0.4),
+                                                in: RoundedRectangle(cornerRadius: AppTheme.iconButtonRadius))
+                                        }
+                                        .buttonStyle(.plain).disabled(isProcessing)
+                                        .accessibilityAddTraits(decision == option ? .isSelected : [])
+                                        .accessibilityIdentifier("organization.request.choice.\(option.rawValue)")
+                                    }
+                                    if needsReason {
+                                        Text(AppStrings.OrganizationReview.reasonHelper).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                                        TextField(AppStrings.Moderation.revisionMessage, text: $reason, axis: .vertical)
+                                            .lineLimit(3...8).textFieldStyle(.roundedBorder)
+                                            .disabled(isProcessing)
+                                            .accessibilityIdentifier("organization.request.reason")
+                                        Text("\(reason.utf16.count) / 2000").font(.caption)
+                                            .foregroundStyle(reason.utf16.count > 2000 ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
+                                    }
+                                }
+                            }
+                            .id("decision")
+                        } else {
+                            InlineMessageCard(style: .info, message: AppStrings.Moderation.organizationRequestAlreadyReviewed)
+                        }
                     }
-
+                    .padding(AppTheme.pageHorizontal).appCenteredContent()
                 }
-                .padding(AppTheme.pageHorizontal)
-                .appCenteredContent()
+                .scrollDismissesKeyboard(.interactively)
+                .onChange(of: decision) { _, _ in
+                    Task { @MainActor in
+                        await Task.yield()
+                        withAnimation { proxy.scrollTo("decision", anchor: .bottom) }
+                    }
+                }
             }
             .background(AppBackgroundView())
-            .navigationTitle(AppStrings.Moderation.organizationPreviewTitle)
+            .navigationTitle(AppStrings.OrganizationReview.request)
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .bottom) {
-                if !item.canReview {
-                    InlineMessageCard(style: .info, message: AppStrings.Moderation.organizationRequestAlreadyReviewed)
-                        .padding(AppTheme.pageHorizontal)
-                } else {
-                    reviewActionsBar
+                if item.canReview {
+                    PrimaryActionButton(title: AppStrings.OrganizationReview.confirmDecision,
+                        isEnabled: !isProcessing && valid, isLoading: isProcessing, systemImage: "checkmark.shield") {
+                        confirmsDecision = true
+                    }
+                    .accessibilityIdentifier("organization.request.confirm")
+                    .padding(AppTheme.pageHorizontal).appCenteredContent().background(.regularMaterial)
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(AppStrings.Common.cancel) {
-                        dismiss()
+                    Button(AppStrings.Common.cancel) { dismiss() }
+                        .tint(AppTheme.accentPrimaryForeground).disabled(isProcessing)
+                }
+            }
+            .interactiveDismissDisabled(isProcessing)
+            .confirmationDialog(decisionTitle, isPresented: $confirmsDecision) {
+                Button(decisionTitle, role: decision == .reject ? .destructive : nil) {
+                    Task {
+                        switch decision {
+                        case .approve: await approveAction()
+                        case .requestRevision: await revisionAction(reason)
+                        case .reject: await rejectAction(reason)
+                        case nil: break
+                        }
                     }
                 }
-            }
-            .confirmationDialog(
-                AppStrings.Moderation.approveOrganizationConfirmationTitle,
-                isPresented: $isShowingApproveConfirmation
-            ) {
-                Button(AppStrings.Moderation.confirmApproveOrganization) {
-                    Task { await approveAction() }
-                }
+                .accessibilityIdentifier("organization.request.execute")
                 Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.Moderation.approveOrganizationConfirmationMessage)
-            }
-            .confirmationDialog(
-                AppStrings.Moderation.rejectOrganizationConfirmationTitle,
-                isPresented: $isShowingRejectConfirmation
-            ) {
-                Button(AppStrings.Moderation.confirmReject, role: .destructive) {
-                    Task { await rejectAction(rejectionReason) }
-                }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                Text(AppStrings.Moderation.rejectOrganizationConfirmationMessage)
-            }
+            } message: { Text(AppStrings.OrganizationReview.confirmHelper) }
         }
     }
-
-    private var reviewActionsBar: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: 10) {
-                if let actionErrorMessage {
-                    InlineMessageCard(style: .error, message: actionErrorMessage)
-                }
-
-                PrimaryActionButton(
-                    title: AppStrings.Moderation.approveOrganization,
-                    isEnabled: !isProcessing,
-                    isLoading: isProcessing,
-                    systemImage: "checkmark.seal"
-                ) {
-                    isShowingApproveConfirmation = true
-                }
-                .accessibilityIdentifier("organization.request.approve")
-
-                TextField(AppStrings.Moderation.revisionMessage, text: $reviewMessage, axis: .vertical)
-                    .lineLimit(2...4)
-                    .textFieldStyle(.roundedBorder)
-                PrimaryActionButton(
-                    title: AppStrings.Moderation.requestRevision,
-                    isEnabled: !isProcessing && !reviewMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                    isLoading: isProcessing,
-                    systemImage: "arrow.uturn.backward"
-                ) {
-                    Task { await revisionAction(reviewMessage) }
-                }
-
-                TextField(AppStrings.Moderation.rejectionReason, text: $rejectionReason, axis: .vertical)
-                    .lineLimit(2...4)
-                    .textFieldStyle(.roundedBorder)
-                Button(role: .destructive) {
-                    isShowingRejectConfirmation = true
-                } label: {
-                    Label(AppStrings.Moderation.rejectRequest, systemImage: "trash")
-                        .font(.subheadline.weight(.semibold))
-                        .multilineTextAlignment(.center)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: AppTheme.iconButtonSize)
-                }
-                .buttonStyle(.bordered)
-                .disabled(isProcessing || rejectionReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .padding(.horizontal, AppTheme.pageHorizontal)
-        .padding(.top, 8)
-        .appCenteredContent()
-        .background(.regularMaterial)
-    }
-
-    private var requestFallbackCard: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: 10) {
-                AppEditorSectionTitle(title: item.title)
-                Text(item.summary)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                if let submittedBy = item.submittedBy {
-                    Text("\(AppStrings.Moderation.submittedBy): \(submittedBy)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-                }
-            }
-        }
-    }
-
 }
 
 private struct OrganizationRequestPreviewContent: View {
@@ -996,9 +1084,13 @@ private struct OrganizationRequestPreviewContent: View {
 
     private var applicantCard: some View {
         previewSection(title: AppStrings.Moderation.requestApplicant, systemImage: "person.text.rectangle") {
-            previewRow(AppStrings.Moderation.submittedBy, organization.submittedByDisplayName ?? item.submittedBy, systemImage: "person")
+            previewRow(AppStrings.Moderation.submittedBy, item.submittedBy ?? AppStrings.OrganizationReview.applicant, systemImage: "person")
             previewRow(AppStrings.Moderation.submittedAt, organization.submittedAt.map { LocalizationStore.dateString(from: $0) }, systemImage: "calendar")
-            previewRow(AppStrings.Moderation.submittedByUserId, organization.submittedByUserId, systemImage: "number")
+            if let uid = organization.submittedByUserId {
+                DisclosureGroup(AppStrings.OrganizationReview.technicalDetails) {
+                    Text(uid).font(.caption.monospaced()).textSelection(.enabled)
+                }
+            }
         }
     }
 

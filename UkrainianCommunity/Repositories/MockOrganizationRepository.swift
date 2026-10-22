@@ -103,13 +103,20 @@ struct MockOrganizationRepository: OrganizationRepository {
 
     func approveOrganizationRequest(id: String, reviewerID: String) async throws {
         try await store.approveOrganizationRequest(id: id, reviewerID: reviewerID)
+        await store.recordOrganizationReview(id: id, status: .approved, reason: "")
     }
 
     func requestOrganizationRevision(id: String, message: String, reviewerID: String) async throws {
         try await store.requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
+        await store.recordOrganizationReview(id: id, status: .needsRevision, reason: message)
     }
 
     func rejectOrganizationRequest(id: String, reason: String, reviewerID: String) async throws {
-        try await store.deleteOrganization(id: id)
+        try await store.rejectOrganizationRequest(id: id, reason: reason, reviewerID: reviewerID)
+        await store.recordOrganizationReview(id: id, status: .rejected, reason: reason)
+    }
+
+    func fetchOrganizationReviewHistory(limit: Int, after: OrganizationReviewHistoryCursor?) async throws -> OrganizationReviewHistoryPage {
+        await store.organizationReviewHistoryPage(limit: limit, after: after)
     }
 }

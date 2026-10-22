@@ -64,6 +64,11 @@ for additional in (False, True):
         f"related events additionalCategories={additional}"
     )
 
+REQUIRED_COMPOSITE_INDEXES[("auditLogs", "COLLECTION", (
+    ("actionType", "ASCENDING", None, None),
+    ("createdAt", "DESCENDING", None, None),
+))] = "organization review history pagination"
+
 REQUIRED_COLLECTION_GROUP_FIELDS = {
     ("contentPlanningDrafts", "publishedContentId"): "planning link lookup",
 }

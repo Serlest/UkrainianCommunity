@@ -2226,6 +2226,24 @@ enum AppStrings {
         }
     }
 
+    enum OrganizationReview {
+        static var section: String { text("organization.review.section", "Розділ заявок") }
+        static var pending: String { text("organization.review.pending", "На перевірці") }
+        static var history: String { text("organization.review.history", "Історія рішень") }
+        static var historyEmpty: String { text("organization.review.historyEmpty", "Рішень щодо заявок поки немає.") }
+        static var loadMore: String { text("organization.review.loadMore", "Показати ще") }
+        static var loadedSearch: String { text("organization.review.loadedSearch", "Пошук серед завантажених заявок. Для старіших завантажте наступну сторінку.") }
+        static var changed: String { text("organization.review.changed", "Заявку або стан її автора змінено. Закрийте заявку й оновіть список перед повторною перевіркою.") }
+        static var chooseDecision: String { text("organization.review.chooseDecision", "Обрати рішення") }
+        static var decision: String { text("organization.review.decision", "Рішення щодо заявки") }
+        static var request: String { text("organization.review.request", "Перевірка заявки") }
+        static var confirmDecision: String { text("organization.review.confirmDecision", "Підтвердити рішення") }
+        static var confirmHelper: String { text("organization.review.confirmHelper", "Статус заявки буде змінено. Автор отримає повідомлення про ваше рішення.") }
+        static var reasonHelper: String { text("organization.review.reasonHelper", "Поясніть, що потрібно виправити або чому заявку відхилено. Цей текст отримає автор. До 2000 символів.") }
+        static var applicant: String { text("organization.review.applicant", "Заявник") }
+        static var technicalDetails: String { text("organization.review.technicalDetails", "Технічні відомості") }
+    }
+
     enum Moderation {
         static var title: String { text("moderation.title", "Moderation Tools") }
         static var subtitle: String { text("moderation.subtitle", "Review pending community content before it becomes visible to everyone.") }

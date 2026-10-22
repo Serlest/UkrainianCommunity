@@ -23,6 +23,7 @@ const organizationIds = [
 before(async () => {
   if (!shouldRun) return;
   await cleanup();
+  await db.collection("users").doc(actorUserId).set({globalRole: "owner", accountStatus: "active", blockState: "active", displayName: "Audit reviewer"});
   await db.collection("users").doc(submitterUserId).set({
     accountStatus: "active",
     blockState: "active",
@@ -177,4 +178,55 @@ test("repeated revision cycles create fresh inbox records instead of overwriting
   for (const id of [first.notificationId, second.notificationId]) {
     assert.equal((await db.collection("users").doc(submitterUserId).collection("notificationInbox").doc(id).get()).exists, true);
   }
+});
+
+test("deleted applicants cannot become owners", {skip: !shouldRun}, async () => {
+  const ref = db.collection("organizations").doc("org-deleted-applicant-audit");
+  await ref.set({name: "Orphan request", submittedByUserId: "missing-applicant-audit", moderationStatus: "pendingReview"});
+  await assert.rejects(() => commitOrganizationReview(actorUserId, {organizationId: ref.id}, approveOrganizationWorkflow),
+    (e: unknown) => (e as {code?: string}).code === "failed-precondition");
+  assert.equal((await ref.get()).get("moderationStatus"), "pendingReview");
+  assert.equal((await ref.get()).get("ownerId"), undefined);
+  await ref.delete();
+});
+
+test("exact revisions reject stale decisions and concurrent retries write only once", {skip: !shouldRun}, async () => {
+  const {Timestamp} = await import("firebase-admin/firestore");
+  const ref = db.collection("organizations").doc("org-concurrent-review-audit");
+  await ref.set({name: "Concurrent request", submittedByUserId: submitterUserId, moderationStatus: "pendingReview", updatedAt: new Timestamp(1790000000, 123456000)});
+  await assert.rejects(() => commitOrganizationReview(actorUserId, {organizationId: ref.id, expectedRevision: "1790000000:123456700"}, approveOrganizationWorkflow),
+    (e: unknown) => (e as {code?: string}).code === "aborted");
+  const request = {organizationId: ref.id, expectedRevision: "1790000000:123456000", operationId: "review-idempotent-audit"};
+  const results = await Promise.all([commitOrganizationReview(actorUserId, request, approveOrganizationWorkflow), commitOrganizationReview(actorUserId, request, approveOrganizationWorkflow)]);
+  assert.equal(results[0].notificationId, results[1].notificationId);
+  assert.equal((await commitOrganizationReview(actorUserId, request, approveOrganizationWorkflow)).notificationId, results[0].notificationId);
+  await assert.rejects(() => commitOrganizationReview(actorUserId, {...request, operationId: "other-decision"}, rejectOrganizationWorkflow, "Conflict"));
+  assert.equal((await db.collection("auditLogs").where("newValue.organizationId", "==", ref.id).get()).size, 1);
+  await ref.delete();
+});
+
+test("review transaction rechecks revoked privileges", {skip: !shouldRun}, async () => {
+  const ref = db.collection("organizations").doc("org-revoked-reviewer-audit");
+  await ref.set({name: "Protected request", submittedByUserId: submitterUserId, moderationStatus: "pendingReview"});
+  await db.collection("users").doc("revoked-reviewer-audit").set({globalRole: "user", accountStatus: "active", blockState: "active"});
+  await assert.rejects(() => commitOrganizationReview("revoked-reviewer-audit", {organizationId: ref.id}, approveOrganizationWorkflow),
+    (e: unknown) => (e as {code?: string}).code === "permission-denied");
+  assert.equal((await ref.get()).get("moderationStatus"), "pendingReview");
+  await ref.delete();
+});
+
+test("history preserves repeated decisions and pages equal timestamps", {skip: !shouldRun}, async () => {
+  const {Timestamp} = await import("firebase-admin/firestore");
+  const {organizationReviewHistoryPage} = await import("./approvalWorkflow");
+  const ids = ["history-audit-a", "history-audit-b", "history-audit-c"];
+  for (const id of ids) await db.collection("auditLogs").doc(id).set({actionType: "organizationRequestNeedsRevision", createdAt: new Timestamp(2900000000, 123456000), reason: id, newValue: {organizationId: "same-org", organizationName: "Historical name", moderationStatus: "needsRevision"}});
+  try {
+    const first = await organizationReviewHistoryPage(2);
+    assert.deepEqual(first.items.map((v) => v.id), ["history-audit-c", "history-audit-b"]);
+    assert.ok(first.nextCursor);
+    const second = await organizationReviewHistoryPage(2, first.nextCursor!);
+    assert.equal(second.items[0].id, "history-audit-a");
+    assert.equal(first.items[0].organizationName, "Historical name");
+    assert.equal(first.nextCursor?.nanoseconds, 123456000);
+  } finally { await Promise.all(ids.map((id) => db.collection("auditLogs").doc(id).delete())); }
 });

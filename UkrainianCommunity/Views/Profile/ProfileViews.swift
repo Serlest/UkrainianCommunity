@@ -421,6 +421,10 @@ struct ProfileView: View {
             guard authState.isAuthenticated else { return }
             registrationsViewModel.synchronize(with: eventsViewModel.events)
         }
+        .onChange(of: notificationInboxViewModel.unreadCount) { _, _ in
+            guard canShowOrganizationRequests else { return }
+            Task { await ownerVisibilityViewModel.refreshOrganizationRequests() }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             guard authState.isAuthenticated else { return }
             Task {

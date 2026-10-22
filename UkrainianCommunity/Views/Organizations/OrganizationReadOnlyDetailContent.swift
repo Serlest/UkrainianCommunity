@@ -248,7 +248,7 @@ struct OrganizationReadOnlyDetailContent: View {
 
     private var detailedLocationText: String? {
         let city = organization.city.trimmingCharacters(in: .whitespacesAndNewlines)
-        let federalState = organization.federalState?.rawValue
+        let federalState = organization.federalState?.displayName
         if !city.isEmpty, let federalState {
             return "\(city), \(federalState)"
         }

@@ -300,6 +300,54 @@ final class OwnerProfileAuditUITests: XCTestCase {
     }
 
     @MainActor
+    func testOrganizationReviewDecisionAndHistoryInBothLanguages() {
+        for language in ["uk", "de"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing"]
+            app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestResetUserSettings": "1",
+                "UITestResetAppLock": "1", "UITestAppLanguage": language, "UITestOrganizationReview": "1",
+                "UITestAppAppearance": language == "de" ? "dark" : "light"]
+            if language == "de" {
+                app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
+            }
+            app.launch()
+            let profile = app.tabBars.buttons.element(boundBy: 4)
+            XCTAssertTrue(profile.waitForExistence(timeout: 15)); profile.tap()
+            let requests = app.buttons["profile.organizationRequests"]
+            reveal(requests, in: app); requests.tap()
+            let open = app.buttons["organization.requests.open.audit-review-0"]
+            XCTAssertTrue(open.waitForExistence(timeout: 10))
+            capture(app, "organization-queue-" + language)
+            open.tap()
+            let decision = app.buttons["organization.request.choice.requestRevision"]
+            reveal(decision, in: app)
+            for _ in 0..<5 {
+                if decision.frame.maxY < app.frame.height * 0.75 { break }
+                app.swipeUp()
+            }
+            XCTAssertFalse(app.buttons["organization.request.confirm"].isEnabled)
+            capture(app, "organization-decision-" + language)
+            decision.tap()
+            let revise = language == "uk" ? "Повернути на доопрацювання" : "Zur Überarbeitung zurückgeben"
+            let reason = app.textFields["organization.request.reason"]
+            XCTAssertTrue(reason.waitForExistence(timeout: 5))
+            reveal(reason, in: app); reason.tap(); reason.typeText("Please add contact details.")
+            capture(app, "organization-reason-" + language)
+            let confirm = app.buttons["organization.request.confirm"]
+            XCTAssertTrue(confirm.isEnabled); confirm.tap()
+            let execute = app.buttons.matching(identifier: "organization.request.execute")
+                .matching(NSPredicate(format: "label == %@", revise)).firstMatch
+            XCTAssertTrue(execute.waitForExistence(timeout: 5)); execute.tap()
+            XCTAssertTrue(open.waitForNonExistence(timeout: 8))
+            let history = app.segmentedControls.buttons[language == "uk" ? "Історія рішень" : "Entscheidungsverlauf"]
+            XCTAssertTrue(history.waitForExistence(timeout: 5)); history.tap()
+            XCTAssertTrue(app.staticTexts["Please add contact details."].waitForExistence(timeout: 8))
+            capture(app, "organization-history-" + language)
+            app.terminate()
+        }
+    }
+
+    @MainActor
     private func launch(language: String = "uk", darkLarge: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
