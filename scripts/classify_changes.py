@@ -16,7 +16,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parent.parent
 FUNCTION_INTEGRATIONS = (
     "retention", "notifications", "comments", "system-logs",
     "scheduled-publishing", "organizations", "platform-roles",
-    "presence", "counters", "analytics-cutover", "directory", "translation",
+    "presence", "counters", "analytics-cutover", "directory", "translation", "publication-control",
 )
 FUNCTION_INTEGRATION_ROOTS = {
     "functions/src/analytics/": ("analytics-cutover",),
@@ -24,6 +24,7 @@ FUNCTION_INTEGRATION_ROOTS = {
     "functions/src/contentPlanning/": ("scheduled-publishing",),
     "functions/src/counters/": ("counters",),
     "functions/src/directory/": ("directory",),
+    "functions/src/publicationControl/": ("publication-control",),
     "functions/src/notifications/": ("notifications",),
     "functions/src/organizations/": ("organizations", "translation"),
     "functions/src/safety/": ("comments",),

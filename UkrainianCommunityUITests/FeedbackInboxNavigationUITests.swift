@@ -532,7 +532,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
             ("profile.organizationManagement", "Керування організаціями"),
             ("profile.userManagement", "Керування користувачами"),
             ("profile.directoryEditors", "Доступ до редагування довідника"),
-            ("profile.contentPlanning", "Планування контенту"),
+            ("profile.contentPlanning", "Контроль публікацій"),
             ("profile.featuredBanners", "Рекомендований контент"),
             ("profile.announcements", "Оповіщення користувачів"),
             ("profile.owner.analytics", "Аналітика"),

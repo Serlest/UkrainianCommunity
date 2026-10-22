@@ -24,6 +24,19 @@ enum MockContentBuilder {
     }
 
     @MainActor
+    static func publicationControlFixture() -> PublicationControlAPI? {
+#if DEBUG && targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestPublicationControl"] == "1" else { return nil }
+        let now = Date.now.timeIntervalSince1970 * 1000
+        let run = PublicationControlRun(id: "test-run", kind: "news", region: "wien", runId: "news-fixture", status: "partial", endedAt: now - 3600000, timestampBasis: "reportCompletedAt", published: 2, candidates: 8, rejected: 6, sourcesExpected: 11, sourcesChecked: 9, issues: [.init(code: "restrictedSource", detail: "The source required authentication; no article was published from inaccessible evidence.")], issueCount: 1, publicationOnly: false)
+        let rows = [PublicationControlItem(id: "news_news-1", kind: "news", contentId: "news-1", titleUK: "Довгий заголовок новини: зміни та корисна інформація для української громади у Відні", titleDE: "Ein ausführlicher Nachrichtentitel: Änderungen und wichtige Informationen für die ukrainische Gemeinschaft in Wien", region: "wien", firstPublicAt: now, sourceState: "approved", timingSource: "creation")]
+        return PublicationControlAPI(overview: { _, day in .init(day: day, serverTime: now, news: 2, events: 1, regions: [.init(region: "austria", news: 1, events: 0), .init(region: "wien", news: 1, events: 1)], sources: [run], syncedAt: now) }, items: { _, _, region, _ in .init(items: rows.filter { region == nil || $0.region == region }, cursor: nil, total: 1) }, runs: { _, _ in .init(runs: [run], cursor: nil) })
+#else
+        return nil
+#endif
+    }
+
+    @MainActor
     static func directoryAccessFixture() -> (users: DirectoryEditorCandidatesStore, access: DirectoryEditorAccessStore)? {
 #if DEBUG && targetEnvironment(simulator)
         guard ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestDirectoryAccess"] == "1" else { return nil }

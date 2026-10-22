@@ -298,3 +298,5 @@ export {listFeedbackInbox, maintainFeedbackInboxIndex} from "./feedback/feedback
 export {manageOrganizationWorkspace, maintainOrganizationWorkspaceIndex} from "./organizations/managementWorkspace";
 
 export {manageUserDirectory} from "./users/userDirectory";
+
+export * from "./publicationControl/publicationControl";

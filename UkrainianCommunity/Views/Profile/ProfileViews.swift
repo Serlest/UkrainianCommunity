@@ -618,7 +618,14 @@ struct ProfileView: View {
                 organizationRepository: organizationRepository
             )
         case let .contentPlanning(draftID):
-            if PermissionService.isAppOwner(user: permissionUser) {
+            if PermissionService.isAppOwner(user: permissionUser), draftID == nil {
+                PublicationControlView { kind, contentID in
+                    switch kind {
+                    case .news: navigationPath.append(.contentPlanningNews(id: contentID))
+                    case .event: navigationPath.append(.contentPlanningEvent(id: contentID))
+                    }
+                }
+            } else if PermissionService.isAppOwner(user: permissionUser) {
                 OwnerContentPlanningView(
                     draftRepository: ownerContentDraftRepository,
                     newsRepository: newsRepository,
@@ -1123,8 +1130,8 @@ struct ProfileView: View {
         }
         ProfileSectionCard(title: OwnerProfileText.contentTitle) {
             VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                profileLink(.contentPlanning(draftID: nil), title: AppStrings.ContentPlanning.title,
-                          subtitle: AppStrings.ContentPlanning.profileSubtitle, icon: "calendar.badge.clock", id: "profile.contentPlanning")
+                profileLink(.contentPlanning(draftID: nil), title: PublicationControlText.title,
+                          subtitle: PublicationControlText.subtitle, icon: "calendar.badge.clock", id: "profile.contentPlanning")
                 profileLink(.featuredBannerManagement, title: AppStrings.FeaturedManagement.profileEntryTitle,
                           subtitle: AppStrings.FeaturedManagement.profileEntrySubtitle, icon: "sparkles.rectangle.stack", id: "profile.featuredBanners")
                 profileLink(.announcementManagement, title: AnnouncementStrings.title,

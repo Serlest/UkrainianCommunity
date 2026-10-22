@@ -1952,6 +1952,8 @@
     }
   ],
   "fieldOverrides": [
+    {"collectionGroup": "publicationControlRuns", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
+    {"collectionGroup": "publicationControlItems", "fieldPath": "expiresAt", "ttl": true, "indexes": []},
     {
       "collectionGroup": "directoryEditorOperations",
       "fieldPath": "expiresAt",

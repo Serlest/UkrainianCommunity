@@ -223,6 +223,11 @@ jobs:
         working-directory: functions
         run: npm run test:directory:integration
 
+      - name: Run publication control integration test
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'publication-control')
+        working-directory: functions
+        run: npm run test:publication-control:integration
+
       - name: Run paid translation access integration test
         if: contains(fromJSON(needs.changes.outputs.integrations), 'translation')
         working-directory: functions
