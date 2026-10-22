@@ -130,3 +130,8 @@ extension OrganizationRealtimeRepository {
         onChange: @escaping @MainActor (Organization) -> Void,
         onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener? { nil }
 }
+
+protocol FeedbackRecordsRealtimeRepository {
+    func listenFeedbackRecords(ids: [String], onChange: @escaping @MainActor ([FeedbackItem]) -> Void,
+                               onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener
+}

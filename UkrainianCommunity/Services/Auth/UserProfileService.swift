@@ -645,6 +645,22 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         try await collection.document(feedback.id).setData(data)
     }
 
+    func fetchOwnerInbox(query: FeedbackInboxQuery, after: FeedbackInboxCursor?) async throws -> FeedbackInboxPage {
+        do {
+            struct Request: Encodable { let filter: String; let search: String; let oldest: Bool; let principalId: String; let cursor: FeedbackInboxCursor? }
+            struct Response: Decodable { let ids: [String]; let counts: [String: Int]; let cursor: FeedbackInboxCursor? }
+            guard Auth.auth().currentUser?.uid == query.principalID else { throw AppError.permissionDenied }
+            let result: Response = try await CloudFunctionsClient.shared.call(.listFeedbackInbox,
+                request: Request(filter: query.filter, search: query.search, oldest: query.oldest, principalId: query.principalID, cursor: after))
+            guard Auth.auth().currentUser?.uid == query.principalID else { throw AppError.permissionDenied }
+            guard !result.ids.isEmpty else { return .init(items: [], counts: result.counts, cursor: result.cursor) }
+            let snapshot = try await collection.whereField(FieldPath.documentID(), in: result.ids).getDocuments()
+            let byID = Dictionary(uniqueKeysWithValues: snapshot.documents.map { ($0.documentID, makeFeedbackItem(from: $0)) })
+            return .init(items: result.ids.compactMap { byID[$0] }, counts: result.counts, cursor: result.cursor)
+        } catch { throw Self.appError(from: error) }
+    }
+
+
     func fetchFeedback() async throws -> [FeedbackItem] {
         try await fetchFeedbackPage(userID: nil, after: nil, limit: 100).items
     }
@@ -663,7 +679,7 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             .order(by: "createdAt", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.id])
+            query = query.start(after: [Self.cursorTimestamp(cursor), cursor.id])
         }
 
         let snapshot = try await query.limit(to: pageSize + 1).getDocuments()
@@ -671,7 +687,7 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         let items = pageDocuments.map { makeFeedbackItem(from: $0) }
         return FeedbackPage(
             items: items,
-            nextCursor: items.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id) },
+            nextCursor: items.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id, revision: Self.revision(pageDocuments.last?.get("createdAt") as? Timestamp)) },
             hasMore: snapshot.documents.count > pageSize
         )
     }
@@ -705,14 +721,14 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             .order(by: "createdAt", descending: true)
             .order(by: FieldPath.documentID(), descending: true)
         if let cursor {
-            query = query.start(after: [Timestamp(date: cursor.createdAt), cursor.id])
+            query = query.start(after: [Self.cursorTimestamp(cursor), cursor.id])
         }
         let snapshot = try await query.limit(to: pageSize + 1).getDocuments()
         let pageDocuments = Array(snapshot.documents.prefix(pageSize))
         let descendingItems = pageDocuments.map { makeFeedbackMessage(from: $0, feedbackID: feedback.id) }
         return FeedbackMessagePage(
             items: Array(descendingItems.reversed()),
-            nextCursor: descendingItems.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id) },
+            nextCursor: descendingItems.last.map { FeedbackPageCursor(createdAt: $0.createdAt, id: $0.id, revision: Self.revision(pageDocuments.last?.get("createdAt") as? Timestamp)) },
             hasMore: snapshot.documents.count > pageSize
         )
     }
@@ -802,15 +818,34 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
     }
 
     func decideDsaCase(_ request: DsaDecisionFunctionRequest) async throws {
-        _ = try await CloudFunctionsClient.shared.decideDsaCase(request)
+        do {
+            _ = try await CloudFunctionsClient.shared.decideDsaCase(request)
+        } catch { throw Self.appError(from: error) }
     }
 
     func decideDsaAppeal(_ request: DsaAppealDecisionFunctionRequest) async throws {
-        _ = try await CloudFunctionsClient.shared.decideDsaAppeal(request)
+        do {
+            _ = try await CloudFunctionsClient.shared.decideDsaAppeal(request)
+        } catch { throw Self.appError(from: error) }
     }
 
     func submitDsaAppeal(_ request: DsaAppealSubmissionFunctionRequest) async throws {
-        _ = try await CloudFunctionsClient.shared.submitDsaAppeal(request)
+        do {
+            _ = try await CloudFunctionsClient.shared.submitDsaAppeal(request)
+        } catch { throw Self.appError(from: error) }
+    }
+
+    private static func revision(_ timestamp: Timestamp?) -> String? {
+        timestamp.map { "\($0.seconds):\($0.nanoseconds)" }
+    }
+    private static func cursorTimestamp(_ cursor: FeedbackPageCursor) -> Timestamp {
+        if let revision = cursor.revision {
+            let parts = revision.split(separator: ":")
+            if parts.count == 2, let seconds = Int64(parts[0]), let nanos = Int32(parts[1]) {
+                return Timestamp(seconds: seconds, nanoseconds: nanos)
+            }
+        }
+        return Timestamp(date: cursor.createdAt)
     }
 
     private func makeFeedbackItem(from document: DocumentSnapshot) -> FeedbackItem {
@@ -839,7 +874,8 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
             unreadForUser: data["unreadForUser"] as? Bool ?? false,
             reportContext: makeContentReportContext(from: data["reportContext"]),
             occurrenceCount: max(1, (data["occurrenceCount"] as? NSNumber)?.intValue ?? 1),
-            dsaCase: makeDsaCaseSummary(from: data["dsaCase"])
+            dsaCase: makeDsaCaseSummary(from: data["dsaCase"]),
+            revision: Self.revision(data["updatedAt"] as? Timestamp)
         )
     }
 
@@ -1110,12 +1146,18 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
     }
 
     private static func appError(from error: Error) -> AppError {
+        if let error = error as? AppError { return error }
         let nsError = error as NSError
-        if nsError.domain == FirestoreErrorDomain,
-           nsError.code == FirestoreErrorCode.permissionDenied.rawValue {
-            return .permissionDenied
+        if nsError.domain == FirestoreErrorDomain || nsError.domain == FunctionsErrorDomain {
+            switch nsError.code {
+            case 7, 16: return .permissionDenied
+            case 5: return .notFound
+            case 3, 9, 10: return .validationFailed
+            case 4, 8, 14: return .network
+            default: return .unknown
+            }
         }
-        return .network
+        return nsError.domain == NSURLErrorDomain ? .network : .unknown
     }
 
     private static func logListenerFailure(
@@ -1140,5 +1182,17 @@ extension FirestoreFeedbackRepository: FeedbackRealtimeRepository {
                 )
             )
         }
+    }
+}
+
+extension FirestoreFeedbackRepository: FeedbackRecordsRealtimeRepository {
+    func listenFeedbackRecords(ids: [String], onChange: @escaping @MainActor ([FeedbackItem]) -> Void,
+                               onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener {
+        let registration = collection.whereField(FieldPath.documentID(), in: ids).addSnapshotListener { snapshot, error in
+            if let error { Task { @MainActor in onError(Self.appError(from: error)) }; return }
+            let records = snapshot?.documents.map { makeFeedbackItem(from: $0) } ?? []
+            Task { @MainActor in onChange(records) }
+        }
+        return FirebaseRealtimeListener(registration)
     }
 }

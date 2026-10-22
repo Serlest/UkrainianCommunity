@@ -125,6 +125,7 @@ protocol OwnerContentDraftRepository {
 struct FeedbackPageCursor: Equatable {
     let createdAt: Date
     let id: String
+    var revision: String? = nil
 }
 
 struct FeedbackPage {
@@ -260,6 +261,8 @@ struct PendingFeedbackOperationBuffer {
 }
 
 protocol FeedbackRepository {
+    func fetchOwnerInbox(query: FeedbackInboxQuery, after: FeedbackInboxCursor?) async throws -> FeedbackInboxPage
+
     func submitFeedback(_ feedback: FeedbackItem) async throws
     func fetchFeedback() async throws -> [FeedbackItem]
     func fetchFeedback(userID: String) async throws -> [FeedbackItem]
@@ -1091,5 +1094,54 @@ extension OrganizationRepository {
         case .requestRevision: try await requestOrganizationRevision(id: id, message: message, reviewerID: reviewerID)
         case .reject: try await rejectOrganizationRequest(id: id, reason: message, reviewerID: reviewerID)
         }
+    }
+}
+
+nonisolated enum FeedbackMessageHistory {
+    static func merge(_ existing: [FeedbackMessage], _ incoming: [FeedbackMessage]) -> [FeedbackMessage] {
+        var byID = Dictionary(existing.map { ($0.id, $0) }, uniquingKeysWith: { _, last in last })
+        incoming.forEach { byID[$0.id] = $0 }
+        let stored = byID.values.filter { !$0.id.hasSuffix("_legacy_owner_reply") && !$0.id.hasSuffix("_initial") }
+        return byID.values.filter { message in
+            guard message.id.hasSuffix("_legacy_owner_reply") || message.id.hasSuffix("_initial") else { return true }
+            return !stored.contains { $0.senderRole == message.senderRole && $0.text == message.text
+                && abs($0.createdAt.timeIntervalSince(message.createdAt)) < 0.001 }
+        }.sorted { $0.createdAt == $1.createdAt ? $0.id < $1.id : $0.createdAt < $1.createdAt }
+    }
+}
+
+nonisolated struct FeedbackInboxCursor: Codable, Equatable {
+    let seconds: Int64
+    let nanoseconds: Int32
+    let id: String
+}
+struct FeedbackInboxQuery: Equatable {
+    var filter = "open"
+    var search = ""
+    var oldest = false
+    var principalID = ""
+}
+struct FeedbackInboxPage {
+    let items: [FeedbackItem]
+    let counts: [String: Int]
+    let cursor: FeedbackInboxCursor?
+}
+extension FeedbackRepository {
+    func fetchOwnerInbox(query: FeedbackInboxQuery, after: FeedbackInboxCursor?) async throws -> FeedbackInboxPage {
+        let matching = try await fetchFeedback().filter { item in
+            LocalSearchMatcher.matches(query: query.search,
+                values: [item.id, item.userId, item.userDisplayName, item.subject, item.message, item.lastMessageText])
+        }
+        func bucket(_ item: FeedbackItem) -> String { item.status.isClosed ? "closed" : item.status.isAnswered ? "answered" : "open" }
+        let counts = Dictionary(grouping: matching, by: bucket).mapValues(\.count)
+        let rows = matching.filter { bucket($0) == query.filter }.sorted {
+            let l = $0.lastMessageAt ?? $0.updatedAt, r = $1.lastMessageAt ?? $1.updatedAt
+            return l == r ? (query.oldest ? $0.id < $1.id : $0.id > $1.id) : (query.oldest ? l < r : l > r)
+        }
+        let start = after.flatMap { cursor in rows.firstIndex { $0.id == cursor.id }.map { $0 + 1 } } ?? 0
+        let page = Array(rows.dropFirst(start).prefix(30))
+        return FeedbackInboxPage(items: page, counts: counts, cursor: start + page.count < rows.count ? page.last.map {
+            FeedbackInboxCursor(seconds: Int64(($0.lastMessageAt ?? $0.updatedAt).timeIntervalSince1970), nanoseconds: 0, id: $0.id)
+        } : nil)
     }
 }

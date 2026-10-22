@@ -591,6 +591,7 @@ export const decideDsaCase = onCall(
   callableOptions,
   async (request) => {
     const actor = await requireVerifiedActiveUser(request);
+    if (request.data?.principalId !== undefined && request.data.principalId !== actor.uid) throw new HttpsError("permission-denied", "Account changed.");
     assertOwner(actor.permissions);
     const decisionInput = parseDsaDecision(request.data);
     const caseReference = db.collection("dsaCases").doc(decisionInput.reportId);
@@ -641,7 +642,7 @@ export const decideDsaCase = onCall(
         };
       }
       if (decisionInput.expectedRevision &&
-          timestampRevision(feedbackSnapshot.get("updatedAt")) !== decisionInput.expectedRevision) {
+          !dsaRevisionMatches(feedbackSnapshot.get("updatedAt"), decisionInput.expectedRevision, request.data.revisionFormat)) {
         throw new HttpsError("aborted", "The DSA case changed after this decision screen was loaded.");
       }
       if (!['submitted', 'underReview'].includes(String(data.status))) {
@@ -777,6 +778,7 @@ export const submitDsaAppeal = onCall(
   callableOptions,
   async (request) => {
     const actor = await requireVerifiedActiveUser(request);
+    if (request.data?.principalId !== undefined && request.data.principalId !== actor.uid) throw new HttpsError("permission-denied", "Account changed.");
     if (!isRecord(request.data)) throw new HttpsError("invalid-argument", "Appeal data is required.");
     const reportId = requiredString(request.data.reportId, "reportId", 200);
     const reason = requiredString(request.data.reason, "reason", 5_000);
@@ -811,7 +813,7 @@ export const submitDsaAppeal = onCall(
           replayed: true,
         };
       }
-      if (expectedRevision && timestampRevision(feedbackSnapshot.get("updatedAt")) !== expectedRevision) {
+      if (expectedRevision && !dsaRevisionMatches(feedbackSnapshot.get("updatedAt"), expectedRevision, request.data.revisionFormat)) {
         throw new HttpsError("aborted", "The DSA case changed after this appeal screen was loaded.");
       }
       const decision = isRecord(data.decision) ? data.decision : {};
@@ -867,6 +869,7 @@ export const getMyDsaStatement = onCall(
   callableOptions,
   async (request) => {
     const actor = await requireVerifiedActiveUser(request);
+    if (request.data?.principalId !== undefined && request.data.principalId !== actor.uid) throw new HttpsError("permission-denied", "Account changed.");
     if (!isRecord(request.data)) throw new HttpsError("invalid-argument", "Statement request is required.");
     const reportId = requiredString(request.data.reportId, "reportId", 200);
     const snapshot = await db.collection("dsaCases").doc(reportId).get();
@@ -905,6 +908,7 @@ export const decideDsaAppeal = onCall(
   callableOptions,
   async (request) => {
     const actor = await requireVerifiedActiveUser(request);
+    if (request.data?.principalId !== undefined && request.data.principalId !== actor.uid) throw new HttpsError("permission-denied", "Account changed.");
     assertOwner(actor.permissions);
     if (!isRecord(request.data)) throw new HttpsError("invalid-argument", "Appeal decision is required.");
     const reportId = requiredString(request.data.reportId, "reportId", 200);
@@ -940,7 +944,7 @@ export const decideDsaAppeal = onCall(
           decidedAt: appeal.decidedAt as Timestamp,
         };
       }
-      if (expectedRevision && timestampRevision(feedbackSnapshot.get("updatedAt")) !== expectedRevision) {
+      if (expectedRevision && !dsaRevisionMatches(feedbackSnapshot.get("updatedAt"), expectedRevision, request.data.revisionFormat)) {
         throw new HttpsError("aborted", "The DSA case changed after this appeal screen was loaded.");
       }
       if (!snapshot.exists || !feedbackSnapshot.exists || appeal.status !== "pending") {
@@ -1080,3 +1084,15 @@ export const decideDsaAppeal = onCall(
     };
   }
 );
+
+/** Installed clients lose sub-microsecond precision through NSDate. Firestore stores
+ * whole microseconds; half a microsecond cannot accept a different stored revision.
+ * New clients transmit the original Timestamp and request strict comparison. */
+export function dsaRevisionMatches(value: unknown, revision: string, format?: unknown): boolean {
+  const stored = timestampRevision(value);
+  if (stored === revision) return true;
+  if (format === "exact" || !stored || !/^\d+:\d+$/.test(revision)) return false;
+  const [s, n] = stored.split(":").map(BigInt); const [rs, rn] = revision.split(":").map(BigInt);
+  const delta = (s - rs) * 1_000_000_000n + n - rn;
+  return rn < 1_000_000_000n && delta >= -500n && delta <= 500n;
+}

@@ -11,7 +11,11 @@ extension MockContentBuilder {
             userId: currentUser().id, userDisplayName: "Olena", ownerReply: nil,
             repliedAt: nil, repliedByUserId: nil, lastMessageText: nil,
             lastMessageAt: nil, lastMessageByUserId: nil, lastMessageByRole: nil,
-            unreadForOwner: false, unreadForUser: false
+            unreadForOwner: false, unreadForUser: false,
+            reportContext: ProcessInfo.processInfo.environment["UITestFeedbackReportContext"] == "1" ? .init(
+                targetType: .news, targetId: "news-1", parentType: nil, parentId: nil, targetAuthorId: nil,
+                targetTitle: newsPosts()[0].title, targetExcerpt: "Full reported article context", reason: .spam, isUrgent: false,
+                slaDueAt: .now.addingTimeInterval(86_400)) : nil
         )]
     }
 }

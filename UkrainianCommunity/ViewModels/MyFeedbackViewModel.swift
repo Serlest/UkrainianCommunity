@@ -229,7 +229,7 @@ final class MyFeedbackViewModel: ObservableObject {
         defer { sendingMessageFeedbackIDs.remove(feedback.id) }
         let attempt: (operationID: String, expectedRevision: String)
         let timestamp = Timestamp(date: feedback.updatedAt)
-        let expectedRevision = "\(timestamp.seconds):\(timestamp.nanoseconds)"
+        let expectedRevision = feedback.revision ?? "\(timestamp.seconds):\(timestamp.nanoseconds)"
         if let existing = pendingDsaAppealAttempts[feedback.id], existing.expectedRevision == expectedRevision {
             attempt = existing
         } else {
@@ -241,7 +241,8 @@ final class MyFeedbackViewModel: ObservableObject {
                 reportId: feedback.id,
                 reason: reason,
                 operationId: attempt.operationID,
-                expectedRevision: attempt.expectedRevision
+                expectedRevision: attempt.expectedRevision,
+                revisionFormat: feedback.revision == nil ? nil : "exact", principalId: userID
             ))
             pendingDsaAppealAttempts[feedback.id] = nil
             guard activeUserID == userID else { return false }
@@ -261,8 +262,6 @@ final class MyFeedbackViewModel: ObservableObject {
     }
 
     private func mergeMessages(_ newItems: [FeedbackMessage], feedbackID: String) {
-        var byID = Dictionary(uniqueKeysWithValues: (messagesByFeedbackID[feedbackID] ?? []).map { ($0.id, $0) })
-        newItems.forEach { byID[$0.id] = $0 }
-        messagesByFeedbackID[feedbackID] = byID.values.sorted { $0.createdAt == $1.createdAt ? $0.id < $1.id : $0.createdAt < $1.createdAt }
+        messagesByFeedbackID[feedbackID] = FeedbackMessageHistory.merge(messagesByFeedbackID[feedbackID] ?? [], newItems)
     }
 }

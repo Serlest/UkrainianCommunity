@@ -582,13 +582,7 @@ struct FeedbackInboxView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var filteredItems: [FeedbackItem] {
-        return viewModel.items.filter { item in
-            selectedFilter.includes(item)
-                && LocalSearchMatcher.matches(
-                    query: searchText,
-                    values: [item.userDisplayName, item.userId, item.type.title, item.message, item.lastMessageText, item.id]
-                )
-        }.sorted(by: feedbackSort)
+        viewModel.items.filter { selectedFilter.includes($0) }
     }
 
     init(
@@ -640,9 +634,13 @@ struct FeedbackInboxView: View {
         .navigationTitle(AppStrings.Feedback.inboxTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
-        .task(id: "\(authState.user?.id ?? ""):\(initialFeedbackID ?? "")") {
+        .task(id: "\(authState.user?.id ?? ""):\(initialFeedbackID ?? ""):\(selectedFilter.rawValue):\(searchText):\(sortOption)") {
             guard let actorID = authState.user?.id else { viewModel.reset(); return }
-            await viewModel.loadIfNeeded(actorID: actorID)
+            if !searchText.isEmpty {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+            }
+            await viewModel.configure(actorID: actorID, filter: selectedFilter.rawValue, search: searchText, oldest: sortOption == .oldest)
             guard let initialFeedbackID else { return }
             let initialKey = "\(actorID):\(initialFeedbackID)"
             guard handledInitialFeedbackID != initialKey else { return }
@@ -650,6 +648,9 @@ struct FeedbackInboxView: View {
                 handledInitialFeedbackID = initialKey
                 open(item, actorID: actorID)
             }
+        }
+        .onChange(of: authState.user?.id) { _, _ in
+            viewModel.reset(); selectedFeedback = nil; dsaDecisionItem = nil; feedbackPendingDeletion = nil
         }
         .appRefreshable {
             guard let actorID = authState.user?.id else { return }
@@ -753,6 +754,10 @@ struct FeedbackInboxView: View {
 
     @ViewBuilder
     private var inboxContent: some View {
+        if let actionError = viewModel.actionError {
+            InlineMessageCard(style: .error, message: feedbackActionErrorMessage(actionError))
+                .accessibilityIdentifier("feedbackInbox.actionError")
+        }
         if viewModel.isLoading && viewModel.items.isEmpty {
             LoadingStateCard(title: AppStrings.Feedback.inboxTitle)
         } else if let error = viewModel.error, viewModel.items.isEmpty {
@@ -914,7 +919,7 @@ struct FeedbackInboxView: View {
     }
 
     private func filterTitle(_ filter: FeedbackInboxFilter) -> String {
-        "\(filter.title) \(viewModel.items.filter { filter.includes($0) }.count)"
+        "\(filter.title) \(viewModel.counts[filter.rawValue] ?? 0)"
     }
 
     private func feedbackSort(_ lhs: FeedbackItem, _ rhs: FeedbackItem) -> Bool {
@@ -950,7 +955,7 @@ struct FeedbackInboxView: View {
     }
 
     private func currentFeedbackItem(for item: FeedbackItem) -> FeedbackItem {
-        viewModel.items.first { $0.id == item.id } ?? item
+        viewModel.detailItems[item.id] ?? viewModel.items.first { $0.id == item.id } ?? item
     }
 
     private func closeAction(for item: FeedbackItem) -> (() -> Void)? {
@@ -1149,12 +1154,13 @@ private struct FeedbackConversationView: View {
                         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                             AppEditorSectionCard {
                                 VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                                    HStack(alignment: .firstTextBaseline) {
+                                    (dynamicTypeSize.isAccessibilitySize ?
+                                        AnyLayout(VStackLayout(alignment: .leading, spacing: 10)) : AnyLayout(HStackLayout(alignment: .firstTextBaseline))) {
                                         Text(item.type.title)
                                             .font(.headline.weight(.semibold))
                                             .foregroundStyle(AppTheme.textPrimary)
-                                        Spacer(minLength: 0)
-                                        FeedbackStatusBadge(status: item.status, userFacing: true)
+                                        if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 0) }
+                                        FeedbackStatusBadge(status: item.status, userFacing: !allowsClose)
                                     }
 
                                     FeedbackMetadataRow(systemImage: "person", title: item.userDisplayName.isEmpty ? AppStrings.Profile.unknownUser : item.userDisplayName)
@@ -1173,7 +1179,8 @@ private struct FeedbackConversationView: View {
                             if let reportContext = item.reportContext {
                                 ContentReportContextCard(
                                     context: reportContext,
-                                    occurrenceCount: item.occurrenceCount
+                                    occurrenceCount: item.occurrenceCount,
+                                    isClosed: item.status.isClosed
                                 )
                             }
 
@@ -1447,7 +1454,12 @@ private struct DsaCaseContextCard: View {
                 Label("DSA · \(dsaCase.caseNumber)", systemImage: "building.columns")
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                FeedbackMetadataRow(systemImage: "link", title: dsaCase.exactLocation)
+                if let url = URL(string: dsaCase.exactLocation), ["https", "http"].contains(url.scheme?.lowercased() ?? "") {
+                    Link(destination: url) { Label(dsaCase.exactLocation, systemImage: "arrow.up.right.square") }
+                        .font(.footnote).tint(AppTheme.accentPrimaryForeground)
+                } else {
+                    FeedbackMetadataRow(systemImage: "link", title: dsaCase.exactLocation)
+                }
                 Text(dsaCase.illegalExplanation)
                     .font(.footnote)
                     .foregroundStyle(AppTheme.textPrimary)
@@ -1695,6 +1707,7 @@ private struct DsaDecisionSheet: View {
 private struct ContentReportContextCard: View {
     let context: ContentReportContext
     let occurrenceCount: Int
+    var isClosed = false
 
     private var slaText: String {
         if context.slaDueAt < Date() {
@@ -1716,15 +1729,20 @@ private struct ContentReportContextCard: View {
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
 
-                FeedbackMetadataRow(
-                    systemImage: context.targetType.systemImage,
-                    title: "\(context.targetType.title): \(context.targetTitle)"
-                )
+                Button { openTarget() } label: {
+                    Label("\(context.targetType.title): \(context.targetTitle)", systemImage: context.targetType.systemImage)
+                        .font(.subheadline.weight(.semibold)).multilineTextAlignment(.leading)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                }
+                .tint(AppTheme.accentPrimaryForeground)
+                .accessibilityIdentifier("feedback.report.openTarget")
                 FeedbackMetadataRow(systemImage: "exclamationmark.bubble", title: context.reason.title)
+                if !isClosed {
                 FeedbackMetadataRow(
                     systemImage: context.isUrgent ? "clock.badge.exclamationmark" : "clock",
                     title: slaText
                 )
+                }
 
                 if occurrenceCount > 1 {
                     FeedbackMetadataRow(
@@ -1737,12 +1755,29 @@ private struct ContentReportContextCard: View {
                     Text(context.targetExcerpt)
                         .font(.footnote)
                         .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(4)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
+    private func openTarget() {
+        let action: AppNotificationActionType
+        let id: String
+        switch context.targetType {
+        case .news: action = .openNews; id = context.targetId
+        case .event: action = .openEvent; id = context.targetId
+        case .organization: action = .openOrganization; id = context.targetId
+        case .comment:
+            guard let parent = context.parentType, let parentID = context.parentId else { return }
+            action = parent == .news ? .openNews : parent == .event ? .openEvent : .openOrganization
+            id = parentID
+        }
+        if let route = RemoteNotificationRoute(notificationId: nil, type: .contentModerationChanged,
+            sourceType: nil, sourceId: id, actionType: action, actionTargetId: id, route: nil, routeTargetId: nil) {
+            RemoteNotificationRouteCoordinator.shared.receive(route)
+        }
+    }
+
 }
 
 private struct FeedbackMessageBubble: View {
@@ -1822,8 +1857,8 @@ private struct FeedbackStatusBadge: View {
             .foregroundStyle(tint)
             .padding(.horizontal, 9)
             .padding(.vertical, 5)
-            .background(tint.opacity(0.10), in: Capsule())
-            .lineLimit(1)
+            .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 

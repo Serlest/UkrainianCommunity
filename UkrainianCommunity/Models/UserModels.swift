@@ -630,6 +630,7 @@ struct FeedbackItem: Identifiable, Codable {
     let reportContext: ContentReportContext?
     let occurrenceCount: Int
     let dsaCase: DsaCaseSummary?
+    let revision: String?
 
     nonisolated init(
         id: String,
@@ -652,7 +653,8 @@ struct FeedbackItem: Identifiable, Codable {
         unreadForUser: Bool,
         reportContext: ContentReportContext? = nil,
         occurrenceCount: Int = 1,
-        dsaCase: DsaCaseSummary? = nil
+        dsaCase: DsaCaseSummary? = nil,
+        revision: String? = nil
     ) {
         self.id = id
         self.type = type
@@ -675,6 +677,7 @@ struct FeedbackItem: Identifiable, Codable {
         self.reportContext = reportContext
         self.occurrenceCount = max(1, occurrenceCount)
         self.dsaCase = dsaCase
+        self.revision = revision
     }
 }
 

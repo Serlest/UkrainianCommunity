@@ -118,8 +118,34 @@ final class OwnerProfileAuditUITests: XCTestCase {
         XCTAssertTrue(answered.waitForExistence(timeout: 5)); answered.tap()
         XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
         XCTAssertTrue(app.staticTexts["Owner reply persistence audit"].firstMatch.waitForExistence(timeout: 8))
+        XCTAssertEqual(app.staticTexts.matching(identifier: "Owner reply persistence audit").count, 1)
         capture(app, "owner-feedback-reply-persisted")
     }
+    @MainActor
+    func testFeedbackGermanDarkLargeTextOpensAndReplyControlsRemainReachable() {
+        let app = launch(language: "de", darkLarge: true)
+        let entry = app.buttons["profile.feedbackInbox"]
+        reveal(entry, in: app); entry.tap()
+        let row = app.buttons["feedbackInbox.open.directory-feedback-fixture"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
+        XCTAssertTrue(app.textViews["feedback.reply.text"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["feedback.reply.send"].isHittable)
+        capture(app, "feedback-conversation-de-dark-large")
+    }
+
+    @MainActor
+    func testComplaintOpensItsActualReportedArticle() {
+        let app = launch(reportContext: true)
+        let entry = app.buttons["profile.feedbackInbox"]
+        reveal(entry, in: app); entry.tap()
+        let row = app.buttons["feedbackInbox.open.directory-feedback-fixture"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10)); row.tap()
+        let target = app.buttons["feedback.report.openTarget"]
+        XCTAssertTrue(target.waitForExistence(timeout: 8)); target.tap()
+        XCTAssertTrue(app.buttons["news.like.news-1"].waitForExistence(timeout: 10))
+        capture(app, "feedback-opens-reported-news")
+    }
+
     @MainActor
     func testDonationEditorValidatesAndPersistsChanges() {
         let app = launch()
@@ -407,7 +433,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
     }
 
     @MainActor
-    private func launch(language: String = "uk", darkLarge: Bool = false) -> XCUIApplication {
+    private func launch(language: String = "uk", darkLarge: Bool = false, reportContext: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
@@ -415,6 +441,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
                                  "UITestAppLanguage": language, "UITestResetAppLock": "1",
                                  "UITestFeedbackInbox": "1", "UITestLegalEvidence": "1", "UITestUserRefresh": "1"]
         app.launchEnvironment["UITestAppAppearance"] = darkLarge ? "dark" : "light"
+        if reportContext { app.launchEnvironment["UITestFeedbackReportContext"] = "1" }
         if darkLarge { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"] }
         app.launch()
         let profile = app.tabBars.buttons.element(boundBy: 4)

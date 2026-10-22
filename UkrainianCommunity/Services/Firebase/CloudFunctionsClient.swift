@@ -45,6 +45,7 @@ enum CloudFunctionName: String, CaseIterable {
     case decideDsaAppeal
     case getMyDsaStatement
     case reviewContentModeration
+    case listFeedbackInbox
     case manageContentModeration
     case setUserBlocked
     case getBlockedOrganizations
@@ -88,12 +89,14 @@ nonisolated struct DsaDecisionFunctionRequest: Codable, Equatable {
     let humanReviewConfirmed: Bool
     let operationId: String?
     let expectedRevision: String?
+    let revisionFormat: String?
+    let principalId: String?
 
     init(
         reportId: String, outcome: String, factsAndCircumstances: String,
         legalBasis: String?, termsBasis: String?, territorialScope: String,
         duration: String, redressInformation: String, humanReviewConfirmed: Bool,
-        operationId: String? = nil, expectedRevision: String? = nil
+        operationId: String? = nil, expectedRevision: String? = nil, revisionFormat: String? = nil, principalId: String? = nil
     ) {
         self.reportId = reportId
         self.outcome = outcome
@@ -106,6 +109,8 @@ nonisolated struct DsaDecisionFunctionRequest: Codable, Equatable {
         self.humanReviewConfirmed = humanReviewConfirmed
         self.operationId = operationId
         self.expectedRevision = expectedRevision
+        self.revisionFormat = revisionFormat
+        self.principalId = principalId
     }
 }
 
@@ -124,10 +129,12 @@ nonisolated struct DsaAppealDecisionFunctionRequest: Codable, Equatable {
     let humanReviewConfirmed: Bool
     let operationId: String?
     let expectedRevision: String?
+    let revisionFormat: String?
+    let principalId: String?
 
     init(
         reportId: String, outcome: String, reason: String, humanReviewConfirmed: Bool,
-        operationId: String? = nil, expectedRevision: String? = nil
+        operationId: String? = nil, expectedRevision: String? = nil, revisionFormat: String? = nil, principalId: String? = nil
     ) {
         self.reportId = reportId
         self.outcome = outcome
@@ -135,6 +142,8 @@ nonisolated struct DsaAppealDecisionFunctionRequest: Codable, Equatable {
         self.humanReviewConfirmed = humanReviewConfirmed
         self.operationId = operationId
         self.expectedRevision = expectedRevision
+        self.revisionFormat = revisionFormat
+        self.principalId = principalId
     }
 }
 
@@ -143,12 +152,16 @@ nonisolated struct DsaAppealSubmissionFunctionRequest: Codable, Equatable {
     let reason: String
     let operationId: String?
     let expectedRevision: String?
+    let revisionFormat: String?
+    let principalId: String?
 
-    init(reportId: String, reason: String, operationId: String? = nil, expectedRevision: String? = nil) {
+    init(reportId: String, reason: String, operationId: String? = nil, expectedRevision: String? = nil, revisionFormat: String? = nil, principalId: String? = nil) {
         self.reportId = reportId
         self.reason = reason
         self.operationId = operationId
         self.expectedRevision = expectedRevision
+        self.revisionFormat = revisionFormat
+        self.principalId = principalId
     }
 }
 
@@ -1050,6 +1063,7 @@ final class CloudFunctionsClient {
             return .systemConfiguration
         case .submitContentReport,
              .reviewContentModeration,
+             .listFeedbackInbox,
              .manageContentModeration,
              .decideDsaCase,
              .submitDsaAppeal,
@@ -1102,6 +1116,7 @@ final class CloudFunctionsClient {
              .unregisterFromEvent,
              .submitContentReport,
              .reviewContentModeration,
+             .listFeedbackInbox,
              .manageContentModeration,
              .setUserBlocked,
              .getBlockedOrganizations,
@@ -1173,6 +1188,7 @@ final class CloudFunctionsClient {
              .deleteFeaturedBanner,
              .submitContentReport,
              .reviewContentModeration,
+             .listFeedbackInbox,
              .manageContentModeration,
              .decideDsaCase,
              .submitDsaAppeal,
