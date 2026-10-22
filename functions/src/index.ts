@@ -289,3 +289,5 @@ export {translateContent} from "./translation/service";
 export {maintainAdminUserSearchIndex} from "./users/adminUserSearchIndex";
 
 export {listOrganizationReviewHistory} from "./organizations/approvalWorkflow";
+
+export {manageContentModeration} from "./safety/contentModeration";

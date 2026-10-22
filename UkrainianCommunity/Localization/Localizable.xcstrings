@@ -1,6 +1,312 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "moderation.content.subtitle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевіряйте матеріали організацій для публікації на всю Австрію."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prüfen Sie Inhalte von Organisationen zur österreichweiten Veröffentlichung."
+          }
+        }
+      }
+    },
+    "moderation.content.open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Переглянути матеріал"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt prüfen"
+          }
+        }
+      }
+    },
+    "moderation.content.source" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Джерело"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quelle"
+          }
+        }
+      }
+    },
+    "moderation.content.image_unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося завантажити зображення"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Das Bild konnte nicht geladen werden"
+          }
+        }
+      }
+    },
+    "moderation.content.history_retention" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рішення за останні 30 днів. Історія також може містити раніші записи."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidungen der letzten 30 Tage. Der Verlauf kann auch ältere Einträge enthalten."
+          }
+        }
+      }
+    },
+    "moderation.content.history_empty" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рішень щодо матеріалів поки немає."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Es liegen noch keine Entscheidungen zu Inhalten vor."
+          }
+        }
+      }
+    },
+    "moderation.content.changed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матеріал змінився або вже перевірений. Оновіть його та перевірте ще раз."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Inhalt wurde geändert oder bereits geprüft. Laden Sie ihn neu und prüfen Sie ihn erneut."
+          }
+        }
+      }
+    },
+    "moderation.content.decision" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рішення щодо матеріалу"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Entscheidung zum Inhalt"
+          }
+        }
+      }
+    },
+    "moderation.content.confirm_helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Статус матеріалу буде змінено. Автор і відповідальні за організацію отримають повідомлення."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Inhaltsstatus wird geändert. Die verfassende Person und das zuständige Organisationsteam werden benachrichtigt."
+          }
+        }
+      }
+    },
+    "moderation.content.reason_helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поясніть, що потрібно виправити або чому матеріал відхилено. Цей текст отримає автор. До 2000 символів."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beschreiben Sie die nötigen Änderungen oder den Ablehnungsgrund. Die verfassende Person erhält diesen Text. Maximal 2000 Zeichen."
+          }
+        }
+      }
+    },
+    "moderation.content.loaded_search" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук серед завантажених матеріалів. Для старіших натисніть «Показати ще»."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Suche umfasst geladene Inhalte. Laden Sie für ältere Inhalte weitere Einträge."
+          }
+        }
+      }
+    },
+    "notifications.push.content_moderated.approved.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матеріал схвалено"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt genehmigt"
+          }
+        }
+      }
+    },
+    "notifications.push.content_moderated.needsRevision.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матеріал потребує доопрацювання"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt zur Überarbeitung zurückgegeben"
+          }
+        }
+      }
+    },
+    "notifications.push.content_moderated.rejected.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матеріал відхилено"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt abgelehnt"
+          }
+        }
+      }
+    },
+    "notifications.push.content_moderated.archived.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матеріал архівовано"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt archiviert"
+          }
+        }
+      }
+    },
+    "notifications.push.content_moderated.pendingReview.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Матеріал на перевірці"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt wird geprüft"
+          }
+        }
+      }
+    },
+    "moderation.content.edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виправити матеріал"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt überarbeiten"
+          }
+        }
+      }
+    },
+    "moderation.content.edit_helper" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Після збереження виправлений матеріал буде повторно надіслано на перевірку."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach dem Speichern wird der überarbeitete Inhalt erneut zur Prüfung eingereicht."
+          }
+        }
+      }
+    },
     "organization.review.section" : {
       "extractionState" : "manual",
       "localizations" : {

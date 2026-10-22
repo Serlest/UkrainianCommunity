@@ -621,6 +621,7 @@ extension AppNotification {
         if type == .contentModerationChanged,
            let rawStatus = metadata["moderationStatus"], let status = ModerationStatus(rawValue: rawStatus) {
             append("\(AppStrings.NotificationInbox.detailStatus): \(status.title)")
+            append(metadata["moderationReason"])
         }
         let context = [metadata["organizationName"], payload["organizationName"],
                        metadata["eventTitle"], payload["eventTitle"],

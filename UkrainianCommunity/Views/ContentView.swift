@@ -991,6 +991,15 @@ struct ContentView: View {
         }
     }
 
+    private func routeToModeratedMaterial(type: AppNotificationType, sourceID: String?) -> Bool {
+        guard type == .contentModerationChanged, let sourceID else { return false }
+        let parts = sourceID.split(separator: ":", maxSplits: 1).map(String.init)
+        guard parts.count == 2, ["news", "event"].contains(parts[0]), !parts[1].isEmpty else { return false }
+        selectTabIfNeeded(.profile)
+        profileNavigationPath = [.moderationMaterial(contentType: parts[0], id: parts[1])]
+        return true
+    }
+
     private func handleNotificationTap(_ notification: AppNotification) {
         guard notification.canOpenDestination else {
             showNotificationRouteUnavailable()
@@ -998,6 +1007,8 @@ struct ContentView: View {
         }
 
         isShowingNotificationInbox = false
+
+        if routeToModeratedMaterial(type: notification.type, sourceID: notification.sourceId) { return }
 
         switch notification.actionType {
         case .none:
@@ -1187,6 +1198,8 @@ struct ContentView: View {
         // A required legal review takes precedence over a legal push deep link.
         // Unreviewed documents remain in the inbox for deliberate reading.
         if remoteNotificationRouteCoordinator.shouldSkipNavigation(for: route) { return }
+
+        if routeToModeratedMaterial(type: route.type, sourceID: route.sourceId) { return }
 
         switch route.destination {
         case .openNews(let newsId):

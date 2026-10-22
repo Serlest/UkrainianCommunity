@@ -727,6 +727,23 @@ struct FirestoreEventRepository: EventRepository {
 
         do {
             try await collection.document(event.id).updateData(data)
+            if [.needsRevision, .rejected].contains(event.moderationStatus) {
+                let saved = try await collection.document(event.id).getDocument(source: .server)
+                guard let timestamp = saved.get("updatedAt") as? Timestamp else { throw AppError.validationFailed }
+                let revision = "\(timestamp.seconds):\(timestamp.nanoseconds)"
+                let principal = Auth.auth().currentUser?.uid
+                do {
+                    let _: ContentModerationResult = try await CloudFunctionsClient.shared.call(.manageContentModeration,
+                        request: ContentModerationQuery(action: "resubmit", contentType: "event", contentId: event.id, expectedRevision: revision))
+                } catch {
+                    // A lost response must not turn a completed resubmission into a false save failure.
+                    let committed = try await collection.document(event.id).getDocument(source: .server)
+                    guard let principal, Auth.auth().currentUser?.uid == principal,
+                          committed.get("moderationStatus") as? String == "pendingReview",
+                          committed.get("resubmittedByUserId") as? String == principal,
+                          committed.get("resubmittedFromRevision") as? String == revision else { throw error }
+                }
+            }
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -1280,6 +1297,7 @@ struct FirestoreEventRepository: EventRepository {
     private var organizationModerationStatusValues: [String] {
         [
             ModerationStatus.pendingReview.rawValue,
+            ModerationStatus.needsRevision.rawValue,
             ModerationStatus.rejected.rawValue,
             ModerationStatus.archived.rawValue
         ]

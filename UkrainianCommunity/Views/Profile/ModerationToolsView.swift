@@ -37,13 +37,14 @@ struct ModerationQueueItem: Identifiable {
     let expectedRevision: String
     let submittedBy: String?
     let organization: Organization?
+    var contentStatus: ModerationStatus = .pendingReview
 
     var id: String {
         "\(type.rawValue)-\(contentID)"
     }
 
     var canReview: Bool {
-        guard let organization else { return true }
+        guard let organization else { return contentStatus == .pendingReview }
         return organization.moderationStatus == .pendingReview
     }
 }
@@ -372,7 +373,7 @@ final class ModerationQueueViewModel: ObservableObject {
                 createdAt: $0.createdAt,
                 expectedRevision: revision($0.updatedAt),
                 submittedBy: nil,
-                organization: nil
+                organization: nil, contentStatus: $0.moderationStatus
             )
         }
     }
@@ -387,7 +388,7 @@ final class ModerationQueueViewModel: ObservableObject {
                 createdAt: $0.createdAt,
                 expectedRevision: revision($0.updatedAt),
                 submittedBy: nil,
-                organization: nil
+                organization: nil, contentStatus: $0.moderationStatus
             )
         }
     }
@@ -402,6 +403,7 @@ final class ModerationQueueViewModel: ObservableObject {
 struct ModerationToolsView: View {
     @EnvironmentObject private var authState: AuthState
     @StateObject private var viewModel: ModerationQueueViewModel
+    @State private var selectedContent: ModerationQueueItem?
     @State private var selectedOrganizationRequest: ModerationQueueItem?
     @State private var pendingRejectedItem: ModerationQueueItem?
     @State private var isShowingRejectConfirmation = false
@@ -551,6 +553,9 @@ struct ModerationToolsView: View {
         } message: { item in
             Text(AppStrings.Moderation.rejectConfirmationMessage(item.title))
         }
+        .sheet(item: $selectedContent) { item in
+            ContentModerationDetail(contentType: item.type.rawValue, contentID: item.contentID)
+        }
         .sheet(item: $selectedOrganizationRequest) { item in
             ModerationOrganizationRequestSheet(
                 item: item,
@@ -664,7 +669,7 @@ struct ModerationToolsView: View {
                                 },
                                 detailsAction: item.type == .organization ? {
                                     Task { selectedOrganizationRequest = await viewModel.freshReviewItem(item) }
-                                } : nil
+                                } : { selectedContent = item }
                             )
                         }
                     }
@@ -884,7 +889,7 @@ private struct ModerationItemRow: View {
     private var actionButtons: some View {
         if let detailsAction {
             Button(action: detailsAction) {
-                Label(AppStrings.Moderation.openRequest, systemImage: "doc.text.magnifyingglass")
+                Label(item.type == .organization ? AppStrings.Moderation.openRequest : ContentModerationCopy.openMaterial, systemImage: "doc.text.magnifyingglass")
                     .font(.subheadline.weight(.semibold))
                     .multilineTextAlignment(.center)
                     .padding(.vertical, 10)

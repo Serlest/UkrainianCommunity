@@ -348,6 +348,65 @@ final class OwnerProfileAuditUITests: XCTestCase {
     }
 
     @MainActor
+    func testContentModerationFullReviewAndHistoryBothLanguages() {
+        for language in ["uk", "de"] {
+            let app = launch(language: language, darkLarge: language == "de")
+            let entry = app.buttons["profile.moderation"]
+            reveal(entry, in: app); entry.tap()
+            let first = app.buttons["content.moderation.open.moderation-news-0"]
+            reveal(first, in: app); first.tap()
+            let languagePicker = app.segmentedControls["content.review.language"]
+            XCTAssertTrue(languagePicker.waitForExistence(timeout: 8))
+            languagePicker.buttons["Deutsch"].tap()
+            XCTAssertTrue(app.staticTexts["Nachricht der Gemeinschaft 0"].firstMatch.waitForExistence(timeout: 5))
+            capture(app, "content-moderation-preview-" + language)
+            let revise = app.buttons["content.review.choice.needsRevision"]
+            reveal(revise, in: app); revise.tap()
+            let reason = app.textFields["content.review.reason"]
+            reveal(reason, in: app); reason.tap(); reason.typeText("Please verify the official source")
+            let confirm = app.buttons["content.review.confirm"]
+            XCTAssertTrue(confirm.isEnabled); confirm.tap()
+            let execute = app.alerts.buttons["content.review.execute"].firstMatch
+            XCTAssertTrue(execute.waitForExistence(timeout: 5), app.debugDescription)
+            capture(app, "content-moderation-confirm-" + language)
+            execute.tap()
+            XCTAssertTrue(first.waitForNonExistence(timeout: 8))
+            let mode = app.segmentedControls["content.moderation.mode"]
+            mode.buttons.element(boundBy: 1).tap()
+            XCTAssertTrue(app.staticTexts["Please verify the official source"].firstMatch.waitForExistence(timeout: 8))
+            capture(app, "content-moderation-history-" + language)
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testContentModerationApproveAndRejectRequireConfirmation() {
+        let app = launch()
+        let entry = app.buttons["profile.moderation"]
+        reveal(entry, in: app); entry.tap()
+        for (index, status) in [(0, "approved"), (1, "rejected")] {
+            let row = app.buttons["content.moderation.open.moderation-news-\(index)"]
+            reveal(row, in: app); row.tap()
+            let choice = app.buttons["content.review.choice.\(status)"]
+            reveal(choice, in: app); choice.tap()
+            let confirm = app.buttons["content.review.confirm"]
+            if status == "rejected" {
+                XCTAssertFalse(confirm.isEnabled)
+                let reason = app.textFields["content.review.reason"]
+                reveal(reason, in: app); reason.tap(); reason.typeText("Source does not support the claim")
+            }
+            XCTAssertTrue(confirm.isEnabled); confirm.tap()
+            let execute = app.alerts.buttons["content.review.execute"].firstMatch
+            XCTAssertTrue(execute.waitForExistence(timeout: 5))
+            capture(app, "content-moderation-" + status)
+            execute.tap()
+            XCTAssertTrue(row.waitForNonExistence(timeout: 8))
+        }
+        app.segmentedControls["content.moderation.mode"].buttons.element(boundBy: 1).tap()
+        XCTAssertTrue(app.staticTexts["Source does not support the claim"].firstMatch.waitForExistence(timeout: 8))
+    }
+
+    @MainActor
     private func launch(language: String = "uk", darkLarge: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()

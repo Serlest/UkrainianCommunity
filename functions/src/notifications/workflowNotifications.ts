@@ -34,6 +34,16 @@ export async function canReceiveScopedNotification(userId: string, metadata: Rec
       if (organization.data()?.moderationStatus !== "pendingReview") return false;
     }
   }
+  if (metadata.recipientScope === "contentContributors") {
+    const collection = metadata.contentCollection;
+    const id = text(metadata.contentId);
+    if (!["news", "events"].includes(String(collection)) || !id || id.includes("/")) return false;
+    const content = await db.collection(String(collection)).doc(id).get();
+    if (!content.exists) return false;
+    const organizationId = text(content.get("organizationId"));
+    const org = organizationId ? await db.doc(`organizations/${organizationId}`).get() : undefined;
+    if (content.get("authorId") !== userId && !organizationStaff(org?.data() ?? {}).includes(userId)) return false;
+  }
   if (metadata.recipientScope === "organizationStaff") {
     const orgId = text(metadata.organizationId);
     if (!orgId) return false;
@@ -53,6 +63,7 @@ interface WorkflowNotice {
   targetId: string;
   action: NotificationActionType;
   sourceType: "organization" | "event" | "system";
+  sourceId?: string;
   titleKey: string;
   // UK/DE fallback is also stored for older installed builds.
   title: [string, string];
@@ -76,7 +87,7 @@ export async function writeWorkflowNotifications(input: WorkflowNotice): Promise
     await writeUserNotification({
       notificationId, targetUserId: userId, type: input.type,
       title: input.title[language.startsWith("de") ? 1 : 0], message: input.body.slice(0, 160),
-      actionType: input.action, actionTargetId: input.targetId, sourceId: input.targetId,
+      actionType: input.action, actionTargetId: input.targetId, sourceId: input.sourceId ?? input.targetId,
       sourceType: input.sourceType, actorUserId: input.actor, metadata, dedupeKey: notificationId,
     });
   }
@@ -128,18 +139,30 @@ export const notifyOrganizationCommentCreated = onDocumentCreated({...options, d
 
 export async function notifyContentModeration(eventId: string, collection: "news" | "events", contentId: string, before: Data | undefined, after: Data | undefined): Promise<void> {
   if (!before || !after || before.moderationStatus === after.moderationStatus) return;
-  if (!["approved", "rejected", "archived", "pendingReview"].includes(after.moderationStatus)) return;
+  if (!["approved", "needsRevision", "rejected", "archived", "pendingReview"].includes(after.moderationStatus)) return;
   if (after.cancellationState === "cancelled") return; // handled by event cancellation notification
   const orgId = text(after.organizationId);
   const org = orgId ? await db.collection("organizations").doc(orgId).get() : undefined;
   const staff = org?.exists ? organizationStaff(org.data()!) : [];
+  const outcome: Record<string, [string, string]> = {
+    approved: ["Матеріал схвалено", "Inhalt genehmigt"],
+    needsRevision: ["Матеріал потребує доопрацювання", "Inhalt zur Überarbeitung zurückgegeben"],
+    rejected: ["Матеріал відхилено", "Inhalt abgelehnt"],
+    archived: ["Матеріал архівовано", "Inhalt archiviert"],
+    pendingReview: ["Матеріал на перевірці", "Inhalt wird geprüft"],
+  };
+  const reason = text(after.moderationReason) ?? "";
   await writeWorkflowNotifications({eventId, type: "contentModerationChanged", targetId: orgId ?? contentId,
-    // Organization management can display unpublished content; public detail cannot.
     action: orgId ? "openOrganization" : "openProfile", sourceType: "system",
-    titleKey: "notifications.push.content_moderated.title", title: ["Статус публікації змінено", "Veröffentlichungsstatus geändert"],
-    body: text(after.title) ?? "", actor: text(after.updatedByUserId) ?? text(after.updatedBy), recipients: staff,
-    metadata: {organizationId: orgId ?? "", recipientScope: "organizationStaff", moderationStatus: after.moderationStatus,
-      route: "openOrganization", routeTargetId: orgId ?? contentId},
+    // Older clients keep their supported organization route; newer clients resolve this exact material.
+    sourceId: `${collection === "news" ? "news" : "event"}:${contentId}`,
+    titleKey: `notifications.push.content_moderated.${after.moderationStatus}.title`, title: outcome[after.moderationStatus],
+    body: `${text(after.title) ?? ""}${reason ? ` — ${reason}` : ""}`,
+    actor: after.moderationStatus === "pendingReview" ? text(after.resubmittedByUserId) ?? text(after.updatedByUserId) : text(after.moderatedByUserId),
+    recipients: [...staff, ...(text(after.authorId) ? [after.authorId] : [])],
+    metadata: {organizationId: orgId ?? "", recipientScope: "contentContributors", moderationStatus: after.moderationStatus,
+      contentId, contentCollection: collection, moderationReason: reason,
+      route: orgId ? "openOrganization" : "openProfile", routeTargetId: orgId ?? contentId},
   });
 }
 export const notifyNewsModerationChanged = onDocumentWritten({...options, document: "news/{contentId}"}, async (e) => notifyContentModeration(e.id, "news", e.params.contentId, e.data?.before.data(), e.data?.after.data()));

@@ -22,6 +22,7 @@ enum ProfileNavigationRoute: Hashable {
     case organizationRequests
     case organizationRequestReview(organizationID: String)
     case moderationTools
+    case moderationMaterial(contentType: String, id: String)
     case userManagement
     case directoryEditors
     case featuredBannerManagement
@@ -595,9 +596,9 @@ struct ProfileView: View {
             )
             .id(organizationID)
         case .moderationTools:
-            ModerationToolsView(
-                organizationRepository: organizationRepository
-            )
+            ContentModerationView()
+        case let .moderationMaterial(contentType, id):
+            ContentModerationDetail(contentType: contentType, contentID: id)
         case .userManagement:
             UserManagementView(reads: MockContentBuilder.userManagementRefreshFixture() ?? .live)
         case .directoryEditors:

@@ -45,6 +45,7 @@ enum CloudFunctionName: String, CaseIterable {
     case decideDsaAppeal
     case getMyDsaStatement
     case reviewContentModeration
+    case manageContentModeration
     case setUserBlocked
     case getBlockedOrganizations
     case setOrganizationBlocked
@@ -62,6 +63,8 @@ nonisolated struct ContentModerationFunctionRequest: Codable, Equatable {
     let decision: String
     let operationId: String
     let expectedRevision: String
+    var reason: String? = nil
+    var principalId: String? = nil
 }
 
 nonisolated struct ContentModerationFunctionResponse: Codable, Equatable {
@@ -1047,6 +1050,7 @@ final class CloudFunctionsClient {
             return .systemConfiguration
         case .submitContentReport,
              .reviewContentModeration,
+             .manageContentModeration,
              .decideDsaCase,
              .submitDsaAppeal,
              .decideDsaAppeal,
@@ -1098,6 +1102,7 @@ final class CloudFunctionsClient {
              .unregisterFromEvent,
              .submitContentReport,
              .reviewContentModeration,
+             .manageContentModeration,
              .setUserBlocked,
              .getBlockedOrganizations,
              .setOrganizationBlocked,
@@ -1168,6 +1173,7 @@ final class CloudFunctionsClient {
              .deleteFeaturedBanner,
              .submitContentReport,
              .reviewContentModeration,
+             .manageContentModeration,
              .decideDsaCase,
              .submitDsaAppeal,
              .decideDsaAppeal,
@@ -1336,7 +1342,16 @@ final class CloudFunctionsClient {
             "functionName": functionName.rawValue
         ]
 
-        if let request = request as? OrganizationRoleChangeFunctionRequest {
+        if let request = request as? ContentModerationQuery {
+            metadata["operation"] = request.action
+            metadata["contentType"] = request.contentType
+            metadata["contentId"] = request.contentId
+        } else if let request = request as? ContentModerationFunctionRequest {
+            metadata["operation"] = request.decision
+            metadata["contentType"] = request.contentType
+            metadata["contentId"] = request.contentId
+            metadata["operationId"] = request.operationId
+        } else if let request = request as? OrganizationRoleChangeFunctionRequest {
             metadata["organizationId"] = request.organizationId
             metadata["targetUserId"] = request.targetUserId
         } else if let request = request as? PlatformRoleChangeFunctionRequest {
@@ -1388,6 +1403,8 @@ final class CloudFunctionsClient {
         functionName: CloudFunctionName,
         request: Request
     ) -> String? {
+        if let request = request as? ContentModerationQuery { return request.contentId }
+        if let request = request as? ContentModerationFunctionRequest { return request.contentId }
         if let request = request as? OrganizationRoleChangeFunctionRequest {
             return request.organizationId
         }

@@ -35,6 +35,8 @@ struct ProfileAccessPolicy {
             return PermissionService.isAppOwner(user: user)
         case .organizationRequests, .organizationRequestReview:
             return PermissionService.canManageOrganizationRequests(user: user)
+        case .moderationMaterial:
+            return canUsePersonalFeatures
         case .moderationTools:
             return PermissionService.canAccessModerationTools(user: user)
         case .userManagement:
