@@ -143,3 +143,30 @@ extension BannerMeasurementReportTests {
         #expect(deleted.exportReport() == nil)
     }
 }
+
+extension BannerMeasurementReportTests {
+    @Test func malformedDatesBooleansAndFractionalCountsNeverBecomeBannerMetrics() {
+        let valid: [String: Any] = ["day": "2026-10-22", "bannerID": "a", "section": "home", "impressions": NSNumber(value: 1), "clicks": NSNumber(value: 0)]
+        #expect(FirestoreBannerMeasurementReportRepository.decode(valid)?.impressions == 1)
+        for day in ["2026-99-99", "2026-02-30", "2026-1-022", "abcdefghij"] {
+            #expect(FirestoreBannerMeasurementReportRepository.decode(valid.merging(["day": day]) { _, v in v }) == nil)
+        }
+        for bad: Any in [true, NSNumber(value: false), NSNumber(value: 0.5), Double.infinity, Double.nan, -1] {
+            for field in ["impressions", "clicks"] {
+                #expect(FirestoreBannerMeasurementReportRepository.decode(valid.merging([field: bad]) { _, v in v }) == nil)
+            }
+        }
+    }
+
+    @Test func reportTimelineAndQueryShareTheSameAnchorAcrossMidnightUTC() throws {
+        let anchor = try #require(ISO8601DateFormatter().date(from: "2026-10-22T23:59:59Z"))
+        let (first, last) = FirestoreBannerMeasurementReportRepository.utcDayRange(period: .sevenDays, now: anchor)
+        let report = BannerMeasurementReport(period: .sevenDays, counts: [
+            .init(day: first, bannerID: "a", section: .home, impressions: 7, clicks: 1),
+            .init(day: last, bannerID: "a", section: .home, impressions: 3, clicks: 1)
+        ], generatedAt: anchor)
+        #expect(report.timeline.first?.id == first)
+        #expect(report.timeline.last?.id == last)
+        #expect(report.timeline.reduce(0) { $0 + $1.totals.impressions } == report.totals.impressions)
+    }
+}

@@ -6,6 +6,7 @@ struct FeaturedBannerManagementView: View {
     @StateObject private var viewModel: FeaturedBannerManagementViewModel
     @State private var measurementReport: BannerMeasurementReport?
     @State private var measurementsFailed = false
+    @State private var measurementLoadID: UUID?
     @State private var deleteCandidate: FeaturedBanner?
     @State private var searchText = ""
     @State private var filter: FeaturedBannerManagementFilter = .all
@@ -175,6 +176,11 @@ struct FeaturedBannerManagementView: View {
                                 if let report = measurementReport {
                                     BannerAnalyticsValueRow(title: managementTitle(for: banner),
                                         totals: report.filtered(bannerID: banner.id, region: nil, section: nil).totals)
+                                    OwnerAnalyticsFreshnessLabel(updatedAt: report.generatedAt)
+                                    if measurementsFailed {
+                                        Text(AppStrings.OwnerAnalytics.staleData(AppStrings.OwnerAnalytics.loadFailedTitle))
+                                            .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                                    }
                                 } else { Text(measurementsFailed ? AppStrings.OwnerAnalytics.loadFailedTitle : AppStrings.OwnerAnalytics.loading).font(.footnote) }
                             }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
                         }.buttonStyle(.plain).foregroundStyle(AppTheme.accentPrimaryForeground)
@@ -187,12 +193,19 @@ struct FeaturedBannerManagementView: View {
     }
 
     private func loadMeasurements() async {
+        let id = UUID()
+        measurementLoadID = id
+        let principalID = authState.user?.id
         guard PermissionService.isAppOwner(user: authState.user) else { measurementReport = nil; return }
         do {
             let report = try await RefreshRequest.run { try await measurementRepository.fetch(period: .thirtyDays) }
-            guard PermissionService.isAppOwner(user: authState.user), !Task.isCancelled else { return }
+            guard PermissionService.isAppOwner(user: authState.user), authState.user?.id == principalID,
+                  measurementLoadID == id, !Task.isCancelled else { return }
             measurementReport = report; measurementsFailed = false
-        } catch { guard !Task.isCancelled else { return }; measurementsFailed = true }
+        } catch {
+            guard !Task.isCancelled, measurementLoadID == id, authState.user?.id == principalID else { return }
+            measurementsFailed = true
+        }
     }
 
     private var createBannerLink: some View {

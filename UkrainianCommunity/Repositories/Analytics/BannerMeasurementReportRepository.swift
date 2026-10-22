@@ -1,5 +1,6 @@
 import FirebaseFirestore
 import Foundation
+import CoreFoundation
 
 protocol BannerMeasurementReportRepository {
     func fetch(period: AnalyticsPeriod) async throws -> BannerMeasurementReport
@@ -46,7 +47,7 @@ struct FirestoreBannerMeasurementReportRepository: BannerMeasurementReportReposi
             lastDocument = last
         }
 
-        return BannerMeasurementReport(period: period, counts: counts, generatedAt: Date())
+        return BannerMeasurementReport(period: period, counts: counts, generatedAt: now)
     }
 
     static func utcDayRange(period: AnalyticsPeriod, now: Date) -> (String, String) {
@@ -67,15 +68,30 @@ struct FirestoreBannerMeasurementReportRepository: BannerMeasurementReportReposi
                   name == "unknown" || name == "allAustria" || AustrianFederalState(rawValue: name) != nil else { return nil }
         }
         guard let day = data["day"] as? String,
-              day.count == 10,
+              isValidUTCDay(day),
               let bannerID = data["bannerID"] as? String, !bannerID.isEmpty,
               let sectionName = data["section"] as? String,
               let section = FeaturedBannerVisibleSection(rawValue: sectionName), section.isSupported,
-              let impressions = data["impressions"] as? Int, impressions >= 0,
-              let clicks = data["clicks"] as? Int, clicks >= 0 else { return nil }
+              let impressions = nonNegativeInteger(data["impressions"]),
+              let clicks = nonNegativeInteger(data["clicks"]) else { return nil }
         return BannerMeasurementDailyCount(
             day: day, bannerID: bannerID, section: section,
             impressions: impressions, clicks: clicks, displayRegion: data["displayRegion"] as? String
         )
+    }
+
+    private static func isValidUTCDay(_ day: String) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return AnalyticsFirestoreSchema.date(forDailyDocumentID: day, calendar: calendar) != nil
+    }
+
+    private static func nonNegativeInteger(_ value: Any?) -> Int? {
+        guard let number = value as? NSNumber,
+              CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+        let numeric = number.doubleValue
+        guard numeric.isFinite, numeric >= 0, numeric.rounded(.towardZero) == numeric,
+              numeric < Double(Int.max) else { return nil }
+        return number.intValue
     }
 }

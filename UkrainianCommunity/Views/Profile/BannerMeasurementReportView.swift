@@ -193,6 +193,7 @@ struct BannerAnalyticsOverviewSection: View {
     @State private var report: BannerMeasurementReport?
     @State private var error: String?
     @State private var isLoading = false
+    @State private var loadID: UUID?
     var body: some View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.title, subtitle: period.analyticsTitle) {
             if let report, report.period == period {
@@ -208,13 +209,15 @@ struct BannerAnalyticsOverviewSection: View {
     }
     private func load() async {
         let selected = period
+        let id = UUID()
+        loadID = id
         isLoading = true; error = nil
-        defer { isLoading = false }
+        defer { if loadID == id { isLoading = false } }
         do {
             let loaded = try await RefreshRequest.run { try await repository.fetch(period: selected) }
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, loadID == id else { return }
             report = loaded
-        } catch { guard !Task.isCancelled else { return }; self.error = AppStrings.OwnerAnalytics.loadFailedTitle }
+        } catch { guard !Task.isCancelled, loadID == id else { return }; self.error = OwnerAnalyticsErrorPresentation.message(for: error) }
     }
 }
 
@@ -224,6 +227,7 @@ struct RegisteredUserCountCard: View {
     @State private var count: Int?
     @State private var updatedAt: Date?
     @State private var failed = false
+    @State private var loadID: UUID?
     var body: some View {
         OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.currentAccounts) {
             if let count { OwnerAnalyticsMetricTile(title: AppStrings.OwnerAnalytics.totalUsers, value: count, systemImage: "person.3") }
@@ -235,11 +239,13 @@ struct RegisteredUserCountCard: View {
         }.task(id: refreshID) { await reload() }
     }
     private func reload() async {
+        let id = UUID()
+        loadID = id
         do {
             let value = try await RefreshRequest.run { try await load() }
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, loadID == id else { return }
             count = value; updatedAt = Date(); failed = false
-        } catch { guard !Task.isCancelled else { return }; failed = true }
+        } catch { guard !Task.isCancelled, loadID == id else { return }; failed = true }
     }
 }
 

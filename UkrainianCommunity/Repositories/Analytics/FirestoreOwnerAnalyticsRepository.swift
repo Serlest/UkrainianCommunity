@@ -148,6 +148,20 @@ enum AnalyticsFirestorePayloadResolver {
         return arrayPayload is [[String: Any]] || keyedMapPayload is [String: Any]
     }
 
+    /// A valid payload can still describe yesterday's trailing window. Always
+    /// compare its source days with the immutable anchor of this read.
+    nonisolated static func hasExpectedSourceDays(
+        _ data: [String: Any],
+        dayCount: Int,
+        anchor: Date,
+        calendar: Calendar = AnalyticsFirestoreSchema.analyticsCalendar
+    ) -> Bool {
+        data[AnalyticsFirestoreSchema.DetailStatsField.sourceDocumentIDs] as? [String]
+            == AnalyticsFirestoreSchema.trailingDailyDocumentIDs(
+                endingAt: anchor, dayCount: dayCount, calendar: calendar
+            )
+    }
+
     static func isUserStatsAvailable(
         data: [String: Any],
         expectedPeriodDocumentID: String,
@@ -638,6 +652,9 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
         let rootSnapshot = try await rootReference.getDocument(source: .server)
         guard rootSnapshot.exists,
               let rootData = rootSnapshot.data(),
+              AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(
+                rootData, dayCount: period.dayCount, anchor: anchor, calendar: calendar
+              ),
               let completedGeneration = AnalyticsFirestorePayloadResolver
                 .completedDetailRollupGeneration(
                     rootData: rootData,
@@ -775,6 +792,10 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             return AnalyticsTimestampedValue(value: [], updatedAt: nil, isAvailable: false)
         }
 
+        guard period == .today || AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(
+            data, dayCount: period.dayCount, anchor: anchor, calendar: calendar
+        ) else { throw OwnerAnalyticsRepositoryReadError.rollupRefreshing }
+
         let sortedItems = topContentPayloads(from: data)
             .compactMap(makeTopContentItem)
             .sorted { lhs, rhs in
@@ -846,6 +867,10 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             return AnalyticsTimestampedValue(value: [], updatedAt: nil, isAvailable: false)
         }
 
+        guard period == .today || AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(
+            data, dayCount: period.dayCount, anchor: anchor, calendar: calendar
+        ) else { throw OwnerAnalyticsRepositoryReadError.rollupRefreshing }
+
         let regions = AnalyticsFirestorePayloadResolver.mergedRegionStats(
             regionStatsPayloads(from: data).compactMap(makeRegionStats)
         )
@@ -895,6 +920,10 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
               let data = snapshot.data() else {
             return AnalyticsTimestampedValue(value: .empty, updatedAt: nil, isAvailable: false)
         }
+
+        guard AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(
+            data, dayCount: period.dayCount, anchor: anchor, calendar: calendar
+        ) else { throw OwnerAnalyticsRepositoryReadError.rollupRefreshing }
 
         let generatedAt = timestampDate(data[AnalyticsFirestoreSchema.UserStatsField.generatedAt])
         let lifecycleCoverage = AnalyticsFirestorePayloadResolver

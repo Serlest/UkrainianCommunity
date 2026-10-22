@@ -206,6 +206,11 @@ jobs:
         working-directory: functions
         run: npm run test:counters:integration
 
+      - name: Verify analytics counting, consent and banner delivery
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'analytics-cutover')
+        working-directory: functions
+        run: npm run test:analytics:integration
+
       - name: Run analytics v1 to v2 cutover integration test
         if: contains(fromJSON(needs.changes.outputs.integrations), 'analytics-cutover')
         working-directory: functions

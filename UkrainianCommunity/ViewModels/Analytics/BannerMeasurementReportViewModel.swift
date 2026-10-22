@@ -54,7 +54,7 @@ final class BannerMeasurementReportViewModel: ObservableObject {
             async let measurements = repository.fetch(period: period, bannerID: fixedBannerID)
             async let catalog = bannerRepository.fetchAllBannersForOwner()
             let (loaded, banners) = try await (measurements, catalog)
-            guard selectedPeriod == period, loadID == id else { return }
+            guard !Task.isCancelled, selectedPeriod == period, loadID == id else { return }
             availableBanners = banners
             bannerTitles = Dictionary(uniqueKeysWithValues: banners.map { ($0.id, $0.internalName.flatMap { $0.isEmpty ? nil : $0 } ?? $0.localizedTitle) })
             bannerUnavailable = fixedBannerID.map { id in !banners.contains { $0.id == id } } ?? false
@@ -63,8 +63,8 @@ final class BannerMeasurementReportViewModel: ObservableObject {
             if let selectedBannerID, !banners.contains(where: { $0.id == selectedBannerID }) { self.selectedBannerID = nil }
             if let selectedRegion, loaded.regions[selectedRegion] == nil { self.selectedRegion = nil }
         } catch {
-            guard selectedPeriod == period, loadID == id else { return }
-            errorMessage = error.localizedDescription
+            guard !Task.isCancelled, selectedPeriod == period, loadID == id else { return }
+            errorMessage = OwnerAnalyticsErrorPresentation.message(for: error)
         }
     }
 

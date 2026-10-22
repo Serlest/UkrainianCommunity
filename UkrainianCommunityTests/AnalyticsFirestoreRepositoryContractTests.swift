@@ -519,3 +519,20 @@ struct AnalyticsFirestoreRepositoryContractTests {
         ]
     }
 }
+
+extension AnalyticsFirestoreRepositoryContractTests {
+    @Test func trailingRollupsMustBelongToTheRequestedViennaDayIncludingDST() throws {
+        let format = ISO8601DateFormatter()
+        for timestamp in ["2026-10-22T22:00:01Z", "2026-10-25T23:00:01Z", "2026-03-29T22:00:01Z"] {
+            let anchor = try #require(format.date(from: timestamp))
+            let previous = anchor.addingTimeInterval(-3_600)
+            for count in [1, 7, 30] {
+                let current: [String: Any] = ["sourceDocumentIDs": AnalyticsFirestoreSchema.trailingDailyDocumentIDs(endingAt: anchor, dayCount: count)]
+                let yesterday: [String: Any] = ["sourceDocumentIDs": AnalyticsFirestoreSchema.trailingDailyDocumentIDs(endingAt: previous, dayCount: count)]
+                #expect(AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(current, dayCount: count, anchor: anchor))
+                #expect(!AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(yesterday, dayCount: count, anchor: anchor))
+                #expect(!AnalyticsFirestorePayloadResolver.hasExpectedSourceDays([:], dayCount: count, anchor: anchor))
+            }
+        }
+    }
+}
