@@ -9,69 +9,41 @@ struct FeaturedBannerValidationService {
     static let URLMaxLength = 2_048
 
     func validate(_ banner: FeaturedBanner, allowsUnsupportedLegacy: Bool = false) throws {
-        guard !trimmed(banner.id).isEmpty,
-              !trimmed(banner.createdBy).isEmpty else {
+        if diagnosticIssue(banner, allowsUnsupportedLegacy: allowsUnsupportedLegacy) != nil {
             throw AppError.validationFailed
         }
+    }
 
-        guard allowsUnsupportedLegacy
-                || (banner.actionType.isSupported && banner.visibleSections.allSatisfy(\.isSupported)) else {
-            throw AppError.validationFailed
+    func diagnosticIssue(_ banner: FeaturedBanner, allowsUnsupportedLegacy: Bool = false) -> FeaturedBannerDataIssue? {
+        func issue(_ field: String, _ rule: String) -> FeaturedBannerDataIssue { .init(field: field, rule: rule) }
+        if trimmed(banner.id).isEmpty { return issue("id", "required") }
+        if trimmed(banner.createdBy).isEmpty { return issue("createdBy", "required") }
+        if !allowsUnsupportedLegacy && !banner.actionType.isSupported { return issue("actionType", "unsupported") }
+        if !allowsUnsupportedLegacy && !banner.visibleSections.allSatisfy(\.isSupported) { return issue("visibleSections", "unsupported") }
+        for (field, value, limit) in [
+            ("internalName", banner.internalName, Self.internalNameMaxLength),
+            ("title", Optional(banner.title), Self.titleMaxLength),
+            ("subtitle", banner.subtitle, Self.subtitleMaxLength),
+            ("imageURL", banner.imageURL, Self.URLMaxLength),
+            ("externalURL", banner.externalURL, Self.URLMaxLength)
+        ] {
+            if trimmed(value).utf16.count > limit { return issue(field, "lengthExceeded") }
         }
-
-        // Match the callable's JavaScript String.length, including emoji/combined text.
-        guard trimmed(banner.internalName).utf16.count <= Self.internalNameMaxLength,
-              trimmed(banner.title).utf16.count <= Self.titleMaxLength,
-              trimmed(banner.subtitle).utf16.count <= Self.subtitleMaxLength,
-              trimmed(banner.imageURL).utf16.count <= Self.URLMaxLength,
-              trimmed(banner.externalURL).utf16.count <= Self.URLMaxLength else {
-            throw AppError.validationFailed
+        if !banner.localizations.keys.allSatisfy({ PublishedContentLanguage(rawValue: $0) != nil }) {
+            return issue("localizations", "unsupportedLanguage")
         }
-
-
-        guard banner.localizations.keys.allSatisfy({ PublishedContentLanguage(rawValue: $0) != nil }),
-              banner.localizations.values.allSatisfy({
-                  trimmed($0.title).utf16.count <= Self.titleMaxLength
-                      && trimmed($0.subtitle).utf16.count <= Self.subtitleMaxLength
-              }) else {
-            throw AppError.validationFailed
+        if !banner.localizations.values.allSatisfy({ trimmed($0.title).utf16.count <= Self.titleMaxLength && trimmed($0.subtitle).utf16.count <= Self.subtitleMaxLength }) {
+            return issue("localizations", "lengthExceeded")
         }
-
-        if requiresActionTarget(banner.actionType) {
-            guard !trimmed(banner.actionTargetID).isEmpty else {
-                throw AppError.validationFailed
-            }
-        }
-
-        if requiresExternalURL(banner.actionType) {
-            guard isValidHTTPURL(trimmed(banner.externalURL)) else {
-                throw AppError.validationFailed
-            }
-        }
-
-        guard isValidHTTPURL(trimmed(banner.imageURL)) else {
-            throw AppError.validationFailed
-        }
-
-        if banner.regionScope == .federalState, banner.federalState == nil {
-            throw AppError.validationFailed
-        }
-
-        guard !banner.visibleSections.isEmpty else {
-            throw AppError.validationFailed
-        }
-
-        guard Self.displayDurationBounds.contains(banner.displayDurationSeconds) else {
-            throw AppError.validationFailed
-        }
-
-        guard Self.priorityBounds.contains(banner.priority) else {
-            throw AppError.validationFailed
-        }
-
-        if let startsAt = banner.startsAt, let endsAt = banner.endsAt, startsAt >= endsAt {
-            throw AppError.validationFailed
-        }
+        if requiresActionTarget(banner.actionType) && trimmed(banner.actionTargetID).isEmpty { return issue("actionTargetID", "required") }
+        if requiresExternalURL(banner.actionType) && !isValidHTTPURL(trimmed(banner.externalURL)) { return issue("externalURL", "invalidHTTPURL") }
+        if !isValidHTTPURL(trimmed(banner.imageURL)) { return issue("imageURL", "invalidHTTPURL") }
+        if banner.regionScope == .federalState && banner.federalState == nil { return issue("federalState", "required") }
+        if banner.visibleSections.isEmpty { return issue("visibleSections", "empty") }
+        if !Self.displayDurationBounds.contains(banner.displayDurationSeconds) { return issue("displayDurationSeconds", "outOfRange") }
+        if !Self.priorityBounds.contains(banner.priority) { return issue("priority", "outOfRange") }
+        if let startsAt = banner.startsAt, let endsAt = banner.endsAt, startsAt >= endsAt { return issue("startsAt/endsAt", "invalidDateOrder") }
+        return nil
     }
 
     private func requiresActionTarget(_ actionType: FeaturedBannerActionType) -> Bool {
@@ -105,4 +77,10 @@ struct FeaturedBannerValidationService {
         }
         return true
     }
+}
+
+/// Only schema field names and stable rules enter diagnostics, never field values.
+nonisolated struct FeaturedBannerDataIssue: Error, Equatable, Sendable {
+    let field: String
+    let rule: String
 }

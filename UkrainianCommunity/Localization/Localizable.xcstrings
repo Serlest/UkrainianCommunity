@@ -1,6 +1,2063 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "system_logs.explanation.action.reviewContentModeration" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розгляд скарги на контент"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhaltsmeldung prüfen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.removeAppAdmin" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкликання прав адміністратора застосунку"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Administrator entfernen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.deleteOrganizationPhotoMetadata" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалення фотографії організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsfoto löschen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.analytics" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збій стосується передачі аналітики у фоновому режимі. Цей запис не означає, що публікація, звернення або інша основна дія користувача не виконалася."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Fehler betrifft die Übermittlung von Analysedaten im Hintergrund. Dieser Eintrag belegt keinen Fehler beim Veröffentlichen, bei einer Supportanfrage oder einer anderen Hauptaktion."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.unregisterFromEvent" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасування реєстрації на подію"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltungsanmeldung stornieren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.reason.mfaRequired" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Для цієї привілейованої операції не підтверджено вхід із другим фактором."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für diesen privilegierten Vorgang ist die Anmeldung mit zweitem Faktor nicht bestätigt."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.registerForEvent" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реєстрація на подію"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für Veranstaltung anmelden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.isActive" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Активність (isActive)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktivierung (isActive)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.visibleSections" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Розділи показу (visibleSections)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeigebereiche (visibleSections)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.retryCount" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попередні повторні спроби"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bisherige Wiederholungen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.setUserBlocked" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зміна особистого блокування користувача"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Persönliche Kontosperre ändern"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.background.title" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не надіслано фоновий сигнал аналітики"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analysesignal wurde nicht übermittelt"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.getManagedUserSecurityMetadata" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження стану безпеки акаунта"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontosicherheitsstatus laden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.listLegalEvidence" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження історії підтверджень"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zustimmungshistorie laden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.createOrganizationPhotoMetadata" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Додавання фотографії організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsfoto hinzufügen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.analyticsEvent" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тип аналітичного сигналу"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Art des Analysesignals"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.acceptOrganizationRules" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердження правил організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsregeln zustimmen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.actionTargetID" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Об’єкт переходу (actionTargetID)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verlinktes Objekt (actionTargetID)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.assignAppAdmin" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надання прав адміністратора застосунку"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Administrator ernennen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.bannerDecode.title" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося прочитати налаштування банера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannereinstellungen konnten nicht gelesen werden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.news_view" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перегляд новини"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachrichtenaufruf"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.removeOrganizationAdmin" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкликання прав адміністратора організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsadministrator entfernen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.news_bookmark" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збереження новини"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachricht merken"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.externalURL" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Посилання банера (externalURL)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannerlink (externalURL)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.stage.invokeServer" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Виклик сервера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Server aufrufen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.invalidDateOrder" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завершення має бути пізніше початку"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ende muss nach dem Beginn liegen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.required" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обов’язкове поле порожнє"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pflichtfeld ist leer"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.searchManagedUsers" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук користувачів"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Personen suchen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.decideDsaCase" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рішення за справою DSA"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DSA-Fall entscheiden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.sendTestPushNotification" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надсилання тестового push-сповіщення"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Test-Push-Mitteilung senden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.localizations" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Мовні версії банера (localizations)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sprachversionen (localizations)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.assignOrganizationAdmin" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надання прав адміністратора організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsadministrator ernennen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.displayDurationSeconds" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тривалість показу (displayDurationSeconds)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeigedauer (displayDurationSeconds)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.deleteFeaturedBanner" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалення банера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner löschen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.deactivateUser" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Деактивація акаунта"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto deaktivieren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.organization_view" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перегляд організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsaufruf"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.unsupported" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Непідтримуване значення"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht unterstützter Wert"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.decodeResponse" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервер відповів, але застосунок не зміг прочитати відповідь. Дія на сервері могла виконатися; перед повторенням перевірте її результат."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat geantwortet, die App konnte die Antwort jedoch nicht lesen. Die Aktion kann serverseitig bereits ausgeführt sein; vor einer Wiederholung das Ergebnis prüfen."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.organization_bookmark" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збереження організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation merken"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.bannerImage" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося видалити файл зображення банера. Це окрема операція очищення; стан самого банера перевіряється за його записом."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Bilddatei des Banners konnte nicht gelöscht werden. Dies ist ein separater Bereinigungsschritt; den Zustand des Banners zeigt dessen Datensatz."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.invalidLocalizedFields" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неправильна структура мовних версій"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ungültige Struktur der Sprachversionen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.getLegalEvidenceForUser" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження підтверджень користувача"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zustimmungen einer Person laden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.createdBy" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Автор запису (createdBy)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ersteller (createdBy)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.unsupportedLanguage" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Непідтримувана мова"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nicht unterstützte Sprache"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.banUser" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Постійне блокування користувача"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto dauerhaft sperren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.validationRule" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Умова перевірки"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Validierungsregel"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.warnUser" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Попередження користувача"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Person verwarnen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.empty" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібно вибрати хоча б один розділ"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mindestens einen Bereich auswählen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.invalidType" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Неправильний тип даних"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Falscher Datentyp"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.organization_follow" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підписка на організацію"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation abonnieren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.reason.analyticsActionUnverified" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервер не знайшов належного підтвердження дії для аналітичного сигналу. Це не доводить, що сама дія користувача не виконалася."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat keinen passenden Nachweis für dieses analytische Aktionssignal gefunden. Daraus folgt nicht, dass die eigentliche Aktion fehlgeschlagen ist."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.getMyDsaStatement" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження рішення DSA"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DSA-Entscheidung laden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.subtitle" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підзаголовок (subtitle)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Untertitel (subtitle)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.event_cancel_registration" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасування реєстрації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anmeldung stornieren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.id" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ідентифікатор (id)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kennung (id)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.technical" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Операція:"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vorgang:"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.deleteFeedback" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Видалення звернення"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supportanfrage löschen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.submitDsaAppeal" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Подання апеляції DSA"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DSA-Beschwerde einreichen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.lengthExceeded" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перевищено допустиму довжину"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zulässige Länge überschritten"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.stage.encodeRequest" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підготовка запиту"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anfrage vorbereiten"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.unconfirmed" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Застосунок не отримав підтвердження завершення цієї операції. Запис помилки сам по собі не підтверджує результат зміни на сервері."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die App hat für diesen Vorgang keine Abschlussbestätigung erhalten. Der Fehlereintrag allein belegt nicht das Ergebnis einer serverseitigen Änderung."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.setOrganizationBlocked" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зміна особистого блокування організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Persönliche Organisationssperre ändern"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.event_view" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Перегляд події"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltungsaufruf"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.appBuild" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Білд застосунку"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App-Build"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.notificationBadge" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося оновити кількість непрочитаних сповіщень. Це окреме фонове читання лічильника."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Anzahl ungelesener Mitteilungen konnte nicht aktualisiert werden. Dies ist ein separater Lesevorgang im Hintergrund."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вплив на користувача"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auswirkung für die Person"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.saveFeaturedBanner" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збереження банера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner speichern"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.removeOrganizationModerator" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відкликання прав модератора організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsmoderator entfernen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.regionScope" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Охоплення регіонів (regionScope)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Regionsbereich (regionScope)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.activatePrivilegedMFAProtection" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Увімкнення обов’язкового двофакторного захисту"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verpflichtenden Zwei-Faktor-Schutz aktivieren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.reason.legalAcknowledgementRequired" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "На сервері не підтверджено прийняття актуальних правових документів для цього акаунта."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Für dieses Konto ist die Zustimmung zu den aktuellen rechtlichen Dokumenten serverseitig nicht bestätigt."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.disposition.discarded" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сигнал відкинуто як неприйнятний; повтор не заплановано"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signal als unzulässig verworfen; keine Wiederholung geplant"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.suspendUser" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Тимчасове блокування користувача"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konto vorübergehend sperren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.listenOrganizationRequests" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження заявок організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsanfragen laden"
+          }
+        }
+      }
+    },
+    "system_logs.explanation.field.imageURL" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зображення банера (imageURL)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannerbild (imageURL)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.getLegalEvidencePage" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження сторінки історії підтверджень"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite der Zustimmungshistorie laden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.federalState" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Федеральна земля (federalState)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bundesland (federalState)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.stage.listenServerUpdates" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Отримання оновлень із сервера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisierungen vom Server empfangen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.invalidHTTPURL" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Потрібне коректне HTTP/HTTPS-посилання"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gültiger HTTP/HTTPS-Link erforderlich"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.invalidField" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Проблемне поле"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Betroffenes Feld"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.decodeOwnerBanner" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження налаштувань банера для керування"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannereinstellungen für die Verwaltung laden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.disposition.retryScheduled" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заплановано повторну спробу"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wiederholung geplant"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.internalName" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Внутрішня назва (internalName)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Interner Name (internalName)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.deliveryDisposition" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Обробка сигналу"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Signalbehandlung"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.bannerDecode" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося прочитати налаштування цього банера. У керуванні показано запис для відновлення; це не невдала публікація користувача."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Einstellungen dieses Banners konnten nicht gelesen werden. Die Verwaltung zeigt einen wiederherstellbaren Eintrag; dies ist kein fehlgeschlagener Beitrag einer Person."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.updatedAt" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата оновлення (updatedAt)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisiert am (updatedAt)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.startsAt/endsAt" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Період показу (startsAt/endsAt)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anzeigezeitraum (startsAt/endsAt)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.requestOrganizationRevision" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Повернення організації на доопрацювання"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation zur Überarbeitung zurückgeben"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.submitContentReport" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надсилання скарги на контент"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inhalt melden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.uploadOrganizationContentCover" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Завантаження обкладинки контенту"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titelbild hochladen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.approveOrganization" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Схвалення організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation genehmigen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.decideDsaAppeal" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Рішення за апеляцією DSA"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "DSA-Beschwerde entscheiden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.title" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Заголовок (title)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Titel (title)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.news_like" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Вподобання новини"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nachricht mit Gefällt mir markieren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.deleteFeaturedBannerImage" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищення зображення банера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bannerbild bereinigen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.missingOrInvalidType" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Поле відсутнє або має неправильний тип"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Feld fehlt oder hat den falschen Typ"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.organization_unfollow" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скасування підписки"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abonnement beenden"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.listLegalEvidenceAccounts" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пошук акаунтів в історії підтверджень"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Konten in der Zustimmungshistorie suchen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.acceptLegalDocument" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Підтвердження правових документів"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rechtlichen Dokumenten zustimmen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.stage.readServerAggregation" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Читання лічильника із сервера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zähler vom Server lesen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.event_register" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Реєстрація на подію"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltungsanmeldung"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.createdAt" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дата створення (createdAt)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Erstellt am (createdAt)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.failureStage" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Етап збою"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fehlerphase"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.transferOrganizationOwnership" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Передача власності організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationseigentum übertragen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.event.event_bookmark" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збереження події"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Veranstaltung merken"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.bannerDecode.cause" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Збережені налаштування банера не пройшли перевірку. Проблемне поле та умову перевірки наведено нижче."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die gespeicherten Bannereinstellungen haben die Prüfung nicht bestanden. Betroffenes Feld und Validierungsregel stehen unten."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.rejectOrganization" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відхилення організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisation ablehnen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.reason.firebaseConfigurationMissing" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Застосунок не зміг визначити серверний проєкт для відправлення запиту."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die App konnte das Serverprojekt für die Anfrage nicht bestimmen."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.organizationRequests" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося отримати оновлення списку заявок організації. Цей запис стосується читання списку; результат подання чи розгляду конкретної заявки він не встановлює."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aktualisierungen der Organisationsanfragen konnten nicht geladen werden. Der Eintrag betrifft das Lesen der Liste; er belegt nicht das Ergebnis einer einzelnen Einreichung oder Entscheidung."
+          }
+        }
+      }
+    },
+    "system_logs.explanation.stage.decodeResponse" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Читання відповіді сервера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Serverantwort lesen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.restoreUser" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Відновлення доступу користувача"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kontozugriff wiederherstellen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.outOfRange" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Значення поза дозволеним діапазоном"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wert außerhalb des zulässigen Bereichs"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.impact.notificationInbox" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Не вдалося оновити список сповіщень цього акаунта. Запис стосується читання повідомлень, а не створення чи публікації контенту."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Mitteilungsliste dieses Kontos konnte nicht aktualisiert werden. Der Eintrag betrifft das Lesen von Mitteilungen, nicht das Erstellen oder Veröffentlichen von Inhalten."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.assignOrganizationModerator" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Надання прав модератора організації"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Organisationsmoderator ernennen"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.clearFeedbackInbox" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Очищення списку звернень"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Supporteingang leeren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.setFeaturedBannerActive" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Зміна активності банера"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banner aktivieren oder deaktivieren"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.actionType" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Дія банера (actionType)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Banneraktion (actionType)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.field.priority" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Пріоритет (priority)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Priorität (priority)"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.rule.unknownOrDuplicateSection" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Невідомий або повторений розділ"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unbekannter oder doppelter Bereich"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.reason.analyticsConsentRequired" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Сервер не визнав чинну згоду на необов’язкову аналітику. Потрібно перевірити серверну сумісність версії згоди та її синхронізацію."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Der Server hat die aktuelle Einwilligung zur optionalen Analyse nicht anerkannt. Die unterstützte Einwilligungsversion und deren Synchronisierung prüfen."
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
+    "system_logs.explanation.action.deliverAggregate" : {
+      "localizations" : {
+        "uk" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фонова передача аналітики"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyse im Hintergrund übermitteln"
+          }
+        }
+      },
+      "extractionState" : "manual"
+    },
     "banner_report.coverageShort" : {
       "extractionState": "manual",
       "localizations": {

@@ -23,7 +23,7 @@ struct SystemLogExplanationTests {
         let log = entry(code: "future.error.99", operation: "newOperation")
         #expect(SystemLogExplanation.kind(log) == "unknown")
         #expect(SystemLogExplanation.cause(log) == SystemLogExplanation.text("unknown.cause"))
-        #expect(SystemLogExplanation.action(log) == SystemLogExplanation.text("action.unknown"))
+        #expect(SystemLogExplanation.action(log).contains("newOperation"))
     }
 
     @Test func timeoutDoesNotAssertWriteFailedOrRecommendBlindRetry() {
@@ -46,5 +46,52 @@ struct SystemLogExplanationTests {
             targetType: .userProfile, outcome: .failed,
             summary: "Technical failure in CloudFunctions.\(operation)", errorCode: code,
             moduleName: "CloudFunctions", operationName: operation)
+    }
+}
+
+extension SystemLogExplanationTests {
+    @Test func everyCallableHasAHumanActionInsteadOfAnUnknownPlaceholder() {
+        for function in CloudFunctionName.allCases {
+            let log = SystemLogEntry(id: "call", createdAt: Date(), category: .diagnostics,
+                severity: .warning, eventType: .technicalError, actorRole: .user,
+                targetType: .none, outcome: .failed, summary: "Technical failure",
+                errorCode: "cloudFunctions.failedPrecondition", moduleName: "CloudFunctions", operationName: function.rawValue)
+            #expect(SystemLogExplanation.action(log) != SystemLogExplanation.text("action.unknown"))
+            #expect(!SystemLogExplanation.action(log).hasPrefix(SystemLogExplanation.text("action.technical")))
+        }
+    }
+
+    @Test func historicalAnalyticsAndBannerFailuresExposeTheirActualPurpose() {
+        let analytics = SystemLogEntry(id: "old", createdAt: Date(), category: .diagnostics,
+            severity: .warning, eventType: .technicalError, actorRole: .user, targetType: .none,
+            summary: "Technical failure", errorCode: "cloudFunctions.failedPrecondition", moduleName: "Analytics", operationName: "deliverAggregate")
+        #expect(SystemLogExplanation.title(analytics) == SystemLogExplanation.text("background.title"))
+        #expect(SystemLogExplanation.impact(analytics) == SystemLogExplanation.text("impact.analytics"))
+        let banner = SystemLogEntry(id: "banner", createdAt: Date(), category: .diagnostics,
+            severity: .error, eventType: .technicalError, actorRole: .owner, targetType: .systemConfiguration,
+            summary: "Technical failure", errorCode: "UkrainianCommunity_AppError.2", moduleName: "FeaturedBanners", operationName: "decodeOwnerBanner")
+        #expect(SystemLogExplanation.kind(banner) == "parsing")
+        #expect(SystemLogExplanation.impact(banner) == SystemLogExplanation.text("impact.bannerDecode"))
+    }
+
+    @Test func knownReasonAndResponseStageExplainDifferentOutcomes() {
+        let log = SystemLogEntry(id: "known", createdAt: Date(), category: .diagnostics,
+            severity: .warning, eventType: .technicalError, actorRole: .user, targetType: .none,
+            summary: "Technical failure", errorCode: "cloudFunctions.failedPrecondition", operationName: "registerForEvent",
+            metadata: ["diagnosticReason": "analyticsConsentRequired", "failureStage": "decodeResponse"])
+        #expect(SystemLogExplanation.cause(log) == SystemLogExplanation.text("reason.analyticsConsentRequired"))
+        #expect(SystemLogExplanation.impact(log) == SystemLogExplanation.text("impact.decodeResponse"))
+    }
+}
+
+extension SystemLogExplanationTests {
+    @Test func notificationAndOrganizationReadFailuresExplainWhatWasNotLoaded() {
+        for (module, operation, key) in [("Notifications", "listenNotifications", "impact.notificationInbox"), ("Notifications", "fetchUnreadCount", "impact.notificationBadge"), ("Organizations", "listenOrganizationRequests", "impact.organizationRequests")] {
+            let log = SystemLogEntry(id: "read", createdAt: .now, category: .diagnostics, severity: .warning,
+                eventType: .technicalError, actorRole: .user, targetType: .none, summary: "Read failed",
+                errorCode: "firestore.permissionDenied", moduleName: module, operationName: operation)
+            #expect(SystemLogExplanation.impact(log) == SystemLogExplanation.text(key))
+            #expect(SystemLogExplanation.action(log) != SystemLogExplanation.text("action.unknown"))
+        }
     }
 }

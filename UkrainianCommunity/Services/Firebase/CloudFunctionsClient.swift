@@ -1,6 +1,7 @@
 import FirebaseFunctions
 import FirebaseSharedSwift
 import Foundation
+import FirebaseAuth
 
 enum CloudFunctionName: String, CaseIterable {
     case assignOrganizationAdmin
@@ -935,11 +936,15 @@ final class CloudFunctionsClient {
             callable.timeoutInterval = 330
         }
         let startedAt = ProcessInfo.processInfo.systemUptime
+        let principalID = Auth.auth().currentUser?.uid
+        var failureStage = "encodeRequest"
         do {
             // Encode and decode on the caller's actor. The callable only receives a detached
             // JSON value, so generic protocol conformances never cross its concurrent boundary.
             let payload = try FirebaseDataEncoder().encode(request)
+            failureStage = "invokeServer"
             let result = try await callable.call(payload)
+            failureStage = "decodeResponse"
             let response = try FirebaseDataDecoder().decode(Response.self, from: result.data)
             await logSecuritySuccessIfNeeded(functionName, request: request, response: response)
             return response
@@ -952,12 +957,14 @@ final class CloudFunctionsClient {
                     targetType: targetType(for: functionName),
                     targetId: securityTargetId(functionName: functionName, request: request),
                     metadata: [
+                        "failureStage": failureStage,
                         "functionName": functionName.rawValue,
                         "callable": functionName.rawValue,
                         "elapsedMilliseconds": String(Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1_000)),
                         "timeoutSeconds": String(callable.timeoutInterval),
                         "appBuild": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
-                    ]
+                    ],
+                    principalID: principalID
                 )
             )
             await logSecurityFailureIfNeeded(functionName, request: request, error: error)
@@ -1002,7 +1009,7 @@ final class CloudFunctionsClient {
              .createOrganizationPhotoMetadata,
              .deleteOrganizationPhotoMetadata,
              .uploadOrganizationContentCover:
-            return functionName == .registerForEvent || functionName == .unregisterFromEvent
+            return functionName == .registerForEvent || functionName == .unregisterFromEvent || functionName == .cancelEvent
             ? .event
             : .organization
         case .deleteNews:
@@ -1419,6 +1426,7 @@ final class CloudFunctionsClient {
         if let request = request as? UserBlockFunctionRequest {
             return request.targetUserId
         }
+        if let request = request as? EventCancellationFunctionRequest { return request.eventId }
         if let request = request as? EventRegistrationFunctionRequest {
             return request.eventId
         }

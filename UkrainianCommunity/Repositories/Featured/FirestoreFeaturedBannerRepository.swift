@@ -91,6 +91,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                             operationName: "decodeOwnerBanner",
                             targetType: .systemConfiguration,
                             targetId: document.documentID,
+                            targetTitle: document.data()[Field.internalName.rawValue] as? String ?? document.data()[Field.title.rawValue] as? String,
                             metadata: ["recoveryMode": "managementPlaceholder"]
                         )
                     )
@@ -205,25 +206,24 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         data: [String: Any],
         allowsUnsupportedLegacy: Bool = false
     ) throws -> FeaturedBanner {
-        guard
-            let actionTypeValue = data[Field.actionType.rawValue] as? String,
-            let actionType = FeaturedBannerActionType.normalized(from: actionTypeValue),
-            let regionScopeValue = data[Field.regionScope.rawValue] as? String,
-            let regionScope = FeaturedBannerRegionScope(rawValue: regionScopeValue),
-            let visibleSectionValues = data[Field.visibleSections.rawValue] as? [String],
-            let displayDurationSeconds = intValue(data[Field.displayDurationSeconds.rawValue]),
-            let priority = intValue(data[Field.priority.rawValue]),
-            let isActive = data[Field.isActive.rawValue] as? Bool,
-            let createdAt = timestampDate(data[Field.createdAt.rawValue]),
-            let updatedAt = timestampDate(data[Field.updatedAt.rawValue]),
-            let createdBy = data[Field.createdBy.rawValue] as? String
-        else {
-            throw AppError.validationFailed
+        func required<T>(_ value: T?, _ field: Field) throws -> T {
+            guard let value else { throw FeaturedBannerDataIssue(field: field.rawValue, rule: "missingOrInvalidType") }
+            return value
         }
-
+        let actionTypeValue = try required(data[Field.actionType.rawValue] as? String, .actionType)
+        let actionType = try required(FeaturedBannerActionType.normalized(from: actionTypeValue), .actionType)
+        let regionScopeValue = try required(data[Field.regionScope.rawValue] as? String, .regionScope)
+        let regionScope = try required(FeaturedBannerRegionScope(rawValue: regionScopeValue), .regionScope)
+        let visibleSectionValues = try required(data[Field.visibleSections.rawValue] as? [String], .visibleSections)
+        let displayDurationSeconds = try required(intValue(data[Field.displayDurationSeconds.rawValue]), .displayDurationSeconds)
+        let priority = try required(intValue(data[Field.priority.rawValue]), .priority)
+        let isActive = try required(data[Field.isActive.rawValue] as? Bool, .isActive)
+        let createdAt = try required(timestampDate(data[Field.createdAt.rawValue]), .createdAt)
+        let updatedAt = try required(timestampDate(data[Field.updatedAt.rawValue]), .updatedAt)
+        let createdBy = try required(data[Field.createdBy.rawValue] as? String, .createdBy)
         let visibleSections = Set(visibleSectionValues.compactMap(FeaturedBannerVisibleSection.init(rawValue:)))
         guard visibleSections.count == visibleSectionValues.count else {
-            throw AppError.validationFailed
+            throw FeaturedBannerDataIssue(field: "visibleSections", rule: "unknownOrDuplicateSection")
         }
 
         let federalState = (data[Field.federalState.rawValue] as? String).flatMap(AustrianFederalState.init(rawValue:))
@@ -256,7 +256,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                 || storedID != documentID
                 || hasUnknownFields
         )
-        try validationService.validate(banner, allowsUnsupportedLegacy: allowsUnsupportedLegacy)
+        if let issue = validationService.diagnosticIssue(banner, allowsUnsupportedLegacy: allowsUnsupportedLegacy) { throw issue }
         return banner
     }
 
@@ -313,7 +313,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     private func localizedContent(from value: Any?) throws -> [String: FeaturedBannerLocalizedContent] {
         guard let value else { return [:] }
         guard let rawLocalizations = value as? [String: Any] else {
-            throw AppError.validationFailed
+            throw FeaturedBannerDataIssue(field: "localizations", rule: "invalidType")
         }
 
         var result: [String: FeaturedBannerLocalizedContent] = [:]
@@ -323,7 +323,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                   Set(content.keys).isSubset(of: ["title", "subtitle"]),
                   let title = content["title"] as? String,
                   let subtitle = content["subtitle"] as? String else {
-                throw AppError.validationFailed
+                throw FeaturedBannerDataIssue(field: "localizations", rule: "invalidLocalizedFields")
             }
             result[language] = FeaturedBannerLocalizedContent(title: title, subtitle: subtitle)
         }

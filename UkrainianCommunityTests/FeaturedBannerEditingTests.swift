@@ -303,3 +303,17 @@ struct FeaturedBannerEditingTests {
         )
     }
 }
+
+extension FeaturedBannerEditingTests {
+    @Test func validationDiagnosticsIdentifyFieldWithoutRetainingItsValue() {
+        let banner = FeaturedBanner(id: "fixture", title: "Banner", imageURL: "not-a-private-image-url",
+            actionType: .externalURL, externalURL: "https://example.com", visibleSections: [.home], createdAt: .now, updatedAt: .now, createdBy: "fixture")
+        let issue = FeaturedBannerValidationService().diagnosticIssue(banner)
+        #expect(issue == FeaturedBannerDataIssue(field: "imageURL", rule: "invalidHTTPURL"))
+        #expect(!String(describing: issue).contains("private-image"))
+        let classification = SystemTechnicalErrorClassifier.classify(issue!, context: .init(moduleName: "FeaturedBanners", operationName: "decodeOwnerBanner"))
+        #expect(classification.errorCode == "parsing.invalidBanner")
+        #expect(classification.metadata["invalidField"] == "imageURL")
+        #expect(classification.metadata["validationRule"] == "invalidHTTPURL")
+    }
+}

@@ -17,7 +17,7 @@ const allowedFields = new Set([
   "eventType", "severity", "targetType", "targetId", "targetTitle",
   "organizationId", "organizationName", "summary", "technicalMessage",
   "errorCode", "moduleName", "screenName", "operationName", "appVersion",
-  "osVersion", "deviceModel", "metadata", "correlationId",
+  "osVersion", "deviceModel", "metadata", "correlationId", "principalId",
 ]);
 
 const allowedSeverities = new Set([
@@ -35,7 +35,9 @@ export const writeClientDiagnostic = onCall(
   callableOptions,
   async (request): Promise<{id: string; createdAt: string}> => {
     const actor = await requireVerifiedActiveUser(request);
-    const input = redactDiagnostic(parseDiagnostic(request.data));
+    const parsed = parseDiagnostic(request.data);
+    assertDiagnosticPrincipal(parsed.principalId, actor.uid);
+    const input = redactDiagnostic(parsed);
     const createdAt = Timestamp.now();
     const reference = db.collection("systemLogs").doc();
     const actorRole = normalizedActorRole(actor.permissions.globalRole);
@@ -82,6 +84,7 @@ export const writeClientDiagnostic = onCall(
 );
 
 interface DiagnosticInput {
+  principalId?: string;
   eventType: string;
   severity: string;
   targetType: string;
@@ -116,6 +119,7 @@ export function parseDiagnostic(value: unknown): DiagnosticInput {
   }
 
   return {
+    principalId: optionalString(value.principalId, "principalId", 128),
     eventType: requiredString(value.eventType, "eventType", 80),
     severity,
     targetType: requiredString(value.targetType, "targetType", 80),
@@ -234,4 +238,12 @@ function normalizedActorRole(value: unknown): "owner" | "admin" | "user" {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Legacy clients omit the fence. New clients bind diagnostics to the account
+// that started the operation; a late callback must never be logged as another user.
+export function assertDiagnosticPrincipal(principalId: string | undefined, authenticatedUID: string): void {
+  if (principalId !== undefined && principalId !== authenticatedUID) {
+    throw new HttpsError("failed-precondition", "Diagnostic belongs to a previous account session.");
+  }
 }

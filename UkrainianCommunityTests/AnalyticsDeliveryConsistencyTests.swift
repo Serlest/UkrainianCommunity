@@ -766,3 +766,22 @@ struct AnalyticsDeliveryConsistencyTests {
         ))
     }
 }
+
+extension AnalyticsDeliveryConsistencyTests {
+    @Test func analyticsDiagnosticKeepsWhitelistedReasonAndDispositionWithoutContent() {
+        let known = NSError(domain: "com.firebase.functions", code: 9,
+            userInfo: [NSLocalizedDescriptionKey: "A current server-recorded analytics consent is required.", "contentID": "private-content"])
+        let diagnostic = AnalyticsDeliveryFailureDiagnostic(error: known, eventName: "news_view", retryCount: 2, willRetry: false)
+        #expect(diagnostic.reasonCode == "analyticsConsentRequired")
+        #expect(diagnostic.eventName == "news_view")
+        #expect(diagnostic.retryCount == 2)
+        #expect(diagnostic.willRetry == false)
+        #expect(!String(describing: diagnostic).contains("private-content"))
+        let unknown = NSError(domain: "com.firebase.functions", code: 9,
+            userInfo: [NSLocalizedDescriptionKey: "Bearer secret-token"])
+        let rejected = AnalyticsDeliveryFailureDiagnostic(error: unknown, eventName: "private-content")
+        #expect(rejected.reasonCode == nil)
+        #expect(rejected.eventName == nil)
+        #expect(!String(describing: rejected).contains("secret-token"))
+    }
+}

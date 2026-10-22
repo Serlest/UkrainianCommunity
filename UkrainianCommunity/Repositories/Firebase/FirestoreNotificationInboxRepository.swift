@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
 
 struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     private let database = Firestore.firestore()
@@ -56,7 +57,7 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
             if Task.isCancelled || error is CancellationError {
                 throw CancellationError()
             }
-            Self.logUnreadCountFailure(error)
+            Self.logUnreadCountFailure(error, userID: userID)
             throw FirebaseReadErrorMapper.map(error)
         }
     }
@@ -157,6 +158,8 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
 
     private static func logListenerFailure(_ error: Error, listenerName: String, userID: String) {
         Task {
+            // A callback from an old inbox must not be attributed to the newly signed-in account.
+            guard Auth.auth().currentUser?.uid == userID else { return }
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
                 context: SystemTechnicalErrorContext(
@@ -165,26 +168,32 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
                     targetType: .notification,
                     targetId: userID,
                     metadata: [
+                        "failureStage": "listenServerUpdates",
                         "listenerName": listenerName,
                         "pathGroup": "users/{userID}/notificationInbox"
-                    ]
+                    ],
+                    principalID: userID
                 )
             )
         }
     }
 
-    private static func logUnreadCountFailure(_ error: Error) {
+    private static func logUnreadCountFailure(_ error: Error, userID: String) {
         Task {
+            guard Auth.auth().currentUser?.uid == userID else { return }
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
                 context: SystemTechnicalErrorContext(
                     moduleName: "Notifications",
                     operationName: "fetchUnreadCount",
                     targetType: .notification,
+                    targetId: userID,
                     metadata: [
                         "pathGroup": "users/{userID}/notificationInbox",
-                        "queryKind": "serverAggregation"
-                    ]
+                        "queryKind": "serverAggregation",
+                        "failureStage": "readServerAggregation"
+                    ],
+                    principalID: userID
                 )
             )
         }

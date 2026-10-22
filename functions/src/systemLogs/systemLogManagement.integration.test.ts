@@ -2,6 +2,7 @@ import {strict as assert} from "node:assert";
 import {after, test} from "node:test";
 
 import {db} from "../firebase/admin";
+import {writeClientDiagnostic} from "./clientDiagnostics";
 import {seedCurrentLegalForIntegration} from "../auth/legalIntegrationFixture";
 import {clearSystemLogs, deleteSystemLog, deleteSystemLogRecord} from "./systemLogManagement";
 
@@ -83,3 +84,27 @@ async function systemLogDeletionAudit(logId: string) {
     document.data().previousValue?.systemLogId === logId
   );
 }
+
+test("late diagnostic cannot be attributed to a newly signed-in account", {skip: !shouldRun}, async () => {
+  const uid = "diagnostic-identity-integration-user";
+  const profile = db.doc(`users/${uid}`);
+  const payload = {eventType: "technicalError", severity: "warning", targetType: "notification", summary: "Fixture diagnostic", metadata: {}};
+  const request = (principalId?: string) => ({auth: {uid, token: {email_verified: true}}, data: {...payload, ...(principalId === undefined ? {} : {principalId})}} as any);
+  const logs: string[] = [];
+  try {
+    await profile.set({globalRole: "user", accountStatus: "active"});
+    await seedCurrentLegalForIntegration(uid);
+    await assert.rejects(writeClientDiagnostic.run(request("previous-account")), {code: "failed-precondition"});
+    for (const principalId of [undefined, uid]) {
+      const created = await writeClientDiagnostic.run(request(principalId));
+      logs.push(created.id);
+      const stored = await db.doc(`systemLogs/${created.id}`).get();
+      assert.equal(stored.get("actorUserId"), uid);
+      assert.equal(stored.get("principalId"), undefined);
+    }
+  } finally {
+    await Promise.all(logs.map(id => db.doc(`systemLogs/${id}`).delete()));
+    await profile.delete();
+    await db.doc(`systemLogDiagnosticRateLimits/${uid}`).delete();
+  }
+});

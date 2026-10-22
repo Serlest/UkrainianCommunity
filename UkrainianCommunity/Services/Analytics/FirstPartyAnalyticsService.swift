@@ -116,12 +116,17 @@ final class FirstPartyAnalyticsService: AnalyticsTracking {
                     guard authorization.allowsDelivery(for: failedSession) else { return }
                     // Existing logger deduplicates repeats; no analytics content,
                     // consent IDs or auth/App Check tokens enter the system log.
-                    let safeError = NSError(domain: diagnostic.domain, code: diagnostic.code,
-                        userInfo: [NSLocalizedDescriptionKey: "Analytics delivery failed."])
+                    var safeInfo: [String: Any] = [NSLocalizedDescriptionKey: "Analytics delivery failed."]
+                    if let reason = diagnostic.reasonCode { safeInfo["diagnosticReason"] = reason }
+                    let safeError = NSError(domain: diagnostic.domain, code: diagnostic.code, userInfo: safeInfo)
+                    var metadata = ["underlyingErrorCodes": diagnostic.underlyingCodes, "impact": "analyticsOnly", "executionMode": "background"]
+                    if let name = diagnostic.eventName { metadata["analyticsEvent"] = name }
+                    if let count = diagnostic.retryCount { metadata["retryCount"] = String(count) }
+                    if let retry = diagnostic.willRetry { metadata["deliveryDisposition"] = retry ? "retryScheduled" : "discarded" }
                     await SystemTechnicalErrorLoggingService.shared.logFailure(safeError,
                         context: SystemTechnicalErrorContext(moduleName: "Analytics",
                             operationName: "deliverAggregate",
-                            metadata: ["underlyingErrorCodes": diagnostic.underlyingCodes]))
+                            metadata: metadata, principalID: failedSession.principalID))
                 }
             }
         )

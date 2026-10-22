@@ -3,7 +3,7 @@ import {describe, test} from "node:test";
 
 import {HttpsError} from "firebase-functions/v2/https";
 
-import {parseDiagnostic} from "./clientDiagnostics";
+import {parseDiagnostic, assertDiagnosticPrincipal} from "./clientDiagnostics";
 
 function validDiagnostic() {
   return {
@@ -34,4 +34,11 @@ describe("client diagnostic validation", () => {
       (error: unknown) => error instanceof HttpsError && error.code === "invalid-argument"
     );
   });
+});
+
+test("diagnostic identity fence accepts legacy clients and rejects a different session", () => {
+  assert.doesNotThrow(() => assertDiagnosticPrincipal(undefined, "current"));
+  assert.doesNotThrow(() => assertDiagnosticPrincipal("current", "current"));
+  assert.throws(() => assertDiagnosticPrincipal("previous", "current"), {code: "failed-precondition"});
+  assert.equal(parseDiagnostic({...validDiagnostic(), principalId: "current"}).principalId, "current");
 });

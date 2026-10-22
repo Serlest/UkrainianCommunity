@@ -270,6 +270,9 @@ def main() -> int:
         return 1
 
     print(f"Release configuration validation passed for build {versions[0]}.")
+    if "--verify-deployed-analytics" in sys.argv[1:]:
+        from validate_deployed_analytics import main as verify_deployed_analytics
+        return verify_deployed_analytics()
     return 0
 
 

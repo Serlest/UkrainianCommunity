@@ -81,7 +81,16 @@ struct SystemLogDetailView: View {
 
             if SystemLogExplanation.isFailure(log) {
                 detailSection(SystemLogExplanation.text("section"), rows: [
+                    (SystemLogExplanation.text("action"), SystemLogExplanation.action(log)),
+                    (SystemLogExplanation.text("impact"), SystemLogExplanation.impact(log)),
                     (SystemLogExplanation.text("cause"), SystemLogExplanation.cause(log)),
+                    (SystemLogExplanation.text("failureStage"), SystemLogExplanation.contextValue(log.metadata["failureStage"], prefix: "stage")),
+                    (SystemLogExplanation.text("analyticsEvent"), SystemLogExplanation.contextValue(log.metadata["analyticsEvent"], prefix: "event")),
+                    (SystemLogExplanation.text("invalidField"), SystemLogExplanation.contextValue(log.metadata["invalidField"], prefix: "field")),
+                    (SystemLogExplanation.text("validationRule"), SystemLogExplanation.contextValue(log.metadata["validationRule"], prefix: "rule")),
+                    (SystemLogExplanation.text("deliveryDisposition"), SystemLogExplanation.contextValue(log.metadata["deliveryDisposition"], prefix: "disposition")),
+                    (SystemLogExplanation.text("retryCount"), log.metadata["retryCount"]),
+                    (SystemLogExplanation.text("appBuild"), log.metadata["appBuild"]),
                     (SystemLogExplanation.text("next"), SystemLogExplanation.nextStep(log))
                 ])
             }
@@ -326,3 +335,28 @@ private struct SystemLogDetailRow: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 }
+
+#if DEBUG
+/// Production-shaped diagnostic fixtures; no live log, account or consent writes.
+struct SystemLogDiagnosisAuditHarness: View {
+    private static var entries: [SystemLogEntry] {
+        [SystemLogEntry(id: "analytics", createdAt: .now, category: .diagnostics, severity: .warning,
+            eventType: .technicalError, actorDisplayName: "Fixture User", actorRole: .user, targetType: .none,
+            outcome: .failed, summary: "Technical failure in Analytics.deliverAggregate",
+            errorCode: "cloudFunctions.failedPrecondition", moduleName: "Analytics", operationName: "deliverAggregate",
+            appVersion: "1.2.1", metadata: ["diagnosticReason": "analyticsConsentRequired", "analyticsEvent": "news_view", "deliveryDisposition": "discarded", "retryCount": "0", "appBuild": "114"]),
+         SystemLogEntry(id: "banner", createdAt: .now.addingTimeInterval(-60), category: .diagnostics, severity: .warning,
+            eventType: .technicalError, actorDisplayName: "Fixture Owner", actorRole: .owner, targetType: .systemConfiguration,
+            targetId: "fixture-banner", targetTitle: "Nationalfeiertag Österreichs", outcome: .failed,
+            summary: "Technical failure in FeaturedBanners.decodeOwnerBanner", errorCode: "parsing.invalidBanner",
+            moduleName: "FeaturedBanners", operationName: "decodeOwnerBanner", appVersion: "1.2.1",
+            metadata: ["invalidField": "imageURL", "validationRule": "invalidHTTPURL", "recoveryMode": "managementPlaceholder", "appBuild": "114"])]
+    }
+    var body: some View {
+        SystemLogsDashboardView(viewModel: SystemLogsViewModel(repository: MockSystemLogRepository(entries: Self.entries)))
+            .environmentObject(AuthService.shared.authState)
+            .environment(\.locale, LocalizationStore.locale)
+            .preferredColorScheme(AppAppearance.stored.colorScheme)
+    }
+}
+#endif

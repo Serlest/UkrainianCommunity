@@ -16,6 +16,14 @@ enum SystemTechnicalErrorClassifier {
         _ error: Error,
         context: SystemTechnicalErrorContext
     ) -> SystemTechnicalErrorClassification {
+        if let issue = error as? FeaturedBannerDataIssue {
+            var metadata = context.metadata
+            metadata["invalidField"] = issue.field
+            metadata["validationRule"] = issue.rule
+            return .init(severity: .warning, errorCode: "parsing.invalidBanner",
+                technicalMessage: "Banner schema validation failed.", metadata: metadata)
+        }
+
         if let decodingError = error as? DecodingError {
             return classification(
                 severity: .warning,
@@ -227,6 +235,7 @@ enum SystemTechnicalErrorClassifier {
         metadata["errorDomain"] = safeMetadataValue(nsError.domain)
         metadata["errorNumber"] = "\(nsError.code)"
         metadata["classification"] = errorCode
+        if let reason = SystemDiagnosticReason.code(for: nsError) { metadata["diagnosticReason"] = reason }
         metadata["targetType"] = context.targetType.rawValue
         // Preserve structured causes, never arbitrary userInfo, URLs, headers or server text.
         var cause: NSError? = nsError
@@ -267,5 +276,21 @@ enum SystemTechnicalErrorClassifier {
 
     private static func safeMetadataValue(_ value: String) -> String {
         String(value.prefix(120))
+    }
+}
+
+/// Exact, approved messages become stable reasons. Arbitrary server text is never retained.
+nonisolated enum SystemDiagnosticReason {
+    static let messages: [String: String] = [
+        "A current server-recorded analytics consent is required.": "analyticsConsentRequired",
+        "Current legal documents must be acknowledged.": "legalAcknowledgementRequired",
+        "The tracked action could not be verified.": "analyticsActionUnverified",
+        "A TOTP-authenticated session is required for this privileged account.": "mfaRequired",
+        "Firebase project ID is unavailable.": "firebaseConfigurationMissing"
+    ]
+    static func code(for error: NSError) -> String? {
+        if let code = error.userInfo["diagnosticReason"] as? String, messages.values.contains(code) { return code }
+        guard error.domain == FunctionsErrorDomain else { return nil }
+        return messages[error.localizedDescription]
     }
 }

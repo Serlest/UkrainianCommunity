@@ -234,6 +234,9 @@ struct UkrainianCommunityApp: App {
         } else if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
                   ProcessInfo.processInfo.environment["UITestBannerReportAudit"] == "1" {
             BannerReportAuditHarness()
+        } else if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+                  ProcessInfo.processInfo.environment["UITestSystemLogDiagnosis"] == "1" {
+            SystemLogDiagnosisAuditHarness()
         } else { standardRootContent }
 #else
         standardRootContent

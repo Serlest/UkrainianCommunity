@@ -67,11 +67,19 @@ nonisolated struct AnalyticsDeliveryFailureDiagnostic: Sendable, Equatable {
     let domain: String
     let code: Int
     let underlyingCodes: String
+    let reasonCode: String?
+    let eventName: String?
+    let retryCount: Int?
+    let willRetry: Bool?
 
-    init(error: Error) {
+    init(error: Error, eventName: String? = nil, retryCount: Int? = nil, willRetry: Bool? = nil) {
         let error = error as NSError
         domain = error.domain
         code = error.code
+        reasonCode = SystemDiagnosticReason.code(for: error)
+        self.eventName = eventName.flatMap { AnalyticsEventName(rawValue: $0)?.rawValue }
+        self.retryCount = retryCount
+        self.willRetry = willRetry
         var chain: [String] = []
         var underlying = error.userInfo[NSUnderlyingErrorKey] as? NSError
         for _ in 0..<4 {
@@ -511,7 +519,8 @@ actor AnalyticsAggregationOutbox {
                     break
                 }
 
-                reportFailure(AnalyticsDeliveryFailureDiagnostic(error: error), session)
+                reportFailure(AnalyticsDeliveryFailureDiagnostic(error: error, eventName: entry.request.name,
+                    retryCount: entry.retryCount, willRetry: !Self.isPermanentDeliveryError(error)), session)
                 if Self.isPermanentDeliveryError(error) {
                     entries.remove(at: currentIndex)
                     persist()

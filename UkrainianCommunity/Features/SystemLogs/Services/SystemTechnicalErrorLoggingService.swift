@@ -1,4 +1,6 @@
 import Foundation
+import FirebaseAuth
+import FirebaseCore
 
 struct SystemTechnicalErrorContext {
     let moduleName: String
@@ -11,6 +13,7 @@ struct SystemTechnicalErrorContext {
     let organizationName: String?
     let metadata: [String: String]
     let isDestructiveAccountOperation: Bool
+    let principalID: String?
 
     init(
         moduleName: String,
@@ -22,7 +25,8 @@ struct SystemTechnicalErrorContext {
         organizationId: String? = nil,
         organizationName: String? = nil,
         metadata: [String: String] = [:],
-        isDestructiveAccountOperation: Bool = false
+        isDestructiveAccountOperation: Bool = false,
+        principalID: String? = nil
     ) {
         self.moduleName = moduleName
         self.operationName = operationName
@@ -34,6 +38,7 @@ struct SystemTechnicalErrorContext {
         self.organizationName = organizationName
         self.metadata = metadata
         self.isDestructiveAccountOperation = isDestructiveAccountOperation
+        self.principalID = principalID
     }
 }
 
@@ -52,8 +57,10 @@ final class SystemTechnicalErrorLoggingService {
     }
 
     func logFailure(_ error: Error, context: SystemTechnicalErrorContext) async {
+        let principalID = context.principalID ?? (FirebaseApp.app() == nil ? nil : Auth.auth().currentUser?.uid)
         let classification = SystemTechnicalErrorClassifier.classify(error, context: context)
         let dedupeKey = [
+            principalID ?? "unknown-principal",
             context.moduleName,
             context.operationName,
             context.targetType.rawValue,
@@ -75,6 +82,8 @@ final class SystemTechnicalErrorLoggingService {
             targetTitle: context.targetTitle,
             metadata: classification.metadata
         )
+        draft.actorUserId = principalID
+        draft.metadata["appBuild"] = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown"
         draft.severity = classification.severity
         draft.screenName = context.screenName
         draft.organizationId = context.organizationId
