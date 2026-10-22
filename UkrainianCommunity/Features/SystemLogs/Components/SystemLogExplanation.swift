@@ -47,9 +47,18 @@ enum SystemLogExplanation {
     }
 
     nonisolated static func action(_ log: SystemLogEntry) -> String {
-        if let operation = log.operationName, defaults["action." + operation] != nil {
-            return text("action." + operation)
+        if let operation = log.operationName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !operation.isEmpty {
+            if defaults["action." + operation] != nil {
+                return text("action." + operation)
+            }
+            // Show recorded evidence instead of hiding it behind "unknown".
+            // This names the technical operation, not the user's inferred intent.
+            let module = log.moduleName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let qualifiedOperation = module.isEmpty ? operation : module + "." + operation
+            return text("action") + ": " + qualifiedOperation
         }
+
         return isFailure(log) ? text("action.unknown") : SystemLogDisplayFormatting.eventTypeTitle(log.eventType)
     }
 
