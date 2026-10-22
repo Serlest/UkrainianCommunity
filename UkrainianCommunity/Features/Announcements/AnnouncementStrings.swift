@@ -76,7 +76,7 @@ enum AnnouncementManagementText {
             "selected": ("Вибрані користувачі", "Ausgewählte Nutzer"),
             "search": ("Ім’я або email", "Name oder E-Mail"), "noResults": ("Користувачів не знайдено", "Keine Nutzer gefunden"),
             "addPeople": ("Додати користувачів", "Nutzer hinzufügen"),
-            "union": ("Групи та вибрані люди додаються разом. Для повідомлення лише конкретним людям вимкніть усі групи. Регіон застосовується до всіх одержувачів.", "Gruppen und ausgewählte Personen werden zusammengefasst. Für einzelne Empfänger alle Gruppen ausschalten. Die Region gilt für alle Empfänger."),
+            "union": ("Групи й вибрані люди додаються разом. Лише конкретним людям — вимкніть групи. Регіон діє для всіх.", "Gruppen und Personen werden kombiniert. Nur einzelne Empfänger: Gruppen ausschalten. Region gilt für alle."),
             "limit": ("Можна вибрати до 100 користувачів.", "Bis zu 100 Nutzer können ausgewählt werden."),
             "unavailable": ("Акаунт недоступний; повідомлення не буде надіслане", "Konto nicht verfügbar; erhält keine Mitteilung"),
             "reviewTitle": ("Перевірка перед надсиланням", "Vor dem Senden prüfen"),

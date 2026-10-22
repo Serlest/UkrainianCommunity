@@ -71,7 +71,7 @@ struct AnnouncementStatisticsView: View {
                 LabeledContent(AnnouncementStrings.pushSent, value: String(statistics.pushSuccess ?? 0))
                 LabeledContent(AnnouncementStrings.pushFailed, value: String(statistics.pushFailure ?? 0))
             }
-            Text(AnnouncementManagementText.value("pushHelp")).font(.caption).foregroundStyle(.secondary)
+            Text(AnnouncementManagementText.value("pushHelp")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
             if let shown = statistics.guestPresented, shown > 0 { LabeledContent(AnnouncementStrings.guestShown, value: String(shown)) }
             if let acknowledged = statistics.guestAcknowledged, acknowledged > 0 { LabeledContent(AnnouncementStrings.guestAck, value: String(acknowledged)) }
         }
@@ -92,7 +92,7 @@ struct AnnouncementPreviewView: View {
                 }
                 AnnouncementSection(AnnouncementStrings.audience) {
                     AnnouncementAudienceSummary(item: item, users: selectedUsers)
-                    Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(.secondary)
+                    Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
                     AnnouncementPeriodSummary(item: item)
                 }
             }.navigationTitle(AnnouncementStrings.preview)

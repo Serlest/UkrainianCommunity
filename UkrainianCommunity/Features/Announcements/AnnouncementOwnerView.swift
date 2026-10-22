@@ -169,7 +169,7 @@ struct AnnouncementEditorView: View {
                 AnnouncementSection(AnnouncementStrings.audience) {
                     AnnouncementAudienceSummary(item: draft, users: selectedUsers)
                     LabeledContent(AnnouncementManagementText.value("recipientCount"), value: String(count ?? 0))
-                    Text(AnnouncementManagementText.value("countHelp")).font(.caption).foregroundStyle(.secondary)
+                    Text(AnnouncementManagementText.value("countHelp")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
                     if count == 0 { InlineMessageCard(style: .info, message: AnnouncementManagementText.value("noRecipients")) }
                 }
                 AnnouncementSection {
@@ -208,7 +208,7 @@ struct AnnouncementEditorView: View {
             ForEach(["registered", "organizationOwners", "appAdmins", "organizationAdmins", "organizationModerators"], id: \.self) { group in
                 Toggle(AnnouncementStrings.group(group), isOn: selection(group, in: $draft.groups))
             }
-            Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(.secondary)
+            Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
             Button("\(AnnouncementManagementText.value("addPeople")) (\(draft.userIds.count))") { users = true }.accessibilityIdentifier("announcements.people")
             if !draft.userIds.isEmpty {
                 AnnouncementAudienceSummary(item: draft, users: selectedUsers, peopleOnly: true)
@@ -233,7 +233,7 @@ struct AnnouncementEditorView: View {
             Toggle(AnnouncementStrings.feedback, isOn: $draft.feedback)
             AnnouncementSchedulePicker(title: AnnouncementStrings.start, selection: dateBinding($draft.startsAt))
             AnnouncementSchedulePicker(title: AnnouncementStrings.expiry, selection: dateBinding($draft.expiresAt))
-            Text(AnnouncementStrings.scheduleHelp).font(.caption)
+            Text(AnnouncementStrings.scheduleHelp).font(.caption).fixedSize(horizontal: false, vertical: true)
         }.environment(\.timeZone, TimeZone(identifier: "Europe/Vienna")!)
     }
     private func close() { guard !busy else { return }; if dirty { discard = true } else { dismiss() } }
