@@ -93,3 +93,29 @@ struct AnnouncementTests {
         #expect(value.userIds.isEmpty); #expect(value.status == "published"); #expect(value.active(at: 1500))
     }
 }
+
+extension AnnouncementTests {
+    @Test func phasesUseExactStartEndAndCancellationBoundaries() {
+        var value = UserAnnouncement(); value.status = "published"; value.startsAt = 1000; value.expiresAt = 2000
+        #expect(value.phase(at: 999) == "scheduled")
+        #expect(value.phase(at: 1000) == "active")
+        #expect(value.phase(at: 2000) == "completed")
+        value.status = "cancelled"; #expect(value.phase(at: 1500) == "cancelled")
+        value.status = "draft"; #expect(value.phase(at: 3000) == "draft")
+    }
+    @Test func editorChecksServerUTF16LimitsAndNinetyDayPeriodBeforeSending() {
+        var value = UserAnnouncement()
+        value.title = AnnouncementText(uk: String(repeating: "😀", count: 81), de: "Titel")
+        value.body = AnnouncementText(uk: "Текст", de: "Text")
+        #expect(!value.canPublish)
+        #expect(value.saveIssues.contains(AnnouncementManagementText.value("length")))
+        value.title.uk = "Тест"
+        value.expiresAt = value.startsAt + 91 * 86400000
+        #expect(!value.canPublish)
+        #expect(value.saveIssues.contains(AnnouncementManagementText.value("period")))
+        value.expiresAt = value.startsAt + 90 * 86400000
+        #expect(value.canPublish)
+        value.groups = []; #expect(!value.canPublish)
+        value.userIds = ["a"]; #expect(value.canPublish)
+    }
+}

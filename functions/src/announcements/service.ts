@@ -5,8 +5,9 @@ import {HttpsError, onCall, type CallableRequest} from "firebase-functions/v2/ht
 import {onSchedule} from "firebase-functions/v2/scheduler";
 import {transientSchedulerRetry} from "../scheduling/transientRetry";
 import {requireAuth, requireVerifiedActiveUser} from "../auth/context";
-import {assertOwner, isActiveUser} from "../permissions/userPermissions";
+import {assertOwner} from "../permissions/userPermissions";
 import {sendPushToRegistrationDocuments, isStrictFirebaseInstallationID} from "../notifications/pushRegistrations";
+import {audiencePage, recipient, searchRecipients} from "./audience";
 import {translateTexts} from "../translation/service";
 import {Announcement, AudienceUser, parseDraft, identifier, record, text, fail, matchesAudience, supports, isActive, publicAnnouncement, assertPublishable} from "./contract";
 
@@ -21,16 +22,9 @@ async function rolloutEnabled(push = false): Promise<boolean> {
 const digest = (s: string) => createHash("sha256").update(s).digest("hex");
 const denied = (): never => {throw new HttpsError("permission-denied", "Announcement access denied.");};
 
-export async function audienceUser(uid: string): Promise<AudienceUser | undefined> {
-  const profile = (await db.collection("users").doc(uid).get()).data();
-  if (!profile || !isActiveUser({uid, ...profile})) return undefined;
-  const [owned, administered, moderated] = await Promise.all([
-    db.collection("organizations").where("ownerId", "==", uid).limit(1).get(),
-    db.collection("organizations").where("adminIds", "array-contains", uid).limit(1).get(),
-    db.collection("organizations").where("moderatorIds", "array-contains", uid).limit(1).get(),
-  ]);
-  return {uid, region: profile.selectedFederalState, globalRole: profile.globalRole,
-    organizationRoles: [...(!owned.empty ? ["communityOwner"] : []), ...(!administered.empty ? ["communityAdmin"] : []), ...(!moderated.empty ? ["communityModerator"] : [])]};
+export async function audienceUser(uid: string, groups: readonly string[] = ["organizationOwners", "organizationAdmins", "organizationModerators"]): Promise<AudienceUser | undefined> {
+  const users = await audiencePage([await db.collection("users").doc(uid).get()], groups);
+  return users[0];
 }
 async function readCampaign(id: string): Promise<Announcement> {
   const doc = await campaigns.doc(id).get();
@@ -47,10 +41,21 @@ export async function manage(request: CallableRequest) {
   const data = record(request.data); const now = Date.now();
   switch (data.operation) {
     case "list": {
-      let query = campaigns.orderBy("updatedAt", "desc").orderBy(FieldPath.documentId(), "desc").limit(30);
-      if (data.cursor) {const cursor = await campaigns.doc(identifier(data.cursor)).get(); if (cursor.exists) query = query.startAfter(cursor);}
-      const page = await query.get();
-      return {items: page.docs.map((d) => d.data()), cursor: page.size === 30 ? page.docs.at(-1)!.id : null};
+      const phase = data.phase;
+      if (phase != null && !["draft", "scheduled", "active", "completed", "cancelled"].includes(String(phase))) return fail("Invalid announcement phase.");
+      let query = phase === "draft" || phase === "cancelled"
+        ? campaigns.where("status", "==", phase).orderBy("updatedAt", "desc").orderBy(FieldPath.documentId(), "desc")
+        : phase === "scheduled" ? campaigns.where("status", "==", "published").where("startsAt", ">", now).orderBy("startsAt").orderBy(FieldPath.documentId())
+        : phase === "active" ? campaigns.where("status", "==", "published").where("expiresAt", ">", now).orderBy("expiresAt").orderBy(FieldPath.documentId())
+        : phase === "completed" ? campaigns.where("status", "==", "published").where("expiresAt", "<=", now).orderBy("expiresAt", "desc").orderBy(FieldPath.documentId(), "desc")
+        : campaigns.orderBy("updatedAt", "desc").orderBy(FieldPath.documentId(), "desc");
+      if (data.cursor) {
+        const cursor = await campaigns.doc(identifier(data.cursor)).get();
+        if (!cursor.exists) throw new HttpsError("aborted", "Refresh the announcement list.");
+        query = query.startAfter(cursor);
+      }
+      const page = await query.limit(30).get();
+      return {items: page.docs.map((d) => d.data()).filter(d => phase !== "active" || d.startsAt <= now), cursor: page.size === 30 ? page.docs.at(-1)!.id : null};
     }
     case "save": {
       const draft = parseDraft(data.draft, auth.uid, now), ref = campaigns.doc(draft.id);
@@ -87,14 +92,23 @@ export async function manage(request: CallableRequest) {
       let query = db.collection("users").orderBy(FieldPath.documentId()).limit(100);
       if (data.cursor) query = query.startAfter(identifier(data.cursor));
       const page = await query.get(); let accounts = 0;
-      for (const doc of page.docs) {const u = await audienceUser(doc.id); if (u && matchesAudience(a, u)) accounts++;}
+      for (const user of await audiencePage(page.docs, a.groups)) { if (matchesAudience(a, user)) accounts++; }
       return {accounts, guests: a.groups.includes("guests"), cursor: page.size === 100 ? page.docs.at(-1)!.id : null};
     }
     case "users": {
-      let query = db.collection("users").orderBy(FieldPath.documentId()).limit(50);
-      if (data.cursor) query = query.startAfter(identifier(data.cursor));
-      const page = await query.get();
-      return {items: page.docs.map((d) => ({id: d.id, name: d.data().displayName || d.data().fullName || d.id, region: d.data().selectedFederalState ?? null})), cursor: page.size === 50 ? page.docs.at(-1)!.id : null};
+      // Old clients use the original plain document-ID cursor. Keep that contract.
+      if (data.searchVersion !== 2) {
+        let query = db.collection("users").orderBy(FieldPath.documentId()).limit(50);
+        if (data.cursor) query = query.startAfter(identifier(data.cursor));
+        const page = await query.get();
+        return {items: page.docs.map(recipient), cursor: page.size === 50 ? page.docs.at(-1)!.id : null};
+      }
+      return searchRecipients(data.query, data.cursor);
+    }
+    case "resolveUsers": {
+      if (!Array.isArray(data.userIds) || data.userIds.length > 100) return fail("Invalid recipients.");
+      const ids = [...new Set(data.userIds.map(identifier))];
+      return {users: ids.length ? (await db.getAll(...ids.map(id => db.collection("users").doc(id)))).map(recipient) : []};
     }
     case "stats": {
       const ref = campaigns.doc(identifier(data.id));
@@ -127,22 +141,33 @@ export async function feed(request: CallableRequest) {
   const data = record(request.data); client(data);
   if (!await rolloutEnabled()) return {items: [], serverNow: Date.now(), cursor: null};
   const uid = request.auth?.uid;
-  const user = uid ? await audienceUser(uid) : undefined;
-  if (uid && !user) return denied();
   const now = Date.now();
-  // Cursor supports retained history; expiration is evaluated independently of publication status.
-  let query = campaigns.where("status", "in", ["published", "cancelled"]).orderBy(FieldPath.documentId()).limit(100);
-  if (data.cursor) query = query.startAfter(identifier(data.cursor));
-  const page = await query.get(); const items = [];
-  for (const doc of page.docs) {
-    const a = doc.data() as Announcement;
-    if (a.startsAt > now || !supports(a, data.platform, data.capability) || !matchesAudience(a, user)) continue;
-    const receipt = uid ? (await receiptRef(uid, a.id).get()).data() ?? {} : {};
-    if (a.status === "cancelled" && uid && !receipt.presentedAt) continue;
-    // Expired history is retained, but never a popup candidate.
-    items.push({...publicAnnouncement(a), presentedAt: receipt.presentedAt ?? null, acknowledgedAt: receipt.acknowledgedAt ?? null});
+  if (data.feedMode != null && !["active", "history"].includes(String(data.feedMode))) return fail("Invalid feed mode.");
+  const activeOnly = data.feedMode === "active";
+  let query = activeOnly
+    ? campaigns.where("status", "==", "published").where("expiresAt", ">", now).orderBy("expiresAt").orderBy(FieldPath.documentId()).limit(100)
+    : campaigns.where("status", "in", ["published", "cancelled"]).orderBy(FieldPath.documentId()).limit(data.feedMode === "history" ? 30 : 100);
+  if (data.cursor) {
+    if (activeOnly) {
+      const cursor = await campaigns.doc(identifier(data.cursor)).get();
+      if (!cursor.exists) throw new HttpsError("aborted", "Refresh the announcements.");
+      query = query.startAfter(cursor);
+    } else query = query.startAfter(identifier(data.cursor));
   }
-  return {items, serverNow: now, cursor: page.size === 100 ? page.docs.at(-1)!.id : null};
+  const page = await query.get();
+  const groups = [...new Set(page.docs.flatMap(d => (d.data() as Announcement).groups))];
+  const user = uid ? await audienceUser(uid, groups) : undefined;
+  if (uid && !user) return denied();
+  const eligible = page.docs.map(d => d.data() as Announcement).filter(a => a.startsAt <= now && supports(a, data.platform, data.capability) && matchesAudience(a, user));
+  const receipts = uid && eligible.length ? await db.getAll(...eligible.map(a => receiptRef(uid, a.id))) : [];
+  const byID = new Map(receipts.map(d => [d.id, d.data() ?? {}]));
+  const items = eligible.flatMap(a => {
+    const receipt = byID.get(a.id) ?? {};
+    if (a.status === "cancelled" && uid && !receipt.presentedAt) return [];
+    return [{...publicAnnouncement(a), presentedAt: receipt.presentedAt ?? null, acknowledgedAt: receipt.acknowledgedAt ?? null}];
+  });
+  const pageSize = data.feedMode === "history" ? 30 : 100;
+  return {items, serverNow: now, cursor: page.size === pageSize ? page.docs.at(-1)!.id : null};
 }
 export const getAnnouncements = onCall(options, feed);
 
@@ -150,7 +175,7 @@ export async function acknowledge(request: CallableRequest) {
   const data = record(request.data); client(data);
   const auth = request.auth ? requireAuth(request) : undefined, id = identifier(data.id);
   if (!["presented", "acknowledged", "action"].includes(String(data.event))) return fail("Invalid event.");
-  const a = await readCampaign(id), user = auth ? await audienceUser(auth.uid) : undefined;
+  const a = await readCampaign(id), user = auth ? await audienceUser(auth.uid, a.groups) : undefined;
   if ((auth && !user) || !matchesAudience(a, user) || !supports(a, data.platform, data.capability) || a.status !== "published") return denied();
   const event = String(data.event);
   if (event === "acknowledged" && a.mode !== "acknowledge") return fail("Confirmation is not required.");
@@ -255,7 +280,7 @@ export async function dispatchAnnouncements(send: typeof sendPushToRegistrationD
         for (const registration of registrations.docs) {
           const d = registration.data();
           if (!d.verified || !supports(a, d.platform, d.capability) || d.updatedAt < Date.now() - 90 * 86400000) continue;
-          const user = d.uid ? await audienceUser(d.uid) : undefined;
+          const user = d.uid ? await audienceUser(d.uid, a.groups) : undefined;
           if ((d.uid && !user) || !matchesAudience(a, user)) continue;
           if (d.uid) {
             const preferences = (await db.collection("users").doc(d.uid).collection("notificationPreferences").doc("settings").get()).data();

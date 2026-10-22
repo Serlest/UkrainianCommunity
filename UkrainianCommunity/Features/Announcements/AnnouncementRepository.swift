@@ -5,6 +5,13 @@ import FirebaseFunctions
 protocol AnnouncementRepository {
     func call(_ endpoint: String, _ request: AnnouncementRequest) async throws -> AnnouncementResponse
     func users(cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?)
+    func users(query: String, cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?)
+}
+extension AnnouncementRepository {
+    func users(query: String, cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?) {
+        let page = try await users(cursor: cursor)
+        return (page.items.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) || ($0.email?.localizedCaseInsensitiveContains(query) ?? false) }, page.cursor)
+    }
 }
 @MainActor
 struct CloudAnnouncementRepository: AnnouncementRepository {
@@ -13,9 +20,12 @@ struct CloudAnnouncementRepository: AnnouncementRepository {
         return try await callable.call(request)
     }
     func users(cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?) {
+        try await users(query: "", cursor: cursor)
+    }
+    func users(query: String, cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?) {
         struct Response: Decodable { let items: [AnnouncementUser]; let cursor: String? }
         let callable: Callable<AnnouncementRequest, Response> = Functions.functions(region: "europe-west3").httpsCallable("manageAnnouncements")
-        let result = try await callable.call(AnnouncementRequest(operation: "users", cursor: cursor))
+        let result = try await callable.call(AnnouncementRequest(query: query, searchVersion: 2, operation: "users", cursor: cursor))
         return (result.items, result.cursor)
     }
 }
@@ -32,6 +42,7 @@ final class MockAnnouncementRepository: AnnouncementRepository {
         }
     }
     func call(_ endpoint: String, _ request: AnnouncementRequest) async throws -> AnnouncementResponse {
+        if request.operation == "resolveUsers" { return AnnouncementResponse(users: (request.userIds ?? []).map { AnnouncementUser(id: $0, name: "Olena Levytska", region: "wien", email: "olena@example.test", available: true) }) }
         if request.operation == "save", var item = request.draft {
             item.revision += 1
             items.removeAll { $0.id == item.id }; items.append(item)
@@ -43,5 +54,5 @@ final class MockAnnouncementRepository: AnnouncementRepository {
         if request.operation == "preview" { return AnnouncementResponse(accounts: 1) }
         return AnnouncementResponse(items: items, serverNow: Date().timeIntervalSince1970 * 1000)
     }
-    func users(cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?) { ([], nil) }
+    func users(cursor: String?) async throws -> (items: [AnnouncementUser], cursor: String?) { ([AnnouncementUser(id: "recipient-fixture", name: "Olena Levytska", region: "wien", email: "olena@example.test", available: true)], nil) }
 }

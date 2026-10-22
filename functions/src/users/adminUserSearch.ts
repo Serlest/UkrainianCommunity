@@ -54,7 +54,8 @@ export async function* adminSearchDocuments(
   normalizedQuery: string,
   fields: readonly string[],
   readiness: AdminSearchReadiness = "automatic",
-  region?: string
+  region?: string,
+  afterDocumentID?: string
 ): AsyncGenerator<QueryDocumentSnapshot> {
   const anchor = adminSearchAnchor(normalizedQuery);
   const users = firestore.collection("users");
@@ -64,7 +65,9 @@ export async function* adminSearchDocuments(
     : region && region !== "unknown" ? users.where("selectedFederalState", "==", region) : users;
   // One streaming query preserves full coverage; no first-page cut-off, offsets,
   // cached identities, or per-page snapshots. Only selected fields cross the wire.
-  const stream = candidates.orderBy(FieldPath.documentId()).select(...fields).stream() as Readable;
+  const ordered = candidates.orderBy(FieldPath.documentId());
+  const page = afterDocumentID ? ordered.startAfter(afterDocumentID) : ordered;
+  const stream = page.select(...fields).stream() as Readable;
   try {
     for await (const document of stream) yield document as QueryDocumentSnapshot;
   } finally {

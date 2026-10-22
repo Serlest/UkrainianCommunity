@@ -223,6 +223,11 @@ jobs:
         working-directory: functions
         run: npm run test:directory:integration
 
+      - name: Run announcement management and delivery integration tests
+        if: contains(fromJSON(needs.changes.outputs.integrations), 'announcements')
+        working-directory: functions
+        run: npm run test:announcements:integration
+
       - name: Run publication control integration test
         if: contains(fromJSON(needs.changes.outputs.integrations), 'publication-control')
         working-directory: functions

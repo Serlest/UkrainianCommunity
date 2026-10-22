@@ -64,3 +64,54 @@ enum AnnouncementStrings {
     static var guestAck: String { LocalizationStore.localizedString("announcements.guestAck", defaultValue: "Підтверджено без входу (попередні версії)") }
     static func group(_ key: String) -> String { LocalizationStore.localizedString("announcements.\(key)", defaultValue: key) }
 }
+
+/// Management-only copy. Kept next to the feature while the shared catalog has
+/// unrelated pending changes; both shipping languages are always provided.
+enum AnnouncementManagementText {
+    private static let copy: [String: (String, String)] = [
+            "draft": ("Чернетки", "Entwürfe"), "scheduled": ("Заплановані", "Geplant"),
+            "active": ("Діють зараз", "Aktiv"), "completed": ("Завершені", "Abgelaufen"), "cancelled": ("Припинені", "Beendet"),
+            "done": ("Готово", "Fertig"),
+            "all": ("Усі", "Alle"), "empty": ("У цій категорії повідомлень немає", "Keine Mitteilungen in dieser Kategorie"),
+            "selected": ("Вибрані користувачі", "Ausgewählte Nutzer"),
+            "search": ("Ім’я або email", "Name oder E-Mail"), "noResults": ("Користувачів не знайдено", "Keine Nutzer gefunden"),
+            "addPeople": ("Додати користувачів", "Nutzer hinzufügen"),
+            "union": ("Групи та вибрані люди додаються разом. Для повідомлення лише конкретним людям вимкніть усі групи. Регіон застосовується до всіх одержувачів.", "Gruppen und ausgewählte Personen werden zusammengefasst. Für einzelne Empfänger alle Gruppen ausschalten. Die Region gilt für alle Empfänger."),
+            "limit": ("Можна вибрати до 100 користувачів.", "Bis zu 100 Nutzer können ausgewählt werden."),
+            "unavailable": ("Акаунт недоступний; повідомлення не буде надіслане", "Konto nicht verfügbar; erhält keine Mitteilung"),
+            "reviewTitle": ("Перевірка перед надсиланням", "Vor dem Senden prüfen"),
+            "recipientCount": ("Акаунтів за вибраними умовами", "Konten für diese Auswahl"),
+            "countHelp": ("Активні акаунти рахуються один раз; це не гарантія доставки. Показ доступний у застосунку iOS. Push отримають пристрої з дозволом на сповіщення. Аудиторія може змінитися до початку показу.", "Aktive Konten zählen einmal; dies ist keine Zustellbestätigung. Die Anzeige ist in der iOS-App verfügbar. Push erhalten Geräte mit Mitteilungserlaubnis. Die Zielgruppe kann sich bis zum Start ändern."),
+            "noRecipients": ("За цими умовами немає активних одержувачів. Змініть вибір.", "Keine aktiven Empfänger für diese Auswahl. Bitte Auswahl ändern."),
+            "discardTitle": ("Зберегти зміни?", "Änderungen speichern?"),
+            "discard": ("Вийти без збереження", "Ohne Speichern schließen"), "continue": ("Продовжити редагування", "Weiter bearbeiten"),
+            "stopTitle": ("Припинити показ і подальшу розсилку?", "Anzeige und weiteren Versand beenden?"),
+            "stopHelp": ("Уже надіслані push неможливо відкликати. Переглянуте повідомлення залишиться в історії користувача.", "Bereits gesendete Push-Nachrichten können nicht zurückgerufen werden. Gelesene Mitteilungen bleiben im Verlauf."),
+            "languages": ("Заповніть заголовок і текст обома мовами.", "Titel und Text in beiden Sprachen ausfüllen."),
+            "length": ("Заголовок: до 160 символів; текст: до 6000. Emoji можуть займати декілька символів.", "Titel: maximal 160 Zeichen; Text: maximal 6000. Emoji können mehrere Zeichen belegen."),
+            "recipients": ("Виберіть групу або конкретних користувачів.", "Eine Gruppe oder einzelne Nutzer auswählen."),
+            "period": ("Завершення має бути після початку та в майбутньому. Максимальна тривалість — 90 днів.", "Das Ende muss nach dem Start und in der Zukunft liegen. Maximale Dauer: 90 Tage."),
+            "network": ("Немає зв’язку із сервером. Перевірте інтернет і спробуйте ще раз. Зміни залишилися в редакторі.", "Keine Verbindung zum Server. Internetverbindung prüfen und erneut versuchen. Änderungen bleiben im Editor."),
+            "access": ("Для цієї дії потрібен актуальний вхід власника з двофакторним захистом. Увійдіть повторно.", "Eine aktuelle Anmeldung des Eigentümers mit Zwei-Faktor-Schutz ist erforderlich. Bitte erneut anmelden."),
+            "conflict": ("Чернетка змінилася на іншому пристрої. Збережіть свій текст і відкрийте її повторно.", "Der Entwurf wurde auf einem anderen Gerät geändert. Text sichern und Entwurf erneut öffnen."),
+            "invalid": ("Перевірте текст, одержувачів і період показу. Сервер не прийняв дані.", "Text, Empfänger und Zeitraum prüfen. Der Server hat die Daten nicht angenommen."),
+            "precondition": ("Дія зараз недоступна. Перевірте статус повідомлення та актуальність входу; за потреби відкрийте його повторно.", "Aktion derzeit nicht verfügbar. Status und Anmeldung prüfen; Mitteilung gegebenenfalls erneut öffnen."),
+            "quota": ("Досягнуто ліміт. Припиніть непотрібні повідомлення або повторіть пізніше.", "Limit erreicht. Nicht benötigte Mitteilungen beenden oder später erneut versuchen."),
+            "missing": ("Повідомлення більше недоступне. Оновіть список.", "Mitteilung nicht mehr verfügbar. Liste aktualisieren."),
+            "timeout": ("Сервер не відповів вчасно. Результат дії невідомий: спочатку оновіть список і перевірте статус.", "Zeitüberschreitung. Ergebnis unbekannt: zuerst Liste aktualisieren und Status prüfen."),
+            "pushState": ("Стан push-розсилки", "Status des Push-Versands"),
+            "pending": ("Очікує початку / наступної спроби", "Wartet auf Start / nächsten Versuch"),
+            "running": ("Надсилається", "Wird gesendet"), "delivered": ("Обробку завершено", "Verarbeitung abgeschlossen"),
+            "failed": ("Помилка; буде повторна спроба", "Fehler; erneuter Versuch folgt"),
+            "disabled": ("Push не запитано", "Push nicht angefordert"),
+            "unknown": ("Статус невідомий", "Status unbekannt"),
+            "pushHelp": ("Покази й підтвердження рахуються за акаунтами. Push — за пристроями; прийняття сервісом не гарантує прочитання.", "Anzeigen und Bestätigungen zählen Konten. Push zählt Geräte; die Annahme durch den Dienst bestätigt kein Lesen."),
+            "reload": ("Оновити результати", "Ergebnisse aktualisieren"),
+            "now": ("Зараз", "Jetzt"), "yes": ("Так", "Ja"), "no": ("Ні", "Nein"),
+            "loadMore": ("Завантажити попередні повідомлення", "Weitere Mitteilungen laden")
+    ]
+    static func value(_ key: String) -> String {
+        guard let pair = copy[key] else { return key }
+        return AppLanguage.stored == .ukrainian ? pair.0 : pair.1
+    }
+}

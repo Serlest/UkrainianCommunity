@@ -1,5 +1,11 @@
 {
   "indexes": [
+    {"collectionGroup": "announcements", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "updatedAt", "order": "DESCENDING"}, {"fieldPath": "__name__", "order": "DESCENDING"}]},
+    {"collectionGroup": "announcements", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "startsAt", "order": "ASCENDING"}, {"fieldPath": "__name__", "order": "ASCENDING"}]},
+    {"collectionGroup": "announcements", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "expiresAt", "order": "DESCENDING"}, {"fieldPath": "__name__", "order": "DESCENDING"}]},
+
+    {"collectionGroup": "announcements", "queryScope": "COLLECTION", "fields": [{"fieldPath": "status", "order": "ASCENDING"}, {"fieldPath": "expiresAt", "order": "ASCENDING"}, {"fieldPath": "__name__", "order": "ASCENDING"}]},
+
     {
       "collectionGroup": "news",
       "queryScope": "COLLECTION",

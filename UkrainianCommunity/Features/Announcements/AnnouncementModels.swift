@@ -49,14 +49,17 @@ nonisolated struct UserAnnouncement: Codable, Identifiable, Equatable, Hashable,
     func active(at milliseconds: Double) -> Bool {
         schemaVersion == 1 && ["once", "acknowledge"].contains(mode) && status == "published" && startsAt <= milliseconds && expiresAt > milliseconds
     }
-    var canPublish: Bool {
-        [title.uk, title.de, body.uk, body.de].allSatisfy { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-        && title.uk.count <= 160 && title.de.count <= 160 && body.uk.count <= 6000 && body.de.count <= 6000
-        && (!groups.isEmpty || !userIds.isEmpty) && expiresAt > max(startsAt, (Date().timeIntervalSince1970 * 1000).rounded())
+    @MainActor var canPublish: Bool {
+        publicationIssues.isEmpty
     }
 }
-struct AnnouncementUser: Codable, Identifiable { let id: String; let name: String; let region: String? }
+struct AnnouncementUser: Codable, Identifiable { let id: String; let name: String; let region: String?; var email: String? = nil; var available: Bool? = nil }
 nonisolated struct AnnouncementRequest: Encodable {
+    var phase: String?
+    var query: String?
+    var searchVersion: Int?
+    var userIds: [String]?
+    var feedMode: String?
     var operation: String?
     var platform = "ios"
     var capability = 1
@@ -74,6 +77,7 @@ nonisolated struct AnnouncementRequest: Encodable {
     var challenge: String?
 }
 struct AnnouncementResponse: Decodable {
+    var users: [AnnouncementUser]?
     var items: [UserAnnouncement]?
     var item: UserAnnouncement?
     var cursor: String?

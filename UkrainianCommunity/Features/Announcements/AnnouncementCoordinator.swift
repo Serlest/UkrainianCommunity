@@ -9,6 +9,11 @@ final class AnnouncementCoordinator: ObservableObject {
     @Published var requestedFeedback: UserAnnouncement?
     @Published var error: String?
     @Published var isLoading = false
+    @Published private(set) var isHistoryLoading = false
+    @Published private(set) var historyCursor: String?
+    private var historyItems: [UserAnnouncement] = []
+    private var activeItems: [UserAnnouncement] = []
+    private var historyGeneration = 0
     let repository: any AnnouncementRepository
     private let defaults: UserDefaults
     private var userID: String?
@@ -30,7 +35,7 @@ final class AnnouncementCoordinator: ObservableObject {
         }
         let next = accountID ?? "unavailable"
         guard next != identity else { return }
-        generation += 1; identity = next; self.userID = accountID
+        generation += 1; historyGeneration += 1; historyItems = []; activeItems = []; historyCursor = nil; isHistoryLoading = false; identity = next; self.userID = accountID
         active = nil; items = []; error = nil; isLoading = false; policy = AnnouncementPresentationPolicy(); lastLoadedAt = nil
     }
     func background() { policy.background(at: Date()); active = nil }
@@ -44,12 +49,16 @@ final class AnnouncementCoordinator: ObservableObject {
             try? await flushPending()
             var result: [UserAnnouncement] = [], cursor: String?
             repeat {
-                let response = try await repository.call("getAnnouncements", AnnouncementRequest(cursor: cursor))
+                let response = try await repository.call("getAnnouncements", AnnouncementRequest(feedMode: "active", cursor: cursor))
                 guard version == generation, !Task.isCancelled else { return }
                 result += response.items ?? []; cursor = response.cursor
                 if let now = response.serverNow { serverOffset = now - Date().timeIntervalSince1970 * 1000 }
             } while cursor != nil
-            items = result.filter { $0.schemaVersion == 1 && ($0.status != "cancelled" || $0.presentedAt != nil || stored($0.id, "presented")) }.sorted { $0.startsAt > $1.startsAt }
+            activeItems = result.filter { $0.schemaVersion == 1 }
+            let currentIDs = Set(activeItems.map(\.id))
+            historyItems.removeAll { $0.active(at: now) && !currentIDs.contains($0.id) }
+            for item in activeItems { if let index = historyItems.firstIndex(where: { $0.id == item.id }) { historyItems[index] = item } }
+            mergeItems()
             if let active, !items.contains(where: { $0.id == active.id && $0.active(at: now) && $0.acknowledgedAt == nil }) { self.active = nil }
             error = nil; lastLoadedAt = Date()
         } catch {
@@ -58,6 +67,37 @@ final class AnnouncementCoordinator: ObservableObject {
             active = nil; lastLoadedAt = nil
         }
     }
+    func loadHistory(reset: Bool = false) async {
+        guard identity != "unconfigured", identity != "unavailable" else { return }
+        if !reset && (isHistoryLoading || historyCursor == nil) { return }
+        historyGeneration += 1; let requestID = historyGeneration; let accountVersion = generation
+        isHistoryLoading = true
+        defer { if historyGeneration == requestID { isHistoryLoading = false } }
+        do {
+            let response = try await repository.call("getAnnouncements", AnnouncementRequest(feedMode: "history", cursor: reset ? nil : historyCursor))
+            guard generation == accountVersion, historyGeneration == requestID, !Task.isCancelled else { return }
+            if let serverNow = response.serverNow { serverOffset = serverNow - Date().timeIntervalSince1970 * 1000 }
+            let page = response.items ?? []
+            let updates = Dictionary(page.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+            activeItems = activeItems.compactMap { current in
+                guard let updated = updates[current.id] else { return current }
+                return updated.active(at: now) ? updated : nil
+            }
+            historyItems = (reset ? [] : historyItems).filter { old in !page.contains { $0.id == old.id } } + page
+            historyCursor = response.cursor; error = nil
+            mergeItems()
+        } catch {
+            guard generation == accountVersion, historyGeneration == requestID, !Task.isCancelled else { return }
+            self.error = AnnouncementErrorPresentation.message(error)
+        }
+    }
+    private func mergeItems() {
+        // An explicit history read may contain the latest cancellation/receipt.
+        var byID = Dictionary(activeItems.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+        for item in historyItems { byID[item.id] = item }
+        items = byID.values.filter { $0.schemaVersion == 1 && ($0.status != "cancelled" || $0.presentedAt != nil || stored($0.id, "presented")) }
+            .sorted { $0.startsAt == $1.startsAt ? $0.id < $1.id : $0.startsAt > $1.startsAt }
+    }
     func refreshIfStale() async {
         guard lastLoadedAt.map({ Date().timeIntervalSince($0) < 60 }) != true else { return }
         await refresh()
@@ -65,7 +105,7 @@ final class AnnouncementCoordinator: ObservableObject {
     var now: Double { Date().timeIntervalSince1970 * 1000 + serverOffset }
     func presentIfPossible(_ ready: Bool) {
         guard ready, active == nil, policy.seenThisSession.isEmpty, let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) < 120 else { return }
-        active = items.first {
+        active = activeItems.first {
             policy.eligible($0, now: now, locallyPresented: stored($0.id, "presented"), locallyAcknowledged: stored($0.id, "acknowledged"))
         }
     }

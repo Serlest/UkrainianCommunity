@@ -243,9 +243,44 @@ final class UkrainianCommunityUITests: XCTestCase {
         let send = app.buttons["announcements.send"].firstMatch
         scrollToElement(send, in: app); XCTAssertTrue(send.isEnabled); send.tap()
         let confirm = app.buttons["announcements.confirmSend"].firstMatch
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); scrollToElement(confirm, in: app, maxSwipes: 14); confirm.tap()
         XCTAssertTrue(app.buttons["announcements.stats"].waitForExistence(timeout: 10))
         attachScreenshot(named: "announcements-owner-published", from: app)
+    }
+
+    @MainActor
+    func testAnnouncementRecipientSearchAndUnsavedChangesInBothLanguages() throws {
+        for language in ["uk", "de"] {
+            let app = launchOwnerApp(language: language, appearance: language == "de" ? "dark" : "light",
+                                     contentSizeCategory: language == "de" ? "UICTContentSizeCategoryAccessibilityM" : nil)
+            tapRootTab(rootTabs[4], in: app, timeout: 20)
+            let entry = app.buttons["profile.announcements"].firstMatch
+            scrollToElement(entry, in: app, maxSwipes: 24); XCTAssertTrue(entry.isHittable); entry.tap()
+            let create = app.buttons["announcements.create"].firstMatch
+            XCTAssertTrue(create.waitForExistence(timeout: 10)); create.tap()
+            let people = app.buttons["announcements.people"].firstMatch
+            scrollToElement(people, in: app, maxSwipes: 30); XCTAssertTrue(people.isHittable); people.tap()
+            let query = app.textFields["announcements.recipientSearch"].firstMatch
+            XCTAssertTrue(query.waitForExistence(timeout: 10)); query.tap(); query.typeText("olena@example")
+            let selectedCount = app.staticTexts["announcements.selectionCount"].firstMatch
+            scrollToElement(selectedCount, in: app, maxSwipes: 5); selectedCount.tap()
+            XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+            let person = app.switches["announcements.recipient.recipient-fixture"].firstMatch
+            scrollToElement(person, in: app, maxSwipes: 12)
+            XCTAssertTrue(person.waitForExistence(timeout: 5)); person.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5)).tap()
+            let done = app.buttons["announcements.peopleDone"].firstMatch
+            for _ in 0..<15 { if done.isHittable { break }; app.swipeDown() }
+            XCTAssertTrue(done.isHittable); done.tap()
+            XCTAssertTrue(app.staticTexts["olena@example.test"].firstMatch.waitForExistence(timeout: 10))
+            attachScreenshot(named: "announcements-recipients-" + language, from: app)
+            let cancel = app.buttons[language == "uk" ? "Скасувати" : "Abbrechen"].firstMatch
+            for _ in 0..<20 { if cancel.isHittable { break }; app.swipeDown() }
+            XCTAssertTrue(cancel.isHittable); cancel.tap()
+            let discard = app.buttons["announcements.discard"].firstMatch
+            XCTAssertTrue(discard.waitForExistence(timeout: 5)); discard.tap()
+            XCTAssertTrue(create.waitForExistence(timeout: 10))
+            app.terminate()
+        }
     }
 
     @MainActor

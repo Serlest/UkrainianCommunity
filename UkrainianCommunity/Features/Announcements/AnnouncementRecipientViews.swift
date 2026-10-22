@@ -40,9 +40,12 @@ struct AnnouncementHistoryView: View {
     @ObservedObject var coordinator: AnnouncementCoordinator
     var body: some View {
         ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: AnnouncementStrings.subtitle) {
-            if let error = coordinator.error { InlineMessageCard(style: .error, message: error) }
-            if coordinator.isLoading { ProgressView() }
-            if coordinator.items.isEmpty && !coordinator.isLoading { Text(AnnouncementStrings.empty) }
+            if let error = coordinator.error {
+                InlineMessageCard(style: .error, message: error)
+                Button(AnnouncementStrings.retry) { Task { await coordinator.loadHistory(reset: true) } }
+            }
+            if coordinator.isLoading || coordinator.isHistoryLoading { ProgressView() }
+            if coordinator.items.isEmpty && !coordinator.isLoading && !coordinator.isHistoryLoading { Text(AnnouncementStrings.empty) }
             ForEach(coordinator.items) { item in
                 NavigationLink {
                     ProfileDestinationLayout(title: AnnouncementStrings.history, introSubtitle: "") { AnnouncementSection {
@@ -65,8 +68,11 @@ struct AnnouncementHistoryView: View {
                     }
                 }
             }
+            if coordinator.historyCursor != nil {
+                Button(AnnouncementManagementText.value("loadMore")) { Task { await coordinator.loadHistory() } }.disabled(coordinator.isHistoryLoading)
+            }
         }.navigationTitle(AnnouncementStrings.history)
-            .task { await coordinator.refresh() }.refreshable { await coordinator.refresh() }
+            .task { await coordinator.loadHistory(reset: true) }.refreshable { await coordinator.loadHistory(reset: true) }
             .accessibilityIdentifier("screen.announcements.history")
     }
 }
