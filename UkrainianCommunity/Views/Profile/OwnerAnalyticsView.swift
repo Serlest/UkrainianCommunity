@@ -3,6 +3,7 @@ import SwiftUI
 struct OwnerAnalyticsView: View {
     private let repository: OwnerAnalyticsRepository
     @StateObject private var viewModel: OwnerAnalyticsViewModel
+    @State private var supplementalRefreshID = 0
     @FocusState private var isSearchFocused: Bool
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -19,25 +20,28 @@ struct OwnerAnalyticsView: View {
             scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize
         ) {
             periodPicker
-            NavigationLink(value: ProfileNavigationRoute.bannerAnalytics(period: viewModel.selectedPeriod)) {
-                ProfileModuleRow(
-                    title: AppStrings.BannerReport.title,
-                    subtitle: AppStrings.BannerReport.entrySubtitle,
-                    systemImage: "rectangle.on.rectangle"
-                )
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("ownerAnalytics.bannerReport")
             searchField
+            if matchesSupplemental([AppStrings.BannerReport.currentAccounts, AppStrings.OwnerAnalytics.totalUsers]) {
+                RegisteredUserCountCard(refreshID: supplementalRefreshID)
+            }
             content
+            if matchesSupplemental([AppStrings.BannerReport.title, AppStrings.BannerReport.impressions, AppStrings.BannerReport.clicks]) {
+                BannerAnalyticsOverviewSection(period: viewModel.selectedPeriod, refreshID: supplementalRefreshID)
+            }
         }
         .task(id: viewModel.selectedPeriod) {
             await viewModel.loadIfNeeded()
         }
         .appRefreshable {
+            supplementalRefreshID &+= 1
             await viewModel.load()
         }
         .accessibilityIdentifier("screen.ownerAnalytics")
+    }
+
+    private func matchesSupplemental(_ values: [String]) -> Bool {
+        viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            || LocalSearchMatcher.matches(query: viewModel.searchText, values: values)
     }
 
     private var periodPicker: some View {

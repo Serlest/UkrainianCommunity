@@ -148,6 +148,23 @@ test("legacy callable contract, authorization and actual event handler survive i
     await maintainAdminUserSearchIndex.run(event); // Redelivery must be harmless.
     await control.set({ready: true, version: 1});
     assert.deepEqual(await searchManagedUsers.run(request()), {userIds: [ids[0]], totalMatches: 1});
+    await refs[0].update({selectedFederalState: "tirol"});
+    await refs[1].set({displayName: "Eventfixture two", selectedFederalState: "tirol", createdAt: new Date()});
+    await reconcileAdminSearchUser(database, ids[1]);
+    const regional = (region: string, cursor?: string, query = "") => ({auth: {uid: actor.id, token: {email_verified: true}},
+      data: {query, limit: 1, region, ...(cursor ? {startAfterUserID: cursor} : {})}} as never);
+    const first = await searchManagedUsers.run(regional("tirol"));
+    assert.equal(first.totalMatches, 2);
+    assert.deepEqual(first.userIds, [ids[0]]);
+    assert.equal(first.nextCursor, ids[0]);
+    const second = await searchManagedUsers.run(regional("tirol", first.nextCursor!));
+    assert.deepEqual(second.userIds, [ids[1]]);
+    assert.equal(second.totalMatches, 2);
+    assert.equal(second.nextCursor, null);
+    assert.equal((await searchManagedUsers.run(regional("tirol", undefined, "eventfixture"))).totalMatches, 2);
+    assert.equal((await searchManagedUsers.run(regional("wien", undefined, "eventfixture"))).totalMatches, 0);
+    await assert.rejects(searchManagedUsers.run(regional("invalid")), {code: "invalid-argument"});
+    await refs[1].delete();
     const legal = await listLegalEvidenceAccounts.run(request());
     assert.equal(legal.totalMatches, 1);
     assert.equal(legal.nextCursor, null);

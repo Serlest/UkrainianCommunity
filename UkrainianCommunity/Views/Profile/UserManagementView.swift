@@ -104,6 +104,7 @@ struct UserManagementView: View {
         _viewModel = StateObject(wrappedValue: UserManagementViewModel(reads: reads))
     }
     @State private var selectedUserRoute: ManagedUserRoute?
+    @State private var selectedRegion: String?
     @State private var searchText = ""
     @State private var selectedFilter: UserManagementFilter = .all
     @State private var sortOption: AppListSortOption = .newest
@@ -131,10 +132,10 @@ struct UserManagementView: View {
     }
 
     private var candidateUsers: [AppUser] {
-        if normalizedSearch.isEmpty {
+        if normalizedSearch.isEmpty && selectedRegion == nil {
             return viewModel.users
         }
-        if normalizedSearch.count < 2 {
+        if normalizedSearch.count < 2 && selectedRegion == nil {
             return viewModel.users.filter { user in
                 LocalSearchMatcher.matches(
                     query: normalizedSearch,
@@ -157,20 +158,20 @@ struct UserManagementView: View {
         .task(id: actorLoadKey) {
             await viewModel.load(actor: actor)
         }
-        .task(id: "\(actorLoadKey)|\(normalizedSearch)") {
-            guard normalizedSearch.count >= 2 else {
+        .task(id: "\(actorLoadKey)|\(normalizedSearch)|\(selectedRegion ?? "all")") {
+            guard normalizedSearch.count >= 2 || selectedRegion != nil else {
                 viewModel.clearSearch()
                 return
             }
             viewModel.prepareSearch()
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
-            await viewModel.search(query: normalizedSearch, actor: actor)
+            await viewModel.search(query: normalizedSearch, actor: actor, region: selectedRegion)
         }
         .appRefreshable {
             await viewModel.refresh(actor: actor)
-            if normalizedSearch.count >= 2 {
-                await viewModel.search(query: normalizedSearch, actor: actor)
+            if normalizedSearch.count >= 2 || selectedRegion != nil {
+                await viewModel.search(query: normalizedSearch, actor: actor, region: selectedRegion)
             }
         }
         .navigationDestination(item: $selectedUserRoute) { route in
@@ -216,11 +217,11 @@ struct UserManagementView: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Label("\(viewModel.users.count)", systemImage: "person.3")
+                    Label(viewModel.totalRegisteredUsers.map(String.init) ?? "—", systemImage: "person.3")
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
-                    Text(viewModel.canLoadMore ? AppStrings.UserManagement.loadedUsers : AppStrings.UserManagement.registeredUsers)
+                    Text(AppStrings.UserManagement.registeredUsers)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
 
@@ -230,6 +231,11 @@ struct UserManagementView: View {
                         ProgressView()
                     }
                 }
+
+                Text(AppStrings.UserManagement.loadedCount(selectedRegion == nil ? viewModel.users.count : viewModel.searchResults.count, total: selectedRegion == nil ? viewModel.totalRegisteredUsers : viewModel.searchTotalMatches))
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .accessibilityIdentifier("userManagement.loadedCount")
 
                 Button {
                     isShowingRoleGuide = true
@@ -283,11 +289,21 @@ struct UserManagementView: View {
 
     private var filterRow: some View {
         VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            Picker(AppStrings.UserManagement.regionFilter, selection: $selectedRegion) {
+                Text(AppStrings.UserManagement.allRegions).tag(String?.none)
+                ForEach(AustrianFederalState.allCases) { region in Text(region.displayName).tag(Optional(region.rawValue)) }
+                Text(AppStrings.UserManagement.unknownRegion).tag(Optional("unknown"))
+            }.pickerStyle(.menu).tint(AppTheme.accentPrimaryForeground)
+            .accessibilityIdentifier("userManagement.regionFilter")
+            if selectedRegion != nil {
+                Text(AppStrings.UserManagement.regionMatches(viewModel.searchTotalMatches))
+                    .font(.caption).foregroundStyle(AppTheme.textSecondary)
+            }
             ViewThatFits(in: .horizontal) {
                 HStack { filterMenu; Spacer(minLength: 8); sortMenu }
                 VStack(alignment: .leading, spacing: 8) { filterMenu; sortMenu }
             }
-            if viewModel.canLoadMore && normalizedSearch.count < 2 {
+            if viewModel.regionalNextCursor != nil || (viewModel.canLoadMore && normalizedSearch.count < 2 && selectedRegion == nil) {
                 Text(AppStrings.UserManagement.loadedScope)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
@@ -338,11 +354,11 @@ struct UserManagementView: View {
     private var contentList: some View {
         if viewModel.isSearching {
             LoadingStateCard(title: AppStrings.UserManagement.searching)
-        } else if normalizedSearch.count >= 2 && viewModel.searchFailed {
+        } else if (normalizedSearch.count >= 2 || selectedRegion != nil) && viewModel.searchFailed {
             UnifiedEmptyStateCard(systemImage: "exclamationmark.triangle", title: AppStrings.UserManagement.title,
                                   message: AppStrings.UserManagement.searchFailed) {
                 PrimaryActionButton(title: AppStrings.UserManagement.retry, systemImage: "arrow.clockwise") {
-                    Task { await viewModel.search(query: normalizedSearch, actor: actor) }
+                    Task { await viewModel.search(query: normalizedSearch, actor: actor, region: selectedRegion) }
                 }
             }
             .accessibilityIdentifier("userManagement.searchError")
@@ -370,7 +386,7 @@ struct UserManagementView: View {
                     title: AppStrings.UserManagement.noResultsTitle,
                     message: AppStrings.UserManagement.noResultsMessage
                 )
-                if normalizedSearch.count < 2 { loadMoreButton }
+                loadMoreButton
             }
         } else {
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
@@ -386,7 +402,7 @@ struct UserManagementView: View {
                         .accessibilityAction { selectedUserRoute = ManagedUserRoute(user: user) }
                         .accessibilityIdentifier("userManagement.user.\(user.id)")
                 }
-                if normalizedSearch.count < 2 {
+                if selectedRegion != nil || normalizedSearch.count < 2 {
                     loadMoreButton
                 } else if normalizedSearch.count >= 2 {
                     VStack(spacing: 6) {
@@ -417,7 +433,12 @@ struct UserManagementView: View {
 
     @ViewBuilder
     private var loadMoreButton: some View {
-        if viewModel.canLoadMore {
+        if selectedRegion != nil, viewModel.regionalNextCursor != nil {
+            PrimaryActionButton(title: AppStrings.UserManagement.loadMore, isEnabled: !viewModel.isLoadingMore,
+                isLoading: viewModel.isLoadingMore, systemImage: "arrow.down.circle") {
+                Task { await viewModel.loadMoreRegional(actor: actor) }
+            }
+        } else if selectedRegion == nil && viewModel.canLoadMore {
             PrimaryActionButton(
                 title: AppStrings.UserManagement.loadMore,
                 isEnabled: !viewModel.isLoadingMore,

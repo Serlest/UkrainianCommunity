@@ -12,6 +12,7 @@ struct UserManagementReads {
     struct SearchResult {
         let users: [AppUser]
         let totalMatches: Int
+        var nextCursor: String? = nil
     }
 
     var users: (Int) async throws -> Page
@@ -20,20 +21,30 @@ struct UserManagementReads {
     var securityMetadata: (String) async throws -> ManagedUserSecurityMetadata
     var presence: (String) async throws -> ManagedUserPresenceSnapshot = UserPresenceAPI.load
 
+    var regionalSearch: (String, String, String?) async throws -> SearchResult = { query, region, cursor in
+        let response = try await CloudFunctionsClient.shared.searchManagedUsers(query: query, limit: 40, region: region, startAfterUserID: cursor)
+        let users = try await fetchUsers(ids: response.userIds)
+        return SearchResult(users: users, totalMatches: response.totalMatches, nextCursor: response.nextCursor)
+    }
+
+    var totalCount: () async throws -> Int? = { nil }
+
     var search: (String) async throws -> SearchResult = liveSearch
 
     private static func liveSearch(_ query: String) async throws -> SearchResult {
         let response = try await CloudFunctionsClient.shared.searchManagedUsers(query: query)
+        return SearchResult(users: try await fetchUsers(ids: response.userIds), totalMatches: response.totalMatches)
+    }
+
+    private static func fetchUsers(ids: [String]) async throws -> [AppUser] {
         var usersByID: [String: AppUser] = [:]
-        for ids in response.userIds.chunked(into: 30) where !ids.isEmpty {
+        for batch in ids.chunked(into: 30) where !batch.isEmpty {
             try Task.checkCancellation()
             let snapshot = try await Firestore.firestore().collection("users")
-                .whereField(FieldPath.documentID(), in: Array(ids)).getDocuments(source: .server)
-            for document in snapshot.documents {
-                usersByID[document.documentID] = UserManagementViewModel.makeUser(from: document)
-            }
+                .whereField(FieldPath.documentID(), in: Array(batch)).getDocuments(source: .server)
+            for document in snapshot.documents { usersByID[document.documentID] = UserManagementViewModel.makeUser(from: document) }
         }
-        return SearchResult(users: response.userIds.compactMap { usersByID[$0] }, totalMatches: response.totalMatches)
+        return ids.compactMap { usersByID[$0] }
     }
 
     static let live = UserManagementReads(
@@ -68,6 +79,16 @@ struct UserManagementReads {
             let response = try await CloudFunctionsClient.shared.getManagedUserSecurityMetadata(userId: id)
             guard response.targetUserId == id else { throw AppError.permissionDenied }
             return ManagedUserSecurityMetadata(response: response)
-        }
+        },
+        totalCount: { try await RegisteredUserCountReader.fetch() }
     )
+}
+
+/// Both owner analytics and user management count the same persisted accounts.
+@MainActor
+enum RegisteredUserCountReader {
+    static func fetch() async throws -> Int {
+        let result = try await Firestore.firestore().collection("users").count.getAggregation(source: .server)
+        return result.count.intValue
+    }
 }

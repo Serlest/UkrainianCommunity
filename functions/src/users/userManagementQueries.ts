@@ -9,11 +9,14 @@ import {adminSearchDocuments, adminSearchFields, collectAdminSearch} from "./adm
 interface UserSearchRequest {
   query: string;
   limit: number;
+  region?: string;
+  startAfterUserID?: string;
 }
 
 interface UserSearchResponse {
   userIds: string[];
   totalMatches: number;
+  nextCursor?: string | null;
 }
 
 interface UserSecurityMetadataRequest {
@@ -92,6 +95,14 @@ export function userDocumentMatchesSearch(
   return tokens.every((token) => searchableText.includes(token));
 }
 
+const managedRegions = new Set(["burgenland", "kaernten", "niederoesterreich", "oberoesterreich", "salzburg", "steiermark", "tirol", "vorarlberg", "wien"]);
+
+export function managedUserMatchesRegion(data: DocumentData, region?: string): boolean {
+  if (!region) return true;
+  if (region === "unknown") return !managedRegions.has(String(data.selectedFederalState ?? ""));
+  return data.selectedFederalState === region;
+}
+
 export const searchManagedUsers = onCall(
   callableOptions,
   async (request): Promise<UserSearchResponse> => {
@@ -99,16 +110,33 @@ export const searchManagedUsers = onCall(
     assertCanManageUsers(auth.permissions);
 
     const data = request.data as Partial<UserSearchRequest> | undefined;
-    const query = normalizeUserSearchQuery(data?.query);
+    const region = data?.region;
+    if (region !== undefined && (typeof region !== "string" || (!managedRegions.has(region) && region !== "unknown"))) {
+      throw new HttpsError("invalid-argument", "Invalid region.");
+    }
+    const cursor = data?.startAfterUserID;
+    if (cursor !== undefined && (typeof cursor !== "string" || !cursor || cursor.length > 128 || cursor.includes("/"))) {
+      throw new HttpsError("invalid-argument", "Invalid cursor.");
+    }
+    const query = region && data?.query === "" ? "" : normalizeUserSearchQuery(data?.query);
     const limit = normalizedLimit(data?.limit);
+    let totalMatches = 0;
     const matches = await collectAdminSearch(
-      adminSearchDocuments(db, query, searchableFields),
-      document => userDocumentMatchesSearch(document.id, document.data(), query),
+      adminSearchDocuments(db, query, searchableFields, "automatic", region),
+      document => {
+        if (!managedUserMatchesRegion(document.data(), region)
+            || (query && !userDocumentMatchesSearch(document.id, document.data(), query))) return false;
+        totalMatches++;
+        return !cursor || document.id > cursor;
+      },
       limit
     );
     return {
       userIds: matches.items.map(document => document.id),
-      totalMatches: matches.totalMatches,
+      totalMatches,
+      ...(region !== undefined || cursor !== undefined ? {
+        nextCursor: matches.totalMatches > matches.items.length ? matches.items.at(-1)?.id ?? null : null,
+      } : {}),
     };
   }
 );

@@ -198,7 +198,6 @@ final class OwnerAnalyticsViewModel: ObservableObject {
         guard snapshot.userStats.hasData else { return [] }
         let stats = snapshot.userStats
         return [
-            OwnerAnalyticsUserMetricItem(title: AppStrings.OwnerAnalytics.totalUsers, value: stats.totalUsers, systemImage: "person.3"),
             OwnerAnalyticsUserMetricItem(title: AppStrings.OwnerAnalytics.activeUsersToday, value: stats.activeUsersToday, systemImage: "bolt"),
             OwnerAnalyticsUserMetricItem(title: AppStrings.OwnerAnalytics.activeUsersSevenDays, value: stats.activeUsersSevenDays, systemImage: "calendar.badge.clock"),
             OwnerAnalyticsUserMetricItem(title: AppStrings.OwnerAnalytics.activeUsersThirtyDays, value: stats.activeUsersThirtyDays, systemImage: "calendar"),

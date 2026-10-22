@@ -2,6 +2,7 @@ import {strict as assert} from "node:assert";
 import {test} from "node:test";
 
 import {
+  managedUserMatchesRegion,
   normalizeUserSearchQuery,
   userDocumentMatchesSearch,
 } from "./userManagementQueries";
@@ -75,4 +76,14 @@ test("presence prunes old session markers while retaining last activity", () => 
   assert.equal(Object.keys(fresh.sessions).length, 1);
   assert.equal(fresh.sessions[sessionA], undefined);
   assert.equal(fresh.lastSeenAt, now + 11 * 60_000);
+});
+
+test("profile region filter includes legacy absent regions without guessing from a city", () => {
+  assert.equal(managedUserMatchesRegion({selectedFederalState: "tirol"}, "tirol"), true);
+  assert.equal(managedUserMatchesRegion({selectedFederalState: "wien"}, "tirol"), false);
+  assert.equal(managedUserMatchesRegion({city: "Wien"}, "unknown"), true);
+  assert.equal(managedUserMatchesRegion({selectedFederalState: null}, "unknown"), true);
+  assert.equal(managedUserMatchesRegion({selectedFederalState: "legacy"}, "unknown"), true);
+  assert.equal(managedUserMatchesRegion({selectedFederalState: "tirol"}, "unknown"), false);
+  assert.equal(managedUserMatchesRegion({}), true);
 });

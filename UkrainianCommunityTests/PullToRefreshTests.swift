@@ -4,6 +4,43 @@ import Testing
 
 @MainActor
 struct PullToRefreshTests {
+    @Test func totalAccountCountIsIndependentOfLoadedPageAndRegionalPagination() async {
+        let fixture = ManagementReadFixture()
+        var reads = fixture.reads
+        reads.totalCount = { 45 }
+        reads.regionalSearch = { query, region, cursor in
+            #expect(region == "tirol")
+            if cursor == nil { return .init(users: [fixture.member], totalMatches: 2, nextCursor: "next") }
+            #expect(cursor == "next")
+            return .init(users: [MockContentBuilder.ownerUser()], totalMatches: 2)
+        }
+        let model = UserManagementViewModel(reads: reads)
+        let owner = MockContentBuilder.ownerUser()
+        await model.load(actor: owner)
+        #expect(model.users.count == 2)
+        #expect(model.totalRegisteredUsers == 45)
+        await model.search(query: "", actor: owner, region: "tirol")
+        #expect(model.searchResults.count == 1)
+        #expect(model.searchTotalMatches == 2)
+        await model.loadMoreRegional(actor: owner)
+        #expect(model.searchResults.count == 2)
+        #expect(model.regionalNextCursor == nil)
+        #expect(model.totalRegisteredUsers == 45)
+        await model.refresh(actor: nil)
+        #expect(model.totalRegisteredUsers == nil)
+        #expect(model.searchResults.isEmpty)
+    }
+
+    @Test func aggregateCountFailureNeverUsesPageSizeAsTotal() async {
+        let fixture = ManagementReadFixture()
+        var reads = fixture.reads
+        reads.totalCount = { throw AppError.network }
+        let model = UserManagementViewModel(reads: reads)
+        await model.load(actor: MockContentBuilder.ownerUser())
+        #expect(model.users.count == 2)
+        #expect(model.totalRegisteredUsers == nil)
+    }
+
     @Test func managedSearchFailureIsNotAnEmptySuccessAndCanRetry() async {
         let fixture = ManagementReadFixture()
         var failSearch = true

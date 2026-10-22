@@ -39,7 +39,7 @@ struct BannerMeasurementAuditHarness: View {
     }
 }
 
-private struct BannerReportAuditRepository: BannerMeasurementReportRepository {
+struct BannerReportAuditRepository: BannerMeasurementReportRepository {
     func fetch(period: AnalyticsPeriod) async throws -> BannerMeasurementReport {
         let today = FirestoreBannerMeasurementReportRepository.utcDayRange(period: .today, now: Date()).1
         return BannerMeasurementReport(period: period, counts: [
@@ -47,17 +47,40 @@ private struct BannerReportAuditRepository: BannerMeasurementReportRepository {
             .init(day: today, bannerID: "serlest", section: .events, impressions: 680, clicks: 31, displayRegion: "wien"),
             .init(day: today, bannerID: "uac", section: .directory, impressions: 420, clicks: 16, displayRegion: "allAustria"),
             .init(day: today, bannerID: "uac", section: .home, impressions: 100, clicks: 3),
+            .init(day: today, bannerID: "deleted-fixture", section: .home, impressions: 10, clicks: 2),
         ])
     }
 }
 struct BannerReportAuditHarness: View {
+    static func banners() -> [FeaturedBanner] {
+        ["serlest", "uac", "zero"].map { id in
+            FeaturedBanner(id: id, internalName: id == "zero" ? "Zero clicks" : id.uppercased(),
+                title: id.uppercased(), actionType: .externalURL, externalURL: "https://example.com",
+                visibleSections: [.home], isActive: id != "uac", createdAt: .now, updatedAt: .now, createdBy: "fixture")
+        }
+    }
     var body: some View {
         NavigationStack {
-            BannerMeasurementReportView(repository: BannerReportAuditRepository(),
-                bannerRepository: MockFeaturedBannerRepository(banners: []), initialPeriod: .sevenDays)
-                .environment(\.locale, LocalizationStore.locale)
-                .preferredColorScheme(AppAppearance.stored.colorScheme)
+            if ProcessInfo.processInfo.environment["UITestBannerReportScope"] == "editor" {
+                FeaturedBannerEditorView(repository: MockFeaturedBannerRepository(banners: Self.banners()),
+                    mode: .edit(Self.banners()[0]), measurementRepository: BannerReportAuditRepository()) {}
+            } else if ProcessInfo.processInfo.environment["UITestBannerReportScope"] == "management" {
+                FeaturedBannerManagementView(repository: MockFeaturedBannerRepository(banners: Self.banners()),
+                    newsRepository: MockNewsRepository(), eventRepository: MockEventRepository(),
+                    organizationRepository: MockOrganizationRepository(), measurementRepository: BannerReportAuditRepository())
+            } else if ProcessInfo.processInfo.environment["UITestBannerReportScope"] == "overview" {
+                ProfileDestinationLayout(title: AppStrings.OwnerAnalytics.title, introSubtitle: AppStrings.OwnerAnalytics.subtitle) {
+                    RegisteredUserCountCard(load: { 45 })
+                    BannerAnalyticsOverviewSection(period: .sevenDays, repository: BannerReportAuditRepository())
+                }
+            } else {
+                BannerMeasurementReportView(repository: BannerReportAuditRepository(),
+                    bannerRepository: MockFeaturedBannerRepository(banners: Self.banners()), initialPeriod: .sevenDays)
+            }
         }
+        .environmentObject(AuthService.shared.authState)
+        .environment(\.locale, LocalizationStore.locale)
+        .preferredColorScheme(AppAppearance.stored.colorScheme)
     }
 }
 #endif

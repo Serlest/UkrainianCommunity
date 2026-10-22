@@ -1507,6 +1507,20 @@
           "order": "DESCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "bannerMeasurementDailyShards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "bannerID",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "day",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": [

@@ -58,6 +58,7 @@ struct OwnerAnalyticsMetricTile: View {
     let value: Int
     var previousValue: Int? = nil
     let systemImage: String
+    var formattedValue: String? = nil
     @Environment(\.locale) private var locale
 
     var body: some View {
@@ -65,7 +66,7 @@ struct OwnerAnalyticsMetricTile: View {
             OwnerAnalyticsIconBadge(systemImage: systemImage, baseSize: 30)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(OwnerAnalyticsFormatting.integer(value, locale: locale))
+                Text(formattedValue ?? OwnerAnalyticsFormatting.integer(value, locale: locale))
                     .font(.title2.weight(.bold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .monospacedDigit()
@@ -128,7 +129,7 @@ struct OwnerAnalyticsMetricTile: View {
     }
 
     private var accessibilityValue: String {
-        [OwnerAnalyticsFormatting.integer(value, locale: locale), deltaPresentation?.text]
+        [formattedValue ?? OwnerAnalyticsFormatting.integer(value, locale: locale), deltaPresentation?.text]
             .compactMap { $0 }
             .joined(separator: ", ")
     }

@@ -1,6 +1,312 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "banner_report.coverageShort" : {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Враховані події користувачів, які дали згоду на вимірювання."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasste Ereignisse von Nutzern mit Einwilligung zur Messung."
+          }
+        }
+      }
+    },
+    "banner_report.ctr" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CTR"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CTR"
+          }
+        }
+      }
+    },
+    "banner_report.currentAccounts" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuell registrierte Nutzer"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зареєстровані користувачі зараз"
+          }
+        }
+      }
+    },
+    "banner_report.currentAccountsNote" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelle Anzahl der Konten. Unabhängig vom gewählten Zeitraum."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поточна кількість облікових записів. Не залежить від вибраного періоду."
+          }
+        }
+      }
+    },
+    "banner_report.historyNote" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gesamtwerte enthalten frühere Ereignisse gelöschter Banner; Einzelberichte sind nur für gespeicherte Banner verfügbar."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загальні підсумки містять попередні події видалених банерів; окремі звіти доступні лише для збережених банерів."
+          }
+        }
+      }
+    },
+    "banner_report.inactive" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deaktiviert"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вимкнений"
+          }
+        }
+      }
+    },
+    "banner_report.noCurrentBanners" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine gespeicherten Banner."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збережених банерів немає."
+          }
+        }
+      }
+    },
+    "banner_report.openStatistics" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bannerstatistik"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статистика банера"
+          }
+        }
+      }
+    },
+    "banner_report.removed" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Banner gelöscht"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Банер видалено"
+          }
+        }
+      }
+    },
+    "banner_report.removedMessage" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Einzelbericht ist nicht verfügbar. Frühere Ergebnisse bleiben nur in der Gesamtstatistik erhalten."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Окремий звіт недоступний. Попередні результати враховано лише в загальній історії."
+          }
+        }
+      }
+    },
+    "banner_report.removedTotals" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gelöschte Banner · zusammengefasst"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Раніше видалені банери · разом"
+          }
+        }
+      }
+    },
+    "banner_report.statisticsThirtyDays" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Statistik · 30 Tage"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Статистика · 30 днів"
+          }
+        }
+      }
+    },
+    "user_management.all_regions" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alle Bundesländer"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Усі землі"
+          }
+        }
+      }
+    },
+    "user_management.loaded_count" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geladen: %lld von %lld"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажено: %lld із %lld"
+          }
+        }
+      }
+    },
+    "user_management.loaded_count_unknown" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geladen: %lld · Gesamtzahl nicht verfügbar"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажено: %lld · загальна кількість недоступна"
+          }
+        }
+      }
+    },
+    "user_management.region_filter" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bundesland im Profil"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Федеральна земля у профілі"
+          }
+        }
+      }
+    },
+    "user_management.region_matches" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In der gewählten Region gefunden: %lld"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У вибраному регіоні знайдено: %lld"
+          }
+        }
+      }
+    },
+    "user_management.unknown_region" : {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Region nicht angegeben"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Регіон не вказано"
+          }
+        }
+      }
+    },
   "user_management.status.unrestricted": {
     "localizations": {
       "uk": {

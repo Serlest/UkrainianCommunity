@@ -3,6 +3,13 @@ import Foundation
 
 protocol BannerMeasurementReportRepository {
     func fetch(period: AnalyticsPeriod) async throws -> BannerMeasurementReport
+    func fetch(period: AnalyticsPeriod, bannerID: String?) async throws -> BannerMeasurementReport
+}
+
+extension BannerMeasurementReportRepository {
+    func fetch(period: AnalyticsPeriod, bannerID: String?) async throws -> BannerMeasurementReport {
+        try await fetch(period: period).filtered(bannerID: bannerID, region: nil, section: nil)
+    }
 }
 
 struct FirestoreBannerMeasurementReportRepository: BannerMeasurementReportRepository {
@@ -10,9 +17,14 @@ struct FirestoreBannerMeasurementReportRepository: BannerMeasurementReportReposi
     private let pageSize = 500
 
     func fetch(period: AnalyticsPeriod) async throws -> BannerMeasurementReport {
+        try await fetch(period: period, bannerID: nil)
+    }
+
+    func fetch(period: AnalyticsPeriod, bannerID: String?) async throws -> BannerMeasurementReport {
         let now = Date()
         let (firstDay, lastDay) = Self.utcDayRange(period: period, now: now)
-        let collection = database.collection("bannerMeasurementDailyShards")
+        var collection: Query = database.collection("bannerMeasurementDailyShards")
+        if let bannerID { collection = collection.whereField("bannerID", isEqualTo: bannerID) }
         let baseQuery = collection
             .whereField("day", isGreaterThanOrEqualTo: firstDay)
             .whereField("day", isLessThanOrEqualTo: lastDay)

@@ -30,12 +30,17 @@ enum MockContentBuilder {
         var presenceReads = 0
         var userReads = 0
         let failOnce = ProcessInfo.processInfo.environment["UITestUserRefreshFailure"] == "1"
+        let regional = ProcessInfo.processInfo.environment["UITestUserRegionFilter"] == "1"
         let longContent = ProcessInfo.processInfo.environment["UITestUserManagementLong"] == "1"
         let member = longContent ? AppUser(id: "user-1", fullName: "Олена Марія Коваль — координаторка української спільноти в Австрії",
             displayName: "Олена Марія Коваль — координаторка української спільноти в Австрії", city: "Інсбрук / Тіроль",
             email: "olena.community.coordinator.with.a.very.long.address@example.com", bio: "", role: .user,
             blockState: .active, createdAt: .now, updatedAt: .now) : currentUser()
-        let users = longContent
+        let users = regional ? (0..<45).map { index in
+            AppUser(id: "region-\(index)", fullName: "Region User \(index)", displayName: "Region User \(index)",
+                city: "", email: "region\(index)@example.test", bio: "", role: .user, blockState: .active,
+                selectedFederalState: index < 40 ? .tirol : .wien, createdAt: .now, updatedAt: .now)
+        } : longContent
             ? [member] + (2...18).map { index in
                 AppUser(
                     id: "user-\(index)",
@@ -65,7 +70,7 @@ enum MockContentBuilder {
             }
             : []
         return UserManagementReads(users: { _ in
-            .init(users: users, cursor: nil, hasMore: false)
+            .init(users: regional ? Array(users.prefix(40)) : users, cursor: nil, hasMore: regional)
         }, user: { id in
             if id == ownerUser().id { return ownerUser() }
             userReads += 1
@@ -85,7 +90,15 @@ enum MockContentBuilder {
             let now = Date().timeIntervalSince1970 * 1_000
             return ManagedUserPresenceSnapshot(response: .init(targetUserId: id, lastSeenAt: now,
                 onlineUntil: presenceReads == 1 ? now + 90_000 : nil, serverTime: now), requestStartedAt: .now)
-        }, search: { query in
+        }, regionalSearch: { query, region, cursor in
+            let matches = users.filter { user in
+                let regionMatches = region == "unknown" ? user.selectedFederalState == nil : user.selectedFederalState?.rawValue == region
+                return regionMatches && (query.isEmpty || LocalSearchMatcher.matches(query: query, values: [user.displayName, user.email]))
+            }.sorted { $0.id < $1.id }
+            let remaining = matches.filter { cursor == nil || $0.id > cursor! }
+            let page = Array(remaining.prefix(40))
+            return .init(users: page, totalMatches: matches.count, nextCursor: remaining.count > 40 ? page.last?.id : nil)
+        }, totalCount: { users.count }, search: { query in
             if query == "error" { throw AppError.network }
             let matches = [currentUser(), ownerUser()].filter {
                 LocalSearchMatcher.matches(query: query, values: [$0.displayName, $0.email, $0.telegramUsername ?? "", $0.id])

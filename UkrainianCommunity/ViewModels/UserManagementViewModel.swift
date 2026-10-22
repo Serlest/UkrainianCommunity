@@ -181,6 +181,7 @@ struct ManagedUserSecurityMetadata: Equatable {
 
 @MainActor
 final class UserManagementViewModel: ObservableObject {
+    @Published private(set) var totalRegisteredUsers: Int?
     @Published private(set) var users: [AppUser] = []
     @Published private(set) var organizations: [ManagedOrganization] = [] {
         didSet { rebuildOrganizationRoleIndex() }
@@ -192,6 +193,8 @@ final class UserManagementViewModel: ObservableObject {
     @Published private(set) var isLoadingMore = false
     @Published private(set) var isSearching = false
     @Published private(set) var searchResults: [AppUser] = []
+    @Published private(set) var regionalNextCursor: String?
+    private var regionalQuery: (text: String, region: String)?
     @Published private(set) var searchTotalMatches = 0
     @Published private(set) var searchFailed = false
     @Published private(set) var loadingSecurityUserIDs = Set<String>()
@@ -244,6 +247,7 @@ final class UserManagementViewModel: ObservableObject {
         error = nil
         defer { if revision == refreshRevision { isLoading = false } }
 
+        async let count: Void = refreshTotalCount(session: session, revision: revision)
         async let roles: Void = refreshOrganizations(session: session)
         do {
             let page = try await RefreshRequest.run { [reads, pageSize] in
@@ -259,6 +263,14 @@ final class UserManagementViewModel: ObservableObject {
             self.error = .network
         }
         await roles
+        await count
+    }
+
+    private func refreshTotalCount(session: Int, revision: Int) async {
+        // Never replace a failed aggregate request with the first page's size.
+        let count = try? await RefreshRequest.run { [reads] in try await reads.totalCount() }
+        guard session == sessionRevision, revision == refreshRevision, !Task.isCancelled else { return }
+        totalRegisteredUsers = count
     }
 
     private func refreshOrganizations(session: Int) async {
@@ -308,9 +320,25 @@ final class UserManagementViewModel: ObservableObject {
         }
     }
 
-    func search(query: String, actor: AppUser?) async {
+    func loadMoreRegional(actor: AppUser?) async {
+        guard PermissionService.canManageUsers(user: actor), managementActorKey(for: actor) == loadedActorKey,
+              let query = regionalQuery, let cursor = regionalNextCursor, !isSearching, !isLoadingMore else { return }
+        let generation = searchGeneration
+        isLoadingMore = true
+        defer { if generation == searchGeneration { isLoadingMore = false } }
+        do {
+            let response = try await RefreshRequest.run { [reads] in try await reads.regionalSearch(query.text, query.region, cursor) }
+            guard generation == searchGeneration, !Task.isCancelled else { return }
+            let ids = Set(searchResults.map(\.id))
+            searchResults += response.users.filter { !ids.contains($0.id) }
+            searchTotalMatches = response.totalMatches
+            regionalNextCursor = response.nextCursor
+        } catch { guard generation == searchGeneration else { return }; statusMessage = AppStrings.UserManagement.loadMoreFailed }
+    }
+
+    func search(query: String, actor: AppUser?, region: String? = nil) async {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmedQuery.count >= 2 else {
+        guard trimmedQuery.count >= 2 || region != nil else {
             clearSearch()
             return
         }
@@ -321,6 +349,8 @@ final class UserManagementViewModel: ObservableObject {
 
         searchGeneration &+= 1
         let generation = searchGeneration
+        regionalQuery = region.map { (trimmedQuery.count >= 2 ? trimmedQuery : "", $0) }
+        regionalNextCursor = nil
         isSearching = true
         searchFailed = false
         defer {
@@ -331,12 +361,14 @@ final class UserManagementViewModel: ObservableObject {
 
         do {
             let response = try await RefreshRequest.run { [reads] in
-                try await reads.search(trimmedQuery)
+                if let region { return try await reads.regionalSearch(trimmedQuery.count >= 2 ? trimmedQuery : "", region, nil) }
+                return try await reads.search(trimmedQuery)
             }
             guard generation == searchGeneration, !Task.isCancelled else { return }
             searchResults = response.users
             for user in response.users { detailUsersByID.removeValue(forKey: user.id) }
             searchTotalMatches = response.totalMatches
+            regionalNextCursor = response.nextCursor
         } catch {
             guard generation == searchGeneration, !Task.isCancelled else { return }
             searchResults = []
@@ -351,6 +383,9 @@ final class UserManagementViewModel: ObservableObject {
     }
 
     func clearSearch() {
+        regionalQuery = nil
+        regionalNextCursor = nil
+        isLoadingMore = false
         searchGeneration &+= 1
         isSearching = false
         searchResults = []
@@ -892,6 +927,7 @@ final class UserManagementViewModel: ObservableObject {
         updatingUserIDs = []
         sessionRevocationRetryActions = [:]
         users = []
+        totalRegisteredUsers = nil
         organizations = []
         organizationsLoaded = false
         error = nil

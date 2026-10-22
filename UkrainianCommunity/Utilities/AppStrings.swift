@@ -1281,6 +1281,18 @@ enum AppStrings {
     }
 
     enum BannerReport {
+        static var coverageShort: String { text("banner_report.coverageShort", "Враховані події користувачів, які дали згоду на вимірювання.") }
+        static var ctr: String { text("banner_report.ctr", "CTR") }
+        static var removed: String { text("banner_report.removed", "Банер видалено") }
+        static var removedMessage: String { text("banner_report.removedMessage", "Окремий звіт недоступний. Попередні результати враховано лише в загальній історії.") }
+        static var removedTotals: String { text("banner_report.removedTotals", "Раніше видалені банери · разом") }
+        static var noCurrentBanners: String { text("banner_report.noCurrentBanners", "Збережених банерів немає.") }
+        static var inactive: String { text("banner_report.inactive", "Вимкнений") }
+        static var openStatistics: String { text("banner_report.openStatistics", "Статистика банера") }
+        static var statisticsThirtyDays: String { text("banner_report.statisticsThirtyDays", "Статистика · 30 днів") }
+        static var currentAccounts: String { text("banner_report.currentAccounts", "Зареєстровані користувачі зараз") }
+        static var currentAccountsNote: String { text("banner_report.currentAccountsNote", "Поточна кількість облікових записів. Не залежить від вибраного періоду.") }
+        static var historyNote: String { text("banner_report.historyNote", "Загальні підсумки містять попередні події видалених банерів; окремі звіти доступні лише для збережених банерів.") }
         static var allBanners: String { text("banner_report.allBanners", "Усі банери") }
         static var allRegions: String { text("banner_report.allRegions", "Усі регіони показу") }
         static var allSections: String { text("banner_report.allSections", "Усі розділи") }
@@ -2285,6 +2297,16 @@ enum AppStrings {
     }
 
     enum UserManagement {
+        static var regionFilter: String { text("user_management.region_filter", "Федеральна земля у профілі") }
+        static var allRegions: String { text("user_management.all_regions", "Усі землі") }
+        static var unknownRegion: String { text("user_management.unknown_region", "Регіон не вказано") }
+        static func loadedCount(_ count: Int, total: Int?) -> String {
+            if let total { return LocalizationStore.localizedFormat("user_management.loaded_count", defaultValue: "Завантажено: %lld із %lld", arguments: [count, total]) }
+            return LocalizationStore.localizedFormat("user_management.loaded_count_unknown", defaultValue: "Завантажено: %lld · загальна кількість недоступна", arguments: [count])
+        }
+        static func regionMatches(_ count: Int) -> String {
+            LocalizationStore.localizedFormat("user_management.region_matches", defaultValue: "У вибраному регіоні знайдено: %lld", arguments: [count])
+        }
         static var refreshFailed: String { text("user_management.refresh_failed", "Не вдалося оновити дані. Перевірте з’єднання й спробуйте ще раз.") }
         static var title: String { text("user_management.title", "Користувачі") }
         static var retry: String { text("user_management.retry", "Retry") }

@@ -92,3 +92,54 @@ extension BannerMeasurementReportTests {
         }
     }
 }
+
+@MainActor
+private struct BannerCatalogMetricsFixture: BannerMeasurementReportRepository {
+    func fetch(period: AnalyticsPeriod) async throws -> BannerMeasurementReport {
+        BannerMeasurementReport(period: period, counts: [
+            .init(day: "2026-10-22", bannerID: "a", section: .home, impressions: 20, clicks: 4, displayRegion: "tirol"),
+            .init(day: "2026-10-22", bannerID: "b", section: .events, impressions: 10, clicks: 1, displayRegion: "wien"),
+            .init(day: "2026-10-22", bannerID: "deleted", section: .home, impressions: 5, clicks: 2)
+        ])
+    }
+}
+
+extension BannerMeasurementReportTests {
+    @Test @MainActor func currentCatalogIncludesZeroAndInactiveButHistoricalTotalsSurviveDeletion() async throws {
+        let banners = ["a", "b", "zero"].map { id in
+            FeaturedBanner(id: id, title: id, actionType: .externalURL, externalURL: "https://example.com",
+                visibleSections: [.home], isActive: id != "b", createdAt: .now, updatedAt: .now, createdBy: "fixture")
+        }
+        let repository = MockFeaturedBannerRepository(banners: banners)
+        let model = BannerMeasurementReportViewModel(repository: BannerCatalogMetricsFixture(), bannerRepository: repository, initialPeriod: .thirtyDays)
+        await model.load()
+        #expect(Set(model.displayedBanners.map(\.id)) == ["a", "b", "zero"])
+        #expect(model.visibleReport?.totals.clicks == 7)
+        #expect(model.visibleReport?.filtered(bannerID: "zero", region: nil, section: nil).totals.clicks == 0)
+        #expect(model.exportReport()?.counts.contains { $0.bannerID == "deleted" } == false)
+        #expect(model.exportReport()?.totals == model.visibleReport?.totals)
+        model.selectedBannerID = "b"
+        #expect(model.visibleReport?.totals.clicks == 1)
+        #expect(model.displayedBanners.map(\.id) == ["b"])
+    }
+
+    @Test @MainActor func fixedBannerNeverFallsBackToAllBannersAndDeletedDetailIsUnavailable() async {
+        let banner = FeaturedBanner(id: "a", title: "A", actionType: .externalURL, externalURL: "https://example.com",
+            visibleSections: [.home], createdAt: .now, updatedAt: .now, createdBy: "fixture")
+        let repository = MockFeaturedBannerRepository(banners: [banner])
+        let model = BannerMeasurementReportViewModel(repository: BannerCatalogMetricsFixture(), bannerRepository: repository,
+            initialPeriod: .thirtyDays, bannerID: "a")
+        await model.load()
+        #expect(model.visibleReport?.totals.clicks == 4)
+        model.selectedBannerID = "b"
+        #expect(model.visibleReport?.totals.clicks == 4)
+        model.selectedRegion = "wien"
+        #expect(model.visibleReport?.totals.clicks == 0)
+        let deleted = BannerMeasurementReportViewModel(repository: BannerCatalogMetricsFixture(), bannerRepository: repository,
+            initialPeriod: .sevenDays, bannerID: "deleted")
+        await deleted.load()
+        #expect(deleted.bannerUnavailable)
+        #expect(deleted.visibleReport == nil)
+        #expect(deleted.exportReport() == nil)
+    }
+}

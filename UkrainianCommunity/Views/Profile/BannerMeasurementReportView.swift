@@ -8,34 +8,27 @@ struct BannerMeasurementReportView: View {
     @State private var exportError: String?
     @StateObject private var viewModel: BannerMeasurementReportViewModel
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @Environment(\.locale) private var locale
+    private let bannerTitle: String?
 
-    init(
-        repository: BannerMeasurementReportRepository = FirestoreBannerMeasurementReportRepository(),
-        bannerRepository: FeaturedBannerRepository,
-        initialPeriod: AnalyticsPeriod
-    ) {
+    init(repository: BannerMeasurementReportRepository = FirestoreBannerMeasurementReportRepository(),
+         bannerRepository: FeaturedBannerRepository, initialPeriod: AnalyticsPeriod,
+         bannerID: String? = nil, bannerTitle: String? = nil) {
+        self.bannerTitle = bannerTitle
         _viewModel = StateObject(wrappedValue: BannerMeasurementReportViewModel(
-            repository: repository, bannerRepository: bannerRepository, initialPeriod: initialPeriod
-        ))
+            repository: repository, bannerRepository: bannerRepository, initialPeriod: initialPeriod, bannerID: bannerID))
     }
 
     var body: some View {
-        ProfileDestinationLayout(
-            title: AppStrings.BannerReport.title,
+        ProfileDestinationLayout(title: bannerTitle ?? AppStrings.BannerReport.title,
             introSubtitle: AppStrings.BannerReport.subtitle,
-            scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize
-        ) {
-            if dynamicTypeSize.isAccessibilitySize {
-                periodPicker.pickerStyle(.menu)
-            } else {
-                periodPicker.pickerStyle(.segmented)
-            }
-
+            scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize) {
+            Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
+                ForEach(AnalyticsPeriod.allCases) { Text($0.analyticsTitle).tag($0) }
+            }.pickerStyle(.menu).accessibilityIdentifier("bannerReport.period")
             content
         }
         .fileExporter(isPresented: $isExporting, document: exportDocument,
-                      contentType: .commaSeparatedText, defaultFilename: "UAC-banners-UTC") { result in
+            contentType: .commaSeparatedText, defaultFilename: "UAC-banners-UTC") { result in
             if case .failure(let error) = result { exportError = error.localizedDescription }
         }
         .task(id: viewModel.selectedPeriod) { await viewModel.loadIfNeeded() }
@@ -43,226 +36,90 @@ struct BannerMeasurementReportView: View {
         .accessibilityIdentifier("screen.bannerReport")
     }
 
-    @ViewBuilder private var filters: some View {
-        if let source = viewModel.report, !source.banners.isEmpty {
-            OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.filters) {
-                Picker(AppStrings.BannerReport.byBanner, selection: $viewModel.selectedBannerID) {
-                    Text(AppStrings.BannerReport.allBanners).tag(String?.none)
-                    ForEach(source.banners) { banner in
-                        Text(viewModel.title(for: banner.id)).tag(Optional(banner.id))
-                    }
-                }.tint(AppTheme.accentPrimaryForeground).accessibilityIdentifier("bannerReport.bannerFilter")
-                Picker(AppStrings.BannerReport.byRegion, selection: $viewModel.selectedRegion) {
-                    Text(AppStrings.BannerReport.allRegions).tag(String?.none)
-                    ForEach(source.regions.keys.sorted(), id: \.self) { region in
-                        Text(AppStrings.BannerReport.regionTitle(region)).tag(Optional(region))
-                    }
-                }.tint(AppTheme.accentPrimaryForeground).accessibilityIdentifier("bannerReport.regionFilter")
-                Picker(AppStrings.BannerReport.bySection, selection: $viewModel.selectedSection) {
-                    Text(AppStrings.BannerReport.allSections).tag(FeaturedBannerVisibleSection?.none)
-                    ForEach(FeaturedBannerVisibleSection.supportedCases) { section in
-                        Text(sectionTitle(section)).tag(Optional(section))
-                    }
-                }.tint(AppTheme.accentPrimaryForeground).accessibilityIdentifier("bannerReport.sectionFilter")
-                if viewModel.selectedBannerID != nil || viewModel.selectedRegion != nil || viewModel.selectedSection != nil {
-                    Button(AppStrings.BannerReport.resetFilters) {
-                        viewModel.selectedBannerID = nil
-                        viewModel.selectedRegion = nil
-                        viewModel.selectedSection = nil
-                    }
-                }
-            }.pickerStyle(.menu)
-        }
-    }
-
-    private var periodPicker: some View {
-        Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
-            ForEach(AnalyticsPeriod.allCases) { period in
-                Text(period.analyticsTitle).tag(period)
-            }
-        }
-        .accessibilityIdentifier("bannerReport.period")
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if viewModel.isLoading && viewModel.report == nil {
-            LoadingStateCard(title: AppStrings.OwnerAnalytics.loading)
-        } else if let error = viewModel.errorMessage, viewModel.report == nil {
-            ErrorStateCard(
-                title: AppStrings.OwnerAnalytics.loadFailedTitle,
-                message: error,
-                retryTitle: AppStrings.OwnerAnalytics.retry
-            ) {
-                Task { await viewModel.load() }
-            }
+    @ViewBuilder private var content: some View {
+        if viewModel.bannerUnavailable {
+            EmptyStateCard(systemImage: "rectangle.slash", title: AppStrings.BannerReport.removed,
+                           message: AppStrings.BannerReport.removedMessage)
         } else if let report = viewModel.visibleReport {
             if let error = viewModel.errorMessage {
-                OwnerAnalyticsStaleDataBanner(
-                    message: AppStrings.OwnerAnalytics.staleData(error),
-                    isRetrying: viewModel.isLoading
-                ) { Task { await viewModel.load() } }
+                OwnerAnalyticsStaleDataBanner(message: AppStrings.OwnerAnalytics.staleData(error),
+                    isRetrying: viewModel.isLoading) { Task { await viewModel.load() } }
             }
-
             OwnerAnalyticsFreshnessLabel(updatedAt: report.generatedAt)
-            if let exportError { InlineMessageCard(style: .error, message: exportError) }
-
-
-            if report.banners.isEmpty {
-                filters
-                EmptyStateCard(
-                    systemImage: "rectangle.on.rectangle",
-                    title: AppStrings.BannerReport.noMatchingData,
-                    message: AppStrings.BannerReport.emptyMessage
-                )
-            } else {
-                OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.overview) {
-                    HStack(spacing: 12) {
-                        OwnerAnalyticsMetricTile(
-                            title: AppStrings.BannerReport.impressions,
-                            value: report.totals.impressions,
-                            systemImage: "eye"
-                        )
-                        OwnerAnalyticsMetricTile(
-                            title: AppStrings.BannerReport.clicks,
-                            value: report.totals.clicks,
-                            systemImage: "hand.tap"
-                        )
-                    }
-                    rateText(report.totals)
-
-                }
-
-                filters
-            if !report.banners.isEmpty {
-                Button {
-                    exportError = nil
-                    exportDocument = BannerMeasurementCSVDocument(text: report.csv(titles: viewModel.bannerTitles))
-                    isExporting = true
-                } label: { Label(AppStrings.BannerReport.exportCSV, systemImage: "square.and.arrow.up").foregroundStyle(AppTheme.accentPrimaryForeground) }
-                .buttonStyle(.bordered)
-                .tint(AppTheme.accentPrimaryForeground)
-                .accessibilityIdentifier("bannerReport.export")
+            BannerAnalyticsMetricsView(totals: report.totals)
+            filters
+            if report.counts.isEmpty {
+                Text(AppStrings.BannerReport.emptyMessage).font(.footnote).foregroundStyle(AppTheme.textSecondary)
             }
-
-                OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.bySection) {
-                    ForEach(FeaturedBannerVisibleSection.supportedCases) { section in
-                        if let totals = report.sections[section] {
-                            row(title: sectionTitle(section), totals: totals)
-                        }
-                    }
+            BannerAnalyticsTrendView(report: report)
+            OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byRegion) {
+                Text(AppStrings.BannerReport.regionExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                ForEach(report.regions.keys.sorted(), id: \.self) { region in
+                    BannerAnalyticsValueRow(title: AppStrings.BannerReport.regionTitle(region), totals: report.regions[region]!)
                 }
-
-                OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byRegion) {
-                    Text(AppStrings.BannerReport.regionExplanation)
-                        .font(.footnote).foregroundStyle(AppTheme.textSecondary)
-                    ForEach(report.regions.keys.sorted(), id: \.self) { region in
-                        if let totals = report.regions[region] {
-                            row(title: AppStrings.BannerReport.regionTitle(region), totals: totals)
-                        }
-                    }
+                if report.regions.isEmpty { Text(AppStrings.BannerReport.noMatchingData).foregroundStyle(AppTheme.textSecondary) }
+            }
+            OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.bySection) {
+                ForEach(FeaturedBannerVisibleSection.supportedCases) { section in
+                    BannerAnalyticsValueRow(title: sectionTitle(section), totals: report.sections[section] ?? .init())
                 }
-
-                OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byDay) {
-                    Chart(report.timeline) { day in
-                        BarMark(x: .value("UTC", day.id), y: .value(AppStrings.BannerReport.impressions, day.totals.impressions))
-                            .foregroundStyle(by: .value(AppStrings.BannerReport.overview, AppStrings.BannerReport.impressions))
-                            .position(by: .value(AppStrings.BannerReport.overview, AppStrings.BannerReport.impressions))
-                        BarMark(x: .value("UTC", day.id), y: .value(AppStrings.BannerReport.clicks, day.totals.clicks))
-                            .foregroundStyle(by: .value(AppStrings.BannerReport.overview, AppStrings.BannerReport.clicks))
-                            .position(by: .value(AppStrings.BannerReport.overview, AppStrings.BannerReport.clicks))
-                    }
-                    .chartForegroundStyleScale([AppStrings.BannerReport.impressions: AppTheme.accentPrimaryForeground,
-                                                AppStrings.BannerReport.clicks: AppTheme.accentSupportForeground])
-                    .chartXAxis { AxisMarks(values: report.timeline.enumerated().compactMap { index, day in
-                        index % max(1, report.timeline.count / 4) == 0 ? day.id : nil
-                    }) { value in
-                        AxisValueLabel { if let day = value.as(String.self) { Text(String(day.suffix(5))) } }
-                    } }
-                    .frame(height: 180)
-                    .accessibilityLabel(AppStrings.BannerReport.byDay)
-                    DisclosureGroup(AppStrings.BannerReport.dailyDetails) {
-                        ForEach(report.days) { day in row(title: day.id, totals: day.totals) }
-                    }.tint(AppTheme.accentPrimaryForeground)
-                }
-
+            }
+            if viewModel.fixedBannerID == nil {
                 OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byBanner) {
-                    if viewModel.namesUnavailable {
-                        OwnerAnalyticsPartialDataBanner(message: AppStrings.BannerReport.namesUnavailable)
+                    ForEach(viewModel.displayedBanners) { banner in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(viewModel.title(for: banner.id)).font(.headline).foregroundStyle(AppTheme.textPrimary)
+                            Text(banner.isActive ? AppStrings.FeaturedManagement.activeToggle : AppStrings.BannerReport.inactive)
+                                .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            BannerAnalyticsValueRow(title: AppStrings.BannerReport.total,
+                                totals: report.filtered(bannerID: banner.id, region: nil, section: nil).totals)
+                        }.padding(.vertical, 6)
                     }
-                    ForEach(report.banners) { banner in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(viewModel.title(for: banner.id))
-                                .font(.headline)
-                                .foregroundStyle(AppTheme.textPrimary)
-                                .fixedSize(horizontal: false, vertical: true)
-                            if viewModel.title(for: banner.id) != banner.id {
-                                Text(banner.id)
-                                    .font(.caption)
-                                    .foregroundStyle(AppTheme.textSecondary)
-                                    .textSelection(.enabled)
-                            }
-                            row(title: AppStrings.BannerReport.total, totals: banner.totals)
-                            ForEach(FeaturedBannerVisibleSection.supportedCases) { section in
-                                if let totals = banner.sections[section] {
-                                    row(title: sectionTitle(section), totals: totals)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 6)
-                        if banner.id != report.banners.last?.id { Divider() }
-                    }
+                    if viewModel.displayedBanners.isEmpty { Text(AppStrings.BannerReport.noCurrentBanners).foregroundStyle(AppTheme.textSecondary) }
                 }
             }
-
+            Button {
+                guard let export = viewModel.exportReport() else { return }
+                exportDocument = BannerMeasurementCSVDocument(text: export.csv(titles:
+                    viewModel.bannerTitles.merging(["removed": AppStrings.BannerReport.removedTotals]) { a, _ in a }))
+                isExporting = true
+            } label: { Label(AppStrings.BannerReport.exportCSV, systemImage: "square.and.arrow.up") }
+            .buttonStyle(.bordered).accessibilityIdentifier("bannerReport.export")
+            if let exportError { InlineMessageCard(style: .error, message: exportError) }
             OwnerAnalyticsSectionCard(title: AppStrings.OwnerAnalytics.methodologyTitle) {
                 Text(AppStrings.BannerReport.coverage)
-                    .font(.footnote).foregroundStyle(AppTheme.textSecondary)
                 Text(AppStrings.BannerReport.ctrNote)
-                    .font(.footnote).foregroundStyle(AppTheme.textSecondary)
                 Text(AppStrings.BannerReport.methodology)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text(AppStrings.BannerReport.historyNote)
+            }.font(.footnote).foregroundStyle(AppTheme.textSecondary)
+        } else if let error = viewModel.errorMessage {
+            ErrorStateCard(title: AppStrings.OwnerAnalytics.loadFailedTitle, message: error,
+                           retryTitle: AppStrings.Action.retry) { Task { await viewModel.load() } }
+        } else { LoadingStateCard(title: AppStrings.OwnerAnalytics.loading) }
+    }
+
+    private var filters: some View {
+        OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.filters) {
+            if viewModel.fixedBannerID == nil {
+                Picker(AppStrings.BannerReport.byBanner, selection: $viewModel.selectedBannerID) {
+                    Text(AppStrings.BannerReport.allBanners).tag(String?.none)
+                    ForEach(viewModel.availableBanners) { Text(viewModel.title(for: $0.id)).tag(Optional($0.id)) }
+                }.accessibilityIdentifier("bannerReport.bannerFilter")
             }
-        }
-    }
-
-    private func row(title: String, totals: BannerMeasurementTotals) -> some View {
-        ViewThatFits(in: .horizontal) {
-          HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(title)
-                .foregroundStyle(AppTheme.textPrimary)
-            Spacer(minLength: 8)
-            Text(AppStrings.BannerReport.row(
-                impressions: OwnerAnalyticsFormatting.integer(totals.impressions, locale: locale),
-                clicks: OwnerAnalyticsFormatting.integer(totals.clicks, locale: locale),
-                rate: formattedRate(totals)
-            ))
-            .font(.subheadline.monospacedDigit())
-            .foregroundStyle(AppTheme.textSecondary)
-            .multilineTextAlignment(.trailing)
-        }
-          VStack(alignment: .leading, spacing: 4) {
-              Text(title).foregroundStyle(AppTheme.textPrimary)
-              Text(AppStrings.BannerReport.row(
-                impressions: OwnerAnalyticsFormatting.integer(totals.impressions, locale: locale),
-                clicks: OwnerAnalyticsFormatting.integer(totals.clicks, locale: locale), rate: formattedRate(totals)))
-                  .foregroundStyle(AppTheme.textSecondary)
-          }
-        }
-        .font(.subheadline)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func rateText(_ totals: BannerMeasurementTotals) -> some View {
-        Text(AppStrings.BannerReport.rateExplanation(formattedRate(totals)))
-            .font(.footnote)
-            .foregroundStyle(AppTheme.textSecondary)
-    }
-
-    private func formattedRate(_ totals: BannerMeasurementTotals) -> String {
-        totals.clickRate.map { OwnerAnalyticsFormatting.percent($0, locale: locale) } ?? "—"
+            Picker(AppStrings.BannerReport.byRegion, selection: $viewModel.selectedRegion) {
+                Text(AppStrings.BannerReport.allRegions).tag(String?.none)
+                ForEach((viewModel.report?.regions.keys.sorted() ?? []), id: \.self) { Text(AppStrings.BannerReport.regionTitle($0)).tag(Optional($0)) }
+            }.accessibilityIdentifier("bannerReport.regionFilter")
+            Picker(AppStrings.BannerReport.bySection, selection: $viewModel.selectedSection) {
+                Text(AppStrings.BannerReport.allSections).tag(FeaturedBannerVisibleSection?.none)
+                ForEach(FeaturedBannerVisibleSection.supportedCases) { Text(sectionTitle($0)).tag(Optional($0)) }
+            }.accessibilityIdentifier("bannerReport.sectionFilter")
+            if viewModel.selectedBannerID != nil || viewModel.selectedRegion != nil || viewModel.selectedSection != nil {
+                Button(AppStrings.BannerReport.resetFilters) {
+                    viewModel.selectedBannerID = nil; viewModel.selectedRegion = nil; viewModel.selectedSection = nil
+                }
+            }
+        }.pickerStyle(.menu).tint(AppTheme.accentPrimaryForeground)
     }
 
     private func sectionTitle(_ section: FeaturedBannerVisibleSection) -> String {
@@ -276,6 +133,115 @@ struct BannerMeasurementReportView: View {
     }
 }
 
+struct BannerAnalyticsMetricsView: View {
+    let totals: BannerMeasurementTotals
+    @Environment(\.locale) private var locale
+    var body: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 125), alignment: .top)], alignment: .leading, spacing: 12) {
+            OwnerAnalyticsMetricTile(title: AppStrings.BannerReport.impressions, value: totals.impressions, systemImage: "eye")
+            OwnerAnalyticsMetricTile(title: AppStrings.BannerReport.clicks, value: totals.clicks, systemImage: "hand.tap")
+            OwnerAnalyticsMetricTile(title: AppStrings.BannerReport.ctr, value: 0, systemImage: "percent",
+                formattedValue: totals.clickRate.map { OwnerAnalyticsFormatting.percent($0, locale: locale) } ?? "—")
+        }
+    }
+}
+
+struct BannerAnalyticsValueRow: View {
+    let title: String
+    let totals: BannerMeasurementTotals
+    @Environment(\.locale) private var locale
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
+            Text(AppStrings.BannerReport.row(impressions: OwnerAnalyticsFormatting.integer(totals.impressions, locale: locale),
+                clicks: OwnerAnalyticsFormatting.integer(totals.clicks, locale: locale),
+                rate: totals.clickRate.map { OwnerAnalyticsFormatting.percent($0, locale: locale) } ?? "—"))
+                .font(.footnote.monospacedDigit()).foregroundStyle(AppTheme.textSecondary)
+        }.fixedSize(horizontal: false, vertical: true).accessibilityElement(children: .combine)
+    }
+}
+
+struct BannerAnalyticsTrendView: View {
+    let report: BannerMeasurementReport
+    var body: some View {
+        OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.byDay) {
+            Chart(report.timeline) { day in
+                BarMark(x: .value("UTC", day.id), y: .value(AppStrings.BannerReport.impressions, day.totals.impressions))
+                    .foregroundStyle(by: .value("metric", AppStrings.BannerReport.impressions))
+                    .position(by: .value("metric", AppStrings.BannerReport.impressions))
+                BarMark(x: .value("UTC", day.id), y: .value(AppStrings.BannerReport.clicks, day.totals.clicks))
+                    .foregroundStyle(by: .value("metric", AppStrings.BannerReport.clicks))
+                    .position(by: .value("metric", AppStrings.BannerReport.clicks))
+            }
+            .chartForegroundStyleScale([AppStrings.BannerReport.impressions: AppTheme.accentPrimaryForeground,
+                                        AppStrings.BannerReport.clicks: AppTheme.accentSupportForeground])
+            .chartXAxis { AxisMarks(values: report.timeline.enumerated().compactMap { index, day in
+                index % max(1, (report.timeline.count + 3) / 4) == 0 ? day.id : nil
+            }) { value in AxisValueLabel { if let day = value.as(String.self) { Text(String(day.suffix(5))).fixedSize() } } } }
+            .frame(height: 160).accessibilityLabel(AppStrings.BannerReport.byDay)
+            DisclosureGroup(AppStrings.BannerReport.dailyDetails) {
+                ForEach(report.days) { BannerAnalyticsValueRow(title: $0.id, totals: $0.totals) }
+            }.tint(AppTheme.accentPrimaryForeground)
+        }
+    }
+}
+
+struct BannerAnalyticsOverviewSection: View {
+    let period: AnalyticsPeriod
+    var repository: BannerMeasurementReportRepository = FirestoreBannerMeasurementReportRepository()
+    var refreshID = 0
+    @State private var report: BannerMeasurementReport?
+    @State private var error: String?
+    @State private var isLoading = false
+    var body: some View {
+        OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.title, subtitle: period.analyticsTitle) {
+            if let report, report.period == period {
+                BannerAnalyticsMetricsView(totals: report.totals)
+                Text(AppStrings.BannerReport.coverageShort).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                OwnerAnalyticsFreshnessLabel(updatedAt: report.generatedAt)
+                BannerAnalyticsTrendView(report: report)
+            } else if isLoading { LoadingStateCard(title: nil) }
+            if let error { Text(error).font(.footnote).foregroundStyle(AppTheme.textSecondary) }
+            if error != nil { Button(AppStrings.Action.retry) { Task { await load() } } }
+        }.task(id: "\(period.rawValue)|\(refreshID)") { await load() }
+        .accessibilityIdentifier("ownerAnalytics.bannerOverview")
+    }
+    private func load() async {
+        let selected = period
+        isLoading = true; error = nil
+        defer { isLoading = false }
+        do {
+            let loaded = try await RefreshRequest.run { try await repository.fetch(period: selected) }
+            guard !Task.isCancelled else { return }
+            report = loaded
+        } catch { guard !Task.isCancelled else { return }; self.error = AppStrings.OwnerAnalytics.loadFailedTitle }
+    }
+}
+
+struct RegisteredUserCountCard: View {
+    var refreshID = 0
+    var load: () async throws -> Int = RegisteredUserCountReader.fetch
+    @State private var count: Int?
+    @State private var updatedAt: Date?
+    @State private var failed = false
+    var body: some View {
+        OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.currentAccounts) {
+            if let count { OwnerAnalyticsMetricTile(title: AppStrings.OwnerAnalytics.totalUsers, value: count, systemImage: "person.3") }
+            else { Text("—").font(.title2).foregroundStyle(AppTheme.textPrimary) }
+            if let updatedAt { OwnerAnalyticsFreshnessLabel(updatedAt: updatedAt) }
+            Text(failed ? AppStrings.OwnerAnalytics.loadFailedTitle : AppStrings.BannerReport.currentAccountsNote)
+                .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+            if failed { Button(AppStrings.Action.retry) { Task { await reload() } } }
+        }.task(id: refreshID) { await reload() }
+    }
+    private func reload() async {
+        do {
+            let value = try await RefreshRequest.run { try await load() }
+            guard !Task.isCancelled else { return }
+            count = value; updatedAt = Date(); failed = false
+        } catch { guard !Task.isCancelled else { return }; failed = true }
+    }
+}
 
 struct BannerMeasurementCSVDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.commaSeparatedText] }

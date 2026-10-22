@@ -53,14 +53,15 @@ export async function* adminSearchDocuments(
   firestore: Firestore,
   normalizedQuery: string,
   fields: readonly string[],
-  readiness: AdminSearchReadiness = "automatic"
+  readiness: AdminSearchReadiness = "automatic",
+  region?: string
 ): AsyncGenerator<QueryDocumentSnapshot> {
   const anchor = adminSearchAnchor(normalizedQuery);
   const users = firestore.collection("users");
   const ready = readiness === "automatic" ? await isAdminSearchReady(firestore) : readiness === "ready";
   const candidates = ready && anchor
     ? users.where(adminSearchIndexField, "array-contains-any", [anchor, adminSearchOverflow])
-    : users;
+    : region && region !== "unknown" ? users.where("selectedFederalState", "==", region) : users;
   // One streaming query preserves full coverage; no first-page cut-off, offsets,
   // cached identities, or per-page snapshots. Only selected fields cross the wire.
   const stream = candidates.orderBy(FieldPath.documentId()).select(...fields).stream() as Readable;

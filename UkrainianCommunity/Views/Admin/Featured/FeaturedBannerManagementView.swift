@@ -4,9 +4,12 @@ struct FeaturedBannerManagementView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.locale) private var locale
     @StateObject private var viewModel: FeaturedBannerManagementViewModel
+    @State private var measurementReport: BannerMeasurementReport?
+    @State private var measurementsFailed = false
     @State private var deleteCandidate: FeaturedBanner?
     @State private var searchText = ""
     @State private var filter: FeaturedBannerManagementFilter = .all
+    private let measurementRepository: BannerMeasurementReportRepository
     private let repository: FeaturedBannerRepository
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
@@ -17,8 +20,10 @@ struct FeaturedBannerManagementView: View {
         publicCache: FeaturedBannerCache? = nil,
         newsRepository: NewsRepository,
         eventRepository: EventRepository,
-        organizationRepository: OrganizationRepository
+        organizationRepository: OrganizationRepository,
+        measurementRepository: BannerMeasurementReportRepository = FirestoreBannerMeasurementReportRepository()
     ) {
+        self.measurementRepository = measurementRepository
         self.repository = repository
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
@@ -36,11 +41,13 @@ struct FeaturedBannerManagementView: View {
         ) {
             managementContent
         }
-        .task {
+        .task(id: "\(authState.user?.id ?? "")|\(PermissionService.isAppOwner(user: authState.user))") {
             await viewModel.loadIfNeeded()
+            await loadMeasurements()
         }
         .appRefreshable {
             await viewModel.refresh()
+            await loadMeasurements()
         }
         .confirmationDialog(
             AppStrings.FeaturedManagement.deleteConfirmationTitle,
@@ -119,6 +126,7 @@ struct FeaturedBannerManagementView: View {
                 }
 
                 ForEach(visibleBanners) { banner in
+                    VStack(alignment: .leading, spacing: 8) {
                     FeaturedBannerManagementRow(
                         banner: banner,
                         isUpdating: viewModel.updatingBannerIDs.contains(banner.id),
@@ -137,7 +145,8 @@ struct FeaturedBannerManagementView: View {
                                 mode: .duplicate(banner),
                                 newsRepository: newsRepository,
                                 eventRepository: eventRepository,
-                                organizationRepository: organizationRepository
+                                organizationRepository: organizationRepository,
+                                measurementRepository: measurementRepository
                             ) {
                                 viewModel.invalidatePublicCache()
                                 await viewModel.refresh()
@@ -149,15 +158,41 @@ struct FeaturedBannerManagementView: View {
                             mode: .edit(banner),
                             newsRepository: newsRepository,
                             eventRepository: eventRepository,
-                            organizationRepository: organizationRepository
+                            organizationRepository: organizationRepository,
+                                measurementRepository: measurementRepository
                         ) {
                             viewModel.invalidatePublicCache()
                             await viewModel.refresh()
                         }
                     }
+                    if PermissionService.isAppOwner(user: authState.user) {
+                        NavigationLink {
+                            BannerMeasurementReportView(repository: measurementRepository, bannerRepository: repository, initialPeriod: .thirtyDays,
+                                bannerID: banner.id, bannerTitle: managementTitle(for: banner))
+                        } label: {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Label(AppStrings.BannerReport.statisticsThirtyDays, systemImage: "chart.bar.xaxis")
+                                if let report = measurementReport {
+                                    BannerAnalyticsValueRow(title: managementTitle(for: banner),
+                                        totals: report.filtered(bannerID: banner.id, region: nil, section: nil).totals)
+                                } else { Text(measurementsFailed ? AppStrings.OwnerAnalytics.loadFailedTitle : AppStrings.OwnerAnalytics.loading).font(.footnote) }
+                            }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
+                        }.buttonStyle(.plain).foregroundStyle(AppTheme.accentPrimaryForeground)
+                        .accessibilityIdentifier("bannerManagement.statistics." + banner.id)
+                    }
+                    }
                 }
             }
         }
+    }
+
+    private func loadMeasurements() async {
+        guard PermissionService.isAppOwner(user: authState.user) else { measurementReport = nil; return }
+        do {
+            let report = try await RefreshRequest.run { try await measurementRepository.fetch(period: .thirtyDays) }
+            guard PermissionService.isAppOwner(user: authState.user), !Task.isCancelled else { return }
+            measurementReport = report; measurementsFailed = false
+        } catch { guard !Task.isCancelled else { return }; measurementsFailed = true }
     }
 
     private var createBannerLink: some View {
@@ -166,7 +201,8 @@ struct FeaturedBannerManagementView: View {
                 repository: repository,
                 newsRepository: newsRepository,
                 eventRepository: eventRepository,
-                organizationRepository: organizationRepository
+                organizationRepository: organizationRepository,
+                                measurementRepository: measurementRepository
             ) {
                 viewModel.invalidatePublicCache()
                 await viewModel.refresh()

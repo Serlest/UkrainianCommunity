@@ -13,6 +13,9 @@ struct FeaturedBannerEditorView: View {
     @State private var isShowingActionTargetPicker = false
     @State private var actionTargetSearchText = ""
     @State private var isShowingDiscardConfirmation = false
+    private let measurementRepository: BannerMeasurementReportRepository
+    private let bannerRepository: FeaturedBannerRepository
+    private let statisticsBanner: FeaturedBanner?
     let onSave: @MainActor () async -> Void
 
     init(
@@ -21,6 +24,7 @@ struct FeaturedBannerEditorView: View {
         newsRepository: NewsRepository? = nil,
         eventRepository: EventRepository? = nil,
         organizationRepository: OrganizationRepository? = nil,
+        measurementRepository: BannerMeasurementReportRepository = FirestoreBannerMeasurementReportRepository(),
         onSave: @escaping @MainActor () async -> Void
     ) {
         _viewModel = StateObject(wrappedValue: FeaturedBannerEditorViewModel(
@@ -30,6 +34,9 @@ struct FeaturedBannerEditorView: View {
             eventRepository: eventRepository,
             organizationRepository: organizationRepository
         ))
+        self.measurementRepository = measurementRepository
+        self.bannerRepository = repository
+        if case .edit(let banner) = mode { statisticsBanner = banner } else { statisticsBanner = nil }
         self.onSave = onSave
     }
 
@@ -41,6 +48,14 @@ struct FeaturedBannerEditorView: View {
             closeAction: requestDismiss
         ) {
             statusContent
+            if let banner = statisticsBanner, PermissionService.isAppOwner(user: authState.user) {
+                NavigationLink {
+                    BannerMeasurementReportView(repository: measurementRepository, bannerRepository: bannerRepository, initialPeriod: .thirtyDays,
+                        bannerID: banner.id, bannerTitle: banner.internalName ?? banner.localizedTitle)
+                } label: { Label(AppStrings.BannerReport.openStatistics, systemImage: "chart.bar.xaxis") }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("bannerEditor.statistics")
+            }
             FeaturedBannerEditorPreviewSection(viewModel: viewModel, previewImage: selectedPreviewImage)
             FeaturedBannerEditorBasicsSection(viewModel: viewModel)
             FeaturedBannerEditorImageSection(

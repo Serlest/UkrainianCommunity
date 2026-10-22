@@ -290,11 +290,14 @@ struct AccountStatusChangeFunctionResponse: Codable, Equatable {
 struct ManagedUserSearchFunctionRequest: Codable, Equatable {
     let query: String
     let limit: Int
+    var region: String? = nil
+    var startAfterUserID: String? = nil
 }
 
 struct ManagedUserSearchFunctionResponse: Codable, Equatable {
     let userIds: [String]
     let totalMatches: Int
+    var nextCursor: String? = nil
 }
 
 struct ManagedUserSecurityMetadataFunctionRequest: Codable, Equatable {
@@ -651,10 +654,10 @@ final class CloudFunctionsClient {
         )
     }
 
-    func searchManagedUsers(query: String, limit: Int = 100) async throws -> ManagedUserSearchFunctionResponse {
+    func searchManagedUsers(query: String, limit: Int = 100, region: String? = nil, startAfterUserID: String? = nil) async throws -> ManagedUserSearchFunctionResponse {
         try await call(
             .searchManagedUsers,
-            request: ManagedUserSearchFunctionRequest(query: query, limit: limit)
+            request: ManagedUserSearchFunctionRequest(query: query, limit: limit, region: region, startAfterUserID: startAfterUserID)
         )
     }
 
