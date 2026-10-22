@@ -163,7 +163,9 @@ service cloud.firestore {
         'imageURL', 'body', 'authorId', 'authorName', 'publishedAt', 'createdAt',
         'updatedAt', 'moderationStatus', 'likeCount', 'likeState', 'viewCount',
         'commentCount', 'schemaVersion', 'localizations', 'mediaMetadata',
-        'externalAction', 'scheduledAt'
+        'externalAction', 'scheduledAt',
+        'moderationReason', 'moderatedByUserId', 'moderatedAt', 'moderationOperationId',
+        'resubmittedByUserId', 'resubmittedFromRevision'
       ];
     }
 
@@ -180,8 +182,20 @@ service cloud.firestore {
         'commentCount', 'category', 'additionalCategories', 'audience', 'minimumAge', 'maximumAge',
         'tags', 'visibility', 'isAllDay', 'cancellationState', 'cancelledAt',
         'cancellationReason', 'schemaVersion', 'localizations', 'occurrences',
-        'participationMode', 'externalAction', 'pricing', 'mediaMetadata', 'scheduledAt'
+        'participationMode', 'externalAction', 'pricing', 'mediaMetadata', 'scheduledAt',
+        'moderationReason', 'moderatedByUserId', 'moderatedAt', 'moderationOperationId',
+        'resubmittedByUserId', 'resubmittedFromRevision'
       ];
+    }
+
+    // Review evidence is server-owned. Editors may keep it while correcting content.
+    function serverContentReviewFields() {
+      return ['moderationReason', 'moderatedByUserId', 'moderatedAt', 'moderationOperationId',
+              'resubmittedByUserId', 'resubmittedFromRevision'];
+    }
+
+    function contentReviewFieldsArePreserved() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(serverContentReviewFields());
     }
 
     // Only the existing trusted cancellation callable may create, change or
@@ -253,7 +267,7 @@ service cloud.firestore {
         && data.publishedAt is timestamp
         && data.createdAt is timestamp
         && data.updatedAt is timestamp
-        && data.moderationStatus in ['draft', 'pendingReview', 'approved', 'rejected', 'archived']
+        && data.moderationStatus in ['draft', 'pendingReview', 'approved', 'needsRevision', 'rejected', 'archived']
         && (!('scheduledAt' in data) || data.scheduledAt is timestamp)
         && data.likeCount is int && data.likeCount >= 0
         && data.viewCount is int && data.viewCount >= 0
@@ -304,7 +318,7 @@ service cloud.firestore {
         && (!('requiresRegistration' in data) || data.requiresRegistration is bool)
         && data.price is number && data.price >= 0
         && data.registeredCount is int && data.registeredCount >= 0
-        && data.moderationStatus in ['draft', 'pendingReview', 'approved', 'rejected', 'archived']
+        && data.moderationStatus in ['draft', 'pendingReview', 'approved', 'needsRevision', 'rejected', 'archived']
         && (!('scheduledAt' in data) || data.scheduledAt is timestamp)
         && data.registrationState is string
         && data.likeCount is int && data.likeCount >= 0
@@ -1912,6 +1926,7 @@ service cloud.firestore {
         || canReadModerationQueue('news')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if validNewsDocument(request.resource.data, newsId)
+        && !request.resource.data.keys().hasAny(serverContentReviewFields())
         && hasValidPublicationSchedule(request.resource.data)
         && canCreateOrganizationContent()
         && request.resource.data.authorId is string
@@ -1933,6 +1948,7 @@ service cloud.firestore {
       allow update: if onlyModerationStatusChanged()
         ? canModerateAppContent('news')
         : (validNewsDocument(request.resource.data, newsId)
+          && contentReviewFieldsArePreserved()
           && (canUpdateOrganizationContent() || canUpdateAppContent())
           && request.resource.data.id == resource.data.id
           && (
@@ -1981,6 +1997,7 @@ service cloud.firestore {
         || canReadModerationQueue('events')
         || canReadOrganizationModerationQueue(resource.data);
       allow create: if validEventDocument(request.resource.data, eventId)
+        && !request.resource.data.keys().hasAny(serverContentReviewFields())
         && !request.resource.data.keys().hasAny(serverEventCancellationFields())
         && hasValidPublicationSchedule(request.resource.data)
         && canCreateOrganizationContent()
@@ -1995,7 +2012,8 @@ service cloud.firestore {
             && !('scheduledAt' in request.resource.data))
         );
       allow delete: if false;
-      allow update: if eventCancellationFieldsArePreserved()
+      allow update: if contentReviewFieldsArePreserved()
+        && eventCancellationFieldsArePreserved()
         && (onlyModerationStatusChanged()
           ? canModerateAppContent('events')
           : (validEventDocument(request.resource.data, eventId)
