@@ -18,13 +18,13 @@
 - App Check policy validation and `git diff --check` pass.
 - Production owner: notifications enabled; four Apple push registrations exist. Actual APNs display has not been tested by sending a synthetic production alert.
 
-## Deployment boundary
+## Initial deployment boundary (historical; resolved below)
 
 Ten additive Firestore journal search indexes reached READY. No journal source records were deleted or marked reviewed. The migration preview is read-only; activation must wait for a working deployed maintenance trigger.
 
 The server rollout failed the Google Cloud Run container health check. Updated functions were NOT confirmed active and journal push delivery is NOT yet enabled in production. Do not describe these changes as deployed or delivered in TestFlight. Existing project-file and localization-catalog changes were preserved outside this commit.
 
-## Concurrent production incident
+## Initial production incident investigation (historical)
 
 Four new Google Cloud emails represent two services, each crossing warning and critical thresholds: `recordbannermeasurement` and `aggregatenewsviewcounteroncreate`. Incident IDs: `0.oe4pugqw2exx`, `0.oe4pvo5kjmhh`, `0.oe4pvo5kjmhc`, `0.oe4pvo5kjmhl`.
 
@@ -34,7 +34,7 @@ Fresh journal revision `listsystemlogs-00001-riz` reported `Internal error occur
 
 One targeted recovery deployment for the six affected existing handlers also failed its startup health checks. Current Cloud Run traffic still resolved to the previous ready revision; five subsequent non-mutating callable probes returned platform HTML 500. Function metadata reporting ACTIVE was therefore not accepted as recovery evidence. Explicit traffic-pin commands targeting the previous ready revisions also returned the same health-check failure. They must not be presented as a successful rollback. Traffic read-back still requires verification; the incident remains unresolved. Root cause remains unconfirmed. Preserve old ready traffic and avoid repeated blind redeployment or a paid always-on workaround.
 
-## Resume deployment and verification
+## Original recovery checklist (completed below)
 
 1. Establish that Cloud Run can start the original handlers and the pending/new journal containers; inspect exact revision startup logs and current Google Cloud health.
 2. Deploy only `listSystemLogs`, `maintainSystemLogSearchIndex`, `notifySystemLogIssue`, `writeClientDiagnostic`, `deliverInboxNotificationPushOnCreate`, `cleanupExpiredData` (retry-enabled triggers are idempotent; CLI requires explicit `--force` acknowledgement).
@@ -46,3 +46,24 @@ One targeted recovery deployment for the six affected existing handlers also fai
 Local evidence directory (gitignored): `build/system-logs-improved-20261022/`.
 
 Final console verification also showed the existing news counter deployment health failure and completed traffic forwarding, with no spend-cap banner on the inspected Cloud Run pages. A sanitized support packet was prepared locally; it has not been sent without user authorization.
+
+
+## Verified recovery — 2026-10-23, 00:14 Vienna
+
+The incident was resolved without contacting Google support. A private ordinary Google hello container started; the real application reproduced the failure with automatic base-image composition, while the same source with `on-deploy` runtime packaging started and returned the expected application JSON response. This isolates the failing startup path without claiming to know Google's internal defect. See [runtime recovery](../CloudFunctionsRuntimeRecovery.md).
+
+- All **161 production functions** are ACTIVE, use `onDeployUpdatePolicy`, and have Cloud Run Ready=True with 100% traffic on their intended revision. Temporary diagnostic resources were deleted.
+- Existing runtime identities, feature environment values, secrets, memory/concurrency/instance limits and event trigger identities/types/retries were preserved. Twenty-four handlers now explicitly declare the previously implicit `FUNCTION_SIGNATURE_TYPE=http`; there were no other unexpected configuration changes.
+- Eight representative callable probes returned application JSON 400/401 as appropriate, with no platform HTML 500. These are startup/authentication rejection checks, not authenticated end-to-end business tests.
+- Genuine news and event counter deliveries on recovered revisions returned HTTP 204. A read of ERROR/5xx logs after 22:14:40 UTC contained zero new entries at the final check; this is a bounded observation, not a guarantee about future traffic.
+- All six journal handlers are deployed. Both new Firestore/Eventarc triggers have the intended `systemLogs/{logId}` filter, retry enabled and their service account's invocation access. The callable journal endpoint is reachable through normal application authentication/App Check.
+- Final journal deployment through Firebase CLI succeeded while preserving the pinned runtime policy. Source archives match the current compiled query, alerts, client diagnostics and push delivery handlers. The query/index helpers include the final 2,000-gram bound.
+- Search backfill scanned the two retained source records and verified all ten production indexed query shapes before activating readiness. No records were deleted or marked reviewed by this work.
+- Owner notifications remain enabled with four registered Apple devices. Server inbox/push routing is deployed; actual notification display on an installed iPhone has not been observed. No synthetic production error/push was manufactured for that purpose.
+- Deployed analytics consent contract verification passes for `trackAnalyticsEvent`, `updateAnalyticsConsent` and `updateAnalyticsConsentV2`.
+- CI run [39862308512](https://github.com/Serlest/UkrainianCommunity/actions/runs/39862308512) passed static checks, iOS build/unit tests, Firebase affected checks and Firebase/rules gates. The cutover integration fixture was corrected to stay away from Vienna midnight; its dedicated emulator rerun passed.
+- Runtime security patches are now received during deployments. Restore automatic updates only after a separate real-source cold-start canary succeeds. The repository instructions retain this deployment requirement.
+
+No TestFlight upload or public release was performed. The deployed backend is available to existing versions; the new iOS journal interface/deep link still requires a later user-authorized build.
+
+Additional local evidence: `build/cloud-startup-investigation-20261022/final-readiness.json`, `final-callable-probes.json`, `recovered-counter-logs.json`, `final-source-verification.json`, `journal-final-backfill.log`, `deployed-analytics-contracts.log`, `post-recovery-errors.json`.
