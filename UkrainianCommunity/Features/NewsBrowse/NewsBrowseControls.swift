@@ -42,9 +42,9 @@ struct NewsBrowseFilterSheet: View {
                         ForEach(NewsBrowsePeriod.allCases, id: \.self) { Text($0.title).tag($0) }
                     }.tint(AppTheme.accentPrimaryForeground).accessibilityIdentifier("home.news.period")
                     if draft.period == .custom {
-                        DatePicker(NewsBrowseStrings.text("from"), selection: $draft.startDate, displayedComponents: .date)
+                        DatePicker(NewsBrowseStrings.text("from"), selection: $draft.startDate, displayedComponents: .date).tint(AppTheme.accentPrimary)
                             .accessibilityIdentifier("home.news.from")
-                        DatePicker(NewsBrowseStrings.text("to"), selection: $draft.endDate, in: draft.startDate..., displayedComponents: .date)
+                        DatePicker(NewsBrowseStrings.text("to"), selection: $draft.endDate, in: draft.startDate..., displayedComponents: .date).tint(AppTheme.accentPrimary)
                             .accessibilityIdentifier("home.news.to")
                     }
                 } }

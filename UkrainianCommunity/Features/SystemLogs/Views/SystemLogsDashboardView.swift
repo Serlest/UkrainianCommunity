@@ -108,33 +108,7 @@ struct SystemLogsDashboardView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: "magnifyingglass")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-
-            TextField(AppStrings.SystemLogs.searchPlaceholder, text: $viewModel.searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.subheadline)
-                .foregroundStyle(AppTheme.textPrimary)
-                .focused($isSearchFocused)
-                .submitLabel(.search)
-                .onSubmit { isSearchFocused = false }
-
-            if !viewModel.searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                AppSearchClearButton {
-                    viewModel.searchText = ""
-                }
-            }
-        }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(minHeight: AppTheme.searchControlHeight)
-        .background(AppTheme.surfaceControl.opacity(0.55), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
-        }
+        AppSearchField(placeholder: AppStrings.SystemLogs.searchPlaceholder, text: $viewModel.searchText, focus: $isSearchFocused)
     }
 
     private var filters: some View {
@@ -315,7 +289,7 @@ struct SystemLogsDashboardView: View {
                         viewModel.clearSearchAndFilters()
                     }
                     .buttonStyle(.bordered)
-                    .tint(AppTheme.accentPrimary)
+                    .tint(AppTheme.accentPrimaryForeground)
                 }
             }
         }

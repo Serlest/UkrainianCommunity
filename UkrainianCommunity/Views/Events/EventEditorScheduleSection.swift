@@ -30,7 +30,7 @@ extension EventEditorView {
                                 AppStrings.Events.fieldStartDate,
                                 selection: occurrenceStartBinding(occurrence),
                                 displayedComponents: occurrence.isAllDay ? [.date] : [.date, .hourAndMinute]
-                            )
+                            ).tint(AppTheme.accentPrimary)
                             Toggle(AppStrings.Events.hasEndDate, isOn: occurrenceHasEndBinding(occurrence))
                             if occurrence.endDate > occurrence.startDate {
                                 DatePicker(
@@ -38,7 +38,7 @@ extension EventEditorView {
                                     selection: occurrenceEndBinding(occurrence),
                                     in: occurrence.startDate...,
                                     displayedComponents: occurrence.isAllDay ? [.date] : [.date, .hourAndMinute]
-                                )
+                                ).tint(AppTheme.accentPrimary)
                             }
                             Toggle(AppStrings.Events.allDay, isOn: occurrenceAllDayBinding(occurrence))
                         }
@@ -306,7 +306,7 @@ extension EventEditorView {
         var body: some View {
             NavigationStack {
                 VStack {
-                    DatePicker(title, selection: $selection, displayedComponents: displayedComponents)
+                    DatePicker(title, selection: $selection, displayedComponents: displayedComponents).tint(AppTheme.accentPrimary)
                         .datePickerStyle(.wheel)
                         .labelsHidden()
                         .frame(maxWidth: .infinity)

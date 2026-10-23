@@ -135,6 +135,7 @@ struct AppLockScreen: View {
                             .frame(maxWidth: .infinity, minHeight: 44)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accentPrimary)
                     .disabled(lock.isAuthenticating || isSigningOut)
                     .accessibilityIdentifier("appLock.unlock")
 

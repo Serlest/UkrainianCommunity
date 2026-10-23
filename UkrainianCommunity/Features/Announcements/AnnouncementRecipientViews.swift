@@ -12,7 +12,7 @@ struct AnnouncementPopup: View {
                 AnnouncementSection {
                     Text(item.title.localized()).font(.title2.bold())
                     Text(item.body.localized()).textSelection(.enabled)
-                    if let error = coordinator.error { Text(error).font(.caption).foregroundStyle(.secondary) }
+                    if let error = coordinator.error { Text(error).font(.caption).foregroundStyle(AppTheme.textSecondary) }
                     if item.feedback {
                         Button(AnnouncementStrings.writeFeedback) {
                             busy = true

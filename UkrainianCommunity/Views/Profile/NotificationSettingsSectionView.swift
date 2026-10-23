@@ -22,7 +22,7 @@ struct NotificationSettingsSectionView: View {
                         ProgressView()
                         Text(AppStrings.Profile.notificationPreferencesLoading)
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(AppTheme.textSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityIdentifier("notifications.loading")

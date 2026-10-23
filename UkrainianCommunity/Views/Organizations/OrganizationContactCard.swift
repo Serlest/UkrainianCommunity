@@ -222,6 +222,7 @@ struct OrganizationContactCard: View {
                     Label(AppStrings.Organizations.contactsAdd, systemImage: "plus")
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(AppTheme.accentPrimary)
                 .controlSize(.small)
                 .tint(AppTheme.accentPrimary)
                 .padding(.top, 4)

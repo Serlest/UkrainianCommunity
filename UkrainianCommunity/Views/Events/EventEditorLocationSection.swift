@@ -437,39 +437,8 @@ struct EventMapPickerView: View {
     }
 
     var mapSearchField: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: "magnifyingglass")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-                .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
-
-            TextField(AppStrings.Events.searchLocation, text: $query)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(AppTheme.textPrimary)
-                .textInputAutocapitalization(.words)
-                .focused($isSearchFocused)
-                .submitLabel(.search)
-                .onSubmit { isSearchFocused = false }
-
-            if search.isSearching {
-                ProgressView()
-                    .controlSize(.small)
-            }
-
-            if LocalSearchMatcher.hasQuery(query) {
-                AppSearchClearButton {
-                    query = ""
-                    search.clear()
-                }
-            }
-        }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(minHeight: AppTheme.searchControlHeight)
-        .background(AppTheme.glassControlSurface(for: colorScheme), in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                .strokeBorder(AppTheme.glassBorder(for: colorScheme))
-        )
+        AppSearchField(placeholder: AppStrings.Events.searchLocation, text: $query,
+                       focus: $isSearchFocused, isSearching: search.isSearching, onClear: { search.clear() })
     }
 
     func mapSearchResultRow(title: String, subtitle: String) -> some View {

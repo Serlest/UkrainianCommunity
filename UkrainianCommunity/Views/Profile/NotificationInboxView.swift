@@ -53,6 +53,7 @@ struct NotificationInboxView: View {
                     .accessibilityIdentifier("notificationInbox.error")
                 Button(AppStrings.Action.retry) { Task { await viewModel.refresh() } }
                     .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accentPrimary)
                     .disabled(viewModel.isBusy)
                     .accessibilityIdentifier("notificationInbox.retry")
             }

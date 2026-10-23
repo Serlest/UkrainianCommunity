@@ -81,6 +81,7 @@ extension EventDetailView {
                                     .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
                             }
                             .buttonStyle(.borderedProminent)
+                            .tint(AppTheme.accentPrimary)
                         }
 
                         eventActionButton(
@@ -471,22 +472,7 @@ struct EventRegistrationManagementView: View {
     private var searchAndSortCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(AppTheme.textSecondary)
-
-                    TextField(AppStrings.Events.registrationSearchPlaceholder, text: $searchText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-
-                    if !searchText.isEmpty {
-                        AppSearchClearButton { searchText = "" }
-                    }
-                }
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.searchControlHeight)
-                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous).strokeBorder(AppTheme.borderSubtle))
+                AppSearchField(placeholder: AppStrings.Events.registrationSearchPlaceholder, text: $searchText)
 
                 AppSortMenu(
                     selection: $sortOption,

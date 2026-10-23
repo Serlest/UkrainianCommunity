@@ -2,7 +2,6 @@ import FirebaseFirestore
 import SwiftUI
 
 private enum UserDetailFocusField {
-    case organizationSearch
     case roleReason
 }
 
@@ -45,6 +44,7 @@ struct UserDetailView: View {
         _presenceModel = StateObject(wrappedValue: ManagedUserPresenceViewModel(load: viewModel.loadPresence))
     }
     @FocusState private var focusedField: UserDetailFocusField?
+    @FocusState private var organizationSearchFocused: Bool
 
     private var selectedOrganization: ManagedOrganization? {
         assignmentOrganizations.first { $0.id == selectedOrganizationID }
@@ -528,32 +528,8 @@ struct UserDetailView: View {
                     subtitle: AppStrings.UserManagement.assignRoleSectionSubtitle
                 )
 
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(AppTheme.textSecondary)
-
-                    TextField(AppStrings.UserManagement.organizationSearchPlaceholder, text: $organizationSearchText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .font(.subheadline)
-                        .focused($focusedField, equals: .organizationSearch)
-                        .submitLabel(.done)
-                        .onSubmit { focusedField = nil }
-
-                    if !organizationSearchText.isEmpty {
-                        AppSearchClearButton {
-                            organizationSearchText = ""
-                        }
-                    }
-                }
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.searchControlHeight)
-                .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                        .strokeBorder(AppTheme.borderSubtle)
-                )
-                .disabled(!viewModel.usesDirectory && assignmentOrganizations.isEmpty)
+                AppSearchField(placeholder: AppStrings.UserManagement.organizationSearchPlaceholder,
+                               text: $organizationSearchText, focus: $organizationSearchFocused)
 
                 Picker(AppStrings.UserManagement.organizationPicker, selection: Binding(
                     get: { selectedOrganizationID ?? assignmentOrganizations.first?.id ?? "" },

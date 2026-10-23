@@ -64,7 +64,7 @@ struct AnnouncementUserPicker: View {
             EditorTextField(AnnouncementManagementText.value("search"), text: $query, systemImage: "magnifyingglass")
                 .accessibilityIdentifier("announcements.recipientSearch")
             Text("\(AnnouncementManagementText.value("selected")): \(selected.count)/100").font(.headline).accessibilityIdentifier("announcements.selectionCount")
-            Text(AnnouncementManagementText.value("limit")).font(.caption).foregroundStyle(.secondary)
+            Text(AnnouncementManagementText.value("limit")).font(.caption).foregroundStyle(AppTheme.textSecondary)
             if !selected.isEmpty {
                 AnnouncementSection(AnnouncementManagementText.value("selected")) {
                     ForEach(selected, id: \.self) { id in

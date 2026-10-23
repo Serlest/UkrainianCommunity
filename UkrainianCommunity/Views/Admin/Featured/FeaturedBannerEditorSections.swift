@@ -208,14 +208,14 @@ struct FeaturedBannerEditorSchedulingSection: View {
                 Toggle(AppStrings.FeaturedEditor.startsAtEnabled, isOn: $viewModel.hasStartDate)
                     .font(.subheadline.weight(.semibold))
                 if viewModel.hasStartDate {
-                    DatePicker(AppStrings.FeaturedEditor.startsAtField, selection: $viewModel.startsAt)
+                    DatePicker(AppStrings.FeaturedEditor.startsAtField, selection: $viewModel.startsAt).tint(AppTheme.accentPrimary)
                         .datePickerStyle(.compact)
                 }
 
                 Toggle(AppStrings.FeaturedEditor.endsAtEnabled, isOn: $viewModel.hasEndDate)
                     .font(.subheadline.weight(.semibold))
                 if viewModel.hasEndDate {
-                    DatePicker(AppStrings.FeaturedEditor.endsAtField, selection: $viewModel.endsAt)
+                    DatePicker(AppStrings.FeaturedEditor.endsAtField, selection: $viewModel.endsAt).tint(AppTheme.accentPrimary)
                         .datePickerStyle(.compact)
                 }
             }

@@ -464,14 +464,7 @@ struct SavedContentView: View {
             title: AppStrings.Profile.savedContent,
             introSubtitle: AppStrings.Profile.savedContentIntro
         ) {
-            TextField(SavedScreenText.search, text: $searchText,
-                      prompt: Text(SavedScreenText.search).foregroundStyle(AppTheme.textSecondary))
-                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
-                .overlay(RoundedRectangle(cornerRadius: AppTheme.inputRadius).strokeBorder(AppTheme.borderSubtle))
-                .accessibilityIdentifier("saved.search")
+            AppSearchField(placeholder: SavedScreenText.search, text: $searchText, fieldID: "saved.search")
             if viewModel.hasMore {
                 Text(SavedScreenText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary)
             }
@@ -800,12 +793,7 @@ struct FollowedOrganizationsView: View {
             title: AppStrings.Profile.organizationSubscriptions,
             introSubtitle: AppStrings.Profile.subscriptionsIntro
         ) {
-            TextField(SubscriptionsText.search, text: $searchText,
-                      prompt: Text(SubscriptionsText.search).foregroundStyle(AppTheme.textSecondary))
-                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
-                .padding(.horizontal, AppTheme.inputHorizontalPadding).frame(minHeight: AppTheme.minimumInteractiveTarget)
-                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
-                .accessibilityIdentifier("subscriptions.search")
+            AppSearchField(placeholder: SubscriptionsText.search, text: $searchText, fieldID: "subscriptions.search")
             if model.cursor != nil { Text(SubscriptionsText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary) }
             if !visibleSubscriptions.isEmpty {
                 AppHorizontalFilterRow {

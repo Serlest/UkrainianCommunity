@@ -72,29 +72,7 @@ struct OwnerAnalyticsView: View {
     }
 
     private var searchField: some View {
-        AppGlassCard(padding: 12, spacing: 8, shadowRadius: 8, shadowY: 4) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .accessibilityHidden(true)
-
-                TextField(AppStrings.OwnerAnalytics.searchPlaceholder, text: $viewModel.searchText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.subheadline)
-                    .focused($isSearchFocused)
-                    .submitLabel(.search)
-                    .onSubmit { isSearchFocused = false }
-                    .accessibilityIdentifier("ownerAnalytics.search")
-
-                if !viewModel.searchText.isEmpty {
-                    AppSearchClearButton {
-                        viewModel.searchText = ""
-                    }
-                }
-            }
-            .frame(minHeight: AppTheme.searchControlHeight)
-        }
+        AppSearchField(placeholder: AppStrings.OwnerAnalytics.searchPlaceholder, text: $viewModel.searchText, focus: $isSearchFocused, fieldID: "ownerAnalytics.search")
     }
 
     @ViewBuilder

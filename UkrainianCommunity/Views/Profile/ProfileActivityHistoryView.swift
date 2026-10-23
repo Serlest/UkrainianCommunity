@@ -112,15 +112,7 @@ struct ActivityHistoryView: View {
                 action: { isShowingClearConfirmation = true }
             )
         ) {
-            TextField(ActivityHistoryText.search, text: $searchText,
-                      prompt: Text(ActivityHistoryText.search).foregroundStyle(AppTheme.textSecondary))
-                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
-                .focused($isSearchFocused).submitLabel(.search)
-                .onSubmit { isSearchFocused = false }
-                .accessibilityIdentifier("activityHistory.search")
+            AppSearchField(placeholder: ActivityHistoryText.search, text: $searchText, focus: $isSearchFocused, fieldID: "activityHistory.search")
             Text(ActivityHistoryText.limit).font(.footnote).foregroundStyle(AppTheme.textSecondary)
             historyFilters
 

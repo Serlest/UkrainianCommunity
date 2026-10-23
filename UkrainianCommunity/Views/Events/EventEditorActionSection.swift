@@ -72,7 +72,7 @@ extension EventEditorView {
                                     selection: $viewModel.scheduledAt,
                                     in: Date().addingTimeInterval(5 * 60)...,
                                     displayedComponents: [.date, .hourAndMinute]
-                                )
+                                ).tint(AppTheme.accentPrimary)
                                 Text(viewModel.isValidSchedule ? AppStrings.ContentPublishing.scheduleHint : AppStrings.ContentPublishing.invalidSchedule)
                                     .font(.footnote)
                                     .foregroundStyle(viewModel.isValidSchedule ? AppTheme.textSecondary : AppTheme.accentDestructiveForeground)

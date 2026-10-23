@@ -161,6 +161,34 @@ struct AppFilterChip: View {
     }
 }
 
+/// A consistent section selector that remains usable with long translations
+/// and accessibility text sizes, without squeezing four labels into one row.
+struct AppChoiceStrip<Option: Hashable>: View {
+    let options: [Option]
+    @Binding var selection: Option
+    let title: (Option) -> String
+    var identifier: ((Option) -> String)? = nil
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) { choices }
+        } else {
+            AppHorizontalFilterRow { choices }
+        }
+    }
+
+    private var choices: some View {
+        ForEach(options, id: \.self) { option in
+            Button { selection = option } label: {
+                AppFilterChip(title: title(option), isSelected: selection == option)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(identifier?(option) ?? "")
+        }
+    }
+}
+
 struct AppHorizontalChipRow<Content: View>: View {
     let spacing: CGFloat
     @ViewBuilder let content: Content

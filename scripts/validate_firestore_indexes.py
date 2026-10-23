@@ -128,6 +128,18 @@ def main() -> int:
             seen[signature] = position
 
     missing_contracts: list[str] = []
+    # History explicitly orders document IDs ascending after endedAt descending.
+    # The default implicit document-ID order follows endedAt and cannot serve it.
+    if not any(
+        index.get("collectionGroup") == "publicationControlRuns"
+        and index.get("queryScope") == "COLLECTION"
+        and index.get("fields") == [
+            {"fieldPath": "endedAt", "order": "DESCENDING"},
+            {"fieldPath": "__name__", "order": "ASCENDING"},
+        ]
+        for index in indexes
+    ):
+        missing_contracts.append("missing mixed endedAt DESC / document ID ASC index for publication history")
     for signature, purpose in REQUIRED_COMPOSITE_INDEXES.items():
         if signature not in seen:
             missing_contracts.append(

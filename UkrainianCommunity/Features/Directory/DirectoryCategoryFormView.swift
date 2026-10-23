@@ -34,7 +34,7 @@ struct DirectoryCategoryFormView: View {
                       : DirectoryEditorText.value("Зміни з’являться після публікації", "Änderungen erscheinen nach Veröffentlichung"),
                       systemImage: hasUnsavedChanges ? "pencil.circle" : "checkmark.circle")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(AppTheme.textSecondary)
                 Toggle(DirectoryEditorText.value("Прибрати з довідника", "Aus dem Ratgeber entfernen"),
                        isOn: $draft.isHidden)
                 if draft.id.hasPrefix("custom-") {
@@ -127,7 +127,7 @@ struct DirectoryCategoryFormView: View {
                                                  : draft.topics[index].title.value(for: language))
                                             if draft.topics[index].isHidden {
                                                 Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
-                                                    .font(.caption).foregroundStyle(.secondary)
+                                                    .font(.caption).foregroundStyle(AppTheme.textSecondary)
                                             }
                                         }
                                     }

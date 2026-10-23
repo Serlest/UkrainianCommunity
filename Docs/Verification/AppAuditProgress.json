@@ -1,0 +1,172 @@
+{
+  "auditDate": "2026-10-23",
+  "totalBlocks": 19,
+  "completedBlocks": 1,
+  "remainingBlocks": 18,
+  "nextBlock": 2,
+  "blocks": [
+    {
+      "number": 1,
+      "name": "Общий интерфейс и навигация",
+      "status": "implemented_verified_in_scope"
+    },
+    {
+      "number": 2,
+      "name": "Запуск, регистрация и вход",
+      "status": "pending"
+    },
+    {
+      "number": 3,
+      "name": "Профиль, настройки и безопасность",
+      "status": "pending"
+    },
+    {
+      "number": 4,
+      "name": "Личные разделы",
+      "status": "pending"
+    },
+    {
+      "number": 5,
+      "name": "Новости",
+      "status": "pending"
+    },
+    {
+      "number": 6,
+      "name": "Мероприятия",
+      "status": "pending"
+    },
+    {
+      "number": 7,
+      "name": "Публичные организации",
+      "status": "pending"
+    },
+    {
+      "number": 8,
+      "name": "Управление организациями и заявки",
+      "status": "pending"
+    },
+    {
+      "number": 9,
+      "name": "Довідник и права редакторов",
+      "status": "pending"
+    },
+    {
+      "number": 10,
+      "name": "Модерация",
+      "status": "pending"
+    },
+    {
+      "number": 11,
+      "name": "Управление пользователями",
+      "status": "pending"
+    },
+    {
+      "number": 12,
+      "name": "Отзывы, жалобы и поддержка",
+      "status": "pending"
+    },
+    {
+      "number": 13,
+      "name": "Уведомления и оповещения",
+      "status": "pending"
+    },
+    {
+      "number": 14,
+      "name": "Баннеры",
+      "status": "pending"
+    },
+    {
+      "number": 15,
+      "name": "Аналитика",
+      "status": "pending"
+    },
+    {
+      "number": 16,
+      "name": "Контроль публикаций и автоматических проходов",
+      "status": "pending"
+    },
+    {
+      "number": 17,
+      "name": "Журнал системы и серверные процессы",
+      "status": "pending"
+    },
+    {
+      "number": 18,
+      "name": "Правовые документы и согласия",
+      "status": "pending"
+    },
+    {
+      "number": 19,
+      "name": "Поддержка проекта",
+      "status": "pending"
+    }
+  ],
+  "block1": {
+    "scope": [
+      "Shared search fields, focus, clear action and keyboard dismissal",
+      "Adaptive foreground and secondary text contrast; dark wallpaper attenuation",
+      "Consistent admin surfaces and compact publication selectors",
+      "Publication item read coalescing and retention of confirmed rows on refresh failure",
+      "Five-tab navigation tests",
+      "Additive production index for publication run history"
+    ],
+    "automatedEvidence": [
+      {
+        "bundle": "build/block-01-fix-20261023/FinalPalette.xcresult",
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "bundle": "build/block-01-fix-20261023/VisualVerified.xcresult",
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "bundle": "build/block-01-fix-20261023/RoutesVerified.xcresult",
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "visualEvidence": {
+      "environment": "iPhone 17e iOS 26.5 simulator; DEBUG fixtures",
+      "languages": [
+        "uk",
+        "de"
+      ],
+      "appearances": [
+        "light",
+        "dark"
+      ],
+      "accessibilityTextSizeTested": true,
+      "screenshots": "build/block-01-fix-20261023/final-screens",
+      "reviewed": [
+        "B17F7CB7-C686-4DF1-A3E4-87FDE3556208.png",
+        "991D24A0-3DF9-496E-9F9F-BEBED498B8AE.png",
+        "6ADEA992-6170-47D7-A4FB-78DD817BB148.png"
+      ]
+    },
+    "productionEvidence": {
+      "project": "ukrainiancommunity-dbd5f",
+      "collection": "publicationControlRuns",
+      "indexId": "CICAgPiijJ0K",
+      "state": "READY",
+      "fields": [
+        "endedAt DESCENDING",
+        "__name__ ASCENDING"
+      ],
+      "exactQueryReadback": "Success; returned 2 documents",
+      "functionsDeployed": false,
+      "rulesDeployed": false
+    },
+    "limitations": [
+      "Simulator fixture UI verification is not a real owner-account end-to-end production test or physical iPhone verification.",
+      "UI changes are source-only until a new binary is delivered; no TestFlight upload in this block.",
+      "Publication importer metadata still reports 10 synchronization errors; investigate source completeness in block 16.",
+      "Measured first-request latency correlates with backend instance startup; warm requests are faster. No minimum-instance billing change made. Further performance work belongs to blocks 16 and 17.",
+      "Completion covers shared controls and navigation only; detailed feature flows remain assigned to their blocks."
+    ]
+  }
+}

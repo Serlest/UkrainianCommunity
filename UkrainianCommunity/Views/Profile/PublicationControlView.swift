@@ -92,15 +92,18 @@ nonisolated private struct PublicationControlRequest: Encodable {
     private var actor: String?
     private var day = ""
     private var region: String?
+    private var hasLoadedItems = false
     init(api: PublicationControlAPI? = nil) { self.api = api ?? .live }
     func reset() {
         generation = UUID(); itemGeneration = UUID(); actor = nil
         overview = nil; items = []; runs = []; itemCursor = nil; runCursor = nil
         loading = false; loadingItems = false; loadingRuns = false; error = nil; itemsError = nil; runsError = nil
+        hasLoadedItems = false
     }
     func load(actor: String, day: String) async {
         if self.actor != actor || self.day != day { reset() }
         self.actor = actor; self.day = day; generation = UUID(); itemGeneration = UUID(); loadingItems = false; loadingRuns = false
+        hasLoadedItems = false
         let token = generation
         loading = true; error = nil
         defer { if generation == token { loading = false } }
@@ -116,7 +119,13 @@ nonisolated private struct PublicationControlRequest: Encodable {
     }
     func loadItems(region: String?, more: Bool = false) async {
         guard let actor, !more || !loadingItems && itemCursor != nil else { return }
-        if !more { itemGeneration = UUID(); items = []; itemCursor = nil }
+        if !more, self.region == region, loadingItems || (hasLoadedItems && itemsError == nil) { return }
+        if !more {
+            itemGeneration = UUID()
+            if self.region != region { items = [] }
+            itemCursor = nil
+            hasLoadedItems = false
+        }
         self.region = region
         let token = generation, itemToken = itemGeneration
         loadingItems = true; itemsError = nil
@@ -124,7 +133,9 @@ nonisolated private struct PublicationControlRequest: Encodable {
         do {
             let response = try await api.items(actor, day, region, more ? itemCursor : nil)
             guard self.actor == actor, generation == token, itemGeneration == itemToken, !Task.isCancelled else { return }
+            if !more { items = [] }
             let known = Set(items.map(\.id)); items += response.items.filter { !known.contains($0.id) }; itemCursor = response.cursor
+            hasLoadedItems = true
         } catch { if generation == token, itemGeneration == itemToken, !Task.isCancelled { itemsError = PublicationControlText.loadFailed } }
     }
     func loadRuns(more: Bool = false) async {
@@ -228,7 +239,7 @@ struct PublicationControlView: View {
             if section == "items" { await store.loadItems(region: region) }
             if section == "history", store.runs.isEmpty { await store.loadRuns() }
         }
-        .refreshable { await refresh() }
+        .appRefreshable { await refresh() }
         .task {
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(60)) } catch { return }
@@ -241,7 +252,7 @@ struct PublicationControlView: View {
             VStack(alignment: .leading, spacing: 14) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(text("Дата публікацій", "Publikationsdatum")).font(.headline)
-                    DatePicker(text("Дата публікацій", "Publikationsdatum"), selection: $date, in: Date.now.addingTimeInterval(-29 * 86400)...Date.now, displayedComponents: .date)
+                    DatePicker(text("Дата публікацій", "Publikationsdatum"), selection: $date, in: Date.now.addingTimeInterval(-29 * 86400)...Date.now, displayedComponents: .date).tint(AppTheme.accentPrimary)
                         .labelsHidden().datePickerStyle(.compact)
                         .environment(\.timeZone, TimeZone(identifier: "Europe/Vienna")!)
                 }
@@ -249,17 +260,29 @@ struct PublicationControlView: View {
                     metric(PublicationControlText.kind("news"), count: value.news, icon: "newspaper")
                     metric(PublicationControlText.kind("event"), count: value.events, icon: "calendar")
                 }
-                Text(text("За датою першої публікації у застосунку. Загальноавстрійські матеріали враховано один раз.", "Nach der ersten Veröffentlichung in der App. Österreichweite Inhalte werden einmal gezählt.")).font(.caption).foregroundStyle(.secondary)
-                if (value.legacyTimeCount ?? 0) > 0 {
-                    Text(text("Для перенесеної історії використано дату додавання матеріалу: точний час першої публікації раніше не завжди зберігався.", "Für übernommene Inhalte wird das Erstellungsdatum verwendet: Der genaue Zeitpunkt der ersten Veröffentlichung wurde früher nicht immer gespeichert.")).font(.caption).foregroundStyle(.secondary)
+                DisclosureGroup(text("Як рахуються публікації", "So werden Publikationen gezählt")) {
+                    Text(text("За датою першої публікації у застосунку. Загальноавстрійські матеріали враховано один раз.", "Nach der ersten Veröffentlichung in der App. Österreichweite Inhalte werden einmal gezählt.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    if (value.legacyTimeCount ?? 0) > 0 {
+                        Text(text("Для перенесеної історії використано дату додавання матеріалу: точний час першої публікації раніше не завжди зберігався.", "Für übernommene Inhalte wird das Erstellungsdatum verwendet: Der genaue Zeitpunkt der ersten Veröffentlichung wurde früher nicht immer gespeichert.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    }
                 }
                 if (value.syncErrors ?? 0) > 0 {
-                    Label(text("Не всі звіти вдалося синхронізувати. Результати можуть бути неповними.", "Nicht alle Berichte konnten synchronisiert werden. Ergebnisse können unvollständig sein."), systemImage: "exclamationmark.triangle").font(.subheadline).foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Label(text("Частину звітів не отримано", "Einige Berichte fehlen"), systemImage: "exclamationmark.triangle")
+                            .font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.accentWarningForeground)
+                            .accessibilityIdentifier("publicationControl.syncWarning")
+                        Text(text("Неповні результати. Звітів з помилкою: ", "Unvollständige Ergebnisse. Fehlerhafte Berichte: ") + String(value.syncErrors ?? 0))
+                            .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            .accessibilityIdentifier("publicationControl.syncWarning.count")
+                        Button(PublicationControlText.retry) { Task { await refresh() } }
+                            .disabled(store.loading)
+                            .accessibilityIdentifier("publicationControl.syncWarning.retry")
+                    }
                 }
                 Divider()
-                Text(text("Звіти оновлено: ", "Berichte aktualisiert: ") + PublicationControlText.date(value.syncedAt)).font(.caption).foregroundStyle(.secondary)
+                Text(text("Звіти оновлено: ", "Berichte aktualisiert: ") + PublicationControlText.date(value.syncedAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
                 if value.syncedAt == nil || store.reportNow(at: clockDate) - (value.syncedAt ?? 0) > 2 * 3600000 {
-                    Label(text("Звіти давно не синхронізувалися. Це не підтвердження успішної роботи.", "Berichte wurden länger nicht synchronisiert. Dies bestätigt keinen erfolgreichen Betrieb."), systemImage: "exclamationmark.triangle").font(.subheadline).foregroundStyle(.orange)
+                    Label(text("Звіти застаріли. Останні зміни можуть бути відсутні.", "Berichte sind veraltet. Neueste Änderungen können fehlen."), systemImage: "exclamationmark.triangle").font(.subheadline).foregroundStyle(AppTheme.accentWarningForeground)
                 }
             }
         }
@@ -269,18 +292,25 @@ struct PublicationControlView: View {
     }
     private var filters: some View {
         VStack(alignment: .leading, spacing: 12) {
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: 10) {
-                filter("items", text("Публікації", "Publikationen")); filter("regions", text("Регіони", "Regionen")); filter("issues", text("Проблеми", "Probleme")); filter("history", text("Проходи", "Durchläufe"))
-            }
-            Picker(text("Регіон", "Region"), selection: $selectedRegion) {
+            AppChoiceStrip(options: ["items", "regions", "issues", "history"], selection: $section,
+                           title: { code in
+                switch code {
+                case "regions": text("Регіони", "Regionen")
+                case "issues": text("Проблеми", "Probleme")
+                case "history": text("Проходи", "Durchläufe")
+                default: text("Публікації", "Publikationen")
+                }
+            }, identifier: { "publicationControl.tab." + $0 })
+            Menu {
+                Picker(text("Регіон", "Region"), selection: $selectedRegion) {
                 Text(text("Усі регіони", "Alle Regionen")).tag("all")
                 ForEach(["austria", "burgenland", "kaernten", "niederoesterreich", "oberoesterreich", "salzburg", "steiermark", "tirol", "vorarlberg", "wien", "unknown"], id: \.self) { Text(PublicationControlText.region($0)).tag($0) }
-            }.pickerStyle(.menu).accessibilityIdentifier("publicationControl.region")
+                }
+            } label: {
+                AppFilterChip(title: selectedRegion == "all" ? text("Усі регіони", "Alle Regionen") : PublicationControlText.region(selectedRegion),
+                              systemImage: "mappin.and.ellipse", isSelected: selectedRegion != "all", trailingSystemImage: "chevron.down")
+            }.buttonStyle(.plain).accessibilityIdentifier("publicationControl.region")
         }
-    }
-    private func filter(_ code: String, _ label: String) -> some View {
-        Button { section = code } label: { Text(label).font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity, minHeight: 44).padding(.horizontal, 10).padding(.vertical, 6).background(section == code ? AppTheme.accentPrimary.opacity(0.16) : AppTheme.textPrimary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14)) }
-            .buttonStyle(.plain).accessibilityIdentifier("publicationControl.tab.\(code)").accessibilityAddTraits(section == code ? .isSelected : [])
     }
     @ViewBuilder private var itemCards: some View {
         if let error = store.itemsError { InlineMessageCard(style: .error, message: error); Button(PublicationControlText.retry) { Task { await store.loadItems(region: region) } } }
@@ -294,9 +324,9 @@ struct PublicationControlView: View {
                 AppEditorSectionCard {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(item.title).font(.headline).foregroundStyle(AppTheme.textPrimary)
-                        Text(PublicationControlText.kind(item.kind) + " · " + PublicationControlText.region(item.region)).font(.caption).foregroundStyle(.secondary)
-                        Text((item.timingSource == "legacyCreation" ? text("Додано: ", "Erstellt: ") : "") + PublicationControlText.date(item.firstPublicAt)).font(.caption).foregroundStyle(.secondary)
-                        if item.sourceState != "approved" { Label(text("Більше не у відкритому доступі", "Nicht mehr öffentlich verfügbar"), systemImage: "archivebox").font(.caption).foregroundStyle(.secondary) }
+                        Text(PublicationControlText.kind(item.kind) + " · " + PublicationControlText.region(item.region)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                        Text((item.timingSource == "legacyCreation" ? text("Додано: ", "Erstellt: ") : "") + PublicationControlText.date(item.firstPublicAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                        if item.sourceState != "approved" { Label(text("Більше не у відкритому доступі", "Nicht mehr öffentlich verfügbar"), systemImage: "archivebox").font(.caption).foregroundStyle(AppTheme.textSecondary) }
                         else { Label(text("Відкрити матеріал", "Inhalt öffnen"), systemImage: "arrow.up.right").font(.subheadline) }
                     }
                 }
@@ -319,11 +349,11 @@ struct PublicationControlView: View {
     @ViewBuilder private func sourceRows(_ overview: PublicationControlOverview, region: String) -> some View {
         ForEach(region == "austria" ? ["news"] : ["news", "event"], id: \.self) { kind in
             if let run = overview.sources.first(where: { $0.region == region && $0.kind == kind }) { runSummary(run, now: store.reportNow(at: clockDate)) }
-            else { Label(PublicationControlText.kind(kind) + ": " + text("звіт ще не отримано", "noch kein Bericht eingegangen"), systemImage: "questionmark.circle").font(.subheadline).foregroundStyle(.secondary) }
+            else { Label(PublicationControlText.kind(kind) + ": " + text("звіт ще не отримано", "noch kein Bericht eingegangen"), systemImage: "questionmark.circle").font(.subheadline).foregroundStyle(AppTheme.textSecondary) }
         }
     }
     @ViewBuilder private func issueCards(_ overview: PublicationControlOverview) -> some View {
-        Text(text("Останні відомі результати, незалежно від обраної дати публікацій. Частковий прохід означає неповне покриття джерел.", "Letzte bekannte Ergebnisse, unabhängig vom gewählten Publikationsdatum. Ein teilweiser Durchlauf bedeutet unvollständige Quellenabdeckung.")).font(.subheadline).foregroundStyle(.secondary)
+        Text(text("Останні перевірки джерел. Часткова перевірка означає, що перевірено не всі джерела.", "Letzte Quellenprüfungen. Teilweise geprüft bedeutet: Nicht alle Quellen wurden geprüft.")).font(.footnote).foregroundStyle(AppTheme.textSecondary)
         let affected = overview.sources.filter { (region == nil || $0.region == region) && ($0.status != "complete" || isStale($0, now: store.reportNow(at: clockDate))) }
         let expected = ["austria", "burgenland", "kaernten", "niederoesterreich", "oberoesterreich", "salzburg", "steiermark", "tirol", "vorarlberg", "wien"].filter { region == nil || $0 == region }
         let missing = expected.flatMap { code in (code == "austria" ? ["news"] : ["news", "event"]).filter { kind in !overview.sources.contains(where: { $0.region == code && $0.kind == kind }) }.map { code + "|" + $0 } }
@@ -333,7 +363,7 @@ struct PublicationControlView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         ForEach(missing, id: \.self) { key in
                             let parts = key.split(separator: "|").map(String.init)
-                            Text(PublicationControlText.kind(parts[1]) + " · " + PublicationControlText.region(parts[0])).font(.caption).foregroundStyle(.secondary)
+                            Text(PublicationControlText.kind(parts[1]) + " · " + PublicationControlText.region(parts[0])).font(.caption).foregroundStyle(AppTheme.textSecondary)
                         }
                     }
                 }
@@ -344,16 +374,22 @@ struct PublicationControlView: View {
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: 12) {
                     runSummary(run, now: store.reportNow(at: clockDate))
-                    ForEach(Array(run.issues.enumerated()), id: \.offset) { _, issue in
-                        DisclosureGroup(PublicationControlText.issue(issue.code)) { Text(verbatim: issue.detail).font(.caption).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }
+                    let grouped = Dictionary(grouping: run.issues, by: \.code)
+                    ForEach(grouped.keys.sorted(), id: \.self) { code in
+                        let entries = grouped[code] ?? []
+                        DisclosureGroup(PublicationControlText.issue(code) + (entries.count > 1 ? " (\(entries.count))" : "")) {
+                            ForEach(Array(Set(entries.map(\.detail))).sorted(), id: \.self) { detail in
+                                Text(verbatim: detail).font(.caption).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                        }
                     }
-                    if run.issueCount > run.issues.count { Text(text("Інші зауваження: \(run.issueCount - run.issues.count)", "Weitere Hinweise: \(run.issueCount - run.issues.count)" )).font(.caption).foregroundStyle(.secondary) }
+                    if run.issueCount > run.issues.count { Text(text("Інші зауваження: \(run.issueCount - run.issues.count)", "Weitere Hinweise: \(run.issueCount - run.issues.count)" )).font(.caption).foregroundStyle(AppTheme.textSecondary) }
                 }
             }
         }
     }
     @ViewBuilder private var historyCards: some View {
-        Text(text("Історія отриманих звітів. Час із файлу позначається окремо, якщо звіт не містить часу завершення.", "Historie der eingegangenen Berichte. Fehlt die Abschlusszeit, wird die Dateizeit gesondert gekennzeichnet.")).font(.caption).foregroundStyle(.secondary)
+        Text(text("Історія отриманих звітів. Час із файлу позначається окремо, якщо звіт не містить часу завершення.", "Historie der eingegangenen Berichte. Fehlt die Abschlusszeit, wird die Dateizeit gesondert gekennzeichnet.")).font(.caption).foregroundStyle(AppTheme.textSecondary)
         if let error = store.runsError { InlineMessageCard(style: .error, message: error); Button(PublicationControlText.retry) { Task { await store.loadRuns() } } }
         ForEach(store.runs.filter { region == nil || $0.region == region }) { run in
             AppEditorSectionCard {
@@ -361,9 +397,9 @@ struct PublicationControlView: View {
                     runSummary(run, now: store.reportNow(at: clockDate))
                     Text(text("Опубліковано за звітом: ", "Laut Bericht veröffentlicht: ") + (run.published.map(String.init) ?? "—")).font(.subheadline)
                     if let candidates = run.candidates {
-                        Text(text("Опрацьовано кандидатів: ", "Bearbeitete Kandidaten: ") + String(candidates) + (run.rejected.map { text(" · Відхилено / пропущено: \($0)", " · Abgelehnt / übersprungen: \($0)") } ?? "")).font(.caption).foregroundStyle(.secondary)
+                        Text(text("Опрацьовано кандидатів: ", "Bearbeitete Kandidaten: ") + String(candidates) + (run.rejected.map { text(" · Відхилено / пропущено: \($0)", " · Abgelehnt / übersprungen: \($0)") } ?? "")).font(.caption).foregroundStyle(AppTheme.textSecondary)
                     }
-                    if let checked = run.sourcesChecked { Text(text("Перевірено джерел: ", "Geprüfte Quellen: ") + String(checked) + (run.sourcesExpected.map { " / \($0)" } ?? "")).font(.caption).foregroundStyle(.secondary) }
+                    if let checked = run.sourcesChecked { Text(text("Перевірено джерел: ", "Geprüfte Quellen: ") + String(checked) + (run.sourcesExpected.map { " / \($0)" } ?? "")).font(.caption).foregroundStyle(AppTheme.textSecondary) }
                     if run.publicationOnly { Text(text("Продовження підготовленої публікації", "Fortsetzung einer vorbereiteten Publikation")).font(.caption) }
                     DisclosureGroup(text("Подробиці проходу", "Details des Durchlaufs")) {
                         Text(verbatim: run.runId).font(.caption).textSelection(.enabled)
@@ -380,13 +416,13 @@ struct PublicationControlView: View {
     private func runSummary(_ run: PublicationControlRun, now: Double) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(PublicationControlText.kind(run.kind) + " · " + PublicationControlText.region(run.region)).font(.headline)
-            Label(PublicationControlText.status(run.status), systemImage: run.status == "complete" ? "checkmark.circle" : "exclamationmark.triangle").font(.subheadline).foregroundStyle(run.status == "complete" ? Color.green : Color.orange)
-            Text((run.timestampBasis == "reportFileModifiedAt" ? text("Час файлу: ", "Dateizeit: ") : "") + PublicationControlText.date(run.endedAt)).font(.caption).foregroundStyle(.secondary)
-            if isStale(run, now: now) { Text(text("Новішого звіту немає — поточний стан невідомий", "Kein neuerer Bericht – aktueller Zustand unbekannt")).font(.caption).foregroundStyle(.orange) }
-            if let complete = run.lastCompleteAt { Text(text("Останній повністю завершений прохід: ", "Letzter vollständig abgeschlossener Durchlauf: ") + PublicationControlText.date(complete)).font(.caption).foregroundStyle(.secondary) }
+            Label(PublicationControlText.status(run.status), systemImage: run.status == "complete" ? "checkmark.circle" : "exclamationmark.triangle").font(.subheadline).foregroundStyle(run.status == "complete" ? AppTheme.accentSuccessForeground : AppTheme.accentWarningForeground)
+            Text((run.timestampBasis == "reportFileModifiedAt" ? text("Час файлу: ", "Dateizeit: ") : "") + PublicationControlText.date(run.endedAt)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+            if isStale(run, now: now) { Text(text("Новішого звіту немає — поточний стан невідомий", "Kein neuerer Bericht – aktueller Zustand unbekannt")).font(.caption).foregroundStyle(AppTheme.accentWarningForeground) }
+            if let complete = run.lastCompleteAt { Text(text("Останній повністю завершений прохід: ", "Letzter vollständig abgeschlossener Durchlauf: ") + PublicationControlText.date(complete)).font(.caption).foregroundStyle(AppTheme.textSecondary) }
         }.fixedSize(horizontal: false, vertical: true)
     }
-    private func empty(_ message: String) -> some View { AppEditorSectionCard { Text(message).foregroundStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading) } }
+    private func empty(_ message: String) -> some View { AppEditorSectionCard { Text(message).foregroundStyle(AppTheme.textSecondary).frame(maxWidth: .infinity, alignment: .leading) } }
     private func refresh() async {
         let currentActor = actor
         guard !currentActor.isEmpty else { store.reset(); return }

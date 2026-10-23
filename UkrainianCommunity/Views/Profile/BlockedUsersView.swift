@@ -92,24 +92,7 @@ struct BlockedUsersView: View {
     }
 
     private var blockedUsersSearchField: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppTheme.textSecondary)
-            TextField(AppStrings.Safety.blockedUsersSearchPlaceholder, text: $searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.subheadline)
-            if !searchText.isEmpty {
-                AppSearchClearButton { searchText = "" }
-            }
-        }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(minHeight: AppTheme.searchControlHeight)
-        .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
-        }
+        AppSearchField(placeholder: AppStrings.Safety.blockedUsersSearchPlaceholder, text: $searchText)
     }
 
     private func blockedUserRow(_ user: BlockedUser) -> some View {

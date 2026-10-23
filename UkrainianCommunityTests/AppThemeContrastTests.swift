@@ -5,6 +5,29 @@ import UIKit
 @testable import UkrainianCommunity
 
 struct AppThemeContrastTests {
+    @Test func secondaryTextMeetsAAInSupportedAppearances() {
+        assertMeetsAA(AppTheme.textSecondary)
+    }
+    @Test func darkWallpaperCannotWashOutLinksOrSecondaryLabels() {
+        UITraitCollection(userInterfaceStyle: .dark).performAsCurrent {
+            for overlay in AppTheme.screenBackgroundOverlayColors(for: .dark) {
+                func opaque(_ color: UIColor, over background: UIColor) -> UIColor {
+                    var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+                    var br: CGFloat = 0, bg: CGFloat = 0, bb: CGFloat = 0, ba: CGFloat = 0
+                    color.getRed(&r, green: &g, blue: &b, alpha: &a)
+                    background.getRed(&br, green: &bg, blue: &bb, alpha: &ba)
+                    return UIColor(red: r*a+br*(1-a), green: g*a+bg*(1-a), blue: b*a+bb*(1-a), alpha: 1)
+                }
+                // Pure white is the brightest possible wallpaper pixel.
+                let background = opaque(UIColor(overlay).resolvedColor(with: .current), over: .white)
+                let link = UIColor(AppTheme.accentPrimaryForeground).resolvedColor(with: .current)
+                let secondary = opaque(UIColor(AppTheme.textSecondary).resolvedColor(with: .current), over: background)
+                #expect(contrastRatio(link, background) >= 4.5)
+                #expect(contrastRatio(secondary, background) >= 4.5)
+            }
+        }
+    }
+
     @Test
     func primaryForegroundMeetsAAInSupportedAppearances() {
         assertMeetsAA(AppTheme.accentPrimaryForeground)

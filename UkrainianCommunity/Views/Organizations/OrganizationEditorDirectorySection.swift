@@ -59,7 +59,7 @@ extension OrganizationEditorView {
                                 AppStrings.Organizations.openingTimeAccessibilityLabel(for: day.title),
                                 selection: timeBinding(for: day, opening: true),
                                 displayedComponents: .hourAndMinute
-                            )
+                            ).tint(AppTheme.accentPrimary)
                             .labelsHidden()
 
                             Image(systemName: "arrow.right")
@@ -70,7 +70,7 @@ extension OrganizationEditorView {
                                 AppStrings.Organizations.closingTimeAccessibilityLabel(for: day.title),
                                 selection: timeBinding(for: day, opening: false),
                                 displayedComponents: .hourAndMinute
-                            )
+                            ).tint(AppTheme.accentPrimary)
                             .labelsHidden()
 
                             Spacer(minLength: 0)
@@ -157,7 +157,7 @@ extension OrganizationEditorView {
                         AppStrings.Organizations.offerValidUntil,
                         selection: validUntil,
                         displayedComponents: .date
-                    )
+                    ).tint(AppTheme.accentPrimary)
                     .datePickerStyle(.compact)
                 }
             }

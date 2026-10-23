@@ -88,6 +88,7 @@ struct OrganizationBlockConfirmationSheet: View {
                         }
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accentPrimary)
                     .disabled(coordinator.isMutating)
                     .accessibilityIdentifier("organization.block.confirm")
                 }

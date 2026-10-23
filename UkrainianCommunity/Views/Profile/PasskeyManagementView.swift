@@ -158,7 +158,7 @@ struct PasskeyEnrollmentOfferView: View {
         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
             Image(systemName: "person.badge.key.fill")
                 .font(.largeTitle)
-                .foregroundStyle(AppTheme.primaryBlue)
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .accessibilityHidden(true)
 
             Text(AppStrings.AccountSecurity.passkeyOfferTitle)

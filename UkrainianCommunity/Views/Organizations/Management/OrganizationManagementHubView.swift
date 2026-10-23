@@ -372,18 +372,8 @@ struct OrganizationManagementHubView: View {
     }
     private var searchControls: some View {
         VStack(spacing: 12) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass").foregroundStyle(AppTheme.textSecondary)
-                TextField(OrganizationWorkspaceCopy.search, text: $searchText)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled().focused($searchFocused)
-                    .submitLabel(.search).onSubmit { searchFocused = false }
-                    .accessibilityIdentifier("organization.management.search")
-                if !searchText.isEmpty {
-                    AppSearchClearButton { searchText = ""; searchFocused = false }
-                        .accessibilityIdentifier("organization.management.search.clear")
-                }
-            }.padding(.horizontal, 12).frame(minHeight: AppTheme.searchControlHeight)
-                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12))
+            AppSearchField(placeholder: OrganizationWorkspaceCopy.search, text: $searchText,
+                           focus: $searchFocused, fieldID: "organization.management.search")
             Picker(AppStrings.Profile.region, selection: $region) {
                 Text(OrganizationWorkspaceCopy.allRegions).tag(Optional<AustrianFederalState>.none)
                 ForEach(AustrianFederalState.allCases) { Text($0.displayName).tag(Optional($0)) }

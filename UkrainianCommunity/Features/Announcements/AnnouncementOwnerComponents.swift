@@ -6,7 +6,7 @@ struct AnnouncementPeriodSummary: View {
         VStack(alignment: .leading, spacing: 4) {
             Label { Text(Date(timeIntervalSince1970: item.startsAt / 1000), format: .dateTime.day().month().year().hour().minute()) } icon: { Image(systemName: "calendar") }
             Label { Text(Date(timeIntervalSince1970: item.expiresAt / 1000), format: .dateTime.day().month().year().hour().minute()) } icon: { Image(systemName: "calendar.badge.checkmark") }
-        }.font(.caption).foregroundStyle(.secondary)
+        }.font(.caption).foregroundStyle(AppTheme.textSecondary)
             .environment(\.timeZone, TimeZone(identifier: "Europe/Vienna")!)
             .accessibilityElement(children: .combine)
     }
@@ -28,7 +28,7 @@ struct AnnouncementAudienceSummary: View {
                 if !compact {
                     ForEach(item.userIds, id: \.self) { id in
                         if let user = users?.first(where: { $0.id == id }) { AnnouncementUserLabel(user: user) }
-                        else { Text(id).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) }
+                        else { Text(id).font(.caption).foregroundStyle(AppTheme.textSecondary).textSelection(.enabled) }
                     }
                 }
             }
@@ -41,8 +41,8 @@ struct AnnouncementUserLabel: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(user.name).font(.body.weight(.medium))
-            if let email = user.email, !email.isEmpty { Text(email).font(.caption).foregroundStyle(.secondary) }
-            if let region = user.region.flatMap(AustrianFederalState.init(rawValue:)) { Text(region.displayName).font(.caption).foregroundStyle(.secondary) }
+            if let email = user.email, !email.isEmpty { Text(email).font(.caption).foregroundStyle(AppTheme.textSecondary) }
+            if let region = user.region.flatMap(AustrianFederalState.init(rawValue:)) { Text(region.displayName).font(.caption).foregroundStyle(AppTheme.textSecondary) }
             if user.available == false { Text(AnnouncementManagementText.value("unavailable")).font(.caption).foregroundStyle(.orange) }
         }.accessibilityElement(children: .combine)
     }
@@ -71,7 +71,7 @@ struct AnnouncementStatisticsView: View {
                 LabeledContent(AnnouncementStrings.pushSent, value: String(statistics.pushSuccess ?? 0))
                 LabeledContent(AnnouncementStrings.pushFailed, value: String(statistics.pushFailure ?? 0))
             }
-            Text(AnnouncementManagementText.value("pushHelp")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+            Text(AnnouncementManagementText.value("pushHelp")).font(.caption).foregroundStyle(AppTheme.textSecondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
             if let shown = statistics.guestPresented, shown > 0 { LabeledContent(AnnouncementStrings.guestShown, value: String(shown)) }
             if let acknowledged = statistics.guestAcknowledged, acknowledged > 0 { LabeledContent(AnnouncementStrings.guestAck, value: String(acknowledged)) }
         }
@@ -92,7 +92,7 @@ struct AnnouncementPreviewView: View {
                 }
                 AnnouncementSection(AnnouncementStrings.audience) {
                     AnnouncementAudienceSummary(item: item, users: selectedUsers)
-                    Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                    Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(AppTheme.textSecondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
                     AnnouncementPeriodSummary(item: item)
                 }
             }.navigationTitle(AnnouncementStrings.preview)
@@ -127,11 +127,11 @@ struct AnnouncementSchedulePicker: View {
         }
     }
     private var date: some View {
-        DatePicker(title, selection: $selection, displayedComponents: .date)
+        DatePicker(title, selection: $selection, displayedComponents: .date).tint(AppTheme.accentPrimary)
             .labelsHidden().datePickerStyle(.compact).fixedSize().accessibilityLabel(title)
     }
     private var time: some View {
-        DatePicker(title, selection: $selection, displayedComponents: .hourAndMinute)
+        DatePicker(title, selection: $selection, displayedComponents: .hourAndMinute).tint(AppTheme.accentPrimary)
             .labelsHidden().datePickerStyle(.compact).fixedSize().accessibilityLabel(title)
     }
 }

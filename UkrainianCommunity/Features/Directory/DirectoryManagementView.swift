@@ -18,7 +18,7 @@ struct DirectoryManagementView: View {
                                     if category.isHidden {
                                         Text(DirectoryEditorText.value("Прибрано з довідника", "Aus dem Ratgeber entfernt"))
                                             .font(.caption)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(AppTheme.textSecondary)
                                     }
                                 }
                             } icon: {

@@ -58,7 +58,7 @@ struct SystemLogDetailView: View {
                     Task { await onRetryRefresh() }
                 }
                 .buttonStyle(.bordered)
-                .tint(AppTheme.accentPrimary)
+                .tint(AppTheme.accentPrimaryForeground)
             }
 
             if didCopyDetails {
@@ -111,7 +111,7 @@ struct SystemLogDetailView: View {
             DisclosureGroup(SystemLogExplanation.text("technical")) {
                 technicalSections
             }
-            .tint(AppTheme.accentPrimary)
+            .tint(AppTheme.accentPrimaryForeground)
 
         }
     }

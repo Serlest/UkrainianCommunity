@@ -34,14 +34,14 @@ struct DirectoryEditorsView: View {
                     Label(text("Доступ до всього довідника", "Zugriff auf den gesamten Ratgeber"), systemImage: "book.closed")
                         .font(.headline)
                     Text(text("Редактори можуть публікувати, змінювати й приховувати всі матеріали. Власник застосунку завжди має цей доступ. Зміни прав записуються в журнал, користувач отримує сповіщення.", "Redakteure können alle Inhalte veröffentlichen, ändern und ausblenden. Der App-Eigentümer behält diesen Zugriff immer. Änderungen werden protokolliert und dem Nutzer mitgeteilt."))
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
                 }
                 AppEditorSectionCard {
                     VStack(alignment: .leading, spacing: 16) {
                         AppEditorSectionTitle(title: text("Мають доступ", "Mit Zugriff"))
                         if access.isLoading { ProgressView() }
                         if !access.isLoading && !access.loadFailed && access.editorIDs.isEmpty {
-                            Text(text("Доступ іншим користувачам ще не надано.", "Noch kein Zugriff für andere Nutzer erteilt.")).foregroundStyle(.secondary)
+                            Text(text("Доступ іншим користувачам ще не надано.", "Noch kein Zugriff für andere Nutzer erteilt.")).foregroundStyle(AppTheme.textSecondary)
                         }
                         if access.loadFailed { retryButton { await access.load(actorID: principal) } }
                         ForEach(sortedEditorIDs, id: \.self) { id in
@@ -55,7 +55,7 @@ struct DirectoryEditorsView: View {
                                 }
                                 if let milliseconds = access.grants[id]?.grantedAt {
                                     Text(text("Надано: ", "Erteilt: ") + Date(timeIntervalSince1970: milliseconds / 1000).formatted(.dateTime.day().month(.abbreviated).year().hour().minute().locale(LocalizationStore.locale)))
-                                        .font(.caption).foregroundStyle(.secondary)
+                                        .font(.caption).foregroundStyle(AppTheme.textSecondary)
                                 }
                                 Divider()
                             }
@@ -68,17 +68,13 @@ struct DirectoryEditorsView: View {
                 AppEditorSectionCard {
                     VStack(alignment: .leading, spacing: 16) {
                         AppEditorSectionTitle(title: text("Зареєстровані користувачі", "Registrierte Nutzer"))
-                        HStack {
-                            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-                            TextField(text("Ім’я або email", "Name oder E-Mail"), text: $searchText).textInputAutocapitalization(.never).autocorrectionDisabled()
-                                .accessibilityIdentifier("directoryAccess.search")
-                            if !searchText.isEmpty { Button { searchText = "" } label: { Image(systemName: "xmark.circle.fill") }.accessibilityLabel(text("Очистити пошук", "Suche löschen")) }
-                        }.padding(12).background(AppTheme.textPrimary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
-                        Text(text("Знайдено: ", "Gefunden: ") + String(users.total)).font(.caption).foregroundStyle(.secondary)
+                        AppSearchField(placeholder: text("Ім’я або email", "Name oder E-Mail"),
+                                       text: $searchText, fieldID: "directoryAccess.search")
+                        Text(text("Знайдено: ", "Gefunden: ") + String(users.total)).font(.caption).foregroundStyle(AppTheme.textSecondary)
                         if users.isLoading { ProgressView() }
                         if users.loadFailed { retryButton { await users.load(actorID: principal, query: query) } }
                         if !users.isLoading && !users.loadFailed && users.users.isEmpty {
-                            Text(text("Користувачів не знайдено. Спробуйте інше ім’я або email.", "Keine Nutzer gefunden. Versuchen Sie einen anderen Namen oder eine E-Mail-Adresse.")).foregroundStyle(.secondary)
+                            Text(text("Користувачів не знайдено. Спробуйте інше ім’я або email.", "Keine Nutzer gefunden. Versuchen Sie einen anderen Namen oder eine E-Mail-Adresse.")).foregroundStyle(AppTheme.textSecondary)
                         }
                         ForEach(users.users.filter { $0.id != actor?.id && $0.globalRole.authorizationRole != .owner }) { user in
                             userRow(user)
@@ -143,8 +139,8 @@ struct DirectoryEditorsView: View {
         adaptiveRow {
             VStack(alignment: .leading, spacing: 4) {
                 Text(user.preferredDisplayName).font(.headline)
-                Text(user.email).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
-                if !usable { Text(text("Обмежений акаунт — доступ надати не можна", "Eingeschränktes Konto – keine Freigabe möglich")).font(.caption).foregroundStyle(.secondary) }
+                Text(user.email).font(.caption).foregroundStyle(AppTheme.textSecondary).textSelection(.enabled)
+                if !usable { Text(text("Обмежений акаунт — доступ надати не можна", "Eingeschränktes Konto – keine Freigabe möglich")).font(.caption).foregroundStyle(AppTheme.textSecondary) }
             }
         } action: {
             if access.grants[user.id]?.enabled == true {
@@ -169,10 +165,10 @@ struct DirectoryEditorsView: View {
         VStack(alignment: .leading, spacing: 4) {
             if let user = profile(id) {
                 Text(user.preferredDisplayName).font(.headline)
-                Text(user.email).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                Text(user.email).font(.caption).foregroundStyle(AppTheme.textSecondary).textSelection(.enabled)
             } else {
                 Text(access.missingProfileIDs.contains(id) ? text("Профіль користувача відсутній", "Nutzerprofil nicht vorhanden") : text("Дані користувача не завантажено", "Nutzerdaten nicht geladen"))
-                Text(verbatim: "ID: \(id)").font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
+                Text(verbatim: "ID: \(id)").font(.caption).foregroundStyle(AppTheme.textSecondary).textSelection(.enabled)
                 if access.failedProfileIDs.contains(id) {
                     Button(text("Повторити", "Erneut versuchen")) { Task { await access.loadProfile(id, actorID: principal) } }
                 }

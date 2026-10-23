@@ -276,6 +276,7 @@ extension View {
         case .primary:
             self
                 .buttonStyle(.borderedProminent)
+                .tint(AppTheme.accentPrimary)
                 .controlSize(.large)
                 .tint(AppTheme.accentPrimary)
         case .secondary:

@@ -235,7 +235,7 @@ struct MyFeedbackView: View {
             }
             feedbackContent
         }
-        .tint(AppTheme.accentPrimary)
+        .tint(AppTheme.accentPrimaryForeground)
         .navigationTitle(AppStrings.Feedback.myFeedbackTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
@@ -329,24 +329,7 @@ struct MyFeedbackView: View {
                     AppSortMenu(selection: $sortOption, options: [.newest, .oldest])
                 }
 
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(AppTheme.textSecondary)
-                    TextField(AppStrings.Feedback.myFeedbackSearchPlaceholder, text: $searchText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .font(.subheadline)
-                    if !searchText.isEmpty {
-                        AppSearchClearButton { searchText = "" }
-                    }
-                }
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.searchControlHeight)
-                .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                        .strokeBorder(AppTheme.borderSubtle)
-                }
+                AppSearchField(placeholder: AppStrings.Feedback.myFeedbackSearchPlaceholder, text: $searchText)
             }
         }
     }
@@ -630,7 +613,7 @@ struct FeedbackInboxView: View {
         } content: {
             inboxContent
         }
-        .tint(AppTheme.accentPrimary)
+        .tint(AppTheme.accentPrimaryForeground)
         .navigationTitle(AppStrings.Feedback.inboxTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .navigationBar)
@@ -934,24 +917,7 @@ struct FeedbackInboxView: View {
     }
 
     private var inboxSearchField: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(AppTheme.textSecondary)
-            TextField(AppStrings.Feedback.searchPlaceholder, text: $searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.subheadline)
-            if !searchText.isEmpty {
-                AppSearchClearButton { searchText = "" }
-            }
-        }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(minHeight: AppTheme.searchControlHeight)
-        .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
-        }
+        AppSearchField(placeholder: AppStrings.Feedback.searchPlaceholder, text: $searchText)
     }
 
     private func currentFeedbackItem(for item: FeedbackItem) -> FeedbackItem {

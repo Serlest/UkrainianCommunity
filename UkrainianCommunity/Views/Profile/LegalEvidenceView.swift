@@ -47,30 +47,7 @@ struct LegalEvidenceView: View {
     }
 
     private var accountSearchField: some View {
-        AppGlassCard(padding: 12, spacing: 8, shadowRadius: 8, shadowY: 4) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .accessibilityHidden(true)
-
-                TextField(AppStrings.LegalEvidence.accountSearchPlaceholder, text: $viewModel.searchText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .focused($isSearchFocused)
-                    .submitLabel(.search)
-                    .onSubmit { isSearchFocused = false }
-                    .accessibilityIdentifier("legalEvidence.accountSearch")
-
-                if !viewModel.searchText.isEmpty {
-                    AppSearchClearButton {
-                        viewModel.searchText = ""
-                    }
-                }
-            }
-            .frame(minHeight: AppTheme.searchControlHeight)
-        }
+        AppSearchField(placeholder: AppStrings.LegalEvidence.accountSearchPlaceholder, text: $viewModel.searchText, focus: $isSearchFocused, fieldID: "legalEvidence.accountSearch")
     }
 
     private var noticeCard: some View {
@@ -316,28 +293,7 @@ private struct LegalEvidenceUserDetailView: View {
     }
 
     private var historySearchField: some View {
-        AppGlassCard(padding: 12, spacing: 8, shadowRadius: 8, shadowY: 4) {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .accessibilityHidden(true)
-
-                TextField(AppStrings.LegalEvidence.searchPlaceholder, text: $viewModel.searchText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .focused($isHistorySearchFocused)
-                    .submitLabel(.search)
-                    .onSubmit { isHistorySearchFocused = false }
-                    .accessibilityIdentifier("legalEvidence.historySearch")
-
-                if !viewModel.searchText.isEmpty {
-                    AppSearchClearButton { viewModel.searchText = "" }
-                }
-            }
-            .frame(minHeight: AppTheme.searchControlHeight)
-        }
+        AppSearchField(placeholder: AppStrings.LegalEvidence.searchPlaceholder, text: $viewModel.searchText, focus: $isHistorySearchFocused, fieldID: "legalEvidence.historySearch")
     }
 
     private var filterCard: some View {

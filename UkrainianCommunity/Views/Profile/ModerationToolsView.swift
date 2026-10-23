@@ -647,7 +647,7 @@ struct ModerationToolsView: View {
                             selectedContentType = nil
                         }
                         .buttonStyle(.bordered)
-                        .tint(AppTheme.accentPrimary)
+                        .tint(AppTheme.accentPrimaryForeground)
                     }
                 } else {
                     LazyVStack(spacing: AppTheme.feedRowSpacing) {

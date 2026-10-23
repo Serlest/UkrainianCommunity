@@ -248,7 +248,7 @@ struct PushedScreenShell<Content: View, TrailingContent: View>: View {
                 .layoutPriority(1)
             }
         }
-        .tint(AppTheme.accentPrimary)
+        .tint(AppTheme.accentPrimaryForeground)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -405,7 +405,7 @@ struct DetailScreenShell<Content: View, HeaderActions: View>: View {
                 }
             }
         }
-        .tint(AppTheme.accentPrimary)
+        .tint(AppTheme.accentPrimaryForeground)
         .navigationTitle(title ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -750,12 +750,10 @@ struct AdminScreenShell<FiltersContent: View, MetricsContent: View, Content: Vie
         ) {
             trailingContent
         } content: {
-            AppGroupedContentPlane {
-                VStack(alignment: .leading, spacing: AppTheme.adminScreenContentSpacing) {
-                    filtersContent
-                    metricsContent
-                    content
-                }
+            VStack(alignment: .leading, spacing: AppTheme.adminScreenContentSpacing) {
+                filtersContent
+                metricsContent
+                content
             }
         }
     }
@@ -888,7 +886,7 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                     .appCenteredContent()
             }
         }
-        .tint(AppTheme.accentPrimary)
+        .tint(AppTheme.accentPrimaryForeground)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(true)
@@ -1166,35 +1164,7 @@ struct AppSearchableBrandHeader: View {
     }
 
     private var searchField: some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
-            Image(systemName: "magnifyingglass")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textSecondary)
-
-            TextField(placeholder, text: $searchText)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .font(.subheadline)
-                .foregroundStyle(AppTheme.textPrimary)
-                .focused($isSearchFocused)
-                .submitLabel(.search)
-                .onSubmit {
-                    endEditing()
-                }
-
-            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                AppSearchClearButton {
-                    searchText = ""
-                }
-            }
-        }
-        .padding(.horizontal, AppTheme.inputHorizontalPadding)
-        .frame(minHeight: AppTheme.searchControlHeight)
-        .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                .strokeBorder(AppTheme.borderSubtle)
-        )
+        AppSearchField(placeholder: placeholder, text: $searchText, focus: $isSearchFocused)
     }
 
     private var hasActiveSearchText: Bool {

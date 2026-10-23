@@ -111,7 +111,16 @@ enum AppTheme {
     static let borderSubtle = accentPrimary.opacity(0.06)
     static let shadowSoft = Color.black.opacity(0.035)
     static let textPrimary = Color.primary
-    static let textSecondary = Color.secondary
+    // Opaque metadata text: system secondary-label alpha can wash out against
+    // the wallpaper and layered materials, especially in light appearance.
+    static let textSecondary = Color(uiColor: UIColor { traits in
+        switch (traits.userInterfaceStyle, traits.accessibilityContrast) {
+        case (.dark, .high): UIColor(red: 0.84, green: 0.88, blue: 0.95, alpha: 1)
+        case (.dark, _): UIColor(red: 0.75, green: 0.79, blue: 0.86, alpha: 1)
+        case (_, .high): UIColor(red: 0.16, green: 0.20, blue: 0.26, alpha: 1)
+        default: UIColor(red: 0.25, green: 0.29, blue: 0.35, alpha: 1)
+        }
+    })
     // Opaque secondary text for compact news metadata: system secondary labels
     // blend with translucent backgrounds and become faint near the scroll edge.
     static let feedSecondaryText = Color(uiColor: UIColor { traits in
@@ -449,9 +458,9 @@ enum AppTheme {
         switch colorScheme {
         case .dark:
             [
-                Color(red: 0.015, green: 0.022, blue: 0.040).opacity(0.52),
-                Color(red: 0.020, green: 0.030, blue: 0.055).opacity(0.58),
-                Color(red: 0.010, green: 0.016, blue: 0.032).opacity(0.66)
+                Color(red: 0.015, green: 0.022, blue: 0.040).opacity(0.80),
+                Color(red: 0.020, green: 0.030, blue: 0.055).opacity(0.83),
+                Color(red: 0.010, green: 0.016, blue: 0.032).opacity(0.86)
             ]
         default:
             [

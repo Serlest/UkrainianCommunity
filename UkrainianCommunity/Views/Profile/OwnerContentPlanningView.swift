@@ -723,7 +723,7 @@ private struct OwnerContentMissingEventStartDateView: View {
                         selection: $startDate,
                         in: Date()...,
                         displayedComponents: [.date, .hourAndMinute]
-                    )
+                    ).tint(AppTheme.accentPrimary)
                     .onChange(of: startDate) { _, _ in
                         didChooseStartDate = true
                     }

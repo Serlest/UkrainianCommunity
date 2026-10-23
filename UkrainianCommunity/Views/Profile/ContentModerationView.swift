@@ -144,9 +144,8 @@ struct ContentModerationView: View {
                         Text("\(AppStrings.Moderation.typeNews): \(model.counts["news"] ?? 0)").tag("news")
                         Text("\(AppStrings.Moderation.typeEvent): \(model.counts["event"] ?? 0)").tag("event")
                     }.pickerStyle(.segmented).accessibilityIdentifier("content.moderation.type")
-                    TextField(AppStrings.Moderation.searchPlaceholder, text: $search)
-                        .textFieldStyle(.roundedBorder).autocorrectionDisabled()
-                        .accessibilityIdentifier("content.moderation.search")
+                    AppSearchField(placeholder: AppStrings.Moderation.searchPlaceholder, text: $search,
+                                   fieldID: "content.moderation.search")
                     if model.hasMore && !search.isEmpty { Text(ContentModerationCopy.loadedSearch).font(.footnote).foregroundStyle(AppTheme.textSecondary) }
                 }
                 if let error = model.error {

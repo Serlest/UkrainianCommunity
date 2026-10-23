@@ -29,7 +29,7 @@ struct NewsCard: View {
                 if !post.localizedSubtitle.isEmpty {
                     Text(post.localizedSubtitle)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 3)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -37,7 +37,7 @@ struct NewsCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Label(newsPublisherText(for: post), systemImage: "person.crop.circle")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                         .fixedSize(horizontal: false, vertical: true)
                 }

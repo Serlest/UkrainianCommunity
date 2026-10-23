@@ -23,7 +23,7 @@ struct AnnouncementOwnerView: View {
                 Button(AnnouncementStrings.retry) { Task { await load() } }.disabled(loading)
             }
             if loading { ProgressView() }
-            if items.isEmpty && !loading && error == nil { Text(AnnouncementStrings.empty).foregroundStyle(.secondary) }
+            if items.isEmpty && !loading && error == nil { Text(AnnouncementStrings.empty).foregroundStyle(AppTheme.textSecondary) }
             ForEach(phases.filter { filter == "all" || filter == $0 }, id: \.self) { phase in
                 let matching = items.filter { $0.phase() == phase }
                 if !matching.isEmpty {
@@ -42,7 +42,7 @@ struct AnnouncementOwnerView: View {
                 }
             }
             if !items.isEmpty && filter != "all" && !items.contains(where: { $0.phase() == filter }) && !loading {
-                Text(AnnouncementManagementText.value("empty")).foregroundStyle(.secondary)
+                Text(AnnouncementManagementText.value("empty")).foregroundStyle(AppTheme.textSecondary)
             }
             if cursor != nil { Button(AnnouncementStrings.loadMore) { Task { await load(more: true) } }.disabled(loading) }
         }
@@ -148,7 +148,7 @@ struct AnnouncementEditorView: View {
     }
     private var publicationSection: some View {
         AnnouncementSection {
-            ForEach(draft.publicationIssues, id: \.self) { Text($0).font(.callout).foregroundStyle(.secondary) }
+            ForEach(draft.publicationIssues, id: \.self) { Text($0).font(.callout).foregroundStyle(AppTheme.textSecondary) }
             Button(AnnouncementStrings.preview) { preview = true }.accessibilityIdentifier("announcements.preview")
             Button(AnnouncementStrings.countAudience) { run { try await countAudience() } }
             if let count { LabeledContent(AnnouncementManagementText.value("recipientCount"), value: String(count)) }
@@ -169,7 +169,7 @@ struct AnnouncementEditorView: View {
                 AnnouncementSection(AnnouncementStrings.audience) {
                     AnnouncementAudienceSummary(item: draft, users: selectedUsers)
                     LabeledContent(AnnouncementManagementText.value("recipientCount"), value: String(count ?? 0))
-                    Text(AnnouncementManagementText.value("countHelp")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+                    Text(AnnouncementManagementText.value("countHelp")).font(.caption).foregroundStyle(AppTheme.textSecondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
                     if count == 0 { InlineMessageCard(style: .info, message: AnnouncementManagementText.value("noRecipients")) }
                 }
                 AnnouncementSection {
@@ -191,7 +191,7 @@ struct AnnouncementEditorView: View {
             Picker(AnnouncementStrings.body, selection: $language) { Text(AppLanguage.ukrainian.title).tag("uk"); Text(AppLanguage.german.title).tag("de") }.pickerStyle(.segmented)
             if editable {
                 EditorTextField(AnnouncementStrings.headline, text: textBinding(title: true), systemImage: "textformat").accessibilityIdentifier("announcements.headline")
-                Text("\((language == "uk" ? draft.title.uk : draft.title.de).utf16.count)/160").font(.caption).foregroundStyle(.secondary)
+                Text("\((language == "uk" ? draft.title.uk : draft.title.de).utf16.count)/160").font(.caption).foregroundStyle(AppTheme.textSecondary)
                 EditorTextArea(AnnouncementStrings.body, text: textBinding(title: false), counterText: "\((language == "uk" ? draft.body.uk : draft.body.de).utf16.count)/6000", minHeight: 140).accessibilityIdentifier("announcements.body")
                 ContentTranslationButton(kind: "announcement", fields: [
                     .init("title", AnnouncementStrings.headline, source: language == "uk" ? draft.title.uk : draft.title.de, target: language == "uk" ? $draft.title.de : $draft.title.uk, limit: 160),
@@ -208,7 +208,7 @@ struct AnnouncementEditorView: View {
             ForEach(["registered", "organizationOwners", "appAdmins", "organizationAdmins", "organizationModerators"], id: \.self) { group in
                 Toggle(AnnouncementStrings.group(group), isOn: selection(group, in: $draft.groups))
             }
-            Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(.secondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
+            Text(AnnouncementManagementText.value("union")).font(.caption).foregroundStyle(AppTheme.textSecondary).lineLimit(nil).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true)
             Button("\(AnnouncementManagementText.value("addPeople")) (\(draft.userIds.count))") { users = true }.accessibilityIdentifier("announcements.people")
             if !draft.userIds.isEmpty {
                 AnnouncementAudienceSummary(item: draft, users: selectedUsers, peopleOnly: true)

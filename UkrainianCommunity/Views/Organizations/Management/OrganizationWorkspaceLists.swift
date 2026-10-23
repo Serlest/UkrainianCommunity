@@ -118,7 +118,7 @@ struct OrganizationWorkspaceSubscribers: View {
     private var request: OrganizationWorkspaceRequest { .init(action: "subscribers", principalId: authState.user?.id ?? "", organizationId: organization.id, search: search) }
     var body: some View {
         ProfileDestinationLayout(title: OrganizationWorkspaceCopy.subscribers, introSubtitle: OrganizationWorkspaceCopy.subscribersHelper) {
-            TextField(AppStrings.Profile.organizationTeamSearchPlaceholder, text: $search).textInputAutocapitalization(.never).autocorrectionDisabled().padding(12)
+            AppSearchField(placeholder: AppStrings.Profile.organizationTeamSearchPlaceholder, text: $search)
                 .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 12))
             if let error = model.error { InlineMessageCard(style: .error, message: error); Button(AppStrings.Action.retry) { Task { await model.load(request) } } }
             if model.loading && model.users.isEmpty { LoadingStateCard(title: OrganizationWorkspaceCopy.subscribers) }

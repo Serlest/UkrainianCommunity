@@ -50,7 +50,7 @@ struct DirectoryTopicEditorView: View {
                                          : topic.sections[index].title.value(for: language))
                                     if topic.sections[index].isHidden {
                                         Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
-                                            .font(.caption).foregroundStyle(.secondary)
+                                            .font(.caption).foregroundStyle(AppTheme.textSecondary)
                                     }
                                 }
                             }
@@ -91,7 +91,7 @@ struct DirectoryTopicEditorView: View {
                             Text(state.displayName)
                             Spacer()
                             Text("\(topic.regionalSections[state.rawValue]?.filter { !$0.isHidden }.count ?? 0)")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(AppTheme.textSecondary)
                         }
                     }
                     .accessibilityIdentifier("directory.region.edit.\(state.rawValue)")
@@ -208,7 +208,7 @@ private struct DirectoryRegionEditorView: View {
                     "Ці блоки бачать читачі, які вибрали цю федеральну землю. Прихований блок можна відновити пізніше.",
                     "Diese Abschnitte sehen Leser, die dieses Bundesland gewählt haben. Ausgeblendete Abschnitte können später wiederhergestellt werden."
                 ))
-                .font(.subheadline).foregroundStyle(.secondary)
+                .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
             }
             Section(DirectoryEditorText.value("Регіональні блоки", "Regionale Abschnitte")) {
                 let ids = DirectoryEditorOrdering.sectionIDs(sections.wrappedValue)
@@ -225,7 +225,7 @@ private struct DirectoryRegionEditorView: View {
                                          : sections.wrappedValue[index].title.value(for: language))
                                     if sections.wrappedValue[index].isHidden {
                                         Text(DirectoryEditorText.value("Приховано", "Ausgeblendet"))
-                                            .font(.caption).foregroundStyle(.secondary)
+                                            .font(.caption).foregroundStyle(AppTheme.textSecondary)
                                     }
                                 }
                             }

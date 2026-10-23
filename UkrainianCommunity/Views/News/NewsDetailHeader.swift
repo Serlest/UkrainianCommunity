@@ -233,6 +233,7 @@ extension NewsDetailView {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(AppTheme.accentPrimary)
             }
         }
 

@@ -78,6 +78,7 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
                             .minimumScaleFactor(0.80)
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accentPrimary)
                     .controlSize(.large)
                     .disabled(isUpdating)
 

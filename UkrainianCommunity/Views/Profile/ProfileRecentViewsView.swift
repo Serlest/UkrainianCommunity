@@ -109,16 +109,7 @@ struct RecentViewsView: View {
                 action: { isShowingClearConfirmation = true }
             )
         ) {
-            TextField(RecentViewsText.search, text: $searchText,
-                      prompt: Text(RecentViewsText.search).foregroundStyle(AppTheme.textSecondary))
-                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.minimumInteractiveTarget)
-                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
-                .focused($isSearchFocused)
-                .submitLabel(.search)
-                .onSubmit { isSearchFocused = false }
-                .accessibilityIdentifier("recentViews.search")
+            AppSearchField(placeholder: RecentViewsText.search, text: $searchText, focus: $isSearchFocused, fieldID: "recentViews.search")
             Text(RecentViewsText.limit).font(.footnote).foregroundStyle(AppTheme.textSecondary)
             historyFilters
 

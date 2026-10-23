@@ -32,6 +32,31 @@ import Testing
         #expect(store.items.map(\.id) == ["1"])
         await store.loadItems(region: "tirol", more: true); #expect(store.items.map(\.id) == ["1", "2"] && store.itemCursor == nil)
     }
+    @Test func identicalItemLoadsCoalesceAndRefreshKeepsConfirmedRowsOnFailure() async {
+        var reads = 0
+        var resume: CheckedContinuation<PublicationControlItemsPage, Never>?
+        let row = PublicationControlItem(id: "kept", kind: "news", contentId: "kept", titleUK: "Тест", titleDE: "Test", region: "tirol", firstPublicAt: 1000, sourceState: "approved", timingSource: "creation")
+        let store = PublicationControlStore(api: .init(overview: { _, day in overview(day) }, items: { _,_,_,_ in
+            reads += 1
+            if reads == 1 { return await withCheckedContinuation { resume = $0 } }
+            throw AppError.network
+        }, runs: { _,_ in .init(runs: [], cursor: nil) }))
+        await store.load(actor: "owner", day: "2026-10-23")
+        let first = Task { await store.loadItems(region: nil) }
+        while resume == nil { await Task.yield() }
+        await store.loadItems(region: nil)
+        #expect(reads == 1)
+        resume?.resume(returning: .init(items: [row], cursor: nil, total: 1))
+        await first.value
+        await store.loadItems(region: nil)
+        #expect(reads == 1 && store.items.map(\.id) == ["kept"])
+        await store.load(actor: "owner", day: "2026-10-23")
+        await store.loadItems(region: nil)
+        #expect(reads == 2 && store.items.map(\.id) == ["kept"] && store.itemsError != nil)
+        await store.loadItems(region: "wien")
+        #expect(store.items.isEmpty && reads == 3)
+    }
+
     @Test func failureKeepsKnownOverviewAndHasExplicitRetryState() async {
         var fail = false
         let store = PublicationControlStore(api: .init(overview: { _,day in if fail { throw AppError.network }; return overview(day) }, items: { _,_,_,_ in throw AppError.network }, runs: { _,_ in throw AppError.network }))
