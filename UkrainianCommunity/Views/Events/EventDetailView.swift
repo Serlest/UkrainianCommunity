@@ -223,6 +223,7 @@ struct EventDetailView: View {
             Button(eventRegistrationConfirmationButton, role: pendingRegistrationConfirmation?.isCancellation == true ? .destructive : nil) {
                 confirmPendingRegistrationChange()
             }
+            .accessibilityIdentifier("event.registration.confirm")
             Button(AppStrings.Events.cancel, role: .cancel) {
                 pendingRegistrationConfirmation = nil
             }

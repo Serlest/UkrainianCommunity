@@ -306,6 +306,7 @@ enum MockContentBuilder {
     }
 
     nonisolated static func events() -> [Event] {
+        if let fixture = registrationAuditEvents() { return fixture }
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            let scenario = ProcessInfo.processInfo.environment["UITestMultiDayEventSchedule"],
            let fixture = multiDayScheduleFixture(scenario: scenario) {

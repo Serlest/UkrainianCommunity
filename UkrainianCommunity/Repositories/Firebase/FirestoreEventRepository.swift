@@ -320,6 +320,61 @@ struct FirestoreEventRepository: EventRepository {
         return registeredEvents.sorted { $0.startDate < $1.startDate }
     }
 
+    /// Bounded membership scan. Counts in the UI explicitly refer to loaded events.
+    /// This path always reads the server; pull-to-refresh never reuses the five-minute ID cache.
+    func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage {
+        do { return try await loadRegisteredEventsPage(limit: limit, after: cursor) }
+        catch is CancellationError { throw CancellationError() }
+        catch { throw FirebaseReadErrorMapper.map(error) }
+    }
+
+    private func loadRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage {
+        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
+        guard cursor == nil || cursor?.userID == uid else { throw AppError.permissionDenied }
+        let size = max(1, min(limit, 50))
+        var query = registrationsCollection.whereField("userId", isEqualTo: uid)
+            .order(by: FieldPath.documentID()).limit(to: size + 1)
+        if let cursor { query = query.start(after: [cursor.documentID]) }
+        let snapshot = try await query.getDocuments(source: .server)
+        try Task.checkCancellation()
+        guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
+        let documents = Array(snapshot.documents.prefix(size))
+        let ids = Set(documents.compactMap { $0.data()["eventId"] as? String })
+        var result: [Event] = []
+        // At most 50 direct reads, in bounded groups. An unavailable/deleted event
+        // must not make every other registration on the page disappear.
+        for chunk in Array(ids).chunked(into: 10) {
+            let resolved = try await withThrowingTaskGroup(of: Event?.self) { group in
+                for id in chunk {
+                    group.addTask { @MainActor in
+                        do {
+                            let eventSnapshot = try await collection.document(id).getDocument(source: .server)
+                            guard eventSnapshot.exists else { return nil }
+                            let dto = try makeEventDTO(from: eventSnapshot, likedEventIDs: [], registeredEventIDs: ids, bookmarkedEventIDs: [])
+                            guard dto.moderationStatus == ModerationStatus.approved.rawValue else { return nil }
+                            let event = Event(dto: dto)
+                            return event.isOrganizationEvent ? event : nil
+                        } catch {
+                            let failure = error as NSError
+                            if failure.domain == FirestoreErrorDomain && [FirestoreErrorCode.Code.permissionDenied.rawValue, FirestoreErrorCode.Code.notFound.rawValue].contains(failure.code) { return nil }
+                            throw error
+                        }
+                    }
+                }
+                var events: [Event] = []
+                for try await event in group { if let event { events.append(event) } }
+                return events
+            }
+            result.append(contentsOf: resolved)
+            try Task.checkCancellation()
+        }
+        guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
+        let hasMore = snapshot.documents.count > size
+        return RegistrationPage(items: result.deduplicatedEventsByID(), nextCursor: hasMore ? documents.last.map {
+            RegistrationPageCursor(documentID: $0.documentID, userID: uid)
+        } : nil, hasMore: hasMore)
+    }
+
     func fetchEventRegistrations(eventID: String) async throws -> [EventRegistrationAttendee] {
         let snapshot = try await registrationsCollection
             .whereField("eventId", isEqualTo: eventID)

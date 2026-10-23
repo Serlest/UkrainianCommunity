@@ -13,6 +13,9 @@ import {
   documentId,
   getDoc,
   getDocs,
+  limit,
+  orderBy,
+  startAfter,
   query,
   setDoc,
   updateDoc,
@@ -196,4 +199,17 @@ describe("server-owned event registration invariant", () => {
       updatedAt: new Date("2026-08-24T12:00:00Z"),
     }));
   });
+});
+
+test("own registrations support bounded document-id pages without exposing another account", async () => {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "registrations", "event_event-2_registered-user"), {...registration("registered-user"), eventId: "event-2"});
+    await setDoc(doc(context.firestore(), "registrations", "event_event-3_other-user"), {...registration("other-user"), eventId: "event-3"});
+  });
+  const db = auth("registered-user");
+  const base = query(collection(db, "registrations"), where("userId", "==", "registered-user"), orderBy(documentId()), limit(1));
+  const first = await assertSucceeds(getDocs(base));
+  const next = await assertSucceeds(getDocs(query(base, startAfter(first.docs[0].id))));
+  if (first.size !== 1 || next.size !== 1 || first.docs[0].id === next.docs[0].id) throw new Error("Registration cursor must advance exactly once");
+  await assertFails(getDocs(query(collection(db, "registrations"), where("userId", "==", "other-user"), orderBy(documentId()), limit(21))));
 });

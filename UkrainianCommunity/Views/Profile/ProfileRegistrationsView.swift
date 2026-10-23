@@ -1,216 +1,139 @@
 import SwiftUI
 
 private enum MyEventsSegment: String, CaseIterable, Identifiable {
-    case all
-    case upcoming
-    case past
-
+    case upcoming, ongoing, past, cancelled, all
     var id: String { rawValue }
-
+    var status: RegistrationEventStatus? { RegistrationEventStatus(rawValue: rawValue) }
     var title: String {
         switch self {
-        case .all:
-            return AppStrings.Home.filterAll
-        case .upcoming:
-            return AppStrings.Profile.myEventsUpcoming
-        case .past:
-            return AppStrings.Profile.myEventsPast
+        case .all: AppStrings.Home.filterAll
+        case .upcoming: AppStrings.Profile.myEventsUpcoming
+        case .ongoing: RegistrationsText.ongoing
+        case .past: AppStrings.Profile.myEventsPast
+        case .cancelled: RegistrationsText.cancelled
         }
     }
-
     var systemImage: String {
         switch self {
-        case .all:
-            return "calendar"
-        case .upcoming:
-            return "calendar.badge.clock"
-        case .past:
-            return "clock.arrow.circlepath"
+        case .all: "calendar"
+        case .upcoming: "calendar.badge.clock"
+        case .ongoing: "clock"
+        case .past: "clock.arrow.circlepath"
+        case .cancelled: "calendar.badge.exclamationmark"
+        }
+    }
+    var emptyTitle: String {
+        switch self {
+        case .all: AppStrings.Profile.myEventsEmptyAllTitle
+        case .upcoming: AppStrings.Profile.myEventsEmptyUpcomingTitle
+        case .ongoing: RegistrationsText.ongoingEmpty
+        case .past: AppStrings.Profile.myEventsEmptyPastTitle
+        case .cancelled: RegistrationsText.cancelledEmpty
         }
     }
 }
 
 struct MyRegistrationsView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.scenePhase) private var scenePhase
     @ObservedObject var viewModel: MyRegistrationsViewModel
     let eventRepository: EventRepository
     @ObservedObject private var eventsViewModel: EventsViewModel
     @State private var selectedSegment: MyEventsSegment = .upcoming
 
-    init(
-        viewModel: MyRegistrationsViewModel,
-        eventRepository: EventRepository,
-        eventsViewModel: EventsViewModel
-    ) {
-        self.viewModel = viewModel
-        self.eventRepository = eventRepository
-        self.eventsViewModel = eventsViewModel
-    }
-
-    private var calendar: Calendar { .current }
-
-    private var upcomingEvents: [Event] {
-        let startOfToday = calendar.startOfDay(for: Date())
-        return viewModel.events
-            .filter { $0.endDate >= startOfToday }
-            .sorted {
-                $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate < $1.startDate
-            }
-    }
-
-    private var pastEvents: [Event] {
-        let startOfToday = calendar.startOfDay(for: Date())
-        return viewModel.events
-            .filter { $0.endDate < startOfToday }
-            .sorted {
-                $0.endDate == $1.endDate ? $0.id < $1.id : $0.endDate > $1.endDate
-            }
-    }
-
-    private var filteredEvents: [Event] {
-        switch selectedSegment {
-        case .all:
-            return upcomingEvents + pastEvents
-        case .upcoming:
-            return upcomingEvents
-        case .past:
-            return pastEvents
-        }
-    }
-
-    private var emptyStateTitle: String {
-        switch selectedSegment {
-        case .all:
-            return AppStrings.Profile.myEventsEmptyAllTitle
-        case .upcoming:
-            return AppStrings.Profile.myEventsEmptyUpcomingTitle
-        case .past:
-            return AppStrings.Profile.myEventsEmptyPastTitle
-        }
-    }
-
-    private var emptyStateMessage: String {
-        switch selectedSegment {
-        case .all:
-            return AppStrings.Profile.myEventsEmptyRegisterMessage
-        case .upcoming:
-            return viewModel.events.isEmpty
-                ? AppStrings.Profile.myEventsEmptyRegisterMessage
-                : AppStrings.Profile.myEventsEmptyUpcomingMessage
-        case .past:
-            return viewModel.events.isEmpty
-                ? AppStrings.Profile.myEventsEmptyRegisterMessage
-                : AppStrings.Profile.myEventsEmptyPastMessage
-        }
+    init(viewModel: MyRegistrationsViewModel, eventRepository: EventRepository, eventsViewModel: EventsViewModel) {
+        self.viewModel = viewModel; self.eventRepository = eventRepository; self.eventsViewModel = eventsViewModel
     }
 
     var body: some View {
-        ProfileDestinationLayout(
-            title: PermissionService.isAppOwner(user: authState.user) ? OwnerProfileText.registrations : AppStrings.Profile.myRegistrations,
-            introSubtitle: AppStrings.Profile.myEventsIntro
-        ) {
-            filtersRow
-            registrationsContent
-        }
-        .task {
-            await viewModel.loadIfNeeded()
-            await viewModel.refreshIfStale()
-        }
-        .appRefreshable {
-            await viewModel.refresh()
-        }
-        .onChange(of: eventsViewModel.contentVersion) { _, _ in
-            viewModel.synchronize(with: eventsViewModel.events)
-        }
-    }
-
-    @ViewBuilder
-    private var filtersRow: some View {
-        AppHorizontalFilterRow {
-            ForEach(MyEventsSegment.allCases) { segment in
-                Button {
-                    selectedSegment = segment
-                } label: {
-                    AppFilterChip(
-                        title: "\(segment.title): \(eventCount(for: segment))",
-                        systemImage: segment.systemImage,
-                        isSelected: selectedSegment == segment
-                    )
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let now = context.date
+            let groups = Dictionary(grouping: viewModel.events) { RegistrationEventStatus.resolve($0, now: now) }
+            let visible = (selectedSegment.status.map { groups[$0] ?? [] } ?? viewModel.events).sorted { left, right in
+                let lhs = RegistrationEventStatus.occurrence(for: left, now: now)
+                let rhs = RegistrationEventStatus.occurrence(for: right, now: now)
+                if selectedSegment == .all {
+                    let order: [RegistrationEventStatus: Int] = [.ongoing: 0, .upcoming: 1, .past: 2, .cancelled: 3]
+                    let a = order[RegistrationEventStatus.resolve(left, now: now)] ?? 0
+                    let b = order[RegistrationEventStatus.resolve(right, now: now)] ?? 0
+                    if a != b { return a < b }
                 }
-                .buttonStyle(.plain)
+                if lhs.startDate == rhs.startDate { return left.id < right.id }
+                let descending = selectedSegment == .past || (selectedSegment == .all && RegistrationEventStatus.resolve(left, now: now) == .past)
+                return descending ? lhs.startDate > rhs.startDate : lhs.startDate < rhs.startDate
             }
-        }
-    }
-
-    @ViewBuilder
-    private var registrationsContent: some View {
-        if viewModel.isLoading && viewModel.events.isEmpty {
-            LoadingStateCard(title: AppStrings.Profile.registrationsLoading)
-        } else if let error = viewModel.error, viewModel.events.isEmpty {
-            ErrorStateCard(
-                title: PermissionService.isAppOwner(user: authState.user) ? OwnerProfileText.registrations : AppStrings.Profile.myRegistrations,
-                message: readableRegistrationsErrorText(error),
-                retryTitle: AppStrings.Action.retry
-            ) {
-                Task { await viewModel.refresh() }
-            }
-        } else if viewModel.events.isEmpty || filteredEvents.isEmpty {
-            ProfileDestinationEmptyStateCard(
-                systemImage: viewModel.events.isEmpty ? "calendar.badge.clock" : selectedSegment.systemImage,
-                title: emptyStateTitle,
-                message: emptyStateMessage
-            )
-        } else {
-            LazyVStack(spacing: AppTheme.feedRowSpacing) {
+            ProfileDestinationLayout(title: PermissionService.isAppOwner(user: authState.user) ? OwnerProfileText.registrations : AppStrings.Profile.myRegistrations,
+                                     introSubtitle: AppStrings.Profile.myEventsIntro) {
+                Text(RegistrationsText.scope).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                AppHorizontalFilterRow {
+                    ForEach(MyEventsSegment.allCases) { segment in
+                        Button { selectedSegment = segment } label: {
+                            AppFilterChip(title: "\(segment.title): \(segment.status.map { groups[$0]?.count ?? 0 } ?? viewModel.events.count)",
+                                          systemImage: segment.systemImage, isSelected: selectedSegment == segment)
+                        }.buttonStyle(.plain)
+                            .accessibilityIdentifier("registrations.filter.\(segment.rawValue)")
+                    }
+                }
+                .accessibilityIdentifier("registrations.filters")
                 if let error = viewModel.error {
                     InlineMessageCard(style: .error, message: readableRegistrationsErrorText(error))
+                        .accessibilityIdentifier("registrations.error")
+                    Button(RegistrationsText.retry) { Task { await viewModel.refresh() } }
+                        .disabled(viewModel.isLoading || viewModel.isLoadingMore)
+                        .accessibilityIdentifier("registrations.retry")
                 }
-                ForEach(filteredEvents) { event in
-                    registrationRow(for: event)
+                if viewModel.hasMore {
+                    Text(RegistrationsText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                        .accessibilityIdentifier("registrations.partial")
+                }
+                if viewModel.isLoading && viewModel.events.isEmpty {
+                    LoadingStateCard(title: AppStrings.Profile.registrationsLoading)
+                } else if visible.isEmpty && viewModel.error == nil {
+                    ProfileDestinationEmptyStateCard(systemImage: selectedSegment.systemImage,
+                        title: selectedSegment.emptyTitle,
+                        message: viewModel.hasMore ? RegistrationsText.partial : RegistrationsText.emptyFilter)
+                } else {
+                    LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                        ForEach(visible) { event in
+                            NavigationLink {
+                                RegisteredEventDetailContainer(event: event, eventsViewModel: eventsViewModel) { @MainActor @Sendable in
+                                    viewModel.removeRegistrationEvent(id: event.id)
+                                }
+                            } label: {
+                                RegistrationEventRow(event: event, isUpdating: viewModel.pendingCancellationIDs.contains(event.id), now: now)
+                            }.buttonStyle(.plain)
+                                .accessibilityIdentifier("registrations.open.\(event.id)")
+                                .accessibilityLabel("\(event.localizedTitle), \(registrationEventScheduleText(for: event, now: now))")
+                        }
+                    }
+                }
+                if viewModel.hasMore {
+                    Button { Task { await viewModel.loadMore() } } label: {
+                        HStack {
+                            if viewModel.isLoadingMore { ProgressView() }
+                            Text(RegistrationsText.loadMore)
+                        }.frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                    }.disabled(viewModel.isLoading || viewModel.isLoadingMore)
+                        .accessibilityIdentifier("registrations.loadMore")
                 }
             }
         }
-    }
-
-    @ViewBuilder
-    private func registrationRow(for event: Event) -> some View {
-        NavigationLink {
-            RegisteredEventDetailContainer(
-                event: event,
-                eventsViewModel: eventsViewModel
-            ) { @MainActor @Sendable in
-                viewModel.removeRegistrationEvent(id: event.id)
-            }
-        } label: {
-            RegistrationEventRow(
-                event: event,
-                isUpdating: viewModel.pendingCancellationIDs.contains(event.id)
-            )
+        .task { await viewModel.loadIfNeeded(); await viewModel.refreshIfStale() }
+        .appRefreshable { await viewModel.refresh() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await viewModel.refreshIfStale() } }
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(event.localizedTitle), \(registrationEventScheduleText(for: event))")
+        .onChange(of: eventsViewModel.contentVersion) { _, _ in viewModel.synchronize(with: eventsViewModel.events) }
+        .onChange(of: authState.user?.id) { _, _ in selectedSegment = .upcoming }
     }
 
     private func readableRegistrationsErrorText(_ error: AppError) -> String {
         switch error {
-        case .network:
-            AppStrings.Events.loadNetworkError
-        case .permissionDenied:
-            AppStrings.Events.loadPermissionError
-        case .validationFailed:
-            AppStrings.Events.loadValidationError
-        case .notFound:
-            AppStrings.Profile.registrationsEmptyMessage
-        case .unknown:
-            AppStrings.Events.loadUnknownError
-        }
-    }
-
-    private func eventCount(for segment: MyEventsSegment) -> Int {
-        switch segment {
-        case .all: viewModel.events.count
-        case .upcoming: upcomingEvents.count
-        case .past: pastEvents.count
+        case .network: AppStrings.Events.loadNetworkError
+        case .permissionDenied: AppStrings.Events.loadPermissionError
+        case .validationFailed: AppStrings.Events.loadValidationError
+        case .notFound: AppStrings.Profile.registrationsEmptyMessage
+        case .unknown: AppStrings.Events.loadUnknownError
         }
     }
 }
@@ -247,81 +170,66 @@ private struct RegisteredEventDetailContainer: View {
 private struct RegistrationEventRow: View {
     let event: Event
     let isUpdating: Bool
+    let now: Date
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        let occurrence = event.nextOccurrence() ?? event.occurrences.first ?? EventOccurrence(
-            startDate: event.startDate,
-            endDate: event.endDate,
-            isAllDay: event.isAllDay
-        )
+        let occurrence = RegistrationEventStatus.occurrence(for: event, now: now)
+        let status = RegistrationEventStatus.resolve(event, now: now)
         SoftContentCard(padding: AppTheme.eventsCardPadding) {
-            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
-                AppEventDateBlock(date: occurrence.startDate)
-
-                VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
-                    AppInfoChip(
-                        title: event.isCancelled ? AppStrings.Events.cancelledNoticeTitle : AppStrings.Events.title.uppercased(),
-                        systemImage: "calendar",
-                        tint: event.isCancelled ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground,
-                        fill: event.isCancelled ? AppTheme.accentDestructive.opacity(0.10) : AppTheme.badgeBlueFill,
-                        size: .small
-                    )
-
-                    Text(event.localizedTitle)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
-
-                    if !event.localizedSummary.isEmpty {
-                        Text(event.localizedSummary)
-                            .font(.caption2.weight(.medium))
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(status.title, systemImage: status == .cancelled ? "calendar.badge.exclamationmark" : "calendar")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(status == .cancelled ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
+                    Text(event.localizedTitle).font(.headline).foregroundStyle(AppTheme.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(registrationEventScheduleText(for: event, now: now))
+                        .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Label(event.city.isEmpty ? event.venue : event.city, systemImage: "mappin.and.ellipse")
+                        .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                    if isUpdating { ProgressView() }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
+                    AppEventDateBlock(date: occurrence.startDate)
+                    VStack(alignment: .leading, spacing: AppTheme.eventsCardContentSpacing) {
+                        AppInfoChip(title: status.title, systemImage: "calendar",
+                                    tint: status == .cancelled ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground,
+                                    fill: status == .cancelled ? AppTheme.accentDestructive.opacity(0.10) : AppTheme.badgeBlueFill, size: .small)
+                        Text(event.localizedTitle).font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary).lineLimit(2)
+                        if !event.localizedSummary.isEmpty {
+                            Text(event.localizedSummary).font(.caption2.weight(.medium))
+                                .foregroundStyle(AppTheme.textSecondary).lineLimit(1)
+                        }
+                        VStack(alignment: .leading, spacing: 3) {
+                            AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate, isAllDay: occurrence.isAllDay), systemImage: "clock")
+                            AppMetadataLine(title: event.city.isEmpty ? event.venue : event.city, systemImage: "mappin.and.ellipse")
+                        }.lineLimit(1)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    if event.imageURL != nil {
+                        AppFeedThumbnail(imageURL: event.imageURL, fallbackSystemImage: "calendar",
+                            tint: AppTheme.accentPrimaryForeground, fill: AppTheme.badgeBlueFill,
+                            size: AppTheme.eventsThumbnailSize, cornerRadius: 14, source: "RegistrationEventRow")
+                            .layoutPriority(-1)
                     }
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        AppMetadataLine(title: LocalizationStore.timeRangeString(startDate: occurrence.startDate, endDate: occurrence.endDate), systemImage: "clock")
-                        AppMetadataLine(title: event.city.isEmpty ? event.venue : event.city, systemImage: event.city.isEmpty ? "building.2" : "mappin.and.ellipse")
-                    }
-                    .lineLimit(1)
+                    if isUpdating { ProgressView().controlSize(.small) }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer(minLength: 0)
-
-                ZStack(alignment: .topTrailing) {
-                    AppFeedThumbnail(
-                        imageURL: event.imageURL,
-                        fallbackSystemImage: "calendar",
-                        tint: AppTheme.accentPrimaryForeground,
-                        fill: AppTheme.badgeBlueFill,
-                        size: AppTheme.eventsThumbnailSize,
-                        cornerRadius: 14,
-                        source: "RegistrationEventRow"
-                    )
-
-                    if isUpdating {
-                        ProgressView()
-                            .controlSize(.small)
-                            .tint(AppTheme.accentPrimary)
-                            .padding(6)
-                            .background(.regularMaterial, in: Circle())
-                    }
-                }
-                .frame(maxHeight: AppTheme.eventsThumbnailSize)
-                .layoutPriority(-1)
             }
-        }
-        .opacity(isUpdating ? 0.7 : 1)
+        }.opacity(isUpdating ? 0.7 : 1)
     }
+
 }
-func registrationEventScheduleText(for event: Event) -> String {
-    let occurrence = event.nextOccurrence() ?? event.occurrences.first ?? EventOccurrence(
-        startDate: event.startDate,
-        endDate: event.endDate,
-        isAllDay: event.isAllDay
-    )
+func registrationEventScheduleText(for event: Event, now: Date = Date()) -> String {
+    let occurrence = RegistrationEventStatus.occurrence(for: event, now: now)
+    if occurrence.isAllDay {
+        let start = LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .medium, timeStyle: .none)
+        let displayEnd = RegistrationEventStatus.displayEndDate(for: occurrence)
+        if Calendar.current.isDate(occurrence.startDate, inSameDayAs: displayEnd) { return start }
+        return start + " – " + LocalizationStore.dateString(from: displayEnd, dateStyle: .medium, timeStyle: .none)
+    }
     let startDateText = LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .medium, timeStyle: .short)
 
     guard occurrence.endDate > occurrence.startDate else {
@@ -344,5 +252,16 @@ extension MyRegistrationsViewModel {
         }
 
         return "\(registrationsCount)"
+    }
+}
+
+private extension RegistrationEventStatus {
+    var title: String {
+        switch self {
+        case .upcoming: RegistrationsText.upcomingBadge
+        case .ongoing: RegistrationsText.ongoingBadge
+        case .past: RegistrationsText.pastBadge
+        case .cancelled: RegistrationsText.cancelledBadge
+        }
     }
 }

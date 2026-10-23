@@ -476,6 +476,143 @@ struct EventRegistrationRaceTests {
         #expect(viewModel.event(for: eventID)?.comments.map(\.id) == ["new-comment"])
     }
 
+    @Test func registrationPagesAreBoundedAndRefreshStartsAtTheServerBeginning() async {
+        let repository = ControlledEventRepository()
+        repository.events = (0..<45).map { makeEvent(id: String(format: "%03d", $0), registrationState: .registered) }
+        let model = MyRegistrationsViewModel(repository: repository)
+        await model.loadIfNeeded()
+        #expect(model.events.count == 20 && model.hasMore)
+        await model.loadMore()
+        #expect(model.events.count == 40 && model.hasMore)
+        await model.loadMore()
+        #expect(model.events.count == 45 && !model.hasMore)
+        repository.events = [makeEvent(id: "new-server-entry", registrationState: .registered)]
+        await model.refresh()
+        #expect(model.events.map(\.id) == ["new-server-entry"])
+        #expect(repository.registrationPageCursors.last! == nil)
+    }
+
+    @Test func failedNextRegistrationPagePreservesRowsAndCanRetry() async {
+        let repository = ControlledEventRepository()
+        repository.events = (0..<21).map { makeEvent(id: String(format: "%03d", $0), registrationState: .registered) }
+        let model = MyRegistrationsViewModel(repository: repository)
+        await model.loadIfNeeded()
+        repository.registrationPageError = .network
+        await model.loadMore()
+        #expect(model.events.count == 20 && model.hasMore && model.error == .network)
+        repository.registrationPageError = nil
+        await model.loadMore()
+        #expect(model.events.count == 21 && !model.hasMore && model.error == nil)
+    }
+
+    @Test func lateRegistrationPageCannotRestoreCancelledRegistration() async {
+        let repository = ControlledEventRepository()
+        let event = makeEvent(id: "same-event", registrationState: .registered)
+        repository.events = [event]
+        let model = MyRegistrationsViewModel(repository: repository)
+        await model.loadIfNeeded()
+        var continuation: CheckedContinuation<RegistrationPage, Error>?
+        repository.registrationPageHandler = { _, _ in try await withCheckedThrowingContinuation { continuation = $0 } }
+        let refresh = Task { await model.refresh() }
+        #expect(await eventually { continuation != nil })
+        model.synchronize(with: [makeEvent(id: event.id, registrationState: .notRegistered)])
+        continuation?.resume(returning: RegistrationPage(items: [event], nextCursor: nil, hasMore: false))
+        await refresh.value
+        #expect(model.events.isEmpty)
+    }
+
+    @Test func oldRegistrationPageCannotLeakAcrossAccounts() async {
+        let repository = ControlledEventRepository()
+        repository.events = (0..<21).map { makeEvent(id: "old-\($0)", registrationState: .registered) }
+        let model = MyRegistrationsViewModel(repository: repository)
+        await model.loadIfNeeded()
+        #expect(model.hasMore)
+        var continuation: CheckedContinuation<RegistrationPage, Error>?
+        repository.registrationPageHandler = { _, _ in try await withCheckedThrowingContinuation { continuation = $0 } }
+        let old = Task { await model.loadMore() }
+        #expect(await eventually { continuation != nil })
+        model.resetForAuthChange()
+        #expect(!model.hasMore && !model.isLoadingMore && model.events.isEmpty)
+        repository.registrationPageHandler = nil
+        repository.events = [makeEvent(id: "new-account", registrationState: .registered)]
+        await model.loadIfNeeded()
+        #expect(repository.registrationPageCursors.last! == nil)
+        continuation?.resume(returning: RegistrationPage(items: [makeEvent(id: "old-account", registrationState: .registered)], nextCursor: nil, hasMore: false))
+        await old.value
+        #expect(model.events.map(\.id) == ["new-account"])
+    }
+
+    @Test func registrationStatusUsesExactTimeAndAllScheduledOccurrences() {
+        let now = Date(timeIntervalSince1970: 1_792_730_000)
+        func event(_ occurrences: [EventOccurrence], cancelled: Bool = false) -> Event {
+            Event(id: "schedule", title: "Event", summary: "", details: "", city: "", venue: "",
+                  startDate: occurrences.first!.startDate, endDate: occurrences.last!.endDate,
+                  occurrences: occurrences, createdAt: now, updatedAt: now,
+                  capacity: nil, registeredCount: 1, comments: [], moderationStatus: .approved,
+                  registrationState: .registered, likeCount: 0, likeState: .notLiked,
+                  cancellationState: cancelled ? "cancelled" : nil)
+        }
+        let past = EventOccurrence(startDate: now.addingTimeInterval(-7200), endDate: now.addingTimeInterval(-60))
+        let current = EventOccurrence(startDate: now.addingTimeInterval(-60), endDate: now.addingTimeInterval(60))
+        let future = EventOccurrence(startDate: now.addingTimeInterval(7200), endDate: now.addingTimeInterval(9000))
+        #expect(RegistrationEventStatus.resolve(event([past]), now: now) == .past)
+        #expect(RegistrationEventStatus.resolve(event([current]), now: now) == .ongoing)
+        #expect(RegistrationEventStatus.resolve(event([past, future]), now: now) == .upcoming)
+        #expect(RegistrationEventStatus.occurrence(for: event([past, future]), now: now).id == future.id)
+        #expect(RegistrationEventStatus.occurrence(for: event([past, current]), now: now.addingTimeInterval(1000)).id == current.id)
+        #expect(RegistrationEventStatus.resolve(event([future], cancelled: true), now: now) == .cancelled)
+        let cancelled = EventOccurrence(startDate: future.startDate, endDate: future.endDate, status: .cancelled)
+        #expect(RegistrationEventStatus.resolve(event([cancelled]), now: now) == .cancelled)
+        var calendar = Calendar(identifier: .gregorian); calendar.timeZone = TimeZone(identifier: "Europe/Vienna")!
+        let day = calendar.startOfDay(for: now)
+        let allDay = EventOccurrence(startDate: day, endDate: day, isAllDay: true)
+        #expect(RegistrationEventStatus.resolve(event([allDay]), now: now, calendar: calendar) == .ongoing)
+        #expect(RegistrationEventStatus.resolve(event([allDay]), now: calendar.date(byAdding: .day, value: 1, to: day)!, calendar: calendar) == .past)
+        let exclusiveEnd = calendar.date(byAdding: .day, value: 1, to: day)!
+        let canonical = EventOccurrence(startDate: day, endDate: exclusiveEnd, isAllDay: true)
+        #expect(RegistrationEventStatus.resolve(event([canonical]), now: now, calendar: calendar) == .ongoing)
+        #expect(RegistrationEventStatus.resolve(event([canonical]), now: exclusiveEnd, calendar: calendar) == .past)
+        #expect(calendar.isDate(RegistrationEventStatus.displayEndDate(for: canonical, calendar: calendar), inSameDayAs: day))
+
+    }
+
+    @Test func emptyRegistrationPageStillOffersContinuation() async {
+        let repository = ControlledEventRepository()
+        let event = makeEvent(id: "visible", registrationState: .registered)
+        repository.registrationPageHandler = { _, cursor in
+            if cursor == nil { return RegistrationPage(items: [], nextCursor: RegistrationPageCursor(documentID: "hidden", userID: "fixture"), hasMore: true) }
+            return RegistrationPage(items: [event], nextCursor: nil, hasMore: false)
+        }
+        let model = MyRegistrationsViewModel(repository: repository)
+        await model.loadIfNeeded()
+        #expect(model.events.isEmpty && model.hasMore)
+        await model.loadMore()
+        #expect(model.events.map(\.id) == [event.id] && !model.hasMore)
+    }
+
+    @Test func repeatedCancellationClearsReminderWithoutRequiringAnotherServerChange() async {
+        let repository = ControlledEventRepository()
+        let event = makeEvent(id: "already-cancelled", registrationState: .registered)
+        repository.events = [event]
+        let reminders = RegistrationReminderRecorder()
+        let model = EventsViewModel(repository: repository, localEventReminderService: reminders, reminderUserID: { "user" })
+        model.events = [event]
+        model.toggleRegistration(for: event.id)
+        #expect(await eventually { repository.registrationRequestCount == 1 })
+        repository.completeRegistrationRequest(1, result: EventRegistrationMutationResult(eventID: event.id, registrationState: .notRegistered, registeredCount: 0, didChange: false))
+        await model.waitForRegistrationMutation(for: event.id)
+        #expect(reminders.cancelled == [event.id])
+        #expect(model.event(for: event.id)?.registrationState == .notRegistered)
+        let list = MyRegistrationsViewModel(repository: repository, localEventReminderService: reminders, reminderUserID: { "user" })
+        await list.loadIfNeeded()
+        let cancellation = Task { await list.cancelRegistration(for: event.id) }
+        #expect(await eventually { repository.registrationRequestCount == 2 })
+        repository.completeRegistrationRequest(2, result: EventRegistrationMutationResult(eventID: event.id, registrationState: .notRegistered, registeredCount: 0, didChange: false))
+        await cancellation.value
+        #expect(reminders.cancelled == [event.id, event.id])
+        #expect(list.events.isEmpty)
+    }
+
     private func makeEvent(
         id: String,
         authorID: String? = nil,
@@ -568,6 +705,9 @@ struct EventRegistrationRaceTests {
 @MainActor
 private final class ControlledEventRepository: @MainActor EventRepository, EventRealtimeRepository {
     var events: [Event] = []
+    var registrationPageHandler: ((Int, RegistrationPageCursor?) async throws -> RegistrationPage)?
+    var registrationPageError: AppError?
+    var registrationPageCursors: [RegistrationPageCursor?] = []
     var recentPastEvents: [Event] = []
     var recentPastError: AppError?
     private(set) var lastRecentPastLimit: Int?
@@ -642,6 +782,15 @@ private final class ControlledEventRepository: @MainActor EventRepository, Event
     }
     func fetchRegisteredEvents() async throws -> [Event] {
         events.filter { $0.registrationState == .registered }
+    }
+    func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage {
+        registrationPageCursors.append(cursor)
+        if let registrationPageError { throw registrationPageError }
+        if let registrationPageHandler { return try await registrationPageHandler(limit, cursor) }
+        let items = events.filter { $0.registrationState == .registered && (cursor == nil || $0.id > cursor!.documentID) }.sorted { $0.id < $1.id }
+        let page = Array(items.prefix(limit))
+        let more = items.count > page.count
+        return RegistrationPage(items: page, nextCursor: more ? page.last.map { RegistrationPageCursor(documentID: $0.id, userID: "fixture") } : nil, hasMore: more)
     }
     func fetchPendingEvents() async throws -> [Event] { [] }
     func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event] { [] }
@@ -859,4 +1008,12 @@ private final class EventCommentTestListener: AppRealtimeListener {
     func cancel() {
         cancelCount += 1
     }
+}
+
+@MainActor private final class RegistrationReminderRecorder: LocalEventReminderServiceProtocol {
+    var cancelled: [String] = []
+    func scheduleEventReminder(event: Event, userID: String, leadMinutes: Int) async throws {}
+    func scheduleTestNotification(userID: String) async throws {}
+    func cancelEventReminder(eventID: String, userID: String) { cancelled.append(eventID) }
+    func reconcileEventReminders(events: [Event], userID: String, preferences: NotificationPreferences) async throws {}
 }

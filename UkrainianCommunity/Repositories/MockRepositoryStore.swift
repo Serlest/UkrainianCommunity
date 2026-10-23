@@ -14,6 +14,14 @@ actor MockRepositoryStore {
         return MockContentBuilder.currentUser()
     }()
     var news = MockContentBuilder.newsPosts()
+    var registrationAuditPageRequests = 0
+    func registrationAuditPageWillLoad() throws {
+        registrationAuditPageRequests += 1
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestMyRegistrationsOffline"] == "1", registrationAuditPageRequests > 1 { throw AppError.network }
+        #endif
+    }
     var events = MockContentBuilder.events()
     var organizations = MockContentBuilder.profileOrganizationsFixture() ?? MockContentBuilder.organizations()
     var organizationReviewHistory: [OrganizationReviewHistoryEntry] = []

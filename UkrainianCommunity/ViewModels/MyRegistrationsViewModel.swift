@@ -9,6 +9,12 @@ final class MyRegistrationsViewModel: ObservableObject {
     @Published private(set) var error: AppError?
     @Published private(set) var pendingCancellationIDs = Set<String>()
 
+    @Published private(set) var hasMore = false
+    @Published private(set) var isLoadingMore = false
+    private var cursor: RegistrationPageCursor?
+    private enum Override { case event(Event), removed }
+    private var changesDuringLoad: [String: Override] = [:]
+
     private let repository: EventRepository
     private let registrationMutator: EventRegistrationMutating
     private let analyticsService: AnalyticsTracking
@@ -54,6 +60,11 @@ final class MyRegistrationsViewModel: ObservableObject {
         await startLoad(force: true)
     }
 
+    func loadMore() async {
+        guard hasMore, !isLoading, !isLoadingMore else { return }
+        await startLoad(force: true, append: true)
+    }
+
     func refreshIfStale(maxAge: TimeInterval = defaultRefreshStaleInterval) async {
         guard hasLoaded else {
             await loadIfNeeded()
@@ -73,6 +84,7 @@ final class MyRegistrationsViewModel: ObservableObject {
         invalidateCancellationOperations()
         loadTask?.cancel()
         loadTask = nil
+        cursor = nil; hasMore = false; isLoadingMore = false; changesDuringLoad = [:]
         events = []
         isLoading = false
         error = nil
@@ -85,9 +97,10 @@ final class MyRegistrationsViewModel: ObservableObject {
     }
 
     func synchronize(with sharedEvents: [Event]) {
-        guard hasLoaded else { return }
+        guard hasLoaded || isLoading || isLoadingMore else { return }
 
         for event in sharedEvents {
+            if isLoading || isLoadingMore { changesDuringLoad[event.id] = event.registrationState == .registered ? .event(event) : .removed }
             if event.registrationState == .registered {
                 if let index = events.firstIndex(where: { $0.id == event.id }) {
                     events[index] = event
@@ -103,6 +116,7 @@ final class MyRegistrationsViewModel: ObservableObject {
     }
 
     func removeRegistrationEvent(id: String) {
+        if isLoading || isLoadingMore { changesDuringLoad[id] = .removed }
         cancellationTasks[id]?.cancel()
         cancellationTasks[id] = nil
         cancellationOperationIDs[id] = nil
@@ -135,6 +149,9 @@ final class MyRegistrationsViewModel: ObservableObject {
             guard isCurrentCancellation(eventID, operationID: operationID, generation: generation),
                   !Task.isCancelled else { return }
 
+            if isLoading || isLoadingMore {
+                changesDuringLoad[eventID] = result.registrationState == .registered ? .event(event.applyingRegistrationMutation(result)) : .removed
+            }
             if result.registrationState == .registered {
                 if let currentIndex = events.firstIndex(where: { $0.id == eventID }) {
                     events[currentIndex] = events[currentIndex].applyingRegistrationMutation(result)
@@ -145,9 +162,10 @@ final class MyRegistrationsViewModel: ObservableObject {
             if result.didChange {
                 ActivityLogRecorder.recordEvent(event, actionType: .canceledEventRegistration)
                 analyticsService.track(actionEvent, actionCapture: actionCapture)
-                if let localEventReminderService, let userID = reminderUserID() {
-                    localEventReminderService.cancelEventReminder(eventID: eventID, userID: userID)
-                }
+            }
+            if result.registrationState != .registered,
+               let localEventReminderService, let userID = reminderUserID() {
+                localEventReminderService.cancelEventReminder(eventID: eventID, userID: userID)
             }
             error = nil
         } catch is CancellationError {
@@ -182,7 +200,7 @@ final class MyRegistrationsViewModel: ObservableObject {
         sessionGeneration == generation && cancellationOperationIDs[eventID] == operationID
     }
 
-    private func startLoad(force: Bool) async {
+    private func startLoad(force: Bool, append: Bool = false) async {
         let generation = sessionGeneration
         guard force || !hasLoaded else { return }
 
@@ -193,7 +211,7 @@ final class MyRegistrationsViewModel: ObservableObject {
 
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad(generation: generation)
+            await self.performLoad(generation: generation, append: append)
         }
         loadTask = task
         await task.value
@@ -201,19 +219,32 @@ final class MyRegistrationsViewModel: ObservableObject {
         self.loadTask = nil
     }
 
-    private func performLoad(generation: Int) async {
+    private func performLoad(generation: Int, append: Bool) async {
         guard sessionGeneration == generation else { return }
-        isLoading = true
+        isLoading = !append
+        isLoadingMore = append
+        changesDuringLoad = [:]
+        let pageCursor = append ? cursor : nil
         defer {
             if sessionGeneration == generation {
-                isLoading = false
+                isLoading = false; isLoadingMore = false; changesDuringLoad = [:]
             }
         }
 
         do {
-            let loadedEvents = try await RefreshRequest.run { [self] in try await repository.fetchRegisteredEvents() }
+            let page = try await RefreshRequest.run { [repository] in try await repository.fetchRegisteredEventsPage(limit: 20, after: pageCursor) }
             guard !Task.isCancelled, sessionGeneration == generation else { return }
-            events = loadedEvents
+            var merged = Dictionary((append ? events : []).map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
+            for event in page.items { merged[event.id] = event }
+            for (id, change) in changesDuringLoad {
+                switch change {
+                case .event(let event): merged[id] = event
+                case .removed: merged[id] = nil
+                }
+            }
+            events = Array(merged.values).sorted { $0.id < $1.id }
+            cursor = page.nextCursor
+            hasMore = page.hasMore && page.nextCursor != nil
             error = nil
             hasLoaded = true
             lastLoadedAt = Date()

@@ -458,6 +458,17 @@ struct EventPage {
     let hasMore: Bool
 }
 
+struct RegistrationPageCursor: Equatable {
+    let documentID: String
+    let userID: String
+}
+
+struct RegistrationPage {
+    let items: [Event]
+    let nextCursor: RegistrationPageCursor?
+    let hasMore: Bool
+}
+
 struct EventRegistrationMutationResult: Equatable {
     let eventID: String
     let registrationState: EventRegistrationState
@@ -587,6 +598,7 @@ protocol EventRepository: EventRegistrationMutating {
     func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
     func fetchRegisteredEvents() async throws -> [Event]
+    func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage
     func fetchPendingEvents() async throws -> [Event]
     func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event]
     func fetchOrganizationEventCount(organizationID: String) async throws -> Int
@@ -833,6 +845,16 @@ extension EventRepository {
         try await fetchBookmarkedEvents().map {
             SavedContentRecord(id: $0.id, savedAt: nil, content: $0)
         }
+    }
+
+    func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage {
+        let all = try await fetchRegisteredEvents().sorted { $0.id < $1.id }
+        let remaining = all.filter { cursor == nil || $0.id > cursor!.documentID }
+        let page = Array(remaining.prefix(max(1, min(limit, 50))))
+        let hasMore = remaining.count > page.count
+        return RegistrationPage(items: page, nextCursor: hasMore ? page.last.map {
+            RegistrationPageCursor(documentID: $0.id, userID: cursor?.userID ?? "fixture")
+        } : nil, hasMore: hasMore)
     }
 
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage {

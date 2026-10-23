@@ -1,0 +1,227 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "registrations.ongoing": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Laufend"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тривають"
+          }
+        }
+      }
+    },
+    "registrations.cancelled": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abgesagt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скасовані"
+          }
+        }
+      }
+    },
+    "registrations.ongoingBadge": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Findet gerade statt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Триває зараз"
+          }
+        }
+      }
+    },
+    "registrations.pastBadge": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Beendet"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершено"
+          }
+        }
+      }
+    },
+    "registrations.upcomingBadge": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bevorstehend"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Незабаром"
+          }
+        }
+      }
+    },
+    "registrations.cancelledBadge": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abgesagt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Скасовано"
+          }
+        }
+      }
+    },
+    "registrations.ongoingEmpty": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuell finden keine angemeldeten Veranstaltungen statt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зараз немає подій, що тривають"
+          }
+        }
+      }
+    },
+    "registrations.cancelledEmpty": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine abgesagten Veranstaltungen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає скасованих подій"
+          }
+        }
+      }
+    },
+    "registrations.emptyFilter": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In dieser Gruppe gibt es keine geladenen Anmeldungen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "У цій групі немає завантажених реєстрацій."
+          }
+        }
+      }
+    },
+    "registrations.scope": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier stehen nur Anmeldungen in UAC. Anmeldungen auf externen Websites werden nicht automatisch übernommen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тут лише реєстрації в UAC. Реєстрації на зовнішніх сайтах не додаються автоматично."
+          }
+        }
+      }
+    },
+    "registrations.partial": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Teil der Anmeldungen ist geladen. Filter und Zähler beziehen sich auf geladene Veranstaltungen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажено частину реєстрацій. Фільтри й лічильники стосуються завантажених подій."
+          }
+        }
+      }
+    },
+    "registrations.loadMore": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weitere laden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити ще"
+          }
+        }
+      }
+    },
+    "registrations.retry": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Liste aktualisieren"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оновити список"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

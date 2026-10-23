@@ -344,6 +344,11 @@ final class EventsViewModel: ObservableObject {
             contentVersion &+= 1
             registrationError = nil
 
+            // Repeated cancellation still has to clear a local reminder after a
+            // previous server acknowledgement was lost or another device cancelled.
+            if result.registrationState != .registered {
+                await updateLocalReminder(for: eventBeforeMutation, isRegistered: false)
+            }
             guard result.didChange else { return }
             ActivityLogRecorder.recordEvent(
                 eventBeforeMutation,
@@ -359,10 +364,9 @@ final class EventsViewModel: ObservableObject {
             } else {
                 analyticsService.track(.eventCancelRegistration(event: eventBeforeMutation), actionCapture: actionCapture)
             }
-            await updateLocalReminder(
-                for: eventBeforeMutation,
-                isRegistered: result.registrationState == .registered
-            )
+            if result.registrationState == .registered {
+                await updateLocalReminder(for: eventBeforeMutation, isRegistered: true)
+            }
         } catch is CancellationError {
         } catch let mutationError as EventRegistrationMutationError {
             guard isCurrentRegistrationMutation(eventID, operationID: operationID, generation: generation) else { return }

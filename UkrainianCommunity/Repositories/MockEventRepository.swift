@@ -15,6 +15,15 @@ struct MockEventRepository: EventRepository {
             .sorted { $0.startDate < $1.startDate }
     }
 
+    func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage {
+        try await store.registrationAuditPageWillLoad()
+        let sorted = try await fetchRegisteredEvents().sorted { $0.id < $1.id }
+        let remaining = sorted.filter { cursor == nil || $0.id > cursor!.documentID }
+        let page = Array(remaining.prefix(max(1, min(limit, 50))))
+        let hasMore = remaining.count > page.count
+        return RegistrationPage(items: page, nextCursor: hasMore ? page.last.map { RegistrationPageCursor(documentID: $0.id, userID: "fixture") } : nil, hasMore: hasMore)
+    }
+
     func fetchEvent(id: String) async throws -> Event {
         guard let event = await store.events.first(where: { $0.id == id }) else {
             throw AppError.notFound

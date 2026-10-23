@@ -470,7 +470,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
     }
 
     @MainActor
-    private func launch(language: String = "uk", darkLarge: Bool = false, reportContext: Bool = false) -> XCUIApplication {
+    private func launch(language: String = "uk", darkLarge: Bool = false, reportContext: Bool = false, registrations: Bool = false, registrationsOffline: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
@@ -479,6 +479,8 @@ final class OwnerProfileAuditUITests: XCTestCase {
                                  "UITestFeedbackInbox": "1", "UITestLegalEvidence": "1", "UITestUserRefresh": "1"]
         app.launchEnvironment["UITestAppAppearance"] = darkLarge ? "dark" : "light"
         if reportContext { app.launchEnvironment["UITestFeedbackReportContext"] = "1" }
+        if registrations { app.launchEnvironment["UITestMyRegistrations"] = "1" }
+        if registrationsOffline { app.launchEnvironment["UITestMyRegistrationsOffline"] = "1" }
         if darkLarge { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"] }
         app.launch()
         let profile = app.tabBars.buttons.element(boundBy: 4)
@@ -763,5 +765,55 @@ extension OwnerProfileAuditUITests {
         XCTAssertTrue(app.segmentedControls["donation.preview.language"].waitForExistence(timeout: 8))
         capture(app, "donation-de-dark-large")
         XCTAssertTrue(app.buttons["donation.edit.save"].isHittable)
+    }
+}
+
+extension OwnerProfileAuditUITests {
+    @MainActor func testMyRegistrationsPagingFiltersAndCancellation() {
+        let app = launch(registrations: true)
+        let entry = app.buttons["profile.registrations"]
+        reveal(entry, in: app); entry.tap()
+        let upcoming = app.buttons["registrations.open.registration-00"]
+        XCTAssertTrue(upcoming.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["registrations.partial"].exists)
+        let more = app.buttons["registrations.loadMore"]
+        reveal(more, in: app); more.tap()
+        XCTAssertTrue(more.waitForNonExistence(timeout: 8))
+        capture(app, "registrations-uk-paged")
+        let ongoing = app.buttons["registrations.filter.ongoing"]
+        reveal(ongoing, in: app); ongoing.tap()
+        XCTAssertTrue(app.buttons["registrations.open.registration-01"].waitForExistence(timeout: 5))
+        app.buttons["registrations.filter.upcoming"].tap()
+        reveal(upcoming, in: app); upcoming.tap()
+        let cancel = app.buttons["event.register.registration-00"]
+        reveal(cancel, in: app); cancel.tap()
+        let confirm = app.buttons["event.registration.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        back(app)
+        XCTAssertTrue(upcoming.waitForNonExistence(timeout: 8))
+        capture(app, "registrations-cancelled-membership")
+        back(app); reveal(entry, in: app); entry.tap()
+        XCTAssertTrue(upcoming.waitForNonExistence(timeout: 5))
+    }
+
+    @MainActor func testMyRegistrationsLoadMoreErrorRemainsVisibleAndGermanLayout() {
+        let app = launch(language: "de", darkLarge: true, registrations: true, registrationsOffline: true)
+        let entry = app.buttons["profile.registrations"]
+        reveal(entry, in: app); entry.tap()
+        let row = app.buttons["registrations.open.registration-00"]
+        reveal(row, in: app)
+        capture(app, "registrations-de-dark-large-card")
+        let ongoing = app.buttons["registrations.filter.ongoing"]
+        reveal(ongoing, in: app); ongoing.tap()
+        let more = app.buttons["registrations.loadMore"]
+        reveal(more, in: app); more.tap()
+        let error = app.otherElements["registrations.error"].firstMatch
+        let retry = app.buttons["registrations.retry"]
+        reveal(retry, in: app)
+        XCTAssertTrue(retry.exists)
+        XCTAssertTrue(app.buttons["registrations.filter.upcoming"].exists)
+        capture(app, "registrations-de-dark-large-error")
+        XCTAssertFalse(app.buttons["registrations.open.registration-01"].exists)
+        _ = error
     }
 }
