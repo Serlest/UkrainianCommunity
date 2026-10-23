@@ -1,0 +1,108 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "recentViews.search": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verlauf durchsuchen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук в історії"
+          }
+        }
+      }
+    },
+    "recentViews.limit": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die letzten 30 Einträge. Erneutes Öffnen verschiebt einen Eintrag nach oben."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Останні 30 записів. Повторний перегляд переміщує запис угору."
+          }
+        }
+      }
+    },
+    "recentViews.filteredEmpty": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Einträge für diese Auswahl. Ändere den Filter oder die Suche."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає записів за цим запитом. Змініть фільтр або пошук."
+          }
+        }
+      }
+    },
+    "recentViews.networkError": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Verlauf konnte nicht geladen werden. Prüfe die Internetverbindung und versuche es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося завантажити історію. Перевірте інтернет-з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "recentViews.loadError": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Verlauf konnte nicht aktualisiert werden. Bitte versuche es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося оновити історію. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "recentViews.contentType": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhaltstyp"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тип матеріалів"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

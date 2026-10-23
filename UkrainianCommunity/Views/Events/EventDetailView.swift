@@ -392,7 +392,12 @@ struct EventDetailView: View {
             eventRecommendationCandidates = await viewModel.recommendationCandidates(for: event)
             refreshEventRecommendations()
         }
-        guard !event.isCancelled else { return }
+        if event.isCancelled {
+            guard !recordedViewKeys.contains(eventViewTaskID) else { return }
+            recordedViewKeys.insert(eventViewTaskID)
+            RecentViewRecorder.recordEvent(event)
+            return
+        }
         await viewModel.loadComments(for: eventID, forceRefresh: force)
         guard !recordedViewKeys.contains(eventViewTaskID) else { return }
         recordedViewKeys.insert(eventViewTaskID)

@@ -51,10 +51,13 @@ private enum RecentViewsSegment: String, CaseIterable, Identifiable {
 
 struct RecentViewsView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ObservedObject private var recentViewsViewModel: RecentViewsViewModel
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
+    @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
     @State private var selectedSegment: RecentViewsSegment = .all
     @State private var sortOption: AppListSortOption = .newest
     @State private var isShowingClearConfirmation = false
@@ -84,6 +87,11 @@ struct RecentViewsView: View {
     private var filteredItems: [RecentViewItem] {
         visibleItems
             .filter { selectedSegment.matches($0) }
+            .filter { item in
+                let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                return query.isEmpty || item.title.localizedStandardContains(query)
+                    || (item.subtitle?.localizedStandardContains(query) ?? false)
+            }
             .sorted(by: recentViewSort)
     }
 
@@ -95,31 +103,24 @@ struct RecentViewsView: View {
         ProfileDestinationLayout(
             title: AppStrings.Profile.recentlyViewed,
             introSubtitle: AppStrings.Profile.recentlyViewedIntro,
-            clearAction: recentViewsViewModel.items.isEmpty ? nil : ProfileDestinationClearAction(
+            clearAction: recentViewsViewModel.items.isEmpty || recentViewsViewModel.isLoading || !recentViewsViewModel.deletingIDs.isEmpty ? nil : ProfileDestinationClearAction(
                 accessibilityLabel: AppStrings.Profile.recentlyViewedClear,
                 isLoading: recentViewsViewModel.isClearing,
                 action: { isShowingClearConfirmation = true }
             )
         ) {
-            AppHorizontalFilterRow {
-                ForEach(RecentViewsSegment.allCases) { segment in
-                    Button {
-                        selectedSegment = segment
-                    } label: {
-                        AppFilterChip(
-                            title: "\(segment.title): \(visibleItems.filter { segment.matches($0) }.count)",
-                            systemImage: segment.systemImage,
-                            isSelected: selectedSegment == segment
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                AppSortMenu(
-                    selection: $sortOption,
-                    options: [.newest, .oldest, .nameAscending, .nameDescending]
-                )
-            }
+            TextField(RecentViewsText.search, text: $searchText,
+                      prompt: Text(RecentViewsText.search).foregroundStyle(AppTheme.textSecondary))
+                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
+                .padding(.horizontal, AppTheme.inputHorizontalPadding)
+                .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
+                .focused($isSearchFocused)
+                .submitLabel(.search)
+                .onSubmit { isSearchFocused = false }
+                .accessibilityIdentifier("recentViews.search")
+            Text(RecentViewsText.limit).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+            historyFilters
 
             recentViewsContent
         }
@@ -129,6 +130,13 @@ struct RecentViewsView: View {
                 return
             }
             await loadRecentViewsOnAppearance(userID: userID)
+        }
+        .onChange(of: authState.user?.id) { _, _ in
+            searchText = ""
+            selectedSegment = .all
+            sortOption = .newest
+            isShowingClearConfirmation = false
+            itemPendingDeletion = nil
         }
         .onReceive(RecentViewRecorder.didRecord) { event in
             guard authState.isAuthenticated, authState.user?.id == event.userID else { return }
@@ -143,7 +151,7 @@ struct RecentViewsView: View {
         ) {
             Button(AppStrings.Profile.recentlyViewedClear, role: .destructive) {
                 Task { await recentViewsViewModel.clearHistory() }
-            }
+            }.accessibilityIdentifier("recentViews.clear.confirm")
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
             Text(AppStrings.Profile.recentlyViewedClearConfirmationMessage)
@@ -159,9 +167,48 @@ struct RecentViewsView: View {
                 guard let item = itemPendingDeletion else { return }
                 itemPendingDeletion = nil
                 Task { await recentViewsViewModel.delete(item) }
-            }
+            }.accessibilityIdentifier("recentViews.delete.confirm")
             Button(AppStrings.Common.cancel, role: .cancel) { itemPendingDeletion = nil }
         }
+    }
+
+    @ViewBuilder
+    private var historyFilters: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                Picker(RecentViewsText.contentType, selection: $selectedSegment) {
+                    ForEach(RecentViewsSegment.allCases) { segment in
+                        Text("\(segment.title): \(visibleItems.filter { segment.matches($0) }.count)")
+                            .tag(segment)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(AppTheme.accentPrimaryForeground)
+                .accessibilityIdentifier("recentViews.filter")
+                historySortMenu
+            }
+        } else {
+            AppHorizontalFilterRow {
+                ForEach(RecentViewsSegment.allCases) { segment in
+                    Button {
+                        selectedSegment = segment
+                    } label: {
+                        AppFilterChip(
+                            title: "\(segment.title): \(visibleItems.filter { segment.matches($0) }.count)",
+                            systemImage: segment.systemImage,
+                            isSelected: selectedSegment == segment
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("recentViews.filter.\(segment.rawValue)")
+                }
+                historySortMenu
+            }
+        }
+    }
+
+    private var historySortMenu: some View {
+        AppSortMenu(selection: $sortOption, options: [.newest, .oldest, .nameAscending, .nameDescending])
     }
 
     @ViewBuilder
@@ -176,30 +223,33 @@ struct RecentViewsView: View {
             ) {
                 Task { await recentViewsViewModel.refresh() }
             }
-        } else if filteredItems.isEmpty {
-            ProfileDestinationEmptyStateCard(
-                systemImage: "clock.arrow.circlepath",
-                title: AppStrings.Profile.recentlyViewedEmptyTitle,
-                message: AppStrings.Profile.recentlyViewedEmptyMessage
-            )
         } else {
-            LazyVStack(spacing: AppTheme.feedRowSpacing) {
-                if let error = recentViewsViewModel.error {
-                    InlineMessageCard(style: .error, message: recentViewsErrorMessage(error))
-                }
-                ForEach(filteredItems) { item in
-                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                        recentItemLink(item)
-                        if recentViewsViewModel.deletingIDs.contains(item.id) {
-                            ProgressView().controlSize(.small)
-                                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
-                        } else {
-                            AppGlassIconButton(
-                                systemImage: "trash",
-                                accessibilityLabel: AppStrings.Action.delete,
-                                role: .destructive
-                            ) { itemPendingDeletion = item }
-                            .accessibilityIdentifier("recentViews.delete.\(item.id)")
+            if let error = recentViewsViewModel.error {
+                InlineMessageCard(style: .error, message: recentViewsErrorMessage(error))
+            }
+            if filteredItems.isEmpty {
+                ProfileDestinationEmptyStateCard(
+                    systemImage: "clock.arrow.circlepath",
+                    title: visibleItems.isEmpty ? AppStrings.Profile.recentlyViewedEmptyTitle : AppStrings.Search.noResultsTitle,
+                    message: visibleItems.isEmpty ? AppStrings.Profile.recentlyViewedEmptyMessage : RecentViewsText.filteredEmpty
+                )
+            } else {
+                LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                    ForEach(filteredItems) { item in
+                        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            recentItemLink(item)
+                            if recentViewsViewModel.deletingIDs.contains(item.id) {
+                                ProgressView().controlSize(.small)
+                                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                            } else {
+                                AppGlassIconButton(
+                                    systemImage: "trash",
+                                    accessibilityLabel: AppStrings.Action.delete,
+                                    role: .destructive
+                                ) { itemPendingDeletion = item }
+                                .disabled(recentViewsViewModel.isLoading || recentViewsViewModel.isMutating)
+                                .accessibilityIdentifier("recentViews.delete.\(item.id)")
+                            }
                         }
                     }
                 }
@@ -208,11 +258,7 @@ struct RecentViewsView: View {
     }
 
     private func loadRecentViewsOnAppearance(userID: String) async {
-        async let recentViewsLoad: Void = recentViewsViewModel.refresh(userID: userID)
-        async let newsLoad: Void = newsViewModel.loadIfNeeded()
-        async let eventsLoad: Void = eventsViewModel.loadIfNeeded()
-        async let organizationsLoad: Void = organizationsViewModel.loadIfNeeded()
-        _ = await (recentViewsLoad, newsLoad, eventsLoad, organizationsLoad)
+        await recentViewsViewModel.refresh(userID: userID)
     }
 
     private func isVisibleRecentView(_ item: RecentViewItem) -> Bool {
@@ -231,24 +277,12 @@ struct RecentViewsView: View {
     }
 
     private func refreshRecentViews() async {
-        async let recentViewsRefresh: Void = recentViewsViewModel.refresh()
-        async let newsRefresh: Void = newsViewModel.refresh()
-        async let eventsRefresh: Void = eventsViewModel.refresh()
-        async let organizationsRefresh: Void = organizationsViewModel.refresh()
-        _ = await (recentViewsRefresh, newsRefresh, eventsRefresh, organizationsRefresh)
+        guard let userID = authState.user?.id, authState.isAuthenticated else { return }
+        await recentViewsViewModel.refresh(userID: userID)
     }
 
     private func recentViewsErrorMessage(_ error: AppError) -> String {
-        switch error {
-        case .permissionDenied:
-            return AppStrings.Auth.requiredTitle
-        case .network:
-            return AppStrings.News.loadNetworkError
-        case .validationFailed, .notFound:
-            return AppStrings.News.loadValidationError
-        case .unknown:
-            return AppStrings.News.loadUnknownError
-        }
+        error == .network ? RecentViewsText.networkError : RecentViewsText.loadError
     }
 
     private func recentViewSort(_ lhs: RecentViewItem, _ rhs: RecentViewItem) -> Bool {
@@ -286,25 +320,27 @@ struct RecentViewsView: View {
                 NewsDetailView(
                     viewModel: newsViewModel,
                     postID: item.itemId,
-                    onNewsDeleted: { newsViewModel.reload() }
+                    onNewsDeleted: { Task { await recentViewsViewModel.delete(item) } }
                 )
             } label: {
                 RecentViewRow(item: item)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("recentViews.open.\(item.id)")
         case .event:
             NavigationLink {
                 EventDetailView(
                     viewModel: eventsViewModel,
                     eventID: item.itemId,
                     onEventDeleted: { @MainActor @Sendable in
-                        eventsViewModel.reload()
+                        Task { await recentViewsViewModel.delete(item) }
                     }
                 )
             } label: {
                 RecentViewRow(item: item)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("recentViews.open.\(item.id)")
         case .organization:
             NavigationLink {
                 OrganizationDetailView(viewModel: organizationsViewModel, organizationID: item.itemId)
@@ -312,6 +348,7 @@ struct RecentViewsView: View {
                 RecentViewRow(item: item)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("recentViews.open.\(item.id)")
         }
     }
 }

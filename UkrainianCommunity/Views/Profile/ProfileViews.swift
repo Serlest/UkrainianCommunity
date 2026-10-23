@@ -161,7 +161,14 @@ struct ProfileView: View {
             analyticsService: analyticsService
         ))
         _myFeedbackViewModel = StateObject(wrappedValue: MyFeedbackViewModel(repository: feedbackRepository))
-        _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: FirestoreRecentViewsRepository()))
+        var historyRepository: any RecentViewsRepository = FirestoreRecentViewsRepository()
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestRecentViews"] == "1" {
+            historyRepository = UITestRecentViewsRepository()
+        }
+#endif
+        _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: historyRepository))
         _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: FirestoreActivityLogRepository()))
         _ownerVisibilityViewModel = StateObject(wrappedValue: OwnerProfileVisibilityViewModel(
             feedbackRepository: feedbackRepository,

@@ -68,35 +68,30 @@ struct RecentViewItem: Identifiable, Equatable {
 }
 
 protocol RecentViewsRepository {
-    func fetchRecentViews(limit: Int) async throws -> [RecentViewItem]
-    func recordRecentView(_ item: RecentViewItem) async throws
-    func deleteRecentView(id: String) async throws
-    func clearRecentViews() async throws
-}
-
-extension RecentViewsRepository {
-    func clearRecentViews() async throws {}
-    func deleteRecentView(id: String) async throws {}
+    func fetchRecentViews(userID: String, limit: Int) async throws -> [RecentViewItem]
+    func recordRecentView(_ item: RecentViewItem, userID: String) async throws
+    func deleteRecentView(id: String, userID: String, through: Date) async throws
+    func clearRecentViews(userID: String, through: Date) async throws
 }
 
 struct FirestoreRecentViewsRepository: RecentViewsRepository {
     private let database = Firestore.firestore()
 
-    func fetchRecentViews(limit: Int = 30) async throws -> [RecentViewItem] {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            throw AppError.permissionDenied
-        }
+    func fetchRecentViews(userID: String, limit: Int = 30) async throws -> [RecentViewItem] {
+        guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        let uid = userID
 
         let snapshot = try await recentViewsCollection(userID: uid)
             .order(by: "viewedAt", descending: true)
-            .limit(to: limit)
-            .getDocuments()
+            .limit(to: min(max(limit, 1), RecentViewsViewModel.historyLimit))
+            .getDocuments(source: .server)
 
         return snapshot.documents.compactMap(makeRecentViewItem(from:))
     }
 
-    func recordRecentView(_ item: RecentViewItem) async throws {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
+    func recordRecentView(_ item: RecentViewItem, userID: String) async throws {
+        guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        let uid = userID
 
         let collection = recentViewsCollection(userID: uid)
         try await collection.document(item.id).setData([
@@ -118,18 +113,32 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
         }
     }
 
-    func clearRecentViews() async throws {
-        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
-        let snapshot = try await recentViewsCollection(userID: uid).getDocuments()
-        guard !snapshot.documents.isEmpty else { return }
-        let batch = database.batch()
-        snapshot.documents.forEach { batch.deleteDocument($0.reference) }
-        try await batch.commit()
+    func clearRecentViews(userID: String, through: Date) async throws {
+        guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        let uid = userID
+        // Delete in bounded batches, including history beyond the visible window.
+        // New views made after confirmation remain in the history.
+        let query = recentViewsCollection(userID: uid)
+            .whereField("viewedAt", isLessThanOrEqualTo: Timestamp(date: through))
+        while true {
+            let snapshot = try await query.limit(to: 400).getDocuments(source: .server)
+            guard !snapshot.documents.isEmpty else { return }
+            try await deleteUnchanged(snapshot.documents)
+        }
     }
 
-    func deleteRecentView(id: String) async throws {
-        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
-        try await recentViewsCollection(userID: uid).document(id).delete()
+    func deleteRecentView(id: String, userID: String, through: Date) async throws {
+        guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        let uid = userID
+        let reference = recentViewsCollection(userID: uid).document(id)
+        _ = try await database.runTransaction { transaction, errorPointer in
+            do {
+                let document = try transaction.getDocument(reference)
+                if let date = (document.data()?["viewedAt"] as? Timestamp)?.dateValue(), date > through { return nil }
+                transaction.deleteDocument(reference)
+            } catch { errorPointer?.pointee = error as NSError }
+            return nil
+        }
     }
 
     private func recentViewsCollection(userID: String) -> CollectionReference {
@@ -137,17 +146,32 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
     }
 
     private func pruneRecentViews(in collection: CollectionReference) async throws {
-        let snapshot = try await collection
-            .order(by: "viewedAt", descending: true)
-            .limit(to: 60)
-            .getDocuments()
+        let newest = try await collection.order(by: "viewedAt", descending: true)
+            .limit(to: RecentViewsViewModel.historyLimit).getDocuments(source: .server)
+        guard newest.documents.count == RecentViewsViewModel.historyLimit,
+              let boundary = newest.documents.last else { return }
+        // Keep the same boundary while deleting every older page, not just 30 rows.
+        let staleQuery = collection.order(by: "viewedAt", descending: true).start(afterDocument: boundary)
+        while true {
+            let page = try await staleQuery.limit(to: 400).getDocuments(source: .server)
+            guard !page.documents.isEmpty else { return }
+            try await deleteUnchanged(page.documents)
+        }
+    }
 
-        let staleDocuments = snapshot.documents.dropFirst(30)
-        guard !staleDocuments.isEmpty else { return }
-
-        let batch = database.batch()
-        staleDocuments.forEach { batch.deleteDocument($0.reference) }
-        try await batch.commit()
+    private func deleteUnchanged(_ documents: [QueryDocumentSnapshot]) async throws {
+        _ = try await database.runTransaction { transaction, errorPointer in
+            do {
+                // Read all documents before writing; a concurrent new view wins.
+                let current = try documents.map { try transaction.getDocument($0.reference) }
+                for (original, latest) in zip(documents, current) {
+                    if original.data()["viewedAt"] as? Timestamp == latest.data()?["viewedAt"] as? Timestamp {
+                        transaction.deleteDocument(original.reference)
+                    }
+                }
+            } catch { errorPointer?.pointee = error as NSError }
+            return nil
+        }
     }
 
     private func makeRecentViewItem(from document: QueryDocumentSnapshot) -> RecentViewItem? {
@@ -174,6 +198,7 @@ struct FirestoreRecentViewsRepository: RecentViewsRepository {
 
 @MainActor
 final class RecentViewsViewModel: ObservableObject {
+    nonisolated static let historyLimit = 30
     @Published private(set) var items: [RecentViewItem] = []
     @Published private(set) var isLoading = false
     @Published private(set) var error: AppError?
@@ -184,6 +209,11 @@ final class RecentViewsViewModel: ObservableObject {
     private var hasLoaded = false
     private var loadedUserID: String?
     private var refreshGeneration: UInt = 0
+    private var recordRevision: UInt = 0
+    private var recordedUpdates: [String: (item: RecentViewItem, revision: UInt)] = [:]
+    private var clearedThrough: Date?
+    private var deletedThrough: [String: Date] = [:]
+    var isMutating: Bool { isClearing || !deletingIDs.isEmpty }
 
     init(repository: RecentViewsRepository) {
         self.repository = repository
@@ -223,12 +253,17 @@ final class RecentViewsViewModel: ObservableObject {
         deletingIDs = []
         hasLoaded = false
         loadedUserID = nil
+        recordedUpdates = [:]
+        recordRevision = 0
+        clearedThrough = nil
+        deletedThrough = [:]
     }
 
     func refresh() async {
+        guard !isLoading, !isMutating, let requestedUserID = loadedUserID else { return }
+        let baselineRevision = recordRevision
         refreshGeneration &+= 1
         let generation = refreshGeneration
-        let requestedUserID = loadedUserID ?? Auth.auth().currentUser?.uid
         isLoading = true
         defer {
             if generation == refreshGeneration {
@@ -238,11 +273,16 @@ final class RecentViewsViewModel: ObservableObject {
 
         do {
             let refreshedItems = try await RefreshRequest.run { [self] in
-                try await repository.fetchRecentViews(limit: 30)
+                try await repository.fetchRecentViews(userID: requestedUserID, limit: Self.historyLimit)
             }
                 .sorted { $0.viewedAt > $1.viewedAt }
             guard generation == refreshGeneration, requestedUserID == loadedUserID else { return }
-            items = refreshedItems
+            var merged = Dictionary(refreshedItems.map { ($0.id, $0) }, uniquingKeysWith: { _, newest in newest })
+            for update in recordedUpdates.values where update.revision > baselineRevision {
+                merged[update.item.id] = update.item
+            }
+            items = bounded(Array(merged.values))
+            recordedUpdates = [:]
             error = nil
             hasLoaded = true
         } catch let appError as AppError {
@@ -251,27 +291,33 @@ final class RecentViewsViewModel: ObservableObject {
             hasLoaded = true
         } catch {
             guard generation == refreshGeneration, requestedUserID == loadedUserID else { return }
-            self.error = .unknown
+            self.error = FirebaseReadErrorMapper.map(error)
             hasLoaded = true
         }
     }
 
     func applyRecordedView(_ item: RecentViewItem, userID: String) {
-        guard loadedUserID == userID else { return }
-        items.removeAll { $0.id == item.id }
-        items.append(item)
-        items.sort {
-            $0.viewedAt == $1.viewedAt ? $0.id < $1.id : $0.viewedAt > $1.viewedAt
-        }
+        guard loadedUserID == userID,
+              clearedThrough.map({ item.viewedAt > $0 }) ?? true,
+              deletedThrough[item.id].map({ item.viewedAt > $0 }) ?? true else { return }
+        recordRevision &+= 1
+        if isLoading { recordedUpdates[item.id] = (item, recordRevision) }
+        items = bounded(items.filter { $0.id != item.id } + [item])
         error = nil
         hasLoaded = true
     }
 
+    private func bounded(_ values: [RecentViewItem]) -> [RecentViewItem] {
+        Array(values.sorted {
+            $0.viewedAt == $1.viewedAt ? $0.id < $1.id : $0.viewedAt > $1.viewedAt
+        }.prefix(Self.historyLimit))
+    }
+
     @discardableResult
     func clearHistory() async -> Bool {
-        guard !isClearing else { return false }
+        guard !isLoading, !isMutating, let requestedUserID = loadedUserID else { return false }
+        let cutoff = Date()
         let generation = refreshGeneration
-        let requestedUserID = loadedUserID
         isClearing = true
         defer {
             if generation == refreshGeneration, requestedUserID == loadedUserID {
@@ -279,9 +325,10 @@ final class RecentViewsViewModel: ObservableObject {
             }
         }
         do {
-            try await repository.clearRecentViews()
+            try await repository.clearRecentViews(userID: requestedUserID, through: cutoff)
             guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
-            items = []
+            clearedThrough = cutoff
+            items.removeAll { $0.viewedAt <= cutoff }
             error = nil
             return true
         } catch let appError as AppError {
@@ -289,16 +336,16 @@ final class RecentViewsViewModel: ObservableObject {
             error = appError
         } catch {
             guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
-            self.error = .unknown
+            self.error = FirebaseReadErrorMapper.map(error)
         }
         return false
     }
 
     @discardableResult
     func delete(_ item: RecentViewItem) async -> Bool {
-        guard !deletingIDs.contains(item.id) else { return false }
+        guard !isLoading, !isMutating, let requestedUserID = loadedUserID else { return false }
+        let cutoff = Date()
         let generation = refreshGeneration
-        let requestedUserID = loadedUserID
         deletingIDs.insert(item.id)
         defer {
             if generation == refreshGeneration, requestedUserID == loadedUserID {
@@ -306,9 +353,10 @@ final class RecentViewsViewModel: ObservableObject {
             }
         }
         do {
-            try await repository.deleteRecentView(id: item.id)
+            try await repository.deleteRecentView(id: item.id, userID: requestedUserID, through: cutoff)
             guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
-            items.removeAll { $0.id == item.id }
+            deletedThrough[item.id] = cutoff
+            items.removeAll { $0.id == item.id && $0.viewedAt <= cutoff }
             error = nil
             return true
         } catch let appError as AppError {
@@ -316,7 +364,7 @@ final class RecentViewsViewModel: ObservableObject {
             error = appError
         } catch {
             guard generation == refreshGeneration, requestedUserID == loadedUserID else { return false }
-            self.error = .unknown
+            self.error = FirebaseReadErrorMapper.map(error)
         }
         return false
     }
@@ -373,7 +421,7 @@ enum RecentViewRecorder {
         Task {
             guard Auth.auth().currentUser?.uid == userID else { return }
             do {
-                try await repository.recordRecentView(item)
+                try await repository.recordRecentView(item, userID: userID)
                 guard Auth.auth().currentUser?.uid == userID else { return }
                 didRecord.send(RecentViewRecordingEvent(item: item, userID: userID))
             } catch {
@@ -388,3 +436,26 @@ enum RecentViewRecorder {
         return "\(dateText) · \(event.city)"
     }
 }
+
+#if DEBUG
+/// Isolated history fixture; enabled only by the UI test launch contract.
+@MainActor
+final class UITestRecentViewsRepository: RecentViewsRepository {
+    private var items: [RecentViewItem] = {
+        let post = MockContentBuilder.newsPosts()[0]
+        let event = MockContentBuilder.events()[0]
+        let org = MockContentBuilder.organizations()[0]
+        return [
+            RecentViewItem(itemId: post.id, itemType: .news, title: post.title, subtitle: post.subtitle, imageURL: nil, viewedAt: Date()),
+            RecentViewItem(itemId: event.id, itemType: .event, title: event.title, subtitle: event.summary, imageURL: nil, viewedAt: Date().addingTimeInterval(-60)),
+            RecentViewItem(itemId: org.id, itemType: .organization, title: org.localizedName, subtitle: org.city, imageURL: nil, viewedAt: Date().addingTimeInterval(-120))
+        ]
+    }()
+    func fetchRecentViews(userID: String, limit: Int) async throws -> [RecentViewItem] { Array(items.prefix(limit)) }
+    func recordRecentView(_ item: RecentViewItem, userID: String) async throws {}
+    func deleteRecentView(id: String, userID: String, through: Date) async throws {
+        items.removeAll { $0.id == id && $0.viewedAt <= through }
+    }
+    func clearRecentViews(userID: String, through: Date) async throws { items.removeAll { $0.viewedAt <= through } }
+}
+#endif
