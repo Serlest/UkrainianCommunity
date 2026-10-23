@@ -1,0 +1,148 @@
+{
+  "block": 2,
+  "name": "Запуск, регистрация и вход",
+  "status": "audited_changes_proposed",
+  "checkedAt": "2026-10-23T21:53:47.450610+00:00",
+  "sourceCommit": "b74bcafa82250a2d5c3fb33c5adf50a0b7c44cfa",
+  "dataPaths": {
+    "restore": [
+      "Firebase persisted identity",
+      "pending deletion recovery",
+      "identity reload and token verification",
+      "users/{uid}",
+      "publicProfiles/{uid} repair",
+      "privileged-session policy",
+      "authoritative terms/privacy access gate",
+      "mounted app content"
+    ],
+    "emailRegistration": [
+      "current authoritative legal documents",
+      "form and legal-review validation",
+      "Firebase Auth createUser",
+      "display name",
+      "atomic users and initial legalAcceptanceLogs batch",
+      "principal-scoped optional consent and app-lock choice",
+      "verification email",
+      "verification reload",
+      "authenticated restore path"
+    ],
+    "federated": [
+      "Apple nonce/Google ID-token credential",
+      "Firebase Auth signIn",
+      "verified existing profile or mandatory registration completion",
+      "shared authenticated restore path"
+    ],
+    "passkey": [
+      "beginPasskeySignIn callable",
+      "platform credential assertion",
+      "finishPasskeySignIn callable",
+      "Firebase custom-token signIn",
+      "shared authenticated restore path"
+    ],
+    "passwordReset": [
+      "validated email",
+      "Firebase Auth reset-email request",
+      "user-facing result"
+    ]
+  },
+  "roleCoverage": {
+    "policySource": "Owner/admin require current protected session. Ordinary user, moderator and organization roles use common auth flow without global privileged MFA solely because of organization access.",
+    "tests": "Role policy and session tests plus owner UI gate; this is not a live sign-in for every real role."
+  },
+  "checks": {
+    "iosCore": {
+      "passed": 78,
+      "failed": 0,
+      "bundle": "build/block-02-audit-20261024/AuthCore.xcresult"
+    },
+    "authScreens": {
+      "passed": 6,
+      "failed": 0,
+      "bundle": "build/block-02-audit-20261024/AuthScreens.xcresult"
+    },
+    "serverAuthUnit": {
+      "passed": 13,
+      "failed": 0,
+      "log": "build/block-02-audit-20261024/auth-server-tests.log"
+    },
+    "protectionRace": {
+      "status": "confirmed_defect",
+      "bundle": "build/block-02-audit-20261024/ProtectionRaceVerified.xcresult",
+      "patch": "build/block-02-audit-20261024/protection-race-reproduction.patch",
+      "temporaryDiagnosticRemovedFromSource": true
+    },
+    "registrationAndForeground": {
+      "passed": 4,
+      "failed": 0,
+      "bundle": "build/block-02-audit-20261024/RegistrationAndForeground.xcresult"
+    }
+  },
+  "issues": [
+    {
+      "id": "AUTH-01",
+      "priority": "high",
+      "category": "functionality",
+      "finding": "A suspended old-owner MFA check can present privilegedMultiFactorRequirement after a newer ordinary user has signed in.",
+      "source": "UkrainianCommunity/Services/Auth/AuthService.swift:693",
+      "evidence": "build/block-02-audit-20261024/ProtectionRaceVerified.xcresult",
+      "reproductionResult": "44 existing tests passed; diagnostic auditLateProtectionCheckCannotAffectNewAccount failed with new-user authenticated and privilegedMultiFactorRequirement presented.",
+      "proposal": "Fence protected-session checks by auth transition generation and principal before and after every suspension.",
+      "securityBoundary": "Diagnostic reproduced an unwanted gate; it did not reproduce user identity substitution or server authorization bypass."
+    },
+    {
+      "id": "AUTH-02",
+      "priority": "medium",
+      "category": "functionality",
+      "finding": "Email, federated and passkey controls have independent busy flags. Cross-method actions and navigation can start while a different sign-in method is in progress.",
+      "source": [
+        "UkrainianCommunity/Views/Profile/AuthViews.swift:120",
+        "UkrainianCommunity/Views/Profile/FederatedSignInButtons.swift:17"
+      ],
+      "proposal": "Coordinate pending authentication across controls, reject duplicate submissions, preserve a clear recoverable cancellation path."
+    },
+    {
+      "id": "AUTH-03",
+      "priority": "medium",
+      "category": "performance",
+      "finding": "Restoration awaits reload, forced token refresh, private profile and recoverable public-profile repair before publishing the session. Registration document loads and auth restoration lack an application-level end-to-end wait limit.",
+      "source": [
+        "UkrainianCommunity/Services/Auth/AuthService.swift:1013",
+        "UkrainianCommunity/Services/Auth/AuthService.swift:1026",
+        "UkrainianCommunity/Views/Profile/AuthViews.swift:1103"
+      ],
+      "proposal": "Move recoverable projection repair off the critical path with principal fencing; coalesce document requests; add bounded recovery states without allowing late auth side effects or bypassing authoritative access checks.",
+      "boundary": "Code-derived critical-path risk, not a measured production latency attribution. Legal access checks remain required."
+    },
+    {
+      "id": "AUTH-04",
+      "priority": "medium",
+      "category": "visual",
+      "finding": "Field placeholders are faint in light and dark themes; reset password repeats its title; method ordering differs across entry screens. Native Apple sign-in label remains German in the Ukrainian custom-language UI.",
+      "evidence": "build/block-02-audit-20261024/screens/manifest.json",
+      "proposal": "Use readable explicit field prompts/labels, simplify headings and instructions, keep consistent method order, resolve native button language using supported localization behavior. Long consent explanations should remain fully accessible while allowing a shorter summary and expandable details; do not reduce supported accessibility font sizes."
+    },
+    {
+      "id": "AUTH-05",
+      "priority": "medium",
+      "category": "errors",
+      "finding": "Federated and passkey UI collapse most failures to one generic message; verification recheck after an external email confirmation is manual.",
+      "source": [
+        "UkrainianCommunity/Views/Profile/FederatedSignInButtons.swift:17",
+        "UkrainianCommunity/Views/Profile/FederatedSignInButtons.swift:208",
+        "UkrainianCommunity/Views/Profile/AuthViews.swift:591"
+      ],
+      "proposal": "Distinguish connectivity, service, throttling and cancellation; recheck pending verification on return from background with duplicate protection."
+    }
+  ],
+  "delivery": {
+    "productCodeChanged": false,
+    "serverDeployment": false,
+    "testFlightUpload": false
+  },
+  "limitations": [
+    "Real Apple/Google/iCloud passkey sign-ins and email delivery were not exercised on a physical device.",
+    "Production Identity Platform config/provider read attempts returned HTTP 403 with the current gcloud identity; provider enablement is not live-confirmed in this audit.",
+    "UI uses deterministic simulator fixtures; production mutations were not made.",
+    "Block remains open pending approved implementation and regression verification."
+  ]
+}

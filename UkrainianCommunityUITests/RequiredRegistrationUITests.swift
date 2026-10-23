@@ -54,4 +54,49 @@ final class RequiredRegistrationUITests: XCTestCase {
             app.terminate()
         }
     }
+    @MainActor
+    func testAuthScreenAppearanceAndPasswordResetNavigation() {
+        for (language, appearance, forgot) in [("uk", "light", "Забули пароль?"), ("de", "dark", "Passwort vergessen?")] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing"]
+            app.launchEnvironment = ["UITestForceSignedOutSession": "1", "UITestResetUserSettings": "1",
+                                     "UITestAppLanguage": language, "UITestAppAppearance": appearance]
+            app.launch()
+            XCTAssertTrue(app.buttons["auth.landing.signIn"].waitForExistence(timeout: 20))
+            capture(app, "auth-landing-" + language)
+            app.buttons["auth.landing.signIn"].tap()
+            XCTAssertTrue(app.buttons["auth.login.submit"].waitForExistence(timeout: 10))
+            XCTAssertFalse(app.buttons["auth.login.submit"].isEnabled)
+            capture(app, "auth-login-" + language)
+            let reset = app.buttons[forgot].firstMatch
+            for _ in 0..<6 {
+                if reset.isHittable { break }
+                app.swipeUp()
+            }
+            XCTAssertTrue(reset.isHittable)
+            reset.tap()
+            XCTAssertTrue(app.buttons["auth.reset.submit"].waitForExistence(timeout: 10))
+            XCTAssertFalse(app.buttons["auth.reset.submit"].isEnabled)
+            capture(app, "auth-reset-" + language)
+            app.terminate()
+            app.launch()
+            XCTAssertTrue(app.buttons["auth.landing.register"].waitForExistence(timeout: 20))
+            app.buttons["auth.landing.register"].tap()
+            XCTAssertTrue(app.buttons["auth.register.emailMethod"].waitForExistence(timeout: 10))
+            capture(app, "auth-register-methods-" + language)
+            app.buttons["auth.register.emailMethod"].tap()
+            XCTAssertTrue(app.buttons["auth.register.federalState"].waitForExistence(timeout: 10))
+            capture(app, "auth-register-fields-" + language)
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    private func capture(_ app: XCUIApplication, _ name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
 }

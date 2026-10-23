@@ -13,7 +13,8 @@
     {
       "number": 2,
       "name": "Запуск, регистрация и вход",
-      "status": "pending"
+      "status": "audited_changes_proposed",
+      "report": "Docs/Verification/StartupAuthAudit.json"
     },
     {
       "number": 3,
