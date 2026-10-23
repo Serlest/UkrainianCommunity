@@ -169,7 +169,16 @@ struct ProfileView: View {
         }
 #endif
         _recentViewsViewModel = StateObject(wrappedValue: RecentViewsViewModel(repository: historyRepository))
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestActivityHistory"] == "1" {
+            _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: UITestActivityLogRepository(), synchronizePending: { _ in nil }))
+        } else {
+            _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: FirestoreActivityLogRepository()))
+        }
+#else
         _activityLogViewModel = StateObject(wrappedValue: ActivityLogViewModel(repository: FirestoreActivityLogRepository()))
+#endif
         _ownerVisibilityViewModel = StateObject(wrappedValue: OwnerProfileVisibilityViewModel(
             feedbackRepository: feedbackRepository,
             organizationRepository: organizationRepository

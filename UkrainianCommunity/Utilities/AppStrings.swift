@@ -1703,7 +1703,7 @@ enum AppStrings {
         static var recentlyViewedEmptyTitle: String { text("profile.activity.recently_viewed.empty_title", "Тут поки немає переглянутих матеріалів.") }
         static var recentlyViewedEmptyMessage: String { text("profile.activity.recently_viewed.empty_message", "Відкривайте новини, події та організації, щоб швидко повертатися до них.") }
         static var activityHistoryIntro: String { text("profile.activity_history.intro", "Ваші останні дії у застосунку.") }
-        static var activityHistoryEmptyTitle: String { text("profile.activity_history.empty_title", "Історія активності поки порожня.") }
+        static var activityHistoryEmptyTitle: String { ActivityHistoryText.emptyTitle }
         static var activityHistoryEmptyMessage: String { text("profile.activity_history.empty_message", "Тут з’являтимуться ваші реєстрації, підписки та збереження.") }
         static var activityHistorySavedFilter: String { text("profile.activity_history.filter.saved", "Збережене") }
         static var upcomingRegistrations: String { text("profile.upcoming_registrations", "Найближчі реєстрації") }
@@ -1957,9 +1957,9 @@ enum AppStrings {
         static var accountRequiredBadge: String { text("profile.account_required_badge", "Після входу") }
         static var volunteeringModule: String { text("profile.future.volunteering", "Волонтерство") }
         static var communityAchievementsModule: String { text("profile.future.community_achievements", "Досягнення спільноти") }
-        static var activityHistoryModule: String { text("profile.future.activity_history", "Історія активності") }
+        static var activityHistoryModule: String { ActivityHistoryText.title }
         static var activityHistoryClear: String { text("profile.activity.history.clear", "Очистити історію") }
-        static var activityHistoryClearConfirmationTitle: String { text("profile.activity.history.clear.confirm.title", "Очистити історію активності?") }
+        static var activityHistoryClearConfirmationTitle: String { ActivityHistoryText.clearTitle }
         static var activityHistoryClearConfirmationMessage: String { text("profile.activity.history.clear.confirm.message", "Історія збережень, підписок і реєстрацій буде видалена з вашого акаунта.") }
         static var activityHistoryDeleteConfirmationTitle: String { text("profile.activity.history.delete.confirm.title", "Видалити цей запис з історії?") }
         static var analyticsModule: String { text("profile.future.analytics", "Analytics") }

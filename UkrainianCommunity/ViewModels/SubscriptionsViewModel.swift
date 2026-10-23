@@ -11,7 +11,11 @@ import Foundation
     private var generation = 0
     private let repository: OrganizationRepository
     private let shared: OrganizationsViewModel
-    init(repository: OrganizationRepository, shared: OrganizationsViewModel) { self.repository = repository; self.shared = shared }
+    private let recordActivity: @MainActor (ActivityLogItem, String) -> Void
+    init(repository: OrganizationRepository, shared: OrganizationsViewModel,
+         recordActivity: @escaping @MainActor (ActivityLogItem, String) -> Void = { ActivityLogRecorder.record($0, userID: $1) }) {
+        self.repository = repository; self.shared = shared; self.recordActivity = recordActivity
+    }
 
     func bind(_ userID: String?) {
         guard self.userID != userID else { return }
@@ -51,13 +55,18 @@ import Foundation
         }
     }
     func remove(_ id: String) async {
-        guard userID != nil, !isLoading, !pending.contains(id) else { return }
+        guard let requestedUserID = userID, !isLoading, !pending.contains(id) else { return }
         let token = generation
+        let organization = records.first { $0.id == id }?.content ?? shared.organizations.first { $0.id == id }
         pending.insert(id); error = nil
         defer { if token == generation { pending.remove(id) } }
         do {
             try await repository.unsubscribeOrganization(id: id, actionCapture: nil)
             guard token == generation, !Task.isCancelled else { return }
+            recordActivity(ActivityLogItem(id: UUID().uuidString, actionType: .unfollowedOrganization,
+                targetId: id, targetType: .organization,
+                title: organization?.localizedName ?? AppStrings.Profile.unavailableSubscriptionTitle,
+                subtitle: organization?.city, imageURL: organization?.logoURL, createdAt: Date()), requestedUserID)
             records.removeAll { $0.id == id }
             if let index = shared.organizations.firstIndex(where: { $0.id == id }) {
                 if shared.organizations[index].isSubscribed {

@@ -93,6 +93,23 @@ enum SavedContentItem: Identifiable {
         }
     }
 
+    var removalActivity: ActivityLogItem {
+        let action: ActivityLogActionType
+        let type: ActivityLogTargetType
+        let subtitle: String?
+        let image: String?
+        switch self {
+        case .news(let record):
+            action = .unsavedNews; type = .news; subtitle = record.content?.subtitle; image = record.content?.imageURL
+        case .event(let record):
+            action = .unsavedEvent; type = .event; subtitle = record.content?.summary; image = record.content?.imageURL
+        case .organization(let record):
+            action = .unsavedOrganization; type = .organization; subtitle = record.content?.city; image = record.content?.logoURL
+        }
+        return ActivityLogItem(id: UUID().uuidString, actionType: action, targetId: rawID, targetType: type,
+                               title: title, subtitle: subtitle, imageURL: image, createdAt: Date())
+    }
+
     var isUnavailable: Bool {
         switch self {
         case .news(let record): record.content == nil
@@ -117,6 +134,7 @@ final class SavedContentViewModel: ObservableObject {
     private let newsViewModel: NewsViewModel
     private let eventsViewModel: EventsViewModel
     private let organizationsViewModel: OrganizationsViewModel
+    private let recordActivity: @MainActor (ActivityLogItem, String) -> Void
     @Published private(set) var nextNews: String?
     @Published private(set) var nextEvents: String?
     @Published private(set) var nextOrganizations: String?
@@ -130,7 +148,8 @@ final class SavedContentViewModel: ObservableObject {
         organizationRepository: OrganizationRepository,
         newsViewModel: NewsViewModel,
         eventsViewModel: EventsViewModel,
-        organizationsViewModel: OrganizationsViewModel
+        organizationsViewModel: OrganizationsViewModel,
+        recordActivity: @escaping @MainActor (ActivityLogItem, String) -> Void = { ActivityLogRecorder.record($0, userID: $1) }
     ) {
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
@@ -138,6 +157,7 @@ final class SavedContentViewModel: ObservableObject {
         self.newsViewModel = newsViewModel
         self.eventsViewModel = eventsViewModel
         self.organizationsViewModel = organizationsViewModel
+        self.recordActivity = recordActivity
     }
 
     func bind(userID newUserID: String?) {
@@ -260,7 +280,7 @@ final class SavedContentViewModel: ObservableObject {
     }
 
     func removeUnavailable(_ item: SavedContentItem) async {
-        guard userID != nil, !isLoading, !pendingRemovalIDs.contains(item.id) else { return }
+        guard let requestedUserID = userID, !isLoading, !pendingRemovalIDs.contains(item.id) else { return }
         let requestGeneration = generation
         pendingRemovalIDs.insert(item.id)
         error = nil
@@ -280,6 +300,7 @@ final class SavedContentViewModel: ObservableObject {
                 try await organizationRepository.unbookmarkOrganization(id: item.rawID)
             }
             guard isCurrent(requestGeneration) else { return }
+            recordActivity(item.removalActivity, requestedUserID)
             removeRecord(item)
         } catch {
             guard isCurrent(requestGeneration) else { return }

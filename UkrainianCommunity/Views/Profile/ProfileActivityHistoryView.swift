@@ -20,7 +20,7 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
         case .organizations:
             return AppStrings.Tabs.organizations
         case .saved:
-            return AppStrings.Profile.activityHistorySavedFilter
+            return ActivityHistoryText.savedFilter
         }
     }
 
@@ -58,10 +58,13 @@ private enum ActivityHistorySegment: String, CaseIterable, Identifiable {
 
 struct ActivityHistoryView: View {
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ObservedObject private var activityLogViewModel: ActivityLogViewModel
     @ObservedObject private var newsViewModel: NewsViewModel
     @ObservedObject private var eventsViewModel: EventsViewModel
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
+    @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
     @State private var selectedSegment: ActivityHistorySegment = .all
     @State private var sortOption: AppListSortOption = .newest
     @State private var isShowingClearConfirmation = false
@@ -86,6 +89,12 @@ struct ActivityHistoryView: View {
     private var filteredItems: [ActivityLogItem] {
         activityLogViewModel.items
             .filter { selectedSegment.matches($0) }
+            .filter { item in
+                let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+                return query.isEmpty || item.title.localizedStandardContains(query)
+                    || item.actionType.title.localizedStandardContains(query)
+                    || (item.subtitle?.localizedStandardContains(query) ?? false)
+            }
             .sorted(by: activitySort)
     }
 
@@ -97,38 +106,23 @@ struct ActivityHistoryView: View {
         ProfileDestinationLayout(
             title: AppStrings.Profile.activityHistoryModule,
             introSubtitle: AppStrings.Profile.activityHistoryIntro,
-            clearAction: activityLogViewModel.items.isEmpty ? nil : ProfileDestinationClearAction(
+            clearAction: activityLogViewModel.items.isEmpty || activityLogViewModel.isLoading || !activityLogViewModel.deletingIDs.isEmpty ? nil : ProfileDestinationClearAction(
                 accessibilityLabel: AppStrings.Profile.activityHistoryClear,
                 isLoading: activityLogViewModel.isClearing,
                 action: { isShowingClearConfirmation = true }
             )
         ) {
-            AppHorizontalFilterRow {
-                ForEach(ActivityHistorySegment.allCases) { segment in
-                    Button {
-                        selectedSegment = segment
-                    } label: {
-                        AppFilterChip(
-                            title: "\(segment.title): \(activityLogViewModel.items.filter { segment.matches($0) }.count)",
-                            systemImage: segment.systemImage,
-                            isSelected: selectedSegment == segment
-                        )
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                AppSortMenu(
-                    selection: $sortOption,
-                    options: [.newest, .oldest, .nameAscending, .nameDescending]
-                )
-            }
-
-            if activityLogViewModel.items.count == 100 {
-                InlineMessageCard(
-                    style: .info,
-                    message: AppStrings.Profile.activityHistoryLimitNotice
-                )
-            }
+            TextField(ActivityHistoryText.search, text: $searchText,
+                      prompt: Text(ActivityHistoryText.search).foregroundStyle(AppTheme.textSecondary))
+                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
+                .padding(.horizontal, AppTheme.inputHorizontalPadding)
+                .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
+                .focused($isSearchFocused).submitLabel(.search)
+                .onSubmit { isSearchFocused = false }
+                .accessibilityIdentifier("activityHistory.search")
+            Text(ActivityHistoryText.limit).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+            historyFilters
 
             activityHistoryContent
         }
@@ -139,6 +133,17 @@ struct ActivityHistoryView: View {
             }
             await loadActivityHistoryIfNeeded(userID: userID)
         }
+        .onChange(of: authState.user?.id) { _, _ in
+            searchText = ""
+            selectedSegment = .all
+            sortOption = .newest
+            isShowingClearConfirmation = false
+            itemPendingDeletion = nil
+        }
+        .onReceive(ActivityLogRecorder.didRecord) { event in
+            guard authState.isAuthenticated, authState.user?.id == event.userID else { return }
+            activityLogViewModel.applyRecorded(event.item, userID: event.userID)
+        }
         .appRefreshable {
             await refreshActivityHistory()
         }
@@ -148,10 +153,10 @@ struct ActivityHistoryView: View {
         ) {
             Button(AppStrings.Profile.activityHistoryClear, role: .destructive) {
                 Task { await activityLogViewModel.clearHistory() }
-            }
+            }.accessibilityIdentifier("activityHistory.clear.confirm")
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
-            Text(AppStrings.Profile.activityHistoryClearConfirmationMessage)
+            Text(ActivityHistoryText.clearMessage)
         }
         .confirmationDialog(
             AppStrings.Profile.activityHistoryDeleteConfirmationTitle,
@@ -164,9 +169,50 @@ struct ActivityHistoryView: View {
                 guard let item = itemPendingDeletion else { return }
                 itemPendingDeletion = nil
                 Task { await activityLogViewModel.delete(item) }
-            }
+            }.accessibilityIdentifier("activityHistory.delete.confirm")
             Button(AppStrings.Common.cancel, role: .cancel) { itemPendingDeletion = nil }
+        } message: {
+            Text(ActivityHistoryText.deleteMessage)
         }
+    }
+
+    @ViewBuilder
+    private var historyFilters: some View {
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+                Picker(ActivityHistoryText.contentType, selection: $selectedSegment) {
+                    ForEach(ActivityHistorySegment.allCases) { segment in
+                        Text("\(segment.title): \(activityLogViewModel.items.filter { segment.matches($0) }.count)")
+                            .tag(segment)
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(AppTheme.accentPrimaryForeground)
+                .accessibilityIdentifier("activityHistory.filter")
+                historySortMenu
+            }
+        } else {
+            AppHorizontalFilterRow {
+                ForEach(ActivityHistorySegment.allCases) { segment in
+                    Button {
+                        selectedSegment = segment
+                    } label: {
+                        AppFilterChip(
+                            title: "\(segment.title): \(activityLogViewModel.items.filter { segment.matches($0) }.count)",
+                            systemImage: segment.systemImage,
+                            isSelected: selectedSegment == segment
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("activityHistory.filter.\(segment.rawValue)")
+                }
+                historySortMenu
+            }
+        }
+    }
+
+    private var historySortMenu: some View {
+        AppSortMenu(selection: $sortOption, options: [.newest, .oldest, .nameAscending, .nameDescending])
     }
 
     @ViewBuilder
@@ -181,30 +227,33 @@ struct ActivityHistoryView: View {
             ) {
                 Task { await activityLogViewModel.refresh() }
             }
-        } else if filteredItems.isEmpty {
-            ProfileDestinationEmptyStateCard(
-                systemImage: "list.bullet.rectangle",
-                title: AppStrings.Profile.activityHistoryEmptyTitle,
-                message: AppStrings.Profile.activityHistoryEmptyMessage
-            )
         } else {
-            LazyVStack(spacing: AppTheme.feedRowSpacing) {
-                if let error = activityLogViewModel.error {
-                    InlineMessageCard(style: .error, message: activityHistoryErrorMessage(error))
-                }
-                ForEach(filteredItems) { item in
-                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                        activityItemLink(item)
-                        if activityLogViewModel.deletingIDs.contains(item.id) {
-                            ProgressView().controlSize(.small)
-                                .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
-                        } else {
-                            AppGlassIconButton(
-                                systemImage: "trash",
-                                accessibilityLabel: "\(AppStrings.Action.delete): \(item.title)",
-                                role: .destructive
-                            ) { itemPendingDeletion = item }
-                            .accessibilityIdentifier("activityHistory.delete.\(item.id)")
+            if let error = activityLogViewModel.error {
+                InlineMessageCard(style: .error, message: activityHistoryErrorMessage(error))
+            }
+            if filteredItems.isEmpty {
+                ProfileDestinationEmptyStateCard(
+                    systemImage: "clock.arrow.circlepath",
+                    title: activityLogViewModel.items.isEmpty ? AppStrings.Profile.activityHistoryEmptyTitle : AppStrings.Search.noResultsTitle,
+                    message: activityLogViewModel.items.isEmpty ? AppStrings.Profile.activityHistoryEmptyMessage : ActivityHistoryText.filteredEmpty
+                )
+            } else {
+                LazyVStack(spacing: AppTheme.feedRowSpacing) {
+                    ForEach(filteredItems) { item in
+                        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            activityItemLink(item)
+                            if activityLogViewModel.deletingIDs.contains(item.id) {
+                                ProgressView().controlSize(.small)
+                                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                            } else {
+                                AppGlassIconButton(
+                                    systemImage: "trash",
+                                    accessibilityLabel: AppStrings.Action.delete,
+                                    role: .destructive
+                                ) { itemPendingDeletion = item }
+                                .disabled(activityLogViewModel.isLoading || activityLogViewModel.isMutating)
+                                .accessibilityIdentifier("activityHistory.delete.\(item.id)")
+                            }
                         }
                     }
                 }
@@ -225,16 +274,7 @@ struct ActivityHistoryView: View {
     }
 
     private func activityHistoryErrorMessage(_ error: AppError) -> String {
-        switch error {
-        case .permissionDenied:
-            return AppStrings.Auth.requiredTitle
-        case .network:
-            return AppStrings.News.loadNetworkError
-        case .validationFailed, .notFound:
-            return AppStrings.News.loadValidationError
-        case .unknown:
-            return AppStrings.News.loadUnknownError
-        }
+        error == .network ? ActivityHistoryText.networkError : ActivityHistoryText.loadError
     }
 
     private func activitySort(_ lhs: ActivityLogItem, _ rhs: ActivityLogItem) -> Bool {
@@ -275,9 +315,10 @@ struct ActivityHistoryView: View {
                     onNewsDeleted: { newsViewModel.reload() }
                 )
             } label: {
-                ActivityHistoryRow(item: item, canOpenTarget: true)
+                ActivityHistoryRow(item: item)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("activityHistory.open.\(item.id)")
         case .event:
             NavigationLink {
                 EventDetailView(
@@ -288,23 +329,25 @@ struct ActivityHistoryView: View {
                     }
                 )
             } label: {
-                ActivityHistoryRow(item: item, canOpenTarget: true)
+                ActivityHistoryRow(item: item)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("activityHistory.open.\(item.id)")
         case .organization:
             NavigationLink {
                 OrganizationDetailView(viewModel: organizationsViewModel, organizationID: item.targetId)
             } label: {
-                ActivityHistoryRow(item: item, canOpenTarget: true)
+                ActivityHistoryRow(item: item)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("activityHistory.open.\(item.id)")
         }
     }
 }
 
 private struct ActivityHistoryRow: View {
     let item: ActivityLogItem
-    let canOpenTarget: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var subtitle: String {
         let trimmedSubtitle = item.subtitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
@@ -317,7 +360,8 @@ private struct ActivityHistoryRow: View {
 
     var body: some View {
         AppEditorSectionCard {
-            HStack(alignment: .center, spacing: 12) {
+            let layout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+            layout {
                 ZStack(alignment: .bottomTrailing) {
                     AppFeedThumbnail(
                         imageURL: item.imageURL,
@@ -330,7 +374,8 @@ private struct ActivityHistoryRow: View {
                     )
 
                     Image(systemName: item.actionType.systemImage)
-                        .font(.caption2.weight(.bold))
+                        .font(.system(size: 11, weight: .bold))
+                        .accessibilityHidden(true)
                         .foregroundStyle(item.actionType.tint)
                         .frame(width: 22, height: 22)
                         .background(AppTheme.surfacePrimary, in: Circle())
@@ -342,32 +387,29 @@ private struct ActivityHistoryRow: View {
                     Text(item.actionType.title)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(item.actionType.tint)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     Text(item.title)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Text(subtitle)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
 
                     Label(createdAtText, systemImage: "clock")
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 }
 
                 Spacer(minLength: 0)
 
-                if canOpenTarget {
-                }
             }
         }
-        .opacity(canOpenTarget ? 1 : 0.72)
         .accessibilityElement(children: .combine)
     }
 }

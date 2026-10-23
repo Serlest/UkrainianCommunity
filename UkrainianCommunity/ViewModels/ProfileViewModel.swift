@@ -513,6 +513,7 @@ final class ProfileViewModel: ObservableObject {
 
         do {
             try await repository.deleteAccount(currentUser: currentUser)
+            await ActivityLogRecorder.discardPending(userID: currentUser.id, through: .distantFuture)
             AuthService.shared.purgeLocalAccountState(userID: currentUser.id)
             let didSignOut = await AuthService.shared.completeAccountDeletionSignOut()
             guard didSignOut else {

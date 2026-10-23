@@ -627,16 +627,58 @@ struct ContentInteractionRaceTests {
         repository.news = [makeNewsPost(id: "saved", isBookmarked: true)]
         let news = NewsViewModel(repository: repository)
         let events = MockEventRepository(); let organizations = MockOrganizationRepository()
+        var activity: [ActivityLogItem] = []
         let model = SavedContentViewModel(newsRepository: repository, eventRepository: events, organizationRepository: organizations,
-            newsViewModel: news, eventsViewModel: EventsViewModel(repository: events), organizationsViewModel: OrganizationsViewModel(repository: organizations))
+            newsViewModel: news, eventsViewModel: EventsViewModel(repository: events), organizationsViewModel: OrganizationsViewModel(repository: organizations), recordActivity: { item, userID in
+                #expect(!userID.isEmpty)
+                activity.append(item)
+            })
         model.bind(userID: "test"); await model.refresh()
         let removal = Task { await model.removeUnavailable(.news(SavedContentRecord(id: "saved", savedAt: nil, content: repository.news[0]))) }
         #expect(await eventually { repository.bookmarkRequestCount == 1 })
         await model.refresh()
         repository.completeBookmarkRequest(1)
         await removal.value
+        #expect(activity.count == 1 && activity.first?.actionType == .unsavedNews && activity.first?.targetId == "saved")
         #expect(model.pendingRemovalIDs.isEmpty && model.news.isEmpty)
         #expect(news.posts.first(where: { $0.id == "saved" })?.isBookmarked == false)
+    }
+
+    @Test func failedSavedRemovalDoesNotRecordAnAction() async {
+        let repository = ControlledNewsRepository()
+        let post = makeNewsPost(id: "failed-unsave", isBookmarked: true)
+        repository.news = [post]
+        let events = MockEventRepository(); let organizations = MockOrganizationRepository()
+        var activity: [ActivityLogItem] = []
+        let model = SavedContentViewModel(newsRepository: repository, eventRepository: events, organizationRepository: organizations,
+            newsViewModel: NewsViewModel(repository: repository), eventsViewModel: EventsViewModel(repository: events),
+            organizationsViewModel: OrganizationsViewModel(repository: organizations), recordActivity: { item, userID in
+                #expect(!userID.isEmpty)
+                activity.append(item)
+            })
+        model.bind(userID: "test"); await model.refresh()
+        let removal = Task { await model.removeUnavailable(.news(SavedContentRecord(id: post.id, savedAt: nil, content: post))) }
+        #expect(await eventually { repository.bookmarkRequestCount == 1 })
+        repository.completeBookmarkRequest(1, error: .network)
+        await removal.value
+        #expect(activity.isEmpty && model.news.count == 1 && model.error == .network)
+    }
+
+    @Test func oldSavedRemovalDoesNotRecordForAnotherAccount() async {
+        let repository = ControlledNewsRepository()
+        let post = makeNewsPost(id: "old-unsave", isBookmarked: true)
+        let events = MockEventRepository(); let organizations = MockOrganizationRepository()
+        var activity: [ActivityLogItem] = []
+        let model = SavedContentViewModel(newsRepository: repository, eventRepository: events, organizationRepository: organizations,
+            newsViewModel: NewsViewModel(repository: repository), eventsViewModel: EventsViewModel(repository: events),
+            organizationsViewModel: OrganizationsViewModel(repository: organizations), recordActivity: { item, _ in activity.append(item) })
+        model.bind(userID: "old")
+        let removal = Task { await model.removeUnavailable(.news(SavedContentRecord(id: post.id, savedAt: nil, content: post))) }
+        #expect(await eventually { repository.bookmarkRequestCount == 1 })
+        model.bind(userID: "new")
+        repository.completeBookmarkRequest(1)
+        await removal.value
+        #expect(activity.isEmpty && model.pendingRemovalIDs.isEmpty)
     }
 
     @Test func subscriptionPagesAndRemovalPreserveGeneralOrganizations() async {
@@ -653,13 +695,18 @@ struct ContentInteractionRaceTests {
         }
         let shared = OrganizationsViewModel(repository: repo)
         shared.organizations = [makeOrganization(id: "general-feed")]
-        let model = SubscriptionsViewModel(repository: repo, shared: shared)
+        var activity: [ActivityLogItem] = []
+        let model = SubscriptionsViewModel(repository: repo, shared: shared, recordActivity: { item, userID in
+                #expect(!userID.isEmpty)
+                activity.append(item)
+            })
         model.bind("first"); await model.load()
         #expect(model.records.count == 20 && model.cursor != nil)
         await model.load(append: true)
         #expect(model.records.count == 25 && model.cursor == nil)
         #expect(shared.organizations.contains { $0.id == "general-feed" })
         await model.remove("sub-00")
+        #expect(activity.count == 1 && activity.first?.actionType == .unfollowedOrganization && activity.first?.targetId == "sub-00")
         #expect(!model.records.contains { $0.id == "sub-00" })
         #expect(shared.organizations.first(where: { $0.id == "sub-00" })?.isSubscribed == false)
         model.bind("second")

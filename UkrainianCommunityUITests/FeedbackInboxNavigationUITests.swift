@@ -548,7 +548,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
             ("profile.savedContent", "Збережене"),
             ("profile.followedOrganizations", "Підписки"),
             ("profile.recentViews", "Нещодавно переглянуте"),
-            ("profile.activityHistory", "Історія активності"),
+            ("profile.activityHistory", "Історія моїх дій"),
             ("profile.notifications.open", "Сповіщення"),
             ("profile.settings.open", "Налаштування")
         ]

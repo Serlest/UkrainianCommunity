@@ -1,0 +1,210 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "activityHistory.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verlauf meiner Aktionen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Історія моїх дій"
+          }
+        }
+      }
+    },
+    "activityHistory.search": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktionen durchsuchen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук дій"
+          }
+        }
+      }
+    },
+    "activityHistory.contentType": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhaltstyp"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тип матеріалів"
+          }
+        }
+      }
+    },
+    "activityHistory.savedFilter": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicheraktionen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збереження"
+          }
+        }
+      }
+    },
+    "activityHistory.limit": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die letzten 100 Aktionen: Speichern, Folgen und Anmeldungen. Angesehene Inhalte stehen unter „Kürzlich angesehen“."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Останні 100 дій: збереження, підписки та реєстрації. Переглянуті матеріали — у розділі «Нещодавно переглянуте»."
+          }
+        }
+      }
+    },
+    "activityHistory.filteredEmpty": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keine Aktionen für diese Auswahl. Ändere den Filter oder die Suche."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає дій за цим запитом. Змініть фільтр або пошук."
+          }
+        }
+      }
+    },
+    "activityHistory.networkError": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aktionen konnten nicht geladen werden. Prüfe die Internetverbindung und versuche es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося завантажити історію дій. Перевірте інтернет-з’єднання та спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "activityHistory.loadError": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Aktionen konnten nicht vollständig geladen oder gespeichert werden. Bitte versuche es erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося повністю завантажити або записати історію дій. Спробуйте ще раз."
+          }
+        }
+      }
+    },
+    "activityHistory.clearTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktionsverlauf löschen?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Очистити історію дій?"
+          }
+        }
+      }
+    },
+    "activityHistory.emptyTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hier gibt es noch keine Aktionen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Історія дій поки порожня."
+          }
+        }
+      }
+    },
+    "activityHistory.clearMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur die Einträge werden gelöscht. Gespeicherte Inhalte, Abonnements und Anmeldungen bleiben bestehen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видаляться лише записи історії. Збережені матеріали, підписки та реєстрації залишаться."
+          }
+        }
+      }
+    },
+    "activityHistory.deleteMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nur dieser Eintrag wird gelöscht. Die ausgeführte Aktion wird dadurch nicht rückgängig gemacht."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалиться лише цей запис. Виконана дія не скасується."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
