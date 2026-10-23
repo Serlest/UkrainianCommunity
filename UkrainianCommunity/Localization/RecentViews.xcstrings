@@ -41,7 +41,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Einträge für diese Auswahl. Ändere den Filter oder die Suche."
+            "value": "Keine Einträge für diese Auswahl. Ändern Sie den Filter oder die Suche."
           }
         },
         "uk": {
@@ -58,7 +58,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Verlauf konnte nicht geladen werden. Prüfe die Internetverbindung und versuche es erneut."
+            "value": "Der Verlauf konnte nicht geladen werden. Prüfen Sie die Internetverbindung und versuchen Sie es erneut."
           }
         },
         "uk": {
@@ -75,7 +75,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Der Verlauf konnte nicht aktualisiert werden. Bitte versuche es erneut."
+            "value": "Der Verlauf konnte nicht aktualisiert werden. Bitte versuchen Sie es erneut."
           }
         },
         "uk": {

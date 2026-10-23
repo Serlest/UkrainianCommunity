@@ -92,7 +92,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Keine Aktionen für diese Auswahl. Ändere den Filter oder die Suche."
+            "value": "Keine Aktionen für diese Auswahl. Ändern Sie den Filter oder die Suche."
           }
         },
         "uk": {
@@ -109,7 +109,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Aktionen konnten nicht geladen werden. Prüfe die Internetverbindung und versuche es erneut."
+            "value": "Die Aktionen konnten nicht geladen werden. Prüfen Sie die Internetverbindung und versuchen Sie es erneut."
           }
         },
         "uk": {
@@ -126,7 +126,7 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Aktionen konnten nicht vollständig geladen oder gespeichert werden. Bitte versuche es erneut."
+            "value": "Die Aktionen konnten nicht vollständig geladen oder gespeichert werden. Bitte versuchen Sie es erneut."
           }
         },
         "uk": {
