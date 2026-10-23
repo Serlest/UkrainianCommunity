@@ -44,13 +44,14 @@ async function fixture(t) {
   const review = {scope: "niederoesterreich", evidenceMode: "official", sourceEventDate: "2026-10-16", sourceEventKind: "material_update", materialChange: "The operator now confirms that the active train suspension ended at18:01.", primaryURL: url, primaryCheckedAt: now.toISOString(), primaryOpened: true, primaryPageKind: "article_or_notice", officialAuthorityConfirmed: true,
     practicalEffect: "The previously published train suspension has ended; passengers need the corrected current status.", territoryEvidence: "Both stations are within Niederösterreich.", affectedPeople: "Passengers using Stockerau–Hausleiten.", readerAction: "Check current service in the official SCOTTY planner.", ukDeFactParityConfirmed: true, originalTextConfirmed: true, excludedTopicsAbsent: true,
     image: {tool: "image_gen", generatedForURL: url, generatedAt: now.toISOString(), prompt: "Photorealistic thematic empty Austrian rail platform, no incident detail or logos", sha256: createHash("sha256").update("image").digest("hex"), photorealisticReviewed: true, topicMatchReviewed: true, sourceImageCopied: false}};
-  const config = {baselineManifestPath: join(dir, "old.json"), manifestPath: join(dir, "new.json"), reviewPath: join(dir, "review.json"), planPath: join(dir, "plan.json"), organizationId: "uac-niederoesterreich-info", runId: "test-run", threadId: "test-thread"};
-  await Promise.all([[config.baselineManifestPath,a],[config.manifestPath,b],[config.reviewPath,review]].map(([p,d])=>writeFile(p,JSON.stringify(d))));
+  review.image.generatedAt = "2026-10-10T12:00:00Z"; // Existing reviewed cover may be older than the material update.
+  const config = {baselineManifestPath: join(dir, "old.json"), baselineReviewPath: join(dir, "old-review.json"), manifestPath: join(dir, "new.json"), reviewPath: join(dir, "review.json"), planPath: join(dir, "plan.json"), organizationId: "uac-niederoesterreich-info", runId: "test-run", threadId: "test-thread"};
+  await Promise.all([[config.baselineManifestPath,a],[config.baselineReviewPath,review],[config.manifestPath,b],[config.reviewPath,review]].map(([p,d])=>writeFile(p,JSON.stringify(d))));
   return {config, record: {updateTime: "2026-10-16T15:00:00Z", fields: Object.fromEntries(Object.entries(record(a)).map(([k,v])=>[k,encoded(v)]))}};
 }
 test("live amendment requires matching dry-run, locks and Firestore updateTime precondition", async (t) => {
   const f = await fixture(t); let locked = false; const writes = [];
-  const deps = {now, getAccessToken: async()=>"test", checkLocks: async()=>{locked=true;}, fetchImpl: async(u,o)=>{if(o.method==="PATCH") {writes.push({url:String(u),body:JSON.parse(o.body)}); return Response.json({updateTime:"new"});}return Response.json(f.record);}};
+  const deps = {now, getAccessToken: async()=>"test", checkLocks: async()=>{locked=true;}, readback: async()=>({allVerified:true,coverSHA256:createHash("sha256").update("image").digest("hex")}), fetchImpl: async(u,o)=>{if(o.method==="PATCH") {writes.push({url:String(u),body:JSON.parse(o.body)}); return Response.json({updateTime:"new"});}return Response.json(f.record);}};
   await assert.rejects(amendPublishedNews(f.config,{...deps,apply:true}));
   const dry = await amendPublishedNews(f.config,deps); assert.equal(dry.dryRun,true); assert.equal(writes.length,0);
   await amendPublishedNews(f.config,{...deps,apply:true});assert.equal(locked,true);assert.equal(writes.length,1);
@@ -60,7 +61,7 @@ test("live amendment requires matching dry-run, locks and Firestore updateTime p
 });
 test("concurrent edit or lock rejection stops live write", async(t)=>{
   const f=await fixture(t);let writes=0;
-  const deps={now,getAccessToken:async()=>"test",fetchImpl:async(u,o)=>{if(o.method==="PATCH")writes++;return Response.json(f.record);}};
+  const deps={now,getAccessToken:async()=>"test",readback:async()=>({allVerified:true,coverSHA256:createHash("sha256").update("image").digest("hex")}),fetchImpl:async(u,o)=>{if(o.method==="PATCH")writes++;return Response.json(f.record);}};
   await amendPublishedNews(f.config,deps);
   await assert.rejects(amendPublishedNews(f.config,{...deps,apply:true,checkLocks:async()=>{throw new Error("foreign lock");}}),/foreign lock/);
   f.record.updateTime="2026-10-16T16:20:00Z";

@@ -59,7 +59,7 @@ function substantiveText(value, field, minimum = 30) {
   }
 }
 
-export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
+export function validateNewsEditorialReview(rawItem, review, now = new Date(), {allowRetainedCover = false} = {}) {
   if (!NEWS_SCOPES.includes(review?.scope)) throw new Error("Review needs one news scope.");
   const target = review.scope === "austria" ? "austria" : review.scope;
   const item = normalizeAndValidateManifestItem(rawItem, target);
@@ -158,19 +158,20 @@ export function validateNewsEditorialReview(rawItem, review, now = new Date()) {
     throw new Error("The cover needs generated-image provenance and visual review for this article.");
   }
   substantiveText(image.prompt, "image.prompt", 40);
-  recent(exactTime(image.generatedAt, "image.generatedAt"), now, maxArticleAge, "image.generatedAt");
+  const generatedAt = exactTime(image.generatedAt, "image.generatedAt");
+  if (!allowRetainedCover) recent(generatedAt, now, maxArticleAge, "image.generatedAt");
   return {item, evidenceMode, imageSHA256: image.sha256.toLowerCase(), sourceEventDate: eventDate,
     sourceEventAt: eventAt};
 }
 
-export async function reviewNewsForPublication(manifestPath, reviewPath, now = new Date(), {readArticle = readNewsArticle} = {}) {
+export async function reviewNewsForPublication(manifestPath, reviewPath, now = new Date(), {readArticle = readNewsArticle, allowRetainedCover = false} = {}) {
   const manifestBytes = await readFile(manifestPath);
   const raw = JSON.parse(manifestBytes.toString("utf8"));
   const rawItems = Array.isArray(raw) ? raw : Array.isArray(raw?.items) ? raw.items : [raw];
   if (rawItems.length !== 1) throw new Error("One news article is required per editorial review.");
   const review = JSON.parse(await readFile(reviewPath, "utf8"));
   const {item, evidenceMode, imageSHA256, sourceEventDate, sourceEventAt} =
-    validateNewsEditorialReview(rawItems[0], review, now);
+    validateNewsEditorialReview(rawItems[0], review, now, {allowRetainedCover});
   let primaryReadback = null;
   if (evidenceMode === "editorial") {
     const article = await readArticle(item.canonicalURL);

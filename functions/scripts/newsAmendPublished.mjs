@@ -71,13 +71,25 @@ async function requireOwnedLocks(runId, threadId, now) {
   }
 }
 
-export async function amendPublishedNews(config, {apply = false, fetchImpl = fetch, getAccessToken = contentAutomationAccessToken, checkLocks = requireOwnedLocks, now = new Date()} = {}) {
+export async function amendPublishedNews(config, {apply = false, fetchImpl = fetch, getAccessToken = contentAutomationAccessToken, checkLocks = requireOwnedLocks, readback = readbackPublishedNews, now = new Date()} = {}) {
   const review = await load(config.reviewPath);
   if (review.sourceEventKind !== "material_update") throw new Error("An amendment requires reviewed material_update evidence.");
   const age = now - new Date(review.primaryCheckedAt);
   if (!Number.isFinite(age) || age < -300_000 || age > 600_000) throw new Error("Amendment source must be rechecked within ten minutes.");
-  const editorial = await reviewNewsForPublication(config.manifestPath, config.reviewPath, now);
   const [oldRaw, newRaw] = await Promise.all([load(config.baselineManifestPath).then(one), load(config.manifestPath).then(one)]);
+  const baselineReview = await load(config.baselineReviewPath);
+  if (!baselineReview.image || JSON.stringify(review.image) !== JSON.stringify(baselineReview.image)) {
+    throw new Error("An amendment must retain the exact reviewed cover provenance.");
+  }
+  const retainedCoverSHA256 = hash(await readFile(oldRaw.imagePath));
+  if (retainedCoverSHA256 !== baselineReview.image.sha256) throw new Error("Retained cover file differs from its original reviewed hash.");
+  const baselineReadback = await readback(config.baselineManifestPath, config.organizationId);
+  if (!baselineReadback.allVerified || baselineReadback.coverSHA256 !== retainedCoverSHA256) {
+    throw new Error("Current production does not verify the retained cover baseline.");
+  }
+  // The amendment updates bilingual text only. The exact old cover was verified
+  // against both its original review hash and a fresh production read-back above.
+  const editorial = await reviewNewsForPublication(config.manifestPath, config.reviewPath, now, {allowRetainedCover: true});
   const token = await getAccessToken();
   const id = deterministicContentId("news", config.organizationId, editorial.canonicalURL);
   const url = `https://firestore.googleapis.com/v1/projects/ukrainiancommunity-dbd5f/databases/(default)/documents/news/${id}`;
