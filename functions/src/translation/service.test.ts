@@ -11,6 +11,7 @@ test("translation contract rejects unsupported fields and excessive provider inp
     {kind: "news", texts: ["Текст"], source: "uk", organizationId: "org-123"});
   assert.equal(translationInput({kind:"announcement",texts:["Text"],source:"de"}).source,"de");
   assert.equal(translationInput({kind: "directory", texts: ["Text"], source: "de"}).source, "de");
+  assert.equal(translationInput({kind: "donation", texts: ["Text"], source: "de"}).source, "de");
   for (const input of [{kind:"news",texts:["Text"],source:"de"},{kind:"announcement",texts:["Text"],source:"fr"},null, {kind:"news",texts:[]}, {kind:"profile",texts:["a"]}, {kind:"event",texts:[1]}, {kind:"legal",texts:["a".repeat(100001)]}, {kind:"legal",texts:["a".repeat(60000),"b".repeat(60000)]}, {kind:"news",texts:["a"],organizationId:"bad/id"}, {kind:"legal",texts:["a"],organizationId:"org-123"}]) {
     assert.throws(() => translationInput(input));
   }
@@ -77,6 +78,12 @@ test("translation is authenticated, scoped, bounded and never stores source text
       assert.equal(source,"de"); assert.equal(target,"uk"); assert.deepEqual(texts,["Private draft text"]);
       return ["Переклад"];
     }),{texts:["Переклад"]});
+    await db.doc(`users/${owner}/privateTranslationLimits/daily`).delete();
+    const donation = request(owner,"donation"); donation.data.source = "de";
+    assert.deepEqual(await translateContentHandler(donation, async (_texts, source, target) => {
+      assert.equal(source,"de"); assert.equal(target,"uk"); return ["Підтримати проєкт"];
+    }), {texts:["Підтримати проєкт"]});
+    await assert.rejects(translateContentHandler(request(uid,"donation"),translate), {code:"permission-denied"});
     await db.doc(`users/${uid}/privateTranslationLimits/daily`).set({day:Math.floor(Date.now()/86400000),count:1,chars:150000,lastAt:0});
     await assert.rejects(translateContentHandler(request(uid),translate));
     await db.doc(`users/${uid}/privateTranslationLimits/daily`).delete();

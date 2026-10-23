@@ -2779,6 +2779,12 @@ service cloud.firestore {
         ];
       }
 
+      function validDonationURL(value) {
+        return value.size() <= 2048
+          && value.matches('https://([A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?\\.)+([A-Za-z]{2,63}|xn--[A-Za-z0-9-]{1,58}[A-Za-z0-9])(:443)?([/?#][^\\s]*)?')
+          && value.split('[/?#]')[2].split(':')[0].size() <= 253;
+      }
+
       function validDonationConfigWrite() {
         return isAppOwner()
           && request.resource.data.keys().hasOnly(donationConfigFields())
@@ -2791,16 +2797,24 @@ service cloud.firestore {
           && request.resource.data.titleDE is string
           && request.resource.data.messageDE is string
           && request.resource.data.buttonTitleDE is string
-          && request.resource.data.updatedAt is timestamp
+          && request.resource.data.titleUK.size() <= 120
+          && request.resource.data.titleDE.size() <= 120
+          && request.resource.data.messageUK.size() <= 2000
+          && request.resource.data.messageDE.size() <= 2000
+          && request.resource.data.buttonTitleUK.size() <= 80
+          && request.resource.data.buttonTitleDE.size() <= 80
+          && request.resource.data.updatedAt == request.time
           && request.resource.data.updatedBy == request.auth.uid
-          && (
-            request.resource.data.donationURL == ''
-            || request.resource.data.donationURL.matches('https://.*')
-          )
-          && (
-            request.resource.data.isEnabled == false
-            || request.resource.data.donationURL.matches('https://.+')
-          );
+          && (request.resource.data.donationURL == '' || validDonationURL(request.resource.data.donationURL))
+          && (!request.resource.data.isEnabled || (
+            validDonationURL(request.resource.data.donationURL)
+            && request.resource.data.titleUK.matches('.*[^\\s].*')
+            && request.resource.data.titleDE.matches('.*[^\\s].*')
+            && request.resource.data.messageUK.matches('(?s).*[^\\s].*')
+            && request.resource.data.messageDE.matches('(?s).*[^\\s].*')
+            && request.resource.data.buttonTitleUK.matches('.*[^\\s].*')
+            && request.resource.data.buttonTitleDE.matches('.*[^\\s].*')
+          ));
       }
 
 

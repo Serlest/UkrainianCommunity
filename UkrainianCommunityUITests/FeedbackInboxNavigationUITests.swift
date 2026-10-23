@@ -713,3 +713,55 @@ extension OwnerProfileAuditUITests {
         capture(app, "legal-evidence-summary-de-dark-large")
     }
 }
+
+extension OwnerProfileAuditUITests {
+    @MainActor func testDonationTranslationPreviewAndVisibility() {
+        let app = launch()
+        let entry = app.buttons["profile.owner.donationSettings"]
+        reveal(entry, in: app); entry.tap()
+        let url = app.textFields["donation.edit.url"]
+        reveal(url, in: app); replace(url, with: "https://example.org/support")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        let enabled = app.switches["donation.edit.enabled"]
+        reveal(enabled, in: app); enabled.tap()
+        let language = app.segmentedControls["donation.edit.language"]
+        reveal(language, in: app); language.buttons.element(boundBy: 1).tap()
+        let title = app.textFields["donation.edit.title.de"]
+        reveal(title, in: app); replace(title, with: "Projekt Test")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        let translate = app.buttons["translation.donation"]
+        for _ in 0..<15 {
+            if translate.exists && translate.frame.midY > 200 && translate.frame.maxY < 680 { break }
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.70))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.04, dy: 0.36)), withVelocity: .slow, thenHoldForDuration: 0.3)
+        }
+        XCTAssertLessThan(translate.frame.maxY, 680)
+        translate.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(app.buttons["translation.apply"].waitForExistence(timeout: 8))
+        let confirm = app.switches["translation.confirm"]
+        reveal(confirm, in: app); confirm.tap()
+        let apply = app.buttons["translation.apply"]
+        reveal(apply, in: app); XCTAssertTrue(apply.isEnabled); apply.tap()
+        reveal(language, in: app); language.buttons.element(boundBy: 0).tap()
+        XCTAssertEqual(app.textFields["donation.edit.title.uk"].value as? String, "UK: Projekt Test")
+        let preview = app.segmentedControls["donation.preview.language"]
+        reveal(preview, in: app); preview.buttons.element(boundBy: 1).tap()
+        XCTAssertTrue(app.staticTexts["Показується користувачам"].exists)
+        capture(app, "donation-live-preview-uk")
+        let save = app.buttons["donation.edit.save"]
+        XCTAssertTrue(save.isHittable); XCTAssertTrue(save.isEnabled); save.tap()
+        expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: save)
+        waitForExpectations(timeout: 10)
+        back(app); XCTAssertTrue(entry.waitForExistence(timeout: 5)); entry.tap()
+        reveal(enabled, in: app); XCTAssertEqual(enabled.value as? String, "1")
+    }
+
+    @MainActor func testDonationEditorGermanDarkLargeText() {
+        let app = launch(language: "de", darkLarge: true)
+        let entry = app.buttons["profile.owner.donationSettings"]
+        reveal(entry, in: app); entry.tap()
+        XCTAssertTrue(app.segmentedControls["donation.preview.language"].waitForExistence(timeout: 8))
+        capture(app, "donation-de-dark-large")
+        XCTAssertTrue(app.buttons["donation.edit.save"].isHittable)
+    }
+}

@@ -1,0 +1,246 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "donation_editor.visible": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für Nutzer sichtbar"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показується користувачам"
+          }
+        }
+      }
+    },
+    "donation_editor.hidden": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für Nutzer ausgeblendet"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приховано від користувачів"
+          }
+        }
+      }
+    },
+    "donation_editor.previewLanguage": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprache der Vorschau"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мова попереднього перегляду"
+          }
+        }
+      }
+    },
+    "donation_editor.editLanguage": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Textsprache"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мова тексту"
+          }
+        }
+      }
+    },
+    "donation_editor.checkLink": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link prüfen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевірити посилання"
+          }
+        }
+      }
+    },
+    "donation_editor.linkFailed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Link konnte nicht geöffnet werden."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося відкрити посилання."
+          }
+        }
+      }
+    },
+    "donation_editor.limits": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel: 120 Zeichen · Nachricht: 2.000 · Schaltfläche: 80."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заголовок: 120 символів · повідомлення: 2000 · кнопка: 80."
+          }
+        }
+      }
+    },
+    "donation_editor.missingText": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füllen Sie vor dem Aktivieren alle Texte in beiden Sprachen aus."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перед увімкненням заповніть усі тексти обома мовами."
+          }
+        }
+      }
+    },
+    "donation_editor.conflict": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Einstellungen wurden inzwischen geändert. Ihre Eingaben bleiben erhalten. Laden Sie die aktuelle Fassung, bevor Sie weiter speichern."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштування вже змінено. Ваші правки збережено на екрані. Завантажте актуальну версію перед наступним збереженням."
+          }
+        }
+      }
+    },
+    "donation_editor.unconfirmed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Speicherung konnte nicht bestätigt werden. Laden Sie die Einstellungen erneut, um den Serverstand zu prüfen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося підтвердити збереження. Завантажте налаштування повторно, щоб перевірити стан на сервері."
+          }
+        }
+      }
+    },
+    "donation_editor.reload": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelle Einstellungen laden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити актуальні налаштування"
+          }
+        }
+      }
+    },
+    "donation_editor.reloadTitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelle Einstellungen laden und lokale Änderungen verwerfen?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити актуальні налаштування та відхилити локальні правки?"
+          }
+        }
+      }
+    },
+    "donation_editor.saveAndClose": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speichern und schließen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберегти та закрити"
+          }
+        }
+      }
+    },
+    "donation_editor.fieldRequired": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dieses Feld ist bei aktivierter Unterstützung erforderlich."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Це поле обов’язкове, коли підтримку ввімкнено."
+          }
+        }
+      }
+    },
+    "donation_editor.fieldTooLong": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die zulässige Zeichenanzahl wurde überschritten."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевищено допустиму кількість символів."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

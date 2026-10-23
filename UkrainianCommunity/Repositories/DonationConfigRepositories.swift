@@ -17,8 +17,9 @@ private final class UITestDonationConfigRepository: DonationConfigRepository {
     static let shared = UITestDonationConfigRepository()
     private var config = DonationConfig.defaults
     func fetchDonationConfig() async throws -> DonationConfig? { config }
-    func saveDonationConfig(_ config: DonationConfig, updatedBy userID: String) async throws {
+    func saveDonationConfig(_ config: DonationConfig, updatedBy userID: String) async throws -> DonationConfig {
         self.config = config.normalizedForSaving()
+        return self.config
     }
 }
 #endif

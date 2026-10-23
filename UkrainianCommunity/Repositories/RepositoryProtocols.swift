@@ -60,7 +60,14 @@ extension LegalDocumentRepository {
 
 protocol DonationConfigRepository {
     func fetchDonationConfig() async throws -> DonationConfig?
-    func saveDonationConfig(_ config: DonationConfig, updatedBy userID: String) async throws
+    func listenDonationConfig(onChange: @escaping @MainActor (DonationConfig) -> Void,
+                              onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener?
+    func saveDonationConfig(_ config: DonationConfig, updatedBy userID: String) async throws -> DonationConfig
+}
+
+extension DonationConfigRepository {
+    func listenDonationConfig(onChange: @escaping @MainActor (DonationConfig) -> Void,
+                              onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener? { nil }
 }
 
 protocol NotificationPreferencesRepository {

@@ -13,7 +13,7 @@ const organizationKinds = ["news", "event", "organization"];
 export function translationInput(value: unknown): {kind: string; texts: string[]; source: "uk" | "de"; organizationId?: string} {
   const v = value as {kind?: unknown; texts?: unknown; source?: unknown; organizationId?: unknown} | null;
   if (!v || !["news", "event", "organization", "banner", "donation", "legal", "announcement", "directory"].includes(String(v.kind)) ||
-      (v.source !== undefined && v.source !== "uk" && !(v.source === "de" && ["announcement", "directory", "legal"].includes(String(v.kind)))) ||
+      (v.source !== undefined && v.source !== "uk" && !(v.source === "de" && ["announcement", "directory", "legal", "donation"].includes(String(v.kind)))) ||
       !Array.isArray(v.texts) || v.texts.length < 1 || v.texts.length > 12 ||
       v.texts.some((t) => typeof t !== "string" || !t.trim() || t.length > (v.kind === "legal" ? 100000 : 20000)) ||
       v.texts.reduce((n, t) => n + t.length, 0) > (v.kind === "legal" ? 110000 : 25000) ||
