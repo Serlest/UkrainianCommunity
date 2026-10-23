@@ -7,6 +7,7 @@ import {pathToFileURL} from "node:url";
 import {contentAutomationAccessToken} from "./contentAutomationCredential.mjs";
 import {reviewNewsForPublication} from "./newsEditorialGate.mjs";
 import {readbackPublishedNews} from "./newsProductionReadback.mjs";
+import {convertCoverToCanonicalJPEG} from "./publishVerifiedContent.mjs";
 import {deterministicContentId, normalizeAndValidateManifestItem, EXPECTED_OWNER_ID} from "./verifiedContentPublisherCore.mjs";
 
 const hash = (x) => createHash("sha256").update(x).digest("hex");
@@ -71,7 +72,7 @@ async function requireOwnedLocks(runId, threadId, now) {
   }
 }
 
-export async function amendPublishedNews(config, {apply = false, fetchImpl = fetch, getAccessToken = contentAutomationAccessToken, checkLocks = requireOwnedLocks, readback = readbackPublishedNews, now = new Date()} = {}) {
+export async function amendPublishedNews(config, {apply = false, fetchImpl = fetch, getAccessToken = contentAutomationAccessToken, checkLocks = requireOwnedLocks, readback = readbackPublishedNews, convertCover = convertCoverToCanonicalJPEG, now = new Date()} = {}) {
   const review = await load(config.reviewPath);
   if (review.sourceEventKind !== "material_update") throw new Error("An amendment requires reviewed material_update evidence.");
   const age = now - new Date(review.primaryCheckedAt);
@@ -81,14 +82,16 @@ export async function amendPublishedNews(config, {apply = false, fetchImpl = fet
   if (!baselineReview.image || JSON.stringify(review.image) !== JSON.stringify(baselineReview.image)) {
     throw new Error("An amendment must retain the exact reviewed cover provenance.");
   }
-  const retainedCoverSHA256 = hash(await readFile(oldRaw.imagePath));
-  if (retainedCoverSHA256 !== baselineReview.image.sha256) throw new Error("Retained cover file differs from its original reviewed hash.");
+  const retainedCoverSourceSHA256 = hash(await readFile(oldRaw.imagePath));
+  if (retainedCoverSourceSHA256 !== baselineReview.image.sha256) throw new Error("Retained cover file differs from its original reviewed hash.");
+  const retainedPublishedCover = await convertCover(oldRaw.imagePath);
+  const retainedPublishedCoverSHA256 = hash(retainedPublishedCover.bytes);
   const baselineReadback = await readback(config.baselineManifestPath, config.organizationId);
-  if (!baselineReadback.allVerified || baselineReadback.coverSHA256 !== retainedCoverSHA256) {
-    throw new Error("Current production does not verify the retained cover baseline.");
+  if (!baselineReadback.allVerified || baselineReadback.coverSHA256 !== retainedPublishedCoverSHA256) {
+    throw new Error("Current production cover does not match the canonical conversion of the retained baseline cover.");
   }
-  // The amendment updates bilingual text only. The exact old cover was verified
-  // against both its original review hash and a fresh production read-back above.
+  // Match the publisher's deterministic PNG/WebP-to-JPEG conversion. The
+  // amendment updates bilingual text only; no image is uploaded or replaced.
   const editorial = await reviewNewsForPublication(config.manifestPath, config.reviewPath, now, {allowRetainedCover: true});
   const token = await getAccessToken();
   const id = deterministicContentId("news", config.organizationId, editorial.canonicalURL);

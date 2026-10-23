@@ -51,7 +51,7 @@ async function fixture(t) {
 }
 test("live amendment requires matching dry-run, locks and Firestore updateTime precondition", async (t) => {
   const f = await fixture(t); let locked = false; const writes = [];
-  const deps = {now, getAccessToken: async()=>"test", checkLocks: async()=>{locked=true;}, readback: async()=>({allVerified:true,coverSHA256:createHash("sha256").update("image").digest("hex")}), fetchImpl: async(u,o)=>{if(o.method==="PATCH") {writes.push({url:String(u),body:JSON.parse(o.body)}); return Response.json({updateTime:"new"});}return Response.json(f.record);}};
+  const deps = {now, getAccessToken: async()=>"test", checkLocks: async()=>{locked=true;}, convertCover: async()=>({bytes:Buffer.from("image")}), readback: async()=>({allVerified:true,coverSHA256:createHash("sha256").update("image").digest("hex")}), fetchImpl: async(u,o)=>{if(o.method==="PATCH") {writes.push({url:String(u),body:JSON.parse(o.body)}); return Response.json({updateTime:"new"});}return Response.json(f.record);}};
   await assert.rejects(amendPublishedNews(f.config,{...deps,apply:true}));
   const dry = await amendPublishedNews(f.config,deps); assert.equal(dry.dryRun,true); assert.equal(writes.length,0);
   await amendPublishedNews(f.config,{...deps,apply:true});assert.equal(locked,true);assert.equal(writes.length,1);
@@ -61,7 +61,7 @@ test("live amendment requires matching dry-run, locks and Firestore updateTime p
 });
 test("concurrent edit or lock rejection stops live write", async(t)=>{
   const f=await fixture(t);let writes=0;
-  const deps={now,getAccessToken:async()=>"test",readback:async()=>({allVerified:true,coverSHA256:createHash("sha256").update("image").digest("hex")}),fetchImpl:async(u,o)=>{if(o.method==="PATCH")writes++;return Response.json(f.record);}};
+  const deps={now,getAccessToken:async()=>"test",convertCover:async()=>({bytes:Buffer.from("image")}),readback:async()=>({allVerified:true,coverSHA256:createHash("sha256").update("image").digest("hex")}),fetchImpl:async(u,o)=>{if(o.method==="PATCH")writes++;return Response.json(f.record);}};
   await amendPublishedNews(f.config,deps);
   await assert.rejects(amendPublishedNews(f.config,{...deps,apply:true,checkLocks:async()=>{throw new Error("foreign lock");}}),/foreign lock/);
   f.record.updateTime="2026-10-16T16:20:00Z";
