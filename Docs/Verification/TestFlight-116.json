@@ -31,7 +31,7 @@
   "deployedAnalyticsContractValidation": "passed",
   "signing": "Signed-in Xcode account fallback after API Cloud Signing permission rejection",
   "warnings": [
-    "Prebuilt Firebase gRPC dependency dSYMs absent: absl, grpc, grpcpp, openssl_grpc. Upload succeeded; third-party crash symbolication may be limited."
+    "Prebuilt Firebase gRPC dependency dSYMs absent: FirebaseFirestoreInternal, absl, grpc, grpcpp, openssl_grpc. Upload succeeded; third-party crash symbolication may be limited."
   ],
   "publicAppStoreRelease": false,
   "physicalDeviceAcceptance": "not performed for this binary"
