@@ -52,13 +52,16 @@
     "test:rules:roleContract": "firebase emulators:exec --only firestore \"node --test smoke-tests/roleContractSmoke.test.mjs\"",
     "test:rules:contentPlanning": "firebase emulators:exec --project demo-ukrainian-community-content-planning-rules --only firestore \"node --test smoke-tests/contentPlanningRules.test.mjs\"",
     "test:publication-control:integration": "npm run build && firebase emulators:exec --project demo-uac-publication-control --only firestore \"node --test lib/publicationControl/*.integration.test.js\"",
-    "test:directory:recent": "npm run build && firebase emulators:exec --project demo-uac-directory-recent --only firestore \"node --test lib/directory/directoryRecent*.test.js\""
+    "test:directory:recent": "npm run build && firebase emulators:exec --project demo-uac-directory-recent --only firestore \"node --test lib/directory/directoryRecent*.test.js\"",
+    "events:amend": "node scripts/eventsAmendPublished.mjs"
   },
   "dependencies": {
     "@simplewebauthn/server": "^14.0.3",
     "firebase-admin": "^14.3.0",
     "firebase-functions": "^7.3.2",
-    "markdown-it": "15.0.3"
+    "markdown-it": "15.0.3",
+    "@google-cloud/firestore": "8.7.1",
+    "google-auth-library": "10.7.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
