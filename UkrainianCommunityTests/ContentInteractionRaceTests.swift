@@ -600,6 +600,45 @@ struct ContentInteractionRaceTests {
         #expect(viewModel.organization(for: contentID)?.likeCount == 21)
     }
 
+    @Test func savedRefreshPreservesGeneralFeedAndPagesWithoutDuplicates() async {
+        let repository = ControlledNewsRepository()
+        repository.news = (0..<25).map { makeNewsPost(id: String(format: "saved-%02d", $0), isBookmarked: true) }
+        let news = NewsViewModel(repository: repository)
+        news.posts = [makeNewsPost(id: "feed-only", isBookmarked: true)]
+        let eventsRepository = MockEventRepository()
+        let organizationsRepository = MockOrganizationRepository()
+        let model = SavedContentViewModel(newsRepository: repository, eventRepository: eventsRepository,
+            organizationRepository: organizationsRepository, newsViewModel: news,
+            eventsViewModel: EventsViewModel(repository: eventsRepository),
+            organizationsViewModel: OrganizationsViewModel(repository: organizationsRepository))
+        model.bind(userID: "test")
+        await model.refresh()
+        #expect(model.news.count == 20 && model.hasMore)
+        #expect(news.posts.contains { $0.id == "feed-only" })
+        await model.refresh(append: true)
+        #expect(model.news.count == 25)
+        #expect(Set(model.news.map(\.id)).count == 25)
+        model.bind(userID: "different-account")
+        #expect(model.news.isEmpty && !model.hasMore && model.pendingRemovalIDs.isEmpty)
+    }
+
+    @Test func savedRemovalAndRefreshCannotInvalidatePendingRemoval() async {
+        let repository = ControlledNewsRepository()
+        repository.news = [makeNewsPost(id: "saved", isBookmarked: true)]
+        let news = NewsViewModel(repository: repository)
+        let events = MockEventRepository(); let organizations = MockOrganizationRepository()
+        let model = SavedContentViewModel(newsRepository: repository, eventRepository: events, organizationRepository: organizations,
+            newsViewModel: news, eventsViewModel: EventsViewModel(repository: events), organizationsViewModel: OrganizationsViewModel(repository: organizations))
+        model.bind(userID: "test"); await model.refresh()
+        let removal = Task { await model.removeUnavailable(.news(SavedContentRecord(id: "saved", savedAt: nil, content: repository.news[0]))) }
+        #expect(await eventually { repository.bookmarkRequestCount == 1 })
+        await model.refresh()
+        repository.completeBookmarkRequest(1)
+        await removal.value
+        #expect(model.pendingRemovalIDs.isEmpty && model.news.isEmpty)
+        #expect(news.posts.first(where: { $0.id == "saved" })?.isBookmarked == false)
+    }
+
     private func makeNewsPost(
         id: String,
         authorID: String? = nil,

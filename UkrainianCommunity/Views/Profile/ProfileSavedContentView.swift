@@ -37,7 +37,7 @@ private enum SavedContentSegment: String, CaseIterable, Identifiable {
 
 }
 
-private enum SavedContentItem: Identifiable {
+enum SavedContentItem: Identifiable {
     case news(SavedContentRecord<NewsPost>)
     case event(SavedContentRecord<Event>)
     case organization(SavedContentRecord<Organization>)
@@ -103,7 +103,7 @@ private enum SavedContentItem: Identifiable {
 }
 
 @MainActor
-private final class SavedContentViewModel: ObservableObject {
+final class SavedContentViewModel: ObservableObject {
     @Published private(set) var news: [SavedContentRecord<NewsPost>] = []
     @Published private(set) var events: [SavedContentRecord<Event>] = []
     @Published private(set) var organizations: [SavedContentRecord<Organization>] = []
@@ -117,6 +117,10 @@ private final class SavedContentViewModel: ObservableObject {
     private let newsViewModel: NewsViewModel
     private let eventsViewModel: EventsViewModel
     private let organizationsViewModel: OrganizationsViewModel
+    @Published private(set) var nextNews: String?
+    @Published private(set) var nextEvents: String?
+    @Published private(set) var nextOrganizations: String?
+    var hasMore: Bool { nextNews != nil || nextEvents != nil || nextOrganizations != nil }
     private var userID: String?
     private var generation: UInt = 0
 
@@ -140,6 +144,7 @@ private final class SavedContentViewModel: ObservableObject {
         guard userID != newUserID else { return }
         userID = newUserID
         generation &+= 1
+        nextNews = nil; nextEvents = nil; nextOrganizations = nil
         news = []
         events = []
         organizations = []
@@ -148,28 +153,36 @@ private final class SavedContentViewModel: ObservableObject {
         isLoading = false
     }
 
-    func refresh() async {
-        guard userID != nil, !isLoading else { return }
+    func refresh(append: Bool = false) async {
+        guard userID != nil, !isLoading, pendingRemovalIDs.isEmpty else { return }
         generation &+= 1
         let requestGeneration = generation
         isLoading = true
+        let newsBaseline = Dictionary(newsViewModel.posts.map { ($0.id, $0.isBookmarked) }, uniquingKeysWith: { _, new in new })
+        let eventsBaseline = Dictionary(eventsViewModel.events.map { ($0.id, $0.isBookmarked) }, uniquingKeysWith: { _, new in new })
+        let organizationsBaseline = Dictionary(organizationsViewModel.organizations.map { ($0.id, $0.isBookmarked) }, uniquingKeysWith: { _, new in new })
 
-        async let newsLoad = RefreshRequest.run { [newsRepository] in
-            try await newsRepository.fetchSavedNews()
+        async let newsLoad: SavedContentPage<NewsPost> = RefreshRequest.run { [newsRepository] in
+            if append && self.nextNews == nil { return SavedContentPage(items: [], nextCursor: nil) }
+            return try await newsRepository.fetchSavedNewsPage(limit: 20, after: append ? self.nextNews : nil)
         }
-        async let eventsLoad = RefreshRequest.run { [eventRepository] in
-            try await eventRepository.fetchSavedEvents()
+        async let eventsLoad: SavedContentPage<Event> = RefreshRequest.run { [eventRepository] in
+            if append && self.nextEvents == nil { return SavedContentPage(items: [], nextCursor: nil) }
+            return try await eventRepository.fetchSavedEventsPage(limit: 20, after: append ? self.nextEvents : nil)
         }
-        async let organizationsLoad = RefreshRequest.run { [organizationRepository] in
-            try await organizationRepository.fetchSavedOrganizations()
+        async let organizationsLoad: SavedContentPage<Organization> = RefreshRequest.run { [organizationRepository] in
+            if append && self.nextOrganizations == nil { return SavedContentPage(items: [], nextCursor: nil) }
+            return try await organizationRepository.fetchSavedOrganizationsPage(limit: 20, after: append ? self.nextOrganizations : nil)
         }
         var firstError: AppError?
 
         do {
             let records = try await newsLoad
             guard isCurrent(requestGeneration) else { return }
-            news = records
-            mergeNewsIntoSharedViewModel()
+            let combined = (append ? news : []) + records.items
+            news = Array(Dictionary(combined.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new }).values)
+            nextNews = records.nextCursor
+            mergeNewsIntoSharedViewModel(baseline: newsBaseline)
         } catch is CancellationError {
             finishLoading(requestGeneration)
             return
@@ -180,8 +193,10 @@ private final class SavedContentViewModel: ObservableObject {
         do {
             let records = try await eventsLoad
             guard isCurrent(requestGeneration) else { return }
-            events = records
-            mergeEventsIntoSharedViewModel()
+            let combined = (append ? events : []) + records.items
+            events = Array(Dictionary(combined.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new }).values)
+            nextEvents = records.nextCursor
+            mergeEventsIntoSharedViewModel(baseline: eventsBaseline)
         } catch is CancellationError {
             finishLoading(requestGeneration)
             return
@@ -192,8 +207,10 @@ private final class SavedContentViewModel: ObservableObject {
         do {
             let records = try await organizationsLoad
             guard isCurrent(requestGeneration) else { return }
-            organizations = records
-            mergeOrganizationsIntoSharedViewModel()
+            let combined = (append ? organizations : []) + records.items
+            organizations = Array(Dictionary(combined.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new }).values)
+            nextOrganizations = records.nextCursor
+            mergeOrganizationsIntoSharedViewModel(baseline: organizationsBaseline)
         } catch is CancellationError {
             finishLoading(requestGeneration)
             return
@@ -204,37 +221,46 @@ private final class SavedContentViewModel: ObservableObject {
         guard isCurrent(requestGeneration) else { return }
         error = firstError
         isLoading = false
+        reconcileNews(newsViewModel.posts, pendingIDs: newsViewModel.pendingNewsBookmarkIDs)
+        reconcileEvents(eventsViewModel.events, pendingIDs: eventsViewModel.pendingEventBookmarkIDs)
+        reconcileOrganizations(organizationsViewModel.organizations, pendingIDs: organizationsViewModel.pendingOrganizationBookmarkIDs)
     }
 
     func reconcileNews(_ posts: [NewsPost], pendingIDs: Set<String>) {
+        let byID = Dictionary(posts.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
         news.removeAll { record in
             guard record.content != nil,
+                  !isLoading,
                   !pendingIDs.contains(record.id),
-                  let post = posts.first(where: { $0.id == record.id }) else { return false }
+                  let post = byID[record.id] else { return false }
             return !post.isBookmarked
         }
     }
 
     func reconcileEvents(_ loadedEvents: [Event], pendingIDs: Set<String>) {
+        let byID = Dictionary(loadedEvents.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
         events.removeAll { record in
             guard record.content != nil,
+                  !isLoading,
                   !pendingIDs.contains(record.id),
-                  let event = loadedEvents.first(where: { $0.id == record.id }) else { return false }
+                  let event = byID[record.id] else { return false }
             return !event.isBookmarked
         }
     }
 
     func reconcileOrganizations(_ loadedOrganizations: [Organization], pendingIDs: Set<String>) {
+        let byID = Dictionary(loadedOrganizations.map { ($0.id, $0) }, uniquingKeysWith: { _, new in new })
         organizations.removeAll { record in
             guard record.content != nil,
+                  !isLoading,
                   !pendingIDs.contains(record.id),
-                  let organization = loadedOrganizations.first(where: { $0.id == record.id }) else { return false }
+                  let organization = byID[record.id] else { return false }
             return !organization.isBookmarked
         }
     }
 
     func removeUnavailable(_ item: SavedContentItem) async {
-        guard item.isUnavailable, !pendingRemovalIDs.contains(item.id) else { return }
+        guard userID != nil, !isLoading, !pendingRemovalIDs.contains(item.id) else { return }
         let requestGeneration = generation
         pendingRemovalIDs.insert(item.id)
         error = nil
@@ -264,50 +290,47 @@ private final class SavedContentViewModel: ObservableObject {
     private func removeRecord(_ item: SavedContentItem) {
         switch item {
         case .news:
+            if let index = newsViewModel.posts.firstIndex(where: { $0.id == item.rawID }) { newsViewModel.posts[index].isBookmarked = false }
             news.removeAll { $0.id == item.rawID }
         case .event:
+            if let index = eventsViewModel.events.firstIndex(where: { $0.id == item.rawID }) { eventsViewModel.events[index].isBookmarked = false }
             events.removeAll { $0.id == item.rawID }
         case .organization:
+            if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == item.rawID }) { organizationsViewModel.organizations[index].isBookmarked = false }
             organizations.removeAll { $0.id == item.rawID }
         }
     }
 
-    private func mergeNewsIntoSharedViewModel() {
+    private func mergeNewsIntoSharedViewModel(baseline: [String: Bool]) {
         let resolved = news.compactMap(\.content)
         let visible = newsViewModel.visibilityPolicy.visibleNews(resolved)
-        let savedIDs = Set(resolved.map(\.id))
-        newsViewModel.posts.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
         for post in visible {
             if let index = newsViewModel.posts.firstIndex(where: { $0.id == post.id }) {
-                newsViewModel.posts[index] = post
+                if baseline[newsViewModel.posts[index].id] == newsViewModel.posts[index].isBookmarked { newsViewModel.posts[index].isBookmarked = true }
             } else {
                 newsViewModel.posts.append(post)
             }
         }
     }
 
-    private func mergeEventsIntoSharedViewModel() {
+    private func mergeEventsIntoSharedViewModel(baseline: [String: Bool]) {
         let resolved = events.compactMap(\.content)
         let visible = eventsViewModel.visibilityPolicy.visibleEvents(resolved)
-        let savedIDs = Set(resolved.map(\.id))
-        eventsViewModel.events.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
         for event in visible {
             if let index = eventsViewModel.events.firstIndex(where: { $0.id == event.id }) {
-                eventsViewModel.events[index] = event
+                if baseline[eventsViewModel.events[index].id] == eventsViewModel.events[index].isBookmarked { eventsViewModel.events[index].isBookmarked = true }
             } else {
                 eventsViewModel.events.append(event)
             }
         }
     }
 
-    private func mergeOrganizationsIntoSharedViewModel() {
+    private func mergeOrganizationsIntoSharedViewModel(baseline: [String: Bool]) {
         let resolved = organizations.compactMap(\.content)
         let visible = organizationsViewModel.visibilityPolicy.visibleOrganizations(resolved)
-        let savedIDs = Set(resolved.map(\.id))
-        organizationsViewModel.organizations.removeAll { $0.isBookmarked && !savedIDs.contains($0.id) }
         for organization in visible {
             if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == organization.id }) {
-                organizationsViewModel.organizations[index] = organization
+                if baseline[organizationsViewModel.organizations[index].id] == organizationsViewModel.organizations[index].isBookmarked { organizationsViewModel.organizations[index].isBookmarked = true }
             } else {
                 organizationsViewModel.organizations.append(organization)
             }
@@ -324,7 +347,7 @@ private final class SavedContentViewModel: ObservableObject {
     }
 
     private func appError(from error: Error) -> AppError {
-        (error as? AppError) ?? .unknown
+        FirebaseReadErrorMapper.map(error)
     }
 }
 
@@ -335,6 +358,7 @@ struct SavedContentView: View {
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @StateObject private var viewModel: SavedContentViewModel
     @State private var selectedSegment: SavedContentSegment = .all
+    @State private var searchText = ""
     @State private var sortOption: AppListSortOption = .newest
 
     init(
@@ -400,7 +424,7 @@ struct SavedContentView: View {
     }
 
     private var currentItems: [SavedContentItem] {
-        switch selectedSegment {
+        let items: [SavedContentItem] = switch selectedSegment {
         case .all:
             savedItems
         case .news:
@@ -410,6 +434,8 @@ struct SavedContentView: View {
         case .organizations:
             sortSavedItems(visibleOrganizations.map(SavedContentItem.organization))
         }
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return query.isEmpty ? items : items.filter { $0.title.localizedStandardContains(query) }
     }
 
     var body: some View {
@@ -417,6 +443,11 @@ struct SavedContentView: View {
             title: AppStrings.Profile.savedContent,
             introSubtitle: AppStrings.Profile.savedContentIntro
         ) {
+            TextField(SavedScreenText.search, text: $searchText)
+                .textFieldStyle(.roundedBorder).accessibilityIdentifier("saved.search")
+            if viewModel.hasMore {
+                Text(SavedScreenText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+            }
             AppHorizontalFilterRow {
                 ForEach(SavedContentSegment.allCases) { segment in
                     Button {
@@ -449,6 +480,11 @@ struct SavedContentView: View {
                 removeUnavailable: removeUnavailable,
                 destination: savedItemDestination
             )
+            if viewModel.hasMore {
+                Button(SavedScreenText.more) { Task { await viewModel.refresh(append: true) } }
+                    .disabled(viewModel.isLoading || !viewModel.pendingRemovalIDs.isEmpty)
+                    .accessibilityIdentifier("saved.loadMore")
+            }
         }
         .task(id: authState.user?.id) {
             viewModel.bind(userID: authState.user?.id)
@@ -607,9 +643,21 @@ private struct SavedContentResults<Destination: View>: View {
                             NavigationLink {
                                 destination(item)
                             } label: {
-                                savedItemLabel(item)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    savedItemLabel(item)
+                                    if let date = item.savedAt {
+                                        Text(SavedScreenText.saved + " " + LocalizationStore.dateString(from: date))
+                                            .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                                    }
+                                }
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("saved.open.\(item.id)")
+                            .contextMenu {
+                                Button(AppStrings.Organizations.removeBookmark, role: .destructive) { removeUnavailable(item) }
+                                    .disabled(pendingRemovalIDs.contains(item.id))
+                                    .accessibilityIdentifier("saved.remove.\(item.id)")
+                            }
                         }
                     }
                 }
@@ -632,13 +680,13 @@ private struct SavedContentResults<Destination: View>: View {
     private func savedErrorMessage(_ error: AppError) -> String {
         switch error {
         case .network:
-            AppStrings.News.loadNetworkError
+            SavedScreenText.network
         case .permissionDenied:
-            AppStrings.News.loadPermissionError
+            AppStrings.Errors.permissionDenied
         case .validationFailed, .notFound:
-            AppStrings.News.loadValidationError
+            SavedScreenText.failed
         case .unknown:
-            AppStrings.News.loadUnknownError
+            SavedScreenText.failed
         }
     }
 }
@@ -1027,13 +1075,17 @@ private struct SavedEventCard: View {
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
 
+                    if event.isCancelled {
+                        Text(AppStrings.Events.cancelledNoticeTitle).font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.accentDestructiveForeground)
+                    }
                     Text(event.localizedSummary)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Label(LocalizationStore.dateString(from: event.startDate), systemImage: "clock")
+                    Label(registrationEventScheduleText(for: event), systemImage: "clock")
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)

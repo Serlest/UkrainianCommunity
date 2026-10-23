@@ -478,6 +478,11 @@ struct EventRegistrationMutationResult: Equatable {
 
 /// A private bookmark marker joined only with content that remains publicly readable.
 /// `content == nil` carries no fields from a deleted or hidden target.
+struct SavedContentPage<Content> {
+    let items: [SavedContentRecord<Content>]
+    let nextCursor: String?
+}
+
 struct SavedContentRecord<Content> {
     let id: String
     let savedAt: Date?
@@ -546,6 +551,7 @@ protocol NewsRepository {
     func fetchNews(id: String) async throws -> NewsPost
     func fetchBookmarkedNews() async throws -> [NewsPost]
     func fetchSavedNews() async throws -> [SavedContentRecord<NewsPost>]
+    func fetchSavedNewsPage(limit: Int, after: String?) async throws -> SavedContentPage<NewsPost>
     func fetchNewsPage(limit: Int, after cursor: NewsPageCursor?) async throws -> NewsPage
     func fetchNewsPage(
         limit: Int,
@@ -579,6 +585,7 @@ protocol EventRepository: EventRegistrationMutating {
     func fetchEvents() async throws -> [Event]
     func fetchBookmarkedEvents() async throws -> [Event]
     func fetchSavedEvents() async throws -> [SavedContentRecord<Event>]
+    func fetchSavedEventsPage(limit: Int, after: String?) async throws -> SavedContentPage<Event>
     func fetchEventsPage(limit: Int, after cursor: EventPageCursor?) async throws -> EventPage
     func fetchEventsPage(
         limit: Int,
@@ -696,6 +703,7 @@ protocol OrganizationRepository {
     func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization]
     func fetchBookmarkedOrganizations() async throws -> [Organization]
     func fetchSavedOrganizations() async throws -> [SavedContentRecord<Organization>]
+    func fetchSavedOrganizationsPage(limit: Int, after: String?) async throws -> SavedContentPage<Organization>
     func fetchSubscribedOrganizations() async throws -> [Organization]
     func fetchOrganizationSubscriptions(forceRefresh: Bool) async throws -> [SavedContentRecord<Organization>]
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage
@@ -760,6 +768,12 @@ extension NewsRepository {
 
     func fetchBookmarkedNews() async throws -> [NewsPost] {
         try await fetchNews().filter(\.isBookmarked)
+    }
+
+    func fetchSavedNewsPage(limit: Int, after: String?) async throws -> SavedContentPage<NewsPost> {
+        let records = try await fetchSavedNews().sorted { $0.id < $1.id }.filter { after == nil || $0.id > after! }
+        let items = Array(records.prefix(max(1, min(limit, 50))))
+        return SavedContentPage(items: items, nextCursor: records.count > items.count ? items.last?.id : nil)
     }
 
     func fetchSavedNews() async throws -> [SavedContentRecord<NewsPost>] {
@@ -839,6 +853,12 @@ extension NewsRepository {
 extension EventRepository {
     func fetchBookmarkedEvents() async throws -> [Event] {
         try await fetchEvents().filter(\.isBookmarked)
+    }
+
+    func fetchSavedEventsPage(limit: Int, after: String?) async throws -> SavedContentPage<Event> {
+        let records = try await fetchSavedEvents().sorted { $0.id < $1.id }.filter { after == nil || $0.id > after! }
+        let items = Array(records.prefix(max(1, min(limit, 50))))
+        return SavedContentPage(items: items, nextCursor: records.count > items.count ? items.last?.id : nil)
     }
 
     func fetchSavedEvents() async throws -> [SavedContentRecord<Event>] {
@@ -1018,6 +1038,12 @@ extension OrganizationRepository {
 
     func fetchBookmarkedOrganizations() async throws -> [Organization] {
         try await fetchOrganizations().filter(\.isBookmarked)
+    }
+
+    func fetchSavedOrganizationsPage(limit: Int, after: String?) async throws -> SavedContentPage<Organization> {
+        let records = try await fetchSavedOrganizations().sorted { $0.id < $1.id }.filter { after == nil || $0.id > after! }
+        let items = Array(records.prefix(max(1, min(limit, 50))))
+        return SavedContentPage(items: items, nextCursor: records.count > items.count ? items.last?.id : nil)
     }
 
     func fetchSavedOrganizations() async throws -> [SavedContentRecord<Organization>] {

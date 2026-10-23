@@ -253,6 +253,16 @@ enum MockContentBuilder {
     }
 
     nonisolated static func newsPosts() -> [NewsPost] {
+        var items = baseNewsPosts()
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestSavedContent"] == "1" {
+            for index in items.indices { items[index].isBookmarked = true }
+        }
+        #endif
+        return items
+    }
+
+    nonisolated private static func baseNewsPosts() -> [NewsPost] {
         let organizations = organizations()
 
         return [

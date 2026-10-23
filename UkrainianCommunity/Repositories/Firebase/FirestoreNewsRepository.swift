@@ -58,12 +58,27 @@ struct FirestoreNewsRepository: NewsRepository {
     }
 
     func fetchSavedNews() async throws -> [SavedContentRecord<NewsPost>] {
+        try await loadSavedNews(limit: nil, after: nil)
+    }
+
+    func fetchSavedNewsPage(limit: Int, after: String?) async throws -> SavedContentPage<NewsPost> {
+        let size = max(1, min(limit, 50))
+        do {
+            let records = try await loadSavedNews(limit: size + 1, after: after)
+            let items = Array(records.prefix(size))
+            return SavedContentPage(items: items, nextCursor: records.count > size ? items.last?.id : nil)
+        } catch is CancellationError { throw CancellationError() }
+        catch { throw FirebaseReadErrorMapper.map(error) }
+    }
+
+    private func loadSavedNews(limit: Int?, after: String?) async throws -> [SavedContentRecord<NewsPost>] {
         guard let uid = Auth.auth().currentUser?.uid else { return [] }
-        let markerSnapshot = try await Firestore.firestore()
-            .collection("users")
-            .document(uid)
-            .collection("newsBookmarks")
-            .getDocuments()
+        var markerQuery: Query = Firestore.firestore().collection("users").document(uid)
+            .collection("newsBookmarks").order(by: FieldPath.documentID())
+        if let after { markerQuery = markerQuery.start(after: [after]) }
+        if let limit { markerQuery = markerQuery.limit(to: limit) }
+        let markerSnapshot = try await markerQuery.getDocuments(source: .server)
+        guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
         let markers = markerSnapshot.documents.map { document in
             (
                 id: document.documentID,
@@ -71,7 +86,7 @@ struct FirestoreNewsRepository: NewsRepository {
             )
         }
         let bookmarkedIDs = Set(markers.map { $0.id })
-        await sessionDataCache.storeBookmarkedNewsIDs(bookmarkedIDs, for: uid)
+        if limit == nil { await sessionDataCache.storeBookmarkedNewsIDs(bookmarkedIDs, for: uid) }
         guard !bookmarkedIDs.isEmpty else { return [] }
         let bookmarkedIDList = Array(bookmarkedIDs)
         let likedIDs = try await fetchLikedNewsIDs(for: bookmarkedIDList)
