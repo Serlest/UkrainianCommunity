@@ -1,0 +1,38 @@
+{
+  "verifiedAt": "2026-10-23T21:40:34.564692+00:00",
+  "version": "1.2.1",
+  "build": 116,
+  "sourceCommit": "7645f32d73e6e470eb0f75c88402127f205fcb75",
+  "archive": "build/UkrainianCommunity-116.xcarchive",
+  "archiveSucceeded": true,
+  "uploadSucceeded": true,
+  "processingState": "VALID",
+  "usesNonExemptEncryption": false,
+  "testFlight": {
+    "autoNotifyEnabled": true,
+    "internalBuildState": "IN_BETA_TESTING",
+    "externalBuildState": "IN_BETA_TESTING"
+  },
+  "groups": [
+    {
+      "name": "Beta Tester",
+      "internal": true
+    },
+    {
+      "name": "Tester Serlest EXT",
+      "internal": false
+    }
+  ],
+  "whatToTestLocales": [
+    "uk",
+    "de-DE",
+    "en-US"
+  ],
+  "deployedAnalyticsContractValidation": "passed",
+  "signing": "Signed-in Xcode account fallback after API Cloud Signing permission rejection",
+  "warnings": [
+    "Prebuilt Firebase gRPC dependency dSYMs absent: absl, grpc, grpcpp, openssl_grpc. Upload succeeded; third-party crash symbolication may be limited."
+  ],
+  "publicAppStoreRelease": false,
+  "physicalDeviceAcceptance": "not performed for this binary"
+}
