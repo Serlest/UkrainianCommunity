@@ -153,3 +153,62 @@ struct LegalEvidenceViewModelTests {
         )
     }
 }
+
+extension LegalEvidenceViewModelTests {
+    @Test func searchPagesRemainReachableAndDoNotRepeatAccounts() async {
+        let first = sampleAccount(id: "search-1"), second = sampleAccount(id: "search-2")
+        let cursor = LegalEvidenceAccountCursor(userID: first.id, createdAt: Date(), searchQuery: "philipp")
+        let repository = LegalEvidenceRepositoryStub(pages: [
+            LegalEvidenceAccountPage(accounts: [first], nextCursor: cursor, totalMatches: nil),
+            LegalEvidenceAccountPage(accounts: [first, second], nextCursor: nil, totalMatches: nil),
+        ])
+        let model = LegalEvidenceViewModel(repository: repository)
+        model.searchText = "philipp"
+        await model.load()
+        #expect(model.canLoadMore)
+        await model.load(reset: false)
+        #expect(model.accounts.map(\.id) == [first.id, second.id])
+        #expect(repository.accountRequests.last?.query == "philipp")
+        #expect(repository.accountRequests.last?.cursor == cursor)
+    }
+
+    @Test func historyLoadsFirstPageAndExportsWholeHistoryOnlyOnRequest() async throws {
+        let account = sampleAccount(id: "selected-user")
+        let events = (0..<121).map { index in
+            LegalEvidenceEvent(id: "event-\(index)", userID: account.id, displayName: nil, email: nil,
+                eventType: .termsAccepted, occurredAt: Date(timeIntervalSince1970: Double(index)), version: "2026.13",
+                locale: "de", appVersion: "fixture", source: "legalDocument", contentHash: nil,
+                organizationID: nil, organizationName: nil, sourceRecordID: nil, acceptedFromPlatform: "ios",
+                consentID: nil, purposeVersion: nil, disclosureVersion: nil, disclosureText: nil)
+        }
+        let repository = LegalEvidenceRepositoryStub(events: events)
+        let model = LegalEvidenceUserViewModel(account: account, repository: repository)
+        await model.load()
+        #expect(model.events.count == 50)
+        #expect(model.canLoadMore)
+        #expect(model.exportText == nil)
+        await model.load(reset: false)
+        #expect(model.events.count == 100)
+        await model.prepareExport()
+        let text = try #require(model.exportText)
+        let object = try #require(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any])
+        #expect((object["events"] as? [[String: Any]])?.count == 121)
+        #expect(model.events.count == 100)
+        model.clear()
+        #expect(model.events.isEmpty)
+        #expect(model.exportText == nil)
+    }
+
+    @Test func recordedVersionReaderRejectsAnotherVersionOrHash() async throws {
+        let repository = MockLegalDocumentRepository()
+        let document = try await repository.fetchAuthoritativeActiveDocument(type: .terms)
+        let verified = try await repository.fetchPublishedVersion(type: .terms, version: document.version, expectedHash: document.contentHash)
+        #expect(verified.version == document.version)
+        await #expect(throws: (any Error).self) {
+            _ = try await repository.fetchPublishedVersion(type: .terms, version: "1900.1", expectedHash: document.contentHash)
+        }
+        await #expect(throws: (any Error).self) {
+            _ = try await repository.fetchPublishedVersion(type: .terms, version: document.version, expectedHash: "wrong-hash")
+        }
+    }
+}

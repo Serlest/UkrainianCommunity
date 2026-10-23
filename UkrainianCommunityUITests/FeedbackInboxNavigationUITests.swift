@@ -672,3 +672,44 @@ extension OwnerProfileAuditUITests {
         capture(app, "legal-saved-draft-discarded")
     }
 }
+
+extension OwnerProfileAuditUITests {
+    @MainActor func testLegalEvidencePagingFilterExportAndRecordedVersion() {
+        let app = launch()
+        let entry = app.buttons["profile.owner.legalEvidence"]
+        reveal(entry, in: app); entry.tap()
+        let account = app.buttons["legalEvidence.account.legal-fixture"]
+        XCTAssertTrue(account.waitForExistence(timeout: 8)); account.tap()
+        XCTAssertTrue(app.staticTexts["Зафіксований стан підтверджень"].firstMatch.waitForExistence(timeout: 8))
+        capture(app, "legal-evidence-summary-uk")
+        let reader = app.buttons["legalEvidence.readVersion.fixture-terms"]
+        reveal(reader, in: app); reader.tap()
+        XCTAssertTrue(app.otherElements["screen.legalEvidence.version"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Версію зафіксовано, але первинне підтвердження не містить контрольної суми тексту."].firstMatch.waitForExistence(timeout: 8))
+        capture(app, "legal-evidence-recorded-version")
+        back(app)
+        let prepare = app.buttons["legalEvidence.prepareExport"]
+        reveal(prepare, in: app); prepare.tap()
+        XCTAssertTrue(app.buttons["legalEvidence.export"].waitForExistence(timeout: 10))
+        capture(app, "legal-evidence-export-ready")
+        let filter = app.buttons["legalEvidence.filter"]
+        reveal(filter, in: app); filter.tap()
+        app.buttons["Конфіденційність"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Відповідних підтверджень немає"].firstMatch.waitForExistence(timeout: 8))
+        filter.tap(); app.buttons["Усі"].firstMatch.tap()
+        let more = app.buttons["legalEvidence.loadMore"]
+        reveal(more, in: app); more.tap()
+        XCTAssertTrue(app.staticTexts["Підтверджень: 20"].firstMatch.waitForExistence(timeout: 8))
+        capture(app, "legal-evidence-next-page")
+    }
+
+    @MainActor func testLegalEvidenceGermanDarkLargeText() {
+        let app = launch(language: "de", darkLarge: true)
+        let entry = app.buttons["profile.owner.legalEvidence"]
+        reveal(entry, in: app); entry.tap()
+        let account = app.buttons["legalEvidence.account.legal-fixture"]
+        reveal(account, in: app); account.tap()
+        XCTAssertTrue(app.staticTexts["Erfasster Bestätigungsstand"].firstMatch.waitForExistence(timeout: 8))
+        capture(app, "legal-evidence-summary-de-dark-large")
+    }
+}

@@ -18,6 +18,7 @@ protocol LegalDocumentRepository {
         onError: @escaping @MainActor (Error) -> Void
     ) -> AppRealtimeListener?
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState
+    func fetchPublishedVersion(type: LegalDocumentType, version: String, expectedHash: String?) async throws -> LegalDocument
     func fetchVersionHistory(type: LegalDocumentType, before: Int?) async throws -> LegalVersionPage
     func discardDraft(_ draft: LegalDocumentDraft) async throws
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws
@@ -32,6 +33,12 @@ protocol LegalDocumentRepository {
 }
 
 extension LegalDocumentRepository {
+    func fetchPublishedVersion(type: LegalDocumentType, version: String, expectedHash: String?) async throws -> LegalDocument {
+        let document = try await fetchAuthoritativeActiveDocument(type: type)
+        guard document.version == version, expectedHash == nil || document.contentHash == expectedHash else { throw AppError.notFound }
+        return document
+    }
+
     func fetchVersionHistory(type: LegalDocumentType, before: Int?) async throws -> LegalVersionPage {
         let active = try await fetchAuthoritativeActiveDocument(type: type)
         return LegalVersionPage(documents: before == nil ? [active] : [], nextBefore: nil)

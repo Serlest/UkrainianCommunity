@@ -15,13 +15,14 @@ final class LegalEvidenceViewModel: ObservableObject {
     private let repository: LegalEvidenceRepository
     private var nextCursor: LegalEvidenceAccountCursor?
     private var requestRevision: UInt = 0
+    private var loadedQuery: String?
 
     init(repository: LegalEvidenceRepository) {
         self.repository = repository
     }
 
     var canLoadMore: Bool {
-        normalizedSearch.isEmpty && nextCursor != nil
+        nextCursor != nil
     }
 
     var normalizedSearch: String {
@@ -33,6 +34,7 @@ final class LegalEvidenceViewModel: ObservableObject {
     }
 
     func load(reset: Bool = true) async {
+        if !reset && (!canLoadMore || isLoadingMore || isLoading) { return }
         guard hasSearchMinimumLength else {
             requestRevision &+= 1
             accounts = []
@@ -40,15 +42,17 @@ final class LegalEvidenceViewModel: ObservableObject {
             totalMatches = nil
             errorMessage = nil
             hasLoaded = true
+            isLoading = false; isLoadingMore = false
             return
         }
 
+        if reset && loadedQuery != normalizedSearch { accounts = []; nextCursor = nil; hasLoaded = false }
+        loadedQuery = normalizedSearch
         requestRevision &+= 1
         let revision = requestRevision
         if reset {
-            isLoading = true
+            isLoading = true; isLoadingMore = false
         } else {
-            guard canLoadMore, !isLoadingMore else { return }
             isLoadingMore = true
         }
         defer {
@@ -58,13 +62,15 @@ final class LegalEvidenceViewModel: ObservableObject {
             }
         }
 
+        let query = normalizedSearch.isEmpty ? nil : normalizedSearch
+        let cursor = reset ? nil : nextCursor
         do {
             let page = try await RefreshRequest.run { [self] in try await repository.fetchAccounts(
-                query: normalizedSearch.isEmpty ? nil : normalizedSearch,
+                query: query,
                 limit: 50,
-                cursor: reset ? nil : nextCursor
+                cursor: cursor
             ) }
-            guard revision == requestRevision else { return }
+            guard revision == requestRevision, !Task.isCancelled else { return }
             if reset {
                 accounts = page.accounts
             } else {
@@ -89,14 +95,19 @@ final class LegalEvidenceViewModel: ObservableObject {
 final class LegalEvidenceUserViewModel: ObservableObject {
     @Published private(set) var account: LegalEvidenceAccount
     @Published private(set) var events: [LegalEvidenceEvent] = []
+    @Published private(set) var summary: [LegalEvidenceStatus] = []
     @Published private(set) var isLoading = false
+    @Published private(set) var isLoadingMore = false
+    @Published private(set) var isExporting = false
     @Published private(set) var hasLoaded = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var exportText: String?
     @Published var filter: LegalEvidenceFilter = .all
     @Published var searchText = ""
-
     private var requestRevision: UInt = 0
-    private var history: LegalEvidenceHistory?
+    private var nextCursor: String?
+    private var seenCursors = Set<String>()
+    private var loadedKey: String?
     private let repository: LegalEvidenceRepository
 
     init(account: LegalEvidenceAccount, repository: LegalEvidenceRepository) {
@@ -104,57 +115,70 @@ final class LegalEvidenceUserViewModel: ObservableObject {
         self.repository = repository
     }
 
-    var exportText: String? {
-        guard hasLoaded, !isLoading, errorMessage == nil, let history else { return nil }
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        return (try? encoder.encode(LegalEvidenceExportEnvelope(history: history)))
-            .flatMap { String(data: $0, encoding: .utf8) }
-    }
-
+    var canLoadMore: Bool { nextCursor != nil }
     var filteredEvents: [LegalEvidenceEvent] {
-        events.filter { event in
-            filter.includes(event.eventType) && matchesSearch(event)
-        }
+        guard loadedKey == requestKey else { return [] }
+        return events.filter { filter.includes($0.eventType) }
     }
+    var requestKey: String { filter.rawValue + "|" + searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
 
-    func load() async {
+    func load(reset: Bool = true) async {
+        guard reset || (canLoadMore && !isLoadingMore && !isLoading) else { return }
         requestRevision &+= 1
         let revision = requestRevision
-        isLoading = true
+        if reset {
+            if loadedKey != requestKey { events = []; nextCursor = nil; hasLoaded = false }
+            loadedKey = requestKey
+            isLoading = true; isLoadingMore = false; seenCursors = []
+        } else { isLoadingMore = true }
+        let cursor = reset ? nil : nextCursor
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let selectedFilter = filter
         errorMessage = nil
-        defer {
-            if revision == requestRevision { isLoading = false }
-        }
+        defer { if revision == requestRevision { isLoading = false; isLoadingMore = false } }
         do {
-            let loaded = try await RefreshRequest.run(timeout: .seconds(120)) { [self] in try await repository.fetchEvidence(userID: account.userID) }
-            guard revision == requestRevision else { return }
-            history = loaded
-            account = loaded.account
-            events = loaded.events
+            let page = try await RefreshRequest.run { [self] in
+                try await repository.fetchEvidencePage(userID: account.userID, cursor: cursor, filter: selectedFilter, query: query)
+            }
+            guard revision == requestRevision, !Task.isCancelled else { return }
+            if let next = page.nextCursor, !seenCursors.insert(next).inserted { throw AppError.unknown }
+            account = page.history.account
+            if reset { events = page.history.events; summary = page.history.summary }
+            else {
+                let known = Set(events.map(\.id))
+                events += page.history.events.filter { !known.contains($0.id) }
+            }
+            nextCursor = page.nextCursor
             hasLoaded = true
-        } catch is CancellationError {
-            return
-        } catch {
+        } catch is CancellationError { return }
+        catch {
             guard revision == requestRevision else { return }
             hasLoaded = true
             errorMessage = legalEvidenceErrorMessage(for: error, userDetail: true)
         }
     }
 
-    private func matchesSearch(_ event: LegalEvidenceEvent) -> Bool {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return true }
-        if event.matches(query) { return true }
+    func prepareExport() async {
+        guard !isExporting else { return }
+        let revision = requestRevision
+        isExporting = true; exportText = nil
+        defer { isExporting = false }
+        do {
+            let history = try await RefreshRequest.run(timeout: .seconds(120)) { [self] in
+                try await repository.fetchEvidence(userID: account.userID)
+            }
+            guard revision == requestRevision, !Task.isCancelled else { return }
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            exportText = String(data: try encoder.encode(LegalEvidenceExportEnvelope(history: history)), encoding: .utf8)
+        } catch { if revision == requestRevision { errorMessage = legalEvidenceErrorMessage(for: error, userDetail: true) } }
+    }
 
-        let tokens = query
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-            .split(whereSeparator: \.isWhitespace)
-        let accountIdentity = [account.displayName ?? "", account.email ?? "", account.userID]
-            .joined(separator: " ")
-            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-        return tokens.allSatisfy { accountIdentity.contains($0) }
+    func clear() {
+        requestRevision &+= 1
+        events = []; summary = []; exportText = nil; nextCursor = nil
+        hasLoaded = false; isLoading = false; isLoadingMore = false
     }
 }
 

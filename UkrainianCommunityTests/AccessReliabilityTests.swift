@@ -119,11 +119,12 @@ struct AccessReliabilityTests {
         await model.load()
         model.filter = .privacy
         #expect(model.filteredEvents.isEmpty)
+        await model.prepareExport()
         let json = try #require(model.exportText).data(using: .utf8)!
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let envelope = try decoder.decode(LegalEvidenceExportEnvelope.self, from: json)
-        #expect(envelope.events.count == 501)
+        #expect(envelope.events.count == 502)
     }
 
     @Test func photoCommitWithLostResponseReturnsTheSavedPhotoWithoutDuplicating() async throws {

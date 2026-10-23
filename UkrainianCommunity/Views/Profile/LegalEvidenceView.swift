@@ -5,9 +5,11 @@ struct LegalEvidenceView: View {
     @StateObject private var viewModel: LegalEvidenceViewModel
     @FocusState private var isSearchFocused: Bool
     private let repository: LegalEvidenceRepository
+    private let legalRepository: LegalDocumentRepository
 
-    init(repository: LegalEvidenceRepository = LegalEvidenceRepositories.makeDefault()) {
+    init(repository: LegalEvidenceRepository = LegalEvidenceRepositories.makeDefault(), legalRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository()) {
         self.repository = repository
+        self.legalRepository = legalRepository
         _viewModel = StateObject(wrappedValue: LegalEvidenceViewModel(repository: repository))
     }
 
@@ -74,24 +76,12 @@ struct LegalEvidenceView: View {
     private var noticeCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                Label(AppStrings.LegalEvidence.accountsTitle, systemImage: "person.text.rectangle")
-                    .font(AppTheme.sectionTitleFont)
-                    .foregroundStyle(AppTheme.textPrimary)
+                DisclosureGroup(LegalEvidenceText.about) {
+                    Text(AppStrings.LegalEvidence.accountSearchScopeNotice)
+                    Text(AppStrings.LegalEvidence.immutableNotice)
+                }
+                .font(.footnote).foregroundStyle(AppTheme.textSecondary)
 
-                Text(AppStrings.LegalEvidence.accountListInstruction)
-                    .font(.subheadline)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(AppStrings.LegalEvidence.accountSearchScopeNotice)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(AppStrings.LegalEvidence.immutableNotice)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -138,7 +128,7 @@ struct LegalEvidenceView: View {
             LazyVStack(spacing: AppTheme.eventsListRowSpacing) {
                 ForEach(viewModel.accounts) { account in
                     NavigationLink {
-                        LegalEvidenceUserDetailView(account: account, repository: repository)
+                        LegalEvidenceUserDetailView(account: account, repository: repository, legalRepository: legalRepository)
                     } label: {
                         LegalEvidenceAccountRow(account: account)
                     }
@@ -194,11 +184,6 @@ private struct LegalEvidenceAccountRow: View {
                             .lineLimit(1)
                     }
 
-                    Text(account.userID)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
-
                     if let createdAt = account.createdAt {
                         Label(
                             AppStrings.legalEvidenceAccountCreated(
@@ -220,10 +205,14 @@ private struct LegalEvidenceAccountRow: View {
 }
 
 private struct LegalEvidenceUserDetailView: View {
+    @EnvironmentObject private var authState: AuthState
+    @Environment(\.dismiss) private var dismiss
+    let legalRepository: LegalDocumentRepository
     @StateObject private var viewModel: LegalEvidenceUserViewModel
     @FocusState private var isHistorySearchFocused: Bool
 
-    init(account: LegalEvidenceAccount, repository: LegalEvidenceRepository) {
+    init(account: LegalEvidenceAccount, repository: LegalEvidenceRepository, legalRepository: LegalDocumentRepository) {
+        self.legalRepository = legalRepository
         _viewModel = StateObject(
             wrappedValue: LegalEvidenceUserViewModel(account: account, repository: repository)
         )
@@ -236,17 +225,40 @@ private struct LegalEvidenceUserDetailView: View {
             contentSpacing: AppTheme.feedRowSpacing
         ) {
             accountCard
+            if !viewModel.summary.isEmpty { summaryCard }
             historySearchField
             filterCard
+            Button {
+                Task { await viewModel.prepareExport() }
+            } label: {
+                Label(viewModel.isExporting ? LegalEvidenceText.exporting : LegalEvidenceText.prepareExport, systemImage: "square.and.arrow.down")
+            }.disabled(viewModel.isExporting || viewModel.isLoading)
+            .accessibilityIdentifier("legalEvidence.prepareExport")
             if let export = viewModel.exportText {
                 ShareLink(item: export) {
                     Label(AppStrings.LegalEvidence.exportHistory, systemImage: "square.and.arrow.up")
                 }
                 .accessibilityIdentifier("legalEvidence.export")
             }
+            if let message = viewModel.errorMessage { InlineMessageCard(style: .error, message: message) }
             content
+            if viewModel.canLoadMore {
+                Text(LegalEvidenceText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                PrimaryActionButton(title: LegalEvidenceText.more, loadingTitle: AppStrings.LegalEvidence.loading,
+                    isLoading: viewModel.isLoadingMore, systemImage: "arrow.down.circle") {
+                    Task { await viewModel.load(reset: false) }
+                }.disabled(viewModel.isLoading).accessibilityIdentifier("legalEvidence.loadMore")
+            }
         }
-        .task { await viewModel.load() }
+        .task(id: viewModel.requestKey) {
+            guard PermissionService.isAppOwner(user: authState.user) else { return }
+            if !viewModel.searchText.isEmpty {
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+            }
+            await viewModel.load()
+        }
+        .onChange(of: authState.user?.id) { _, _ in viewModel.clear(); dismiss() }
         .appRefreshable { await viewModel.load() }
         .accessibilityIdentifier("screen.legalEvidence.user")
     }
@@ -265,25 +277,41 @@ private struct LegalEvidenceUserDetailView: View {
                         .textSelection(.enabled)
                 }
 
-                Text(viewModel.account.userID)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .textSelection(.enabled)
+                DisclosureGroup(LegalEvidenceText.details) {
+                    Text(viewModel.account.userID).font(.caption.monospaced()).textSelection(.enabled)
+                    if let createdAt = viewModel.account.createdAt {
+                        Text(AppStrings.legalEvidenceAccountCreated(LocalizationStore.dateString(from: createdAt)))
+                    }
+                    Text(AppStrings.LegalEvidence.currentIdentityNotice)
+                }.font(.footnote).foregroundStyle(AppTheme.textSecondary)
 
-                if let createdAt = viewModel.account.createdAt {
-                    AppInfoChip(
-                        title: AppStrings.legalEvidenceAccountCreated(
-                            LocalizationStore.dateString(from: createdAt, dateStyle: .medium, timeStyle: .short)
-                        ),
-                        systemImage: "calendar"
-                    )
-                }
-
-                Text(AppStrings.LegalEvidence.currentIdentityNotice)
-                    .font(.footnote)
-                    .foregroundStyle(AppTheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+        }
+    }
+
+    private var summaryCard: some View {
+        AppEditorSectionCard {
+            Text(LegalEvidenceText.summary).font(.headline)
+            ForEach(viewModel.summary) { status in
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(status.title).font(.subheadline.weight(.semibold))
+                    Text(statusTitle(status.state)).font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                    if let version = status.version { Text(AppStrings.legalVersionLabel(version)).font(.caption) }
+                    if let date = status.date { Text(LocalizationStore.dateString(from: date)).font(.caption).foregroundStyle(AppTheme.textSecondary) }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if viewModel.summary.isEmpty { Text(LegalEvidenceText.unknown).font(.subheadline).foregroundStyle(AppTheme.textSecondary) }
+        }.accessibilityElement(children: .contain).accessibilityIdentifier("legalEvidence.summary")
+    }
+
+    private func statusTitle(_ state: String) -> String {
+        switch state {
+        case "current": LegalEvidenceText.current
+        case "outdated": LegalEvidenceText.outdated
+        case "confirmed": LegalEvidenceText.confirmed
+        case "granted": LegalEvidenceText.granted
+        case "withdrawn": LegalEvidenceText.withdrawn
+        default: LegalEvidenceText.unknown
         }
     }
 
@@ -327,6 +355,7 @@ private struct LegalEvidenceUserDetailView: View {
                     }
                 }
                 .pickerStyle(.menu)
+                .accessibilityIdentifier("legalEvidence.filter")
             }
         }
     }
@@ -347,23 +376,19 @@ private struct LegalEvidenceUserDetailView: View {
         } else if viewModel.filteredEvents.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "signature",
-                title: viewModel.events.isEmpty ? AppStrings.LegalEvidence.emptyTitle : AppStrings.LegalEvidence.searchEmptyTitle,
-                message: viewModel.events.isEmpty ? AppStrings.LegalEvidence.emptyMessage : AppStrings.LegalEvidence.searchEmptyMessage
+                title: viewModel.filter == .all && viewModel.searchText.isEmpty ? AppStrings.LegalEvidence.emptyTitle : AppStrings.LegalEvidence.searchEmptyTitle,
+                message: viewModel.canLoadMore ? LegalEvidenceText.continueHistory : viewModel.filter == .all && viewModel.searchText.isEmpty ? AppStrings.LegalEvidence.emptyMessage : AppStrings.LegalEvidence.searchEmptyMessage
             )
         } else {
-            if let errorMessage = viewModel.errorMessage {
-                InlineMessageCard(style: .error, message: errorMessage)
-            }
-
             DashboardSectionHeader(
-                title: AppStrings.LegalEvidence.confirmationHistoryTitle,
+                title: LegalEvidenceText.loaded,
                 subtitle: AppStrings.legalEvidenceConfirmationCount(viewModel.filteredEvents.count)
             )
 
 
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 ForEach(viewModel.filteredEvents) { event in
-                    LegalEvidenceEventCard(event: event)
+                    LegalEvidenceEventCard(event: event, legalRepository: legalRepository)
                 }
             }
         }
@@ -372,6 +397,7 @@ private struct LegalEvidenceUserDetailView: View {
 
 private struct LegalEvidenceEventCard: View {
     let event: LegalEvidenceEvent
+    let legalRepository: LegalDocumentRepository
 
     var body: some View {
         AppEditorSectionCard {
@@ -406,19 +432,30 @@ private struct LegalEvidenceEventCard: View {
                         VStack(alignment: .leading, spacing: 8) { evidenceChips }
                     }
 
-                    if let contentHash = event.contentHash {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(AppStrings.LegalEvidence.contentHashLabel)
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(AppTheme.textSecondary)
-                            Text(contentHash)
-                                .font(.caption2.monospaced())
-                                .foregroundStyle(AppTheme.textPrimary)
-                                .textSelection(.enabled)
-                        }
+                    if event.documentType != nil, event.version != nil {
+                        NavigationLink {
+                            LegalEvidenceVersionView(event: event, repository: legalRepository)
+                        } label: { Label(LegalEvidenceText.readVersion, systemImage: "doc.text") }
+                        .accessibilityIdentifier("legalEvidence.readVersion.\(event.id)")
                     }
+                    if event.source == "profileSnapshot" {
+                        Text(LegalEvidenceText.profileNotice).font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                    }
+                    DisclosureGroup(LegalEvidenceText.details) {
+                        if let contentHash = event.contentHash {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(AppStrings.LegalEvidence.contentHashLabel)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(AppTheme.textSecondary)
+                                Text(contentHash)
+                                    .font(.caption2.monospaced())
+                                    .foregroundStyle(AppTheme.textPrimary)
+                                    .textSelection(.enabled)
+                            }
+                        }
 
-                    provenanceDetails
+                        provenanceDetails
+                    }.font(.footnote).foregroundStyle(AppTheme.textSecondary)
                 }
 
                 Spacer(minLength: 0)
@@ -430,6 +467,11 @@ private struct LegalEvidenceEventCard: View {
 
     @ViewBuilder
     private var provenanceDetails: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) { technicalChips }
+            VStack(alignment: .leading, spacing: 8) { technicalChips }
+        }
+
         if let sourceRecordID = event.sourceRecordID {
             evidenceDetail(AppStrings.LegalEvidence.sourceRecordIDLabel, value: sourceRecordID, monospaced: true)
         }
@@ -473,7 +515,10 @@ private struct LegalEvidenceEventCard: View {
         if let version = event.version {
             AppInfoChip(title: AppStrings.legalVersionLabel(version), systemImage: "number")
         }
+    }
 
+    @ViewBuilder
+    private var technicalChips: some View {
         if let locale = event.locale {
             AppInfoChip(title: locale.uppercased(), systemImage: "globe")
         }
@@ -488,6 +533,7 @@ private struct LegalEvidenceEventCard: View {
     private var sourceTitle: String {
         switch event.source {
         case "registration": AppStrings.LegalEvidence.sourceRegistration
+        case "profileSnapshot": LegalEvidenceText.profileSnapshot
         case "legalDocument": AppStrings.LegalEvidence.sourceLegalDocument
         case "analyticsConsent": AppStrings.LegalEvidence.sourceAnalytics
         default: AppStrings.LegalEvidence.sourceServer

@@ -23,6 +23,7 @@ struct LegalEvidenceAccountCursor: Equatable {
     let createdAt: Date
     var seconds: Int64? = nil
     var nanoseconds: Int32? = nil
+    var searchQuery: String? = nil
 }
 
 struct LegalEvidenceAccountPage: Equatable {
@@ -35,6 +36,7 @@ struct LegalEvidenceHistory: Equatable {
     let account: LegalEvidenceAccount
     let events: [LegalEvidenceEvent]
     let generatedAt: Date
+    var summary: [LegalEvidenceStatus] = []
 }
 
 enum LegalEvidenceEventType: String, CaseIterable, Codable, Identifiable {
@@ -223,6 +225,45 @@ enum LegalEvidenceFilter: String, CaseIterable, Identifiable {
         case .age: type == .minimumAgeConfirmed
         case .analytics: type == .analyticsGranted || type == .analyticsWithdrawn
         case .organizations: type == .organizationRulesAccepted
+        }
+    }
+}
+
+struct LegalEvidencePage {
+    let history: LegalEvidenceHistory
+    let nextCursor: String?
+}
+
+struct LegalEvidenceStatus: Codable, Equatable, Identifiable {
+    let kind: String
+    let version: String?
+    let confirmedAt: String?
+    let currentVersion: String?
+    let state: String
+    var id: String { kind }
+    var title: String {
+        switch kind {
+        case "terms": AppStrings.LegalEvidence.filterTerms
+        case "privacy": AppStrings.LegalEvidence.filterPrivacy
+        case "age": AppStrings.LegalEvidence.filterAge
+        default: AppStrings.LegalEvidence.filterAnalytics
+        }
+    }
+    var date: Date? {
+        guard let confirmedAt else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: confirmedAt)
+    }
+}
+
+extension LegalEvidenceEvent {
+    var documentType: LegalDocumentType? {
+        switch eventType {
+        case .termsAccepted: .terms
+        case .privacyAcknowledged: .privacy
+        case .organizationRulesAccepted: .organizationRules
+        default: nil
         }
     }
 }

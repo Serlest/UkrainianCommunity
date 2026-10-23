@@ -670,7 +670,7 @@ struct ProfileView: View {
             LegalDocumentManagementView(repository: legalDocumentRepository)
         case .legalEvidence:
             if PermissionService.isAppOwner(user: permissionUser) {
-                LegalEvidenceView()
+                LegalEvidenceView(legalRepository: legalDocumentRepository)
             }
         case .ownerAnalytics:
             if PermissionService.isAppOwner(user: permissionUser) {

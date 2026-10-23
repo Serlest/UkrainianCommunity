@@ -402,6 +402,7 @@ struct LegalEvidenceAccountCursorFunctionValue: Codable, Equatable {
     let createdAt: String
     var seconds: Int64? = nil
     var nanoseconds: Int32? = nil
+    var searchQuery: String? = nil
 }
 
 struct LegalEvidenceAccountFunctionValue: Codable, Equatable {
@@ -426,10 +427,14 @@ struct LegalEvidenceAccountsFunctionResponse: Codable, Equatable {
 struct LegalEvidenceUserFunctionRequest: Codable, Equatable {
     let userId: String
     var cursor: String? = nil
+    var format: Int? = nil
+    var filter: String? = nil
+    var query: String? = nil
 }
 
 struct LegalEvidenceUserFunctionResponse: Codable, Equatable {
     var nextCursor: String? = nil
+    var summary: [LegalEvidenceStatus]? = nil
     let account: LegalEvidenceAccountFunctionValue
     let events: [LegalEvidenceFunctionEvent]
     let generatedAt: String
@@ -763,8 +768,8 @@ final class CloudFunctionsClient {
         )
     }
 
-    func getLegalEvidencePage(userID: String, cursor: String?) async throws -> LegalEvidenceUserFunctionResponse {
-        try await call(.getLegalEvidencePage, request: LegalEvidenceUserFunctionRequest(userId: userID, cursor: cursor))
+    func getLegalEvidencePage(userID: String, cursor: String?, format: Int? = nil, filter: String? = nil, query: String? = nil) async throws -> LegalEvidenceUserFunctionResponse {
+        try await call(.getLegalEvidencePage, request: LegalEvidenceUserFunctionRequest(userId: userID, cursor: cursor, format: format, filter: filter, query: query))
     }
 
     func getLegalEvidenceForUser(userID: String) async throws -> LegalEvidenceUserFunctionResponse {

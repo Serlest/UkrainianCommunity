@@ -139,6 +139,25 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
         )
     }
 
+    func fetchPublishedVersion(type: LegalDocumentType, version: String, expectedHash: String?) async throws -> LegalDocument {
+        guard !version.isEmpty, !version.contains("/"), version.count <= 64 else { throw AppError.validationFailed }
+        let snapshot = try await versionReference(type: type, version: version).getDocument(source: .server)
+        guard let data = snapshot.data(), data["documentType"] as? String == type.rawValue,
+              data["version"] as? String == version,
+              ["published", "archived"].contains(data["status"] as? String ?? ""),
+              data["versionNumber"] is Int,
+              let storedLocales = data["locales"] as? [String: [String: Any]],
+              ["de", "uk"].allSatisfy({ locale in
+                  storedLocales[locale]?["title"] is String && storedLocales[locale]?["contentMarkdown"] is String
+                      && storedLocales[locale]?["contentHash"] is String
+              }) else { throw AppError.notFound }
+        let document = decodeDocument(type: type, version: version, data: data)
+        guard document.status != .draft, document.version == version,
+              LegalDocumentDraft.hasConsistentVersionIdentifier(document.version, versionNumber: document.versionNumber),
+              Self.hasValidContentHashes(document), expectedHash == nil || document.contentHash == expectedHash else { throw AppError.validationFailed }
+        return document
+    }
+
     func fetchVersionHistory(type: LegalDocumentType, before: Int?) async throws -> LegalVersionPage {
         var query = database.collection("legalDocuments").document(type.rawValue)
             .collection("versions").order(by: "versionNumber", descending: true).limit(to: 21)

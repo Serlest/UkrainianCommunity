@@ -1,0 +1,358 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "legal_evidence_ui.about": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Über diese Nachweise"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Про ці підтвердження"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.details": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Technische Details"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Технічні подробиці"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.summary": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasster Bestätigungsstand"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зафіксований стан підтверджень"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.current": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelle Version bestätigt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чинну версію підтверджено"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.outdated": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Frühere Version bestätigt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтверджено попередню версію"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.unknown": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Nachweis vorhanden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Немає даних про підтвердження"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.confirmed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestätigung erfasst"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтвердження зафіксовано"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.granted": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einwilligung erteilt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Згоду надано"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.withdrawn": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Einwilligung zurückgezogen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Згоду відкликано"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.more": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weitere Einträge laden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити наступні записи"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.partial": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Historie wird seitenweise geladen. Suche und Filter gelten für die gesamte Historie."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Історія завантажується сторінками. Пошук і фільтр діють на всю історію."
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.continue": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Auf dieser Seite gibt es keine Treffer. Weitere Einträge durchsuchen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На цій сторінці збігів немає. Продовжте завантаження історії."
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.prepareExport": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vollständigen Export vorbereiten"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підготувати повний експорт"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.exporting": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vollständige Historie wird geladen…"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажуємо повну історію…"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.profileSnapshot": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestätigungsstand im Profil"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтвердження з профілю"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.profileNotice": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aus dem Profil übernommen. Ein eigenständiger Beleg zu dieser Bestätigung fehlt."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дані з профілю. Окремого запису журналу для цього підтвердження немає."
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.readVersion": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erfasste Dokumentversion ansehen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переглянути зафіксовану версію документа"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.versionUnavailable": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Dokumentversion konnte nicht verifiziert werden. Sie wurde nicht durch die aktuelle Version ersetzt."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося перевірити цю версію документа. Чинний документ замість неї не показується."
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.versionTitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bestätigte Dokumentversion"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підтверджена версія документа"
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.verifiedHash": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dokument stimmt mit dem gespeicherten Nachweis überein."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Документ відповідає збереженому підтвердженню."
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.missingHash": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Version ist gespeichert; der ursprüngliche Nachweis enthält keinen Text-Prüfwert."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Версію зафіксовано, але первинне підтвердження не містить контрольної суми тексту."
+          }
+        }
+      }
+    },
+    "legal_evidence_ui.loaded": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geladene Einträge"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажені записи"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
