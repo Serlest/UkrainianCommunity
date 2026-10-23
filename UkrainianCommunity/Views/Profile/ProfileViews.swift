@@ -570,7 +570,7 @@ struct ProfileView: View {
                 currentUser: displayUser
             )
         case .accountSecurity:
-            AccountSecurityView()
+            AccountSecurityView().id(authState.user?.id)
         case .announcementManagement:
             if PermissionService.isAppOwner(user: displayUser) {
                 AnnouncementOwnerView(repository: announcementCoordinator.repository)
@@ -1435,7 +1435,8 @@ private extension String {
                 feedbackRepository: MockFeedbackRepository(),
                 notificationPreferencesRepository: MockNotificationPreferencesRepository(),
                 notificationPermissionService: MockNotificationPermissionService(),
-                localEventReminderService: MockLocalEventReminderService()
+                localEventReminderService: MockLocalEventReminderService(),
+                notificationRegistrationUpdater: { _, _ in }
             ),
             feedbackRepository: MockFeedbackRepository(),
             newsRepository: MockNewsRepository(),

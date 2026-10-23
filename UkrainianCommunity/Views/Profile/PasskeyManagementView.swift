@@ -1,10 +1,13 @@
 import AuthenticationServices
 import SwiftUI
+import FirebaseAuth
 
 struct PasskeyManagementView: View {
+    let userID: String?
     let isPrivileged: Bool
     let isTOTPAuthenticated: Bool
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var passkeys: [PasskeyRecord] = []
     @State private var passkeyPendingRemoval: PasskeyRecord?
     @State private var isRegistering = false
@@ -33,14 +36,15 @@ struct PasskeyManagementView: View {
                         .accessibilityIdentifier("accountSecurity.passkey.retry")
                 }
                 ForEach(passkeys) { passkey in
-                    HStack(spacing: AppTheme.dashboardSpacing) {
+                    (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: AppTheme.dashboardSpacing))) {
                         Image(systemName: "key.fill")
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
                         Text(passkey.createdAt?.formatted(date: .abbreviated, time: .shortened)
                              ?? AppStrings.AccountSecurity.passkeyTitle)
                             .font(.subheadline)
+                            .fixedSize(horizontal: false, vertical: true)
                             .foregroundStyle(AppTheme.textPrimary)
-                        Spacer()
+                        if !dynamicTypeSize.isAccessibilitySize { Spacer() }
                         if !requiresAuthenticator {
                             Button(role: .destructive) {
                                 passkeyPendingRemoval = passkey
@@ -80,9 +84,7 @@ struct PasskeyManagementView: View {
                 }
             }
         }
-        .task {
-            await reload()
-        }
+        .task(id: userID) { await reload() }
         .alert(item: $passkeyPendingRemoval) { passkey in
             Alert(
                 title: Text(AppStrings.AccountSecurity.passkeyRemove),
@@ -96,43 +98,52 @@ struct PasskeyManagementView: View {
     }
 
     private func reload() async {
-        guard !isLoading else { return }
+        guard !isLoading, Auth.auth().currentUser?.uid == userID else { return }
         isLoading = true
         loadFailed = false
         defer { isLoading = false }
         do {
-            passkeys = try await PasskeyService.shared.listPasskeys()
+            let loaded = try await PasskeyService.shared.listPasskeys(expectedUserID: userID)
+            guard !Task.isCancelled, Auth.auth().currentUser?.uid == userID else { return }
+            passkeys = loaded
             hasLoaded = true
         } catch {
+            guard !Task.isCancelled, Auth.auth().currentUser?.uid == userID else { return }
             loadFailed = true
         }
     }
 
     private func register() {
+        guard Auth.auth().currentUser?.uid == userID, !isRegistering, !isRemoving else { return }
         isRegistering = true
         message = nil
         Task {
             defer { isRegistering = false }
             do {
-                try await PasskeyService.shared.register()
+                try await PasskeyService.shared.register(expectedUserID: userID)
+                guard Auth.auth().currentUser?.uid == userID else { return }
                 await reload()
             } catch {
                 let nsError = error as NSError
                 if nsError.domain == ASAuthorizationError.errorDomain,
                    nsError.code == ASAuthorizationError.canceled.rawValue { return }
+                guard Auth.auth().currentUser?.uid == userID else { return }
                 message = AppStrings.AccountSecurity.passkeyAddFailed
             }
         }
     }
 
     private func remove(_ passkey: PasskeyRecord) async {
+        guard Auth.auth().currentUser?.uid == userID, !isRemoving, !isRegistering else { return }
         isRemoving = true
         message = nil
         defer { isRemoving = false }
         do {
-            try await PasskeyService.shared.remove(passkey)
+            try await PasskeyService.shared.remove(passkey, expectedUserID: userID)
+            guard Auth.auth().currentUser?.uid == userID else { return }
             passkeys.removeAll { $0.id == passkey.id }
         } catch {
+            guard Auth.auth().currentUser?.uid == userID else { return }
             message = AppStrings.AccountSecurity.passkeyRemoveFailed
         }
     }

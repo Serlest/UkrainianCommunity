@@ -651,6 +651,7 @@ protocol EventRepository: EventRegistrationMutating {
     func fetchEvent(id: String) async throws -> Event
     func fetchOrganizationEvents(organizationID: String, limit: Int) async throws -> [Event]
     func fetchRegisteredEvents() async throws -> [Event]
+    func fetchReminderEvents(userID: String) async throws -> [Event]
     func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage
     func fetchPendingEvents() async throws -> [Event]
     func fetchOrganizationModerationEvents(organizationID: String) async throws -> [Event]
@@ -912,6 +913,10 @@ extension EventRepository {
         try await fetchBookmarkedEvents().map {
             SavedContentRecord(id: $0.id, savedAt: nil, content: $0)
         }
+    }
+
+    func fetchReminderEvents(userID: String) async throws -> [Event] {
+        try await fetchRegisteredEvents()
     }
 
     func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage {

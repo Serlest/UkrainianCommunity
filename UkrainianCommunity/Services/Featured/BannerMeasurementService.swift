@@ -18,8 +18,12 @@ final class BannerMeasurementService: ObservableObject {
     @Published private(set) var allowsRegionalMeasurement = false
     @Published private(set) var isBusy = false
     @Published private(set) var hasError = false
+    @Published private(set) var hasLoaded = false
+    var canConfigure: Bool { principalID != nil }
+    private let principalProvider: () -> String?
+    private let backendCall: (String, [String: Any]) async throws -> [String: Any]
+    private var identityGeneration: UInt64 = 0
 
-    private var functions: Functions { Functions.functions(region: "europe-west3") }
     private let defaults: UserDefaults
     private let outbox: BannerMeasurementQueueStore
     private var principalID: String?
@@ -32,9 +36,19 @@ final class BannerMeasurementService: ObservableObject {
     private var authHandle: NSObjectProtocol?
     private var foregroundHandle: NSObjectProtocol?
 
-    init(defaults: UserDefaults = .standard, startsObservers: Bool = true) {
+    init(defaults: UserDefaults = .standard, startsObservers: Bool = true,
+         principalProvider: (() -> String?)? = nil,
+         backendCall: ((String, [String: Any]) async throws -> [String: Any])? = nil) {
         self.defaults = defaults
-        principalID = startsObservers ? Self.verifiedUserID() : nil
+        self.principalProvider = principalProvider ?? Self.verifiedUserID
+        self.backendCall = backendCall ?? { name, payload in
+            let callable = Functions.functions(region: "europe-west3").httpsCallable(name)
+            callable.timeoutInterval = 15
+            let result = try await callable.call(payload)
+            guard let data = result.data as? [String: Any] else { throw AppError.validationFailed }
+            return data
+        }
+        principalID = self.principalProvider()
         outbox = BannerMeasurementQueueStore(
             defaults: defaults, principalID: principalID, loadExisting: startsObservers
         )
@@ -84,28 +98,35 @@ final class BannerMeasurementService: ObservableObject {
         guard let principalID, !isBusy else { return }
         stateGeneration &+= 1
         let generation = stateGeneration
+        isBusy = true
+        defer { if stateGeneration == generation { isBusy = false } }
         if let withdrawalID = pendingWithdrawal(for: principalID) {
-            guard await sendChoice(enabled: false, consentID: withdrawalID, principalID: principalID) else { return }
+            guard await sendChoice(enabled: false, consentID: withdrawalID, principalID: principalID, generation: generation) else { return }
             setPendingWithdrawal(nil, for: principalID)
         }
         do {
-            let result = try await functions.httpsCallable("getBannerMeasurementConsent").call()
-            guard self.principalID == principalID, stateGeneration == generation,
-                  let data = result.data as? [String: Any] else { return }
-            isAvailable = data["available"] as? Bool == true
+            let data = try await backendCall("getBannerMeasurementConsent", [:])
+            guard self.principalID == principalID, stateGeneration == generation else { return }
+            guard let available = data["available"] as? Bool, let enabled = data["enabled"] as? Bool else {
+                throw AppError.validationFailed
+            }
             let grantedID = data["consentID"] as? String
-            isEnabled = isAvailable && data["enabled"] as? Bool == true && grantedID != nil
+            guard !enabled || (available && grantedID?.isEmpty == false) else { throw AppError.validationFailed }
+            hasLoaded = true
+            isAvailable = available
+            isEnabled = available && enabled
             consentID = isEnabled ? grantedID : nil
             allowsRegionalMeasurement = isEnabled && data["allowsRegion"] as? Bool == true
             if !isEnabled { outbox.removeAll() }
             hasError = false
             retryAfter = nil
-            if isEnabled { await deliverPending() }
+            if isEnabled { Task { await deliverPending() } }
         } catch {
             // No cached grant: a failed server read cannot silently enable collection.
             guard self.principalID == principalID, stateGeneration == generation else { return }
             isEnabled = false
             consentID = nil
+            allowsRegionalMeasurement = false
             hasError = true
         }
     }
@@ -119,8 +140,8 @@ final class BannerMeasurementService: ObservableObject {
             guard isAvailable, !isEnabled, pendingWithdrawal(for: principalID) == nil else { return }
             let proposedID = UUID().uuidString.lowercased()
             isBusy = true
-            defer { isBusy = false }
-            if await sendChoice(enabled: true, consentID: proposedID, principalID: principalID) {
+            defer { if stateGeneration == generation { isBusy = false } }
+            if await sendChoice(enabled: true, consentID: proposedID, principalID: principalID, generation: generation) {
                 guard self.principalID == principalID, stateGeneration == generation else { return }
                 consentID = proposedID
                 isEnabled = true
@@ -138,15 +159,15 @@ final class BannerMeasurementService: ObservableObject {
             outbox.removeAll()
             setPendingWithdrawal(consentID, for: principalID)
             isBusy = true
-            defer { isBusy = false }
-            if await sendChoice(enabled: false, consentID: consentID, principalID: principalID) {
+            defer { if stateGeneration == generation { isBusy = false } }
+            if await sendChoice(enabled: false, consentID: consentID, principalID: principalID, generation: generation) {
                 setPendingWithdrawal(nil, for: principalID)
                 hasError = false
             }
         }
     }
 
-    private func sendChoice(enabled: Bool, consentID: String, principalID: String) async -> Bool {
+    private func sendChoice(enabled: Bool, consentID: String, principalID: String, generation: UInt64) async -> Bool {
         do {
             let payload: [String: Any] = [
                 "enabled": enabled, "consentID": consentID,
@@ -154,14 +175,15 @@ final class BannerMeasurementService: ObservableObject {
                 "privacyVersion": Self.privacyVersion,
                 "disclosureVersion": Self.disclosureVersion,
             ]
-            let result = try await functions.httpsCallable("updateBannerMeasurementConsent").call(payload)
-            guard self.principalID == principalID,
-                  let data = result.data as? [String: Any],
-                  data["enabled"] as? Bool == enabled,
-                  data["consentID"] as? String == consentID else { return false }
+            let data = try await backendCall("updateBannerMeasurementConsent", payload)
+            guard self.principalID == principalID, stateGeneration == generation else { return false }
+            guard data["enabled"] as? Bool == enabled, data["consentID"] as? String == consentID else {
+                hasError = true
+                return false
+            }
             return true
         } catch {
-            if self.principalID == principalID { hasError = true }
+            if self.principalID == principalID && stateGeneration == generation { hasError = true }
             return false
         }
     }
@@ -183,10 +205,11 @@ final class BannerMeasurementService: ObservableObject {
                 outbox.removeFirst(); continue
             }
             do {
-                _ = try await functions.httpsCallable("recordBannerMeasurement").call(event.payload)
+                _ = try await backendCall("recordBannerMeasurement", event.payload)
                 guard self.principalID == principalID, self.consentID == consentID else { return }
                 outbox.removeFirst()
             } catch {
+                guard self.principalID == principalID, self.consentID == consentID else { return }
                 // Keep the same event ID for retry; the server receipt prevents
                 // a double count if the acknowledgement was lost.
                 let failure = error as NSError
@@ -229,23 +252,31 @@ final class BannerMeasurementService: ObservableObject {
 
     func renewRegionalConsent() async {
         // The updated disclosure is shown before this method is called.
+        let identity = identityGeneration
+        let userID = principalID
         if isEnabled {
             await setEnabled(false)
-            guard !hasError else { return }
+            guard !hasError, identityGeneration == identity, principalID == userID else { return }
         }
+        guard identityGeneration == identity, principalID == userID else { return }
         await setEnabled(true)
     }
 
     private func refreshIdentityIfNeeded() {
-        let current = Self.verifiedUserID()
+        let current = principalProvider()
         guard principalID != current else { return }
         refreshIdentity()
     }
 
     private func refreshIdentity() {
-        let current = Self.verifiedUserID()
+        let current = principalProvider()
         guard principalID != current else { return }
         stateGeneration &+= 1
+        identityGeneration &+= 1
+        isBusy = false
+        hasError = false
+        hasLoaded = false
+        retryAfter = nil
         retryTask?.cancel()
         allowsRegionalMeasurement = false
         principalID = current

@@ -22,6 +22,9 @@ struct AppContainer {
     let ownerAnalyticsRepository: OwnerAnalyticsRepository
     let analyticsService: AnalyticsTracking
     let bannerMeasurementService: BannerMeasurementService
+    var updateNotificationRegistration: (String, Bool) -> Void = { id, enabled in
+        RemoteNotificationRegistrationService.shared.configureUser(id, notificationsEnabled: enabled)
+    }
 
     /// Production dependency graph. Preview and UI-test code must use `uiTesting`.
     static var live: AppContainer {
@@ -71,7 +74,8 @@ struct AppContainer {
             legalDocumentRepository: MockLegalDocumentRepository(),
             ownerAnalyticsRepository: MockOwnerAnalyticsRepository(),
             analyticsService: NoopAnalyticsService(),
-            bannerMeasurementService: BannerMeasurementService(startsObservers: false)
+            bannerMeasurementService: MockContentBuilder.settingsBannerConsentFixture() ?? BannerMeasurementService(startsObservers: false),
+            updateNotificationRegistration: { _, _ in }
         )
     }
 }

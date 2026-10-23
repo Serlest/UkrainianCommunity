@@ -41,6 +41,7 @@ struct NotificationSettingsSectionView: View {
                             }
                         )
                     )
+                    .accessibilityIdentifier("notifications.enabled")
                     .disabled(viewModel.isSavingNotificationPreferences || viewModel.isLoadingNotificationPreferences)
 
                     if viewModel.notificationPreferences.notificationsEnabled,
@@ -68,6 +69,7 @@ struct NotificationSettingsSectionView: View {
                             }
                         )
                     )
+                    .accessibilityIdentifier("notifications.reminders")
                     .disabled(
                         !viewModel.notificationPreferences.notificationsEnabled
                             || viewModel.isSavingNotificationPreferences

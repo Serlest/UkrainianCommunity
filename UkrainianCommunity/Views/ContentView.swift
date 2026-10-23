@@ -89,7 +89,8 @@ struct ContentView: View {
             notificationPreferencesRepository: container.notificationPreferencesRepository,
             notificationPermissionService: container.notificationPermissionService,
             localEventReminderService: container.localEventReminderService,
-            eventRepository: container.eventRepository
+            eventRepository: container.eventRepository,
+            notificationRegistrationUpdater: container.updateNotificationRegistration
         ))
         _notificationInboxViewModel = StateObject(wrappedValue: NotificationInboxViewModel(
             repository: container.notificationInboxRepository,

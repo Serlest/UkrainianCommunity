@@ -20,6 +20,7 @@ struct ProfileSettingsPickerRow<PickerContent: View>: View {
                 VStack(alignment: .leading, spacing: 10) {
                     label
                     picker
+                        .tint(AppTheme.accentPrimaryForeground)
                         .controlSize(.regular)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
@@ -28,6 +29,7 @@ struct ProfileSettingsPickerRow<PickerContent: View>: View {
                     label
                     Spacer(minLength: 8)
                     picker.controlSize(.small)
+                        .tint(AppTheme.accentPrimaryForeground)
                 }
             }
         }
@@ -51,7 +53,7 @@ struct ProfileSettingsPickerRow<PickerContent: View>: View {
                 Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     .fixedSize(horizontal: false, vertical: true)
             }
 

@@ -287,6 +287,31 @@ struct FirestoreEventRepository: EventRepository {
             .filter(\.isOrganizationEvent)
     }
 
+    /// Reminder scheduling needs event timing, not likes or bookmarks.
+    func fetchReminderEvents(userID: String) async throws -> [Event] {
+        func validateSession() throws {
+            guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        }
+        try validateSession()
+        let registrations = try await registrationsCollection.whereField("userId", isEqualTo: userID)
+            .getDocuments()
+        try validateSession()
+        let ids = Set(registrations.documents.compactMap { $0.data()["eventId"] as? String })
+        var events: [Event] = []
+        for chunk in Array(ids).chunked(into: 10) {
+            try validateSession()
+            let snapshot = try await collection.whereField(FieldPath.documentID(), in: Array(chunk)).getDocuments()
+            try validateSession()
+            for document in snapshot.documents {
+                let event = try Event(dto: makeEventDTO(from: document, likedEventIDs: [],
+                                                        registeredEventIDs: ids, bookmarkedEventIDs: []))
+                if event.isOrganizationEvent && event.moderationStatus == .approved && !event.isCancelled,
+                   event.nextOccurrence() != nil { events.append(event) }
+            }
+        }
+        return events.sorted { $0.startDate < $1.startDate }
+    }
+
     func fetchRegisteredEvents() async throws -> [Event] {
         guard Auth.auth().currentUser?.uid != nil else {
             throw AppError.permissionDenied

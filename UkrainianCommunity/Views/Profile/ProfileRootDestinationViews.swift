@@ -33,6 +33,7 @@ struct ProfilePreferencesView: View {
                             }
                         }
                         .labelsHidden()
+                        .pickerStyle(.menu)
                         .id(locale.identifier)
                         .accessibilityIdentifier("profile.settings.language")
                     }
@@ -48,8 +49,15 @@ struct ProfilePreferencesView: View {
                             }
                         }
                         .labelsHidden()
+                        .pickerStyle(.menu)
+                        .accessibilityIdentifier("profile.settings.appearance")
                     }
 
+                }
+            }
+
+            ProfileSectionCard(title: SettingsPrivacyText.privacyTitle) {
+                VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                     ProfileSettingsToggleRow(
                         title: AppStrings.Profile.analyticsCollectionTitle,
                         subtitle: analyticsService.isCollectionAvailable
@@ -75,7 +83,7 @@ struct ProfilePreferencesView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .font(.footnote.weight(.semibold))
-                    .tint(AppTheme.primaryBlue)
+                    .tint(AppTheme.accentPrimaryForeground)
 
                     if analyticsConsentWasRejected || analyticsService.hasConsentSyncFailure {
                         InlineMessageCard(
@@ -96,10 +104,14 @@ struct ProfilePreferencesView: View {
                             Label(AppStrings.Action.retry, systemImage: "arrow.clockwise")
                         }
                         .buttonStyle(.bordered)
+                        .tint(AppTheme.accentPrimaryForeground)
                         .accessibilityIdentifier("profile.settings.analyticsConsent.retry")
                     }
 
-                    if bannerMeasurementService.isAvailable {
+                    if currentUser != nil {
+                        if bannerMeasurementService.canConfigure && !bannerMeasurementService.hasLoaded && !bannerMeasurementService.hasError {
+                            ProgressView().accessibilityLabel(AppStrings.Common.loading)
+                        }
                         ProfileSettingsToggleRow(
                             title: AppStrings.Profile.bannerMeasurementTitle,
                             subtitle: AppStrings.Profile.bannerMeasurementSubtitle,
@@ -115,27 +127,33 @@ struct ProfilePreferencesView: View {
                                 }
                             )
                         )
-                        .disabled(bannerMeasurementService.isBusy)
+                        .disabled(bannerMeasurementService.isBusy || !bannerMeasurementService.isAvailable)
                         .accessibilityIdentifier("profile.settings.bannerMeasurementConsent")
 
                         if bannerMeasurementService.isEnabled && !bannerMeasurementService.allowsRegionalMeasurement {
                             Button(AppStrings.BannerReport.renewConsent) { isShowingBannerConsent = true }
                                 .buttonStyle(.bordered)
+                                .tint(AppTheme.accentPrimaryForeground)
                         }
                         if bannerMeasurementService.hasError {
                             InlineMessageCard(style: .error, message: AppStrings.Profile.bannerMeasurementError)
+                                .accessibilityIdentifier("profile.settings.bannerMeasurement.error")
                             Button(AppStrings.Action.retry) {
                                 Task { await bannerMeasurementService.refresh() }
                             }
                             .buttonStyle(.bordered)
+                            .tint(AppTheme.accentPrimaryForeground)
+                            .disabled(bannerMeasurementService.isBusy)
+                            .accessibilityIdentifier("profile.settings.bannerMeasurement.retry")
+                        } else if !bannerMeasurementService.canConfigure || (bannerMeasurementService.hasLoaded && !bannerMeasurementService.isAvailable) {
+                            Text(SettingsPrivacyText.bannerUnavailable)
+                                .font(.footnote).foregroundStyle(AppTheme.textSecondary)
                         }
                     }
                 }
             }
 
             if let currentUser {
-                BiometricLockSettingsSection(lock: authState.appLock)
-
                 NotificationSettingsSectionView(
                     viewModel: viewModel,
                     userID: currentUser.id,
@@ -167,31 +185,42 @@ struct ProfilePreferencesView: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("profile.settings.accountSecurity")
 
-                        if PermissionService.canAccessBlockedUsersSettings(user: currentUser) {
-                            NavigationLink(value: ProfileNavigationRoute.blockedOrganizations) {
-                                ProfileModuleRow(
-                                    title: AppStrings.Safety.blockedOrganizationsTitle,
-                                    subtitle: AppStrings.Safety.blockedOrganizationsExplanation,
-                                    systemImage: "building.2", status: .available
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("profile.settings.blockedOrganizations")
-                            NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
-                                ProfileModuleRow(
-                                    title: AppStrings.Safety.blockedUsersTitle,
-                                    subtitle: AppStrings.Safety.blockedUsersSubtitle,
-                                    systemImage: "person.slash",
-                                    status: .available,
-                                    countBadge: userBlockingCoordinator.blockedUsers.count
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("profile.settings.blockedUsers")
-                        }
+
                     }
                 }
             }
+
+            if currentUser != nil {
+                BiometricLockSettingsSection(lock: authState.appLock)
+            }
+
+            if PermissionService.canAccessBlockedUsersSettings(user: currentUser) {
+                ProfileSectionCard(title: SettingsPrivacyText.hiddenContentTitle) {
+                    VStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        NavigationLink(value: ProfileNavigationRoute.blockedOrganizations) {
+                            ProfileModuleRow(
+                                title: AppStrings.Safety.blockedOrganizationsTitle,
+                                subtitle: AppStrings.Safety.blockedOrganizationsExplanation,
+                                systemImage: "building.2", status: .available
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.settings.blockedOrganizations")
+                        NavigationLink(value: ProfileNavigationRoute.blockedUsers) {
+                            ProfileModuleRow(
+                                title: AppStrings.Safety.blockedUsersTitle,
+                                subtitle: AppStrings.Safety.blockedUsersSubtitle,
+                                systemImage: "person.slash",
+                                status: .available,
+                                countBadge: userBlockingCoordinator.blockedUsers.count
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("profile.settings.blockedUsers")
+                    }
+                }
+            }
+
 
             ProfileSectionCard(
                 title: AppStrings.Settings.legalSection,
@@ -252,7 +281,13 @@ struct ProfilePreferencesView: View {
                 }
             }
         }
+        .tint(AppTheme.accentPrimaryForeground)
         .accessibilityIdentifier("screen.profile.preferences")
+        .onChange(of: currentUser?.id) { _, _ in
+            accountDeletionCandidate = nil
+            isShowingBannerConsent = false
+            analyticsConsentWasRejected = false
+        }
         .sheet(isPresented: $isShowingBannerConsent) {
             BannerMeasurementConsentSheet {
                 Task { await bannerMeasurementService.renewRegionalConsent() }

@@ -134,10 +134,16 @@ final class AccountSecurityViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private let multiFactorService: AuthMultiFactorService
+    private var generation = 0
+    private var expectedUserID: String?
+    private let currentPrincipal: () -> String?
     private let loadFactors: () async throws -> [AuthMultiFactorFactor]
 
     init(multiFactorService: AuthMultiFactorService,
-         loadFactors: (() async throws -> [AuthMultiFactorFactor])? = nil) {
+         loadFactors: (() async throws -> [AuthMultiFactorFactor])? = nil,
+         currentPrincipal: (() -> String?)? = nil) {
+        self.currentPrincipal = currentPrincipal ?? { AuthService.shared.authState.user?.id }
+        self.expectedUserID = self.currentPrincipal()
         self.multiFactorService = multiFactorService
         self.loadFactors = loadFactors ?? { try await multiFactorService.enrolledTOTPFactors() }
     }
@@ -146,74 +152,125 @@ final class AccountSecurityViewModel: ObservableObject {
         self.init(multiFactorService: .shared)
     }
 
+    func configure(userID: String?) {
+        guard expectedUserID != userID else { return }
+        generation += 1
+        expectedUserID = userID
+        factors = []
+        hasLoadedFactors = false
+        isLoading = false
+        isStartingEnrollment = false
+        isConfirmingEnrollment = false
+        removingFactorID = nil
+        enrollmentSession = nil
+        isSessionTOTPAuthenticated = false
+        isSessionPasskeyAuthenticated = false
+        isActivatingRequirement = false
+        message = nil
+        errorMessage = nil
+    }
+
+    private func isCurrent(_ request: Int) -> Bool {
+        generation == request && currentPrincipal() == expectedUserID && !Task.isCancelled
+    }
+
+    private var isMutating: Bool {
+        isStartingEnrollment || isConfirmingEnrollment || removingFactorID != nil || isActivatingRequirement
+    }
+
     func load() async {
+        guard isCurrent(generation) else { return }
+        let request = generation
         guard !isLoading else { return }
         isLoading = true
         hasLoadedFactors = false
         errorMessage = nil
-        defer { isLoading = false }
+        defer { if generation == request { isLoading = false } }
 
         do {
-            factors = try await loadFactors()
+            let loaded = try await loadFactors()
+            guard isCurrent(request) else { return }
+            factors = loaded
             hasLoadedFactors = true
         } catch {
+            guard isCurrent(request) else { return }
             errorMessage = AppStrings.AccountSecurity.loadFailed
         }
     }
 
     func refreshSessionAuthentication() async {
+        guard isCurrent(generation) else { return }
+        let request = generation
         do {
-            isSessionTOTPAuthenticated = try await multiFactorService
-                .isCurrentSessionTOTPAuthenticated()
-            isSessionPasskeyAuthenticated = try await multiFactorService
-                .isCurrentSessionPasskeyAuthenticated()
+            let totp = try await multiFactorService.isCurrentSessionTOTPAuthenticated()
+            guard isCurrent(request) else { return }
+            let passkey = try await multiFactorService.isCurrentSessionPasskeyAuthenticated()
+            guard isCurrent(request) else { return }
+            isSessionTOTPAuthenticated = totp
+            isSessionPasskeyAuthenticated = passkey
         } catch {
+            guard isCurrent(request) else { return }
             isSessionTOTPAuthenticated = false
             isSessionPasskeyAuthenticated = false
         }
     }
 
     func sendPasswordChangeLink(email: String) async {
+        guard isCurrent(generation) else { return }
+        let request = generation
         message = nil
         errorMessage = nil
 
         do {
             try await AuthService.shared.sendPasswordReset(email: email)
+            guard isCurrent(request) else { return }
             message = AppStrings.AccountSecurity.passwordLinkSent
         } catch {
+            guard isCurrent(request) else { return }
             errorMessage = AppStrings.AccountSecurity.passwordLinkFailed
         }
     }
 
     func beginEnrollment() async {
+        guard isCurrent(generation), !isMutating else { return }
+        let request = generation
         isStartingEnrollment = true
         message = nil
         errorMessage = nil
-        defer { isStartingEnrollment = false }
+        defer { if generation == request { isStartingEnrollment = false } }
 
         do {
-            enrollmentSession = try await multiFactorService.beginTOTPEnrollment()
+            let session = try await multiFactorService.beginTOTPEnrollment()
+            guard isCurrent(request) else { return }
+            enrollmentSession = session
         } catch {
+            guard isCurrent(request) else { return }
             errorMessage = readableMessage(for: error)
         }
     }
 
     func completeEnrollment(code: String) async {
+        guard isCurrent(generation), !isMutating else { return }
+        let request = generation
         guard let enrollmentSession else { return }
         isConfirmingEnrollment = true
         errorMessage = nil
-        defer { isConfirmingEnrollment = false }
+        defer { if generation == request { isConfirmingEnrollment = false } }
 
         do {
             try await multiFactorService.completeTOTPEnrollment(
                 session: enrollmentSession,
                 oneTimeCode: code
             )
+            guard isCurrent(request) else { return }
             self.enrollmentSession = nil
             message = AppStrings.AccountSecurity.enrollmentSucceeded
-            factors = try await multiFactorService.enrolledTOTPFactors()
+            let loaded = try await multiFactorService.enrolledTOTPFactors()
+            guard isCurrent(request) else { return }
+            factors = loaded
             isSessionTOTPAuthenticated = false
         } catch {
+            guard isCurrent(request) else { return }
             errorMessage = readableMessage(for: error)
         }
     }
@@ -223,32 +280,39 @@ final class AccountSecurityViewModel: ObservableObject {
     }
 
     func removeFactor(_ factor: AuthMultiFactorFactor, for user: AppUser?) async {
+        guard isCurrent(generation), !isMutating else { return }
+        let request = generation
         removingFactorID = factor.id
         message = nil
         errorMessage = nil
-        defer { removingFactorID = nil }
+        defer { if generation == request { removingFactorID = nil } }
 
         do {
             try await multiFactorService.removeTOTPFactor(
                 id: factor.id,
                 canRemoveLastFactor: AuthSecurityPolicy.canRemoveLastTOTPFactor(for: user)
             )
+            guard isCurrent(request) else { return }
             factors.removeAll { $0.id == factor.id }
             message = AppStrings.AccountSecurity.removalSucceeded
         } catch {
+            guard isCurrent(request) else { return }
             errorMessage = readableMessage(for: error)
         }
     }
 
     func activatePrivilegedRequirement() async -> Bool {
+        guard isCurrent(generation), !isMutating else { return false }
+        let request = generation
         isActivatingRequirement = true
         message = nil
         errorMessage = nil
-        defer { isActivatingRequirement = false }
+        defer { if generation == request { isActivatingRequirement = false } }
 
         do {
             let response = try await CloudFunctionsClient.shared
                 .activatePrivilegedMFAProtection()
+            guard isCurrent(request) else { return false }
             guard response.required else {
                 errorMessage = AppStrings.AccountSecurity.operationFailed
                 return false
@@ -256,6 +320,7 @@ final class AccountSecurityViewModel: ObservableObject {
             message = AppStrings.AccountSecurity.privilegedActivationSucceeded
             return true
         } catch {
+            guard isCurrent(request) else { return false }
             errorMessage = AppStrings.AccountSecurity.privilegedActivationFailed
             return false
         }
@@ -313,14 +378,17 @@ struct AccountSecurityView: View {
             }
 
             PasskeyManagementView(
+                userID: authState.user?.id,
                 isPrivileged: AuthSecurityPolicy.isPrivilegedAccount(authState.user),
                 isTOTPAuthenticated: viewModel.isSessionTOTPAuthenticated
             )
-            LinkedAccountProvidersView(account: authState.user)
+            .id(authState.user?.id)
+            LinkedAccountProvidersView(account: authState.user).id(authState.user?.id)
             passwordSection
             multiFactorSection
         }
         .task(id: authState.user?.id) {
+            viewModel.configure(userID: authState.user?.id)
             await viewModel.load()
             await viewModel.refreshSessionAuthentication()
         }
@@ -382,7 +450,7 @@ struct AccountSecurityView: View {
                     authenticatorDetails
                 }
                 .font(.subheadline.weight(.semibold))
-                .tint(AppTheme.primaryBlue)
+                .tint(AppTheme.accentPrimaryForeground)
             }
         }
     }
@@ -514,6 +582,7 @@ struct PrivilegedMultiFactorRequirementView: View {
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled()
         .task(id: currentUser?.id) {
+            viewModel.configure(userID: currentUser?.id)
             await viewModel.load()
             await viewModel.refreshSessionAuthentication()
             if !didAttemptAutoActivation,

@@ -40,6 +40,8 @@ final class ProfileViewModel: ObservableObject {
     private let notificationPermissionService: NotificationPermissionServiceProtocol
     private let localEventReminderService: LocalEventReminderServiceProtocol
     private let eventRepository: EventRepository?
+    private let notificationRegistrationUpdater: (String, Bool) -> Void
+    private let reminderEventsLoader: ((String) async throws -> [Event])?
     private var loadTask: Task<Void, Never>?
     private var feedbackSuccessDismissTask: Task<Void, Never>?
     private var hasLoaded = false
@@ -57,7 +59,9 @@ final class ProfileViewModel: ObservableObject {
         notificationPreferencesRepository: NotificationPreferencesRepository,
         notificationPermissionService: NotificationPermissionServiceProtocol,
         localEventReminderService: LocalEventReminderServiceProtocol,
-        eventRepository: EventRepository? = nil
+        eventRepository: EventRepository? = nil,
+        reminderEventsLoader: ((String) async throws -> [Event])? = nil,
+        notificationRegistrationUpdater: ((String, Bool) -> Void)? = nil
     ) {
         self.repository = repository
         self.feedbackRepository = feedbackRepository
@@ -65,6 +69,10 @@ final class ProfileViewModel: ObservableObject {
         self.notificationPermissionService = notificationPermissionService
         self.localEventReminderService = localEventReminderService
         self.eventRepository = eventRepository
+        self.reminderEventsLoader = reminderEventsLoader
+        self.notificationRegistrationUpdater = notificationRegistrationUpdater ?? { id, enabled in
+            RemoteNotificationRegistrationService.shared.configureUser(id, notificationsEnabled: enabled)
+        }
         user = .placeholder
         settings = .stored
     }
@@ -245,32 +253,35 @@ final class ProfileViewModel: ObservableObject {
             try await notificationPreferencesRepository.saveNotificationPreferences(updatedPreferences, userID: userID)
             guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             loadedNotificationPreferencesUserID = userID
-            RemoteNotificationRegistrationService.shared.configureUser(
-                userID,
-                notificationsEnabled: updatedPreferences.notificationsEnabled
-            )
+            notificationRegistrationUpdater(userID, updatedPreferences.notificationsEnabled)
 
-            if let eventRepository {
-                do {
-                    let registeredEvents = try await eventRepository.fetchRegisteredEvents()
-                    guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
-                    try await localEventReminderService.reconcileEventReminders(
-                        events: registeredEvents,
-                        userID: userID,
-                        preferences: updatedPreferences
-                    )
-                } catch {
-                    guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
-                    await readBackNotificationPreferencesAfterSyncFailure(
-                        userID: userID,
-                        generation: generation,
-                        fallback: updatedPreferences
-                    )
-                    guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
-                    self.error = (error as? AppError) ?? .unknown
-                    notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSyncFailed
+            do {
+                let events: [Event]
+                if !updatedPreferences.notificationsEnabled || !updatedPreferences.eventRemindersEnabled {
+                    // Cancellation is entirely local and must not wait for an event read.
+                    events = []
+                } else if let reminderEventsLoader {
+                    events = try await reminderEventsLoader(userID)
+                } else if let eventRepository {
+                    events = try await eventRepository.fetchReminderEvents(userID: userID)
+                } else {
+                    // A model without an event source cannot rebuild an enabled schedule.
+                    notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaved
                     return
                 }
+                guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+                try await localEventReminderService.reconcileEventReminders(
+                    events: events, userID: userID, preferences: updatedPreferences
+                )
+            } catch {
+                guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+                await readBackNotificationPreferencesAfterSyncFailure(
+                    userID: userID, generation: generation, fallback: updatedPreferences
+                )
+                guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
+                self.error = (error as? AppError) ?? .unknown
+                notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSyncFailed
+                return
             }
             notificationPreferencesMessage = AppStrings.Profile.notificationPreferencesSaved
         } catch let appError as AppError {
@@ -297,10 +308,7 @@ final class ProfileViewModel: ObservableObject {
             guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             notificationPreferences = persistedPreferences
             loadedNotificationPreferencesUserID = userID
-            RemoteNotificationRegistrationService.shared.configureUser(
-                userID,
-                notificationsEnabled: persistedPreferences.notificationsEnabled
-            )
+            notificationRegistrationUpdater(userID, persistedPreferences.notificationsEnabled)
         } catch {
             guard isCurrentNotificationPreferencesSession(generation: generation, userID: userID) else { return }
             notificationPreferences = fallback

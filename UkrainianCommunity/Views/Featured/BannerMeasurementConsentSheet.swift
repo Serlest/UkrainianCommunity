@@ -10,7 +10,7 @@ struct BannerMeasurementConsentSheet: View {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                     Image(systemName: "rectangle.on.rectangle")
                         .font(.system(size: 32, weight: .semibold))
-                        .foregroundStyle(AppTheme.primaryBlue)
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .accessibilityHidden(true)
 
                     Text(AppStrings.Profile.bannerMeasurementSubtitle)
@@ -31,7 +31,7 @@ struct BannerMeasurementConsentSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(AppStrings.Action.cancel) { dismiss() }
+                    Button(AppStrings.Action.cancel) { dismiss() }.accessibilityIdentifier("bannerConsent.cancel")
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -39,6 +39,7 @@ struct BannerMeasurementConsentSheet: View {
                     dismiss()
                     onAgree()
                 }
+                .accessibilityIdentifier("bannerConsent.agree")
                 .buttonStyle(.borderedProminent)
                 .tint(AppTheme.primaryBlue)
                 .frame(maxWidth: .infinity)

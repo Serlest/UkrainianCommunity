@@ -630,6 +630,91 @@ final class OwnerProfileAuditUITests: XCTestCase {
     }
 
     @MainActor
+    func testSettingsPrivacyRetryChoicesAndDevicePreferencesSurviveReopening() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestResetUserSettings": "1",
+            "UITestAppLanguage": "uk", "UITestResetAppLock": "1", "UITestSettingsPrivacy": "1"]
+        func openSettings() {
+            let profile = app.tabBars.buttons.element(boundBy: 4)
+            XCTAssertTrue(profile.waitForExistence(timeout: 20)); profile.tap()
+            let entry = app.buttons["profile.settings.open"]
+            reveal(entry, in: app); entry.tap()
+        }
+        app.launch(); openSettings()
+        let retry = app.buttons["profile.settings.bannerMeasurement.retry"]
+        reveal(retry, in: app)
+        XCTAssertTrue(retry.exists)
+        capture(app, "settings-uk-banner-load-error")
+        retry.tap()
+        XCTAssertTrue(retry.waitForNonExistence(timeout: 5))
+        let banner = app.switches["profile.settings.bannerMeasurementConsent"]
+        reveal(banner, in: app); banner.tap()
+        let agree = app.buttons["bannerConsent.agree"]
+        XCTAssertTrue(agree.waitForExistence(timeout: 5)); agree.tap()
+        XCTAssertTrue(agree.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(banner.value as? String, "1")
+        let notifications = app.switches["notifications.enabled"]
+        reveal(notifications, in: app); notifications.tap()
+        let reminders = app.switches["notifications.reminders"]
+        reveal(reminders, in: app); reminders.tap()
+        XCTAssertEqual(reminders.value as? String, "0")
+        back(app)
+        let settings = app.buttons["profile.settings.open"]
+        reveal(settings, in: app); settings.tap()
+        reveal(reminders, in: app)
+        XCTAssertEqual(notifications.value as? String, "1")
+        XCTAssertEqual(reminders.value as? String, "0")
+        let language = app.buttons["profile.settings.language"]
+        reveal(language, in: app); language.tap()
+        app.buttons["Deutsch"].firstMatch.tap()
+        let appearance = app.buttons["profile.settings.appearance"]
+        reveal(appearance, in: app); appearance.tap()
+        app.buttons["Dunkel"].firstMatch.tap()
+        capture(app, "settings-de-dark-preferences")
+        app.terminate()
+        app.launchEnvironment.removeValue(forKey: "UITestResetUserSettings")
+        app.launchEnvironment.removeValue(forKey: "UITestAppLanguage")
+        app.launch(); openSettings()
+        XCTAssertTrue(language.waitForExistence(timeout: 5))
+        XCTAssertTrue((language.label + " " + (language.value as? String ?? "")).contains("Deutsch"))
+        XCTAssertTrue((appearance.label + " " + (appearance.value as? String ?? "")).contains("Dunkel"))
+        capture(app, "settings-de-preferences-after-restart")
+    }
+
+    @MainActor
+    func testSettingsPrivacyGermanLargeTextAndOrdinaryAccountRoutes() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
+        app.launchEnvironment = ["UITestForceAuthenticatedSession": "1", "UITestResetUserSettings": "1",
+            "UITestAppLanguage": "de", "UITestAppAppearance": "dark", "UITestResetAppLock": "1", "UITestSettingsPrivacy": "1"]
+        app.launch()
+        let profile = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(profile.waitForExistence(timeout: 20)); profile.tap()
+        let entry = app.buttons["profile.settings.open"]
+        reveal(entry, in: app); entry.tap()
+        let retry = app.buttons["profile.settings.bannerMeasurement.retry"]
+        reveal(retry, in: app)
+        capture(app, "settings-de-large-consent-error")
+        retry.tap()
+        let security = app.buttons["profile.settings.accountSecurity"]
+        reveal(security, in: app); security.tap()
+        XCTAssertTrue(app.otherElements["screen.accountSecurity"].waitForExistence(timeout: 10))
+        capture(app, "settings-de-large-security"); back(app)
+        let blocked = app.buttons["profile.settings.blockedUsers"]
+        reveal(blocked, in: app); blocked.tap()
+        XCTAssertTrue(app.otherElements["screen.profile.blockedUsers"].waitForExistence(timeout: 8))
+        back(app)
+        let deletion = app.buttons["profile.delete_account.button"]
+        reveal(deletion, in: app)
+        XCTAssertTrue(deletion.exists)
+        XCTAssertFalse(app.staticTexts["profile.owner.deletionRestriction"].exists)
+        capture(app, "settings-de-large-ordinary-account")
+    }
+
+    @MainActor
     func testOwnerSettingsNestedRoutesAndDeletionRestriction() {
         let app = launch()
         let settings = app.buttons["profile.settings.open"]

@@ -1,0 +1,57 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "settingsPrivacy.privacy": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Datenschutz und Einwilligungen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Конфіденційність і згоди"
+          }
+        }
+      }
+    },
+    "settingsPrivacy.hiddenContent": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeblendete Inhalte"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прихований контент"
+          }
+        }
+      }
+    },
+    "settingsPrivacy.bannerUnavailable": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Bannermessung ist für dieses Konto derzeit nicht verfügbar."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вимірювання банерів наразі недоступне для цього акаунта."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

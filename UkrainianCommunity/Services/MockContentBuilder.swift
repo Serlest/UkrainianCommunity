@@ -24,6 +24,30 @@ enum MockContentBuilder {
     }
 
     @MainActor
+    static func settingsBannerConsentFixture() -> BannerMeasurementService? {
+#if DEBUG && targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+              ProcessInfo.processInfo.environment["UITestSettingsPrivacy"] == "1" else { return nil }
+        var reads = 0
+        var enabled = false
+        var consentID = ""
+        return BannerMeasurementService(startsObservers: false, principalProvider: { currentUser().id },
+            backendCall: { name, payload in
+                if name == "getBannerMeasurementConsent" {
+                    reads += 1
+                    if reads == 1 { throw AppError.network }
+                    return ["available": true, "enabled": enabled, "consentID": consentID, "allowsRegion": enabled]
+                }
+                enabled = payload["enabled"] as? Bool == true
+                consentID = payload["consentID"] as? String ?? ""
+                return ["enabled": enabled, "consentID": consentID]
+            })
+#else
+        return nil
+#endif
+    }
+
+    @MainActor
     static func publicationControlFixture() -> PublicationControlAPI? {
 #if DEBUG && targetEnvironment(simulator)
         guard ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestPublicationControl"] == "1" else { return nil }

@@ -1,4 +1,5 @@
 import SwiftUI
+import FirebaseAuth
 
 struct LinkedAccountProvidersView: View {
     let account: AppUser?
@@ -72,7 +73,12 @@ struct LinkedAccountProvidersView: View {
                                     appleButtonEnabled: appleLinkConsent,
                                     isLinking: true
                                 ) { credential in
-                                    linkedProviderIDs = try await AccountProviderLinkService.shared.link(credential)
+                                    guard let expectedID = account?.id, Auth.auth().currentUser?.uid == expectedID else {
+                                        throw AccountProviderLinkError.sessionChanged
+                                    }
+                                    let linked = try await AccountProviderLinkService.shared.link(credential)
+                                    guard Auth.auth().currentUser?.uid == expectedID else { return }
+                                    linkedProviderIDs = linked
                                     message = AppStrings.AccountSecurity.linkSucceeded
                                     errorMessage = nil
                                     appleLinkConsent = false
@@ -81,7 +87,7 @@ struct LinkedAccountProvidersView: View {
                             }
                         }
                         .font(.subheadline.weight(.semibold))
-                        .tint(AppTheme.primaryBlue)
+                        .tint(AppTheme.accentPrimaryForeground)
                     }
                 }
 
@@ -112,12 +118,16 @@ struct LinkedAccountProvidersView: View {
         isLoading = true
         hasLoadedProviders = false
         errorMessage = nil
+        let expectedID = account?.id
+        defer { if Auth.auth().currentUser?.uid == expectedID { isLoading = false } }
         do {
-            linkedProviderIDs = try await AccountProviderLinkService.shared.linkedProviderIDs()
+            let loaded = try await AccountProviderLinkService.shared.linkedProviderIDs()
+            guard !Task.isCancelled, Auth.auth().currentUser?.uid == expectedID else { return }
+            linkedProviderIDs = loaded
             hasLoadedProviders = true
         } catch {
+            guard !Task.isCancelled, Auth.auth().currentUser?.uid == expectedID else { return }
             errorMessage = AppStrings.AccountSecurity.linkLoadFailed
         }
-        isLoading = false
     }
 }

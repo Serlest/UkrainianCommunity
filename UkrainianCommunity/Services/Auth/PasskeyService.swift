@@ -1,5 +1,6 @@
 import AuthenticationServices
 import FirebaseFunctions
+import FirebaseAuth
 import Foundation
 import UIKit
 
@@ -20,8 +21,17 @@ final class PasskeyService {
     private let functions = Functions.functions(region: "europe-west3")
     private var authorization: PasskeyAuthorization?
 
-    func register() async throws {
+    private func principal(_ expected: String?) throws -> String {
+        guard let current = Auth.auth().currentUser?.uid, expected == nil || expected == current else {
+            throw PasskeyError.unavailable
+        }
+        return current
+    }
+
+    func register(expectedUserID: String? = nil) async throws {
+        let expected = try principal(expectedUserID)
         let begin = try await call("beginPasskeyRegistration", data: [:])
+        _ = try principal(expected)
         let requestID = try required(begin, "requestID")
         let challenge = try required(begin, "challenge")
         let userID = try required(begin, "userID")
@@ -43,6 +53,7 @@ final class PasskeyService {
               let attestation = registration.rawAttestationObject else {
             throw PasskeyError.invalidServerResponse
         }
+        _ = try principal(expected)
         let id = registration.credentialID.base64URLString
         _ = try await call("finishPasskeyRegistration", data: [
             "requestID": requestID,
@@ -92,8 +103,10 @@ final class PasskeyService {
         return try required(result, "token")
     }
 
-    func listPasskeys() async throws -> [PasskeyRecord] {
+    func listPasskeys(expectedUserID: String? = nil) async throws -> [PasskeyRecord] {
+        let expected = try principal(expectedUserID)
         let result = try await call("listMyPasskeys", data: [:])
+        _ = try principal(expected)
         guard let raw = result["passkeys"] as? [[String: Any]] else {
             throw PasskeyError.invalidServerResponse
         }
@@ -104,8 +117,10 @@ final class PasskeyService {
         }
     }
 
-    func remove(_ passkey: PasskeyRecord) async throws {
+    func remove(_ passkey: PasskeyRecord, expectedUserID: String? = nil) async throws {
+        let expected = try principal(expectedUserID)
         _ = try await call("removeMyPasskey", data: ["id": passkey.id])
+        _ = try principal(expected)
     }
 
     private func call(_ name: String, data: [String: Any]) async throws -> [String: Any] {
