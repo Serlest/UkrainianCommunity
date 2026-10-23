@@ -15,6 +15,8 @@ struct MockLegalDocumentRepository: LegalDocumentRepository {
         await storage.managementState(type: type)
     }
 
+    func discardDraft(_ draft: LegalDocumentDraft) async throws { await storage.discardDraft(draft) }
+
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws {
         await storage.saveDraft(draft)
     }
@@ -93,6 +95,8 @@ private actor MockLegalDocumentStorage {
             draftDocument: drafts[type].map { draftDocument(from: $0, status: .draft) }
         )
     }
+
+    func discardDraft(_ draft: LegalDocumentDraft) { drafts[draft.type] = nil }
 
     func saveDraft(_ draft: LegalDocumentDraft) {
         drafts[draft.type] = draft

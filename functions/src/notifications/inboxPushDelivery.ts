@@ -1,4 +1,5 @@
-import {FieldPath, FieldValue} from "firebase-admin/firestore";
+import {queueLegalPublication} from "../legal/legalPublicationDelivery";
+import {FieldValue} from "firebase-admin/firestore";
 import {
   onDocumentCreated,
   onDocumentUpdated,
@@ -366,48 +367,7 @@ export const notifyLegalDocumentsUpdatedOnPublish = onDocumentUpdated(
       return;
     }
 
-    const documentType = event.params.documentType;
-    let lastUserId: string | undefined;
-    do {
-      let query = db.collection("users")
-        .orderBy(FieldPath.documentId())
-        .limit(100);
-      if (lastUserId) {
-        query = query.startAfter(lastUserId);
-      }
-      const page = await query.get();
-      if (page.empty) {
-        return;
-      }
-
-      const recipients = await resolveNotificationRecipients(page.docs.map((document) => document.id));
-      await Promise.all(recipients.inboxRecipientIds.map((userId) => writeUserNotification({
-        notificationId: `legalDocumentsUpdated_${documentType}_${activeVersion}_${userId}`,
-        targetUserId: userId,
-        type: "legalDocumentsUpdated",
-        title: "Legal documents updated",
-        message: stringValue(after.changeSummary) ?? "Please review the updated legal documents.",
-        severity: after.requiresAcceptance === true ? "warning" : "info",
-        actionType: "openLegalDocuments",
-        actionTargetId: documentType,
-        requiresPopup: false,
-        actorUserId: stringValue(after.publishedBy),
-        sourceType: "legal",
-        sourceId: documentType,
-        metadata: {
-          documentType,
-          activeVersion,
-          route: "openLegalDocuments",
-          routeTargetId: documentType,
-        },
-        dedupeKey: `legalDocumentsUpdated:${documentType}:${activeVersion}:${userId}`,
-      })));
-
-      lastUserId = page.docs.at(-1)?.id;
-      if (page.size < 100) {
-        return;
-      }
-    } while (lastUserId !== undefined);
+    await queueLegalPublication(event.params.documentType, after);
   }
 );
 

@@ -6,15 +6,17 @@ import {requireVerifiedActiveUser} from "../auth/context";
 import {organizationActions} from "../organizations/organizationAccess";
 import {assertOwner, isAppOwner, type UserPermissionSnapshot} from "../permissions/userPermissions";
 
+import {legalTranslationSize, translateLegalTexts} from "./legalTranslation";
+
 const organizationKinds = ["news", "event", "organization"];
 
 export function translationInput(value: unknown): {kind: string; texts: string[]; source: "uk" | "de"; organizationId?: string} {
   const v = value as {kind?: unknown; texts?: unknown; source?: unknown; organizationId?: unknown} | null;
   if (!v || !["news", "event", "organization", "banner", "donation", "legal", "announcement", "directory"].includes(String(v.kind)) ||
-      (v.source !== undefined && v.source !== "uk" && !(v.source === "de" && ["announcement", "directory"].includes(String(v.kind)))) ||
+      (v.source !== undefined && v.source !== "uk" && !(v.source === "de" && ["announcement", "directory", "legal"].includes(String(v.kind)))) ||
       !Array.isArray(v.texts) || v.texts.length < 1 || v.texts.length > 12 ||
-      v.texts.some((t) => typeof t !== "string" || !t.trim() || t.length > 20000) ||
-      v.texts.reduce((n, t) => n + t.length, 0) > 25000 ||
+      v.texts.some((t) => typeof t !== "string" || !t.trim() || t.length > (v.kind === "legal" ? 100000 : 20000)) ||
+      v.texts.reduce((n, t) => n + t.length, 0) > (v.kind === "legal" ? 110000 : 25000) ||
       (v.organizationId !== undefined &&
         (typeof v.organizationId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(v.organizationId))) ||
       (!organizationKinds.includes(String(v.kind)) && v.organizationId !== undefined)) {
@@ -84,7 +86,7 @@ export async function translateContentHandler(request: CallableRequest, translat
   const auth = await requireVerifiedActiveUser(request);
   const input = translationInput(request.data);
   await assertTranslationAccess(input.kind, input.organizationId, auth.permissions);
-  const now = Date.now(), day = Math.floor(now / 86400000), size = input.texts.reduce((n, t) => n + t.length, 0);
+  const now = Date.now(), day = Math.floor(now / 86400000), size = input.kind === "legal" ? legalTranslationSize(input.texts) : input.texts.reduce((n, t) => n + t.length, 0);
   const user = db.doc(`users/${auth.uid}/privateTranslationLimits/daily`), total = db.doc("contentTranslationLimits/_daily");
   await db.runTransaction(async (tx) => {
     const [a, b] = await Promise.all([tx.get(user), tx.get(total)]);
@@ -97,6 +99,8 @@ export async function translateContentHandler(request: CallableRequest, translat
     tx.set(user, {day, count: count + 1, chars: chars + size, lastAt: now});
     tx.set(total, {day, chars: globalChars + size});
   });
-  return {texts: await translate(input.texts, input.source, input.source === "uk" ? "de" : "uk")};
+  return {texts: input.kind === "legal"
+    ? await translateLegalTexts(input.texts, input.source, input.source === "uk" ? "de" : "uk", translate)
+    : await translate(input.texts, input.source, input.source === "uk" ? "de" : "uk")};
 }
-export const translateContent = onCall({region: "europe-west3", maxInstances: 5, enforceAppCheck: true}, (r) => translateContentHandler(r));
+export const translateContent = onCall({region: "europe-west3", maxInstances: 5, timeoutSeconds: 300, enforceAppCheck: true}, (r) => translateContentHandler(r));

@@ -604,3 +604,71 @@ final class OwnerProfileAuditUITests: XCTestCase {
         }
     }
 }
+
+extension OwnerProfileAuditUITests {
+    @MainActor func testLegalCloseCanDiscardUnsavedChanges() {
+        let app = launch()
+        let entry = app.buttons["profile.owner.legalDocuments"]
+        reveal(entry, in: app); entry.tap()
+        let edit = app.buttons["legal.manage.edit.terms"]
+        reveal(edit, in: app); edit.tap()
+        let german = app.textFields["legal.edit.summary.de"]
+        reveal(german, in: app); german.tap(); german.typeText("Unsaved draft")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        back(app)
+        let discard = app.buttons["Вийти без збереження"]
+        XCTAssertTrue(discard.waitForExistence(timeout: 5)); discard.tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 5)); edit.tap()
+        XCTAssertNotEqual(german.value as? String, "Unsaved draft")
+        capture(app, "legal-close-discard")
+    }
+    @MainActor func testLegalPrivacyGermanDarkLargeTextAndHistory() {
+        let app = launch(language: "de", darkLarge: true)
+        let entry = app.buttons["profile.owner.legalDocuments"]
+        reveal(entry, in: app); entry.tap()
+        let history = app.buttons["legal.manage.history.privacy"]
+        reveal(history, in: app); history.tap()
+        XCTAssertTrue(app.staticTexts["Versionsverlauf"].waitForExistence(timeout: 5))
+        back(app)
+        let edit = app.buttons["legal.manage.edit.privacy"]
+        reveal(edit, in: app); edit.tap()
+        let save = app.buttons["legal.edit.save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        let translation = app.buttons["translation.legal"]
+        reveal(translation, in: app)
+        XCTAssertTrue(translation.isEnabled)
+        capture(app, "legal-privacy-de-dark-large")
+    }
+}
+
+extension OwnerProfileAuditUITests {
+    @MainActor func testLegalSavedDraftCanBeExplicitlyDiscarded() {
+        let app = launch()
+        let entry = app.buttons["profile.owner.legalDocuments"]
+        reveal(entry, in: app); entry.tap()
+        let edit = app.buttons["legal.manage.edit.terms"]
+        reveal(edit, in: app); edit.tap()
+        let german = app.textFields["legal.edit.summary.de"]
+        reveal(german, in: app); german.tap(); german.typeText("Discard saved fixture")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.75, dy: 0.12)).tap()
+        let save = app.buttons["legal.edit.save"]
+        save.tap()
+        expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: save)
+        waitForExpectations(timeout: 10)
+        back(app)
+        XCTAssertTrue(edit.waitForExistence(timeout: 5)); edit.tap()
+        XCTAssertTrue(german.waitForExistence(timeout: 5))
+        XCTAssertEqual(german.value as? String, "Discard saved fixture")
+        app.buttons["legal.edit.actions"].tap()
+        let discard = app.buttons["Відхилити чернетку"].firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 5)); discard.tap()
+        let confirm = app.buttons["legal.edit.confirmDiscard"].exists
+            ? app.buttons["legal.edit.confirmDiscard"].firstMatch : app.buttons["Відхилити чернетку"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(edit.waitForExistence(timeout: 5)); edit.tap()
+        XCTAssertNotEqual(german.value as? String, "Discard saved fixture")
+        app.buttons["legal.edit.actions"].tap()
+        XCTAssertFalse(app.buttons["Відхилити чернетку"].exists)
+        capture(app, "legal-saved-draft-discarded")
+    }
+}

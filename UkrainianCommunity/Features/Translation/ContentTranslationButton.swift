@@ -41,7 +41,8 @@ enum ContentTranslationService {
             let organizationId: String?
         }
         struct Response: Decodable { let texts: [String] }
-        let call: Callable<Request, Response> = Functions.functions(region: "europe-west3").httpsCallable("translateContent")
+        var call: Callable<Request, Response> = Functions.functions(region: "europe-west3").httpsCallable("translateContent")
+        if kind == "legal" { call.timeoutInterval = 300 }
         return try await call.call(Request(kind: kind, texts: texts, source: sourceLanguage.rawValue,
                                            organizationId: organizationId)).texts
     }

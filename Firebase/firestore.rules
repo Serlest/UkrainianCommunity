@@ -1671,7 +1671,7 @@ service cloud.firestore {
             || validLegalPublishTransition(documentType, version)
           );
 
-        allow delete: if false;
+        allow delete: if isOwner() && resource.data.status == 'draft';
       }
     }
 

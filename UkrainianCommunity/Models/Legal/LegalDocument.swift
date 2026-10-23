@@ -162,6 +162,11 @@ struct LegalDocumentManagementState: Equatable {
     let draftDocument: LegalDocument?
 }
 
+struct LegalVersionPage {
+    let documents: [LegalDocument]
+    let nextBefore: Int?
+}
+
 struct LegalDocumentDraft: Equatable {
     let type: LegalDocumentType
     let version: String

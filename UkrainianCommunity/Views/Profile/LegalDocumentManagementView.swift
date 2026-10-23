@@ -7,6 +7,8 @@ final class LegalDocumentManagementViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var errorMessage: String?
 
+    @Published var failedTypes: Set<LegalDocumentType> = []
+
     private let repository: LegalDocumentRepository
     private var loadGeneration = 0
 
@@ -20,22 +22,25 @@ final class LegalDocumentManagementViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
 
-        do {
-            async let termsState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .terms) }
-            async let privacyState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .privacy) }
-            async let organizationRulesState = RefreshRequest.run { [self] in try await repository.fetchManagementState(type: .organizationRules) }
-            let loadedStates = try await [termsState, privacyState, organizationRulesState]
-            guard generation == loadGeneration else { return }
-            states = Dictionary(uniqueKeysWithValues: loadedStates.map { ($0.type, $0) })
-        } catch {
-            guard generation == loadGeneration else { return }
-            // A management snapshot must be authoritative as a unit. Keeping
-            // old cards editable after any failed component read can publish
-            // from a stale active version.
-            states = [:]
-            errorMessage = AppStrings.LegalManagement.loadFailed
+        async let terms = loadState(.terms)
+        async let privacy = loadState(.privacy)
+        async let rules = loadState(.organizationRules)
+        let results = await [terms, privacy, rules]
+        guard generation == loadGeneration else { return }
+        states = [:]
+        failedTypes = []
+        for (type, result) in zip(LegalDocumentType.allCases, results) {
+            switch result {
+            case .success(let state): states[type] = state
+            case .failure: failedTypes.insert(type)
+            }
         }
+        errorMessage = states.isEmpty ? AppStrings.LegalManagement.loadFailed : nil
         if generation == loadGeneration { isLoading = false }
+    }
+    private func loadState(_ type: LegalDocumentType) async -> Result<LegalDocumentManagementState, Error> {
+        do { return .success(try await RefreshRequest.run { [self] in try await repository.fetchManagementState(type: type) }) }
+        catch { return .failure(error) }
     }
 }
 
@@ -79,6 +84,11 @@ struct LegalDocumentManagementView: View {
                     }
 
                     ForEach(LegalDocumentType.allCases) { type in
+                        if viewModel.failedTypes.contains(type) {
+                            ErrorStateCard(systemImage: "doc.badge.ellipsis", title: type.title,
+                                           message: AppStrings.LegalManagement.loadFailed,
+                                           retryTitle: AppStrings.Action.retry) { Task { await viewModel.load() } }
+                        } else {
                         LegalDocumentManagementCard(
                             type: type,
                             state: viewModel.states[type],
@@ -87,15 +97,18 @@ struct LegalDocumentManagementView: View {
                                 await viewModel.load()
                             }
                         )
+                        }
                     }
                 }
                 .allowsHitTesting(!viewModel.isLoading)
             }
         }
         .task {
+            guard PermissionService.isAppOwner(user: authState.user) else { return }
             await viewModel.load()
         }
         .appRefreshable {
+            guard PermissionService.isAppOwner(user: authState.user) else { return }
             await viewModel.load()
         }
     }
@@ -156,6 +169,15 @@ private struct LegalDocumentManagementCard: View {
                     }
                 }
 
+                if let active = state?.activeDocument {
+                    NavigationLink { LegalVersionReader(document: active) } label: {
+                        Label(LegalEditorText.active, systemImage: "doc.text.magnifyingglass")
+                    }.accessibilityIdentifier("legal.manage.active.\(type.rawValue)")
+                    NavigationLink { LegalVersionHistoryView(type: type, active: active, repository: repository) } label: {
+                        Label(LegalEditorText.history, systemImage: "clock.arrow.circlepath")
+                    }.accessibilityIdentifier("legal.manage.history.\(type.rawValue)")
+                }
+
                 NavigationLink {
                     LegalDocumentEditorView(
                         type: type,
@@ -208,6 +230,8 @@ private struct LegalDocumentEditorView: View {
     @State private var isShowingPreview = false
     @State private var isConfirmingPublish = false
     @State private var validationErrors: [String] = []
+    @State private var isConfirmingClose = false
+    @State private var isConfirmingDiscard = false
 
     init(
         type: LegalDocumentType,
@@ -227,7 +251,7 @@ private struct LegalDocumentEditorView: View {
         let loadedDraft = existingDraft ?? LegalDocumentDraft.from(activeDocument: activeDocument)
         var initialDraft = loadedDraft
         initialDraft.requiresAcceptance = true
-        if !LegalChangeSummary(raw: initialDraft.changeSummary).hasBothLanguages {
+        if !LegalChangeSummary(raw: initialDraft.changeSummary).hasSeparateTranslations {
             initialDraft.changeSummary = nil
         }
         _draft = State(initialValue: initialDraft)
@@ -238,13 +262,51 @@ private struct LegalDocumentEditorView: View {
     var body: some View {
         PushedScreenShell(
             title: AppStrings.LegalManagement.editorTitle(type.title),
-            subtitle: AppStrings.LegalManagement.editorIntro,
+            subtitle: LegalEditorText.privateDraft,
+            tabBarHidden: true,
             backAction: handleBack
         ) {
             AppGroupedContentPlane(spacing: AppTheme.feedRowSpacing) {
                 editorContent
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            HStack(spacing: 12) {
+                PrimaryActionButton(title: AppStrings.LegalManagement.saveDraft,
+                                    loadingTitle: AppStrings.LegalManagement.saving,
+                                    isEnabled: (!hasPersistedDraft || hasUnsavedChanges) && !isPublishing,
+                                    isLoading: isSaving, systemImage: "tray.and.arrow.down.fill") {
+                    Task { _ = await saveDraft() }
+                }.accessibilityIdentifier("legal.edit.save")
+                Menu {
+                    Button(AppStrings.LegalManagement.preview, systemImage: "doc.richtext") { isShowingPreview = true }
+                    Button(AppStrings.LegalManagement.publish, systemImage: "paperplane", role: .destructive) { validateAndConfirmPublish() }
+                    if hasPersistedDraft {
+                        Button(LegalEditorText.discard, systemImage: "trash", role: .destructive) { isConfirmingDiscard = true }
+                            .accessibilityIdentifier("legal.edit.discard")
+                    }
+                } label: {
+                    Label(LegalEditorText.actions, systemImage: "ellipsis.circle")
+                        .labelStyle(.iconOnly).frame(minWidth: 44, minHeight: 44)
+                }
+                .accessibilityIdentifier("legal.edit.actions")
+                .disabled(isSaving || isPublishing)
+            }
+            .padding(.horizontal, AppTheme.pageHorizontal)
+            .padding(.vertical, 10)
+            .background(.ultraThinMaterial)
+        }
+        .confirmationDialog(LegalEditorText.closeTitle, isPresented: $isConfirmingClose) {
+            Button(AppStrings.LegalManagement.saveDraft) { Task { if await saveDraft() { dismiss() } } }
+            Button(LegalEditorText.leaveUnsaved, role: .destructive) { dismiss() }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        }
+        .confirmationDialog(LegalEditorText.discardTitle, isPresented: $isConfirmingDiscard) {
+            Button(LegalEditorText.discard, role: .destructive) { Task { await discardDraft() } }
+                .accessibilityIdentifier("legal.edit.confirmDiscard")
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: { Text(LegalEditorText.discardMessage) }
+        .onChange(of: authState.user?.id) { _, _ in dismiss() }
         .confirmationDialog(
             AppStrings.LegalManagement.publishConfirmTitle,
             isPresented: $isConfirmingPublish,
@@ -255,7 +317,7 @@ private struct LegalDocumentEditorView: View {
             }
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
-            Text(AppStrings.LegalManagement.publishConfirmMessage)
+            Text(type == .privacy ? LegalEditorText.privacyPublishMessage : AppStrings.LegalManagement.publishConfirmMessage)
         }
         .sheet(isPresented: $isShowingPreview) {
             NavigationStack {
@@ -277,21 +339,23 @@ private struct LegalDocumentEditorView: View {
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     SectionHeaderBlock(
-                        title: AppStrings.LegalManagement.versionSection,
+                        title: type == .privacy ? LegalEditorText.privacyVersionTitle : AppStrings.LegalManagement.versionSection,
                         subtitle: AppStrings.LegalManagement.versionSectionSubtitle
                     )
 
                     AppInfoChip(title: AppStrings.legalVersionLabel(draft.version), systemImage: "number")
 
                     AppInfoChip(
-                        title: AppStrings.LegalManagement.requiresAcceptance,
+                        title: type == .privacy ? AppStrings.LegalManagement.privacyAcknowledgement : AppStrings.LegalManagement.requiresAcceptance,
                         systemImage: "checkmark.seal"
                     )
 
+                    Text(AppStrings.LegalManagement.changeSummaryGerman).font(.subheadline.weight(.semibold))
                     TextField(AppStrings.LegalManagement.changeSummaryGerman, text: changeSummaryBinding(locale: "de"), axis: .vertical)
                         .accessibilityIdentifier("legal.edit.summary.de")
                         .lineLimit(2...4)
                         .appEditorInputStyle(minHeight: 72)
+                    Text(AppStrings.LegalManagement.changeSummaryUkrainian).font(.subheadline.weight(.semibold))
                     TextField(AppStrings.LegalManagement.changeSummaryUkrainian, text: changeSummaryBinding(locale: "uk"), axis: .vertical)
                         .accessibilityIdentifier("legal.edit.summary.uk")
                         .lineLimit(2...4)
@@ -307,9 +371,10 @@ private struct LegalDocumentEditorView: View {
                     )
 
                     ContentTranslationButton(kind: "legal", fields: [
-                        .init("title", AppStrings.LegalManagement.localizedTitle, source: draft.locales["uk"]?.title ?? "", target: translationBinding(title: true), limit: 500),
-                        .init("markdown", AppStrings.LegalManagement.localizedContent, source: draft.locales["uk"]?.contentMarkdown ?? "", target: translationBinding(title: false), limit: 20000)
-                    ])
+                        .init("title", AppStrings.LegalManagement.localizedTitle, source: draft.locales[selectedLocale]?.title ?? "", target: translationBinding(title: true), limit: 500),
+                        .init("markdown", AppStrings.LegalManagement.localizedContent, source: draft.locales[selectedLocale]?.contentMarkdown ?? "", target: translationBinding(title: false), limit: 100000)
+                    ], sourceLanguage: selectedLocale == "de" ? .german : .ukrainian)
+
 
                     Picker(AppStrings.LegalManagement.localePicker, selection: $selectedLocale) {
                         Text(AppStrings.Settings.german).tag(AppLanguage.german.rawValue)
@@ -317,48 +382,23 @@ private struct LegalDocumentEditorView: View {
                     }
                     .pickerStyle(.segmented)
 
+                    Text(AppStrings.LegalManagement.localizedTitle).font(.subheadline.weight(.semibold))
                     TextField(AppStrings.LegalManagement.localizedTitle, text: localizedTitleBinding)
                         .appEditorInputStyle()
 
+                    Text(AppStrings.LegalManagement.localizedContent).font(.subheadline.weight(.semibold))
                     TextEditor(text: localizedMarkdownBinding)
+                        .accessibilityIdentifier("legal.edit.body")
                         .frame(height: 320)
                         .scrollContentBackground(.hidden)
                         .appEditorInputStyle(minHeight: 260)
                 }
             }
 
-            AppEditorSectionCard {
-                VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    PrimaryActionButton(
-                        title: AppStrings.LegalManagement.saveDraft,
-                        loadingTitle: AppStrings.LegalManagement.saving,
-                        isEnabled: (!hasPersistedDraft || hasUnsavedChanges) && !isPublishing,
-                        isLoading: isSaving,
-                        systemImage: "tray.and.arrow.down.fill"
-                    ) {
-                        Task { _ = await saveDraft() }
-                    }
-                    .accessibilityIdentifier("legal.edit.save")
 
-                    Button {
-                        isShowingPreview = true
-                    } label: {
-                        Label(AppStrings.LegalManagement.preview, systemImage: "doc.richtext")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .appActionButtonStyle(.secondary)
-
-                    Button(role: .destructive) {
-                        validateAndConfirmPublish()
-                    } label: {
-                        Label(isPublishing ? AppStrings.LegalManagement.publishing : AppStrings.LegalManagement.publish, systemImage: "paperplane.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .appActionButtonStyle(.secondary)
-                    .disabled(isPublishing || isSaving)
-                }
-            }
         }
+        .padding(.bottom, 16)
+        .disabled(isSaving || isPublishing)
     }
 
     private func changeSummaryBinding(locale: String) -> Binding<String> {
@@ -377,8 +417,9 @@ private struct LegalDocumentEditorView: View {
     }
 
     private func translationBinding(title: Bool) -> Binding<String> {
-        Binding(get: { title ? draft.locales["de"]?.title ?? "" : draft.locales["de"]?.contentMarkdown ?? "" }, set: { text in
-            updateLocale(title: title ? text : nil, markdown: title ? nil : text, locale: "de")
+        let target = selectedLocale == "de" ? "uk" : "de"
+        return Binding(get: { title ? draft.locales[target]?.title ?? "" : draft.locales[target]?.contentMarkdown ?? "" }, set: { text in
+            updateLocale(title: title ? text : nil, markdown: title ? nil : text, locale: target)
         })
     }
 
@@ -430,9 +471,12 @@ private struct LegalDocumentEditorView: View {
     }
 
     private func saveDraft() async -> Bool {
-        guard let userID = authState.user?.id else { return false }
+        guard PermissionService.isAppOwner(user: authState.user), let userID = authState.user?.id else { return false }
         guard !isSaving, !isPublishing else { return false }
         guard !hasPersistedDraft || hasUnsavedChanges else { return true }
+        guard draft.locales.values.allSatisfy({ $0.title.utf16.count <= 500 && $0.contentMarkdown.utf16.count <= 100000 }) else {
+            validationErrors = [LegalEditorText.tooLong]; return false
+        }
         isSaving = true
         statusMessage = nil
         validationErrors = []
@@ -441,6 +485,7 @@ private struct LegalDocumentEditorView: View {
         do {
             var finalDraft = normalizedDraft
             try await repository.saveDraft(finalDraft, updatedBy: userID)
+            guard authState.user?.id == userID else { return false }
             finalDraft.sourceContentHash = finalDraft.normalizedContentHash
             draft = finalDraft
             lastSavedDraft = finalDraft
@@ -457,7 +502,7 @@ private struct LegalDocumentEditorView: View {
     }
 
     private func publish() async {
-        guard let userID = authState.user?.id else { return }
+        guard PermissionService.isAppOwner(user: authState.user), let userID = authState.user?.id else { return }
         guard !isSaving, !isPublishing else { return }
         guard publishValidationErrors(for: normalizedDraft).isEmpty else {
             validateAndConfirmPublish()
@@ -488,8 +533,20 @@ private struct LegalDocumentEditorView: View {
             dismiss()
             return
         }
-        Task {
-            if await saveDraft() { dismiss() }
+        isConfirmingClose = true
+    }
+
+    private func discardDraft() async {
+        guard PermissionService.isAppOwner(user: authState.user), !isSaving, !isPublishing else { return }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            try await repository.discardDraft(lastSavedDraft)
+            await onSaved()
+            dismiss()
+        } catch {
+            statusStyle = .error
+            statusMessage = AppStrings.LegalManagement.saveFailed
         }
     }
 
@@ -501,6 +558,9 @@ private struct LegalDocumentEditorView: View {
 
     private func publishValidationErrors(for draft: LegalDocumentDraft) -> [String] {
         var errors: [String] = []
+        if !draft.locales.values.allSatisfy({ $0.title.utf16.count <= 500 && $0.contentMarkdown.utf16.count <= 100000 }) {
+            errors.append(LegalEditorText.tooLong)
+        }
         let germanContent = draft.locales[AppLanguage.german.rawValue]
         let ukrainianContent = draft.locales[AppLanguage.ukrainian.rawValue]
 

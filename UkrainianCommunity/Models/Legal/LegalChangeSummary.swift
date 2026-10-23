@@ -5,7 +5,7 @@ import Foundation
 struct LegalChangeSummary {
     var german: String
     var ukrainian: String
-    private var hasSeparateTranslations: Bool
+    private(set) var hasSeparateTranslations: Bool
 
     init(raw: String?) {
         let value = raw ?? ""

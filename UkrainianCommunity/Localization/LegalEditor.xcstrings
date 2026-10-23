@@ -1,0 +1,294 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "legal_editor.active": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelles Dokument"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чинний документ"
+          }
+        }
+      }
+    },
+    "legal_editor.history": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Versionsverlauf"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Історія версій"
+          }
+        }
+      }
+    },
+    "legal_editor.read": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ansehen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переглянути"
+          }
+        }
+      }
+    },
+    "legal_editor.compare": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mit aktueller Version vergleichen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Порівняти з чинною версією"
+          }
+        }
+      }
+    },
+    "legal_editor.added": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hinzugefügt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додано"
+          }
+        }
+      }
+    },
+    "legal_editor.removed": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entfernt"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Видалено"
+          }
+        }
+      }
+    },
+    "legal_editor.noChanges": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Text ist unverändert."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Текст не змінився."
+          }
+        }
+      }
+    },
+    "legal_editor.privateDraft": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Entwurf bleibt bis zur Veröffentlichung privat."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чернетка приватна до публікації."
+          }
+        }
+      }
+    },
+    "legal_editor.closeTitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen vor dem Verlassen speichern?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберегти зміни перед виходом?"
+          }
+        }
+      }
+    },
+    "legal_editor.leaveUnsaved": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ohne Speichern verlassen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вийти без збереження"
+          }
+        }
+      }
+    },
+    "legal_editor.discardTitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gespeicherten Entwurf verwerfen?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відхилити збережену чернетку?"
+          }
+        }
+      }
+    },
+    "legal_editor.discard": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entwurf verwerfen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відхилити чернетку"
+          }
+        }
+      }
+    },
+    "legal_editor.discardMessage": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der gespeicherte Entwurf wird gelöscht. Das aktuelle Dokument bleibt unverändert."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збережену чернетку буде видалено. Чинний документ залишиться без змін."
+          }
+        }
+      }
+    },
+    "legal_editor.tooLong": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Titel: maximal 500 Zeichen. Text pro Sprache: maximal 100.000 Zeichen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Назва: до 500 символів. Текст кожною мовою: до 100 000 символів."
+          }
+        }
+      }
+    },
+    "legal_editor.more": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mehr laden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити ще"
+          }
+        }
+      }
+    },
+    "legal_editor.actions": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weitere Aktionen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Інші дії"
+          }
+        }
+      }
+    },
+    "legal_editor.privacyVersionTitle": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version und Kenntnisnahme"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Версія та ознайомлення"
+          }
+        }
+      }
+    },
+    "legal_editor.privacyPublishMessage": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diese Version ersetzt die aktuelle Datenschutzerklärung. Nutzer bestätigen die Kenntnisnahme; ihre Entscheidung zur optionalen Analyse bleibt unverändert."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ця версія замінить чинну політику конфіденційності. Користувачі мають підтвердити ознайомлення; це не змінює їхній вибір необов’язкової аналітики."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

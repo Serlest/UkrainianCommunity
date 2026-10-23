@@ -18,6 +18,8 @@ protocol LegalDocumentRepository {
         onError: @escaping @MainActor (Error) -> Void
     ) -> AppRealtimeListener?
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState
+    func fetchVersionHistory(type: LegalDocumentType, before: Int?) async throws -> LegalVersionPage
+    func discardDraft(_ draft: LegalDocumentDraft) async throws
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws
     func publishDraft(_ draft: LegalDocumentDraft, publishedBy userID: String) async throws
     func acceptDocument(
@@ -30,6 +32,11 @@ protocol LegalDocumentRepository {
 }
 
 extension LegalDocumentRepository {
+    func fetchVersionHistory(type: LegalDocumentType, before: Int?) async throws -> LegalVersionPage {
+        let active = try await fetchAuthoritativeActiveDocument(type: type)
+        return LegalVersionPage(documents: before == nil ? [active] : [], nextBefore: nil)
+    }
+    func discardDraft(_ draft: LegalDocumentDraft) async throws { throw AppError.validationFailed }
     func listenActiveVersion(
         type: LegalDocumentType,
         onChange: @escaping @MainActor (String?) -> Void,

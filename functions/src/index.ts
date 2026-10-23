@@ -305,3 +305,5 @@ export * from "./publicationControl/publicationControl";
 export {listSystemLogs, maintainSystemLogSearchIndex} from "./systemLogs/journalQuery";
 
 export {notifySystemLogIssue} from "./systemLogs/journalAlerts";
+
+export {deliverLegalPublicationBatch} from "./legal/legalPublicationDelivery";

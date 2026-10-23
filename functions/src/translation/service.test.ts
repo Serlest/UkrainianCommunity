@@ -11,7 +11,7 @@ test("translation contract rejects unsupported fields and excessive provider inp
     {kind: "news", texts: ["Текст"], source: "uk", organizationId: "org-123"});
   assert.equal(translationInput({kind:"announcement",texts:["Text"],source:"de"}).source,"de");
   assert.equal(translationInput({kind: "directory", texts: ["Text"], source: "de"}).source, "de");
-  for (const input of [{kind:"news",texts:["Text"],source:"de"},{kind:"announcement",texts:["Text"],source:"fr"},null, {kind:"news",texts:[]}, {kind:"profile",texts:["a"]}, {kind:"event",texts:[1]}, {kind:"legal",texts:["a".repeat(20001)]}, {kind:"legal",texts:["a".repeat(15000),"b".repeat(15000)]}, {kind:"news",texts:["a"],organizationId:"bad/id"}, {kind:"legal",texts:["a"],organizationId:"org-123"}]) {
+  for (const input of [{kind:"news",texts:["Text"],source:"de"},{kind:"announcement",texts:["Text"],source:"fr"},null, {kind:"news",texts:[]}, {kind:"profile",texts:["a"]}, {kind:"event",texts:[1]}, {kind:"legal",texts:["a".repeat(100001)]}, {kind:"legal",texts:["a".repeat(60000),"b".repeat(60000)]}, {kind:"news",texts:["a"],organizationId:"bad/id"}, {kind:"legal",texts:["a"],organizationId:"org-123"}]) {
     assert.throws(() => translationInput(input));
   }
 });
@@ -97,5 +97,30 @@ test("translation is authenticated, scoped, bounded and never stores source text
       await db.doc(`users/${id}`).delete();
       await db.doc(`users/${id}/privateTranslationLimits/daily`).delete();
     }
+  }
+});
+
+test("owner translates a complete long German legal document to Ukrainian within existing quota", {skip: !process.env.FIRESTORE_EMULATOR_HOST}, async () => {
+  const uid = "legal-translation-long-owner";
+  await db.doc(`users/${uid}`).set({globalRole: "owner", accountStatus: "active"});
+  await seedCurrentLegalForIntegration(uid);
+  await db.doc("contentTranslationLimits/_daily").delete();
+  const text = "# Hallo\n\n" + "Hallo paragraph with complete legal content.\n".repeat(900);
+  let batches = 0;
+  try {
+    const result = await translateContentHandler({data: {kind: "legal", source: "de", texts: [text]},
+      auth: {uid, token: {email_verified: true}}} as CallableRequest, async (texts, source, target) => {
+      assert.equal(source, "de"); assert.equal(target, "uk"); batches++;
+      return texts.map(t => t.replaceAll("Hallo", "Вітаю"));
+    });
+    assert.deepEqual(result.texts, [text.replaceAll("Hallo", "Вітаю")]);
+    assert.ok(batches > 1);
+    const quota = (await db.doc(`users/${uid}/privateTranslationLimits/daily`).get()).data();
+    assert.equal(quota?.count, 1);
+    assert.equal(JSON.stringify(quota).includes("paragraph"), false);
+  } finally {
+    await db.doc(`users/${uid}/privateTranslationLimits/daily`).delete();
+    await db.doc(`users/${uid}`).delete();
+    await db.doc("contentTranslationLimits/_daily").delete();
   }
 });

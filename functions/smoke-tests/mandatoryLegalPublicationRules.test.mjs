@@ -85,3 +85,24 @@ test("publishing updated privacy policy with mandatory acceptance succeeds", asy
   });
   if (pointer.get("activeVersion") !== "2026.19") throw new Error("Pointer did not advance");
 });
+
+test("owner can discard an incomplete private draft but cannot delete published versions", async () => {
+  const database = ownerDatabase();
+  const draft = doc(database, "legalDocuments/privacy/versions/2026.19");
+  const {deleteDoc} = await import("firebase/firestore");
+  await assertSucceeds(setDoc(draft, {
+    documentType: "privacy", version: "2026.19", versionNumber: 202619,
+    status: "draft", requiresAcceptance: true, defaultLocale: "de", canonicalLocale: "de",
+    contentHash: hash, baseContentHash: null, supersedesVersion: "2026.18",
+    locales: Object.fromEntries(["de", "uk"].map(locale => [locale, {title: "", contentMarkdown: "", contentHash: hash}])),
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), createdBy: "owner", updatedBy: "owner",
+    publishedAt: null, publishedBy: null, changeSummary: null,
+  }));
+  const other = environment.authenticatedContext("outsider", {email_verified: true}).firestore();
+  await assertFails(deleteDoc(doc(other, "legalDocuments/privacy/versions/2026.19")));
+  await assertSucceeds(deleteDoc(draft));
+  await environment.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), "legalDocuments/privacy/versions/2026.18"), {status: "published"});
+  });
+  await assertFails(deleteDoc(doc(database, "legalDocuments/privacy/versions/2026.18")));
+});

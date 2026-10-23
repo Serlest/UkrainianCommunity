@@ -5,13 +5,14 @@ import Testing
 private final class LegalManagementRepositoryStub: LegalDocumentRepository {
     var states: [LegalDocumentType: LegalDocumentManagementState] = [:]
     var error: AppError?
+    var failedType: LegalDocumentType?
 
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
         states[type]?.activeDocument ?? .hardcodedFallback(type: type)
     }
 
     func fetchManagementState(type: LegalDocumentType) async throws -> LegalDocumentManagementState {
-        if let error { throw error }
+        if let error, failedType == nil || failedType == type { throw error }
         return states[type] ?? LegalDocumentManagementState(
             type: type,
             activeDocument: .hardcodedFallback(type: type),
@@ -47,7 +48,13 @@ struct LegalDocumentManagementTests {
         let older = LegalChangeSummary(raw: "Previous update")
         #expect(older.localized("uk") == "Previous update")
         #expect(!older.hasBothLanguages)
-        #expect(!LegalChangeSummary(raw: "DE:Only German\nUK:").hasBothLanguages)
+        let partial = LegalChangeSummary(raw: "DE:Only German\nUK:")
+        #expect(!partial.hasBothLanguages)
+        #expect(partial.hasSeparateTranslations)
+        #expect(partial.german == "Only German")
+        #expect(partial.ukrainian.isEmpty)
+        #expect(LegalChangeSummary(raw: partial.encoded).german == "Only German")
+        #expect(!older.hasSeparateTranslations)
     }
 
     @Test func offlineDocumentsContainFullDistinctTranslationsAndCorrectAcceptance() throws {
@@ -94,5 +101,36 @@ struct LegalDocumentManagementTests {
         #expect(viewModel.states[.terms] != nil)
         #expect(viewModel.states[.privacy] != nil)
         #expect(viewModel.errorMessage == nil)
+    }
+}
+
+@MainActor
+struct LegalEditorRecoveryTests {
+    @Test func aBrokenDocumentDoesNotHideOtherCards() async {
+        let repo = LegalManagementRepositoryStub()
+        repo.error = .network; repo.failedType = .privacy
+        let model = LegalDocumentManagementViewModel(repository: repo)
+        await model.load()
+        #expect(model.states.count == 2)
+        #expect(model.failedTypes == [.privacy])
+        #expect(model.errorMessage == nil)
+    }
+    @Test func incompleteDraftKeepsIntegrityWithoutBeingPublishable() throws {
+        var draft = LegalDocumentDraft.from(activeDocument: .hardcodedFallback(type: .terms))
+        draft.locales["uk"] = LegalDocumentLocaleContent(title: "", contentMarkdown: "", contentText: nil,
+            contentHash: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        let document = LegalDocument(id: draft.type.rawValue, type: draft.type, version: draft.version,
+            versionNumber: draft.versionNumber, locales: draft.locales, defaultLocale: "de", canonicalLocale: "de",
+            contentHash: draft.normalizedContentHash, changeSummary: nil, requiresAcceptance: true, status: .draft,
+            updatedAt: nil, updatedBy: nil, publishedAt: nil, publishedBy: nil)
+        #expect(FirestoreLegalDocumentRepository.hasValidContentHashes(document, allowIncomplete: true))
+        #expect(!FirestoreLegalDocumentRepository.hasValidContentHashes(document))
+    }
+    @Test func comparisonKeepsAddedAndRemovedParagraphsSeparate() {
+        let changes = LegalTextChange.compare(old: "# Title\nOld paragraph", new: "# Title\nNew paragraph")
+        #expect(changes.count == 2)
+        #expect(changes.contains { !$0.added && $0.text == "Old paragraph" })
+        #expect(changes.contains { $0.added && $0.text == "New paragraph" })
+        #expect(LegalTextChange.compare(old: "unchanged", new: "unchanged").isEmpty)
     }
 }

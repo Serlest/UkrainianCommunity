@@ -121,7 +121,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
         }
         if let draftDocument {
             guard draftDocument.status == .draft,
-                  Self.hasValidContentHashes(draftDocument),
+                  Self.hasValidContentHashes(draftDocument, allowIncomplete: true),
                   LegalDocumentDraft.hasConsistentVersionIdentifier(
                     draftDocument.version,
                     versionNumber: draftDocument.versionNumber
@@ -139,45 +139,83 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
         )
     }
 
+    func fetchVersionHistory(type: LegalDocumentType, before: Int?) async throws -> LegalVersionPage {
+        var query = database.collection("legalDocuments").document(type.rawValue)
+            .collection("versions").order(by: "versionNumber", descending: true).limit(to: 21)
+        if let before { query = query.start(after: [before]) }
+        let snapshots = try await query.getDocuments(source: .server)
+        let page = Array(snapshots.documents.prefix(20))
+        let documents = try page.compactMap { snapshot -> LegalDocument? in
+            let document = decodeDocument(type: type, version: snapshot.documentID, data: snapshot.data())
+            guard document.status == .published else { return nil }
+            guard document.version == snapshot.documentID,
+                  snapshot.get("documentType") as? String == type.rawValue,
+                  LegalDocumentDraft.hasConsistentVersionIdentifier(document.version, versionNumber: document.versionNumber),
+                  Self.hasValidContentHashes(document) else { throw AppError.validationFailed }
+            return document
+        }
+        return LegalVersionPage(documents: documents, nextBefore: snapshots.documents.count > 20 ? page.last?.get("versionNumber") as? Int : nil)
+    }
+
+    func discardDraft(_ draft: LegalDocumentDraft) async throws {
+        let reference = versionReference(type: draft.type, version: draft.version)
+        _ = try await database.runTransaction { transaction, errorPointer -> Any? in
+            do {
+                let snapshot = try transaction.getDocument(reference)
+                guard snapshot.exists else { return nil }
+                guard snapshot.get("status") as? String == LegalDocumentStatus.draft.rawValue,
+                      snapshot.get("contentHash") as? String == draft.sourceContentHash
+                else { throw AppError.validationFailed }
+                transaction.deleteDocument(reference)
+            } catch { errorPointer?.pointee = error as NSError }
+            return nil
+        }
+    }
+
     func saveDraft(_ draft: LegalDocumentDraft, updatedBy userID: String) async throws {
         let pointerReference = database.collection("legalDocuments").document(draft.type.rawValue)
         let reference = versionReference(type: draft.type, version: draft.version)
         guard draft.hasConsistentVersionIdentifier else { throw AppError.validationFailed }
         let draftPayload = payload(for: draft, status: .draft, userID: userID)
 
-        _ = try await database.runTransaction { transaction, errorPointer -> Any? in
-            do {
-                let pointerSnapshot = try transaction.getDocument(pointerReference)
-                let snapshot = try transaction.getDocument(reference)
-                guard let pointerData = pointerSnapshot.data(),
-                      Self.matchesIfPresent(pointerData["documentType"] as? String, expected: draft.type.rawValue),
-                      Self.matchesIfPresent(
-                        pointerData["status"] as? String,
-                        expected: LegalDocumentStatus.published.rawValue
-                      ),
-                      pointerData["activeVersion"] as? String == draft.supersedesVersion,
-                      (pointerData["versionNumber"] as? Int).map({ draft.versionNumber == $0 + 1 }) == true
-                else { throw AppError.validationFailed }
-                var payload = draftPayload
-                payload["updatedAt"] = FieldValue.serverTimestamp()
-                payload["updatedBy"] = userID
-
-                if snapshot.exists {
-                    let data = snapshot.data() ?? [:]
-                    guard data["status"] as? String == LegalDocumentStatus.draft.rawValue,
-                          data["contentHash"] as? String == draft.sourceContentHash
+        do {
+            _ = try await database.runTransaction { transaction, errorPointer -> Any? in
+                do {
+                    let pointerSnapshot = try transaction.getDocument(pointerReference)
+                    let snapshot = try transaction.getDocument(reference)
+                    guard let pointerData = pointerSnapshot.data(),
+                          Self.matchesIfPresent(pointerData["documentType"] as? String, expected: draft.type.rawValue),
+                          Self.matchesIfPresent(
+                            pointerData["status"] as? String,
+                            expected: LegalDocumentStatus.published.rawValue
+                          ),
+                          pointerData["activeVersion"] as? String == draft.supersedesVersion,
+                          (pointerData["versionNumber"] as? Int).map({ draft.versionNumber == $0 + 1 }) == true
                     else { throw AppError.validationFailed }
-                    transaction.updateData(payload, forDocument: reference)
-                } else {
-                    guard draft.sourceContentHash == nil else { throw AppError.validationFailed }
-                    payload["createdAt"] = FieldValue.serverTimestamp()
-                    payload["createdBy"] = userID
-                    transaction.setData(payload, forDocument: reference)
+                    var payload = draftPayload
+                    payload["updatedAt"] = FieldValue.serverTimestamp()
+                    payload["updatedBy"] = userID
+
+                    if snapshot.exists {
+                        let data = snapshot.data() ?? [:]
+                        guard data["status"] as? String == LegalDocumentStatus.draft.rawValue,
+                              data["contentHash"] as? String == draft.sourceContentHash
+                        else { throw AppError.validationFailed }
+                        transaction.updateData(payload, forDocument: reference)
+                    } else {
+                        guard draft.sourceContentHash == nil else { throw AppError.validationFailed }
+                        payload["createdAt"] = FieldValue.serverTimestamp()
+                        payload["createdBy"] = userID
+                        transaction.setData(payload, forDocument: reference)
+                    }
+                } catch {
+                    errorPointer?.pointee = error as NSError
                 }
-            } catch {
-                errorPointer?.pointee = error as NSError
+                return nil
             }
-            return nil
+        } catch {
+            if await draftIsSaved(draft) { return }
+            throw error
         }
     }
 
@@ -384,7 +422,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
         return value == expected
     }
 
-    private static func hasValidContentHashes(_ document: LegalDocument) -> Bool {
+    static func hasValidContentHashes(_ document: LegalDocument, allowIncomplete: Bool = false) -> Bool {
         guard let documentHash = document.contentHash,
               document.locales.values.allSatisfy({ $0.contentHash != nil })
         else { return false }
@@ -401,8 +439,7 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
             let title = entry.value.title.trimmingCharacters(in: .whitespacesAndNewlines)
             let markdown = normalizedMarkdown(entry.value.contentMarkdown)
             let localeHash = sha256(markdown)
-            guard !title.isEmpty,
-                  !markdown.isEmpty,
+            guard (allowIncomplete || (!title.isEmpty && !markdown.isEmpty)),
                   entry.value.contentHash == localeHash
             else { return }
             result[locale] = [
@@ -447,6 +484,18 @@ struct FirestoreLegalDocumentRepository: LegalDocumentRepository {
     private static func sha256(_ value: String) -> String {
         let digest = SHA256.hash(data: Data(value.utf8))
         return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private func draftIsSaved(_ draft: LegalDocumentDraft) async -> Bool {
+        do {
+            let snapshot = try await versionReference(type: draft.type, version: draft.version).getDocument(source: .server)
+            guard let data = snapshot.data(), data["status"] as? String == LegalDocumentStatus.draft.rawValue,
+                  data["contentHash"] as? String == draft.normalizedContentHash,
+                  data["supersedesVersion"] as? String == draft.supersedesVersion,
+                  data["changeSummary"] as? String == draft.changeSummary,
+                  data["requiresAcceptance"] as? Bool == draft.requiresAcceptance else { return false }
+            return Self.hasValidContentHashes(decodeDocument(type: draft.type, version: draft.version, data: data), allowIncomplete: true)
+        } catch { return false }
     }
 
     private func publicationIsActive(_ draft: LegalDocumentDraft) async -> Bool {
