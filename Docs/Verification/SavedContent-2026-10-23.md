@@ -15,6 +15,7 @@
 Artifacts: `build/saved-content-audit-20261023/` (ignored).
 
 - SavedFinal.xcresult: 41 checks passed, zero failures/skips. Final Ukrainian/light and German/dark/accessibility screenshots inspected. Paging-rules.log: 1 integration test passed, zero skipped, covering all three bookmark kinds.
+- SavedContrast.xcresult: UI journey passed again in both languages after applying the shared palette and minimum touch target to search. Final dark-theme search contrast inspected.
 - Regression tests added for preserving a general-feed card, 20→25 saved records without duplicates, account reset, and refresh during a suspended removal.
 - UI journey uses isolated mock data: search for no match, clear search, open and return, remove from context menu; Ukrainian light and German dark/accessibility settings.
 - New emulator rule test checks first/next document-ID pages and denies another account for all three bookmark subcollections.

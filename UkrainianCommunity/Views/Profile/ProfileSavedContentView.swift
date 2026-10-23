@@ -443,8 +443,14 @@ struct SavedContentView: View {
             title: AppStrings.Profile.savedContent,
             introSubtitle: AppStrings.Profile.savedContentIntro
         ) {
-            TextField(SavedScreenText.search, text: $searchText)
-                .textFieldStyle(.roundedBorder).accessibilityIdentifier("saved.search")
+            TextField(SavedScreenText.search, text: $searchText,
+                      prompt: Text(SavedScreenText.search).foregroundStyle(AppTheme.textSecondary))
+                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
+                .padding(.horizontal, AppTheme.inputHorizontalPadding)
+                .frame(minHeight: AppTheme.minimumInteractiveTarget)
+                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
+                .overlay(RoundedRectangle(cornerRadius: AppTheme.inputRadius).strokeBorder(AppTheme.borderSubtle))
+                .accessibilityIdentifier("saved.search")
             if viewModel.hasMore {
                 Text(SavedScreenText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary)
             }
