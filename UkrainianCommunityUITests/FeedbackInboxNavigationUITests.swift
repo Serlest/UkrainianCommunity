@@ -470,7 +470,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
     }
 
     @MainActor
-    private func launch(language: String = "uk", darkLarge: Bool = false, reportContext: Bool = false, registrations: Bool = false, registrationsOffline: Bool = false, saved: Bool = false) -> XCUIApplication {
+    private func launch(language: String = "uk", darkLarge: Bool = false, reportContext: Bool = false, registrations: Bool = false, registrationsOffline: Bool = false, saved: Bool = false, subscriptions: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
@@ -479,6 +479,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
                                  "UITestFeedbackInbox": "1", "UITestLegalEvidence": "1", "UITestUserRefresh": "1"]
         app.launchEnvironment["UITestAppAppearance"] = darkLarge ? "dark" : "light"
         if reportContext { app.launchEnvironment["UITestFeedbackReportContext"] = "1" }
+        if subscriptions { app.launchEnvironment["UITestSubscriptions"] = "1" }
         if saved { app.launchEnvironment["UITestSavedContent"] = "1" }
         if registrations { app.launchEnvironment["UITestMyRegistrations"] = "1" }
         if registrationsOffline { app.launchEnvironment["UITestMyRegistrationsOffline"] = "1" }
@@ -839,6 +840,31 @@ extension OwnerProfileAuditUITests {
             reveal(row, in: app); row.press(forDuration: 1)
             let remove = app.buttons["saved.remove.news-news-1"].firstMatch
             XCTAssertTrue(remove.waitForExistence(timeout: 5)); remove.tap()
+            XCTAssertTrue(row.waitForNonExistence(timeout: 8))
+        }
+    }
+}
+
+extension OwnerProfileAuditUITests {
+    @MainActor func testSubscriptionsSearchOpenAndUnsubscribe() {
+        for language in ["uk", "de"] {
+            let app = launch(language: language, darkLarge: language == "de", subscriptions: true)
+            let entry = app.buttons["profile.followedOrganizations"]
+            reveal(entry, in: app); entry.tap()
+            let search = app.textFields["subscriptions.search"]
+            XCTAssertTrue(search.waitForExistence(timeout: 8))
+            search.tap(); search.typeText("zz-no-match")
+            XCTAssertFalse(app.buttons["subscriptions.open.org-1"].exists)
+            search.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "zz-no-match".count))
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.12)).tap()
+            let row = app.buttons["subscriptions.open.org-1"]
+            reveal(row, in: app); capture(app, "subscriptions-" + language)
+            row.tap(); back(app)
+            reveal(row, in: app); row.press(forDuration: 1)
+            let remove = app.buttons["subscriptions.remove.org-1"].firstMatch
+            XCTAssertTrue(remove.waitForExistence(timeout: 5)); remove.tap()
+            let confirm = app.buttons["subscriptions.confirm"].firstMatch
+            XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
             XCTAssertTrue(row.waitForNonExistence(timeout: 8))
         }
     }

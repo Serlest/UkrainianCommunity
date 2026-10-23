@@ -126,6 +126,41 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
         try await fetchOrganizationSubscriptions(forceRefresh: false).compactMap(\.content)
     }
 
+    func fetchSubscriptionPage(limit: Int, after: String?) async throws -> SavedContentPage<Organization> {
+        guard let uid = Auth.auth().currentUser?.uid else { throw AppError.permissionDenied }
+        let size = max(1, min(limit, 50))
+        let prefix = "organization_follow_"
+        var query = likesCollection.whereField("userId", isEqualTo: uid)
+            .whereField(FieldPath.documentID(), isGreaterThanOrEqualTo: prefix)
+            .whereField(FieldPath.documentID(), isLessThan: prefix + "\u{f8ff}")
+            .order(by: FieldPath.documentID()).limit(to: size + 1)
+        if let after { query = query.start(after: [after]) }
+        do {
+            let snapshot = try await query.getDocuments(source: .server)
+            guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
+            let markers = Array(snapshot.documents.prefix(size))
+            var records: [SavedContentRecord<Organization>] = []
+            for marker in markers {
+                try Task.checkCancellation()
+                guard let id = marker.data()["subscribedOrganizationId"] as? String else { continue }
+                var organization: Organization?
+                do {
+                    let docs = try await collection.whereField(FieldPath.documentID(), isEqualTo: id)
+                        .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue).getDocuments(source: .server)
+                    if let doc = docs.documents.first {
+                        organization = try Organization(dto: makeOrganizationDTO(from: doc, likedOrganizationIDs: [], subscribedOrganizationIDs: [id], bookmarkedOrganizationIDs: []))
+                    }
+                } catch {
+                    if (error as NSError).domain != FirestoreErrorDomain || (error as NSError).code != FirestoreErrorCode.permissionDenied.rawValue { throw error }
+                }
+                records.append(SavedContentRecord(id: id, savedAt: (marker.data()["createdAt"] as? Timestamp)?.dateValue(), content: organization))
+            }
+            guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
+            return SavedContentPage(items: records, nextCursor: snapshot.documents.count > size ? markers.last?.documentID : nil)
+        } catch is CancellationError { throw CancellationError() }
+        catch { throw FirebaseReadErrorMapper.map(error) }
+    }
+
     func fetchOrganizationSubscriptions(forceRefresh: Bool) async throws -> [SavedContentRecord<Organization>] {
         let markers = try await fetchOrganizationSubscriptionMarkers(forceRefresh: forceRefresh)
         let subscribedIDs = Set(markers.map { $0.id })
@@ -162,7 +197,7 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             let organization = organizationsByID[marker.id]
             return SavedContentRecord(
                 id: marker.id,
-                savedAt: organization?.createdAt ?? marker.createdAt,
+                savedAt: marker.createdAt,
                 content: organization
             )
         }

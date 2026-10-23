@@ -745,13 +745,12 @@ private struct UnavailableSavedContentCard: View {
 }
 
 struct FollowedOrganizationsView: View {
+    @EnvironmentObject private var authState: AuthState
+    @StateObject private var model: SubscriptionsViewModel
+    @State private var searchText = ""
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
-    @State private var subscriptions: [SavedContentRecord<Organization>] = []
-    @State private var isLoadingSubscriptions = false
-    @State private var subscriptionsError: AppError?
     @State private var sortOption: AppListSortOption = .nameAscending
     @State private var unavailableSubscriptionPendingConfirmation: String?
-    @State private var pendingUnavailableSubscriptionRemovalIDs = Set<String>()
     private let organizationRepository: OrganizationRepository
 
     init(
@@ -759,17 +758,19 @@ struct FollowedOrganizationsView: View {
         organizationRepository: OrganizationRepository = FirestoreOrganizationRepository()
     ) {
         self.organizationRepository = organizationRepository
-        self.organizationsViewModel = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
+        let shared = organizationsViewModel ?? OrganizationsViewModel(repository: organizationRepository)
+        self.organizationsViewModel = shared
+        _model = StateObject(wrappedValue: SubscriptionsViewModel(repository: organizationRepository, shared: shared))
     }
 
     private var isLoading: Bool {
-        isLoadingSubscriptions && visibleSubscriptions.isEmpty
+        model.isLoading && visibleSubscriptions.isEmpty
     }
 
     private var visibleSubscriptions: [SavedContentRecord<Organization>] {
-        subscriptions.compactMap { record in
+        model.records.map { record in
             guard let organization = record.content else { return record }
-            return organizationsViewModel.visibilityPolicy.visibleOrganizations([organization]).isEmpty ? nil : record
+            return organizationsViewModel.visibilityPolicy.visibleOrganizations([organization]).isEmpty ? SavedContentRecord(id: record.id, savedAt: record.savedAt, content: nil) : record
         }
     }
 
@@ -778,6 +779,13 @@ struct FollowedOrganizationsView: View {
             title: AppStrings.Profile.organizationSubscriptions,
             introSubtitle: AppStrings.Profile.subscriptionsIntro
         ) {
+            TextField(SubscriptionsText.search, text: $searchText,
+                      prompt: Text(SubscriptionsText.search).foregroundStyle(AppTheme.textSecondary))
+                .textFieldStyle(.plain).foregroundStyle(AppTheme.textPrimary)
+                .padding(.horizontal, AppTheme.inputHorizontalPadding).frame(minHeight: AppTheme.minimumInteractiveTarget)
+                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
+                .accessibilityIdentifier("subscriptions.search")
+            if model.cursor != nil { Text(SubscriptionsText.partial).font(.footnote).foregroundStyle(AppTheme.textSecondary) }
             if !visibleSubscriptions.isEmpty {
                 AppHorizontalFilterRow {
                     AppSortMenu(
@@ -787,10 +795,18 @@ struct FollowedOrganizationsView: View {
                 }
             }
             followedOrganizationsContent
+            if model.cursor != nil {
+                Button(SubscriptionsText.more) { Task { await model.load(append: true) } }
+                    .disabled(model.isLoading || !model.pending.isEmpty).accessibilityIdentifier("subscriptions.more")
+            }
         }
-        .task {
-            await refreshSubscriptions(forceRefresh: false)
+        .task(id: authState.user?.id) {
+            model.bind(authState.user?.id)
+            searchText = ""
+            unavailableSubscriptionPendingConfirmation = nil
+            await model.load()
         }
+        .onReceive(organizationsViewModel.$pendingOrganizationSubscriptionIDs) { _ in model.reconcile() }
         .appRefreshable {
             await refreshSubscriptions(forceRefresh: true)
         }
@@ -806,7 +822,7 @@ struct FollowedOrganizationsView: View {
                 guard let id = unavailableSubscriptionPendingConfirmation else { return }
                 unavailableSubscriptionPendingConfirmation = nil
                 Task { await removeUnavailableSubscription(id: id) }
-            }
+            }.accessibilityIdentifier("subscriptions.confirm")
             Button(AppStrings.Action.cancel, role: .cancel) {
                 unavailableSubscriptionPendingConfirmation = nil
             }
@@ -817,7 +833,7 @@ struct FollowedOrganizationsView: View {
     private var followedOrganizationsContent: some View {
         if isLoading {
             LoadingStateCard(title: AppStrings.Profile.organizationSubscriptions)
-        } else if let error = subscriptionsError, visibleSubscriptions.isEmpty {
+        } else if let error = model.error, visibleSubscriptions.isEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.organizationSubscriptions,
                 message: followedOrganizationsErrorMessage(error),
@@ -825,15 +841,15 @@ struct FollowedOrganizationsView: View {
             ) {
                 Task { await refreshSubscriptions(forceRefresh: true) }
             }
-        } else if visibleSubscriptions.isEmpty {
+        } else if sortedSubscriptions.isEmpty {
             ProfileDestinationEmptyStateCard(
                 systemImage: "person.2",
                 title: AppStrings.Profile.organizationSubscriptions,
-                message: AppStrings.Profile.subscriptionsEmpty
+                message: searchText.isEmpty ? AppStrings.Profile.subscriptionsEmpty : AppStrings.Search.noResultsMessage
             )
         } else {
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
-                if let error = subscriptionsError {
+                if let error = model.error {
                     InlineMessageCard(style: .error, message: followedOrganizationsErrorMessage(error))
                 }
                 ForEach(sortedSubscriptions, id: \.id) { record in
@@ -844,12 +860,24 @@ struct FollowedOrganizationsView: View {
                                 organizationID: organization.id
                             )
                         } label: {
-                            ProfileOrganizationListCard(organization: organization)
+                            VStack(alignment: .leading, spacing: 4) {
+                                ProfileOrganizationListCard(organization: organization)
+                                if let date = record.savedAt {
+                                    Text(SubscriptionsText.since + " " + LocalizationStore.dateString(from: date))
+                                        .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                                }
+                            }
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("subscriptions.open.\(record.id)")
+                        .contextMenu {
+                            Button(AppStrings.Organizations.confirmUnsubscribeButton, role: .destructive) { unavailableSubscriptionPendingConfirmation = record.id }
+                                .disabled(model.isLoading || model.pending.contains(record.id))
+                                .accessibilityIdentifier("subscriptions.remove.\(record.id)")
+                        }
                     } else {
                         UnavailableOrganizationSubscriptionCard(
-                            isRemoving: pendingUnavailableSubscriptionRemovalIDs.contains(record.id),
+                            isRemoving: model.pending.contains(record.id),
                             remove: { unavailableSubscriptionPendingConfirmation = record.id }
                         )
                     }
@@ -859,7 +887,7 @@ struct FollowedOrganizationsView: View {
     }
 
     private var sortedSubscriptions: [SavedContentRecord<Organization>] {
-        visibleSubscriptions.sorted { lhs, rhs in
+        visibleSubscriptions.filter { searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || ($0.content?.localizedName ?? AppStrings.Profile.unavailableSubscriptionTitle).localizedStandardContains(searchText) }.sorted { lhs, rhs in
             switch sortOption {
             case .newest:
                 return compareSubscriptionDates(lhs, rhs, ascending: false)
@@ -884,7 +912,7 @@ struct FollowedOrganizationsView: View {
     ) -> Bool {
         switch (lhs.content, rhs.content) {
         case let (left?, right?):
-            let result = LocalizationStore.compareForSorting(left.name, right.name)
+            let result = LocalizationStore.compareForSorting(left.localizedName, right.localizedName)
             guard result != .orderedSame else { return lhs.id < rhs.id }
             return ascending ? result == .orderedAscending : result == .orderedDescending
         case (_?, nil):
@@ -901,8 +929,8 @@ struct FollowedOrganizationsView: View {
         _ rhs: SavedContentRecord<Organization>,
         ascending: Bool
     ) -> Bool {
-        let leftDate = lhs.content?.createdAt ?? lhs.savedAt
-        let rightDate = rhs.content?.createdAt ?? rhs.savedAt
+        let leftDate = lhs.savedAt
+        let rightDate = rhs.savedAt
         switch (leftDate, rightDate) {
         case let (left?, right?) where left != right:
             return ascending ? left < right : left > right
@@ -924,45 +952,8 @@ struct FollowedOrganizationsView: View {
         )
     }
 
-    private func removeUnavailableSubscription(id: String) async {
-        guard !pendingUnavailableSubscriptionRemovalIDs.contains(id) else { return }
-        pendingUnavailableSubscriptionRemovalIDs.insert(id)
-        subscriptionsError = nil
-        defer { pendingUnavailableSubscriptionRemovalIDs.remove(id) }
-
-        do {
-            try await organizationRepository.unsubscribeOrganization(id: id, actionCapture: nil)
-            subscriptions.removeAll { $0.id == id }
-        } catch let error as AppError {
-            subscriptionsError = error
-        } catch {
-            subscriptionsError = .unknown
-        }
-    }
-
-    private func refreshSubscriptions(forceRefresh: Bool) async {
-        guard !isLoadingSubscriptions else { return }
-        isLoadingSubscriptions = true
-        defer { isLoadingSubscriptions = false }
-
-        do {
-            subscriptions = try await RefreshRequest.run { [self] in
-                try await organizationRepository.fetchOrganizationSubscriptions(forceRefresh: forceRefresh)
-            }
-            for organization in visibleSubscriptions.compactMap(\.content) {
-                if let index = organizationsViewModel.organizations.firstIndex(where: { $0.id == organization.id }) {
-                    organizationsViewModel.organizations[index] = organization
-                } else {
-                    organizationsViewModel.organizations.append(organization)
-                }
-            }
-            subscriptionsError = nil
-        } catch let error as AppError {
-            subscriptionsError = error
-        } catch {
-            subscriptionsError = .unknown
-        }
-    }
+    private func removeUnavailableSubscription(id: String) async { await model.remove(id) }
+    private func refreshSubscriptions(forceRefresh: Bool) async { await model.load() }
 
     private func followedOrganizationsErrorMessage(_ error: AppError) -> String {
         switch error {

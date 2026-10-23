@@ -378,6 +378,16 @@ enum MockContentBuilder {
     }
 
     nonisolated static func organizations() -> [Organization] {
+        var items = baseOrganizations()
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestSubscriptions"] == "1" {
+            for index in items.indices { items[index].isSubscribed = true }
+        }
+        #endif
+        return items
+    }
+
+    nonisolated private static func baseOrganizations() -> [Organization] {
         [
             Organization(
                 id: "org-1",

@@ -706,6 +706,7 @@ protocol OrganizationRepository {
     func fetchSavedOrganizationsPage(limit: Int, after: String?) async throws -> SavedContentPage<Organization>
     func fetchSubscribedOrganizations() async throws -> [Organization]
     func fetchOrganizationSubscriptions(forceRefresh: Bool) async throws -> [SavedContentRecord<Organization>]
+    func fetchSubscriptionPage(limit: Int, after: String?) async throws -> SavedContentPage<Organization>
     func fetchOrganizationsPage(limit: Int, after cursor: OrganizationPageCursor?) async throws -> OrganizationPage
     func fetchOrganizationsPage(
         limit: Int,
@@ -1056,9 +1057,15 @@ extension OrganizationRepository {
         try await fetchOrganizations().filter(\.isSubscribed)
     }
 
+    func fetchSubscriptionPage(limit: Int, after: String?) async throws -> SavedContentPage<Organization> {
+        let records = try await fetchOrganizationSubscriptions(forceRefresh: true).sorted { $0.id < $1.id }.filter { after == nil || $0.id > after! }
+        let items = Array(records.prefix(max(1, min(limit, 50))))
+        return SavedContentPage(items: items, nextCursor: records.count > items.count ? items.last?.id : nil)
+    }
+
     func fetchOrganizationSubscriptions(forceRefresh _: Bool) async throws -> [SavedContentRecord<Organization>] {
         try await fetchSubscribedOrganizations().map { organization in
-            SavedContentRecord(id: organization.id, savedAt: organization.createdAt, content: organization)
+            SavedContentRecord(id: organization.id, savedAt: nil, content: organization)
         }
     }
 

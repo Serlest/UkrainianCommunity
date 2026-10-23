@@ -639,6 +639,48 @@ struct ContentInteractionRaceTests {
         #expect(news.posts.first(where: { $0.id == "saved" })?.isBookmarked == false)
     }
 
+    @Test func subscriptionPagesAndRemovalPreserveGeneralOrganizations() async {
+        let repo = ControlledOrganizationRepository()
+        let records = (0..<25).map { index in
+            var organization = makeOrganization(id: String(format: "sub-%02d", index))
+            organization.isSubscribed = true
+            return SavedContentRecord(id: organization.id, savedAt: Date(), content: organization)
+        }
+        repo.subscriptionPageHandler = { limit, after in
+            let remaining = records.filter { after == nil || $0.id > after! }
+            let items = Array(remaining.prefix(limit))
+            return SavedContentPage(items: items, nextCursor: remaining.count > items.count ? items.last?.id : nil)
+        }
+        let shared = OrganizationsViewModel(repository: repo)
+        shared.organizations = [makeOrganization(id: "general-feed")]
+        let model = SubscriptionsViewModel(repository: repo, shared: shared)
+        model.bind("first"); await model.load()
+        #expect(model.records.count == 20 && model.cursor != nil)
+        await model.load(append: true)
+        #expect(model.records.count == 25 && model.cursor == nil)
+        #expect(shared.organizations.contains { $0.id == "general-feed" })
+        await model.remove("sub-00")
+        #expect(!model.records.contains { $0.id == "sub-00" })
+        #expect(shared.organizations.first(where: { $0.id == "sub-00" })?.isSubscribed == false)
+        model.bind("second")
+        #expect(model.records.isEmpty && model.cursor == nil && model.pending.isEmpty)
+    }
+
+    @Test func oldSubscriptionReadCannotPopulateAnotherAccount() async {
+        let repo = ControlledOrganizationRepository()
+        let shared = OrganizationsViewModel(repository: repo)
+        let model = SubscriptionsViewModel(repository: repo, shared: shared)
+        var continuation: CheckedContinuation<SavedContentPage<Organization>, Error>?
+        repo.subscriptionPageHandler = { _, _ in try await withCheckedThrowingContinuation { continuation = $0 } }
+        model.bind("old")
+        let load = Task { await model.load() }
+        #expect(await eventually { continuation != nil })
+        model.bind("new")
+        continuation?.resume(returning: SavedContentPage(items: [SavedContentRecord(id: "old-data", savedAt: nil, content: makeOrganization(id: "old-data"))], nextCursor: nil))
+        await load.value
+        #expect(model.records.isEmpty && !model.isLoading && shared.organizations.isEmpty)
+    }
+
     private func makeNewsPost(
         id: String,
         authorID: String? = nil,
@@ -1029,6 +1071,11 @@ private final class NewsCommentTestListener: AppRealtimeListener {
 
 @MainActor
 private final class ControlledOrganizationRepository: OrganizationRepository {
+    var subscriptionPageHandler: ((Int, String?) async throws -> SavedContentPage<Organization>)?
+    func fetchSubscriptionPage(limit: Int, after: String?) async throws -> SavedContentPage<Organization> {
+        if let subscriptionPageHandler { return try await subscriptionPageHandler(limit, after) }
+        return SavedContentPage(items: [], nextCursor: nil)
+    }
     var authoringHandler: ((AppUser) async throws -> [Organization])?
     func fetchAuthoringOrganizations(user: AppUser) async throws -> [Organization] {
         if let authoringHandler { return try await authoringHandler(user) }

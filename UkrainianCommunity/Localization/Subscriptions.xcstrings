@@ -1,0 +1,74 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "subscriptions.search": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonnements durchsuchen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук підписок"
+          }
+        }
+      }
+    },
+    "subscriptions.partial": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ein Teil der Abonnements ist geladen. Suche und Sortierung gelten für geladene Einträge."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажено частину підписок. Пошук, сортування та лічильники стосуються завантажених записів."
+          }
+        }
+      }
+    },
+    "subscriptions.more": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weitere laden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити ще"
+          }
+        }
+      }
+    },
+    "subscriptions.since": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abonniert seit"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Підписка від"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
