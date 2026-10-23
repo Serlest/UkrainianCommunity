@@ -11,6 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 INDEXES_PATH = ROOT / "Firebase" / "firestore.indexes.json"
 
 REQUIRED_COMPOSITE_INDEXES = {
+    ("notificationInbox", "COLLECTION", (
+        ("isRead", "ASCENDING", None, None),
+        ("createdAt", "DESCENDING", None, None),
+    )): "independent unread notification cursor pages",
+
     (
         "news",
         "COLLECTION",

@@ -75,7 +75,25 @@ protocol NotificationPreferencesRepository {
     func saveNotificationPreferences(_ preferences: NotificationPreferences, userID: String) async throws
 }
 
+struct NotificationInboxCursor: Equatable {
+    let createdAt: Date
+    let documentID: String
+    var exactTimestamp: PageCursorTimestamp? = nil
+}
+
+struct NotificationInboxPage: Equatable {
+    /// Raw records retain tombstones so a deleted row cannot truncate pagination.
+    let items: [AppNotification]
+    let nextCursor: NotificationInboxCursor?
+    let hasMore: Bool
+}
+
 protocol NotificationInboxRepository {
+    func fetchNotificationPage(userID: String, unreadOnly: Bool, limit: Int, after: NotificationInboxCursor?) async throws -> NotificationInboxPage
+    func listenNotificationHead(userID: String, limit: Int,
+        onChange: @escaping @MainActor (NotificationInboxPage) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener
+    func restoreNotification(userID: String, notificationID: String) async throws
     func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification]
     func listenNotifications(
         userID: String,
@@ -92,6 +110,34 @@ protocol NotificationInboxRepository {
     func deleteNotification(userID: String, notificationID: String) async throws
     func clearNotifications(userID: String) async throws
     func createNotification(userID: String, notification: AppNotification) async throws
+}
+
+// In-memory repositories retain their existing contracts; Firestore uses exact cursor pages.
+extension NotificationInboxRepository {
+    func fetchNotificationPage(userID: String, unreadOnly: Bool, limit: Int, after: NotificationInboxCursor?) async throws -> NotificationInboxPage {
+        let records = try await fetchNotifications(userID: userID, limit: Int.max)
+            .filter { !unreadOnly || $0.countsAsUnread }
+            .sorted { $0.createdAt == $1.createdAt ? $0.id > $1.id : $0.createdAt > $1.createdAt }
+            .filter { item in
+                guard let after else { return true }
+                return item.createdAt < after.createdAt || (item.createdAt == after.createdAt && item.id < after.documentID)
+            }
+        let items = Array(records.prefix(limit))
+        return NotificationInboxPage(items: items, nextCursor: items.last.map {
+            NotificationInboxCursor(createdAt: $0.createdAt, documentID: $0.id)
+        }, hasMore: records.count > limit)
+    }
+
+    func listenNotificationHead(userID: String, limit: Int,
+        onChange: @escaping @MainActor (NotificationInboxPage) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener {
+        listenNotifications(userID: userID, limit: limit, onChange: { items in
+            onChange(NotificationInboxPage(items: items, nextCursor: items.last.map {
+                NotificationInboxCursor(createdAt: $0.createdAt, documentID: $0.id)
+            }, hasMore: items.count >= limit))
+        }, onError: onError)
+    }
+
 }
 
 nonisolated enum NotificationPushRegistrationKind: String, Sendable {

@@ -7,6 +7,7 @@ struct NotificationInboxView: View {
     let subtitle: String?
     @State private var isShowingClearConfirmation = false
     @State private var selectedNotification: AppNotification?
+    @State private var pendingDelete: AppNotification?
     @State private var pendingDestination: AppNotification?
 
     init(
@@ -31,9 +32,11 @@ struct NotificationInboxView: View {
             if viewModel.isClearing {
                 ProgressView()
                     .controlSize(.small)
+                    .disabled(viewModel.isBusy)
+                    .accessibilityIdentifier("notificationInbox.markAllRead")
                     .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
                     .accessibilityLabel(AppStrings.NotificationInbox.clearAll)
-            } else if !viewModel.notifications.isEmpty {
+            } else if viewModel.canClear {
                 AppGlassIconButton(
                     systemImage: "trash",
                     accessibilityLabel: AppStrings.NotificationInbox.clearAll,
@@ -45,7 +48,25 @@ struct NotificationInboxView: View {
             }
         } content: {
             headerControls
+            if let error = viewModel.error {
+                InlineMessageCard(style: .error, message: error.localizedDescription)
+                    .accessibilityIdentifier("notificationInbox.error")
+                Button(AppStrings.Action.retry) { Task { await viewModel.refresh() } }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.isBusy)
+                    .accessibilityIdentifier("notificationInbox.retry")
+            }
             inboxContent
+            if viewModel.isLoadingMore || viewModel.isFilterLoading {
+                ProgressView().frame(maxWidth: .infinity)
+                    .accessibilityLabel(AppStrings.Common.loading)
+            } else if viewModel.hasMoreNotifications {
+                Button(AppStrings.NotificationInbox.loadMore) { Task { await viewModel.loadMore() } }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+                    .disabled(viewModel.isBusy)
+                    .accessibilityIdentifier("notificationInbox.loadMore")
+            }
         }
         .accessibilityIdentifier("screen.notificationInbox")
         .appRefreshable {
@@ -68,7 +89,19 @@ struct NotificationInboxView: View {
         .onChange(of: viewModel.sessionVersion) { _, _ in
             pendingDestination = nil
             selectedNotification = nil
+            pendingDelete = nil
+            isShowingClearConfirmation = false
         }
+        .task(id: viewModel.selectedFilter) { await viewModel.loadInitialFilterIfNeeded() }
+        .alert(AppStrings.NotificationInbox.deleteConfirmationTitle, isPresented: Binding(
+            get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } }
+        )) {
+            Button(AppStrings.NotificationInbox.delete, role: .destructive) {
+                if let notification = pendingDelete { Task { await viewModel.delete(notification) } }
+                pendingDelete = nil
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { pendingDelete = nil }
+        } message: { Text(AppStrings.NotificationInbox.deleteConfirmationMessage) }
         .confirmationDialog(
             AppStrings.NotificationInbox.clearConfirmationTitle,
             isPresented: $isShowingClearConfirmation,
@@ -89,20 +122,29 @@ struct NotificationInboxView: View {
                 Picker(AppStrings.NotificationInbox.title, selection: $viewModel.selectedFilter) {
                     Text(AppStrings.NotificationInbox.filterAll).tag(NotificationInboxFilter.all)
                     Text(AppStrings.NotificationInbox.filterUnread).tag(NotificationInboxFilter.unread)
+                    Text(AppStrings.NotificationInbox.filterArchive).tag(NotificationInboxFilter.archived)
                 }
-                .pickerStyle(.segmented)
+                .pickerStyle(.menu)
+                .accessibilityIdentifier("notificationInbox.filter")
 
                 if viewModel.unreadCount > 0 {
                     Button {
                         Task { await viewModel.markAllRead() }
                     } label: {
-                        Label(AppStrings.NotificationInbox.markAllRead, systemImage: "checkmark.circle")
+                        HStack {
+                            if viewModel.isMarkingAllRead { ProgressView() }
+                            Label(AppStrings.NotificationInbox.markAllRead, systemImage: "checkmark.circle")
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                             .font(.subheadline.weight(.semibold))
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
+                    .disabled(viewModel.isBusy)
+                    .accessibilityIdentifier("notificationInbox.markAllRead")
                 }
             }
+            .tint(AppTheme.accentPrimaryForeground)
         }
     }
 
@@ -110,35 +152,16 @@ struct NotificationInboxView: View {
     private var inboxContent: some View {
         if viewModel.isLoading && viewModel.notifications.isEmpty {
             LoadingStateCard(title: AppStrings.NotificationInbox.title)
-        } else if let error = viewModel.error, viewModel.notifications.isEmpty {
+        } else if viewModel.isFilterLoading && viewModel.filteredNotifications.isEmpty {
+            LoadingStateCard(title: AppStrings.NotificationInbox.title)
+        } else if viewModel.filteredNotifications.isEmpty && viewModel.error == nil {
             UnifiedEmptyStateCard(
-                systemImage: "exclamationmark.triangle",
-                title: AppStrings.NotificationInbox.title,
-                message: error.localizedDescription
-            ) {
-                Button(AppStrings.Action.retry) {
-                    Task { await viewModel.refresh() }
-                }
-                .buttonStyle(.borderedProminent)
-            }
-        } else if viewModel.filteredNotifications.isEmpty {
-            UnifiedEmptyStateCard(
-                systemImage: viewModel.selectedFilter == .unread ? "checkmark.circle" : "bell",
+                systemImage: viewModel.selectedFilter == .archived ? "archivebox" : (viewModel.selectedFilter == .unread ? "checkmark.circle" : "bell"),
                 title: emptyTitle,
-                message: emptyMessage
+                message: viewModel.hasMoreNotifications ? AppStrings.NotificationInbox.moreHistory : emptyMessage
             )
         } else {
             LazyVStack(spacing: AppTheme.eventsMetadataSpacing) {
-                if let error = viewModel.error {
-                    InlineMessageCard(style: .error, message: error.localizedDescription)
-
-                    Button(AppStrings.Action.retry) {
-                        Task { await viewModel.refresh() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityIdentifier("notificationInbox.retry")
-                }
-
                 ForEach(viewModel.filteredNotifications) { notification in
                     NotificationInboxRow(
                         notification: notification,
@@ -152,31 +175,31 @@ struct NotificationInboxView: View {
                             Task { await viewModel.markUnread(notification) }
                         },
                         archiveAction: {
-                            Task { await viewModel.archive(notification) }
+                            Task {
+                                if notification.isArchived { await viewModel.restore(notification) }
+                                else { await viewModel.archive(notification) }
+                            }
                         },
-                        deleteAction: {
-                            Task { await viewModel.delete(notification) }
-                        }
+                        deleteAction: { pendingDelete = notification },
+                        actionsDisabled: viewModel.isBusy
                     )
                     .task {
                         await viewModel.loadMoreIfNeeded(currentNotification: notification)
                     }
                 }
 
-                if viewModel.isLoadingMore {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, AppTheme.eventsMetadataSpacing)
-                        .accessibilityLabel(AppStrings.Common.loading)
-                }
+
             }
         }
     }
 
     private var emptyTitle: String {
-        viewModel.selectedFilter == .unread
-            ? AppStrings.NotificationInbox.unreadEmptyTitle
-            : AppStrings.NotificationInbox.emptyTitle
+        if viewModel.hasMoreNotifications { return AppStrings.NotificationInbox.historyTitle }
+        return switch viewModel.selectedFilter {
+        case .all: AppStrings.NotificationInbox.emptyTitle
+        case .unread: AppStrings.NotificationInbox.unreadEmptyTitle
+        case .archived: AppStrings.NotificationInbox.archiveEmptyTitle
+        }
     }
 
     private func openPendingDestination() {
@@ -188,9 +211,11 @@ struct NotificationInboxView: View {
     }
 
     private var emptyMessage: String {
-        viewModel.selectedFilter == .unread
-            ? AppStrings.NotificationInbox.unreadEmptyMessage
-            : AppStrings.NotificationInbox.emptyMessage
+        switch viewModel.selectedFilter {
+        case .all: AppStrings.NotificationInbox.emptyMessage
+        case .unread: AppStrings.NotificationInbox.unreadEmptyMessage
+        case .archived: AppStrings.NotificationInbox.archiveEmptyMessage
+        }
     }
 }
 
@@ -202,6 +227,7 @@ private struct NotificationInboxRow: View {
     let markUnreadAction: () -> Void
     let archiveAction: () -> Void
     let deleteAction: () -> Void
+    let actionsDisabled: Bool
 
     var body: some View {
         AppEditorSectionCard {
@@ -229,21 +255,22 @@ private struct NotificationInboxRow: View {
                 .buttonStyle(.plain)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(title). \(bodyText). \(dateText)")
-                .accessibilityValue(notification.isRead ? "" : AppStrings.NotificationInbox.filterUnread)
+                .accessibilityValue(notification.countsAsUnread ? AppStrings.NotificationInbox.filterUnread : "")
                 .accessibilityAddTraits(.isButton)
                 .accessibilityHint(AppStrings.NotificationInbox.viewDetails)
                 .accessibilityIdentifier("notificationInbox.open.\(notification.id)")
 
                 Menu {
-                    Button(action: notification.isRead ? markUnreadAction : markReadAction) {
+                    Button(action: (notification.isRead || notification.isArchived) ? markUnreadAction : markReadAction) {
                         Label(
-                            notification.isRead ? AppStrings.NotificationInbox.markUnread : AppStrings.NotificationInbox.markRead,
-                            systemImage: notification.isRead ? "envelope.badge" : "envelope.open"
+                            (notification.isRead || notification.isArchived) ? AppStrings.NotificationInbox.markUnread : AppStrings.NotificationInbox.markRead,
+                            systemImage: (notification.isRead || notification.isArchived) ? "envelope.badge" : "envelope.open"
                         )
                     }
 
                     Button(action: archiveAction) {
-                        Label(AppStrings.NotificationInbox.archive, systemImage: "archivebox")
+                        Label(notification.isArchived ? AppStrings.NotificationInbox.restore : AppStrings.NotificationInbox.archive,
+                              systemImage: notification.isArchived ? "tray.and.arrow.up" : "archivebox")
                     }
 
                     Button(role: .destructive, action: deleteAction) {
@@ -258,17 +285,18 @@ private struct NotificationInboxRow: View {
                             height: AppTheme.minimumInteractiveTarget
                         )
                 }
+                .disabled(actionsDisabled)
                 .accessibilityLabel(AppStrings.NotificationInbox.moreActions)
                 .accessibilityIdentifier("notificationInbox.actions.\(notification.id)")
             }
         }
-        .accessibilityAction(named: AppStrings.NotificationInbox.delete, deleteAction)
+        .accessibilityAction(named: AppStrings.NotificationInbox.delete) { if !actionsDisabled { deleteAction() } }
     }
 
     private var notificationIcon: some View {
         ZStack(alignment: .topTrailing) {
             Circle()
-                .fill(iconTint.opacity(notification.isRead ? 0.10 : 0.16))
+                .fill(iconTint.opacity(notification.countsAsUnread ? 0.16 : 0.10))
                 .frame(width: 42, height: 42)
 
             Image(systemName: systemImage)
@@ -276,7 +304,7 @@ private struct NotificationInboxRow: View {
                 .foregroundStyle(iconTint)
                 .frame(width: 42, height: 42)
 
-            if !notification.isRead {
+            if notification.countsAsUnread {
                 Circle()
                     .fill(AppTheme.accentDestructive)
                     .frame(width: 9, height: 9)
@@ -288,7 +316,7 @@ private struct NotificationInboxRow: View {
     private var textContent: some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title)
-                .font(.headline.weight(notification.isRead ? .regular : .semibold))
+                .font(.headline.weight(notification.countsAsUnread ? .semibold : .regular))
                 .foregroundStyle(AppTheme.textPrimary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -381,7 +409,7 @@ private struct NotificationInboxRow: View {
     private var iconTint: Color {
         switch notification.severity {
         case .info:
-            return notification.isRead ? AppTheme.textSecondary : AppTheme.accentPrimaryForeground
+            return notification.countsAsUnread ? AppTheme.accentPrimaryForeground : AppTheme.textSecondary
         case .success:
             return AppTheme.accentSuccessForeground
         case .warning:

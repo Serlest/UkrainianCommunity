@@ -58,6 +58,10 @@ struct MockNotificationInboxRepository: NotificationInboxRepository {
         await store.markNotificationPopupPresented(userID: userID, notificationID: notificationID)
     }
 
+    func restoreNotification(userID: String, notificationID: String) async throws {
+        await store.restoreNotification(userID: userID, notificationID: notificationID)
+    }
+
     func archiveNotification(userID: String, notificationID: String) async throws {
         await store.archiveNotification(userID: userID, notificationID: notificationID)
     }

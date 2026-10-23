@@ -5,6 +5,58 @@ import FirebaseAuth
 struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     private let database = Firestore.firestore()
 
+    private func pageQuery(userID: String, unreadOnly: Bool, limit: Int, after: NotificationInboxCursor?) -> Query {
+        var query: Query = inboxCollection(userID: userID)
+        if unreadOnly { query = query.whereField("isRead", isEqualTo: false) }
+        query = query.order(by: "createdAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: max(1, limit) + 1)
+        if let after {
+            query = query.start(after: [after.exactTimestamp?.firestoreTimestamp ?? Timestamp(date: after.createdAt), after.documentID])
+        }
+        return query
+    }
+
+    private func page(_ documents: [QueryDocumentSnapshot], limit: Int) -> NotificationInboxPage {
+        let selected = Array(documents.prefix(max(1, limit)))
+        let cursor = selected.last.flatMap { document -> NotificationInboxCursor? in
+            guard let timestamp = document.data()["createdAt"] as? Timestamp else { return nil }
+            return NotificationInboxCursor(createdAt: timestamp.dateValue(), documentID: document.documentID,
+                                           exactTimestamp: PageCursorTimestamp(timestamp))
+        }
+        return NotificationInboxPage(items: selected.map(makeNotification), nextCursor: cursor,
+                                     hasMore: documents.count > limit && cursor != nil)
+    }
+
+    func fetchNotificationPage(userID: String, unreadOnly: Bool, limit: Int, after: NotificationInboxCursor?) async throws -> NotificationInboxPage {
+        do {
+            let snapshot = try await pageQuery(userID: userID, unreadOnly: unreadOnly, limit: limit, after: after).getDocuments()
+            return page(snapshot.documents, limit: limit)
+        } catch { throw FirebaseReadErrorMapper.map(error) }
+    }
+
+    func listenNotificationHead(userID: String, limit: Int,
+        onChange: @escaping @MainActor (NotificationInboxPage) -> Void,
+        onError: @escaping @MainActor (AppError) -> Void) -> AppRealtimeListener {
+        let registration = pageQuery(userID: userID, unreadOnly: false, limit: limit, after: nil)
+            .addSnapshotListener { snapshot, error in
+                if let error {
+                    Self.logListenerFailure(error, listenerName: "notificationInbox", userID: userID)
+                    Task { @MainActor in onError(Self.appError(from: error)) }
+                    return
+                }
+                let result = page(snapshot?.documents ?? [], limit: limit)
+                Task { @MainActor in onChange(result) }
+            }
+        return FirebaseRealtimeListener(registration)
+    }
+
+    func restoreNotification(userID: String, notificationID: String) async throws {
+        try await inboxCollection(userID: userID).document(notificationID).updateData([
+            "archivedAt": NSNull(), "isRead": true, "readAt": FieldValue.serverTimestamp()
+        ])
+    }
+
     func fetchNotifications(userID: String, limit: Int) async throws -> [AppNotification] {
         let snapshot = try await inboxCollection(userID: userID)
             .order(by: "createdAt", descending: true)
@@ -72,30 +124,13 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     func markNotificationUnread(userID: String, notificationID: String) async throws {
         try await inboxCollection(userID: userID).document(notificationID).updateData([
             "isRead": false,
+            "archivedAt": NSNull(),
             "readAt": FieldValue.delete()
         ])
     }
 
     func markAllNotificationsRead(userID: String) async throws {
-        let snapshot = try await inboxCollection(userID: userID)
-            .whereField("isRead", isEqualTo: false)
-            .getDocuments()
-
-        let unreadDocuments = snapshot.documents.filter { document in
-            makeNotification(from: document).countsAsUnread
-        }
-        guard !unreadDocuments.isEmpty else { return }
-
-        for start in stride(from: 0, to: unreadDocuments.count, by: 450) {
-            let batch = database.batch()
-            for document in unreadDocuments[start..<min(start + 450, unreadDocuments.count)] {
-                batch.updateData([
-                    "isRead": true,
-                    "readAt": FieldValue.serverTimestamp()
-                ], forDocument: document.reference)
-            }
-            try await batch.commit()
-        }
+        try await updateExistingPages(userID: userID, unreadOnly: true, deleting: false)
     }
 
     func markNotificationPopupPresented(userID: String, notificationID: String) async throws {
@@ -121,25 +156,35 @@ struct FirestoreNotificationInboxRepository: NotificationInboxRepository {
     }
 
     func clearNotifications(userID: String) async throws {
-        let snapshot = try await inboxCollection(userID: userID).getDocuments()
-        let visibleDocuments = snapshot.documents.filter {
-            makeNotification(from: $0).isVisibleInInbox
-        }
+        try await updateExistingPages(userID: userID, unreadOnly: false, deleting: true)
+    }
 
-        for chunkStart in stride(from: 0, to: visibleDocuments.count, by: 450) {
-            let chunkEnd = min(chunkStart + 450, visibleDocuments.count)
+    /// Bounded reads/writes; the cutoff protects notifications arriving during the operation.
+    private func updateExistingPages(userID: String, unreadOnly: Bool, deleting: Bool) async throws {
+        let cutoff = Date()
+        var cursor: DocumentSnapshot?
+        while true {
+            try Task.checkCancellation()
+            var query: Query = inboxCollection(userID: userID)
+            if unreadOnly { query = query.whereField("isRead", isEqualTo: false) }
+            query = query.order(by: FieldPath.documentID()).limit(to: 450)
+            if let cursor { query = query.start(afterDocument: cursor) }
+            let documents = try await query.getDocuments().documents
+            guard !documents.isEmpty else { return }
             let batch = database.batch()
-            for document in visibleDocuments[chunkStart..<chunkEnd] {
-                batch.updateData(
-                    [
-                        "deletedAt": FieldValue.serverTimestamp(),
-                        "isRead": true,
-                        "readAt": FieldValue.serverTimestamp()
-                    ],
-                    forDocument: document.reference
-                )
+            var writes = 0
+            for document in documents {
+                let item = makeNotification(from: document)
+                guard item.createdAt <= cutoff,
+                      (deleting ? item.isVisibleInInbox : item.countsAsUnread) else { continue }
+                var fields: [String: Any] = ["isRead": true, "readAt": FieldValue.serverTimestamp()]
+                if deleting { fields["deletedAt"] = FieldValue.serverTimestamp() }
+                batch.updateData(fields, forDocument: document.reference)
+                writes += 1
             }
-            try await batch.commit()
+            if writes > 0 { try await batch.commit() }
+            cursor = documents.last
+            if documents.count < 450 { return }
         }
     }
 

@@ -67,6 +67,70 @@ final class FeedbackInboxNavigationUITests: XCTestCase {
     }
 
     @MainActor
+    func testNotificationArchiveRestoreUnreadAndDeleteBothLanguages() {
+        continueAfterFailure = false
+        for language in ["uk", "de"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing"]
+            app.launchEnvironment = ["UITestResetUserSettings": "1", "UITestForceAuthenticatedSession": "1",
+                                     "UITestFeedbackInbox": "1", "UITestNotificationDetails": "1",
+                                     "UITestAppLanguage": language, "UITestResetAppLock": "1",
+                                     "UITestAppAppearance": language == "de" ? "dark" : "light"]
+            if language == "de" {
+                app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
+            }
+            app.launch()
+            let profile = app.tabBars.buttons.element(boundBy: 4)
+            XCTAssertTrue(profile.waitForExistence(timeout: 20)); profile.tap()
+            let inbox = app.buttons["profile.notifications.open"]
+            reveal(inbox, app); inbox.tap()
+            let row = app.buttons["notificationInbox.open.detail-info"]
+            XCTAssertTrue(row.waitForExistence(timeout: 10))
+            func action(_ label: String) {
+                let menu = app.buttons["notificationInbox.actions.detail-info"]
+                reveal(menu, app); menu.tap()
+                let button = app.buttons[label].firstMatch
+                XCTAssertTrue(button.waitForExistence(timeout: 5)); button.tap()
+            }
+            func filter(_ label: String) {
+                let picker = app.buttons["notificationInbox.filter"]
+                reveal(picker, app); picker.tap()
+                let choice = app.buttons[label].firstMatch
+                XCTAssertTrue(choice.waitForExistence(timeout: 5)); choice.tap()
+            }
+            action(language == "uk" ? "Архівувати" : "Archivieren")
+            XCTAssertTrue(row.waitForNonExistence(timeout: 5))
+            filter(language == "uk" ? "Архів" : "Archiv")
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+            let archiveShot = XCTAttachment(screenshot: app.screenshot())
+            archiveShot.name = "NotificationArchive-\(language)"; archiveShot.lifetime = .keepAlways
+            add(archiveShot)
+            action(language == "uk" ? "Повернути до вхідних" : "In den Posteingang verschieben")
+            XCTAssertTrue(row.waitForNonExistence(timeout: 5))
+            filter(language == "uk" ? "Усі" : "Alle")
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+            action(language == "uk" ? "Позначити як непрочитане" : "Als ungelesen markieren")
+            filter(language == "uk" ? "Непрочитані" : "Ungelesen")
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+            row.tap()
+            let close = app.buttons["notificationDetail.close"]
+            XCTAssertTrue(close.waitForExistence(timeout: 5)); close.tap()
+            XCTAssertTrue(row.waitForNonExistence(timeout: 5))
+            filter(language == "uk" ? "Усі" : "Alle")
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+            action(language == "uk" ? "Видалити" : "Löschen")
+            let dialog = app.alerts.firstMatch
+            XCTAssertTrue(dialog.waitForExistence(timeout: 5))
+            dialog.buttons[language == "uk" ? "Скасувати" : "Abbrechen"].tap()
+            XCTAssertTrue(row.exists)
+            let shot = XCTAttachment(screenshot: app.screenshot())
+            shot.name = "NotificationInbox-\(language)"; shot.lifetime = .keepAlways
+            add(shot)
+            app.terminate()
+        }
+    }
+
+    @MainActor
     private func openAndCloseNotification(_ app: XCUIApplication) {
         let row = app.buttons["notificationInbox.open.detail-info"]
         XCTAssertTrue(row.waitForExistence(timeout: 8)); row.tap()

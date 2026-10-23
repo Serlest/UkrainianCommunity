@@ -1,0 +1,125 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "notifications.inbox.filter.archive": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archiv"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Архів"
+          }
+        }
+      }
+    },
+    "notifications.inbox.restore": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In den Posteingang verschieben"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повернути до вхідних"
+          }
+        }
+      }
+    },
+    "notifications.inbox.load_more": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ältere Mitteilungen laden"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажити старіші сповіщення"
+          }
+        }
+      }
+    },
+    "notifications.inbox.more_history": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ältere Mitteilungen sind verfügbar. Laden Sie die nächste Seite, um fortzufahren."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Є старіші сповіщення. Завантажте наступну сторінку, щоб продовжити."
+          }
+        }
+      }
+    },
+    "notifications.inbox.archive.empty.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Archiv ist leer"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Архів порожній"
+          }
+        }
+      }
+    },
+    "notifications.inbox.archive.empty.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archivierte Mitteilungen erscheinen hier. Sie können sie in den Posteingang zurückverschieben."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тут з’являються архівовані сповіщення. Їх можна повернути до вхідних."
+          }
+        }
+      }
+    },
+    "notifications.inbox.history_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mitteilungsverlauf"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Історія сповіщень"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

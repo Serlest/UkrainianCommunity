@@ -111,7 +111,7 @@ actor MockRepositoryStore {
         guard var notifications = notificationsByUserID[userID],
               let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
         let notification = notifications[index]
-        notifications[index] = notification.updatingReadState(isRead: false, readAt: nil)
+        notifications[index] = notification.updatingArchiveState(archivedAt: nil).updatingReadState(isRead: false, readAt: nil)
         notificationsByUserID[userID] = notifications
     }
 
@@ -131,11 +131,19 @@ actor MockRepositoryStore {
         notificationsByUserID[userID] = notifications
     }
 
+    func restoreNotification(userID: String, notificationID: String) {
+        guard var notifications = notificationsByUserID[userID],
+              let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
+        notifications[index] = notifications[index].updatingArchiveState(archivedAt: nil)
+            .updatingReadState(isRead: true, readAt: .now)
+        notificationsByUserID[userID] = notifications
+    }
+
     func archiveNotification(userID: String, notificationID: String) {
         guard var notifications = notificationsByUserID[userID],
               let index = notifications.firstIndex(where: { $0.id == notificationID }) else { return }
         let notification = notifications[index]
-        notifications[index] = notification.updatingArchiveState(archivedAt: .now)
+        notifications[index] = notification.updatingArchiveState(archivedAt: .now).updatingReadState(isRead: true, readAt: .now)
         notificationsByUserID[userID] = notifications
     }
 

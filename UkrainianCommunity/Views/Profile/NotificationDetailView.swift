@@ -42,7 +42,7 @@ struct NotificationDetailView: View {
             }
             .buttonStyle(.bordered)
             .tint(AppTheme.accentDestructive)
-            .disabled(isDeleting)
+            .disabled(isDeleting || viewModel.isBusy)
             .accessibilityIdentifier("notificationDetail.delete")
 
             if isDeleting {

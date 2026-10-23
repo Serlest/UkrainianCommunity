@@ -117,6 +117,13 @@ enum AppStrings {
     }
 
     enum NotificationInbox {
+        static var historyTitle: String { LocalizationStore.localizedString("notifications.inbox.history_title", defaultValue: "Mitteilungsverlauf", table: "NotificationInbox") }
+        static var filterArchive: String { LocalizationStore.localizedString("notifications.inbox.filter.archive", defaultValue: "Archiv", table: "NotificationInbox") }
+        static var restore: String { LocalizationStore.localizedString("notifications.inbox.restore", defaultValue: "In den Posteingang verschieben", table: "NotificationInbox") }
+        static var loadMore: String { LocalizationStore.localizedString("notifications.inbox.load_more", defaultValue: "Ältere Mitteilungen laden", table: "NotificationInbox") }
+        static var moreHistory: String { LocalizationStore.localizedString("notifications.inbox.more_history", defaultValue: "Ältere Mitteilungen sind verfügbar. Laden Sie die nächste Seite, um fortzufahren.", table: "NotificationInbox") }
+        static var archiveEmptyTitle: String { LocalizationStore.localizedString("notifications.inbox.archive.empty.title", defaultValue: "Das Archiv ist leer", table: "NotificationInbox") }
+        static var archiveEmptyMessage: String { LocalizationStore.localizedString("notifications.inbox.archive.empty.message", defaultValue: "Archivierte Mitteilungen erscheinen hier. Sie können sie in den Posteingang zurückverschieben.", table: "NotificationInbox") }
         static var detailTitle: String { text("notifications.detail.title", "Details") }
         static var viewDetails: String { text("notifications.detail.view", "View notification details") }
         static var closeDetails: String { text("notifications.detail.close", "Close") }
