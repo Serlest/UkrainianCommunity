@@ -151,13 +151,13 @@ struct NewsHomeView: View {
             Text([filter.period.title, NewsBrowseStrings.text(filter.oldestFirst ? "oldest" : "newest"),
                   filter.scope == .all ? nil : filter.scope.title].compactMap { $0 }.joined(separator: " · "))
                 .font(.caption)
-                .foregroundStyle(AppTheme.textSecondary)
+                .foregroundStyle(AppTheme.textPrimary)
                 .accessibilityIdentifier("home.news.summary")
 
             if filter.period == .custom {
                 Text("\(LocalizationStore.dateString(from: filter.startDate, dateStyle: .medium, timeStyle: .none)) – \(LocalizationStore.dateString(from: filter.endDate, dateStyle: .medium, timeStyle: .none))")
                     .font(.caption)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    .foregroundStyle(AppTheme.textPrimary)
             }
 
             if let error = newsBrowser.error {

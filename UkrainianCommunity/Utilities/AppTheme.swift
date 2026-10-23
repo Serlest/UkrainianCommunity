@@ -112,6 +112,36 @@ enum AppTheme {
     static let shadowSoft = Color.black.opacity(0.035)
     static let textPrimary = Color.primary
     static let textSecondary = Color.secondary
+    // Opaque secondary text for compact news metadata: system secondary labels
+    // blend with translucent backgrounds and become faint near the scroll edge.
+    static let feedSecondaryText = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.75, green: 0.79, blue: 0.86, alpha: 1)
+            : UIColor(red: 0.29, green: 0.33, blue: 0.40, alpha: 1)
+    })
+    static let feedCardSurface = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.092, green: 0.108, blue: 0.148, alpha: 1)
+            : .white
+    })
+    static let tabUnselectedColor = UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.88, green: 0.91, blue: 0.97, alpha: 1)
+            : UIColor(red: 0.20, green: 0.24, blue: 0.31, alpha: 1)
+    }
+    static let tabSelectedColor = UIColor { traits in
+        // Selected glass is lighter than a content card in dark mode.
+        // The system can lighten the selected glass pill independently of the
+        // bar. An ice-blue foreground also survives that lighter dark material.
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.96, green: 0.98, blue: 1.00, alpha: 1)
+            : UIColor(red: 0.10, green: 0.26, blue: 0.56, alpha: 1)
+    }
+    static let tabSelectionSurface = UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0.13, green: 0.18, blue: 0.27, alpha: 1)
+            : UIColor(red: 0.83, green: 0.90, blue: 1.00, alpha: 1)
+    }
     static let textOnHero = Color.white
     static let badgeBlueFill = accentPrimarySoft
     static let badgeRedFill = accentDestructive.opacity(0.12)

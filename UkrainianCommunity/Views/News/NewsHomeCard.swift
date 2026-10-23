@@ -5,7 +5,9 @@ struct NewsHomeCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        SoftContentCard(padding: AppTheme.homeFeedCardPadding, shadowRadius: 0, shadowY: 0) {
+        AppGlassCard(padding: AppTheme.homeFeedCardPadding,
+                     surface: AppTheme.feedCardSurface, fallbackUsesMaterial: false,
+                     shadowRadius: 0, shadowY: 0) {
             if dynamicTypeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: AppTheme.compactCardInnerSpacing) {
                     HStack(alignment: .top, spacing: AppTheme.compactCardInnerSpacing) {
@@ -49,15 +51,15 @@ struct NewsHomeCard: View {
 
             if !post.localizedSubtitle.isEmpty {
                 Text(post.localizedSubtitle)
-                    .font(.caption2)
-                    .foregroundStyle(AppTheme.textSecondary)
+                    .font(.caption)
+                    .foregroundStyle(AppTheme.feedSecondaryText)
                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
             Label(publisherText, systemImage: "person.crop.circle")
-                .font(.caption2.weight(.medium))
-                .foregroundStyle(AppTheme.textSecondary)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(AppTheme.feedSecondaryText)
                 .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 1)
@@ -67,8 +69,8 @@ struct NewsHomeCard: View {
 
     private var dateLabel: some View {
         Text(NewsHomeRelativeDate.string(for: post.publishedAt))
-            .font(.caption2.weight(.medium))
-            .foregroundStyle(AppTheme.textSecondary)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(AppTheme.feedSecondaryText)
             .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 1)

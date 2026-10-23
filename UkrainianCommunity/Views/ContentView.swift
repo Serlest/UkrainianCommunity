@@ -209,6 +209,8 @@ struct ContentView: View {
             TabView(selection: tabSelection) {
                 rootTabs
             }
+            .toolbarBackground(.visible, for: .tabBar)
+            .tint(Color(uiColor: AppTheme.tabSelectedColor))
             .background {
                 ActiveTabReselectionObserver {
                     handleActiveTabReselection()
@@ -625,6 +627,7 @@ struct ContentView: View {
                 searchResetToken: homeSearchResetToken,
                 isActive: selectedTab == .home && canExposeRootBanners
             )
+            .tint(AppTheme.primaryBlue)
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.home")
@@ -652,6 +655,7 @@ struct ContentView: View {
                 isActive: selectedTab == .events && canExposeRootBanners,
                 selectedFederalState: publicRegionBinding
             )
+            .tint(AppTheme.primaryBlue)
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.events")
@@ -680,6 +684,7 @@ struct ContentView: View {
                 isActive: selectedTab == .organizations && canExposeRootBanners,
                 selectedFederalState: publicRegionBinding
             )
+            .tint(AppTheme.primaryBlue)
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.organizations")
@@ -716,6 +721,7 @@ struct ContentView: View {
                 navigationPath: $profileNavigationPath,
                 scrollResetToken: profileScrollResetToken
             )
+            .tint(AppTheme.primaryBlue)
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
         .accessibilityIdentifier("screen.profile")
@@ -740,6 +746,7 @@ struct ContentView: View {
                     && canExposeRootBanners,
                 feedbackRepository: container.feedbackRepository
             )
+            .tint(AppTheme.primaryBlue)
         }
         .onChange(of: directoryContentStore.visibleRouteSignature) { _, _ in
             directoryNavigationPath = DirectoryRoute.visiblePrefix(
@@ -1382,12 +1389,37 @@ private struct ActiveTabReselectionObserver: UIViewControllerRepresentable {
             self.onReselect = onReselect
 
             Task { @MainActor in
-                guard let tabBarController = viewController.nearestTabBarController(),
-                      self.tabBarController !== tabBarController else { return }
+                guard let tabBarController = viewController.nearestTabBarController() else { return }
+                Self.applyLegibleForegrounds(to: tabBarController.tabBar)
+                guard self.tabBarController !== tabBarController else { return }
                 self.tabBarController = tabBarController
                 self.lastSelectedViewController = tabBarController.selectedViewController
                 tabBarController.delegate = self
             }
+        }
+
+        private static func applyLegibleForegrounds(to tabBar: UITabBar) {
+            // Keep system glass, indicator shape and accessibility material
+            // behavior; stabilize the foregrounds and selection fill.
+            let selected = AppTheme.tabSelectedColor
+            let normal = AppTheme.tabUnselectedColor
+            func foregrounds(_ original: UITabBarAppearance) -> UITabBarAppearance {
+                let appearance = original.copy()
+                appearance.selectionIndicatorTintColor = AppTheme.tabSelectionSurface
+                for item in [appearance.stackedLayoutAppearance,
+                             appearance.inlineLayoutAppearance,
+                             appearance.compactInlineLayoutAppearance] {
+                    item.normal.iconColor = normal
+                    item.normal.titleTextAttributes[.foregroundColor] = normal
+                    item.selected.iconColor = selected
+                    item.selected.titleTextAttributes[.foregroundColor] = selected
+                }
+                return appearance
+            }
+            tabBar.standardAppearance = foregrounds(tabBar.standardAppearance)
+            tabBar.scrollEdgeAppearance = foregrounds(tabBar.scrollEdgeAppearance ?? tabBar.standardAppearance)
+            tabBar.unselectedItemTintColor = normal
+            tabBar.tintColor = selected
         }
 
         func tabBarController(_ tabBarController: UITabBarController, didSelect viewController: UIViewController) {

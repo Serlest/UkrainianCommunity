@@ -145,7 +145,7 @@ struct AppFilterChip: View {
         AppInfoChip(
             title: title,
             systemImage: systemImage,
-            tint: isSelected ? .white : AppTheme.textSecondary.opacity(0.92),
+            tint: isSelected ? .white : AppTheme.textPrimary,
             fill: isSelected ? AppTheme.accentPrimary : AppTheme.surfaceGlass,
             border: isSelected ? AppTheme.accentPrimary.opacity(0.18) : AppTheme.borderSubtle,
             trailingSystemImage: trailingSystemImage,

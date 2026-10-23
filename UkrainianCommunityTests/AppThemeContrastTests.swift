@@ -15,6 +15,41 @@ struct AppThemeContrastTests {
         assertMeetsAA(AppTheme.accentDestructiveForeground)
     }
 
+    @Test func newsMetadataMeetsAAOnOpaqueCards() {
+        for style: UIUserInterfaceStyle in [.light, .dark] {
+            UITraitCollection(userInterfaceStyle: style).performAsCurrent {
+                let foreground = UIColor(AppTheme.feedSecondaryText).resolvedColor(with: .current)
+                let background = UIColor(AppTheme.feedCardSurface).resolvedColor(with: .current)
+                #expect(contrastRatio(foreground, background) >= 4.5)
+                #expect(background.cgColor.alpha == 1)
+            }
+        }
+    }
+
+    @Test func tabForegroundsRemainLegibleOnMaterialExtremes() {
+        for style: UIUserInterfaceStyle in [.light, .dark] {
+            UITraitCollection(userInterfaceStyle: style).performAsCurrent {
+                // Native regular glass and its selected pill vary with content.
+                // Include the lightest dark and darkest light surfaces observed
+                // in screenshots, in addition to system backgrounds.
+                let backgrounds: [UIColor] = style == .dark
+                    ? [.init(white: 0.16, alpha: 1), .init(white: 0.25, alpha: 1)]
+                    : [.init(white: 0.85, alpha: 1), .white]
+                #expect(contrastRatio(AppTheme.tabSelectedColor.resolvedColor(with: .current),
+                    AppTheme.tabSelectionSurface.resolvedColor(with: .current)) >= 4.5)
+                if style == .dark {
+                    #expect(contrastRatio(AppTheme.tabSelectedColor.resolvedColor(with: .current),
+                        UIColor(white: 0.45, alpha: 1)) >= 4.5)
+                }
+                for color in [AppTheme.tabSelectedColor, AppTheme.tabUnselectedColor] {
+                    for background in backgrounds {
+                        #expect(contrastRatio(color.resolvedColor(with: .current), background) >= 4.5)
+                    }
+                }
+            }
+        }
+    }
+
     @Test
     func fixedFillTokensAreNotUsedAsForegroundStyles() throws {
         let projectRoot = URL(fileURLWithPath: #filePath)
