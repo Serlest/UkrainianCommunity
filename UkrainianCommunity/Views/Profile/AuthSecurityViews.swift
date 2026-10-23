@@ -18,7 +18,7 @@ struct MultiFactorSignInView: View {
     var body: some View {
         AuthScreenScaffold {
             AuthHeaderView(
-                title: AppStrings.Auth.multiFactorTitle,
+                title: nil,
                 subtitle: AppStrings.Auth.multiFactorSubtitle
             )
 
@@ -550,7 +550,7 @@ struct PrivilegedMultiFactorRequirementView: View {
     var body: some View {
         AuthScreenScaffold {
             AuthHeaderView(
-                title: AppStrings.AccountSecurity.privilegedRequiredTitle,
+                title: nil,
                 subtitle: AppStrings.AccountSecurity.privilegedRequiredSubtitle
             )
 
@@ -607,7 +607,22 @@ struct PrivilegedMultiFactorRequirementView: View {
 
     @ViewBuilder
     private var requirementContent: some View {
-        if viewModel.factors.isEmpty {
+        if !viewModel.hasLoadedFactors {
+            PrimaryActionButton(
+                title: AppStrings.Action.retry,
+                isEnabled: !isRestartingSignIn,
+                isLoading: viewModel.isLoading,
+                systemImage: "arrow.clockwise"
+            ) {
+                Task {
+                    await viewModel.load()
+                    await viewModel.refreshSessionAuthentication()
+                    await dismissIfRequirementIsSatisfied()
+                }
+            }
+            .accessibilityIdentifier("auth.mfa.privilegedRequirement.retry")
+            restartSignInButton
+        } else if viewModel.factors.isEmpty {
             InlineMessageCard(
                 style: .info,
                 message: AuthSecurityRollout.allowsTOTPEnrollment

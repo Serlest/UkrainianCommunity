@@ -116,7 +116,12 @@ struct AppStartupGate: View {
 
     @ViewBuilder
     private var accessGateContent: some View {
-        if let failure = legalComplianceMonitor.verificationFailure {
+        if authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
+            // A protected session may be needed to accept legal updates.
+            // Keep that security flow reachable even when legal verification fails.
+            AuthFlowContainerView(initialDestination: .privilegedMultiFactorRequirement, allowsDismissal: false)
+                .environmentObject(authState)
+        } else if let failure = legalComplianceMonitor.verificationFailure {
             StartupAccessFailureView(failure: failure) {
                 await legalComplianceMonitor.retryVerification(user: authState.user)
             }

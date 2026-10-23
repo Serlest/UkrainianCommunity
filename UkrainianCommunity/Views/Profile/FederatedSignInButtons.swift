@@ -15,23 +15,23 @@ struct FederatedSignInButtons: View {
 }
 
 struct PasskeySignInButton: View {
+    @Environment(\.authInteraction) private var interaction
     @State private var isSigningIn = false
     @State private var errorMessage: String?
 
     var body: some View {
         VStack(spacing: AppTheme.eventsMetadataSpacing) {
             Button {
+                guard !isSigningIn, let request = AuthInteractionCoordinator.begin(in: interaction) else { return }
                 isSigningIn = true
                 errorMessage = nil
                 Task {
-                    defer { isSigningIn = false }
+                    defer { isSigningIn = false; interaction?.finish(request) }
                     do {
                         try await AuthService.shared.signInWithPasskey()
                     } catch {
-                        let nsError = error as NSError
-                        if nsError.domain == ASAuthorizationError.errorDomain,
-                           nsError.code == ASAuthorizationError.canceled.rawValue { return }
-                        errorMessage = AppStrings.Auth.passkeyFailed
+                        if AuthFailureMessage.isCancellation(error) { return }
+                        errorMessage = AuthFailureMessage.text(for: error, fallback: AppStrings.Auth.passkeyFailed)
                     }
                 }
             } label: {
@@ -53,12 +53,15 @@ struct PasskeySignInButton: View {
 }
 
 struct FederatedCredentialButtons: View {
+    @Environment(\.authInteraction) private var interaction
     var showsHeading = true
     var allowedProviderIDs: Set<String> = ["apple.com", "google.com"]
     var appleButtonEnabled = true
     var isLinking = false
     let onCredential: @MainActor (AuthCredential) async throws -> Void
 
+    @State private var appleAuthorization: AppleCredentialAuthorization?
+    @State private var interactionRequest: UUID?
     @State private var appleNonce: String?
     @State private var isSigningIn = false
     @State private var errorMessage: String?
@@ -92,13 +95,7 @@ struct FederatedCredentialButtons: View {
                 }
 
                 if isAppleAvailable {
-                    SignInWithAppleButton(
-                        isLinking ? .continue : .signIn,
-                        onRequest: configureAppleRequest,
-                        onCompletion: finishAppleRequest
-                    )
-                        .signInWithAppleButtonStyle(.black)
-                        .frame(height: 50)
+                    LocalizedAppleSignInButton(title: AppStrings.Auth.continueWithApple, action: startAppleSignIn)
                         .disabled(isSigningIn || !appleButtonEnabled)
                         .accessibilityIdentifier(isLinking ? "accountSecurity.provider.apple" : "auth.provider.apple")
                 }
@@ -125,6 +122,32 @@ struct FederatedCredentialButtons: View {
         }
     }
 
+    private func beginInteraction() -> Bool {
+        guard !isSigningIn, let request = AuthInteractionCoordinator.begin(in: interaction) else { return false }
+        interactionRequest = request
+        isSigningIn = true
+        return true
+    }
+
+    private func finishInteraction() {
+        if let request = interactionRequest { interaction?.finish(request) }
+        interactionRequest = nil
+        isSigningIn = false
+    }
+
+    private func startAppleSignIn() {
+        guard let anchor = Self.presentingViewController()?.view.window, beginInteraction() else { return }
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        configureAppleRequest(request)
+        guard appleNonce != nil else { finishInteraction(); return }
+        let authorization = AppleCredentialAuthorization(anchor: anchor) { result in
+            appleAuthorization = nil
+            finishAppleRequest(result)
+        }
+        appleAuthorization = authorization
+        authorization.start(request)
+    }
+
     private func configureAppleRequest(_ request: ASAuthorizationAppleIDRequest) {
         errorMessage = nil
         do {
@@ -140,14 +163,15 @@ struct FederatedCredentialButtons: View {
     private func finishAppleRequest(_ result: Result<ASAuthorization, Error>) {
         switch result {
         case .failure(let error):
+            finishInteraction()
             appleNonce = nil
             if (error as? ASAuthorizationError)?.code != .canceled {
-                errorMessage = isLinking
-                    ? AppStrings.AccountSecurity.linkFailed
-                    : AppStrings.Auth.providerSignInFailed
+                errorMessage = AuthFailureMessage.text(for: error, fallback: isLinking
+                    ? AppStrings.AccountSecurity.linkFailed : AppStrings.Auth.providerSignInFailed)
             }
         case .success(let authorization):
             guard let nonce = appleNonce else {
+                finishInteraction()
                 appleNonce = nil
                 errorMessage = isLinking
                     ? AppStrings.AccountSecurity.linkFailed
@@ -160,9 +184,9 @@ struct FederatedCredentialButtons: View {
                     from: authorization, nonce: nonce
                 ))
             } catch {
-                errorMessage = isLinking
-                    ? AppStrings.AccountSecurity.linkFailed
-                    : AppStrings.Auth.providerSignInFailed
+                finishInteraction()
+                errorMessage = AuthFailureMessage.text(for: error, fallback: isLinking
+                    ? AppStrings.AccountSecurity.linkFailed : AppStrings.Auth.providerSignInFailed)
             }
         }
     }
@@ -175,23 +199,22 @@ struct FederatedCredentialButtons: View {
             return
         }
 
+        guard beginInteraction() else { return }
         errorMessage = nil
-        isSigningIn = true
         GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: clientID)
         GIDSignIn.sharedInstance.signIn(withPresenting: presenter) { result, error in
             if let error {
-                isSigningIn = false
+                finishInteraction()
                 let googleError = error as NSError
                 if googleError.domain != kGIDSignInErrorDomain || googleError.code != -5 {
-                    errorMessage = isLinking
-                        ? AppStrings.AccountSecurity.linkFailed
-                        : AppStrings.Auth.providerSignInFailed
+                    errorMessage = AuthFailureMessage.text(for: error, fallback: isLinking
+                        ? AppStrings.AccountSecurity.linkFailed : AppStrings.Auth.providerSignInFailed)
                 }
                 return
             }
             guard let user = result?.user,
                   let idToken = user.idToken?.tokenString else {
-                isSigningIn = false
+                finishInteraction()
                 errorMessage = isLinking
                     ? AppStrings.AccountSecurity.linkFailed
                     : AppStrings.Auth.providerSignInFailed
@@ -209,7 +232,7 @@ struct FederatedCredentialButtons: View {
         errorMessage = nil
         isSigningIn = true
         Task { @MainActor in
-            defer { isSigningIn = false }
+            defer { finishInteraction() }
             do {
                 try await onCredential(credential)
             } catch {
@@ -232,10 +255,8 @@ struct FederatedCredentialButtons: View {
                         break
                     }
                 }
-                let code = AuthErrorCode(rawValue: (error as NSError).code)
-                errorMessage = code == .accountExistsWithDifferentCredential
-                    ? AppStrings.Auth.accountUsesAnotherSignInMethod
-                    : AppStrings.Auth.providerSignInFailed
+                if AuthFailureMessage.isCancellation(error) { return }
+                errorMessage = AuthFailureMessage.text(for: error, fallback: AppStrings.Auth.providerSignInFailed)
             }
         }
     }

@@ -354,16 +354,34 @@ final class UserProfileService {
                 throw AppError.permissionDenied
             }
 
-            let document = Firestore.firestore()
-                .collection("publicProfiles")
-                .document(user.id)
-            let snapshot = try await document.getDocument()
-
-            guard !Self.publicProfile(snapshot.data(), matches: user) else {
-                return
+            let database = Firestore.firestore()
+            let document = database.collection("publicProfiles").document(user.id)
+            let privateDocument = database.collection("users").document(user.id)
+            let payload = Self.publicProfilePayload(
+                uid: user.id, displayName: user.preferredDisplayName, avatarURL: user.avatarURL,
+                city: user.city, federalState: user.selectedFederalState
+            )
+            // Repair only the private-profile revision that was authenticated.
+            // A concurrent profile edit causes a transaction retry and skips an
+            // obsolete repair instead of overwriting its newer public projection.
+            _ = try await database.runTransaction { transaction, failure in
+                do {
+                    guard Auth.auth().currentUser?.uid == user.id,
+                          Auth.auth().currentUser?.isEmailVerified == true else { return nil }
+                    let current = try transaction.getDocument(privateDocument)
+                    guard current.exists else { return nil }
+                    if let revision = current.data()?["updatedAt"] as? Timestamp,
+                       revision.dateValue() != user.updatedAt { return nil }
+                    let snapshot = try transaction.getDocument(document)
+                    guard !Self.publicProfile(snapshot.data(), matches: user) else { return nil }
+                    transaction.setData(payload, forDocument: document, merge: true)
+                    return nil
+                } catch {
+                    failure?.pointee = error as NSError
+                    return nil
+                }
             }
 
-            try await upsertPublicProfile(for: user)
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
@@ -385,6 +403,19 @@ final class UserProfileService {
         city: String,
         federalState: AustrianFederalState?
     ) async throws {
+        let data = Self.publicProfilePayload(uid: uid, displayName: displayName,
+                                             avatarURL: avatarURL, city: city, federalState: federalState)
+
+        try await Firestore.firestore()
+            .collection("publicProfiles")
+            .document(uid)
+            .setData(data, merge: true)
+    }
+
+    private static func publicProfilePayload(
+        uid: String, displayName: String, avatarURL: URL?, city: String,
+        federalState: AustrianFederalState?
+    ) -> [String: Any] {
         var data: [String: Any] = [
             "id": uid,
             "displayName": displayName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -403,11 +434,7 @@ final class UserProfileService {
         } else {
             data["federalState"] = FieldValue.delete()
         }
-
-        try await Firestore.firestore()
-            .collection("publicProfiles")
-            .document(uid)
-            .setData(data, merge: true)
+        return data
     }
 
     private static func publicProfile(_ data: [String: Any]?, matches user: AppUser) -> Bool {

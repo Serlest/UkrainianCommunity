@@ -205,6 +205,12 @@ struct UkrainianCommunityApp: App {
             } else {
                 await AuthService.shared.restoreSession()
             }
+#if DEBUG && targetEnvironment(simulator)
+            if isUITesting, environment["UITestStartupSecurityBeforeLegal"] == "1",
+               AuthSecurityPolicy.requiresProtectedSession(sharedAuthState.user) {
+                sharedAuthState.presentAuthFlow(.privilegedMultiFactorRequirement)
+            }
+#endif
         }
 
         if environment["UITestResetUserSettings"] == "1" {

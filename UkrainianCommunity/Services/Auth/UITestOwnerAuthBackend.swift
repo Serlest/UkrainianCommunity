@@ -6,11 +6,13 @@ import Foundation
 final class UITestOwnerAuthBackend: AuthBackendProviding {
     private var session: UITestOwnerSession?
     private let hasSecondFactor: Bool
+    private let delayedFailure: Bool
     var currentSessionUser: (any AuthSessionUserProviding)? { session }
 
-    private init(hasSecondFactor: Bool, uid: String, connectionFailure: Bool) {
+    private init(hasSecondFactor: Bool, uid: String, connectionFailure: Bool, delayedFailure: Bool = false) {
         self.hasSecondFactor = hasSecondFactor
-        session = UITestOwnerSession(uid: uid, connectionFailure: connectionFailure)
+        self.delayedFailure = delayedFailure
+        session = delayedFailure ? nil : UITestOwnerSession(uid: uid, connectionFailure: connectionFailure)
     }
 
     static func makeIfRequested(
@@ -18,6 +20,9 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
         environment: [String: String] = ProcessInfo.processInfo.environment
     ) -> UITestOwnerAuthBackend? {
         guard arguments.contains("-ui-testing") else { return nil }
+        if environment["UITestForceSignedOutSession"] == "1", environment["UITestAuthDelayedFailure"] == "1" {
+            return UITestOwnerAuthBackend(hasSecondFactor: false, uid: "", connectionFailure: false, delayedFailure: true)
+        }
         let fixtureRole = environment["UITestProfileRole"] ?? ""
         let isAdmin = ["admin", "mixed"].contains(fixtureRole)
         guard isAdmin || environment["UITestForceOwnerSession"] == "1" else { return nil }
@@ -31,7 +36,13 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
         ])
     }
 
-    func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding { throw AppError.permissionDenied }
+    func signIn(email: String, password: String) async throws -> any AuthSessionUserProviding {
+        if delayedFailure {
+            try await Task.sleep(for: .seconds(8))
+            throw URLError(.notConnectedToInternet)
+        }
+        throw AppError.permissionDenied
+    }
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding { throw AppError.permissionDenied }
     func signInAnonymously() async throws -> any AuthSessionUserProviding { throw AppError.permissionDenied }
     func sendPasswordReset(email: String) async throws { throw AppError.permissionDenied }

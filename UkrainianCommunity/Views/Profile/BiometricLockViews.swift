@@ -40,6 +40,7 @@ struct RegistrationBiometricLockView: View {
             set: { enabled in Task { await choice.setEnabled(enabled) } }
         )) { title }
         .disabled(choice.isAuthenticating || (!choice.canAuthenticate && !choice.isEnabled))
+        .tint(AppTheme.accentPrimary)
         .accessibilityLabel(AppStrings.AppLock.registrationTitle)
         .accessibilityIdentifier("auth.register.appLock")
     }

@@ -150,7 +150,7 @@ struct EditorTextField: View {
     }
 
     private var baseField: some View {
-        TextField(title, text: $text)
+        TextField(title, text: $text, prompt: Text(title).foregroundStyle(AppTheme.textSecondary))
             .font(.subheadline)
             .textInputAutocapitalization(autocapitalization)
             .textContentType(textContentType)
@@ -236,7 +236,7 @@ struct EditorSecureField: View {
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(width: AppTheme.metadataIconSize)
 
-            SecureField(title, text: $text)
+            SecureField(title, text: $text, prompt: Text(title).foregroundStyle(AppTheme.textSecondary))
                 .font(.subheadline)
                 .textContentType(textContentType)
                 .accessibilityLabel(title)

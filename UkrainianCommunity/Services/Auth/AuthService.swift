@@ -212,6 +212,8 @@ final class AuthService {
     private let profileProvider: any AuthProfileProviding
     private let notificationRegistration: (any AuthNotificationRegistrationProviding)?
     private let analyticsConsent: any AnalyticsConsentProviding
+    private let restorationTimeout: Duration
+    @MainActor private var publicProfileRepairs: [String: Task<Void, Never>] = [:]
     @MainActor private var transitionGeneration: UInt = 0
     @MainActor private var pendingMultiFactorSignIn: PendingMultiFactorSignIn?
     // Firebase user and session calls cannot be cancelled once started.
@@ -233,13 +235,15 @@ final class AuthService {
         backend: any AuthBackendProviding,
         profileProvider: any AuthProfileProviding,
         notificationRegistration: (any AuthNotificationRegistrationProviding)? = nil,
-        analyticsConsent: (any AnalyticsConsentProviding)? = nil
+        analyticsConsent: (any AnalyticsConsentProviding)? = nil,
+        restorationTimeout: Duration = .seconds(20)
     ) {
         self.authState = authState
         self.backend = backend
         self.profileProvider = profileProvider
         self.notificationRegistration = notificationRegistration
         self.analyticsConsent = analyticsConsent ?? AnalyticsConsentService()
+        self.restorationTimeout = restorationTimeout
     }
 
     @MainActor
@@ -252,6 +256,17 @@ final class AuthService {
     private func restoreSession(transition: UInt) async {
         guard isCurrentTransition(transition) else { return }
         authState.beginRestoringSession()
+        // SDK session operations remain serialized until they actually finish.
+        // Expiry only fences their UI result; it never guesses a write outcome.
+        let deadline = Task { @MainActor [weak self] in
+            guard let self else { return }
+            do { try await Task.sleep(for: self.restorationTimeout) } catch { return }
+            guard self.isCurrentTransition(transition), self.authState.isRestoring,
+                  let user = self.backend.currentSessionUser, !user.isAnonymous else { return }
+            let expiryTransition = self.beginTransition()
+            self.publishUnavailableSession(user, error: AppError.network, transition: expiryTransition)
+        }
+        defer { deadline.cancel() }
 
         let currentSessionUser: (any AuthSessionUserProviding)?
         do {
@@ -676,6 +691,7 @@ final class AuthService {
         passwordAuthenticated: Bool = false,
         offerPasskey: Bool = false
     ) async {
+        let transition = transitionGeneration
         authState.setAuthenticatedSession(
             user: user,
             passwordAuthenticated: passwordAuthenticated
@@ -684,6 +700,7 @@ final class AuthService {
             for: user,
             dismissResolvedAuthFlow: true
         )
+        guard isCurrentTransition(transition), authState.user?.id == user.id else { return }
         if offerPasskey {
             authState.offerPasskeyEnrollment(for: user.id)
         }
@@ -694,6 +711,14 @@ final class AuthService {
         for user: AppUser,
         dismissResolvedAuthFlow: Bool
     ) async {
+        let transition = transitionGeneration
+        func isCurrent() -> Bool {
+            isCurrentTransition(transition) && authState.isAuthenticated
+                && authState.user?.id == user.id && backend.currentSessionUser?.uid == user.id
+                && authState.user?.globalRole == user.globalRole
+                && authState.user?.requiresMultiFactorAuth == user.requiresMultiFactorAuth
+        }
+        guard isCurrent() else { return }
         guard AuthSecurityPolicy.requiresProtectedSession(user) else {
             if dismissResolvedAuthFlow
                 || authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
@@ -702,8 +727,18 @@ final class AuthService {
             return
         }
 
-        let isTOTPAuthenticated = (try? await backend.isCurrentSessionTOTPAuthenticated()) == true
-        let isPasskeyAuthenticated = (try? await backend.isCurrentSessionPasskeyAuthenticated()) == true
+        // Protect the UI before suspension, including token refresh delays.
+        authState.presentAuthFlow(.privilegedMultiFactorRequirement)
+        async let totp = RefreshRequest.run(timeout: .seconds(15)) {
+            try await self.backend.isCurrentSessionTOTPAuthenticated()
+        }
+        async let passkey = RefreshRequest.run(timeout: .seconds(15)) {
+            try await self.backend.isCurrentSessionPasskeyAuthenticated()
+        }
+        let isTOTPAuthenticated = (try? await totp) == true
+        guard isCurrent() else { return }
+        let isPasskeyAuthenticated = (try? await passkey) == true
+        guard isCurrent() else { return }
         if AuthSecurityPolicy.protectedSessionIsReady(
             user: user,
             isTOTPAuthenticated: isTOTPAuthenticated,
@@ -1010,16 +1045,24 @@ final class AuthService {
         }
     }
 
+    @MainActor
     private func loadExistingUserProfile(uid: String) async throws -> AppUser {
-        let user = try await profileProvider.fetchExistingUserProfile(uid: uid)
-
-        // A public profile is a recoverable projection of the private account.
-        // It must only be synchronized after Firebase has refreshed a verified
-        // session token. A transient projection failure must not lock the user
-        // out of their account; the provider records it and every later verified
-        // authentication path retries the repair.
-        try? await profileProvider.ensurePublicProfile(for: user)
+        let user = try await RefreshRequest.run {
+            try await self.profileProvider.fetchExistingUserProfile(uid: uid)
+        }
+        schedulePublicProfileRepair(user)
         return user
+    }
+
+    @MainActor
+    private func schedulePublicProfileRepair(_ user: AppUser) {
+        guard publicProfileRepairs[user.id] == nil else { return }
+        publicProfileRepairs[user.id] = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer { self.publicProfileRepairs[user.id] = nil }
+            guard !Task.isCancelled, self.backend.currentSessionUser?.uid == user.id else { return }
+            try? await self.profileProvider.ensurePublicProfile(for: user)
+        }
     }
 
     @MainActor

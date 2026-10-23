@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 1,
-  "remainingBlocks": 18,
-  "nextBlock": 2,
+  "completedBlocks": 2,
+  "remainingBlocks": 17,
+  "nextBlock": 3,
   "blocks": [
     {
       "number": 1,
@@ -13,8 +13,9 @@
     {
       "number": 2,
       "name": "Запуск, регистрация и вход",
-      "status": "audited_changes_proposed",
-      "report": "Docs/Verification/StartupAuthAudit.json"
+      "status": "implemented_verified_in_scope",
+      "report": "Docs/Verification/StartupAuthAudit.json",
+      "resolutionReport": "Docs/Verification/StartupAuthFixes.json"
     },
     {
       "number": 3,

@@ -5,6 +5,7 @@ import SwiftUI
 struct AuthFlowContainerView: View {
     let initialDestination: AuthFlowDestination
     var allowsDismissal = true
+    @StateObject private var interaction = AuthInteractionCoordinator()
     @EnvironmentObject private var authState: AuthState
 
     private var requiresResolvedSession: Bool {
@@ -26,11 +27,14 @@ struct AuthFlowContainerView: View {
                             Button(AppStrings.Common.cancel) {
                                 authState.dismissAuthFlow()
                             }
+                            .disabled(interaction.isBusy)
                         }
                     }
                 }
         }
-        .interactiveDismissDisabled(!allowsDismissal || requiresResolvedSession)
+        .environment(\.authInteraction, interaction)
+        .disabled(interaction.isBusy)
+        .interactiveDismissDisabled(!allowsDismissal || requiresResolvedSession || interaction.isBusy)
     }
 
     @ViewBuilder
@@ -61,6 +65,7 @@ struct AuthFlowContainerView: View {
 }
 
 struct AuthScreenScaffold<Content: View>: View {
+    @Environment(\.authInteraction) private var interaction
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -77,7 +82,25 @@ struct AuthScreenScaffold<Content: View>: View {
             AppBackgroundView()
         }
         .observesKeyboardDismissTaps()
+        .scrollDismissesKeyboard(.interactively)
+        .tint(AppTheme.accentPrimaryForeground)
+        .modifier(AuthNavigationBusyState(coordinator: interaction))
     }
+}
+
+private struct AuthNavigationBusyState: ViewModifier {
+    let coordinator: AuthInteractionCoordinator?
+    @ViewBuilder func body(content: Content) -> some View {
+        if let coordinator {
+            ObservedAuthNavigationState(coordinator: coordinator, content: content)
+        } else { content }
+    }
+}
+
+private struct ObservedAuthNavigationState<Content: View>: View {
+    @ObservedObject var coordinator: AuthInteractionCoordinator
+    let content: Content
+    var body: some View { content.navigationBarBackButtonHidden(coordinator.isBusy) }
 }
 
 struct AuthLandingView: View {
@@ -89,8 +112,8 @@ struct AuthLandingView: View {
             )
 
             VStack(spacing: 12) {
-                PasskeySignInButton()
                 FederatedSignInButtons(showsHeading: false)
+                PasskeySignInButton()
 
                 NavigationLink {
                     LoginView()
@@ -118,6 +141,7 @@ struct AuthLandingView: View {
 }
 
 struct LoginView: View {
+    @Environment(\.authInteraction) private var interaction
     @State private var email = ""
     @State private var password = ""
     @State private var errorMessage: String?
@@ -189,11 +213,12 @@ struct LoginView: View {
             return
         }
 
+        guard !isSubmitting, let request = AuthInteractionCoordinator.begin(in: interaction) else { return }
         isSubmitting = true
         errorMessage = nil
 
             Task {
-                defer { isSubmitting = false }
+                defer { isSubmitting = false; interaction?.finish(request) }
 
                 do {
                     _ = try await AuthService.shared.signIn(
@@ -241,6 +266,7 @@ struct LoginView: View {
 }
 
 struct RegisterView: View {
+    @Environment(\.authInteraction) private var interaction
     @Environment(\.scenePhase) private var scenePhase
     @State private var hasEnteredBackground = false
     @StateObject private var appLockChoice = RegistrationAppLockChoice()
@@ -452,10 +478,11 @@ struct RegisterView: View {
             return
         }
 
+        guard !isSubmitting, let request = AuthInteractionCoordinator.begin(in: interaction) else { return }
         isSubmitting = true
         errorMessage = nil
         Task {
-            defer { isSubmitting = false }
+            defer { isSubmitting = false; interaction?.finish(request) }
 
             // A legal version may change while the registration form is open.
             // Keep the form, but require review of the newly published text.
@@ -463,7 +490,7 @@ struct RegisterView: View {
             do {
                 currentDocuments = try await legalDocuments.refreshForSubmission()
             } catch {
-                errorMessage = AppStrings.LegalCompliance.loadFailed
+                errorMessage = AuthFailureMessage.text(for: error, fallback: AppStrings.LegalCompliance.loadFailed)
                 return
             }
             let currentTerms = currentDocuments.terms
@@ -563,21 +590,26 @@ struct RegistrationAnalyticsConsentView: View {
                     .labelsHidden()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityLabel(AppStrings.Auth.analyticsConsentTitle)
+                    .tint(AppTheme.accentPrimary)
                     .accessibilityIdentifier("auth.register.analyticsConsent")
             } else {
                 Toggle(isOn: $isEnabled) { consentTitle }
+                    .tint(AppTheme.accentPrimary)
                     .accessibilityIdentifier("auth.register.analyticsConsent")
             }
-
-            Text(AppStrings.Profile.analyticsCollectionSubtitle)
-                .font(.footnote)
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
 
             Text(AppStrings.Auth.analyticsConsentHelp)
                 .font(.footnote)
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            DisclosureGroup(AppStrings.Auth.analyticsDetails) {
+                Text(AppStrings.Profile.analyticsCollectionSubtitle)
+                    .font(.footnote)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityIdentifier("auth.register.analyticsDetails")
         }
     }
 
@@ -589,6 +621,8 @@ struct RegistrationAnalyticsConsentView: View {
 }
 
 struct EmailVerificationView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var hasEnteredBackground = false
     @EnvironmentObject private var authState: AuthState
     @State private var message: String?
     @State private var isResending = false
@@ -637,7 +671,7 @@ struct EmailVerificationView: View {
     var body: some View {
         AuthScreenScaffold {
             AuthHeaderView(
-                title: AppStrings.Auth.emailVerificationTitle,
+                title: nil,
                 subtitle: emailWasSent
                     ? AppStrings.Auth.emailVerificationDescription
                     : AppStrings.Auth.emailVerificationStillPending
@@ -699,9 +733,18 @@ struct EmailVerificationView: View {
         .navigationTitle(AppStrings.Auth.emailVerificationTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.verify.screen")
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { hasEnteredBackground = true }
+            if phase == .active, hasEnteredBackground {
+                hasEnteredBackground = false
+                guard authState.isVerificationPending, !isBusy else { return }
+                checkVerification()
+            }
+        }
     }
 
     private func resendVerification() {
+        guard !isBusy else { return }
         isResending = true
 
         Task {
@@ -717,6 +760,7 @@ struct EmailVerificationView: View {
     }
 
     private func checkVerification() {
+        guard !isBusy else { return }
         isChecking = true
 
         Task {
@@ -776,7 +820,7 @@ struct SessionRecoveryView: View {
                 }
             } else {
                 AuthHeaderView(
-                    title: AppStrings.Auth.title,
+                    title: nil,
                     subtitle: AppStrings.Auth.loadUserProfileFailed
                 )
 
@@ -849,6 +893,7 @@ struct SessionRecoveryView: View {
 }
 
 struct PasswordResetView: View {
+    @Environment(\.authInteraction) private var interaction
     @State private var email: String
     @State private var message: String?
     @State private var isSubmitting = false
@@ -860,7 +905,7 @@ struct PasswordResetView: View {
 
     var body: some View {
         AuthScreenScaffold {
-            AuthHeaderView(title: AppStrings.Auth.resetPasswordTitle, subtitle: AppStrings.Auth.resetPasswordSubtitle)
+            AuthHeaderView(title: nil, subtitle: AppStrings.Auth.resetPasswordSubtitle)
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
@@ -908,11 +953,12 @@ struct PasswordResetView: View {
             return
         }
 
+        guard !isSubmitting, let request = AuthInteractionCoordinator.begin(in: interaction) else { return }
         isSubmitting = true
         message = nil
 
         Task {
-            defer { isSubmitting = false }
+            defer { isSubmitting = false; interaction?.finish(request) }
 
             do {
                 try await AuthService.shared.sendPasswordReset(
@@ -980,14 +1026,17 @@ struct TermsPrivacyConsentView: View {
             }
 
             Toggle(AppStrings.Auth.acceptTerms, isOn: $acceptedTerms)
+                .tint(AppTheme.accentPrimary)
                 .accessibilityLabel(AppStrings.Auth.acceptTerms)
                 .disabled(termsDocument == nil || reviewedTermsVersion != termsDocument?.version)
 
             Toggle(AppStrings.Auth.acceptPrivacy, isOn: $acceptedPrivacy)
+                .tint(AppTheme.accentPrimary)
                 .accessibilityLabel(AppStrings.Auth.acceptPrivacy)
                 .disabled(privacyDocument == nil || reviewedPrivacyVersion != privacyDocument?.version)
 
             Toggle(AppStrings.Auth.confirmMinimumAge, isOn: $confirmedMinimumAge)
+                .tint(AppTheme.accentPrimary)
                 .accessibilityLabel(AppStrings.Auth.confirmMinimumAge)
 
             VStack(alignment: .leading, spacing: 8) {
@@ -1026,95 +1075,9 @@ struct TermsPrivacyConsentView: View {
     }
 }
 
-@MainActor
-private final class RegistrationLegalDocumentsViewModel: ObservableObject {
-    @Published private(set) var terms: LegalDocument?
-    @Published private(set) var privacy: LegalDocument?
-    @Published private(set) var isLoading = false
-    @Published private(set) var errorMessage: String?
-
-    private let repository: LegalDocumentRepository
-    private var loadGeneration = 0
-    private var lastLoadedAt: Date?
-
-    init(repository: LegalDocumentRepository? = nil) {
-        self.repository = repository ?? FirestoreLegalDocumentRepository()
-    }
-
-    var isReady: Bool { terms != nil && privacy != nil }
-
-    var versionKey: String {
-        [terms?.version ?? "", privacy?.version ?? ""].joined(separator: "|")
-    }
-
-    func load() async {
-        loadGeneration += 1
-        let generation = loadGeneration
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            let documents = try await fetchLatest()
-            guard generation == loadGeneration else { return }
-            terms = documents.terms
-            privacy = documents.privacy
-            lastLoadedAt = Date()
-        } catch {
-            guard generation == loadGeneration else { return }
-            terms = nil
-            privacy = nil
-            lastLoadedAt = nil
-            errorMessage = AppStrings.LegalCompliance.loadFailed
-        }
-
-        if generation == loadGeneration { isLoading = false }
-    }
-
-    func refreshIfStale() async {
-        guard !isLoading,
-              lastLoadedAt.map({ Date().timeIntervalSince($0) < 5 * 60 }) != true else { return }
-        await load()
-    }
-
-    func refreshForSubmission() async throws -> (terms: LegalDocument, privacy: LegalDocument) {
-        loadGeneration += 1
-        let generation = loadGeneration
-        isLoading = true
-        errorMessage = nil
-        do {
-            let documents = try await fetchLatest()
-            if generation == loadGeneration {
-                terms = documents.terms
-                privacy = documents.privacy
-                isLoading = false
-            }
-            return documents
-        } catch {
-            if generation == loadGeneration {
-                terms = nil
-                privacy = nil
-                errorMessage = AppStrings.LegalCompliance.loadFailed
-                isLoading = false
-            }
-            throw error
-        }
-    }
-
-    private func fetchLatest() async throws -> (terms: LegalDocument, privacy: LegalDocument) {
-        async let termsDocument = repository.fetchAuthoritativeActiveDocument(type: .terms)
-        async let privacyDocument = repository.fetchAuthoritativeActiveDocument(type: .privacy)
-        let documents = try await (termsDocument, privacyDocument)
-        guard documents.0.type == .terms,
-              documents.1.type == .privacy,
-              documents.0.contentHash != nil,
-              documents.1.contentHash != nil else {
-            throw AppError.validationFailed
-        }
-        return (documents.0, documents.1)
-    }
-}
-
 private func readableAuthErrorMessage(_ error: Error, fallback: String) -> String {
+    let mapped = AuthFailureMessage.text(for: error, fallback: fallback)
+    if mapped != fallback { return mapped }
     if let verificationError = error as? AuthVerificationError {
         switch verificationError {
         case .alreadyVerified:

@@ -63,6 +63,7 @@ final class RequiredRegistrationUITests: XCTestCase {
                                      "UITestAppLanguage": language, "UITestAppAppearance": appearance]
             app.launch()
             XCTAssertTrue(app.buttons["auth.landing.signIn"].waitForExistence(timeout: 20))
+            XCTAssertEqual(app.buttons["auth.provider.apple"].label, language == "uk" ? "Продовжити з Apple" : "Mit Apple fortfahren")
             capture(app, "auth-landing-" + language)
             app.buttons["auth.landing.signIn"].tap()
             XCTAssertTrue(app.buttons["auth.login.submit"].waitForExistence(timeout: 10))
@@ -87,6 +88,57 @@ final class RequiredRegistrationUITests: XCTestCase {
             app.buttons["auth.register.emailMethod"].tap()
             XCTAssertTrue(app.buttons["auth.register.federalState"].waitForExistence(timeout: 10))
             capture(app, "auth-register-fields-" + language)
+            app.terminate()
+        }
+    }
+
+    @MainActor
+    func testSignInLocksOtherMethodsAndKeepsCredentialsAfterNetworkFailure() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestForceSignedOutSession": "1", "UITestAuthDelayedFailure": "1",
+            "UITestResetUserSettings": "1", "UITestAppLanguage": "uk", "UITestAppAppearance": "dark"]
+        app.launch()
+        XCTAssertTrue(app.buttons["auth.landing.signIn"].waitForExistence(timeout: 20))
+        app.buttons["auth.landing.signIn"].tap()
+        let email = app.textFields.firstMatch
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("member@example.test")
+        let password = app.secureTextFields.firstMatch
+        password.tap()
+        password.typeText("test-password")
+        app.swipeUp()
+        let submit = app.buttons["auth.login.submit"].firstMatch
+        XCTAssertTrue(submit.isEnabled)
+        submit.tap()
+        XCTAssertFalse(app.buttons["auth.provider.apple"].isEnabled)
+        XCTAssertFalse(app.buttons["auth.provider.google"].isEnabled)
+        XCTAssertFalse(app.buttons["auth.passkey.signIn"].isEnabled)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "auth.login.error").firstMatch.waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["auth.provider.apple"].isEnabled)
+        XCTAssertTrue(submit.isEnabled)
+        XCTAssertEqual(email.value as? String, "member@example.test")
+        capture(app, "auth-network-retry-preserved")
+        app.terminate()
+    }
+
+    @MainActor
+    func testProtectedRolesCanResolveSecurityBeforeUnavailableLegalVerification() {
+        for role in ["owner", "admin"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing"]
+            app.launchEnvironment = ["UITestResetUserSettings": "1", "UITestAppLanguage": "uk",
+                "UITestAppAppearance": "dark", "UITestOwnerSecondFactor": "missing",
+                "UITestStartupSecurityBeforeLegal": "1", "UITestLegalReverification": "cold-offline", "UITestResetAppLock": "1"]
+            if role == "owner" { app.launchEnvironment["UITestForceOwnerSession"] = "1" }
+            else { app.launchEnvironment["UITestProfileRole"] = "admin" }
+            app.launch()
+            XCTAssertTrue(app.otherElements["auth.mfa.privilegedRequirement"].firstMatch.waitForExistence(timeout: 20))
+            XCTAssertFalse(app.buttons["startup.retry"].exists)
+            XCTAssertTrue(app.buttons["auth.mfa.privilegedRequirement.retry"].firstMatch.waitForExistence(timeout: 10))
+            XCTAssertFalse(app.buttons["auth.mfa.privilegedRequirement.enroll"].exists, "Unknown factor state must not be presented as no authenticator")
+            capture(app, "startup-security-before-legal-" + role)
             app.terminate()
         }
     }

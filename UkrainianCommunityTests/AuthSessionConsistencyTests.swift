@@ -127,6 +127,7 @@ struct AuthSessionConsistencyTests {
         )
 
         #expect(signedInUser.id == appUser.id)
+        await Task.yield()
         #expect(profiles.ensurePublicProfileCallCount == 1)
         #expect(profiles.ensuredPublicProfileUserIDs == [appUser.id])
         #expect(state.sessionState == .authenticated)
@@ -147,6 +148,7 @@ struct AuthSessionConsistencyTests {
 
         await service.restoreSession()
 
+        await Task.yield()
         #expect(profiles.ensurePublicProfileCallCount == 1)
         #expect(profiles.ensuredPublicProfileUserIDs == [appUser.id])
         #expect(state.sessionState == .authenticated)
@@ -173,6 +175,7 @@ struct AuthSessionConsistencyTests {
         )
 
         #expect(signedInUser.id == appUser.id)
+        await Task.yield()
         #expect(profiles.ensurePublicProfileCallCount == 1)
         #expect(state.sessionState == .authenticated)
         #expect(backend.currentSessionUser?.uid == appUser.id)
@@ -195,6 +198,7 @@ struct AuthSessionConsistencyTests {
         let verifiedUser = try await service.verifyEmailAndAuthenticate()
 
         #expect(verifiedUser.id == appUser.id)
+        await Task.yield()
         #expect(profiles.ensurePublicProfileCallCount == 1)
         #expect(profiles.ensuredPublicProfileUserIDs == [appUser.id])
         #expect(state.sessionState == .authenticated)
@@ -1312,6 +1316,107 @@ struct AuthSessionConsistencyTests {
         #expect(state.presentedAuthFlow == nil)
     }
 
+    @Test
+    func auditLateProtectionCheckCannotAffectNewAccount() async throws {
+        let state = AuthState()
+        let old = makeUser(id: "old-owner", globalRole: .owner, requiresMultiFactorAuth: true)
+        let new = makeUser(id: "new-user")
+        let oldIdentity = FakeAuthSessionUser(uid: old.id, email: old.email, isEmailVerified: true)
+        let newIdentity = FakeAuthSessionUser(uid: new.id, email: new.email, isEmailVerified: true)
+        let backend = FakeAuthBackend(currentUser: oldIdentity, signInUser: newIdentity)
+        let profiles = FakeAuthProfileProvider(profiles: [old.id: old, new.id: new])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+        var completion: CheckedContinuation<Bool, Never>?
+        backend.totpCheckHandler = { await withCheckedContinuation { completion = $0 } }
+        let restoring = Task { await service.restoreSession() }
+        for _ in 0..<10000 {
+            if completion != nil { break }
+            await Task.yield()
+        }
+        let suspended = try #require(completion)
+        _ = try await service.signIn(email: new.email, password: "valid-password")
+        #expect(state.user?.id == new.id)
+        #expect(state.presentedAuthFlow == nil)
+        suspended.resume(returning: false)
+        await restoring.value
+        #expect(state.user?.id == new.id)
+        #expect(state.presentedAuthFlow == nil, "Late old-owner protection check must not gate new-user")
+    }
+
+    @Test
+    func lateSameAccountSignInCannotResurrectDismissedPasskeyOffer() async throws {
+        let user = makeUser(id: "same-owner", globalRole: .owner, requiresMultiFactorAuth: true)
+        let state = AuthState()
+        let identity = FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true)
+        let backend = FakeAuthBackend(signInUser: identity)
+        let profiles = FakeAuthProfileProvider(profiles: [user.id: user])
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+        var completion: CheckedContinuation<Bool, Never>?
+        backend.totpCheckHandler = { await withCheckedContinuation { completion = $0 } }
+        let old = Task { try await service.signIn(email: user.email, password: "valid-password") }
+        for _ in 0..<10000 {
+            if completion != nil { break }
+            await Task.yield()
+        }
+        let pending = try #require(completion)
+        backend.totpCheckHandler = { true }
+        _ = try await service.signIn(email: user.email, password: "valid-password")
+        state.clearPasskeyEnrollmentOffer()
+        pending.resume(returning: false)
+        _ = try await old.value
+        #expect(state.user?.id == user.id)
+        #expect(state.presentedAuthFlow == nil)
+        #expect(state.passkeyOfferForUserID == nil)
+    }
+
+    @Test
+    func slowProjectionRepairDoesNotDelayAuthentication() async throws {
+        let user = makeUser(id: "projection-user")
+        let state = AuthState()
+        let identity = FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true)
+        let backend = FakeAuthBackend(signInUser: identity)
+        let profiles = FakeAuthProfileProvider(profiles: [user.id: user])
+        var repair: CheckedContinuation<Void, Never>?
+        profiles.ensurePublicProfileHandler = { await withCheckedContinuation { repair = $0 } }
+        let service = makeService(state: state, backend: backend, profiles: profiles)
+        _ = try await service.signIn(email: user.email, password: "valid-password")
+        #expect(state.isAuthenticated)
+        for _ in 0..<10000 {
+            if repair != nil { break }
+            await Task.yield()
+        }
+        let pending = try #require(repair)
+        #expect(state.user?.id == user.id)
+        pending.resume()
+    }
+
+    @Test
+    func restorationDeadlineRejectsLateProfileResult() async throws {
+        let user = makeUser(id: "slow-restore")
+        let state = AuthState()
+        let identity = FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true)
+        let backend = FakeAuthBackend(currentUser: identity)
+        let profiles = FakeAuthProfileProvider()
+        var read: CheckedContinuation<AppUser, Error>?
+        profiles.fetchHandler = { _ in try await withCheckedThrowingContinuation { read = $0 } }
+        let service = AuthService(authState: state, backend: backend, profileProvider: profiles,
+            notificationRegistration: FakeAuthNotificationRegistration(),
+            analyticsConsent: RecordingRegistrationConsent(), restorationTimeout: .milliseconds(30))
+        let restore = Task { await service.restoreSession() }
+        for _ in 0..<100 {
+            if state.isSessionUnavailable { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(state.isSessionUnavailable)
+        #expect(backend.currentSessionUser?.uid == user.id)
+        let pending = try #require(read)
+        pending.resume(returning: user)
+        await restore.value
+        #expect(state.isSessionUnavailable)
+        #expect(state.user == nil)
+        #expect(state.presentedAuthFlow == .sessionRecovery)
+    }
+
     private func makeService(
         state: AuthState,
         backend: FakeAuthBackend,
@@ -1453,6 +1558,7 @@ private final class FakeAuthBackend: AuthBackendProviding {
     var passwordResetError: Error?
     var signOutError: Error?
     var multiFactorChallenge: (any AuthMultiFactorSignInChallengeProviding)?
+    var totpCheckHandler: (() async -> Bool)?
     var currentSessionTOTPAuthenticated = false
     private(set) var signOutCallCount = 0
 
@@ -1515,7 +1621,8 @@ private final class FakeAuthBackend: AuthBackendProviding {
     }
 
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
-        currentSessionTOTPAuthenticated
+        if let totpCheckHandler { return await totpCheckHandler() }
+        return currentSessionTOTPAuthenticated
     }
 }
 
@@ -1548,6 +1655,7 @@ private final class FakeAuthProfileProvider: AuthProfileProviding {
     var createError: Error?
     var createHandler: (() async throws -> Void)?
     var fetchHandler: ((String) async throws -> AppUser)?
+    var ensurePublicProfileHandler: (() async throws -> Void)?
     var ensurePublicProfileError: Error?
     private(set) var fetchCallCount = 0
     private(set) var createCallCount = 0
@@ -1583,6 +1691,7 @@ private final class FakeAuthProfileProvider: AuthProfileProviding {
     func ensurePublicProfile(for user: AppUser) async throws {
         ensurePublicProfileCallCount += 1
         ensuredPublicProfileUserIDs.append(user.id)
+        try await ensurePublicProfileHandler?()
         if let ensurePublicProfileError { throw ensurePublicProfileError }
     }
 }

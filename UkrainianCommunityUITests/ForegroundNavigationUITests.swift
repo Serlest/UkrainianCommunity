@@ -158,7 +158,12 @@ final class ForegroundNavigationUITests: XCTestCase {
         XCTAssertNotNil(anchor, "The detail must expose a reading-position anchor")
         guard let anchor else { return }
         let label = anchor.label
-        let originalY = anchor.frame.midY
+        let originalY = settledMidY(of: anchor)
+        let duplicates = app.staticTexts.matching(NSPredicate(format: "label == %@", label))
+        let occurrence = duplicates.allElementsBoundByIndex.firstIndex { abs($0.frame.midY - originalY) < 0.5 }
+        XCTAssertNotNil(occurrence, "Keep the same occurrence when organizer name is repeated")
+        guard let occurrence else { return }
+        attach(app, name: "reading-before-\(tabIndex)")
 
         backgroundAndReturn(app)
         let verifying = app.otherElements["startup.access.verifying"].firstMatch
@@ -167,9 +172,31 @@ final class ForegroundNavigationUITests: XCTestCase {
         XCTAssertTrue(verifying.waitForNonExistence(timeout: 10))
         XCTAssertTrue(back.waitForExistence(timeout: 10))
         XCTAssertTrue(app.tabBars.buttons.element(boundBy: tabIndex).isSelected)
-        let retainedAnchor = app.staticTexts.matching(NSPredicate(format: "label == %@", label)).firstMatch
+        let retainedAnchor = app.staticTexts.matching(NSPredicate(format: "label == %@", label)).element(boundBy: occurrence)
         XCTAssertTrue(retainedAnchor.isHittable)
-        XCTAssertEqual(retainedAnchor.frame.midY, originalY, accuracy: 3)
+        let returnedY = settledMidY(of: retainedAnchor)
+        attach(app, name: "reading-after-\(tabIndex)")
+        XCTAssertEqual(returnedY, originalY, accuracy: 3, "Reading anchor: \(label)")
+    }
+
+    private func settledMidY(of element: XCUIElement) -> CGFloat {
+        var previous: CGFloat?
+        var stableSince = Date()
+        let stable = NSPredicate { _, _ in
+            let current = element.frame.midY
+            if previous == nil || abs(current - (previous ?? current)) > 0.5 { stableSince = Date() }
+            previous = current
+            return Date().timeIntervalSince(stableSince) >= 0.5
+        }
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: stable, object: element)], timeout: 5), .completed)
+        return element.frame.midY
+    }
+
+    private func attach(_ app: XCUIApplication, name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
     }
 
     private func backgroundAndReturn(_ app: XCUIApplication) {

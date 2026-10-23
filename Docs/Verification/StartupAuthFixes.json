@@ -1,0 +1,96 @@
+{
+  "block": 2,
+  "name": "Запуск, регистрация и вход",
+  "status": "implemented_verified_in_scope",
+  "verifiedAt": "2026-10-23T22:52:51.909083+00:00",
+  "resolvesAudit": "Docs/Verification/StartupAuthAudit.json",
+  "changes": {
+    "AUTH-01": "Fence protected-session UI by transition, principal and role snapshot after async reads. Protected-session checks are bounded and fail closed. Security setup stays reachable before unavailable legal verification. Unknown authenticator-factor state offers retry rather than enrollment; successful factor reload is required before choosing enrollment.",
+    "AUTH-02": "A lease shared across the full authentication navigation stack blocks concurrent entry methods and navigation. Cancelled provider dialogs release their lease.",
+    "AUTH-03": "Background public-profile repair, coalesced per principal; SDK transaction skips stale private-profile revisions. Read deadlines for restoration/private profile and legal documents. Parallel protected-session claim checks. Coalesced registration legal fetches.",
+    "AUTH-04": "Opaque themed field prompts, adaptive link tint, fixed-fill toggle tint, consistent provider order, duplicate headings removed, expandable analytics detail, selected-app-language Apple button.",
+    "AUTH-05": "Transport/throttling/cancellation/expired-request messages; pending verification rechecked only after actual background return; confirmed document versions retained across failed refresh, while submission remains blocked until successful retry."
+  },
+  "evidence": {
+    "core": {
+      "bundle": "build/block-02-fix-20261024/AuthCore.xcresult",
+      "passed": 72,
+      "failed": 0
+    },
+    "interactionAndAuth": {
+      "bundle": "build/block-02-fix-20261024/InteractionVerified.xcresult",
+      "passed": 55,
+      "failed": 0
+    },
+    "sdkAndVerificationLayouts": {
+      "bundle": "build/block-02-fix-20261024/SDKAndVerificationLayouts.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "scope": "Real Firebase iOS SDK with local Auth/Firestore emulators and production rules; projection creation and stale-repair rejection."
+    },
+    "startupRoleChecks": "Owner/admin security-before-legal, cold offline startup recovery, accessible registration and background navigation checks passed. Final reading-position regression passes with unchanged 3-point tolerance.",
+    "screens": [
+      "build/block-02-fix-20261024/screens-verified/manifest.json",
+      "build/block-02-fix-20261024/verification-screens/manifest.json",
+      "build/block-02-fix-20261024/final-screens/manifest.json",
+      "build/block-02-fix-20261024/security-recovery-screens/manifest.json"
+    ],
+    "finalAuthVerification": {
+      "bundle": "build/block-02-fix-20261024/FinalAuthVerification.xcresult",
+      "passed": 65,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Session races, shared authentication lease, contrast, background navigation preservation, owner/admin security gate before legal verification."
+    },
+    "securityRecovery": {
+      "bundle": "build/block-02-fix-20261024/SecurityRecoveryVerified.xcresult",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Profile editing regressions and owner/admin retry UI when factor status is unavailable."
+    },
+    "testHarnessCorrection": "Foreground navigation test now compares the same occurrence of a repeated organization label. Earlier heading/subtitle mismatch caused a false 22.727-point movement report; before/after screenshots showed unchanged product layout.",
+    "visualReview": {
+      "environment": "iPhone 17e iOS 26.5 simulator; debug fixtures and UIKit-hosted views",
+      "languages": [
+        "uk",
+        "de"
+      ],
+      "appearances": [
+        "light",
+        "dark"
+      ],
+      "accessibilityRegistrationTested": true,
+      "reviewed": [
+        "screens-initial/2EEE5CA0 auth landing uk light",
+        "screens-initial/A722C5D6 login de dark",
+        "verification-screens/5A82BE0F-73F4-4D0B-9474-DF06027F8C80.png",
+        "verification-screens/F1C10B5F-BA4C-4E08-944F-B6172F058725.png",
+        "final-screens/079BBF27-E2A5-4107-A092-99401CB68347.png",
+        "security-recovery-screens/65E987C8-FF2E-47BB-87A0-C63DFDAA728B.png"
+      ]
+    }
+  },
+  "appleArtwork": {
+    "source": "https://developer.apple.com/design/resources/",
+    "download": "https://devimages-cdn.apple.com/design/resources/download/Logo-Sign-in-with-Apple.dmg",
+    "guidelines": "https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple/",
+    "resource": "Sign in with Apple - Left Aligned/PDF/Logo - SIWA - Left-aligned - White - Medium.pdf",
+    "assetSHA256": "ae48024e0081ab9f9082efa5f63a3083f25eef4dff420f23213feeec05da77a2",
+    "licenseApproval": "User explicitly accepted Developer Artwork License Agreement for Sign in with Apple in this task on 2026-10-24.",
+    "unmodifiedArtwork": true
+  },
+  "delivery": {
+    "sourceOnly": true,
+    "serverDeployment": false,
+    "rulesDeployment": false,
+    "testFlightUpload": false,
+    "latestDistributedBuild": 116
+  },
+  "boundaries": [
+    "Real Apple/Google account authorization, iCloud passkey approval and email delivery on a physical iPhone were not executed in this run.",
+    "No claim that all network mutations can be forcibly cancelled: Firebase session operations remain serialized until completion; expired read results are fenced from UI.",
+    "No production account, legal document, analytics contract or role was modified.",
+    "Two pre-existing dirty project/catalog files are preserved outside this change."
+  ]
+}
