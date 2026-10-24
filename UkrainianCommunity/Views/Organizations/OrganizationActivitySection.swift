@@ -20,6 +20,7 @@ extension OrganizationDetailView {
                 .accessibilityIdentifier("organization.section.\(section)")
             }
         }
+        .accessibilityIdentifier("organization.sections")
     }
 
     @ViewBuilder
@@ -56,6 +57,8 @@ extension OrganizationDetailView {
                 canManage: presentationMode.allowsManagementControls
                     && PermissionService.canManageOrganizationPhotos(organization, user: authState.user),
                 currentUser: authState.user,
+                repository: photoRepository,
+                refreshToken: photoRefreshToken,
                 onPhotosChanged: { photos in
                     previewPhotos = photos
                     loadedPreviewPhotoOrganizationID = organization.id
@@ -65,11 +68,12 @@ extension OrganizationDetailView {
     }
 
     var upcomingOrganizationEvents: [OrganizationActivityItem] {
-        let today = Calendar.current.startOfDay(for: Date())
+        let now = Date()
         return organizationEventItems
-            .filter { ($0.eventStartDate ?? $0.publishedAt) >= today }
+            .filter { $0.isUpcomingEvent(at: now) }
             .filter { item in
                 selectedOrganizationEventCategory == nil || item.eventCategory == selectedOrganizationEventCategory
+                    || item.eventAdditionalCategories.contains { $0 == selectedOrganizationEventCategory }
             }
             .filter { item in
                 guard let audience = selectedOrganizationEventAudience else { return true }
@@ -77,7 +81,10 @@ extension OrganizationDetailView {
             }
             .filter { item in
                 guard let range = selectedOrganizationEventAge.ageRange else { return true }
-                let eventRange = (item.eventMinimumAge ?? 0)...(item.eventMaximumAge ?? 120)
+                let minimum = item.eventMinimumAge ?? 0
+                let maximum = item.eventMaximumAge ?? 120
+                guard minimum <= maximum else { return false }
+                let eventRange = minimum...maximum
                 return eventRange.overlaps(range)
             }
             .sorted {
@@ -168,49 +175,43 @@ extension OrganizationDetailView {
         emptyMessage: String,
         sortAscending: Bool
     ) -> some View {
-        Group {
-            if activityViewModel.isLoading && activityViewModel.items.isEmpty {
-                LoadingStateCard(title: nil)
-            } else if activityViewModel.items.isEmpty && activityViewModel.error != nil {
-                ErrorStateCard(
-                    systemImage: "building.2",
-                    title: AppStrings.Organizations.activityTitle,
-                    message: readableOrganizationErrorText(activityViewModel.error),
-                    retryTitle: AppStrings.Organizations.retry
-                ) {
-                    Task {
-                        if let organization = viewModel.organization(for: organizationID) {
-                            await refreshOrganizationActivity(for: organization, section: selectedSection)
-                        }
-                    }
+        VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
+            if let error = activityViewModel.error(section: selectedSection) {
+                ErrorStateCard(systemImage: emptySystemImage, title: title,
+                    message: readableOrganizationErrorText(error), retryTitle: AppStrings.Organizations.retry) {
+                    guard let organization = viewModel.organization(for: organizationID) else { return }
+                    Task { await refreshOrganizationActivity(for: organization, section: selectedSection) }
                 }
-            } else if items.isEmpty {
-                organizationCompactPlaceholder(
-                    systemImage: emptySystemImage,
-                    title: title,
-                    message: emptyMessage
-                )
-            } else {
+                .accessibilityIdentifier("organization.activity.error")
+            }
+            if items.isEmpty && (activityViewModel.isLoading(section: selectedSection)
+                || (!activityViewModel.hasLoaded(section: selectedSection) && activityViewModel.error(section: selectedSection) == nil)) {
+                LoadingStateCard(title: nil)
+            } else if items.isEmpty && activityViewModel.error(section: selectedSection) == nil {
+                organizationCompactPlaceholder(systemImage: emptySystemImage, title: title, message: emptyMessage)
+            } else if !items.isEmpty {
                 DetailCard {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                        Text(title)
-                            .font(AppTheme.sectionTitleFont)
-                            .foregroundStyle(AppTheme.textPrimary)
-
+                        Text(title).font(AppTheme.sectionTitleFont).foregroundStyle(AppTheme.textPrimary)
                         ForEach(items) { item in
                             if let destination = item.destination {
-                                NavigationLink {
-                                    activityDestinationView(for: destination)
-                                } label: {
+                                NavigationLink { activityDestinationView(for: destination) } label: {
                                     OrganizationActivityCompactCard(item: item)
                                 }
                                 .buttonStyle(.plain)
-                            } else {
-                                OrganizationActivityCompactCard(item: item)
+                                .accessibilityIdentifier("organization.activity.\(item.id)")
                             }
                         }
                     }
                 }
+            }
+            if activityViewModel.hasMore(section: selectedSection) {
+                PrimaryActionButton(title: AppStrings.Organizations.showMore,
+                    isLoading: activityViewModel.isLoading(section: selectedSection)) {
+                    guard let organization = viewModel.organization(for: organizationID) else { return }
+                    Task { await activityViewModel.loadMore(for: organization, section: selectedSection) }
+                }
+                .accessibilityIdentifier("organization.activity.loadMore")
             }
         }
     }

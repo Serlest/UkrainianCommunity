@@ -12,15 +12,15 @@ extension OrganizationDetailView {
     func organizationHeaderActions(for organization: Organization) -> some View {
         OrganizationDetailHeaderActions(
             isBookmarked: organization.isBookmarked,
-            isBookmarkPending: viewModel.pendingOrganizationBookmarkIDs.contains(organization.id),
+            isBookmarkPending: !canInteractWithOrganization || viewModel.pendingOrganizationBookmarkIDs.contains(organization.id),
             shareTitle: organization.localizedName,
             shareMessage: organizationShareText(for: organization),
             shareURL: organizationWebsiteURL(for: organization),
             onBookmark: {
                 toggleBookmark(for: organization)
             },
-            onReport: (organization.ownerId ?? organization.submittedByUserId) != authState.user?.id
-                || !authState.isAuthenticated
+            onReport: canInteractWithOrganization && ((organization.ownerId ?? organization.submittedByUserId) != authState.user?.id
+                || !authState.isAuthenticated)
                 ? { presentContentReport(.organization(organization)) }
                 : nil,
             onBlock: organizationBlockAction(for: organization),
@@ -35,7 +35,7 @@ extension OrganizationDetailView {
     }
 
     func organizationBlockAction(for organization: Organization) -> (() -> Void)? {
-        guard authState.isAuthenticated,
+        guard authState.isAuthenticated, PermissionService.isUsableAccount(user: authState.user),
               (organization.ownerId ?? organization.submittedByUserId) != authState.user?.id else {
             return nil
         }
@@ -72,7 +72,9 @@ extension OrganizationDetailView {
 
     func organizationHero(for organization: Organization) -> some View {
         DetailCard {
-            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
+            (dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: AppTheme.eventsCardHorizontalSpacing))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing))) {
                 organizationLogo(for: organization)
                     .frame(width: heroLogoSize, height: heroLogoSize)
                     .layoutPriority(1)
@@ -100,6 +102,7 @@ extension OrganizationDetailView {
                     .overlay(
                         Text(organizationInitials(for: organization))
                             .font(AppTheme.screenTitleFont)
+                            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
                     )
             }
@@ -162,11 +165,27 @@ extension OrganizationDetailView {
         )
     }
 
+    @ViewBuilder
     func heroMetadata(for organization: Organization) -> some View {
-        AppHorizontalChipRow(spacing: 6) {
-            ForEach(heroMetadataItems(for: organization), id: \.0) { systemImage, text in
-                ContentMetadataPill(systemImage: systemImage, text: text)
-                    .fixedSize(horizontal: true, vertical: false)
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(heroMetadataItems(for: organization), id: \.0) { symbol, text in
+                    Label {
+                        Text(text).fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: symbol).dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    }
+                    .font(AppTheme.metadataStrongFont)
+                    .foregroundStyle(AppTheme.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            AppHorizontalChipRow(spacing: 8) {
+                ForEach(heroMetadataItems(for: organization), id: \.0) { systemImage, text in
+                    ContentMetadataPill(systemImage: systemImage, text: text)
+                        .fixedSize(horizontal: true, vertical: false)
+                }
             }
         }
     }

@@ -13,6 +13,19 @@ actor MockRepositoryStore {
         #endif
         return MockContentBuilder.currentUser()
     }()
+    private var organizationActivityReadCounts: [String: Int] = [:]
+    func publicOrganizationActivityWillLoad(_ type: String) async throws {
+        #if DEBUG && targetEnvironment(simulator)
+        guard MockContentBuilder.usesPublicOrganizationsAudit,
+              ProcessInfo.processInfo.environment["UITestOrganizationActivityFailure"] == type else { return }
+        organizationActivityReadCounts[type, default: 0] += 1
+        if organizationActivityReadCounts[type] == 1 {
+            try await Task.sleep(for: .seconds(3))
+            throw AppError.network
+        }
+        #endif
+    }
+
     private var personalPageRequests: [String: Int] = [:]
     private var newsBrowseReadCount = 0
     func newsBrowsePageIsEmpty() async throws -> Bool {
@@ -57,7 +70,7 @@ actor MockRepositoryStore {
         #endif
     }
     var events = MockContentBuilder.events()
-    var organizations = MockContentBuilder.profileOrganizationsFixture() ?? MockContentBuilder.organizations()
+    var organizations = MockContentBuilder.publicOrganizationsAuditFixture() ?? MockContentBuilder.profileOrganizationsFixture() ?? MockContentBuilder.organizations()
     var organizationReviewHistory: [OrganizationReviewHistoryEntry] = []
     var organizationComments: [String: [Comment]] = [:]
     var feedbackItems: [FeedbackItem] = MockContentBuilder.feedbackFixtures()

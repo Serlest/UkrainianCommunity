@@ -27,7 +27,7 @@ final class OrganizationsViewModel: ObservableObject {
     private let listenerBag = RealtimeListenerBag()
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
-    private var hasLoaded = false
+    private(set) var hasLoaded = false
     private var lastLoadedAt: Date?
     private var nextPageCursor: OrganizationPageCursor?
     private var activeFederalState: AustrianFederalState?
@@ -441,8 +441,13 @@ final class OrganizationsViewModel: ObservableObject {
             contentVersion &+= 1
             error = nil
             return organization
+        } catch is CancellationError {
+            return nil
         } catch let appError as AppError {
             guard isCurrentAuthGeneration(generation) else { return nil }
+            if appError == .notFound || appError == .permissionDenied {
+                organizations.removeAll { $0.id == trimmedID }
+            }
             error = appError
             return nil
         } catch {

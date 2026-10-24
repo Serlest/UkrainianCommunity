@@ -310,6 +310,7 @@ private struct OrganizationContactItem: Identifiable {
 }
 
 private struct OrganizationContactRow: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let item: OrganizationContactItem
     let organization: Organization
 
@@ -328,36 +329,59 @@ private struct OrganizationContactRow: View {
 
     private var rowContent: some View {
         VStack(spacing: 0) {
-            HStack(alignment: .center, spacing: 12) {
-                Image(systemName: item.systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(AppTheme.accentPrimaryForeground)
-                    .frame(width: 28, height: 28)
-                    .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(item.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(AppTheme.textSecondary)
-
-                    Text(item.value)
-                        .font(.subheadline.weight(.semibold))
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: item.systemImage)
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
+                        Text(item.title).font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        if item.destination != nil {
+                            Image(systemName: "arrow.up.right").font(.system(size: 18, weight: .bold))
+                                .foregroundStyle(AppTheme.textSecondary)
+                        }
+                    }
+                    Text(item.value).font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
-                        .lineLimit(item.isAddress ? 2 : 1)
-                        .truncationMode(item.isAddress ? .tail : .middle)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+            } else {
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: item.systemImage)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+                        .frame(width: 28, height: 28)
+                        .background(AppTheme.accentPrimary.opacity(0.10), in: Circle())
 
-                Spacer(minLength: AppTheme.eventsMetadataSpacing)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(item.title)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(AppTheme.textSecondary)
 
-                if item.destination != nil {
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(AppTheme.textSecondary)
+                        Text(item.value)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineLimit(item.isAddress ? 2 : 1)
+                            .truncationMode(item.isAddress ? .tail : .middle)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Spacer(minLength: AppTheme.eventsMetadataSpacing)
+
+                    if item.destination != nil {
+                        Image(systemName: "arrow.up.right")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(AppTheme.textSecondary)
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 11)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
 
             if item.isAddress, organization.latitude != nil, organization.longitude != nil {
                 OrganizationContactMapPreview(organization: organization)

@@ -1201,6 +1201,9 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     let publishedAt: Date
     let city: String?
     let eventStartDate: Date?
+    let eventEndDate: Date?
+    let eventAdditionalCategories: [EventCategory]
+    let eventIsCancelled: Bool
     let eventVenue: String?
     let eventRegistrationState: EventRegistrationState?
     let eventCategory: EventCategory?
@@ -1221,6 +1224,9 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         publishedAt = organization.updatedAt
         city = organization.city
         eventStartDate = nil
+        eventEndDate = nil
+        eventAdditionalCategories = []
+        eventIsCancelled = false
         eventVenue = nil
         eventRegistrationState = nil
         eventCategory = nil
@@ -1236,12 +1242,15 @@ struct OrganizationActivityItem: Identifiable, Equatable {
     init(post: NewsPost) {
         id = "organization-news-\(post.id)"
         itemType = .news
-        title = post.title
-        summary = post.subtitle
+        title = post.localizedTitle
+        summary = post.localizedSubtitle
         imageURL = post.imageURL
         publishedAt = post.publishedAt
         city = post.city
         eventStartDate = nil
+        eventEndDate = nil
+        eventAdditionalCategories = []
+        eventIsCancelled = false
         eventVenue = nil
         eventRegistrationState = nil
         eventCategory = nil
@@ -1254,15 +1263,22 @@ struct OrganizationActivityItem: Identifiable, Equatable {
         destination = .news(id: post.id)
     }
 
+    func isUpcomingEvent(at now: Date = Date()) -> Bool {
+        itemType == .event && !eventIsCancelled && (eventEndDate.map { $0 >= now } ?? false)
+    }
+
     init(event: Event) {
         id = "organization-event-\(event.id)"
         itemType = .event
-        title = event.title
-        summary = event.summary
+        title = event.localizedTitle
+        summary = event.localizedSummary
         imageURL = event.imageURL
         publishedAt = event.createdAt
         city = event.city
-        eventStartDate = event.startDate
+        eventStartDate = event.nextOccurrence()?.startDate ?? event.startDate
+        eventEndDate = event.nextOccurrence()?.endDate
+        eventAdditionalCategories = event.additionalCategories
+        eventIsCancelled = event.isCancelled
         eventVenue = event.venue
         eventRegistrationState = event.registrationState
         eventCategory = event.category

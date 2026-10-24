@@ -179,7 +179,8 @@ func organizationAddressText(for organization: Organization) -> String? {
 }
 
 func organizationMapURL(for organization: Organization) -> URL? {
-    if let latitude = organization.latitude, let longitude = organization.longitude {
+    if let latitude = organization.latitude, let longitude = organization.longitude,
+       (-90...90).contains(latitude), (-180...180).contains(longitude) {
         return URL(string: "https://maps.apple.com/?ll=\(latitude),\(longitude)&q=\(organization.localizedName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")")
     }
 

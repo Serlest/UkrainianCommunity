@@ -112,3 +112,10 @@ struct MockEventRepository: EventRepository {
         try await store.deleteEventComment(eventID: eventID, commentID: commentID)
     }
 }
+
+extension MockEventRepository: OrganizationActivityPageRepository {
+    func fetchOrganizationActivityPage(organizationID: String, limit: Int, after: OrganizationActivityCursor?) async throws -> OrganizationActivityPage {
+        let items = try await fetchEvents().filter { $0.source.organizationId == organizationID }.map(OrganizationActivityItem.init(event:))
+        return .mock(items: items.filter { $0.isUpcomingEvent() }, limit: limit, after: after, eventSchedule: true)
+    }
+}

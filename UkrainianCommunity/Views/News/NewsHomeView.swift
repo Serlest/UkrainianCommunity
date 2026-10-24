@@ -257,6 +257,8 @@ struct NewsHomeView: View {
             EventDetailView(viewModel: eventsViewModel, eventID: id, onEventDeleted: {}, organizationRepository: organizationsViewModel.editorRepository, onNavigateBack: popDetail)
         case let .organization(id):
             OrganizationDetailView(viewModel: organizationsViewModel, organizationID: id,
+                                   newsRepository: newsViewModel.editorRepository, eventRepository: eventsViewModel.editorRepository,
+                                   organizationRepository: organizationsViewModel.editorRepository,
                                    newsViewModel: newsViewModel, eventsViewModel: eventsViewModel,
                                    onNavigateBack: popDetail)
         }

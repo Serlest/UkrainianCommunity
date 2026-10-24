@@ -128,3 +128,11 @@ struct MockNewsRepository: NewsRepository {
         try await store.deleteNewsComment(newsID: newsID, commentID: commentID)
     }
 }
+
+extension MockNewsRepository: OrganizationActivityPageRepository {
+    func fetchOrganizationActivityPage(organizationID: String, limit: Int, after: OrganizationActivityCursor?) async throws -> OrganizationActivityPage {
+        try await store.publicOrganizationActivityWillLoad("news")
+        let items = try await fetchNews().filter { $0.source.organizationId == organizationID }.map(OrganizationActivityItem.init(post:))
+        return .mock(items: items, limit: limit, after: after)
+    }
+}

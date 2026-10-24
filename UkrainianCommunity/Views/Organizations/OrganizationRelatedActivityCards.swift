@@ -226,18 +226,24 @@ extension OrganizationDetailView {
             NewsDetailView(
                 viewModel: newsDetailViewModel,
                 postID: id,
-                onNewsDeleted: {}
+                onNewsDeleted: {},
+                organizationRepository: organizationRepository
             )
         case let .event(id):
             EventDetailView(
                 viewModel: eventsDetailViewModel,
                 eventID: id,
-                onEventDeleted: {}
+                onEventDeleted: {},
+                organizationRepository: organizationRepository
             )
         case let .organization(id):
             OrganizationDetailView(
                 viewModel: viewModel,
                 organizationID: id,
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationRepository,
+                photoRepository: photoRepository,
                 newsViewModel: newsDetailViewModel,
                 eventsViewModel: eventsDetailViewModel,
                 onOrganizationSaved: onOrganizationSaved,
@@ -249,6 +255,7 @@ extension OrganizationDetailView {
 }
 
 struct OrganizationActivityCompactCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let item: OrganizationActivityItem
     var isPinned = false
 
@@ -256,7 +263,9 @@ struct OrganizationActivityCompactCard: View {
 
     var body: some View {
         SoftContentCard(padding: AppTheme.organizationsCardPadding) {
-            HStack(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing) {
+            (typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: AppTheme.eventsCardHorizontalSpacing))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: AppTheme.eventsCardHorizontalSpacing))) {
                 thumbnail
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -289,7 +298,23 @@ struct OrganizationActivityCompactCard: View {
         .frame(width: thumbnailSize, height: thumbnailSize, alignment: .center)
     }
 
+    @ViewBuilder
     private var metadataRow: some View {
+        if typeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(itemTypeTitle, systemImage: itemTypeSystemImage)
+                Label(organizationActivityEventText(for: item) ?? organizationActivityDateText(for: item), systemImage: "clock")
+                if isPinned { Label(AppStrings.Organizations.pinnedLabel, systemImage: "pin.fill") }
+            }
+            .font(AppTheme.metadataFont)
+            .foregroundStyle(AppTheme.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+        } else {
+            regularMetadataRow
+        }
+    }
+
+    private var regularMetadataRow: some View {
         HStack(spacing: 6) {
             ContentMetadataPill(systemImage: itemTypeSystemImage, text: itemTypeTitle)
                 .fixedSize(horizontal: true, vertical: false)

@@ -115,182 +115,136 @@ struct OrganizationCommunityMember: Identifiable {
 @MainActor
 final class OrganizationActivityViewModel: ObservableObject {
     @Published private(set) var items: [OrganizationActivityItem] = []
-    @Published private(set) var isLoading = false
-    @Published private(set) var error: AppError?
-
+    @Published private(set) var loadingTypes = Set<OrganizationActivityItemType>()
+    @Published private(set) var errors: [OrganizationActivityItemType: AppError] = [:]
+    @Published private(set) var loadedItemTypes = Set<OrganizationActivityItemType>()
+    @Published private(set) var hasMoreTypes = Set<OrganizationActivityItemType>()
+    private var generation = 0
+    private var cursors: [OrganizationActivityItemType: OrganizationActivityCursor] = [:]
+    private var loadTasks: [OrganizationActivityItemType: Task<Void, Never>] = [:]
     private let organizationID: String
-    private let organizationName: String
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
+    private let activityLoader: (@MainActor (OrganizationActivityItemType) async throws -> [OrganizationActivityItem])?
+    private let pageLoader: (@MainActor (OrganizationActivityItemType, OrganizationActivityCursor?) async throws -> OrganizationActivityPage)?
     private let activityLimit = 12
-    private var loadedItemTypes = Set<OrganizationActivityItemType>()
-    private var loadTask: Task<Void, Never>?
 
-    init(
-        organizationID: String,
-        organizationName: String,
-        newsRepository: NewsRepository,
-        eventRepository: EventRepository
-    ) {
+    init(organizationID: String, organizationName: String, newsRepository: NewsRepository, eventRepository: EventRepository,
+         activityLoader: (@MainActor (OrganizationActivityItemType) async throws -> [OrganizationActivityItem])? = nil,
+         pageLoader: (@MainActor (OrganizationActivityItemType, OrganizationActivityCursor?) async throws -> OrganizationActivityPage)? = nil) {
         self.organizationID = organizationID
-        self.organizationName = organizationName
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
+        self.activityLoader = activityLoader
+        self.pageLoader = pageLoader
     }
+
+    func reset() {
+        generation &+= 1
+        loadTasks.values.forEach { $0.cancel() }
+        loadTasks.removeAll()
+        cursors.removeAll()
+        loadingTypes.removeAll()
+        errors.removeAll()
+        loadedItemTypes.removeAll()
+        hasMoreTypes.removeAll()
+        items.removeAll()
+    }
+
+    var isLoading: Bool { !loadingTypes.isEmpty }
+    var error: AppError? { errors[.news] ?? errors[.event] }
+    private func type(for section: OrganizationDetailSection) -> OrganizationActivityItemType? {
+        switch section { case .news: .news; case .events: .event; default: nil }
+    }
+    func isLoading(section: OrganizationDetailSection) -> Bool { type(for: section).map(loadingTypes.contains) ?? false }
+    func hasLoaded(section: OrganizationDetailSection) -> Bool { type(for: section).map(loadedItemTypes.contains) ?? true }
+    func error(section: OrganizationDetailSection) -> AppError? { type(for: section).flatMap { errors[$0] } }
+    func hasMore(section: OrganizationDetailSection) -> Bool { type(for: section).map(hasMoreTypes.contains) ?? false }
 
     func loadIfNeeded(for organization: Organization, section: OrganizationDetailSection) async {
-        let requestedTypes = activityItemTypes(for: section)
-        guard !requestedTypes.isEmpty else {
-            ensureProfileItem(for: organization)
-            return
-        }
-        guard !requestedTypes.isSubset(of: loadedItemTypes) else { return }
-        await startLoad(for: organization, itemTypes: requestedTypes, force: false)
+        ensureProfileItem(for: organization)
+        guard let type = type(for: section), !loadedItemTypes.contains(type) else { return }
+        await load(for: organization, type: type, reset: true)
     }
-
     func refresh(for organization: Organization, section: OrganizationDetailSection) async {
-        let requestedTypes = activityItemTypes(for: section)
-        guard !requestedTypes.isEmpty else {
-            ensureProfileItem(for: organization)
-            return
-        }
-        await startLoad(for: organization, itemTypes: requestedTypes, force: true)
+        ensureProfileItem(for: organization)
+        guard let type = type(for: section) else { return }
+        await load(for: organization, type: type, reset: true)
+    }
+    func loadMore(for organization: Organization, section: OrganizationDetailSection) async {
+        guard let type = type(for: section), hasMoreTypes.contains(type) else { return }
+        await load(for: organization, type: type, reset: false)
     }
 
-    func update(
-        for organization: Organization,
-        posts: [NewsPost],
-        events: [Event],
-        isLoading: Bool,
-        error: AppError?
-    ) {
-        let filteredNews = posts
-            .filter { belongsToOrganization($0.source, organization: organization) }
-            .map(OrganizationActivityItem.init(post:))
-        let filteredEvents = events
-            .filter { belongsToOrganization($0.source, organization: organization) }
-            .map(OrganizationActivityItem.init(event:))
-        let profileItem = OrganizationActivityItem(profile: organization)
-        let activityItems = (filteredNews + filteredEvents)
-            .sorted {
-                $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
-            }
-
-        items = [profileItem] + activityItems
-        self.isLoading = isLoading
-        self.error = error
-        loadedItemTypes = [.news, .event]
-    }
-
-    private func startLoad(
-        for organization: Organization,
-        itemTypes: Set<OrganizationActivityItemType>,
-        force: Bool
-    ) async {
-        guard force || !itemTypes.isSubset(of: loadedItemTypes) else { return }
-
-        if let loadTask {
-            await loadTask.value
-            return
-        }
-
+    private func load(for organization: Organization, type: OrganizationActivityItemType, reset: Bool) async {
+        if let existing = loadTasks[type] { await existing.value; return }
+        let currentGeneration = generation
         let task = Task { [weak self] in
             guard let self else { return }
-            await self.performLoad(for: organization, itemTypes: itemTypes)
+            self.loadingTypes.insert(type)
+            self.errors[type] = nil
+            defer { if self.generation == currentGeneration { self.loadingTypes.remove(type) } }
+            do {
+                let cursor = reset ? nil : self.cursors[type]
+                let page = try await self.fetchPage(type: type, after: cursor)
+                guard !Task.isCancelled, self.generation == currentGeneration else { return }
+                let retained = self.items.filter { $0.itemType != .organizationProfile && (!reset || $0.itemType != type) }
+                var seen = Set<String>()
+                let content = (retained + page.items.filter { $0.organizationId == self.organizationID })
+                    .filter { seen.insert($0.id).inserted }
+                    .sorted { $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt }
+                self.items = [OrganizationActivityItem(profile: organization)] + content
+                self.cursors[type] = page.nextCursor
+                if page.hasMore && page.nextCursor != nil { self.hasMoreTypes.insert(type) }
+                else { self.hasMoreTypes.remove(type) }
+                self.loadedItemTypes.insert(type)
+            } catch is CancellationError {
+            } catch {
+                guard !Task.isCancelled, self.generation == currentGeneration else { return }
+                self.errors[type] = error as? AppError ?? FirebaseReadErrorMapper.map(error)
+            }
         }
-        loadTask = task
+        loadTasks[type] = task
         await task.value
-        self.loadTask = nil
+        if generation == currentGeneration { loadTasks[type] = nil }
     }
 
-    private func performLoad(for organization: Organization, itemTypes: Set<OrganizationActivityItemType>) async {
-        isLoading = true
-        defer { isLoading = false }
-
-        do {
-            var loadedItems: [OrganizationActivityItem] = []
-
-            if itemTypes.contains(.news) {
-                let filteredNews = try await RefreshRequest.run { [self] in try await newsRepository.fetchOrganizationNews(
-                    organizationID: organizationID,
-                    limit: activityLimit
-                ) }
-                .filter { belongsToOrganization($0.source, organization: organization) }
-                .map(OrganizationActivityItem.init(post:))
-                loadedItems.append(contentsOf: filteredNews)
-            }
-
-            if itemTypes.contains(.event) {
-                let filteredEvents = try await RefreshRequest.run { [self] in try await eventRepository.fetchOrganizationEvents(
-                    organizationID: organizationID,
-                    limit: activityLimit
-                ) }
-                .filter { belongsToOrganization($0.source, organization: organization) }
-                .map(OrganizationActivityItem.init(event:))
-                loadedItems.append(contentsOf: filteredEvents)
-            }
-
-            guard !Task.isCancelled else { return }
-
-            replaceActivityItems(ofTypes: itemTypes, with: loadedItems, organization: organization)
-            error = nil
-            loadedItemTypes.formUnion(itemTypes)
-        } catch is CancellationError {
-        } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
-            error = appError
-        } catch {
-            guard !Task.isCancelled else { return }
-            self.error = .unknown
+    private func fetchPage(type: OrganizationActivityItemType, after cursor: OrganizationActivityCursor?) async throws -> OrganizationActivityPage {
+        if let pageLoader { return try await pageLoader(type, cursor) }
+        if let activityLoader {
+            return OrganizationActivityPage(items: try await activityLoader(type), nextCursor: nil, hasMore: false)
         }
-    }
-
-    private func activityItemTypes(for section: OrganizationDetailSection) -> Set<OrganizationActivityItemType> {
-        switch section {
-        case .news:
-            [.news]
-        case .events:
-            [.event]
-        case .about, .photos, .team, .contacts:
-            []
+        let pagingRepository = type == .news
+            ? newsRepository as? OrganizationActivityPageRepository
+            : eventRepository as? OrganizationActivityPageRepository
+        if let pagingRepository {
+            return try await RefreshRequest.run { [self] in
+                try await pagingRepository.fetchOrganizationActivityPage(organizationID: organizationID, limit: activityLimit, after: cursor)
+            }
         }
+        // Compatibility for other repository implementations; production uses cursor pages.
+        if type == .news {
+            let posts = try await newsRepository.fetchOrganizationNews(organizationID: organizationID, limit: activityLimit)
+            return OrganizationActivityPage(items: posts.map(OrganizationActivityItem.init(post:)), nextCursor: nil, hasMore: false)
+        }
+        let events = try await eventRepository.fetchOrganizationEvents(organizationID: organizationID, limit: activityLimit)
+        return OrganizationActivityPage(items: events.map(OrganizationActivityItem.init(event:)), nextCursor: nil, hasMore: false)
     }
 
+    func update(for organization: Organization, posts: [NewsPost], events: [Event], isLoading: Bool, error: AppError?) {
+        items = [OrganizationActivityItem(profile: organization)]
+            + posts.filter { $0.source.displayOrganizationId == organizationID }.map(OrganizationActivityItem.init(post:))
+            + events.filter { $0.source.displayOrganizationId == organizationID }.map(OrganizationActivityItem.init(event:))
+        loadingTypes = isLoading ? [.news, .event] : []
+        errors = error.map { [.news: $0, .event: $0] } ?? [:]
+        loadedItemTypes = [.news, .event]
+    }
     private func ensureProfileItem(for organization: Organization) {
-        let profileItem = OrganizationActivityItem(profile: organization)
-        if let index = items.firstIndex(where: { $0.itemType == .organizationProfile }) {
-            items[index] = profileItem
-        } else {
-            items.insert(profileItem, at: 0)
-        }
+        let profile = OrganizationActivityItem(profile: organization)
+        items.removeAll { $0.itemType == .organizationProfile }
+        items.insert(profile, at: 0)
     }
-
-    private func replaceActivityItems(
-        ofTypes itemTypes: Set<OrganizationActivityItemType>,
-        with loadedItems: [OrganizationActivityItem],
-        organization: Organization
-    ) {
-        let profileItem = OrganizationActivityItem(profile: organization)
-        let existingUnchangedItems = items.filter { item in
-            item.itemType != .organizationProfile && !itemTypes.contains(item.itemType)
-        }
-        let activityItems = (existingUnchangedItems + loadedItems)
-                .sorted {
-                    $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
-                }
-        items = [profileItem] + activityItems
-    }
-
-    var isEmptyStateWithoutProfile: Bool {
-        items.filter { $0.itemType != .organizationProfile }.isEmpty
-    }
-
-    private func belongsToOrganization(_ source: ContentSourceMetadata, organization: Organization) -> Bool {
-        if organization.isSystemOrganization {
-            return source.sourceType == .app || source.organizationId == Organization.systemOrganizationID
-        }
-        return source.organizationId == organizationID
-    }
+    var isEmptyStateWithoutProfile: Bool { items.allSatisfy { $0.itemType == .organizationProfile } }
 }
 
 struct OrganizationDetailView: View {
@@ -299,6 +253,7 @@ struct OrganizationDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.scenePhase) private var analyticsScenePhase
     @Environment(\.organizationPresentationMode) var presentationMode
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.accessibilityReduceTransparency) var reduceTransparency
@@ -310,6 +265,8 @@ struct OrganizationDetailView: View {
     let onOrganizationSaved: @MainActor () async -> Void
     let onOrganizationDeleted: @MainActor () -> Void
     let onNavigateBack: (() -> Void)?
+    @State private var detailLoadState: ContentDetailLoadState = .loading
+    @State var photoRefreshToken = 0
     @State private var refreshError: AppError?
     @State var showDeleteConfirmation = false
     @State var isShowingEditSheet = false
@@ -328,6 +285,7 @@ struct OrganizationDetailView: View {
     @State var communitySubscriberReferences: [OrganizationSubscriberReference] = []
     @State var communitySubscriberCursor: OrganizationSubscriberCursor?
     @State var hasMoreCommunitySubscribers = false
+    @State var communityLoadGeneration = UUID()
     @State var isLoadingCommunityPage = false
     @State var communityLoadErrorMessage: String?
     @State var loadedCommunityOrganizationID: String?
@@ -445,6 +403,7 @@ struct OrganizationDetailView: View {
                     organizationSectionTabs
                         .onTapGesture { isCommentFieldFocused = false }
                     selectedSectionContent(for: organization)
+                        .accessibilityIdentifier("organization.content.\(selectedSection)")
                         .onTapGesture { isCommentFieldFocused = false }
                     actionButtons(for: organization)
                         .onTapGesture { isCommentFieldFocused = false }
@@ -466,13 +425,26 @@ struct OrganizationDetailView: View {
                     recordRecentView(for: organization)
                 }
             } else {
-                ZStack {
-                    AppBackgroundView()
-                        .allowsHitTesting(false)
-
-                    EmptyStateView(title: AppStrings.Common.noItems)
+                DetailScreenShell(backAction: navigateBack) {
+                    ContentDetailLoadStateCard(
+                        state: detailLoadState == .content ? .loading : detailLoadState,
+                        accessibilityPrefix: "organization.detail.state",
+                        retryAction: { Task { await loadOrganizationDetail(force: true) } }
+                    )
                 }
             }
+        }
+        .task(id: "\(organizationID):\(authState.user?.id ?? "guest")") {
+            activityViewModel.reset()
+            communityLoadGeneration = UUID()
+            isLoadingCommunityPage = false
+            communityMembers = []
+            communitySubscriberReferences = []
+            communitySubscriberCursor = nil
+            hasMoreCommunitySubscribers = false
+            loadedCommunityOrganizationID = nil
+            communityLoadErrorMessage = nil
+            await loadOrganizationDetail(force: false)
         }
         .appDestructiveActionDialog(Binding(
             get: {
@@ -561,7 +533,7 @@ struct OrganizationDetailView: View {
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged).debounce(for: .milliseconds(250), scheduler: RunLoop.main)) { notification in
             guard AppContentChangeBus.organizationID(from: notification) == organizationID else { return }
             Task {
-                await viewModel.refresh()
+                await loadOrganizationDetail(force: true)
                 if let organization = viewModel.organization(for: organizationID) {
                     await refreshSelectedSectionData(for: organization)
                 }
@@ -592,6 +564,23 @@ struct OrganizationDetailView: View {
             }
             self.pendingRemovalOrganizationID = nil
         }
+    }
+
+    var canInteractWithOrganization: Bool {
+        !authState.isAuthenticated || PermissionService.isUsableAccount(user: authState.user)
+    }
+
+    @MainActor
+    func loadOrganizationDetail(force: Bool) async {
+        if viewModel.organization(for: organizationID) == nil { detailLoadState = .loading }
+        let organization = await viewModel.resolveOrganization(id: organizationID, force: force)
+        guard !Task.isCancelled else { return }
+        guard let organization else {
+            detailLoadState = .failed(viewModel.error ?? .notFound)
+            return
+        }
+        detailLoadState = .content
+        await loadSelectedSectionDataIfNeeded(for: organization)
     }
 
     func recordRecentView(for organization: Organization) {
@@ -663,12 +652,13 @@ struct OrganizationDetailView: View {
         refreshError = nil
         guard let refreshedOrganization = await viewModel.resolveOrganization(id: organization.id, force: true) else {
             refreshError = viewModel.error
+            if viewModel.organization(for: organization.id) == nil { detailLoadState = .failed(viewModel.error ?? .notFound) }
             return
         }
+        detailLoadState = .content
         async let comments: Void = refreshCommentsIfLoaded(for: refreshedOrganization.id)
         async let section: Void = refreshSelectedSectionData(for: refreshedOrganization)
-        async let photos: Void = reloadPreviewPhotos(for: refreshedOrganization.id)
-        _ = await (comments, section, photos)
+        _ = await (comments, section)
     }
 
     @MainActor
@@ -703,7 +693,9 @@ struct OrganizationDetailView: View {
             await refreshOrganizationActivity(for: organization, section: selectedSection)
         case .team:
             await reloadCommunityMembers(for: organization)
-        case .about, .photos, .contacts:
+        case .photos:
+            photoRefreshToken += 1
+        case .about, .contacts:
             break
         }
     }
@@ -741,8 +733,11 @@ struct OrganizationDetailView: View {
         if reset {
             communityLoadErrorMessage = nil
         }
+        let generation = communityLoadGeneration
+        let accountID = authState.user?.id
+        var subscriberReadFailed = false
         isLoadingCommunityPage = true
-        defer { isLoadingCommunityPage = false }
+        defer { if generation == communityLoadGeneration { isLoadingCommunityPage = false } }
 
         let roleByUserID = communityRoleMap(for: organization)
         let roleUserIDs = Array(roleByUserID.keys)
@@ -754,10 +749,13 @@ struct OrganizationDetailView: View {
                     limit: communityPageSize,
                     after: reset ? nil : communitySubscriberCursor
                 ) }
+                guard !Task.isCancelled, generation == communityLoadGeneration, accountID == authState.user?.id else { return }
                 communitySubscriberCursor = page.nextCursor
                 hasMoreCommunitySubscribers = page.hasMore
                 mergeCommunitySubscriberReferences(page.items, reset: reset)
             } catch {
+                guard !Task.isCancelled, generation == communityLoadGeneration, accountID == authState.user?.id else { return }
+                subscriberReadFailed = true
                 if reset {
                     communitySubscriberReferences = []
                     communitySubscriberCursor = nil
@@ -776,6 +774,7 @@ struct OrganizationDetailView: View {
 
         do {
             let profiles = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPublicUserProfiles(userIDs: userIDs) }
+            guard !Task.isCancelled, generation == communityLoadGeneration, accountID == authState.user?.id else { return }
             var loadedProfileIDs = Set<String>()
             var members: [OrganizationCommunityMember] = []
             for profile in profiles {
@@ -808,8 +807,9 @@ struct OrganizationDetailView: View {
 
             members.append(contentsOf: missingRoleMembers)
             communityMembers = members.sorted(by: communityMemberSort)
-            communityLoadErrorMessage = nil
+            communityLoadErrorMessage = subscriberReadFailed ? AppStrings.Organizations.communityLoadFailed : nil
         } catch {
+            guard !Task.isCancelled, generation == communityLoadGeneration, accountID == authState.user?.id else { return }
             if reset {
                 communityMembers = []
             }

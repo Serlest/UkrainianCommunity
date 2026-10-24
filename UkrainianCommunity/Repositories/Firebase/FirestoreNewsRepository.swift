@@ -1116,3 +1116,32 @@ private extension AppUser {
         return full.isEmpty ? "User" : full
     }
 }
+
+// The public organization tabs page independently from the main feed.
+extension FirestoreNewsRepository: OrganizationActivityPageRepository {
+    func fetchOrganizationActivityPage(organizationID: String, limit: Int, after: OrganizationActivityCursor?) async throws -> OrganizationActivityPage {
+        let size = max(1, min(limit, 50))
+        var query = collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+            .order(by: "publishedAt", descending: true)
+            .order(by: FieldPath.documentID(), descending: true)
+            .limit(to: size + 1)
+        if let after { query = query.start(after: [Timestamp(date: after.date), after.documentID]) }
+        let snapshot = try await query.getDocuments()
+        let documents = Array(snapshot.documents.prefix(size))
+        let ids = documents.map(\.documentID)
+        async let liked = fetchLikedNewsIDs(for: ids)
+        async let bookmarked = fetchBookmarkedNewsIDs(for: ids)
+        let (likedIDs, bookmarkedIDs) = try await (liked, bookmarked)
+        let items = try documents.map { document in
+            OrganizationActivityItem(post: try NewsPost(dto: makeNewsPostDTO(from: document, likedNewsIDs: likedIDs, bookmarkedNewsIDs: bookmarkedIDs)))
+        }
+        let cursor = documents.last.flatMap { document -> OrganizationActivityCursor? in
+            guard let date = document.data()["publishedAt"] as? Timestamp else { return nil }
+            return OrganizationActivityCursor(date: date.dateValue(), documentID: document.documentID)
+        }
+        return OrganizationActivityPage(items: items, nextCursor: cursor, hasMore: snapshot.documents.count > size)
+    }
+}

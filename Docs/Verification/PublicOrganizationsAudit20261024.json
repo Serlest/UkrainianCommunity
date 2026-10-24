@@ -1,0 +1,164 @@
+{
+  "block": 7,
+  "name": "Публичные организации",
+  "date": "2026-10-24",
+  "status": "implemented_verified_in_scope",
+  "startingRevision": "f6b8c63c3c98132026a9b03c905a735a635dfda7",
+  "inventory": "Docs/Verification/PublicOrganizationsInventory20261024.md",
+  "changes": [
+    "Independent news/events load tasks and error states; retry retains confirmed rows and page cursor. Late responses are rejected after account changes.",
+    "Cursor pages of 12 organization publications replace the fixed first-12 limit. Upcoming events use an indexed endDate query; ongoing sessions remain visible.",
+    "Organization detail resolves the exact ID, exposes loading/error/retry/back, keeps offline cache and removes denied/missing cached content without replacing other catalog pages.",
+    "Catalog avoids duplicate initial reads and false initial empty state. Debounced search can continue loading within the existing 120-item bound.",
+    "Guest personal filters request sign-in; blocked accounts cannot interact. Own/foreign edit/delete entries respect the existing server-backed permissions.",
+    "Photos load only on demand, support refresh/retry and explicit fullscreen dismissal; public gallery hides the editor capacity label.",
+    "Community page errors remain visible; account changes clear stale member data. Public official team versus authenticated subscriber access follows the existing policy.",
+    "Activity uses localized titles and summaries, applies secondary event categories and guards malformed age ranges.",
+    "Accessibility layouts stack hero metadata, activity content and team rows; contact values wrap fully rather than truncate. Gallery close action has a contrasting black toolbar. Map coordinates are validated.",
+    "Detail destinations receive the same repositories as their parent; DEBUG fixtures cover role menus, paging, errors, content destinations, subscription and gallery."
+  ],
+  "evidence": {
+    "baseline": "build/block07-baseline.xcresult: rapid-tab regression reproduced before the fix",
+    "dataflow": "build/block07-dataflow-fixed.xcresult: 49 passed",
+    "rolesAndPublicRoutes": {
+      "bundle": "build/block07-roles-and-tabs-fixed.xcresult",
+      "passed": 13,
+      "failed": 1,
+      "failure": "AX test could not reach the section row; normal public routes, own/foreign role menus, retry, save/subscription and guest/blocked scenarios passed. Follow-up below."
+    },
+    "finalDataflowAndDestinations": {
+      "bundle": "build/block07-final-tabs.xcresult",
+      "passed": 55,
+      "failed": 1,
+      "failure": "AX offscreen team button; found event metadata expanding the screen at maximum font size. Corrected by adaptive metadata/card layout."
+    },
+    "finalAccessibilityAndRegressions": [
+      {
+        "bundle": "build/block07-AX-final.xcresult",
+        "passed": 2,
+        "failed": 2,
+        "note": "All six German dark maximum-font tabs and the shared header passed. Old contact driver overscrolled; old unblock driver omitted the existing confirmation."
+      },
+      {
+        "bundle": "build/block07-contacts-block-final.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "note": "All persisted contact fields; hide/confirm/unhide/confirm round-trip."
+      },
+      {
+        "bundle": "build/block07-final-visual.xcresult",
+        "passed": 2,
+        "failed": 0,
+        "note": "Final wrapping contact values; German dark maximum text plus alternate de/light and uk/dark normal-size routes."
+      },
+      {
+        "bundle": "build/block07-final-theme-transitions.xcresult",
+        "passed": 1,
+        "failed": 0,
+        "note": "Twelve section changes across de/light and uk/dark; waits for the selected content before each capture."
+      }
+    ],
+    "rules": {
+      "log": "build/block07/rules.log",
+      "passed": 23,
+      "failed": 0,
+      "suites": [
+        "organizationRegionScopeRules",
+        "organizationSubscriptionRules",
+        "publicProfileRules",
+        "subscriptionPagingRules"
+      ]
+    },
+    "productionQueries": [
+      {
+        "collection": "news",
+        "page": 1,
+        "success": true,
+        "count": 2,
+        "seconds": 0.362
+      },
+      {
+        "collection": "news",
+        "page": 2,
+        "success": true,
+        "count": 2,
+        "overlap": false,
+        "seconds": 0.298
+      },
+      {
+        "collection": "events",
+        "page": 1,
+        "success": true,
+        "count": 2,
+        "seconds": 0.375
+      },
+      {
+        "collection": "events",
+        "page": 2,
+        "success": true,
+        "count": 2,
+        "overlap": false,
+        "seconds": 0.312
+      }
+    ],
+    "staticValidation": [
+      "Repository structure passed",
+      "de/uk localization passed, 3296 entries",
+      "118 unique Firestore composite indexes checked",
+      "git diff --check passed"
+    ],
+    "visual": {
+      "environment": "iPhone 17e iOS 26.5 simulator, deterministic DEBUG fixtures",
+      "languageAppearanceMatrix": [
+        "uk/light",
+        "de/light",
+        "uk/dark",
+        "de/dark"
+      ],
+      "maximumDynamicType": "de/dark accessibility XXXL",
+      "screenshots": [
+        "build/block07/final-screens",
+        "build/block07/ax-final-screens",
+        "build/block07/verified-visual",
+        "build/block07/verified-transitions"
+      ],
+      "reviewed": [
+        "build/block07/verified-visual/C6C97983-288D-4CA4-9E20-6B354770D2F5.png",
+        "build/block07/verified-visual/D5A26ED9-D6EF-4E4E-8A9B-5367DCD148DE.png",
+        "build/block07/verified-transitions/9BA5CA43-7A2F-4E9F-A286-B7C7F172153D.png"
+      ],
+      "transitionFollowup": "Selected-content readiness assertion passed; final de/light contacts screenshot visually confirmed."
+    }
+  },
+  "roles": {
+    "menus": "App owner, app admin, own org owner/admin/moderator, mixed, member and warned; each own and foreign organization. Guest/blocked covered separately.",
+    "subscriberPolicy": "Existing policy permits usable authenticated accounts to view subscribers; guests/blocked cannot. No unrequested policy change was made.",
+    "managementBoundary": "Full editor, photo mutations, ownership/role changes and request workflows are block 8. This block validates public routes and permitted entry points."
+  },
+  "production": {
+    "project": "ukrainiancommunity-dbd5f",
+    "additiveIndex": "events: sourceType ASC, organizationId ASC, moderationStatus ASC, endDate ASC, implicit __name__ ASC",
+    "indexID": "CICAgISu458K",
+    "indexState": "READY",
+    "exactQueryReadback": "First and cursor-following pages succeeded for both news and upcoming organization events; no overlapping IDs.",
+    "functionsDeployed": false,
+    "rulesDeployed": false,
+    "userOrContentDataMutated": false,
+    "compatibility": "Additive index only; previous app queries, rules and function contracts unchanged. Admin API query timings are not end-user device latency."
+  },
+  "boundaries": {
+    "testFlightUploaded": false,
+    "latestDeliveredBuild": 121,
+    "physicalDeviceVerifiedThisTurn": false,
+    "searchScope": "Local matching over loaded content; automatic continuation capped at 120, manual Load more remains. Not global server full-text search.",
+    "runtime": "iPhone 17e iOS 26.5 simulator with deterministic DEBUG fixtures, uk/light and de/dark maximum Dynamic Type. No claim of a full live owner-account end-to-end journey.",
+    "externalServices": "Phone, email, maps, system share and real photo downloads/uploads need physical-device acceptance; source routes reviewed. No real subscriptions/comments were written.",
+    "transitions": "Normal tab/content/back flow and network retry observed in UI tests/video. No claim that every possible production timing or frame was measured."
+  },
+  "previousBlockHostedCI": {
+    "run": 40112369191,
+    "sourceRevision": "f6b8c63c3c98132026a9b03c905a735a635dfda7",
+    "conclusion": "success"
+  },
+  "hostedCI": "not_pushed_yet"
+}

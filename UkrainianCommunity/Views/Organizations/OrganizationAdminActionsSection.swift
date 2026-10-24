@@ -71,7 +71,7 @@ extension OrganizationDetailView {
             ) {
                 toggleLike(for: organization)
             }
-            .disabled(viewModel.pendingOrganizationLikeIDs.contains(organization.id))
+            .disabled(!canInteractWithOrganization || viewModel.pendingOrganizationLikeIDs.contains(organization.id))
 
             detailMetricButton(
                 systemImage: "bubble.left",
@@ -89,7 +89,7 @@ extension OrganizationDetailView {
             systemImage: organization.isSubscribed ? "person.2.fill" : "person.2.badge.plus",
             isPrimary: true,
             isDestructive: organization.isSubscribed,
-            isDisabled: viewModel.pendingOrganizationSubscriptionIDs.contains(organization.id)
+            isDisabled: !canInteractWithOrganization || viewModel.pendingOrganizationSubscriptionIDs.contains(organization.id)
         ) {
             guard authState.isAuthenticated else {
                 toggleSubscription(for: organization)
@@ -102,7 +102,8 @@ extension OrganizationDetailView {
                 toggleSubscription(for: organization)
             }
         }
-        .frame(maxWidth: 180)
+        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : 180)
+        .accessibilityIdentifier("organization.subscribe.\(organization.id)")
         .accessibilityAddTraits(organization.isSubscribed ? .isSelected : [])
     }
 
@@ -198,7 +199,7 @@ extension OrganizationDetailView {
         do {
             try await viewModel.deleteOrganization(id: organizationID, user: authState.user)
             pendingRemovalOrganizationID = organizationID
-            dismiss()
+            navigateBack()
             onOrganizationDeleted()
         } catch let appError as AppError {
             deleteErrorMessage = readableOrganizationErrorText(appError)

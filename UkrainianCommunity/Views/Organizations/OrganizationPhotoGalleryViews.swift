@@ -15,7 +15,7 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
 
     private let organizationId: String
     private let repository: OrganizationPhotoRepository
-    private var hasLoaded = false
+    private(set) var hasLoaded = false
 
     init(organizationId: String, repository: OrganizationPhotoRepository) {
         self.organizationId = organizationId
@@ -155,6 +155,7 @@ struct OrganizationPhotoGallerySection: View {
     let canManage: Bool
     let currentUser: AppUser?
     let onPhotosChanged: ([OrganizationPhoto]) -> Void
+    let refreshToken: Int
 
     @StateObject private var viewModel: OrganizationPhotoGalleryViewModel
     @State private var selectedPickerItem: PhotosPickerItem?
@@ -178,12 +179,14 @@ struct OrganizationPhotoGallerySection: View {
         canManage: Bool,
         currentUser: AppUser?,
         repository: OrganizationPhotoRepository = OrganizationPhotoRepositoryFactory.make(),
+        refreshToken: Int = 0,
         onPhotosChanged: @escaping ([OrganizationPhoto]) -> Void = { _ in }
     ) {
         self.organizationId = organizationId
         self.canManage = canManage
         self.currentUser = currentUser
         self.onPhotosChanged = onPhotosChanged
+        self.refreshToken = refreshToken
         _viewModel = StateObject(wrappedValue: OrganizationPhotoGalleryViewModel(organizationId: organizationId, repository: repository))
     }
 
@@ -195,8 +198,9 @@ struct OrganizationPhotoGallerySection: View {
                 messages
             }
         }
-        .task(id: organizationId) {
-            await viewModel.loadIfNeeded()
+        .task(id: "\(organizationId):\(refreshToken)") {
+            if refreshToken == 0 { await viewModel.loadIfNeeded() }
+            else { await viewModel.refresh() }
             if canManage { await viewModel.refreshReplacementAvailability() }
         }
         .appRefreshable {
@@ -256,7 +260,7 @@ struct OrganizationPhotoGallerySection: View {
         HStack(alignment: .center) {
             AppEditorSectionTitle(title: AppStrings.Organizations.tabPhoto)
 
-            Text("\(viewModel.photos.count)/30")
+            Text(canManage ? "\(viewModel.photos.count)/30" : "\(viewModel.photos.count)")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(AppTheme.textSecondary)
                 .padding(.horizontal, 8)
@@ -267,10 +271,12 @@ struct OrganizationPhotoGallerySection: View {
 
     @ViewBuilder
     private var content: some View {
-        if viewModel.isLoading && viewModel.photos.isEmpty {
+        if viewModel.photos.isEmpty && (viewModel.isLoading || (!viewModel.hasLoaded && viewModel.errorMessage == nil)) {
             ProgressView()
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, AppTheme.dashboardSpacing)
+        } else if viewModel.photos.isEmpty && viewModel.errorMessage != nil {
+            EmptyView()
         } else if viewModel.photos.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 if canManage {
@@ -351,6 +357,8 @@ struct OrganizationPhotoGallerySection: View {
                 Label(errorMessage, systemImage: "exclamationmark.triangle")
                     .font(.caption.weight(.medium))
                     .foregroundStyle(AppTheme.accentDestructiveForeground)
+                Button(AppStrings.Organizations.retry) { Task { await viewModel.refresh() } }
+                    .disabled(viewModel.isLoading)
             }
         }
     }
@@ -681,6 +689,8 @@ private struct OrganizationPhotoPreviewView: View {
             }
             .tabViewStyle(.page)
             .background(Color.black.ignoresSafeArea())
+            .toolbarBackground(Color.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(AppStrings.Common.done) {

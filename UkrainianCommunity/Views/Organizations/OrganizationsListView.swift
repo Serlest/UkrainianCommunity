@@ -58,6 +58,7 @@ struct OrganizationsListView: View {
     @State private var deleteErrorMessage: String?
     @State private var isShowingDeleteError = false
     @State private var selectedCategory: OrganizationCategoryFilter = .all
+    @State private var guestAccessAction: GuestAccessAction?
     @State private var savedFilterMode: OrganizationSavedFilterMode = .none
     @State private var isSearchPresented = false
     @State private var searchText = ""
@@ -174,6 +175,9 @@ struct OrganizationsListView: View {
             OrganizationDetailView(
                 viewModel: viewModel,
                 organizationID: route.organizationID,
+                newsRepository: newsViewModel.editorRepository,
+                eventRepository: eventsViewModel.editorRepository,
+                organizationRepository: viewModel.editorRepository,
                 newsViewModel: newsViewModel,
                 eventsViewModel: eventsViewModel,
                 onOrganizationSaved: onOrganizationSaved,
@@ -183,16 +187,18 @@ struct OrganizationsListView: View {
         }
         .task(id: featuredBannerLoadKey) {
             guard isActive else { return }
-            await viewModel.ensureLoaded(
-                minimumCount: publicFeedPageSize,
-                federalState: selectedFederalState
-            )
             await viewModel.refreshIfStale(
                 federalState: selectedFederalState,
                 limit: publicFeedPageSize
             )
             await refreshFeaturedBannersIfStale()
         }
+        .task(id: "\(searchText):\(selectedFederalState?.rawValue ?? "all"):\(viewModel.hasLoaded)") {
+            guard LocalSearchMatcher.hasQuery(searchText) else { return }
+            do { try await Task.sleep(for: .milliseconds(300)) } catch { return }
+            await viewModel.loadRemainingPagesForSearch()
+        }
+        .guestAccessAlert($guestAccessAction)
         .appRefreshable {
             async let content: Void = viewModel.refresh(
                 federalState: selectedFederalState,
@@ -333,7 +339,7 @@ struct OrganizationsListView: View {
 
     @ViewBuilder
     private var organizationsPlaneContent: some View {
-        if viewModel.organizations.isEmpty && viewModel.isLoading {
+        if viewModel.organizations.isEmpty && (viewModel.isLoading || (!viewModel.hasLoaded && viewModel.error == nil)) {
             LoadingStateCard(title: nil)
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.organizations.isEmpty && viewModel.error != nil {
@@ -484,6 +490,11 @@ struct OrganizationsListView: View {
     }
 
     private func toggleSavedFilterMode(_ mode: OrganizationSavedFilterMode) {
+        guard authState.isAuthenticated else {
+            guestAccessAction = mode == .subscribed ? .subscriptions : .bookmarks
+            return
+        }
+        guard PermissionService.isUsableAccount(user: authState.user) else { return }
         savedFilterMode = savedFilterMode == mode ? .none : mode
     }
 

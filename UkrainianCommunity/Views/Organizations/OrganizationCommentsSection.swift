@@ -57,6 +57,7 @@ extension OrganizationDetailView {
         } label: {
             Image(systemName: "ellipsis.circle.fill")
                 .font(AppTheme.sectionTitleFont)
+                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .frame(
@@ -71,11 +72,11 @@ extension OrganizationDetailView {
     }
 
     func canReportComment(_ comment: Comment) -> Bool {
-        !authState.isAuthenticated || comment.authorId != authState.user?.id
+        canInteractWithOrganization && (!authState.isAuthenticated || comment.authorId != authState.user?.id)
     }
 
     func canBlockComment(_ comment: Comment) -> Bool {
-        authState.isAuthenticated && comment.authorId != nil && comment.authorId != authState.user?.id
+        authState.isAuthenticated && PermissionService.isUsableAccount(user: authState.user) && comment.authorId != nil && comment.authorId != authState.user?.id
     }
 
     @MainActor

@@ -277,6 +277,7 @@ enum MockContentBuilder {
     }
 
     nonisolated static func newsPosts() -> [NewsPost] {
+        if let fixture = publicOrganizationNewsFixture() { return fixture }
         var items = baseNewsPosts()
         #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestNewsAudit"] == "1" {
@@ -355,6 +356,7 @@ enum MockContentBuilder {
     }
 
     nonisolated static func events() -> [Event] {
+        if let fixture = publicOrganizationEventsFixture() { return fixture }
         if let fixture = eventsAuditFixture() { return fixture }
         if let fixture = registrationAuditEvents() { return fixture }
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),

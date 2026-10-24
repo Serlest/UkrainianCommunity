@@ -1703,9 +1703,11 @@ final class UkrainianCommunityUITests: XCTestCase {
 
         func reveal(_ text: String) {
             let element = app.staticTexts[text].firstMatch
-            for _ in 0..<10 {
-                if element.exists && element.isHittable { break }
-                app.swipeUp()
+            for _ in 0..<24 {
+                if element.exists && element.isHittable && element.frame.midY > 145 && element.frame.midY < app.frame.height - 115 { break }
+                let down = element.exists && element.frame.midY < 145
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.35 : 0.70)).press(forDuration: 0.05,
+                    thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.55 : 0.50)))
             }
             XCTAssertTrue(element.exists && element.isHittable, "Field is not visible: \(text)")
         }
@@ -1790,6 +1792,9 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(undo.waitForExistence(timeout: 10))
         attachScreenshot(named: "blocked-organizations-settings", from: app)
         undo.tap()
+        let confirmation = app.sheets.firstMatch
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 5))
+        confirmation.buttons["Entsperren"].tap()
         XCTAssertTrue(undo.waitForNonExistence(timeout: 10))
     }
 

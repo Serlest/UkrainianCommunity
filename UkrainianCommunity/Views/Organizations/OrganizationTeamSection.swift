@@ -4,6 +4,15 @@ import PhotosUI
 import SwiftUI
 
 extension OrganizationDetailView {
+    var canViewSubscriberIdentities: Bool {
+        guard let organization = viewModel.organization(for: organizationID) else { return false }
+        return PermissionService.canViewOrganizationSubscriberIdentities(organization, user: authState.user)
+    }
+
+    var visibleCommunityMembers: [OrganizationCommunityMember] {
+        canViewSubscriberIdentities ? communityMembers : communityMembers.filter { $0.role != .subscriber }
+    }
+
     var organizationTeamSection: some View {
         VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
             detailGlassCard(padding: detailCardPadding) {
@@ -12,18 +21,19 @@ extension OrganizationDetailView {
 
                     if let communityLoadErrorMessage {
                         communityLoadErrorState(message: communityLoadErrorMessage)
-                    } else if isLoadingCommunityPage, communityMembers.isEmpty {
+                    }
+                    if (isLoadingCommunityPage || loadedCommunityOrganizationID != organizationID), visibleCommunityMembers.isEmpty {
                         ProgressView()
                             .frame(maxWidth: .infinity, minHeight: 64)
                             .accessibilityLabel(AppStrings.Startup.loading)
-                    } else if communityMembers.isEmpty {
+                    } else if visibleCommunityMembers.isEmpty && communityLoadErrorMessage == nil {
                         communityEmptyState
                     } else {
                         VStack(spacing: 0) {
-                            ForEach(communityMembers) { member in
+                            ForEach(visibleCommunityMembers) { member in
                                 organizationCommunityRow(member)
 
-                                if member.id != communityMembers.last?.id {
+                                if member.id != visibleCommunityMembers.last?.id {
                                     Divider()
                                         .overlay(AppTheme.borderSubtle.opacity(0.55))
                                         .padding(.leading, 54)
@@ -31,7 +41,7 @@ extension OrganizationDetailView {
                             }
                         }
 
-                        if hasMoreCommunitySubscribers || isLoadingCommunityPage {
+                        if canViewSubscriberIdentities && (hasMoreCommunitySubscribers || isLoadingCommunityPage) {
                             communityLoadMoreButton
                         }
                     }
@@ -107,14 +117,16 @@ extension OrganizationDetailView {
     }
 
     func organizationCommunityRow(_ member: OrganizationCommunityMember) -> some View {
-        HStack(spacing: 12) {
+        (dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(spacing: 12))) {
             communityAvatar(for: member.profile)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(member.profile.preferredDisplayName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(member.isPlaceholder ? AppTheme.textSecondary : AppTheme.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
 
                 if member.isPlaceholder {
                     Text(AppStrings.Organizations.communityPlaceholderProfileMessage)
@@ -125,7 +137,7 @@ extension OrganizationDetailView {
                     Text(location)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 }
             }
 
@@ -175,7 +187,7 @@ extension OrganizationDetailView {
             .font(.caption2.weight(.bold))
             .foregroundStyle(AppTheme.accentPrimaryForeground)
             .padding(.horizontal, 7)
-            .frame(height: 22)
+            .padding(.vertical, 4)
             .background(AppTheme.accentPrimary.opacity(0.10), in: Capsule())
             .overlay(Capsule().strokeBorder(AppTheme.accentPrimary.opacity(0.22)))
     }

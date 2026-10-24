@@ -182,6 +182,19 @@ struct ContentInteractionRaceTests {
         #expect(model.organizations.map(\.id) == [other.id, old.id])
     }
 
+    @Test func organizationDetailKeepsOfflineCacheButRemovesDeniedOrMissingContent() async {
+        let repository = ControlledOrganizationRepository()
+        let model = OrganizationsViewModel(repository: repository)
+        let cached = makeOrganization(id: "detail-safety")
+        model.organizations = [cached]
+        repository.detailFailure = .network
+        #expect(await model.resolveOrganization(id: cached.id, force: true) == nil)
+        #expect(model.organization(for: cached.id) != nil)
+        repository.detailFailure = .permissionDenied
+        #expect(await model.resolveOrganization(id: cached.id, force: true) == nil)
+        #expect(model.organization(for: cached.id) == nil)
+    }
+
     @Test func commentDraftSurvivesFailureAndClearsOnlyAfterSuccess() async {
         let state = CommentComposerState()
         state.text = "  My comment  "
@@ -1157,6 +1170,7 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
         if let authoringHandler { return try await authoringHandler(user) }
         return PermissionService.manageableOrganizations(from: organizations, user: user)
     }
+    var detailFailure: AppError?
     var commentFailure: AppError?
     var logoFailure = false
     var failCreateAfterCommit = false
@@ -1169,6 +1183,7 @@ private final class ControlledOrganizationRepository: OrganizationRepository {
 
     func fetchOrganizations() async throws -> [Organization] { organizations }
     func fetchOrganization(id: String) async throws -> Organization {
+        if let detailFailure { throw detailFailure }
         guard let organization = organizations.first(where: { $0.id == id }) else {
             throw AppError.notFound
         }

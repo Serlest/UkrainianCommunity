@@ -1693,3 +1693,27 @@ private extension AppUser {
         return full.isEmpty ? "User" : full
     }
 }
+
+// The public organization tabs page independently from the main feed.
+extension FirestoreEventRepository: OrganizationActivityPageRepository {
+    func fetchOrganizationActivityPage(organizationID: String, limit: Int, after: OrganizationActivityCursor?) async throws -> OrganizationActivityPage {
+        let size = max(1, min(limit, 50))
+        var query = collection
+            .whereField("sourceType", isEqualTo: ContentSourceType.organization.rawValue)
+            .whereField("organizationId", isEqualTo: organizationID)
+            .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+            .whereField("endDate", isGreaterThanOrEqualTo: Timestamp(date: Date()))
+            .order(by: "endDate", descending: false)
+            .order(by: FieldPath.documentID(), descending: false)
+            .limit(to: size + 1)
+        if let after { query = query.start(after: [Timestamp(date: after.date), after.documentID]) }
+        let snapshot = try await query.getDocuments()
+        let documents = Array(snapshot.documents.prefix(size))
+        let items = try await makePublicEvents(from: documents).map(OrganizationActivityItem.init(event:))
+        let cursor = documents.last.flatMap { document -> OrganizationActivityCursor? in
+            guard let date = document.data()["endDate"] as? Timestamp else { return nil }
+            return OrganizationActivityCursor(date: date.dateValue(), documentID: document.documentID)
+        }
+        return OrganizationActivityPage(items: items, nextCursor: cursor, hasMore: snapshot.documents.count > size)
+    }
+}

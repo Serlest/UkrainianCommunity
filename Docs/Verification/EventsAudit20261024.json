@@ -117,6 +117,12 @@
         "productionClockStillExpiresAnUnresponsiveRead"
       ]
     },
-    "hostedRerun": "pending_push"
+    "hostedRerun": {
+      "run": 40112369191,
+      "sourceRevision": "f6b8c63c3c98132026a9b03c905a735a635dfda7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40112369191"
+    }
   }
 }
