@@ -26,6 +26,7 @@ struct EventDetailView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.scenePhase) private var analyticsScenePhase
     @Environment(\.eventPresentationMode) var presentationMode
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     @Environment(\.contentReportPresentation) var contentReportPresentation
@@ -82,7 +83,12 @@ struct EventDetailView: View {
         self.organizationRepository = organizationRepository
     }
 
+    var canInteractWithEvent: Bool {
+        !authState.isAuthenticated || PermissionService.isUsableAccount(user: authState.user)
+    }
+
     func canEditEvent(_ event: Event) -> Bool {
+        guard PermissionService.isUsableAccount(user: authState.user) else { return false }
         if let organizationID = event.source.organizationId,
            let organization = organizationForPermissions(organizationID: organizationID) {
             return PermissionService.canEditOrganizationEvent(organization, user: authState.user)
@@ -91,6 +97,7 @@ struct EventDetailView: View {
     }
 
     func canDeleteEvent(_ event: Event) -> Bool {
+        guard PermissionService.isUsableAccount(user: authState.user) else { return false }
         if let organizationID = event.source.organizationId,
            let organization = organizationForPermissions(organizationID: organizationID) {
             return PermissionService.canDeleteOrganizationContent(organization, user: authState.user)
@@ -102,9 +109,8 @@ struct EventDetailView: View {
     var editSheetContent: some View {
         if let event = viewModel.event(for: eventID) {
             NavigationStack {
-                EventEditorView(repository: viewModel.editorRepository, event: event) { _ in
-                    await viewModel.refresh()
-                    return true
+                EventEditorView(repository: viewModel.editorRepository, event: event, organizationRepository: organizationRepository) { _ in
+                    await viewModel.loadEventDetail(eventID: event.id, force: true) == .loaded
                 }
             }
         }
@@ -387,7 +393,9 @@ struct EventDetailView: View {
 
         guard let event = viewModel.event(for: eventID) else { return }
         await loadPermissionOrganizationIfNeeded(organizationID: event.source.organizationId)
-        await loadEventRegistrationAttendeesIfNeeded(for: event, force: force)
+        if loadedEventRegistrationAttendeesEventID == event.id {
+            await loadEventRegistrationAttendeesIfNeeded(for: event, force: force)
+        }
         if loadsRecommendations {
             eventRecommendationCandidates = await viewModel.recommendationCandidates(for: event)
             refreshEventRecommendations()
@@ -440,7 +448,9 @@ struct EventDetailView: View {
         Task {
             await viewModel.waitForRegistrationMutation(for: pendingRegistrationConfirmation.eventID)
             guard let event = viewModel.event(for: pendingRegistrationConfirmation.eventID) else { return }
-            await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
+            if isShowingRegistrationManagement || !eventRegistrationAttendees.isEmpty {
+                await loadEventRegistrationAttendeesIfNeeded(for: event, force: true)
+            }
         }
         self.pendingRegistrationConfirmation = nil
     }
@@ -454,7 +464,7 @@ struct EventDetailView: View {
         do {
             try await viewModel.deleteEvent(id: eventID)
             pendingRemovalEventID = eventID
-            dismiss()
+            navigateBack()
             onEventDeleted()
         } catch let appError as AppError {
             deleteErrorMessage = readableEventErrorText(appError)
@@ -601,7 +611,10 @@ struct EventDetailView: View {
         defer { isLoadingEventRegistrationAttendees = false }
 
         do {
-            eventRegistrationAttendees = try await RefreshRequest.run { [self] in try await viewModel.editorRepository.fetchEventRegistrations(eventID: event.id) }
+            let taskID = eventViewTaskID
+            let attendees = try await RefreshRequest.run { [self] in try await viewModel.editorRepository.fetchEventRegistrations(eventID: event.id) }
+            guard !Task.isCancelled, taskID == eventViewTaskID, canManageEventRegistrations(event) else { return }
+            eventRegistrationAttendees = attendees
             loadedEventRegistrationAttendeesEventID = event.id
         } catch let appError as AppError {
             eventRegistrationAttendeesErrorMessage = readableEventErrorText(appError)
@@ -666,7 +679,8 @@ struct EventDetailView: View {
             return nil
         }
 
-        return CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let coordinate = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        return CLLocationCoordinate2DIsValid(coordinate) ? coordinate : nil
     }
 
     func canOpenEventInMaps(_ event: Event) -> Bool {
@@ -759,6 +773,7 @@ final class EventCalendarWriter {
     enum CalendarError: Error {
         case accessDenied
         case missingCalendar
+        case noScheduledOccurrences
     }
 
     private let eventStore = EKEventStore()
@@ -775,9 +790,12 @@ final class EventCalendarWriter {
             $0.status == .scheduled && $0.endDate >= now
         }
         let occurrences = futureOccurrences.isEmpty
-            ? [EventOccurrence(startDate: appEvent.startDate, endDate: appEvent.endDate, isAllDay: appEvent.isAllDay)]
+            ? appEvent.occurrences.filter { $0.status == .scheduled }
             : futureOccurrences
 
+        guard !occurrences.isEmpty else { throw CalendarError.noScheduledOccurrences }
+        var committed = false
+        defer { if !committed { eventStore.reset() } }
         for occurrence in occurrences {
             let calendarEvent = EKEvent(eventStore: eventStore)
             calendarEvent.title = appEvent.localizedTitle
@@ -793,6 +811,7 @@ final class EventCalendarWriter {
             try eventStore.save(calendarEvent, span: .thisEvent, commit: false)
         }
         try eventStore.commit()
+        committed = true
     }
 
     func joinedLocation(for event: Event) -> String {

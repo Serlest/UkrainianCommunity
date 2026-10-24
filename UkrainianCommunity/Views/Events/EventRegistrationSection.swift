@@ -50,6 +50,13 @@ extension EventDetailView {
                                 title: event.occurrences.count == 1 ? AppStrings.Events.fieldStartDate : "\(ContentPublishingStrings.multipleDates) \(index + 1)",
                                 value: LocalizationStore.dateString(from: occurrence.startDate, dateStyle: .full, timeStyle: .none)
                             )
+                            if occurrence.isAllDay {
+                                let displayedEnd = EventEditorViewModel.editableEndDate(for: occurrence)
+                                if !Calendar.current.isDate(occurrence.startDate, inSameDayAs: displayedEnd) {
+                                    EventDetailRow(systemImage: "calendar", title: AppStrings.Events.fieldEndDate,
+                                        value: LocalizationStore.dateString(from: displayedEnd, dateStyle: .full, timeStyle: .none))
+                                }
+                            }
                             EventDetailRow(
                                 systemImage: "clock",
                                 title: AppStrings.Events.startTime,
@@ -68,7 +75,9 @@ extension EventDetailView {
                         registrationNotRequiredLine
                     }
 
-                    HStack(spacing: 12) {
+                    (dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(spacing: 12))
+                        : AnyLayout(HStackLayout(spacing: 12))) {
                         if event.registrationState == .registered || event.participationMode == .inAppRegistration {
                             registrationButton(for: event)
                                 .frame(maxWidth: .infinity)
@@ -142,7 +151,11 @@ extension EventDetailView {
                             Text(eventRegistrationAttendeesErrorMessage)
                                 .font(AppTheme.metadataFont)
                                 .foregroundStyle(AppTheme.accentDestructiveForeground)
-                        } else if eventRegistrationAttendees.isEmpty {
+                            Button(AppStrings.Events.retry) {
+                                Task { await loadEventRegistrationAttendeesIfNeeded(for: event, force: true) }
+                            }
+                            .buttonStyle(.bordered)
+                        } else if eventRegistrationAttendees.isEmpty && event.registeredCount == 0 {
                             Text(AppStrings.Events.registrationManagementEmpty)
                                 .font(AppTheme.secondaryBodyFont)
                                 .foregroundStyle(AppTheme.textSecondary)
@@ -163,12 +176,10 @@ extension EventDetailView {
                                 }
                                 .buttonStyle(.bordered)
                                 .controlSize(.large)
+                                .accessibilityIdentifier("event.attendees.open")
                             }
                         }
                     }
-                }
-                .task(id: event.id) {
-                    await loadEventRegistrationAttendeesIfNeeded(for: event)
                 }
             }
         }
@@ -266,7 +277,7 @@ extension EventDetailView {
                         ) {
                             handleLike(for: event)
                         }
-                        .disabled(viewModel.pendingEventLikeIDs.contains(event.id))
+                        .disabled(!canInteractWithEvent || viewModel.pendingEventLikeIDs.contains(event.id))
                         .accessibilityIdentifier("event.like.\(event.id)")
                         .accessibilityHint(AppStrings.Common.likes)
 
@@ -365,7 +376,7 @@ extension EventDetailView {
             .buttonStyle(.plain)
             .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .contentShape(Rectangle())
-            .disabled(viewModel.pendingEventRegistrationIDs.contains(event.id))
+            .disabled(!canInteractWithEvent || viewModel.pendingEventRegistrationIDs.contains(event.id))
             .accessibilityIdentifier("event.register.\(event.id)")
             .accessibilityLabel(event.registrationState == .registered ? AppStrings.Action.cancelRegistration : AppStrings.Action.register)
             .accessibilityHint(AppStrings.Events.title)
@@ -435,6 +446,11 @@ struct EventRegistrationManagementView: View {
             ) {
                 summaryCard
                 searchAndSortCard
+                if let errorMessage {
+                    InlineMessageCard(style: .error, message: errorMessage)
+                    Button(AppStrings.Events.retry) { Task { await onRefresh() } }
+                        .disabled(isLoading)
+                }
                 attendeesContent
             }
             .appRefreshable {
@@ -473,6 +489,7 @@ struct EventRegistrationManagementView: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
                 AppSearchField(placeholder: AppStrings.Events.registrationSearchPlaceholder, text: $searchText)
+                    .accessibilityIdentifier("event.attendees.search")
 
                 AppSortMenu(
                     selection: $sortOption,
@@ -486,8 +503,8 @@ struct EventRegistrationManagementView: View {
     private var attendeesContent: some View {
         if isLoading && attendees.isEmpty {
             LoadingStateCard(title: AppStrings.Events.registrationManagementLoading)
-        } else if let errorMessage, attendees.isEmpty {
-            InlineMessageCard(style: .error, message: errorMessage)
+        } else if errorMessage != nil && attendees.isEmpty {
+            EmptyView()
         } else if visibleAttendees.isEmpty {
             EmptyStateCard(
                 systemImage: searchText.isEmpty ? "person.3" : "magnifyingglass",

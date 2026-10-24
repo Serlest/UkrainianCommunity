@@ -24,6 +24,7 @@ struct EventEditorView: View {
     @State var isApplyingLocationSelection = false
     @State var activeDatePicker: EventEditorDatePicker?
     @State var isShowingDraftRecoveryDialog = false
+    @State var isShowingEditDiscardConfirmation = false
     @State var isShowingDraftCloseConfirmation = false
     @State var isPreparingPlanningPublication = false
     @State var currentStep = EventEditorStep.basics
@@ -109,6 +110,10 @@ struct EventEditorView: View {
         self.sourceAttentionMessages = []
     }
 
+    var isSavingPublication: Bool {
+        isPreparingPlanningPublication || viewModel.isPublishing || viewModel.isUploadingImage || viewModel.isProcessingImage
+    }
+
     var body: some View {
         EditorScreenShell(
             title: viewModel.navigationTitle,
@@ -123,7 +128,9 @@ struct EventEditorView: View {
             editorProgress
             editorStepContent
                 .id(currentStep)
+                .disabled(isSavingPublication)
             editorNavigation
+                .disabled(isSavingPublication)
         }
         .tint(AppTheme.accentPrimary)
         .accessibilityIdentifier("editor.event")
@@ -205,7 +212,16 @@ struct EventEditorView: View {
         } message: {
             Text(AppStrings.DraftRecovery.eventCloseMessage)
         }
-        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss)
+        .alert(
+            LocalizationStore.localizedString("events.editor.discard.title", defaultValue: "Відхилити зміни?", table: "EventsExperience"),
+            isPresented: $isShowingEditDiscardConfirmation
+        ) {
+            Button(AppStrings.FeaturedEditor.discardChanges, role: .destructive) { dismiss() }
+            Button(AppStrings.DraftRecovery.continueEditing, role: .cancel) {}
+        } message: {
+            Text(LocalizationStore.localizedString("events.editor.discard.message", defaultValue: "Зміни в цій події ще не збережено.", table: "EventsExperience"))
+        }
+        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss || viewModel.hasUnsavedEdits || isSavingPublication)
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false

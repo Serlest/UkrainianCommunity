@@ -42,7 +42,7 @@ extension EventDetailView {
 
                     Text(event.localizedDetails)
                         .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -90,7 +90,9 @@ extension EventDetailView {
                         .font(AppTheme.sectionTitleFont)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
 
-                    HStack(spacing: AppTheme.dashboardSpacing) {
+                    (dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(alignment: .leading, spacing: AppTheme.dashboardSpacing))
+                        : AnyLayout(HStackLayout(spacing: AppTheme.dashboardSpacing))) {
                         AppFeedThumbnail(
                             imageURL: event.source.organizationImageURL,
                             fallbackSystemImage: "building.2",
@@ -164,6 +166,7 @@ extension EventDetailView {
             HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
                 Image(systemName: row.systemImage)
                     .font(AppTheme.metadataStrongFont)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
@@ -440,6 +443,7 @@ extension EventDetailView {
                                         viewModel: viewModel,
                                         eventID: recommendation.event.id,
                                         onEventDeleted: onEventDeleted,
+                                        organizationRepository: organizationRepository,
                                         analyticsSourceScreen: "event_recommendation"
                                     )
                                     .environment(\.eventPresentationMode, presentationMode)
@@ -510,6 +514,7 @@ extension EventDetailView {
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(AppTheme.sectionTitleFont)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(
@@ -524,15 +529,15 @@ extension EventDetailView {
         }
 
         func canReportComment(_ comment: Comment) -> Bool {
-            !authState.isAuthenticated || comment.authorId != authState.user?.id
+            canInteractWithEvent && (!authState.isAuthenticated || comment.authorId != authState.user?.id)
         }
 
         func canBlockComment(_ comment: Comment) -> Bool {
-            authState.isAuthenticated && comment.authorId != nil && comment.authorId != authState.user?.id
+            authState.isAuthenticated && PermissionService.isUsableAccount(user: authState.user) && comment.authorId != nil && comment.authorId != authState.user?.id
         }
 
         func canDeleteComment(_ comment: Comment) -> Bool {
-            guard let user = authState.user else { return false }
+            guard let user = authState.user, PermissionService.isUsableAccount(user: user) else { return false }
             if PermissionService.canModerate(section: .comments, user: user) || PermissionService.canModerate(section: .events, user: user) {
                 return true
             }
@@ -603,29 +608,49 @@ extension EventDetailView {
     }
 
     struct EventDetailRow: View {
+        @Environment(\.dynamicTypeSize) private var dynamicTypeSize
         let systemImage: String
         let title: String
         let value: String
 
         var body: some View {
-            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: 6) {
+                        rowLabel
+                        Text(value)
+                            .font(AppTheme.detailMetadataFont.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        rowLabel
+                        Spacer(minLength: AppTheme.eventsMetadataSpacing)
+                        Text(value)
+                            .font(AppTheme.detailMetadataFont.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .multilineTextAlignment(.trailing)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+
+        private var rowLabel: some View {
+            HStack(alignment: .firstTextBaseline, spacing: AppTheme.eventsMetadataSpacing) {
                 Image(systemName: systemImage)
                     .font(AppTheme.detailMetadataIconFont)
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .foregroundStyle(AppTheme.textSecondary)
-                    .frame(width: AppTheme.sectionSpacing, height: AppTheme.sectionSpacing)
-
+                    .frame(width: AppTheme.sectionSpacing)
+                    .accessibilityHidden(true)
                 Text(title)
                     .font(AppTheme.detailMetadataFont)
                     .foregroundStyle(AppTheme.textSecondary)
-
-                Spacer(minLength: AppTheme.eventsMetadataSpacing)
-
-                Text(value)
-                    .font(AppTheme.detailMetadataFont.weight(.semibold))
-                    .foregroundStyle(AppTheme.textPrimary)
-                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity)
         }
     }
 

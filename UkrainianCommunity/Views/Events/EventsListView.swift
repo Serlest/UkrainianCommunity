@@ -8,12 +8,26 @@ struct EventNavigationRoute: Hashable {
 
 private let eventsRootScrollTopID = "eventsRootScrollTop"
 
-private enum EventDiscoveryFilter: CaseIterable, Identifiable {
+enum EventDiscoveryFilter: CaseIterable, Identifiable {
     case all
     case today
     case thisWeek
 
     var id: Self { self }
+
+    func matches(_ event: Event, at now: Date, calendar: Calendar) -> Bool {
+        let interval: DateInterval?
+        switch self {
+        case .all: return true
+        case .today: interval = calendar.dateInterval(of: .day, for: now)
+        case .thisWeek: interval = calendar.dateInterval(of: .weekOfYear, for: now)
+        }
+        guard let interval else { return false }
+        return event.occurrences.contains { occurrence in
+            occurrence.status == .scheduled && occurrence.startDate < interval.end
+                && (occurrence.endDate > interval.start || (occurrence.startDate == occurrence.endDate && occurrence.startDate >= interval.start))
+        }
+    }
 
     var title: String {
         switch self {
@@ -100,6 +114,13 @@ func eventScheduleText(for event: Event) -> String {
     let startDate = occurrence?.startDate ?? event.startDate
     let endDate = occurrence?.endDate ?? event.endDate
     let isAllDay = occurrence?.isAllDay ?? event.isAllDay
+    if isAllDay {
+        let first = LocalizationStore.dateString(from: startDate, dateStyle: .medium, timeStyle: .none)
+        let displayedEnd = EventEditorViewModel.editableEndDate(for: occurrence ?? EventOccurrence(startDate: startDate, endDate: endDate, isAllDay: true))
+        let last = LocalizationStore.dateString(from: displayedEnd, dateStyle: .medium, timeStyle: .none)
+        let dates = Calendar.current.isDate(startDate, inSameDayAs: displayedEnd) ? first : "\(first)–\(last)"
+        return "\(dates), \(LocalizationStore.timeRangeString(startDate: startDate, endDate: endDate, isAllDay: true))"
+    }
     if let schedule = EventMultiDaySchedule(startDate: startDate, endDate: endDate, isAllDay: isAllDay) {
         return schedule.range
     }
@@ -148,6 +169,7 @@ struct EventsListView: View {
     @EnvironmentObject private var authState: AuthState
     @ObservedObject var viewModel: EventsViewModel
     @StateObject private var featuredBannerViewModel: FeaturedBannerListViewModel
+    let organizationRepository: OrganizationRepository
     let eventRepository: EventRepository
     @Binding var navigationPath: [EventNavigationRoute]
     let onEventPublished: @MainActor () async -> Void
@@ -176,6 +198,7 @@ struct EventsListView: View {
     init(
         viewModel: EventsViewModel,
         eventRepository: EventRepository,
+        organizationRepository: OrganizationRepository = FirestoreOrganizationRepository(),
         featuredBannerRepository: FeaturedBannerRepository = FirestoreFeaturedBannerRepository(),
         featuredBannerCache: FeaturedBannerCache = FeaturedBannerCache(),
         navigationPath: Binding<[EventNavigationRoute]> = .constant([]),
@@ -191,6 +214,7 @@ struct EventsListView: View {
     ) {
         self.viewModel = viewModel
         self.eventRepository = eventRepository
+        self.organizationRepository = organizationRepository
         self.onEventPublished = onEventPublished
         self.onEventDeleted = onEventDeleted
         self.presentationMode = presentationMode
@@ -245,18 +269,7 @@ struct EventsListView: View {
             }
         let filteredUpcomingEvents: [Event]
 
-        switch selectedFilter {
-        case .all:
-            filteredUpcomingEvents = upcomingEvents
-        case .today:
-            filteredUpcomingEvents = upcomingEvents.filter { calendar.isDate($0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate, inSameDayAs: now) }
-        case .thisWeek:
-            guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else {
-                filteredUpcomingEvents = upcomingEvents
-                break
-            }
-            filteredUpcomingEvents = upcomingEvents.filter { interval.contains($0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate) }
-        }
+        filteredUpcomingEvents = upcomingEvents.filter { selectedFilter.matches($0, at: now, calendar: calendar) }
 
         let groupedEvents = Dictionary(grouping: filteredUpcomingEvents) {
             calendar.startOfDay(for: $0.nextOccurrence(relativeTo: now)?.startDate ?? $0.startDate)
@@ -276,7 +289,7 @@ struct EventsListView: View {
             .sorted { $0.date < $1.date }
 
         let pastEvents = events
-            .filter { $0.nextOccurrence(relativeTo: now) == nil }
+            .filter { $0.nextOccurrence(relativeTo: now) == nil && selectedFilter.matches($0, at: now, calendar: calendar) }
             .sorted {
                 $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate > $1.startDate
             }
@@ -393,16 +406,13 @@ struct EventsListView: View {
                 eventID: route.eventID,
                 onEventDeleted: { @MainActor @Sendable in
                     onEventDeleted()
-                }
+                },
+                organizationRepository: organizationRepository
             )
             .environment(\.eventPresentationMode, presentationMode)
         }
         .task(id: featuredBannerLoadKey) {
             guard isActive else { return }
-            await viewModel.ensureLoaded(
-                minimumCount: publicFeedPageSize,
-                federalState: selectedFederalState
-            )
             await viewModel.refreshIfStale(
                 federalState: selectedFederalState,
                 limit: publicFeedPageSize
@@ -554,7 +564,7 @@ struct EventsListView: View {
 
     @ViewBuilder
     private var eventListContent: some View {
-        if viewModel.events.isEmpty && viewModel.isLoading {
+        if viewModel.events.isEmpty && (viewModel.isLoading || (!viewModel.hasLoaded && viewModel.error == nil)) {
             LoadingStateCard(title: nil)
                 .frame(maxWidth: .infinity, minHeight: 180)
         } else if viewModel.events.isEmpty && viewModel.error != nil {

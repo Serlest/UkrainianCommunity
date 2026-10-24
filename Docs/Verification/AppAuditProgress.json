@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 5,
-  "remainingBlocks": 14,
-  "nextBlock": 6,
+  "completedBlocks": 6,
+  "remainingBlocks": 13,
+  "nextBlock": 7,
   "blocks": [
     {
       "number": 1,
@@ -45,7 +45,10 @@
     {
       "number": 6,
       "name": "Мероприятия",
-      "status": "pending"
+      "status": "implemented_verified_in_scope",
+      "inventory": "Docs/Verification/EventsInventory20261024.md",
+      "report": "Docs/Verification/EventsAudit20261024.json",
+      "testFlightBuild": null
     },
     {
       "number": 7,
@@ -188,12 +191,14 @@
       2,
       3,
       4,
-      5
+      5,
+      6
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Completed count records implementation and verification in documented scope. Physical-device acceptance remains separate; block 5 is source/simulator verified and is not yet in TestFlight. Block 6 has not started.",
+    "meaning": "Completed count records implementation and verification in documented scope. Physical-device acceptance remains separate; blocks 5 and 6 are source/simulator verified and are not yet in TestFlight. Block 7 has not started.",
     "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
-    "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом"
+    "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом",
+    "block6AuthorizedByUser": "2026-10-24: Преступай (после отчета пункта 5)"
   }
 }

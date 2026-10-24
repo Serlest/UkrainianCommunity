@@ -198,6 +198,9 @@ final class EventEditorViewModel: ObservableObject {
     private let draftRecoveryService: LocalDraftRecoveryService
     private let imageUploadService = ImageUploadService.shared
     private let mode: Mode
+    private var initialEditDraft: EventCreateDraft?
+    private var primaryOccurrenceID = UUID().uuidString
+    private var primaryOccurrenceStatus: EventOccurrenceStatus = .scheduled
     private let sourceDraftID: String?
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
@@ -224,6 +227,10 @@ final class EventEditorViewModel: ObservableObject {
             title = existingEvent.title
             summary = existingEvent.summary
             details = existingEvent.details
+            let german = existingEvent.localizations[PublishedContentLanguage.german.rawValue]
+            germanTitle = german?.title ?? ""
+            germanSummary = german?.summary ?? ""
+            germanDetails = german?.details ?? ""
             city = existingEvent.city
             venue = existingEvent.venue
             address = existingEvent.address ?? ""
@@ -240,9 +247,15 @@ final class EventEditorViewModel: ObservableObject {
             imageCredit = existingEvent.mediaMetadata?.credit ?? ""
             selectedFederalState = existingEvent.federalState ?? .tirol
             let primaryOccurrence = existingEvent.occurrences.first
+            primaryOccurrenceID = primaryOccurrence?.id ?? primaryOccurrenceID
+            primaryOccurrenceStatus = primaryOccurrence?.status ?? .scheduled
             startDate = primaryOccurrence?.startDate ?? existingEvent.startDate
-            endDate = primaryOccurrence?.endDate ?? existingEvent.endDate
-            hasExplicitEndDate = endDate > startDate
+            let storedEnd = primaryOccurrence?.endDate ?? existingEvent.endDate
+            hasExplicitEndDate = storedEnd > startDate
+            let primaryIsAllDay = primaryOccurrence?.isAllDay ?? existingEvent.isAllDay
+            endDate = primaryIsAllDay && hasExplicitEndDate
+                ? Self.editableEndDate(for: primaryOccurrence ?? EventOccurrence(startDate: startDate, endDate: storedEnd, isAllDay: true))
+                : storedEnd
             additionalOccurrences = Array(existingEvent.occurrences.dropFirst())
             selectedCategory = existingEvent.category
             additionalCategories = existingEvent.additionalCategories
@@ -250,7 +263,7 @@ final class EventEditorViewModel: ObservableObject {
             minimumAgeText = existingEvent.minimumAge.map(String.init) ?? ""
             maximumAgeText = existingEvent.maximumAge.map(String.init) ?? ""
             tags = existingEvent.tags
-            isAllDay = existingEvent.isAllDay
+            isAllDay = primaryOccurrence?.isAllDay ?? existingEvent.isAllDay
             requiresRegistration = existingEvent.requiresRegistration
             participationMode = existingEvent.participationMode
             externalActionTitle = existingEvent.externalAction?.title ?? ""
@@ -278,10 +291,15 @@ final class EventEditorViewModel: ObservableObject {
             hasCheckedCreateDraftRecovery = true
             hasCompletedCreateDraftRecoveryCheck = true
         }
+        if isEditing { initialEditDraft = currentEventCreateDraft(updatedAt: .distantPast) }
     }
 
     deinit {
         draftAutosaveTask?.cancel()
+    }
+
+    var hasUnsavedEdits: Bool {
+        isEditing && (currentEventCreateDraft(updatedAt: .distantPast) != initialEditDraft || selectedImageData != nil)
     }
 
     var canPublish: Bool {
@@ -290,6 +308,9 @@ final class EventEditorViewModel: ObservableObject {
             && isValidPublishingMetadata
             && isValidGermanContent
             && isValidMediaMetadata
+            && isValidPricing
+            && isValidExternalParticipation
+            && canAdvanceSchedule
             && !isProcessingImage
             && !isUploadingImage
             && !isPublishing
@@ -347,7 +368,7 @@ final class EventEditorViewModel: ObservableObject {
     }
 
     var allOccurrences: [EventOccurrence] {
-        [EventOccurrence(startDate: normalizedStart, endDate: normalizedEnd, isAllDay: isAllDay)]
+        [EventOccurrence(id: primaryOccurrenceID, startDate: normalizedStart, endDate: normalizedEnd, isAllDay: isAllDay, status: primaryOccurrenceStatus)]
             + additionalOccurrences.sorted { $0.startDate < $1.startDate }
     }
 
@@ -446,6 +467,12 @@ final class EventEditorViewModel: ObservableObject {
         additionalOccurrences.append(EventOccurrence(startDate: nextStart, endDate: nextEnd, isAllDay: previous.isAllDay))
     }
 
+    nonisolated static func editableEndDate(for occurrence: EventOccurrence, calendar: Calendar = .current) -> Date {
+        guard occurrence.isAllDay, occurrence.endDate > occurrence.startDate,
+              abs(occurrence.endDate.timeIntervalSince(calendar.startOfDay(for: occurrence.endDate))) < 1 else { return occurrence.endDate }
+        return calendar.date(byAdding: .day, value: -1, to: occurrence.endDate) ?? occurrence.endDate
+    }
+
     func updateOccurrence(
         id: String,
         startDate: Date? = nil,
@@ -458,7 +485,7 @@ final class EventEditorViewModel: ObservableObject {
         let resolvedIsAllDay = isAllDay ?? current.isAllDay
         let resolvedHasExplicitEndDate = hasExplicitEndDate ?? (endDate.map { $0 > (startDate ?? current.startDate) } ?? (current.endDate > current.startDate))
         var resolvedStart = startDate ?? current.startDate
-        var resolvedEnd = resolvedHasExplicitEndDate ? (endDate ?? current.endDate) : resolvedStart
+        var resolvedEnd = resolvedHasExplicitEndDate ? (endDate ?? Self.editableEndDate(for: current)) : resolvedStart
         if resolvedIsAllDay && resolvedHasExplicitEndDate {
             resolvedStart = Calendar.current.startOfDay(for: resolvedStart)
             let endDay = Calendar.current.startOfDay(for: resolvedEnd)
@@ -827,6 +854,9 @@ final class EventEditorViewModel: ObservableObject {
             existingAuthorId = existingEvent.authorId
             existingAuthorName = existingEvent.authorName
         }
+        isPublishing = true
+        defer { isPublishing = false }
+
         let normalizedStartDate = normalizedStart
         let normalizedEndDate = normalizedEnd
         await resolveCoordinatesIfNeeded()
@@ -869,7 +899,7 @@ final class EventEditorViewModel: ObservableObject {
             updatedAt: now,
             scheduledAt: contentAlreadyExists
                 ? (reservedModerationStatus == .draft ? scheduledAt : existingScheduledAt)
-                : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
+                : (publicationMode == .scheduled ? scheduledAt : nil),
             requiresRegistration: participationMode.usesInAppRegistration,
             participationMode: participationMode,
             externalAction: externalAction,
@@ -891,11 +921,11 @@ final class EventEditorViewModel: ObservableObject {
             tags: tags,
             isAllDay: isAllDay,
             isBookmarked: existingIsBookmarked,
-            commentCount: existingCommentCount
+            commentCount: existingCommentCount,
+            cancellationState: editedEvent?.cancellationState,
+            cancelledAt: editedEvent?.cancelledAt,
+            cancellationReason: editedEvent?.cancellationReason
         )
-
-        isPublishing = true
-        defer { isPublishing = false }
 
         do {
             switch mode {
@@ -965,9 +995,7 @@ final class EventEditorViewModel: ObservableObject {
             lastPublicationResult = ContentPlanningPublicationResult(
                 kind: .event,
                 contentID: newEvent.id,
-                scheduledAt: contentAlreadyExists
-                    ? (reservedModerationStatus == .draft ? scheduledAt : existingScheduledAt)
-                    : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
+                scheduledAt: newEvent.scheduledAt,
                 publicationLeaseID: publicationLeaseID
             )
             return true
@@ -1453,7 +1481,24 @@ final class EventEditorViewModel: ObservableObject {
         }
     }
 
+    private var editedEvent: Event? {
+        if case let .edit(event) = mode { return event }
+        return nil
+    }
+
     private func validate() -> Bool {
+        guard isValidSchedule else {
+            errorMessage = AppStrings.ContentPublishing.invalidSchedule
+            return false
+        }
+        guard isValidPublishingMetadata && isValidGermanContent && isValidMediaMetadata else {
+            errorMessage = ContentPublishingStrings.publishingFieldsTooLong
+            return false
+        }
+        guard canAdvanceSchedule else {
+            errorMessage = AppStrings.Events.invalidDateOrder
+            return false
+        }
         guard isValidExternalParticipation else {
             errorMessage = ContentPublishingStrings.secureWebLinkRequired
             return false
@@ -1578,7 +1623,10 @@ private extension Event {
             tags: tags,
             isAllDay: isAllDay,
             isBookmarked: isBookmarked,
-            commentCount: commentCount
+            commentCount: commentCount,
+            cancellationState: cancellationState,
+            cancelledAt: cancelledAt,
+            cancellationReason: cancellationReason
         )
     }
 }

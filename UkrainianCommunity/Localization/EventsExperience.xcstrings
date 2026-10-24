@@ -1,0 +1,38 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "events.editor.discard.title": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen verwerfen?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відхилити зміни?"
+          }
+        }
+      }
+    },
+    "events.editor.discard.message": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Änderungen an diesem Termin wurden noch nicht gespeichert."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зміни в цій події ще не збережено."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

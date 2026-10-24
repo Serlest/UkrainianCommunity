@@ -14,7 +14,7 @@ extension EventDetailView {
                 DetailHeaderActionButton(
                     systemImage: event.isBookmarked ? "bookmark.fill" : "bookmark",
                     accessibilityLabel: event.isBookmarked ? AppStrings.Action.unsave : AppStrings.Action.save,
-                    isDisabled: viewModel.pendingEventBookmarkIDs.contains(event.id),
+                    isDisabled: !canInteractWithEvent || viewModel.pendingEventBookmarkIDs.contains(event.id),
                     isSelected: event.isBookmarked
                 ) {
                     handleBookmark(for: event)
@@ -30,7 +30,7 @@ extension EventDetailView {
                     onEdit: canEditEvent(event)
                         ? { isShowingEditSheet = true }
                         : nil,
-                    onReport: event.authorId != authState.user?.id || !authState.isAuthenticated
+                    onReport: canInteractWithEvent && (event.authorId != authState.user?.id || !authState.isAuthenticated)
                         ? { presentContentReport(.event(event)) }
                         : nil,
                     onBlock: eventBlockAction(for: event),
@@ -44,7 +44,7 @@ extension EventDetailView {
         }
 
         func eventBlockAction(for event: Event) -> (() -> Void)? {
-            guard authState.isAuthenticated,
+            guard authState.isAuthenticated, PermissionService.isUsableAccount(user: authState.user),
                   let target = UserBlockTarget.event(event),
                   target.userId != authState.user?.id else {
                 return nil

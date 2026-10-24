@@ -675,6 +675,8 @@ actor MockRepositoryStore {
         let existingItem = events[index]
         events[index] = Event(
             id: existingItem.id,
+            schemaVersion: item.schemaVersion,
+            localizations: item.localizations,
             title: item.title,
             summary: item.summary,
             details: item.details,
@@ -698,10 +700,15 @@ actor MockRepositoryStore {
             mediaMetadata: item.mediaMetadata,
             startDate: item.startDate,
             endDate: item.endDate,
+            occurrences: item.occurrences,
             createdAt: existingItem.createdAt,
             updatedAt: item.updatedAt,
+            scheduledAt: item.scheduledAt,
             requiresRegistration: item.requiresRegistration,
+            participationMode: item.participationMode,
+            externalAction: item.externalAction,
             price: item.price,
+            pricing: item.pricing,
             capacity: item.capacity,
             registeredCount: existingItem.registeredCount,
             comments: existingItem.comments,
@@ -711,10 +718,17 @@ actor MockRepositoryStore {
             likeState: existingItem.likeState,
             viewCount: existingItem.viewCount,
             category: item.category,
+            additionalCategories: item.additionalCategories,
+            audience: item.audience,
+            minimumAge: item.minimumAge,
+            maximumAge: item.maximumAge,
             tags: item.tags,
             isAllDay: item.isAllDay,
             isBookmarked: existingItem.isBookmarked,
-            commentCount: existingItem.commentCount
+            commentCount: existingItem.commentCount,
+            cancellationState: existingItem.cancellationState,
+            cancelledAt: existingItem.cancelledAt,
+            cancellationReason: existingItem.cancellationReason
         )
         events.sort { $0.startDate < $1.startDate }
     }
@@ -1191,13 +1205,17 @@ private extension Event {
             likeState: likeState,
             viewCount: viewCount,
             category: category,
+            additionalCategories: additionalCategories,
             audience: audience,
             minimumAge: minimumAge,
             maximumAge: maximumAge,
             tags: tags,
             isAllDay: isAllDay,
             isBookmarked: isBookmarked,
-            commentCount: commentCount
+            commentCount: commentCount,
+            cancellationState: cancellationState,
+            cancelledAt: cancelledAt,
+            cancellationReason: cancellationReason
         )
     }
 }

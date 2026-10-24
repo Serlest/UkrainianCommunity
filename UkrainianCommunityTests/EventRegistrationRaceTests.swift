@@ -613,6 +613,20 @@ struct EventRegistrationRaceTests {
         #expect(list.events.isEmpty)
     }
 
+    @Test func boundedEventCommentsRetainConfirmedTotal() async {
+        let repository = ControlledEventRepository()
+        let model = EventsViewModel(repository: repository)
+        var event = makeEvent(id: "bounded-comments")
+        event.commentCount = 150
+        model.events = [event]
+        let request = Task { await model.loadComments(for: event.id, forceRefresh: true) }
+        #expect(await eventually { repository.commentFetchRequestCount == 1 })
+        repository.completeCommentFetchRequest(1, comments: (0..<100).map { makeComment(id: "c-\($0)", body: "Comment") })
+        await request.value
+        #expect(model.event(for: event.id)?.comments.count == 100)
+        #expect(model.event(for: event.id)?.commentCount == 150)
+    }
+
     private func makeEvent(
         id: String,
         authorID: String? = nil,

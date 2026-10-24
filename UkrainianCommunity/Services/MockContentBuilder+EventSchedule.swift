@@ -1,6 +1,28 @@
 import Foundation
 
 extension MockContentBuilder {
+    nonisolated static func eventsAuditFixture() -> [Event]? {
+        #if DEBUG && targetEnvironment(simulator)
+        guard ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+              ProcessInfo.processInfo.environment["UITestEventsAudit"] == "1" else { return nil }
+        let start = Date().addingTimeInterval(86400)
+        return ["own", "foreign"].map { scope in
+            Event(id: "audit-event-" + scope, schemaVersion: 2,
+                  localizations: ["de": EventLocalizedContent(title: "Audit Event " + scope, summary: "Zusammenfassung", details: "Beschreibung des Termins")],
+                  title: "Audit Event " + scope, summary: "Summary", details: "Details of this event",
+                  regionScope: .federalState, federalState: .tirol,
+                  source: ContentSourceMetadata(sourceType: .organization, organizationId: scope == "own" ? "role-fixture" : "org-1", organizationName: "Test Organizer"),
+                  authorId: "audit-author", authorName: "Author", city: "Innsbruck", venue: "Test Hall", address: "Street 1",
+                  latitude: 47.26, longitude: 11.39,
+                  startDate: start, endDate: start.addingTimeInterval(3600), createdAt: .now, updatedAt: .now,
+                  requiresRegistration: true, pricing: EventPricing(kind: .free), capacity: 20, registeredCount: 0,
+                  comments: [], moderationStatus: .approved, registrationState: .notRegistered, likeCount: 0, likeState: .notLiked)
+        }
+        #else
+        return nil
+        #endif
+    }
+
     /// Synthetic public events reached through the existing mock event repository.
     /// Fixed dates deliberately exercise both upcoming and past catalog sections.
     nonisolated static func multiDayScheduleFixture(scenario: String) -> Event? {

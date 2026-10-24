@@ -1,0 +1,101 @@
+{
+  "block": 6,
+  "name": "Мероприятия",
+  "date": "2026-10-24",
+  "status": "implemented_verified_in_scope",
+  "startingRevision": "0a158772",
+  "changes": [
+    "Restore German localized fields on edit; preserve primary occurrence ID and cancellation status.",
+    "Preserve scheduledAt, full schema metadata and counters across actual mock repository update/read; keep server cancellation metadata in image copies.",
+    "Validate optional fields, participation, price and schedule at submission; enter busy state before geocoding; disable editor navigation during submission.",
+    "Warn before discarding edited fields; load exact saved detail without replacing previously cached pages.",
+    "Today/week filters use session overlap, ignore cancelled sessions and apply to past results; show loading before the first response and retain explicit retry after failures.",
+    "Preserve totals when loading the latest 100 comments; avoid double counter changes after concurrent refresh; scope recommendation cache by content revision.",
+    "Block unusable-account interactions; propagate organization repository through event list, related events and editor.",
+    "Load participant profiles only when the participant screen is requested; explicit retry and stale-response account guard.",
+    "Use primary body text color; stack metadata, organizer and primary actions at accessibility sizes.",
+    "Keep all-day dates stable across repeated edits, including extra sessions; show inclusive last day without midnight.",
+    "Discard staged calendar changes on failure; exclude cancelled sessions from calendar fallback; validate map coordinates."
+  ],
+  "evidence": {
+    "baseline": "build/block06-baseline.xcresult: 2 failing regression methods before fixes",
+    "editor": "build/block06-editor.xcresult: 59 passed",
+    "interactions": "build/block06-final-interactions.xcresult: 113 passed (includes 4 UI methods)",
+    "roleAndSchedule": "build/block06-functional.xcresult: 99 passed executions, one editor UI test failed because keyboard remained open; corrected driver and rerun passed in interactions",
+    "rules": "build/block06-rules.log: 44 passed",
+    "deletionIntegration": "build/block06-deletion.log: 2 passed",
+    "registrationServer": "build/block06-registration-server.log: 6 passed",
+    "productionQueries": [
+      {
+        "region": null,
+        "past": false,
+        "success": true,
+        "count": 2,
+        "seconds": 0.264
+      },
+      {
+        "region": null,
+        "past": true,
+        "success": true,
+        "count": 2,
+        "seconds": 0.185
+      },
+      {
+        "region": "tirol",
+        "past": false,
+        "success": true,
+        "count": 2,
+        "seconds": 0.218
+      },
+      {
+        "region": "tirol",
+        "past": true,
+        "success": true,
+        "count": 2,
+        "seconds": 0.372
+      },
+      {
+        "region": "wien",
+        "past": false,
+        "success": true,
+        "count": 2,
+        "seconds": 0.291
+      },
+      {
+        "region": "wien",
+        "past": true,
+        "success": true,
+        "count": 2,
+        "seconds": 0.296
+      }
+    ],
+    "roundTripAndCreation": "build/block06-final-roundtrip.xcresult: 69 passed, including 5 UI methods; editor save/reopen, participant list/search, event creation preview, comment submission",
+    "staticValidation": [
+      "Repository structure passed",
+      "de/uk localization passed, 3296 catalog entries",
+      "117 Firestore composite indexes checked",
+      "git diff --check passed"
+    ],
+    "finalDatesVisual": "build/block06-final-dates-visual.xcresult: 12 passed summary, including two UI methods; final all-day/date overlap fixes and AX action layout"
+  },
+  "boundaries": {
+    "productionWrites": false,
+    "serverDeploymentNeeded": false,
+    "testFlightUploaded": false,
+    "latestDeliveredBuild": 121,
+    "physicalDeviceVerifiedThisTurn": false,
+    "productionQueriesUseAdminAPI": "Public read-only index/query verification; not proof of end-user Rules, latency or device journeys.",
+    "attendeePagination": "Full participant list is fetched on demand; search/sort work on that list. Cursor pagination is not implemented.",
+    "searchScope": "Local search is bounded to loaded content (automatic continuation capped at 120); Load more remains available. No claim of global full-catalog server search.",
+    "calendarPhotoMaps": "Source paths reviewed. Physical device photo/crop upload, calendar permissions/write and external Maps/share must still be accepted on device."
+  },
+  "previousBlockHostedCI": {
+    "run": 40105289685,
+    "sourceRevision": "97498e08",
+    "status": "completed",
+    "conclusion": "success"
+  },
+  "hostedCI": {
+    "status": "pending_commit_and_push"
+  }
+}

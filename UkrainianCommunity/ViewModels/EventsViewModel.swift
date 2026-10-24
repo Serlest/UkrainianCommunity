@@ -39,7 +39,7 @@ final class EventsViewModel: ObservableObject {
     private var loadTask: Task<Void, Never>?
     private var nextPageTask: Task<Void, Never>?
     private var pastEventsTask: Task<Void, Never>?
-    private var hasLoaded = false
+    private(set) var hasLoaded = false
     private var lastLoadedAt: Date?
     private var nextPageCursor: EventPageCursor?
     private var pastEventsCursor: EventPageCursor?
@@ -584,7 +584,7 @@ final class EventsViewModel: ObservableObject {
                   let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return }
             let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             events[currentIndex].comments = visibleComments
-            events[currentIndex].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            events[currentIndex].commentCount = comments.count >= 100 ? max(events[currentIndex].commentCount, visibleComments.filter { !$0.isDeleted }.count) : visibleComments.filter { !$0.isDeleted }.count
             commentLoadStates[eventID] = .loaded
             error = nil
         } catch let appError as AppError {
@@ -616,7 +616,7 @@ final class EventsViewModel: ObservableObject {
                   let index = self.events.firstIndex(where: { $0.id == eventID }) else { return }
             let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
             self.events[index].comments = visibleComments
-            self.events[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            self.events[index].commentCount = comments.count >= 100 ? max(self.events[index].commentCount, visibleComments.filter { !$0.isDeleted }.count) : visibleComments.filter { !$0.isDeleted }.count
             self.commentLoadStates[eventID] = .loaded
             self.error = nil
         } onError: { [weak self] appError in
@@ -647,8 +647,9 @@ final class EventsViewModel: ObservableObject {
             let comment = try await repository.addEventComment(eventID: eventID, text: text, author: author)
             guard isCurrentSession(generation),
                   let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return .ignored }
+            let alreadyKnown = events[currentIndex].comments.contains { $0.id == comment.id }
             events[currentIndex].comments.upsertCommentByID(comment)
-            events[currentIndex].commentCount = events[currentIndex].comments.filter { !$0.isDeleted }.count
+            events[currentIndex].commentCount = max(events[currentIndex].commentCount + (alreadyKnown ? 0 : 1), events[currentIndex].comments.filter { !$0.isDeleted }.count)
             error = nil
             return .success
         } catch {
@@ -708,8 +709,9 @@ final class EventsViewModel: ObservableObject {
             try await repository.deleteEventComment(eventID: eventID, commentID: commentID)
             guard isCurrentSession(generation),
                   let currentIndex = events.firstIndex(where: { $0.id == eventID }) else { return .ignored }
+            let wasVisible = events[currentIndex].comments.contains { $0.id == commentID }
             events[currentIndex].comments.removeAll { $0.id == commentID }
-            events[currentIndex].commentCount = events[currentIndex].comments.filter { !$0.isDeleted }.count
+            events[currentIndex].commentCount = max(events[currentIndex].commentCount - (wasVisible ? 1 : 0), events[currentIndex].comments.filter { !$0.isDeleted }.count)
             error = nil
             return .success
         } catch {
@@ -924,12 +926,13 @@ final class EventsViewModel: ObservableObject {
     }
 
     func recommendationCandidates(for source: Event, limit: Int = ContentRecommendationEngine.candidateLimit) async -> [Event] {
+        let cacheKey = "\(source.id):\(source.updatedAt.timeIntervalSince1970)"
         let boundedLimit = min(max(1, limit), ContentRecommendationEngine.candidateLimit)
-        if let cached = recommendationCandidateCache[source.id] {
+        if let cached = recommendationCandidateCache[cacheKey] {
             return Array(cached.prefix(boundedLimit))
         }
         let generation = sessionGeneration
-        if let existingTask = recommendationCandidateTasks[source.id] {
+        if let existingTask = recommendationCandidateTasks[cacheKey] {
             let fetched = await existingTask.value
             guard !Task.isCancelled, isCurrentSession(generation) else { return [] }
             return Array(visibilityPolicy.visibleEvents(fetched)
@@ -948,14 +951,14 @@ final class EventsViewModel: ObservableObject {
                 return fallback
             }
         }
-        recommendationCandidateTasks[source.id] = task
+        recommendationCandidateTasks[cacheKey] = task
         let fetched = await task.value
         guard !Task.isCancelled, isCurrentSession(generation) else { return [] }
-        recommendationCandidateTasks[source.id] = nil
+        recommendationCandidateTasks[cacheKey] = nil
         let visible = visibilityPolicy.visibleEvents(fetched)
             .filter { $0.id != source.id }
             .deduplicatedEventsByID()
-        recommendationCandidateCache[source.id] = visible
+        recommendationCandidateCache[cacheKey] = visible
         return Array(visible.prefix(boundedLimit))
     }
 

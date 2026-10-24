@@ -648,6 +648,7 @@ struct ContentView: View {
             EventsListView(
                 viewModel: eventsViewModel,
                 eventRepository: container.eventRepository,
+                organizationRepository: container.organizationRepository,
                 featuredBannerRepository: container.featuredBannerRepository,
                 featuredBannerCache: container.featuredBannerCache,
                 navigationPath: $eventsNavigationPath,

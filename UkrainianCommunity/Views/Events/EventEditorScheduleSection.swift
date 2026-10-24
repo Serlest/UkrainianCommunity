@@ -71,8 +71,16 @@ extension EventEditorView {
             Binding(
                 get: { viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id })?.startDate ?? occurrence.startDate },
                 set: { newValue in
-                    let duration = occurrence.endDate.timeIntervalSince(occurrence.startDate)
-                    let newEndDate = duration > 0 ? newValue.addingTimeInterval(duration) : newValue
+                    let current = viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id }) ?? occurrence
+                    let displayedEnd = EventEditorViewModel.editableEndDate(for: current)
+                    let duration = displayedEnd.timeIntervalSince(current.startDate)
+                    let newEndDate: Date
+                    if current.isAllDay {
+                        let days = Calendar.current.dateComponents([.day], from: current.startDate, to: displayedEnd).day ?? 0
+                        newEndDate = Calendar.current.date(byAdding: .day, value: days, to: newValue) ?? newValue
+                    } else {
+                        newEndDate = duration > 0 ? newValue.addingTimeInterval(duration) : newValue
+                    }
                     viewModel.updateOccurrence(id: occurrence.id, startDate: newValue, endDate: newEndDate)
                 }
             )
@@ -100,7 +108,7 @@ extension EventEditorView {
 
         func occurrenceEndBinding(_ occurrence: EventOccurrence) -> Binding<Date> {
             Binding(
-                get: { viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id })?.endDate ?? occurrence.endDate },
+                get: { EventEditorViewModel.editableEndDate(for: viewModel.additionalOccurrences.first(where: { $0.id == occurrence.id }) ?? occurrence) },
                 set: { viewModel.updateOccurrence(id: occurrence.id, endDate: $0) }
             )
         }
