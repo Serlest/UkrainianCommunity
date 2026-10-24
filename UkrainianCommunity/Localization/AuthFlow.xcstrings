@@ -85,6 +85,159 @@
           }
         }
       }
+    },
+    "auth.presentation.show_password": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показати пароль"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwort anzeigen"
+          }
+        }
+      }
+    },
+    "auth.presentation.hide_password": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приховати пароль"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passwort verbergen"
+          }
+        }
+      }
+    },
+    "auth.presentation.step_one": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Крок 1 з 2 · Дані облікового запису"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schritt 1 von 2 · Kontodaten"
+          }
+        }
+      }
+    },
+    "auth.presentation.step_two": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Крок 2 з 2 · Документи й налаштування"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schritt 2 von 2 · Dokumente und Einstellungen"
+          }
+        }
+      }
+    },
+    "auth.presentation.continue": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Далі"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter"
+          }
+        }
+      }
+    },
+    "auth.presentation.confirmation_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Документи й налаштування"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dokumente und Einstellungen"
+          }
+        }
+      }
+    },
+    "auth.presentation.optional_details": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додаткова інформація · необов’язково"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zusätzliche Angaben · freiwillig"
+          }
+        }
+      }
+    },
+    "auth.presentation.password_help": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Від 10 до 128 символів. Не використовуйте пароль від іншого облікового запису."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "10 bis 128 Zeichen. Verwenden Sie kein Passwort eines anderen Kontos."
+          }
+        }
+      }
+    },
+    "auth.presentation.back_to_sign_in": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повернутися до входу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück zur Anmeldung"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

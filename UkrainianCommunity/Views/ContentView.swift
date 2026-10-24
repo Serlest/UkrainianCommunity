@@ -364,7 +364,7 @@ struct ContentView: View {
                 if authState.presentedAuthFlow != .privilegedMultiFactorRequirement { authState.presentedAuthFlow = value }
             }
         )) { destination in
-            AuthFlowContainerView(initialDestination: destination)
+            AuthFlowContainerView(initialDestination: destination, legalDocumentRepository: container.legalDocumentRepository)
                 .environmentObject(authState)
         }
         .sheet(item: $quickCreation) { kind in

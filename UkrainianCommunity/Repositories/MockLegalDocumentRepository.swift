@@ -73,7 +73,16 @@ private actor MockLegalDocumentStorage {
             }
         }
 #endif
-        return await activeDocument(type: type)
+        let document = await activeDocument(type: type)
+        let hash = await MainActor.run { LegalDocumentDraft.from(activeDocument: document).normalizedContentHash }
+        return LegalDocument(id: document.id, type: document.type, version: document.version,
+            versionNumber: document.versionNumber, locales: document.locales,
+            defaultLocale: document.defaultLocale, canonicalLocale: document.canonicalLocale,
+            contentHash: hash, changeSummary: document.changeSummary,
+            requiresAcceptance: document.requiresAcceptance, status: document.status,
+            updatedAt: document.updatedAt, updatedBy: document.updatedBy,
+            publishedAt: document.publishedAt, publishedBy: document.publishedBy,
+            supersedesVersion: document.supersedesVersion)
     }
 
     func activeDocument(type: LegalDocumentType) async -> LegalDocument {

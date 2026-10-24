@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-24T11:07:54.133408+00:00",
+  "scope": "iOS authentication presentation and navigation",
+  "version": "1.2.1",
+  "build": 119,
+  "delivery": "Source changes only; no TestFlight upload or public release in this task",
+  "changes": [
+    "Bounded authentication navigation with email transfer and predictable back navigation",
+    "Persistent field labels, password visibility using one native input, keyboard focus management",
+    "Two registration steps preserving form data and reviewed agreements",
+    "Dedicated region selection and optional details disclosure",
+    "Password reset prefill, success feedback and return to sign in",
+    "Legal repository injection and authoritative test fixture hashes; production verification retained",
+    "Avoid premature password-save prompts when abandoning a draft while retaining credential semantics during actual submission"
+  ],
+  "verification": [
+    {
+      "bundle": "build/auth-presentation-20261024/VerifiedJourneys.xcresult",
+      "result": "Passed",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "runtimeWarnings": []
+    },
+    {
+      "bundle": "build/auth-presentation-20261024/RegressionChecks.xcresult",
+      "result": "Passed",
+      "passed": 63,
+      "failed": 0,
+      "skipped": 0,
+      "runtimeWarnings": []
+    }
+  ],
+  "visualReview": [
+    "Ukrainian and German",
+    "Light and dark appearance",
+    "Accessibility XXXL text",
+    "Method selection, login, registration details, registration documents and optional settings, reset success"
+  ],
+  "boundaries": [
+    "Runtime evidence is from iPhone 17e Simulator on iOS 26.5, not a physical iPhone",
+    "UI journeys use isolated test dependencies; no real account created and no password reset email sent",
+    "Live Apple, Google, passkey, Face ID and TOTP end-to-end sign-ins were not repeated",
+    "Earlier failing development runs are superseded by the passing bundles above"
+  ],
+  "preservedUnrelatedChanges": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj",
+    "UkrainianCommunity/Localization/Localizable.xcstrings"
+  ]
+}

@@ -48,7 +48,10 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
     }
     func createUser(email: String, password: String) async throws -> any AuthSessionUserProviding { throw AppError.permissionDenied }
     func signInAnonymously() async throws -> any AuthSessionUserProviding { throw AppError.permissionDenied }
-    func sendPasswordReset(email: String) async throws { throw AppError.permissionDenied }
+    func sendPasswordReset(email: String) async throws {
+        if ProcessInfo.processInfo.environment["UITestResetSuccess"] == "1" { return }
+        throw AppError.permissionDenied
+    }
     func signOut() throws { session = nil }
 }
 

@@ -8,6 +8,24 @@ import Testing
 @MainActor
 struct AuthFlowReliabilityTests {
     @Test
+    func switchingAuthModesHasBoundedHistoryAndReturnsToItsRoot() {
+        let navigation = AuthEntryNavigation(root: .landing)
+        for _ in 0..<20 {
+            navigation.switchMode(to: .login(email: "member@example.test"))
+            #expect(navigation.path.count == 1)
+            navigation.switchMode(to: .registration(email: "member@example.test", emailMethod: true))
+            #expect(navigation.path.count == 1)
+        }
+        navigation.switchMode(to: .methods)
+        #expect(navigation.path.isEmpty)
+        let directLogin = AuthEntryNavigation(root: .login)
+        directLogin.switchMode(to: .registration(email: "member@example.test", emailMethod: true))
+        directLogin.switchMode(to: .login(email: "member@example.test"))
+        #expect(directLogin.path.isEmpty)
+        #expect(directLogin.resumedLoginEmail == "member@example.test")
+    }
+
+    @Test
     func sharedLeaseRejectsOverlappingMethodsAndLateRelease() throws {
         let flow = AuthInteractionCoordinator()
         let first = try #require(flow.begin())

@@ -5,8 +5,17 @@ import SwiftUI
 struct AuthFlowContainerView: View {
     let initialDestination: AuthFlowDestination
     var allowsDismissal = true
+    private let legalDocumentRepository: LegalDocumentRepository?
     @StateObject private var interaction = AuthInteractionCoordinator()
+    @StateObject private var navigation: AuthEntryNavigation
     @EnvironmentObject private var authState: AuthState
+
+    init(initialDestination: AuthFlowDestination, allowsDismissal: Bool = true, legalDocumentRepository: LegalDocumentRepository? = nil) {
+        self.initialDestination = initialDestination
+        self.allowsDismissal = allowsDismissal
+        self.legalDocumentRepository = legalDocumentRepository
+        _navigation = StateObject(wrappedValue: AuthEntryNavigation(root: initialDestination))
+    }
 
     private var requiresResolvedSession: Bool {
         switch initialDestination {
@@ -19,8 +28,16 @@ struct AuthFlowContainerView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigation.path) {
             destinationView(for: initialDestination)
+                .navigationDestination(for: AuthEntryRoute.self) { route in
+                    switch route {
+                    case .methods: AuthLandingView()
+                    case .login(let email): LoginView(prefilledEmail: email)
+                    case .registration(let email, let method): RegisterView(prefilledEmail: email, startWithEmail: method, legalDocumentRepository: legalDocumentRepository)
+                    case .passwordReset(let email): PasswordResetView(prefilledEmail: email)
+                    }
+                }
                 .toolbar {
                     if allowsDismissal && !requiresResolvedSession {
                         ToolbarItem(placement: .topBarLeading) {
@@ -33,6 +50,7 @@ struct AuthFlowContainerView: View {
                 }
         }
         .environment(\.authInteraction, interaction)
+        .environment(\.authEntryNavigation, navigation)
         .disabled(interaction.isBusy)
         .interactiveDismissDisabled(!allowsDismissal || requiresResolvedSession || interaction.isBusy)
     }
@@ -45,9 +63,9 @@ struct AuthFlowContainerView: View {
         case .login:
             LoginView()
         case .register:
-            RegisterView()
+            RegisterView(legalDocumentRepository: legalDocumentRepository)
         case .socialRegistration:
-            RegisterView(federated: true)
+            RegisterView(federated: true, legalDocumentRepository: legalDocumentRepository)
         case .emailVerification:
             EmailVerificationView()
         case .sessionRecovery:
@@ -81,7 +99,6 @@ struct AuthScreenScaffold<Content: View>: View {
         .keyboardDismissBackground {
             AppBackgroundView()
         }
-        .observesKeyboardDismissTaps()
         .scrollDismissesKeyboard(.interactively)
         .tint(AppTheme.accentPrimaryForeground)
         .modifier(AuthNavigationBusyState(coordinator: interaction))
@@ -106,6 +123,9 @@ private struct ObservedAuthNavigationState<Content: View>: View {
 struct AuthLandingView: View {
     var body: some View {
         AuthScreenScaffold {
+            AdaptiveBrandLockupView(layout: .horizontal)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.vertical, 12)
             AuthHeaderView(
                 title: AppStrings.Auth.landingTitle,
                 subtitle: AppStrings.Auth.landingSubtitle
@@ -115,9 +135,7 @@ struct AuthLandingView: View {
                 FederatedSignInButtons(showsHeading: false)
                 PasskeySignInButton()
 
-                NavigationLink {
-                    LoginView()
-                } label: {
+                NavigationLink(value: AuthEntryRoute.login(email: "")) {
                     AuthMethodButtonLabel(
                         title: AppStrings.Auth.continueWithEmail,
                         icon: .system("envelope")
@@ -127,9 +145,7 @@ struct AuthLandingView: View {
                 .accessibilityIdentifier("auth.landing.signIn")
             }
 
-            NavigationLink(AppStrings.Auth.createAccountInstead) {
-                RegisterView()
-            }
+            NavigationLink(AppStrings.Auth.createAccountInstead, value: AuthEntryRoute.registration(email: "", emailMethod: false))
             .font(.subheadline.weight(.semibold))
             .frame(maxWidth: .infinity)
             .accessibilityIdentifier("auth.landing.register")
@@ -141,12 +157,16 @@ struct AuthLandingView: View {
 }
 
 struct LoginView: View {
+    @Environment(\.authEntryNavigation) private var navigation
     @Environment(\.authInteraction) private var interaction
-    @State private var email = ""
+    @State private var email: String
+    @State private var focus: AuthInput?
     @State private var password = ""
     @State private var errorMessage: String?
     @State private var isSubmitting = false
     private let validationService = AuthValidationService()
+
+    init(prefilledEmail: String = "") { _email = State(initialValue: prefilledEmail) }
 
     var body: some View {
         AuthScreenScaffold {
@@ -154,17 +174,12 @@ struct LoginView: View {
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    EditorTextField(
-                        AppStrings.Auth.email,
-                        text: $email,
-                        systemImage: "envelope",
-                        keyboardType: .emailAddress,
-                        textContentType: .emailAddress,
-                        autocapitalization: .never,
-                        autocorrectionDisabled: true
-                    )
-
-                    EditorSecureField(AppStrings.Auth.password, text: $password, textContentType: .password)
+                    AuthFormField(title: AppStrings.Auth.email, text: $email, icon: "envelope", field: .email,
+                                  focus: $focus, identifier: "auth.login.email", keyboard: .emailAddress,
+                                  contentType: .username, onSubmit: { focus = .password })
+                    AuthFormField(title: AppStrings.Auth.password, text: $password, icon: "lock", field: .password,
+                                  focus: $focus, identifier: "auth.login.password", secure: true, preservesCredentialsOnRemoval: isSubmitting,
+                                  contentType: .password, submitLabel: .go, onSubmit: { if canSubmit { submit() } }, returnKey: .go)
 
                     if let errorMessage {
                         InlineMessageCard(style: .error, message: errorMessage)
@@ -184,23 +199,27 @@ struct LoginView: View {
                     }
                     .accessibilityIdentifier("auth.login.submit")
 
-                    VStack(spacing: AppTheme.eventsMetadataSpacing) {
-                        NavigationLink(AppStrings.Auth.forgotPassword) {
-                            PasswordResetView(prefilledEmail: email)
-                        }
-
-                        NavigationLink(AppStrings.Auth.createAccountInstead) {
-                            RegisterView(prefilledEmail: email, startWithEmail: true)
-                        }
-                    }
-                    .font(.footnote.weight(.semibold))
-                    .frame(maxWidth: .infinity)
+                    NavigationLink(AppStrings.Auth.forgotPassword, value: AuthEntryRoute.passwordReset(email: email))
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityIdentifier("auth.login.forgotPassword")
                 }
             }
-
-            FederatedSignInButtons()
-            PasskeySignInButton()
+            AuthModeLink(title: AppStrings.Auth.createAccountInstead,
+                         route: .registration(email: email, emailMethod: true))
+                .accessibilityIdentifier("auth.login.register")
+            AuthModeLink(title: AppStrings.Auth.chooseAnotherMethod, route: .methods)
+                .accessibilityIdentifier("auth.login.changeMethod")
         }
+        .onAppear {
+            if let resumedEmail = navigation?.resumedLoginEmail {
+                if email != resumedEmail { password = "" }
+                email = resumedEmail
+                navigation?.resumedLoginEmail = nil
+            }
+        }
+        .onChange(of: email) { _, _ in errorMessage = nil }
+        .onChange(of: password) { _, _ in errorMessage = nil }
         .navigationTitle(AppStrings.Auth.loginTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.login.screen")
@@ -214,6 +233,7 @@ struct LoginView: View {
         }
 
         guard !isSubmitting, let request = AuthInteractionCoordinator.begin(in: interaction) else { return }
+        focus = nil
         isSubmitting = true
         errorMessage = nil
 
@@ -256,7 +276,7 @@ struct LoginView: View {
     }
 
     private var validationHint: String? {
-        guard hasStartedEnteringCredentials, !canSubmit else { return nil }
+        guard hasStartedEnteringCredentials, focus == nil, !canSubmit else { return nil }
         return validationErrors.first
     }
 
@@ -267,10 +287,14 @@ struct LoginView: View {
 
 struct RegisterView: View {
     @Environment(\.authInteraction) private var interaction
+    @Environment(\.authEntryNavigation) private var navigation
+    @State private var focus: AuthInput?
+    @State private var isShowingConsents = false
+    @State private var isShowingRegionPicker = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var hasEnteredBackground = false
     @StateObject private var appLockChoice = RegistrationAppLockChoice()
-    @StateObject private var legalDocuments = RegistrationLegalDocumentsViewModel()
+    @StateObject private var legalDocuments: RegistrationLegalDocumentsViewModel
     @State private var email: String
     @State private var password = ""
     @State private var repeatedPassword = ""
@@ -289,8 +313,9 @@ struct RegisterView: View {
     private let validationService = AuthValidationService()
     private let federated: Bool
 
-    init(prefilledEmail: String = "", federated: Bool = false, startWithEmail: Bool = false) {
+    init(prefilledEmail: String = "", federated: Bool = false, startWithEmail: Bool = false, legalDocumentRepository: LegalDocumentRepository? = nil) {
         self.federated = federated
+        _legalDocuments = StateObject(wrappedValue: RegistrationLegalDocumentsViewModel(repository: legalDocumentRepository))
         _email = State(initialValue: federated ? AuthService.shared.currentUser?.email ?? "" : prefilledEmail)
         _displayName = State(initialValue: federated ? AuthService.shared.currentUser?.displayName ?? "" : "")
         _isEmailMethodSelected = State(initialValue: federated || startWithEmail || !prefilledEmail.isEmpty)
@@ -308,9 +333,7 @@ struct RegisterView: View {
             if !federated && !isEmailMethodSelected {
                 FederatedSignInButtons(showsHeading: false)
 
-                Button {
-                    isEmailMethodSelected = true
-                } label: {
+                NavigationLink(value: AuthEntryRoute.registration(email: email, emailMethod: true)) {
                     AuthMethodButtonLabel(
                         title: AppStrings.Auth.continueWithEmail,
                         icon: .system("envelope")
@@ -319,15 +342,13 @@ struct RegisterView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("auth.register.emailMethod")
 
-                NavigationLink(AppStrings.Auth.signInInstead) {
-                    LoginView()
-                }
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity)
+                AuthModeLink(title: AppStrings.Auth.signInInstead, route: .login(email: email))
+                    .accessibilityIdentifier("auth.register.signIn")
             } else {
                 if !federated {
                     Button(AppStrings.Auth.chooseAnotherMethod) {
-                        isEmailMethodSelected = false
+                        focus = nil
+                        withAnimation { navigation?.switchMode(to: .registration(email: email, emailMethod: false)) }
                     }
                     .font(.footnote.weight(.semibold))
                     .accessibilityIdentifier("auth.register.changeMethod")
@@ -336,7 +357,13 @@ struct RegisterView: View {
                 registrationForm
             }
         }
+        .navigationDestination(isPresented: $isShowingConsents) { confirmationScreen }
+        .navigationDestination(isPresented: $isShowingRegionPicker) { AuthFederalStatePicker(selection: $selectedFederalState) }
         .disabled(isSubmitting || appLockChoice.isAuthenticating)
+        .onChange(of: email) { _, _ in errorMessage = nil }
+        .onChange(of: password) { _, _ in errorMessage = nil }
+        .onChange(of: displayName) { _, _ in errorMessage = nil }
+        .onChange(of: selectedFederalState) { _, _ in errorMessage = nil }
         .onDisappear { appLockChoice.cancelPendingAuthentication() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background {
@@ -356,7 +383,8 @@ struct RegisterView: View {
             reviewedPrivacyVersion = nil
         }
         .task {
-            await legalDocuments.load()
+            guard isEmailMethodSelected else { return }
+            await legalDocuments.refreshIfStale()
         }
         .navigationTitle(federated ? AppStrings.Auth.finishRegistrationTitle : AppStrings.Auth.registerTitle)
         .navigationBarTitleDisplayMode(.inline)
@@ -365,41 +393,81 @@ struct RegisterView: View {
 
     private var registrationForm: some View {
         VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-            InlineMessageCard(style: .info, message: AppStrings.Auth.registrationExpiryNotice)
+            AuthRegistrationProgress(step: 1)
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    EditorTextField(AppStrings.Auth.displayName, text: $displayName, systemImage: "person", textContentType: .nickname, autocapitalization: .words)
-                    EditorTextField(
-                        AppStrings.Auth.email,
-                        text: $email,
-                        systemImage: "envelope",
-                        keyboardType: .emailAddress,
-                        textContentType: .emailAddress,
-                        autocapitalization: .never,
-                        autocorrectionDisabled: true
-                    )
-                    .disabled(federated)
+                    AuthFormField(title: AppStrings.Auth.displayName, text: $displayName, icon: "person", field: .displayName,
+                                  focus: $focus, identifier: "auth.register.displayName", contentType: .nickname,
+                                  capitalization: .words, onSubmit: { focus = federated ? nil : .email })
+                    AuthFormField(title: AppStrings.Auth.email, text: $email, icon: "envelope", field: .email,
+                                  focus: $focus, identifier: "auth.register.email", keyboard: .emailAddress,
+                                  contentType: .emailAddress, onSubmit: { focus = .password })
+                        .disabled(federated)
                     if federated && email.isEmpty {
                         InlineMessageCard(style: .error, message: AppStrings.Auth.providerEmailMissing)
                     }
                     if !federated {
-                        EditorSecureField(AppStrings.Auth.password, text: $password, textContentType: .newPassword)
-                        EditorSecureField(AppStrings.Auth.passwordRepeat, text: $repeatedPassword, systemImage: "lock.fill", textContentType: .newPassword)
+                        AuthFormField(title: AppStrings.Auth.password, text: $password, icon: "lock", field: .password,
+                                      focus: $focus, identifier: "auth.register.password", secure: true, preservesCredentialsOnRemoval: isSubmitting,
+                                      contentType: .newPassword, onSubmit: { focus = .repeatedPassword })
+                        Text(AuthPresentationStrings.passwordHelp).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        AuthFormField(title: AppStrings.Auth.passwordRepeat, text: $repeatedPassword, icon: "lock.fill", field: .repeatedPassword,
+                                      focus: $focus, identifier: "auth.register.repeatedPassword", secure: true, preservesCredentialsOnRemoval: isSubmitting,
+                                      contentType: .newPassword, submitLabel: .done, onSubmit: { focus = nil }, returnKey: .done)
                     }
-                    Picker(AppStrings.Auth.federalState, selection: $selectedFederalState) {
-                        Text(AppStrings.Auth.selectFederalState).tag(Optional<AustrianFederalState>.none)
-                        ForEach(AustrianFederalState.allCases) { state in
-                            Text(AppStrings.FederalStates.title(for: state)).tag(Optional(state))
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(AppStrings.Auth.federalState).font(.caption.weight(.semibold)).foregroundStyle(AppTheme.textSecondary)
+                            .accessibilityHidden(true)
+                        Button {
+                            focus = nil
+                            isShowingRegionPicker = true
+                        } label: {
+                            HStack {
+                                Text(selectedFederalState.map { AppStrings.FederalStates.title(for: $0) } ?? AppStrings.Auth.selectFederalState)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer()
+                                Image(systemName: "chevron.up.chevron.down").font(.caption)
+                            }
+                            .foregroundStyle(AppTheme.accentPrimaryForeground)
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                            .padding(.horizontal, 12)
+                            .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
+                            .overlay { RoundedRectangle(cornerRadius: AppTheme.inputRadius).strokeBorder(AppTheme.borderSubtle) }
                         }
+                        .accessibilityLabel(AppStrings.Auth.federalState)
+                        .accessibilityValue(selectedFederalState.map { AppStrings.FederalStates.title(for: $0) } ?? AppStrings.Auth.selectFederalState)
+                        .accessibilityIdentifier("auth.register.federalState")
+                    }
+
+                    DisclosureGroup(AuthPresentationStrings.optionalDetails) {
+                        AuthFormField(title: AppStrings.Auth.telegramUsername, text: $telegramUsername, icon: "paperplane", field: .telegram,
+                                      focus: $focus, identifier: "auth.register.telegram", submitLabel: .done, onSubmit: { focus = nil })
+                            .padding(.top, 10)
                     }
                     .font(.subheadline)
-                    .accessibilityIdentifier("auth.register.federalState")
-
-                    EditorTextField(AppStrings.Auth.telegramUsername, text: $telegramUsername, systemImage: "paperplane", autocapitalization: .never, autocorrectionDisabled: true)
                 }
             }
 
+            if let detailHint { InlineMessageCard(style: .info, message: detailHint) }
+            PrimaryActionButton(title: AuthPresentationStrings.continueAction,
+                                isEnabled: credentialsValidationErrors.isEmpty, systemImage: "arrow.right") {
+                focus = nil
+                isShowingConsents = true
+            }
+            .accessibilityIdentifier("auth.register.continue")
+            AuthModeLink(title: AppStrings.Auth.signInInstead, route: .login(email: email))
+                .accessibilityIdentifier("auth.register.signIn")
+        }
+    }
+
+    private var confirmationScreen: some View {
+        AuthScreenScaffold {
+            AuthRegistrationProgress(step: 2)
+            Text(email).font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
+                .textSelection(.enabled).accessibilityIdentifier("auth.register.confirmationEmail")
+            InlineMessageCard(style: .info, message: AppStrings.Auth.registrationExpiryNotice)
             AppEditorSectionCard {
                 TermsPrivacyConsentView(
                     acceptedTerms: $acceptedTerms,
@@ -451,16 +519,18 @@ struct RegisterView: View {
                         .font(.footnote.weight(.semibold))
                         .frame(maxWidth: .infinity)
                     } else {
-                        NavigationLink(AppStrings.Auth.signInInstead) {
-                            LoginView()
-                        }
-                        .font(.footnote.weight(.semibold))
-                        .frame(maxWidth: .infinity)
+                        AuthModeLink(title: AppStrings.Auth.signInInstead, route: .login(email: email))
+                            .accessibilityIdentifier("auth.register.signIn")
                     }
                 }
             }
         }
+        .navigationTitle(AuthPresentationStrings.confirmationTitle)
+        .navigationBarTitleDisplayMode(.inline)
+        .disabled(isSubmitting || appLockChoice.isAuthenticating)
+        .accessibilityIdentifier("auth.register.confirmation")
     }
+
 
     private func submit() {
         let errors = validationErrors
@@ -551,6 +621,16 @@ struct RegisterView: View {
             confirmedMinimumAge: confirmedMinimumAge,
             requiresPassword: !federated
         )
+    }
+
+    private var credentialsValidationErrors: [String] {
+        validationService.validateRegistration(email: email, password: password, repeatedPassword: repeatedPassword,
+            displayName: displayName, selectedFederalState: selectedFederalState, acceptedTerms: true,
+            acceptedPrivacy: true, confirmedMinimumAge: true, requiresPassword: !federated)
+    }
+    private var detailHint: String? {
+        guard hasStartedRegistration, focus == nil else { return nil }
+        return credentialsValidationErrors.first
     }
 
     private var canSubmit: Bool {
@@ -894,6 +974,7 @@ struct SessionRecoveryView: View {
 
 struct PasswordResetView: View {
     @Environment(\.authInteraction) private var interaction
+    @State private var focus: AuthInput?
     @State private var email: String
     @State private var message: String?
     @State private var isSubmitting = false
@@ -909,15 +990,9 @@ struct PasswordResetView: View {
 
             AppEditorSectionCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                    EditorTextField(
-                        AppStrings.Auth.email,
-                        text: $email,
-                        systemImage: "envelope",
-                        keyboardType: .emailAddress,
-                        textContentType: .emailAddress,
-                        autocapitalization: .never,
-                        autocorrectionDisabled: true
-                    )
+                    AuthFormField(title: AppStrings.Auth.email, text: $email, icon: "envelope", field: .email,
+                                  focus: $focus, identifier: "auth.reset.email", keyboard: .emailAddress,
+                                  contentType: .emailAddress, submitLabel: .send, onSubmit: { if canSubmit { submit() } })
 
                     if let message {
                         InlineMessageCard(
@@ -940,7 +1015,12 @@ struct PasswordResetView: View {
                     .accessibilityIdentifier("auth.reset.submit")
                 }
             }
+            if message == AppStrings.Auth.resetPasswordSuccess {
+                AuthModeLink(title: AuthPresentationStrings.backToSignIn, route: .login(email: email))
+                    .accessibilityIdentifier("auth.reset.backToSignIn")
+            }
         }
+        .onChange(of: email) { _, _ in message = nil }
         .navigationTitle(AppStrings.Auth.resetPasswordTitle)
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("auth.reset.screen")
@@ -954,6 +1034,7 @@ struct PasswordResetView: View {
         }
 
         guard !isSubmitting, let request = AuthInteractionCoordinator.begin(in: interaction) else { return }
+        focus = nil
         isSubmitting = true
         message = nil
 
@@ -976,11 +1057,11 @@ struct PasswordResetView: View {
     }
 
     private var canSubmit: Bool {
-        validationErrors.isEmpty
+        validationErrors.isEmpty && message != AppStrings.Auth.resetPasswordSuccess
     }
 
     private var validationHint: String? {
-        guard !email.isEmpty, !canSubmit else { return nil }
+        guard !email.isEmpty, focus == nil, message == nil, !canSubmit else { return nil }
         return validationErrors.first
     }
 }
@@ -1025,44 +1106,40 @@ struct TermsPrivacyConsentView: View {
                 .buttonStyle(.bordered)
             }
 
-            Toggle(AppStrings.Auth.acceptTerms, isOn: $acceptedTerms)
-                .tint(AppTheme.accentPrimary)
-                .accessibilityLabel(AppStrings.Auth.acceptTerms)
-                .disabled(termsDocument == nil || reviewedTermsVersion != termsDocument?.version)
-
-            Toggle(AppStrings.Auth.acceptPrivacy, isOn: $acceptedPrivacy)
-                .tint(AppTheme.accentPrimary)
-                .accessibilityLabel(AppStrings.Auth.acceptPrivacy)
-                .disabled(privacyDocument == nil || reviewedPrivacyVersion != privacyDocument?.version)
-
-            Toggle(AppStrings.Auth.confirmMinimumAge, isOn: $confirmedMinimumAge)
-                .tint(AppTheme.accentPrimary)
-                .accessibilityLabel(AppStrings.Auth.confirmMinimumAge)
-
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 12) {
                 if let termsDocument {
                     NavigationLink {
-                        LegalMarkdownDocumentView(document: termsDocument) {
-                            reviewedTermsVersion = termsDocument.version
-                        }
+                        LegalMarkdownDocumentView(document: termsDocument) { reviewedTermsVersion = termsDocument.version }
                     } label: {
                         Label(AppStrings.Auth.reviewTerms, systemImage: "doc.text")
-                            .font(.subheadline.weight(.medium))
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }
                     .accessibilityIdentifier("auth.consent.termsLink")
                 }
-
+                Toggle(AppStrings.Auth.acceptTerms, isOn: $acceptedTerms)
+                    .tint(AppTheme.accentPrimary)
+                    .disabled(termsDocument == nil || reviewedTermsVersion != termsDocument?.version)
+                    .accessibilityIdentifier("auth.consent.terms")
+                Divider()
                 if let privacyDocument {
                     NavigationLink {
-                        LegalMarkdownDocumentView(document: privacyDocument) {
-                            reviewedPrivacyVersion = privacyDocument.version
-                        }
+                        LegalMarkdownDocumentView(document: privacyDocument) { reviewedPrivacyVersion = privacyDocument.version }
                     } label: {
                         Label(AppStrings.Auth.reviewPrivacy, systemImage: "lock.doc")
-                            .font(.subheadline.weight(.medium))
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
                     }
                     .accessibilityIdentifier("auth.consent.privacyLink")
                 }
+                Toggle(AppStrings.Auth.acceptPrivacy, isOn: $acceptedPrivacy)
+                    .tint(AppTheme.accentPrimary)
+                    .disabled(privacyDocument == nil || reviewedPrivacyVersion != privacyDocument?.version)
+                    .accessibilityIdentifier("auth.consent.privacy")
+                Divider()
+                Toggle(AppStrings.Auth.confirmMinimumAge, isOn: $confirmedMinimumAge)
+                    .tint(AppTheme.accentPrimary)
+                    .accessibilityIdentifier("auth.consent.age")
             }
 
             if let termsDocument, let privacyDocument {

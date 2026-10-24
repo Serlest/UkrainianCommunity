@@ -1865,26 +1865,27 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testSignedOutCreateAccountOpensRegistrationScreen() throws {
         let app = launchSignedOutApp()
         openEmailRegistration(in: app)
-        let submit = app.buttons["auth.register.submit"]
+        let submit = app.buttons["auth.register.continue"]
         let region = app.buttons["auth.register.federalState"]
         scrollToElement(region, in: app)
         XCTAssertTrue(region.exists)
-        XCTAssertTrue(region.label.contains("Bundesland wählen"), region.debugDescription)
+        XCTAssertTrue((region.value as? String ?? "").contains("Bundesland wählen"), region.debugDescription)
         XCTAssertFalse(submit.isEnabled)
         attachScreenshot(named: "registration-empty-region", from: app)
 
         region.tap()
-        app.buttons["Wien"].tap()
-        XCTAssertTrue(region.label.contains("Wien"), region.debugDescription)
+        app.buttons["auth.register.region.wien"].tap()
+        XCTAssertTrue((region.value as? String ?? "").contains("Wien"), region.debugDescription)
         region.tap()
-        app.buttons["Bundesland wählen"].tap()
-        XCTAssertTrue(region.label.contains("Bundesland wählen"), region.debugDescription)
+        app.buttons["auth.register.region.none"].tap()
+        XCTAssertTrue((region.value as? String ?? "").contains("Bundesland wählen"), region.debugDescription)
     }
 
     @MainActor
     func testRegistrationShowsConsentControls() throws {
         let app = launchSignedOutApp(appLockScenario: "success")
         openEmailRegistration(in: app)
+        continueRegistrationDetails(in: app)
         let termsSwitch = app.switches[AppStringsPlaceholder.acceptTermsDE]
         scrollToElement(termsSwitch, in: app)
         XCTAssertTrue(termsSwitch.exists)
@@ -1927,6 +1928,7 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.launchEnvironment["UITestAppLockScenario"] = "success"
         app.launch()
         openEmailRegistration(in: app)
+        continueRegistrationDetails(in: app)
         let analytics = app.switches["auth.register.analyticsConsent"]
         scrollToElement(analytics, in: app, maxSwipes: 35)
         XCTAssertTrue(analytics.isHittable)
@@ -1952,6 +1954,7 @@ final class UkrainianCommunityUITests: XCTestCase {
     func testRegistrationExplainsUnavailableBiometrics() throws {
         let app = launchSignedOutApp(appLockScenario: "unavailable")
         openEmailRegistration(in: app)
+        continueRegistrationDetails(in: app)
         let appLock = app.switches["auth.register.appLock"]
         scrollToElement(appLock, in: app, maxSwipes: 15)
         XCTAssertTrue(appLock.exists)
@@ -1969,7 +1972,32 @@ final class UkrainianCommunityUITests: XCTestCase {
         let emailMethod = app.buttons["auth.register.emailMethod"].firstMatch
         XCTAssertTrue(emailMethod.waitForExistence(timeout: 10))
         emailMethod.tap()
-        XCTAssertTrue(app.buttons["auth.register.submit"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["auth.register.continue"].firstMatch.waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    private func continueRegistrationDetails(in app: XCUIApplication) {
+        for (id, value) in [("auth.register.displayName", "Test Person"), ("auth.register.email", "member@example.test")] {
+            let field = app.textFields[id]; scrollToElement(field, in: app, maxSwipes: 30); field.tap(); field.typeText(value)
+        }
+        for id in ["auth.register.password", "auth.register.repeatedPassword"] {
+            let field = app.secureTextFields[id]
+            scrollToElement(field, in: app, maxSwipes: 30); field.tap(); field.typeText("V")
+            var dismissed = false
+            for surface in [app, XCUIApplication(bundleIdentifier: "com.apple.springboard")] {
+                let close = surface.buttons.matching(NSPredicate(format: "label == 'Schließen' OR label == 'Close' OR label == 'Закрити'")).firstMatch
+                if close.exists && close.isHittable { close.tap(); dismissed = true }
+            }
+            field.tap(); field.typeText(dismissed ? "Valid-password-2026" : "alid-password-2026")
+        }
+        app.swipeUp()
+        let region = app.buttons["auth.register.federalState"]
+        scrollToElement(region, in: app, maxSwipes: 30); region.tap()
+        let vienna = app.buttons["auth.register.region.wien"]
+        scrollToElement(vienna, in: app, maxSwipes: 30); vienna.tap()
+        let next = app.buttons["auth.register.continue"]
+        scrollToElement(next, in: app, maxSwipes: 30); XCTAssertTrue(next.isEnabled); next.tap()
+        XCTAssertTrue(app.staticTexts["auth.register.confirmationEmail"].waitForExistence(timeout: 10))
     }
 
     @MainActor

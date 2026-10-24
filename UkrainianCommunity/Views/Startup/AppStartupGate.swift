@@ -86,7 +86,8 @@ struct AppStartupGate: View {
             // The overlay window is only needed after content has been admitted.
             accessGateContent
         } else {
-            AuthFlowContainerView(initialDestination: requiredAuthDestination, allowsDismissal: false)
+            AuthFlowContainerView(initialDestination: requiredAuthDestination, allowsDismissal: false,
+                                  legalDocumentRepository: container.legalDocumentRepository)
                 .id(requiredAuthDestination)
                 .environmentObject(authState)
                 .preferredColorScheme(AppAppearance.stored.colorScheme)
@@ -118,7 +119,8 @@ struct AppStartupGate: View {
            authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
             // A protected session may be needed to accept legal updates.
             // Keep that security flow reachable even when legal verification fails.
-            AuthFlowContainerView(initialDestination: .privilegedMultiFactorRequirement, allowsDismissal: false)
+            AuthFlowContainerView(initialDestination: .privilegedMultiFactorRequirement, allowsDismissal: false,
+                                  legalDocumentRepository: container.legalDocumentRepository)
                 .environmentObject(authState)
         } else if authState.isAuthenticated, !authState.isVerifyingProtectedSession,
                   let failure = legalComplianceMonitor.verificationFailure {
