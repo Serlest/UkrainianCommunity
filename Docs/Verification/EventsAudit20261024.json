@@ -96,6 +96,12 @@
     "conclusion": "success"
   },
   "hostedCI": {
-    "status": "pending_commit_and_push"
-  }
+    "run": 40108565543,
+    "sourceRevision": "b0f3ca4f73e5e0938918881724795df3dc72ca9a",
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40108565543",
+    "note": "A running hosted validation is pending, not passed."
+  },
+  "sourceRevision": "b0f3ca4f73e5e0938918881724795df3dc72ca9a"
 }
