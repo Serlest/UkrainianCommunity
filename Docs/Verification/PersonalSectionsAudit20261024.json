@@ -126,7 +126,13 @@
     },
     "uniqueUIScenariosPassed": 13,
     "uniqueUIScenariosNote": "Distinct scenario methods; repeated runs are not added to this count. Role scenario traverses five sections for eight active role variants.",
-    "ci": "Pending push/readback; hosted checks are distinct from local results."
+    "ci": {
+      "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40098099536",
+      "sourceCommit": "2d7b4ecbd6d370f0a88e5802cc70264eb2015f51",
+      "status": "in_progress",
+      "checkedAt": "2026-10-24T13:27:36.111737+00:00",
+      "note": "Hosted validation is still running; local results are not presented as a hosted pass."
+    }
   },
   "productDecisions": [
     "Keep the five sections separate: current saved/subscription/registration membership differs from recent opens and historical actions.",
