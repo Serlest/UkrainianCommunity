@@ -74,6 +74,7 @@ struct ProfileSettingsToggleRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .toggleStyle(.switch)
+        .tint(AppTheme.accentPrimary)
         .controlSize(dynamicTypeSize.isAccessibilitySize ? .regular : .small)
         .frame(minHeight: 44)
         .padding(.vertical, 3)

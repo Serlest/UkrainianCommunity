@@ -1,4 +1,5 @@
 import Combine
+import Foundation
 
 enum OwnerVisibilityCountState: Equatable {
     case idle
@@ -9,154 +10,90 @@ enum OwnerVisibilityCountState: Equatable {
 
 @MainActor
 final class OwnerProfileVisibilityViewModel: ObservableObject {
-    @Published private var ownerFeedbackItems: [FeedbackItem]?
-    @Published private var pendingOrganizationRequests: Int?
+    @Published private(set) var unreadFeedbackCount: Int?
+    @Published private(set) var pendingOrganizationRequestCount: Int?
     @Published private(set) var feedbackCountState: OwnerVisibilityCountState = .idle
     @Published private(set) var organizationRequestCountState: OwnerVisibilityCountState = .idle
-
     private let feedbackRepository: FeedbackRepository
     private let organizationRepository: OrganizationRepository
-    private let listenerBag = RealtimeListenerBag()
     private var generation = 0
-    private var hasLoadedFeedback = false
-    private var hasLoadedOrganizationRequests = false
+    private var feedbackTask: Task<Void, Never>?
+    private var organizationTask: Task<Void, Never>?
+    private var feedbackLoaded = false
+    private var organizationsLoaded = false
 
-    init(
-        feedbackRepository: FeedbackRepository,
-        organizationRepository: OrganizationRepository
-    ) {
+    init(feedbackRepository: FeedbackRepository, organizationRepository: OrganizationRepository) {
         self.feedbackRepository = feedbackRepository
         self.organizationRepository = organizationRepository
     }
 
-    var unreadFeedbackCount: Int? {
-        ownerFeedbackItems?.filter(\.unreadForOwner).count
-    }
-
-    var pendingOrganizationRequestCount: Int? {
-        pendingOrganizationRequests
-    }
-
-    var hasCountLoadFailure: Bool {
-        feedbackCountState == .failed || organizationRequestCountState == .failed
-    }
+    var hasCountLoadFailure: Bool { feedbackCountState == .failed || organizationRequestCountState == .failed }
 
     func loadIfNeeded(includeOrganizationRequests: Bool, includeFeedback: Bool) async {
-        let expected = generation
-        startListening(includeOrganizationRequests: includeOrganizationRequests, includeFeedback: includeFeedback)
-
-        if includeFeedback, !hasLoadedFeedback {
-            await refreshFeedback()
-        } else if !includeFeedback {
-            resetFeedback()
-        }
-
-        guard generation == expected, !Task.isCancelled else { return }
-        if includeOrganizationRequests, !hasLoadedOrganizationRequests {
-            await refreshOrganizationRequests()
-        } else if !includeOrganizationRequests {
-            resetOrganizationRequests()
-        }
+        await refresh(includeOrganizationRequests: includeOrganizationRequests && !organizationsLoaded,
+                      includeFeedback: includeFeedback && !feedbackLoaded)
     }
 
     func refresh(includeOrganizationRequests: Bool, includeFeedback: Bool) async {
-        let expected = generation
-        startListening(includeOrganizationRequests: includeOrganizationRequests, includeFeedback: includeFeedback)
-
-        if includeFeedback {
-            await refreshFeedback()
-        } else {
-            resetFeedback()
-        }
-
-        guard generation == expected, !Task.isCancelled else { return }
-        if includeOrganizationRequests {
-            await refreshOrganizationRequests()
-        } else {
-            resetOrganizationRequests()
-        }
+        async let feedback: Void = refreshFeedback(if: includeFeedback)
+        async let organizations: Void = refreshOrganizations(if: includeOrganizationRequests)
+        _ = await (feedback, organizations)
     }
 
     func reset() {
         generation &+= 1
-        resetFeedback()
-        resetOrganizationRequests()
+        feedbackTask?.cancel(); feedbackTask = nil
+        organizationTask?.cancel(); organizationTask = nil
+        unreadFeedbackCount = nil; pendingOrganizationRequestCount = nil
+        feedbackLoaded = false; organizationsLoaded = false
+        feedbackCountState = .idle; organizationRequestCountState = .idle
     }
 
-    private func refreshFeedback() async {
+    private func refreshFeedback(if enabled: Bool) async {
+        guard enabled else { return }
+        if let feedbackTask { await feedbackTask.value; return }
         let expected = generation
         feedbackCountState = .loading
-
-        do {
-            let items = try await RefreshRequest.run { [self] in try await feedbackRepository.fetchFeedback() }
-            guard generation == expected, !Task.isCancelled else { return }
-            ownerFeedbackItems = items
-            hasLoadedFeedback = true
-            feedbackCountState = .loaded(unreadFeedbackCount ?? 0)
-        } catch {
-            guard generation == expected, !Task.isCancelled else { return }
-            hasLoadedFeedback = false
-            if feedbackCountState == .loading {
+        let task = Task { [self] in
+            do {
+                let count = try await RefreshRequest.run { [self] in try await feedbackRepository.fetchUnreadOwnerFeedbackCount() }
+                guard generation == expected, !Task.isCancelled else { return }
+                unreadFeedbackCount = count
+                feedbackLoaded = true
+                feedbackCountState = .loaded(count)
+            } catch {
+                guard generation == expected, !Task.isCancelled else { return }
+                feedbackLoaded = false
                 feedbackCountState = .failed
             }
         }
+        feedbackTask = task
+        await task.value
+        if generation == expected { feedbackTask = nil }
     }
 
-    func refreshOrganizationRequests() async {
+    func refreshOrganizationRequests() async { await refreshOrganizations(if: true) }
+
+    private func refreshOrganizations(if enabled: Bool) async {
+        guard enabled else { return }
+        if let organizationTask { await organizationTask.value; return }
         let expected = generation
         organizationRequestCountState = .loading
-
-        do {
-            let items = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPendingOrganizationCount() }
-            guard generation == expected, !Task.isCancelled else { return }
-            pendingOrganizationRequests = items
-            hasLoadedOrganizationRequests = true
-            organizationRequestCountState = .loaded(pendingOrganizationRequestCount ?? 0)
-        } catch {
-            guard generation == expected, !Task.isCancelled else { return }
-            hasLoadedOrganizationRequests = false
-            if organizationRequestCountState == .loading {
+        let task = Task { [self] in
+            do {
+                let count = try await RefreshRequest.run { [self] in try await organizationRepository.fetchPendingOrganizationCount() }
+                guard generation == expected, !Task.isCancelled else { return }
+                pendingOrganizationRequestCount = count
+                organizationsLoaded = true
+                organizationRequestCountState = .loaded(count)
+            } catch {
+                guard generation == expected, !Task.isCancelled else { return }
+                organizationsLoaded = false
                 organizationRequestCountState = .failed
             }
         }
-    }
-
-    private func resetFeedback() {
-        ownerFeedbackItems = nil
-        feedbackCountState = .idle
-        listenerBag.remove("ownerFeedback")
-        hasLoadedFeedback = false
-    }
-
-    private func resetOrganizationRequests() {
-        pendingOrganizationRequests = nil
-        organizationRequestCountState = .idle
-        listenerBag.remove("pendingOrganizationRequests")
-        hasLoadedOrganizationRequests = false
-    }
-
-    private func startListening(includeOrganizationRequests: Bool, includeFeedback: Bool) {
-        let expected = generation
-        if includeFeedback,
-           !listenerBag.contains("ownerFeedback"),
-           let realtimeRepository = feedbackRepository as? FeedbackRealtimeRepository {
-            listenerBag.set(realtimeRepository.listenOwnerFeedbackInbox { [weak self] items in
-                guard self?.generation == expected else { return }
-                self?.ownerFeedbackItems = items
-                self?.hasLoadedFeedback = true
-                self?.feedbackCountState = .loaded(items.filter(\.unreadForOwner).count)
-            } onError: { [weak self] _ in
-                guard self?.generation == expected else { return }
-                self?.hasLoadedFeedback = false
-                self?.feedbackCountState = .failed
-                self?.listenerBag.remove("ownerFeedback")
-            }, for: "ownerFeedback")
-        } else if !includeFeedback {
-            resetFeedback()
-        }
-
-        // The profile needs only a count. The request queue owns its paginated
-        // documents; refresh the count on entry and organization-change events.
-        if !includeOrganizationRequests { resetOrganizationRequests() }
+        organizationTask = task
+        await task.value
+        if generation == expected { organizationTask = nil }
     }
 }

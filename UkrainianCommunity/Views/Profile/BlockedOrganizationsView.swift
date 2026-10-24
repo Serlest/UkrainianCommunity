@@ -24,12 +24,21 @@ struct OrganizationContentVisibilityGate: View {
 
 struct BlockedOrganizationsView: View {
     @EnvironmentObject private var coordinator: OrganizationBlockingCoordinator
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var searchText = ""
+    @State private var pendingUnblock: BlockedOrganization?
+    private var visibleOrganizations: [BlockedOrganization] {
+        coordinator.blockedOrganizations.filter { LocalSearchMatcher.matches(query: searchText, values: [$0.name]) }
+    }
 
     var body: some View {
         ProfileDestinationLayout(
             title: AppStrings.Safety.blockedOrganizationsTitle,
-            introSubtitle: AppStrings.Safety.blockedOrganizationsExplanation
+            introSubtitle: SettingsPrivacyText.hiddenOrganizationsIntro
         ) {
+            if !coordinator.blockedOrganizations.isEmpty {
+                AppSearchField(placeholder: SettingsPrivacyText.hiddenSearch, text: $searchText)
+            }
             if coordinator.isLoading && coordinator.blockedOrganizations.isEmpty {
                 LoadingStateCard(title: AppStrings.Safety.blockedOrganizationsTitle)
             } else {
@@ -45,14 +54,17 @@ struct BlockedOrganizationsView: View {
                         message: AppStrings.Safety.blockedOrganizationsExplanation
                     )
                 }
-                ForEach(coordinator.blockedOrganizations) { organization in
+                if !coordinator.blockedOrganizations.isEmpty && visibleOrganizations.isEmpty {
+                    ProfileDestinationEmptyStateCard(systemImage: "magnifyingglass", title: AppStrings.Search.noResultsTitle, message: AppStrings.Search.noResultsMessage)
+                }
+                ForEach(visibleOrganizations) { organization in
                     AppEditorSectionCard {
-                        HStack {
+                        (dynamicTypeSize.isAccessibilitySize
+                         ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+                         : AnyLayout(HStackLayout(spacing: 12))) {
                             Text(organization.name).fixedSize(horizontal: false, vertical: true)
-                            Spacer(minLength: 8)
-                            Button(AppStrings.Safety.unblockAction) {
-                                Task { await coordinator.setBlocked(organizationID: organization.id, isBlocked: false) }
-                            }
+                            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                            Button(AppStrings.Safety.unblockAction) { pendingUnblock = organization }
                             .buttonStyle(.bordered)
                             .disabled(coordinator.isMutating)
                             .accessibilityIdentifier("organization.unblock.\(organization.id)")
@@ -61,7 +73,18 @@ struct BlockedOrganizationsView: View {
                 }
             }
         }
+        .confirmationDialog(SettingsPrivacyText.showOrganizationTitle, isPresented: Binding(
+            get: { pendingUnblock != nil }, set: { if !$0 { pendingUnblock = nil } }
+        ), presenting: pendingUnblock) { organization in
+            Button(AppStrings.Safety.unblockAction, role: .destructive) {
+                Task { await coordinator.setBlocked(organizationID: organization.id, isBlocked: false) }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) {}
+        } message: { organization in
+            Text(SettingsPrivacyText.showOrganizationMessage(organization.name))
+        }
         .task { await coordinator.reload() }
+        .appRefreshable { await coordinator.reload() }
         .accessibilityIdentifier("screen.profile.blockedOrganizations")
     }
 }

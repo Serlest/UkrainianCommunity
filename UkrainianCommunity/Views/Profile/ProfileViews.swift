@@ -46,6 +46,8 @@ enum ProfileNavigationRoute: Hashable {
 }
 
 struct ProfileView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isProfileVisible = false
     @EnvironmentObject private var announcementCoordinator: AnnouncementCoordinator
     @ObservedObject var viewModel: ProfileViewModel
     private let feedbackRepository: FeedbackRepository
@@ -271,6 +273,7 @@ struct ProfileView: View {
     }
 
     private var profileStatusStyle: InlineMessageStyle {
+        if viewModel.hasPendingProfileSave { return .info }
         if viewModel.profileMessage == AppStrings.Profile.profileSaved {
             return .success
         }
@@ -327,10 +330,8 @@ struct ProfileView: View {
     }
 
     private var canSaveProfile: Bool {
-        !viewModel.isSavingProfile &&
-        !isLoadingAvatarSelection &&
-        hasProfileChanges &&
-        profileDraft.validationMessage == nil
+        !viewModel.isSavingProfile && !isLoadingAvatarSelection &&
+        (viewModel.hasPendingProfileSave || (hasProfileChanges && profileDraft.validationMessage == nil))
     }
 
     private var profileDraft: EditableUserProfileDraft {
@@ -439,9 +440,19 @@ struct ProfileView: View {
             guard authState.isAuthenticated else { return }
             registrationsViewModel.synchronize(with: eventsViewModel.events)
         }
-        .onChange(of: notificationInboxViewModel.unreadCount) { _, _ in
-            guard canShowOrganizationRequests else { return }
-            Task { await ownerVisibilityViewModel.refreshOrganizationRequests() }
+        .onChange(of: notificationInboxViewModel.snapshotVersion) { _, _ in
+            guard shouldLoadOwnerVisibility else { return }
+            Task { await refreshOwnerVisibilityIfAllowed() }
+        }
+        .onAppear { isProfileVisible = true }
+        .task(id: isProfileVisible && scenePhase == .active) {
+            guard isProfileVisible, scenePhase == .active, shouldLoadOwnerVisibility else { return }
+            await refreshOwnerVisibilityIfAllowed()
+            while !Task.isCancelled {
+                do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                guard !Task.isCancelled else { return }
+                await refreshOwnerVisibilityIfAllowed()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             guard authState.isAuthenticated else { return }
@@ -450,6 +461,7 @@ struct ProfileView: View {
             }
         }
         .onDisappear {
+            isProfileVisible = false
             viewModel.clearFeedbackSuccessMessage()
         }
         .sheet(isPresented: $isShowingEditProfileSheet) {
@@ -753,25 +765,28 @@ struct ProfileView: View {
             closeStyle: .cancel,
             closeAction: {
                 guard !viewModel.isSavingProfile else { return }
-                if hasProfileChanges {
+                if hasProfileChanges && !viewModel.hasPendingProfileSave {
                     isShowingProfileDiscardConfirmation = true
                 } else {
                     isShowingEditProfileSheet = false
                 }
             }
         ) {
-            ProfileAvatarEditorCard(
-                avatarURL: displayUser?.avatarURL,
-                initials: displayUser?.initials ?? "UC",
-                previewImage: avatarPreviewImage,
-                selectedPhoto: $selectedAvatarPhoto,
-                isLoadingAvatar: isLoadingAvatarSelection,
-                isSavingAvatar: viewModel.isSavingProfile && selectedAvatarImageData != nil
-            )
+            Group {
+                ProfileAvatarEditorCard(
+                    avatarURL: viewModel.pendingProfileSaveDraft?.avatarURL ?? displayUser?.avatarURL,
+                    initials: displayUser?.initials ?? "UC",
+                    previewImage: avatarPreviewImage,
+                    selectedPhoto: $selectedAvatarPhoto,
+                    isLoadingAvatar: isLoadingAvatarSelection,
+                    isSavingAvatar: viewModel.isSavingProfile && selectedAvatarImageData != nil
+                )
 
-            editProfileIdentitySection
-            editProfileLocationSection
-            editProfileContactSection
+                editProfileIdentitySection
+                editProfileLocationSection
+                editProfileContactSection
+            }
+            .disabled(viewModel.isSavingProfile || viewModel.hasPendingProfileSave)
 
             if let profileStatusMessage {
                 InlineMessageCard(style: profileStatusStyle, message: profileStatusMessage)
@@ -785,8 +800,8 @@ struct ProfileView: View {
         .safeAreaInset(edge: .bottom) {
             VStack(spacing: 0) {
                 PrimaryActionButton(
-                    title: AppStrings.Profile.saveChanges,
-                    loadingTitle: AppStrings.Profile.savingProfile,
+                    title: viewModel.hasPendingProfileSave ? SettingsPrivacyText.verifySavedProfile : AppStrings.Profile.saveChanges,
+                    loadingTitle: viewModel.hasPendingProfileSave ? SettingsPrivacyText.verifyingProfile : AppStrings.Profile.savingProfile,
                     isEnabled: canSaveProfile,
                     isLoading: viewModel.isSavingProfile || isLoadingAvatarSelection,
                     systemImage: "checkmark"
@@ -1236,14 +1251,15 @@ struct ProfileView: View {
             return
         }
 
-        fullNameDraft = displayUser?.fullName ?? ""
+        let pending = viewModel.pendingProfileSaveDraft
+        fullNameDraft = pending?.fullName ?? displayUser?.fullName ?? ""
         avatarSelectionTask?.cancel()
         isLoadingAvatarSelection = false
-        displayNameDraft = displayUser?.displayName ?? ""
-        telegramUsernameDraft = displayUser?.telegramUsername ?? ""
-        cityDraft = displayUser?.city ?? ""
-        bioDraft = displayUser?.bio ?? ""
-        selectedFederalStateDraft = displayUser?.selectedFederalState ?? .tirol
+        displayNameDraft = pending?.displayName ?? displayUser?.displayName ?? ""
+        telegramUsernameDraft = pending.map { $0.telegramUsername ?? "" } ?? displayUser?.telegramUsername ?? ""
+        cityDraft = pending?.city ?? displayUser?.city ?? ""
+        bioDraft = pending?.bio ?? displayUser?.bio ?? ""
+        selectedFederalStateDraft = pending?.selectedFederalState ?? displayUser?.selectedFederalState ?? .tirol
         selectedAvatarPhoto = nil
         selectedAvatarImageData = nil
         avatarPreviewImage = nil
@@ -1251,7 +1267,7 @@ struct ProfileView: View {
         isShowingAvatarCrop = false
         isShowingProfileDiscardConfirmation = false
         ignoresNextAvatarPhotoClear = false
-        viewModel.profileMessage = nil
+        if !viewModel.hasPendingProfileSave { viewModel.profileMessage = nil }
         isShowingEditProfileSheet = true
     }
 

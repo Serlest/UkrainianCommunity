@@ -1,11 +1,22 @@
 import Foundation
 import FirebaseFirestore
 
+struct ProfileSaveReadbackPending: Error { let userID: String }
+
 protocol UserRepository {
     func fetchCurrentUser() async throws -> AppUser
     func fetchSettings() async throws -> UserSettings
     func updateProfile(_ profile: EditableUserProfileDraft) async throws -> AppUser
     func deleteAccount(currentUser: AppUser) async throws
+    func recoverSavedProfile(userID: String) async throws -> AppUser
+}
+
+extension UserRepository {
+    func recoverSavedProfile(userID: String) async throws -> AppUser {
+        let user = try await fetchCurrentUser()
+        guard user.id == userID else { throw AppError.permissionDenied }
+        return user
+    }
 }
 
 protocol LegalDocumentRepository {
@@ -328,6 +339,7 @@ struct PendingFeedbackOperationBuffer {
 }
 
 protocol FeedbackRepository {
+    func fetchUnreadOwnerFeedbackCount() async throws -> Int
     func fetchOwnerInbox(query: FeedbackInboxQuery, after: FeedbackInboxCursor?) async throws -> FeedbackInboxPage
 
     func submitFeedback(_ feedback: FeedbackItem) async throws
@@ -350,6 +362,19 @@ protocol FeedbackRepository {
 }
 
 extension FeedbackRepository {
+    func fetchUnreadOwnerFeedbackCount() async throws -> Int {
+        // Non-Firestore adapters may be paginated too; never truncate at page 1.
+        var cursor: FeedbackPageCursor?
+        var count = 0
+        repeat {
+            let page = try await fetchFeedbackPage(userID: nil, after: cursor, limit: 100)
+            count += page.items.filter(\.unreadForOwner).count
+            guard page.hasMore else { return count }
+            guard let next = page.nextCursor, next != cursor else { throw AppError.validationFailed }
+            cursor = next
+        } while true
+    }
+
     func fetchFeedback(userID: String) async throws -> [FeedbackItem] {
         let items = try await fetchFeedback()
         return items.filter { $0.userId == userID }

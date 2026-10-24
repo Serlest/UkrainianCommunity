@@ -105,7 +105,9 @@ final class PasskeyService {
 
     func listPasskeys(expectedUserID: String? = nil) async throws -> [PasskeyRecord] {
         let expected = try principal(expectedUserID)
-        let result = try await call("listMyPasskeys", data: [:])
+        let result = try await RefreshRequest.run(timeout: .seconds(15)) { [self] in
+            try await call("listMyPasskeys", data: [:])
+        }
         _ = try principal(expected)
         guard let raw = result["passkeys"] as? [[String: Any]] else {
             throw PasskeyError.invalidServerResponse

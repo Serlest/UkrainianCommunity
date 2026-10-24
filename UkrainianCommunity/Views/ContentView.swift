@@ -724,6 +724,7 @@ struct ContentView: View {
             .tint(AppTheme.primaryBlue)
         }
         .environment(\.appNotificationBellConfiguration, notificationBellConfiguration)
+        .toolbar(profileNavigationPath.last == .accountSecurity ? .hidden : .automatic, for: .tabBar)
         .accessibilityIdentifier("screen.profile")
         .tabItem {
             Label(AppStrings.Tabs.profile, systemImage: "person.crop.circle.fill")

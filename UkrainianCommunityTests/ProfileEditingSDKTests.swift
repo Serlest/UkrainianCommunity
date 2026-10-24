@@ -18,6 +18,12 @@ final class ProfileEditingSDKTests: XCTestCase {
         defer { try? auth.signOut() }
         _ = try await auth.signIn(withEmail: "profile-owner@uac.test", password: "Emulator-Only-2026!")
         let repository = FirestoreUserRepository()
+        let feedback = FirestoreFeedbackRepository()
+        let initialCount = try await feedback.fetchUnreadOwnerFeedbackCount()
+        XCTAssertEqual(initialCount, 137)
+        try await feedback.acknowledgeFeedbackReadByOwner(id: "profile-count-0")
+        let afterReadCount = try await feedback.fetchUnreadOwnerFeedbackCount()
+        XCTAssertEqual(afterReadCount, 136)
         let draft = EditableUserProfileDraft(fullName: "Owner SDK Name", displayName: "Owner SDK Display",
             telegramUsername: "owner_sdk", city: "Graz", bio: "Persisted profile",
             selectedFederalState: .steiermark)
@@ -25,7 +31,13 @@ final class ProfileEditingSDKTests: XCTestCase {
         XCTAssertEqual(saved.id, "profile-sdk-owner")
         XCTAssertEqual(saved.globalRole, .owner)
         XCTAssertEqual(saved.displayName, draft.displayName)
-        let publicProfile = try await Firestore.firestore().document("publicProfiles/profile-sdk-owner").getDocument(source: .server)
+        let projection = Firestore.firestore().document("publicProfiles/profile-sdk-owner")
+        var publicProfile = try await projection.getDocument(source: .server)
+        for _ in 0..<20 {
+            if publicProfile.get("displayName") as? String == draft.displayName { break }
+            try await Task.sleep(for: .milliseconds(100))
+            publicProfile = try await projection.getDocument(source: .server)
+        }
         XCTAssertEqual(publicProfile.get("displayName") as? String, draft.displayName)
         try auth.signOut()
         _ = try await auth.signIn(withEmail: "profile-owner@uac.test", password: "Emulator-Only-2026!")
@@ -37,6 +49,12 @@ final class ProfileEditingSDKTests: XCTestCase {
         XCTAssertEqual(reopened.selectedFederalState, .steiermark)
         try auth.signOut()
         _ = try await auth.signIn(withEmail: "profile-member@uac.test", password: "Emulator-Only-2026!")
+        do {
+            _ = try await feedback.fetchUnreadOwnerFeedbackCount()
+            XCTFail("Ordinary user must not read the platform inbox count")
+        } catch {
+            XCTAssertEqual((error as NSError).code, FirestoreErrorCode.permissionDenied.rawValue)
+        }
         do {
             try await Firestore.firestore().document("users/profile-sdk-owner").updateData(["displayName": "Forged"])
             XCTFail("Another account must not edit the owner profile")

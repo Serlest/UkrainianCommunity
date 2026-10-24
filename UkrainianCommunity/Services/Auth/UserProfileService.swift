@@ -269,10 +269,14 @@ final class UserProfileService {
     }
 
     func fetchExistingUserProfile(uid: String) async throws -> AppUser {
+        try await fetchExistingUserProfile(uid: uid, source: .default)
+    }
+
+    func fetchExistingUserProfile(uid: String, source: FirestoreSource) async throws -> AppUser {
         let document = Firestore.firestore().collection("users").document(uid)
 
         do {
-            let snapshot = try await document.getDocument()
+            let snapshot = try await document.getDocument(source: source)
 
             guard snapshot.exists, let data = snapshot.data() else {
                 throw AppError.notFound
@@ -383,6 +387,7 @@ final class UserProfileService {
             }
 
         } catch {
+            guard Auth.auth().currentUser?.uid == user.id else { return }
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,
                 context: SystemTechnicalErrorContext(
@@ -574,9 +579,24 @@ struct FirestoreUserRepository: UserRepository {
             throw error
         }
 
-        let updatedUser = try await UserProfileService.shared.fetchExistingUserProfile(uid: uid)
+        do {
+            return try await recoverSavedProfile(userID: uid)
+        } catch {
+            // The write was acknowledged. A read failure must not repeat it or
+            // report that the server rejected the submitted profile.
+            throw ProfileSaveReadbackPending(userID: uid)
+        }
+    }
 
-        try? await UserProfileService.shared.upsertPublicProfile(for: updatedUser)
+    func recoverSavedProfile(userID: String) async throws -> AppUser {
+        guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        let updatedUser = try await RefreshRequest.run {
+            try await UserProfileService.shared.fetchExistingUserProfile(uid: userID, source: .server)
+        }
+        guard Auth.auth().currentUser?.uid == userID else { throw AppError.permissionDenied }
+        Task { @MainActor in
+            try? await UserProfileService.shared.ensurePublicProfile(for: updatedUser)
+        }
         return updatedUser
     }
 
@@ -687,6 +707,12 @@ struct FirestoreFeedbackRepository: FeedbackRepository {
         } catch { throw Self.appError(from: error) }
     }
 
+
+    func fetchUnreadOwnerFeedbackCount() async throws -> Int {
+        let result = try await collection.whereField("unreadForOwner", isEqualTo: true)
+            .count.getAggregation(source: .server)
+        return result.count.intValue
+    }
 
     func fetchFeedback() async throws -> [FeedbackItem] {
         try await fetchFeedbackPage(userID: nil, after: nil, limit: 100).items

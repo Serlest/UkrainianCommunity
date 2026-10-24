@@ -79,7 +79,7 @@ final class OrganizationBlockingCoordinator: ObservableObject {
         errorMessage = nil
         defer { if generation == requestGeneration { isLoading = false } }
         do {
-            let blocks = try await repository.fetchBlockedOrganizations()
+            let blocks = try await RefreshRequest.run { [self] in try await repository.fetchBlockedOrganizations() }
             guard generation == requestGeneration, self.userID == userID else { return }
             blockedOrganizations = Self.sorted(blocks)
             saveCache(for: userID)

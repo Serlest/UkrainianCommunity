@@ -87,7 +87,7 @@ final class AccountProviderLinkService {
 
     func linkedProviderIDs() async throws -> Set<String> {
         let account = try currentAccount()
-        let snapshot = try await backend.snapshot()
+        let snapshot = try await RefreshRequest.run(timeout: .seconds(15)) { [self] in try await backend.snapshot() }
         guard snapshot.userID == account.id,
               authState.user?.id == account.id else {
             throw AccountProviderLinkError.sessionChanged

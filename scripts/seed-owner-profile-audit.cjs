@@ -36,5 +36,14 @@ initializeApp({projectId: expected.GCLOUD_PROJECT});
       createdAt: Timestamp.now(), updatedAt: Timestamp.now(),
     });
   }
-  console.log("Local owner profile fixtures ready.");
+  const batch = db.batch();
+  for (let i = 0; i < 250; i++) {
+    batch.set(db.doc(`feedback/profile-count-${i}`), {
+      id: `profile-count-${i}`, userId: "profile-sdk-member", message: "Local fixture",
+      unreadForOwner: i < 137, unreadForUser: false, status: "open", type: "question",
+      createdAt: Timestamp.fromMillis(1000 + i), updatedAt: Timestamp.fromMillis(1000 + i),
+    });
+  }
+  await batch.commit();
+  console.log("Local owner profile fixtures and 250 feedback records ready.");
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -23,6 +23,12 @@ final class ProfileViewModel: ObservableObject {
     @Published var settings: UserSettings
     @Published private(set) var error: AppError?
     @Published private(set) var isSavingProfile = false
+    @Published private(set) var hasPendingProfileSave = false
+    @Published private(set) var pendingProfileSaveDraft: EditableUserProfileDraft?
+    private var pendingProfileSaveUserID: String?
+    private var uploadedAvatar: (data: Data, url: URL)?
+    private let deletionFinalizer: (String) async -> Bool
+    private let avatarUploader: (Data, String) async throws -> URL
     @Published private(set) var isSubmittingFeedback = false
     @Published private(set) var isDeletingAccount = false
     @Published private(set) var isLoading = false
@@ -61,9 +67,21 @@ final class ProfileViewModel: ObservableObject {
         localEventReminderService: LocalEventReminderServiceProtocol,
         eventRepository: EventRepository? = nil,
         reminderEventsLoader: ((String) async throws -> [Event])? = nil,
-        notificationRegistrationUpdater: ((String, Bool) -> Void)? = nil
+        notificationRegistrationUpdater: ((String, Bool) -> Void)? = nil,
+        deletionFinalizer: ((String) async -> Bool)? = nil,
+        avatarUploader: ((Data, String) async throws -> URL)? = nil
     ) {
         self.repository = repository
+        self.avatarUploader = avatarUploader ?? { data, id in
+            try await ImageUploadService.shared.uploadProfileAvatarImage(data: data, userID: id)
+        }
+        self.deletionFinalizer = deletionFinalizer ?? { id in
+            await ActivityLogRecorder.discardPending(userID: id, through: .distantFuture)
+            AuthService.shared.purgeLocalAccountState(userID: id)
+            guard await AuthService.shared.completeAccountDeletionSignOut(expectedUserID: id) else { return false }
+            UserProfileService.shared.completePendingAccountDeletion(userID: id)
+            return true
+        }
         self.feedbackRepository = feedbackRepository
         self.notificationPreferencesRepository = notificationPreferencesRepository
         self.notificationPermissionService = notificationPermissionService
@@ -94,6 +112,10 @@ final class ProfileViewModel: ObservableObject {
 
     func resetForAuthChange() {
         profileSaveGeneration &+= 1
+        hasPendingProfileSave = false
+        pendingProfileSaveUserID = nil
+        pendingProfileSaveDraft = nil
+        uploadedAvatar = nil
         notificationPreferencesSessionGeneration &+= 1
         notificationPreferencesSessionUserID = nil
         feedbackSubmissionGeneration &+= 1
@@ -344,7 +366,7 @@ final class ProfileViewModel: ObservableObject {
     func saveProfile(_ profile: EditableUserProfileDraft, avatarImageData: Data? = nil) async -> AppUser? {
         guard !isSavingProfile else { return nil }
 
-        if let validationMessage = profile.validationMessage {
+        if !hasPendingProfileSave, let validationMessage = profile.validationMessage {
             profileMessage = validationMessage
             return nil
         }
@@ -353,18 +375,35 @@ final class ProfileViewModel: ObservableObject {
         isSavingProfile = true
         profileMessage = nil
         var uploadingAvatar = avatarImageData != nil
+        var submittedProfile = profile
         defer {
             if generation == profileSaveGeneration { isSavingProfile = false }
         }
 
         do {
+            if let pendingProfileSaveUserID {
+                let recovered = try await repository.recoverSavedProfile(userID: pendingProfileSaveUserID)
+                guard generation == profileSaveGeneration else { return nil }
+                user = recovered
+                hasPendingProfileSave = false
+                self.pendingProfileSaveUserID = nil
+                pendingProfileSaveDraft = nil
+                uploadedAvatar = nil
+                error = nil
+                profileMessage = AppStrings.Profile.profileSaved
+                return recovered
+            }
             let resolvedProfile: EditableUserProfileDraft
             if let avatarImageData {
-                let avatarUserID = AuthService.shared.currentUser?.uid ?? user.id
-                let avatarURL = try await ImageUploadService.shared.uploadProfileAvatarImage(
-                    data: avatarImageData,
-                    userID: avatarUserID
-                )
+                let avatarUserID = AuthService.shared.authState.user?.id ?? user.id
+                let avatarURL: URL
+                if let uploadedAvatar, uploadedAvatar.data == avatarImageData {
+                    avatarURL = uploadedAvatar.url
+                } else {
+                    avatarURL = try await avatarUploader(avatarImageData, avatarUserID)
+                    guard generation == profileSaveGeneration else { return nil }
+                    uploadedAvatar = (avatarImageData, avatarURL)
+                }
                 guard generation == profileSaveGeneration else { return nil }
                 uploadingAvatar = false
                 resolvedProfile = EditableUserProfileDraft(
@@ -380,25 +419,34 @@ final class ProfileViewModel: ObservableObject {
                 resolvedProfile = profile
             }
 
+            submittedProfile = resolvedProfile
             let updatedUser = try await repository.updateProfile(resolvedProfile)
             guard generation == profileSaveGeneration else { return nil }
             user = updatedUser
             error = nil
             profileMessage = AppStrings.Profile.profileSaved
+            uploadedAvatar = nil
             return updatedUser
+        } catch let pending as ProfileSaveReadbackPending {
+            guard generation == profileSaveGeneration else { return nil }
+            pendingProfileSaveUserID = pending.userID
+            pendingProfileSaveDraft = submittedProfile
+            hasPendingProfileSave = true
+            profileMessage = SettingsPrivacyText.profileSavedPending
+            return nil
         } catch let appError as AppError {
             guard generation == profileSaveGeneration else { return nil }
             error = appError
-            profileMessage = uploadingAvatar
+            profileMessage = hasPendingProfileSave ? SettingsPrivacyText.profileSavedPending : (uploadingAvatar
                 ? AppStrings.Profile.avatarUploadFailed
-                : AppStrings.Profile.profileSaveFailed
+                : AppStrings.Profile.profileSaveFailed)
             return nil
         } catch {
             guard generation == profileSaveGeneration else { return nil }
             self.error = .unknown
-            profileMessage = uploadingAvatar
+            profileMessage = hasPendingProfileSave ? SettingsPrivacyText.profileSavedPending : (uploadingAvatar
                 ? AppStrings.Profile.avatarUploadFailed
-                : AppStrings.Profile.profileSaveFailed
+                : AppStrings.Profile.profileSaveFailed)
             return nil
         }
     }
@@ -516,21 +564,20 @@ final class ProfileViewModel: ObservableObject {
     func deleteAccount(currentUser: AppUser) async -> String? {
         guard !isDeletingAccount else { return AppStrings.Profile.deleteAccountFailed }
 
+        let generation = profileSaveGeneration
         isDeletingAccount = true
-        defer { isDeletingAccount = false }
+        defer { if generation == profileSaveGeneration { isDeletingAccount = false } }
 
         do {
             try await repository.deleteAccount(currentUser: currentUser)
-            await ActivityLogRecorder.discardPending(userID: currentUser.id, through: .distantFuture)
-            AuthService.shared.purgeLocalAccountState(userID: currentUser.id)
-            let didSignOut = await AuthService.shared.completeAccountDeletionSignOut()
-            guard didSignOut else {
-                return AppStrings.Profile.deleteAccountLocalCleanupPending
-            }
-            UserProfileService.shared.completePendingAccountDeletion(userID: currentUser.id)
+            guard generation == profileSaveGeneration else { return nil }
+            let finalized = await deletionFinalizer(currentUser.id)
+            guard generation == profileSaveGeneration else { return nil }
+            guard finalized else { return AppStrings.Profile.deleteAccountLocalCleanupPending }
             resetForAuthChange()
             return nil
         } catch let deletionError as AccountDeletionError {
+            guard generation == profileSaveGeneration else { return nil }
             switch deletionError {
             case .platformOwner:
                 return AppStrings.Profile.deleteAccountPlatformOwnerBlocked
@@ -549,9 +596,11 @@ final class ProfileViewModel: ObservableObject {
                 }
             }
         } catch let appError as AppError {
+            guard generation == profileSaveGeneration else { return nil }
             error = appError
             return AppStrings.Profile.deleteAccountFailed
         } catch {
+            guard generation == profileSaveGeneration else { return nil }
             self.error = .unknown
             return AppStrings.Profile.deleteAccountFailed
         }

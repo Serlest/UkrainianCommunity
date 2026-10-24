@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 2,
-  "remainingBlocks": 17,
-  "nextBlock": 3,
+  "completedBlocks": 3,
+  "remainingBlocks": 16,
+  "nextBlock": 4,
   "blocks": [
     {
       "number": 1,
@@ -20,8 +20,9 @@
     {
       "number": 3,
       "name": "Профиль, настройки и безопасность",
-      "status": "audited_changes_proposed",
-      "report": "Docs/Verification/ProfileSettingsAudit.json"
+      "status": "implemented_verified_in_scope",
+      "report": "Docs/Verification/ProfileSettingsAudit.json",
+      "resolutionReport": "Docs/Verification/ProfileSettingsFixes.json"
     },
     {
       "number": 4,

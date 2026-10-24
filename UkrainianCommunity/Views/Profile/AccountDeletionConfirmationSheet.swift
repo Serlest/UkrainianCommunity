@@ -9,6 +9,7 @@ struct AccountDeletionConfirmationSheet: View {
     @State private var confirmationText = ""
     @State private var errorMessage: String?
     @State private var appleNonce: String?
+    @State private var appleAuthorization: AppleCredentialAuthorization?
     @State private var isVerifyingAppleAccount = false
 
     private var canConfirmDeletion: Bool {
@@ -42,10 +43,10 @@ struct AccountDeletionConfirmationSheet: View {
 
                 ScrollView(.vertical, showsIndicators: true) {
                     VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                        SectionHeaderBlock(
-                            title: AppStrings.Profile.deleteAccountConfirmTitle,
-                            subtitle: AppStrings.Profile.deleteAccountConfirmMessage
-                        )
+                        Text(AppStrings.Profile.deleteAccountConfirmMessage)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         AppEditorSectionCard {
                             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
@@ -71,13 +72,7 @@ struct AccountDeletionConfirmationSheet: View {
                                         .foregroundStyle(AppTheme.textSecondary)
                                         .fixedSize(horizontal: false, vertical: true)
 
-                                    SignInWithAppleButton(
-                                        .continue,
-                                        onRequest: prepareAppleDeletionRequest,
-                                        onCompletion: finishAppleDeletionRequest
-                                    )
-                                    .signInWithAppleButtonStyle(.black)
-                                    .frame(height: 50)
+                                    LocalizedAppleSignInButton(title: AppStrings.Auth.continueWithApple, action: startAppleDeletion)
                                     .disabled(!canConfirmDeletion || isBusy)
                                     .accessibilityIdentifier("profile.delete_account.apple")
                                 } else {
@@ -147,6 +142,23 @@ struct AccountDeletionConfirmationSheet: View {
         }
     }
 
+    private func startAppleDeletion() {
+        guard canConfirmDeletion, deletionRestriction == nil, !isBusy,
+              Auth.auth().currentUser?.uid == currentUser.id,
+              let anchor = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene })
+                .flatMap(\.windows).first(where: \.isKeyWindow) else { return }
+        let request = ASAuthorizationAppleIDProvider().createRequest()
+        prepareAppleDeletionRequest(request)
+        guard appleNonce != nil else { return }
+        isVerifyingAppleAccount = true
+        let authorization = AppleCredentialAuthorization(anchor: anchor) { result in
+            appleAuthorization = nil
+            finishAppleDeletionRequest(result)
+        }
+        appleAuthorization = authorization
+        authorization.start(request)
+    }
+
     private func prepareAppleDeletionRequest(_ request: ASAuthorizationAppleIDRequest) {
         errorMessage = nil
         do {
@@ -160,6 +172,7 @@ struct AccountDeletionConfirmationSheet: View {
     private func finishAppleDeletionRequest(_ result: Result<ASAuthorization, Error>) {
         guard case .success(let authorization) = result else {
             appleNonce = nil
+            isVerifyingAppleAccount = false
             if case .failure(let error) = result,
                (error as? ASAuthorizationError)?.code != .canceled {
                 errorMessage = AppStrings.Profile.deleteAccountAppleFailed
@@ -167,8 +180,9 @@ struct AccountDeletionConfirmationSheet: View {
             return
         }
         guard let nonce = appleNonce, canConfirmDeletion,
-              deletionRestriction == nil, !isBusy else {
+              deletionRestriction == nil, !viewModel.isDeletingAccount else {
             appleNonce = nil
+            isVerifyingAppleAccount = false
             return
         }
         appleNonce = nil

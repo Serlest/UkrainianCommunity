@@ -129,10 +129,15 @@ final class AccountSecurityViewModel: ObservableObject {
     @Published private(set) var enrollmentSession: AuthTOTPEnrollmentSession?
     @Published private(set) var isSessionTOTPAuthenticated = false
     @Published private(set) var isSessionPasskeyAuthenticated = false
+    @Published private(set) var sessionErrorMessage: String?
     @Published private(set) var isActivatingRequirement = false
     @Published private(set) var message: String?
     @Published private(set) var errorMessage: String?
 
+    let interaction: AuthInteractionCoordinator
+    private let readTimeout: Duration
+    private let sessionAuthentication: () async throws -> (totp: Bool, passkey: Bool)
+    private var sessionReadTask: Task<Void, Never>?
     private let multiFactorService: AuthMultiFactorService
     private var generation = 0
     private var expectedUserID: String?
@@ -141,20 +146,27 @@ final class AccountSecurityViewModel: ObservableObject {
 
     init(multiFactorService: AuthMultiFactorService,
          loadFactors: (() async throws -> [AuthMultiFactorFactor])? = nil,
-         currentPrincipal: (() -> String?)? = nil) {
+         currentPrincipal: (() -> String?)? = nil,
+         interaction: AuthInteractionCoordinator? = nil,
+         readTimeout: Duration = .seconds(15),
+         sessionAuthentication: (() async throws -> (totp: Bool, passkey: Bool))? = nil) {
+        self.interaction = interaction ?? AuthInteractionCoordinator()
+        self.readTimeout = readTimeout
+        self.sessionAuthentication = sessionAuthentication ?? { try await multiFactorService.currentSessionAuthentication() }
         self.currentPrincipal = currentPrincipal ?? { AuthService.shared.authState.user?.id }
         self.expectedUserID = self.currentPrincipal()
         self.multiFactorService = multiFactorService
         self.loadFactors = loadFactors ?? { try await multiFactorService.enrolledTOTPFactors() }
     }
 
-    convenience init() {
-        self.init(multiFactorService: .shared)
+    convenience init(interaction: AuthInteractionCoordinator? = nil) {
+        self.init(multiFactorService: .shared, interaction: interaction)
     }
 
     func configure(userID: String?) {
         guard expectedUserID != userID else { return }
         generation += 1
+        sessionReadTask?.cancel(); sessionReadTask = nil
         expectedUserID = userID
         factors = []
         hasLoadedFactors = false
@@ -165,6 +177,7 @@ final class AccountSecurityViewModel: ObservableObject {
         enrollmentSession = nil
         isSessionTOTPAuthenticated = false
         isSessionPasskeyAuthenticated = false
+        sessionErrorMessage = nil
         isActivatingRequirement = false
         message = nil
         errorMessage = nil
@@ -188,7 +201,7 @@ final class AccountSecurityViewModel: ObservableObject {
         defer { if generation == request { isLoading = false } }
 
         do {
-            let loaded = try await loadFactors()
+            let loaded = try await RefreshRequest.run(timeout: readTimeout) { [self] in try await loadFactors() }
             guard isCurrent(request) else { return }
             factors = loaded
             hasLoadedFactors = true
@@ -200,23 +213,31 @@ final class AccountSecurityViewModel: ObservableObject {
 
     func refreshSessionAuthentication() async {
         guard isCurrent(generation) else { return }
+        if let sessionReadTask { await sessionReadTask.value; return }
         let request = generation
-        do {
-            let totp = try await multiFactorService.isCurrentSessionTOTPAuthenticated()
-            guard isCurrent(request) else { return }
-            let passkey = try await multiFactorService.isCurrentSessionPasskeyAuthenticated()
-            guard isCurrent(request) else { return }
-            isSessionTOTPAuthenticated = totp
-            isSessionPasskeyAuthenticated = passkey
-        } catch {
-            guard isCurrent(request) else { return }
-            isSessionTOTPAuthenticated = false
-            isSessionPasskeyAuthenticated = false
+        sessionErrorMessage = nil
+        let task = Task { [self] in
+            do {
+                let result = try await RefreshRequest.run(timeout: readTimeout) { [self] in try await sessionAuthentication() }
+                guard isCurrent(request) else { return }
+                isSessionTOTPAuthenticated = result.totp
+                isSessionPasskeyAuthenticated = result.passkey
+                sessionErrorMessage = nil
+            } catch {
+                guard isCurrent(request) else { return }
+                isSessionTOTPAuthenticated = false
+                isSessionPasskeyAuthenticated = false
+                sessionErrorMessage = AppStrings.AccountSecurity.loadFailed
+            }
         }
+        sessionReadTask = task
+        await task.value
+        if generation == request { sessionReadTask = nil }
     }
 
     func sendPasswordChangeLink(email: String) async {
-        guard isCurrent(generation) else { return }
+        guard isCurrent(generation), let lease = interaction.begin() else { return }
+        defer { interaction.finish(lease) }
         let request = generation
         message = nil
         errorMessage = nil
@@ -232,7 +253,8 @@ final class AccountSecurityViewModel: ObservableObject {
     }
 
     func beginEnrollment() async {
-        guard isCurrent(generation), !isMutating else { return }
+        guard isCurrent(generation), !isMutating, let lease = interaction.begin() else { return }
+        defer { interaction.finish(lease) }
         let request = generation
         isStartingEnrollment = true
         message = nil
@@ -250,7 +272,8 @@ final class AccountSecurityViewModel: ObservableObject {
     }
 
     func completeEnrollment(code: String) async {
-        guard isCurrent(generation), !isMutating else { return }
+        guard isCurrent(generation), !isMutating, let lease = interaction.begin() else { return }
+        defer { interaction.finish(lease) }
         let request = generation
         guard let enrollmentSession else { return }
         isConfirmingEnrollment = true
@@ -265,10 +288,8 @@ final class AccountSecurityViewModel: ObservableObject {
             guard isCurrent(request) else { return }
             self.enrollmentSession = nil
             message = AppStrings.AccountSecurity.enrollmentSucceeded
-            let loaded = try await multiFactorService.enrolledTOTPFactors()
-            guard isCurrent(request) else { return }
-            factors = loaded
             isSessionTOTPAuthenticated = false
+            await load()
         } catch {
             guard isCurrent(request) else { return }
             errorMessage = readableMessage(for: error)
@@ -280,7 +301,8 @@ final class AccountSecurityViewModel: ObservableObject {
     }
 
     func removeFactor(_ factor: AuthMultiFactorFactor, for user: AppUser?) async {
-        guard isCurrent(generation), !isMutating else { return }
+        guard isCurrent(generation), !isMutating, let lease = interaction.begin() else { return }
+        defer { interaction.finish(lease) }
         let request = generation
         removingFactorID = factor.id
         message = nil
@@ -302,7 +324,8 @@ final class AccountSecurityViewModel: ObservableObject {
     }
 
     func activatePrivilegedRequirement() async -> Bool {
-        guard isCurrent(generation), !isMutating else { return false }
+        guard isCurrent(generation), !isMutating, let lease = interaction.begin() else { return false }
+        defer { interaction.finish(lease) }
         let request = generation
         isActivatingRequirement = true
         message = nil
@@ -359,7 +382,7 @@ final class AccountSecurityViewModel: ObservableObject {
 
 struct AccountSecurityView: View {
     @EnvironmentObject private var authState: AuthState
-    @StateObject private var viewModel = AccountSecurityViewModel()
+    @StateObject private var viewModel = AccountSecurityViewModel(interaction: .accountSecurity)
     @State private var isSendingPasswordLink = false
     @State private var factorPendingRemoval: AuthMultiFactorFactor?
     @State private var showsAuthenticatorDetails = false
@@ -373,8 +396,17 @@ struct AccountSecurityView: View {
             if let message = viewModel.message {
                 InlineMessageCard(style: .success, message: message)
             }
-            if let errorMessage = viewModel.errorMessage {
+            if let errorMessage = viewModel.errorMessage ?? viewModel.sessionErrorMessage {
                 InlineMessageCard(style: .error, message: errorMessage)
+                Button {
+                    Task {
+                        async let factors: Void = viewModel.load()
+                        async let session: Void = viewModel.refreshSessionAuthentication()
+                        _ = await (factors, session)
+                    }
+                } label: { Label(AppStrings.Action.retry, systemImage: "arrow.clockwise") }
+                .disabled(viewModel.isLoading)
+                .accessibilityIdentifier("accountSecurity.retry")
             }
 
             PasskeyManagementView(
@@ -389,14 +421,18 @@ struct AccountSecurityView: View {
         }
         .task(id: authState.user?.id) {
             viewModel.configure(userID: authState.user?.id)
-            await viewModel.load()
-            await viewModel.refreshSessionAuthentication()
+            async let factors: Void = viewModel.load()
+            async let session: Void = viewModel.refreshSessionAuthentication()
+            _ = await (factors, session)
         }
+        .modifier(AccountSecurityInteractionState(interaction: viewModel.interaction))
+        .toolbar(.hidden, for: .tabBar)
         .sheet(item: Binding(
             get: { viewModel.enrollmentSession },
             set: { if $0 == nil { viewModel.cancelEnrollment() } }
         )) { session in
             TOTPEnrollmentView(viewModel: viewModel, session: session)
+                .modifier(AccountSecurityInteractionState(interaction: viewModel.interaction))
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
@@ -567,7 +603,7 @@ struct PrivilegedMultiFactorRequirementView: View {
                     if let message = viewModel.message {
                         InlineMessageCard(style: .success, message: message)
                     }
-                    if let errorMessage = viewModel.errorMessage {
+                    if let errorMessage = viewModel.errorMessage ?? viewModel.sessionErrorMessage {
                         InlineMessageCard(style: .error, message: errorMessage)
                     }
 
@@ -599,6 +635,7 @@ struct PrivilegedMultiFactorRequirementView: View {
             set: { if $0 == nil { viewModel.cancelEnrollment() } }
         )) { session in
             TOTPEnrollmentView(viewModel: viewModel, session: session)
+                .modifier(AccountSecurityInteractionState(interaction: viewModel.interaction))
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
@@ -607,7 +644,7 @@ struct PrivilegedMultiFactorRequirementView: View {
 
     @ViewBuilder
     private var requirementContent: some View {
-        if !viewModel.hasLoadedFactors {
+        if !viewModel.hasLoadedFactors || viewModel.sessionErrorMessage != nil {
             PrimaryActionButton(
                 title: AppStrings.Action.retry,
                 isEnabled: !isRestartingSignIn,
@@ -736,10 +773,10 @@ private struct TOTPEnrollmentView: View {
 
                 ScrollView(.vertical, showsIndicators: true) {
                     VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-                        SectionHeaderBlock(
-                            title: AppStrings.AccountSecurity.enrollmentTitle,
-                            subtitle: AppStrings.AccountSecurity.enrollmentSubtitle
-                        )
+                        Text(AppStrings.AccountSecurity.enrollmentSubtitle)
+                            .font(.subheadline)
+                            .foregroundStyle(AppTheme.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         AppEditorSectionCard {
                             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
@@ -795,7 +832,7 @@ private struct TOTPEnrollmentView: View {
                                     if normalized != newValue { code = normalized }
                                 }
 
-                                if let errorMessage = viewModel.errorMessage {
+                                if let errorMessage = viewModel.errorMessage ?? viewModel.sessionErrorMessage {
                                     InlineMessageCard(style: .error, message: errorMessage)
                                 }
 

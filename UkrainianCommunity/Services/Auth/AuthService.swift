@@ -306,7 +306,7 @@ final class AuthService {
         do {
             if try await profileProvider.resumePendingAccountDeletionIfNeeded(userID: sessionUser.uid) {
                 purgeLocalAccountState(userID: sessionUser.uid)
-                let didSignOut = await completeAccountDeletionSignOut()
+                let didSignOut = await completeAccountDeletionSignOut(expectedUserID: sessionUser.uid)
                 if didSignOut {
                     profileProvider.completePendingAccountDeletion(userID: sessionUser.uid)
                 }
@@ -446,20 +446,29 @@ final class AuthService {
 
     @MainActor
     @discardableResult
-    func completeAccountDeletionSignOut() async -> Bool {
+    func completeAccountDeletionSignOut(expectedUserID: String? = nil) async -> Bool {
+        if let expectedUserID, let current = backend.currentSessionUser,
+           !current.isAnonymous, current.uid != expectedUserID { return true }
         let transition = beginTransition()
         let notificationRegistration = resolvedNotificationRegistration
 
         do {
             try await performSynchronizedBackendSessionOperation(transition: transition) {
+                if let expectedUserID, let current = backend.currentSessionUser,
+                   !current.isAnonymous, current.uid != expectedUserID {
+                    throw AuthSessionTransitionError.backendSessionChanged
+                }
                 try backend.signOut()
             }
+            guard isCurrentTransition(transition) else { return false }
             notificationRegistration.completeSignOut()
             authState.setGuestSession()
             authState.dismissAuthFlow()
             return true
         } catch {
             guard isCurrentTransition(transition) else { return false }
+            if let expectedUserID, let current = backend.currentSessionUser,
+               !current.isAnonymous, current.uid != expectedUserID { return true }
             notificationRegistration.completeSignOut()
             if let currentUser = backend.currentSessionUser, !currentUser.isAnonymous {
                 authState.setSessionUnavailable(
@@ -774,7 +783,7 @@ final class AuthService {
 
             if try await profileProvider.resumePendingAccountDeletionIfNeeded(userID: sessionUser.uid) {
                 purgeLocalAccountState(userID: sessionUser.uid)
-                let didSignOut = await completeAccountDeletionSignOut()
+                let didSignOut = await completeAccountDeletionSignOut(expectedUserID: sessionUser.uid)
                 guard didSignOut else { throw AuthSessionTransitionError.signOutFailed }
                 profileProvider.completePendingAccountDeletion(userID: sessionUser.uid)
                 throw AuthVerificationError.accountDeletionCompleted

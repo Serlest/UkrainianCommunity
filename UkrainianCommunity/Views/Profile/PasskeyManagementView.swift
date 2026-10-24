@@ -3,6 +3,7 @@ import SwiftUI
 import FirebaseAuth
 
 struct PasskeyManagementView: View {
+    @Environment(\.authInteraction) private var interaction
     let userID: String?
     let isPrivileged: Bool
     let isTOTPAuthenticated: Bool
@@ -114,11 +115,12 @@ struct PasskeyManagementView: View {
     }
 
     private func register() {
-        guard Auth.auth().currentUser?.uid == userID, !isRegistering, !isRemoving else { return }
+        guard Auth.auth().currentUser?.uid == userID, !isRegistering, !isRemoving,
+              let lease = AuthInteractionCoordinator.begin(in: interaction) else { return }
         isRegistering = true
         message = nil
         Task {
-            defer { isRegistering = false }
+            defer { isRegistering = false; interaction?.finish(lease) }
             do {
                 try await PasskeyService.shared.register(expectedUserID: userID)
                 guard Auth.auth().currentUser?.uid == userID else { return }
@@ -134,7 +136,9 @@ struct PasskeyManagementView: View {
     }
 
     private func remove(_ passkey: PasskeyRecord) async {
-        guard Auth.auth().currentUser?.uid == userID, !isRemoving, !isRegistering else { return }
+        guard Auth.auth().currentUser?.uid == userID, !isRemoving, !isRegistering,
+              let lease = AuthInteractionCoordinator.begin(in: interaction) else { return }
+        defer { interaction?.finish(lease) }
         isRemoving = true
         message = nil
         defer { isRemoving = false }

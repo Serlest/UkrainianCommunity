@@ -1,0 +1,127 @@
+{
+  "block": 3,
+  "name": "Профиль, настройки и безопасность",
+  "status": "implemented_verified_in_scope",
+  "verifiedAt": "2026-10-24T08:37:29.946694+00:00",
+  "resolvesAudit": "Docs/Verification/ProfileSettingsAudit.json",
+  "changes": {
+    "PROFILE-01": "Deletion completion and errors are fenced by account generation. Post-deletion sign-out accepts the expected UID, checks it again after waiting for backend serialization, and preserves an unrelated active account. Stale deletion leaves its original journal available for later reconciliation.",
+    "PROFILE-02": "All profile inputs/photo controls freeze while saving or awaiting readback. A server-acknowledged write with failed readback has a separate retry-only-read state; original draft survives closing/reopening the editor. Readback uses an explicit authoritative server read with deadline. Uploaded avatar data/URL are reused on retry. Revision-checked public projection repair runs outside the save critical path.",
+    "PROFILE-03": "Shared security-operation lease across provider linking, passkey changes, password email and MFA mutations. Pure security reads have bounded waits; token claims use one coalesced snapshot and initial factors/session checks run in parallel. Writes remain serialized until their real completion. Security retry and operation progress are explicit. Token-status read errors have a separate message and retry path, including the privileged startup gate, rather than being treated as proof of an unprotected session.",
+    "PROFILE-04": "Exact server aggregation of unreadForOwner replaces newest-100 filtering and the duplicate inbox fetch/listener. Both profile counters load concurrently and coalesce inflight refreshes. Updates occur on notification snapshots, return/foreground and a 60-second interval only while Profile is visible/active. Failed refresh retains known count with explicit failed status.",
+    "PROFILE-05": "Fixed branded toggle fills, adaptive avatar/region/hidden-organization rows at accessibility sizes, hidden-organization search and confirmation, concise list intro, app-language Apple deletion button with approved unmodified artwork and original revoke/reauth flow. Account-security tab visibility is applied at Profile NavigationStack too. Final visual follow-ups give the region field full width, increase biography height at large text, remove duplicate enrollment heading, and use organization-specific confirmation text.",
+    "PROFILE-06": "Settings entries no longer label bundled legal version constants as current; authoritative version detail remains in the document reader."
+  },
+  "verification": {
+    "core": {
+      "bundle": "build/block-03-fix-20261024/CoreVerified.xcresult",
+      "passed": 90,
+      "failed": 0,
+      "skipped": 0
+    },
+    "initialRuntime": {
+      "bundle": "build/block-03-fix-20261024/UIAndSDK.xcresult",
+      "passed": 4,
+      "failed": 1,
+      "scope": "SDK exact count 137->136 and member denial, save locking/readback recovery, German large editor and owner nested routes passed. Hidden-organization UI test failed reaching a keyboard-covered button; intro shortened and search submission added before confirmation in the follow-up."
+    },
+    "static": [
+      "Localization validation de/uk: 3280 entries",
+      "Localization-table validator: 3 passed",
+      "Repository structure passed",
+      "Offline release configuration passed, build 116",
+      "git diff --check passed"
+    ],
+    "completion": {
+      "bundle": "build/block-03-fix-20261024/CompletionVerified.xcresult",
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Acknowledged save readback, retained draft on sheet reopen, image retry reuse, security coordination/deadlines, exact SDK count and authorization, hidden-organization search/confirmation."
+    },
+    "rolesAndPreferences": {
+      "bundle": "build/block-03-fix-20261024/RolesAndPreferencesVerified.xcresult",
+      "passed": 30,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Role matrix and revocation; admin and ordinary-account UI; device lock, consent/notification reliability, device-language/theme persistence, German dark accessibility editor."
+    },
+    "organizationWording": {
+      "bundle": "build/block-03-fix-20261024/OrganizationWordingVerified.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    "visualReview": {
+      "environment": "iPhone 17e, iOS 26.5 simulator",
+      "languages": [
+        "uk",
+        "de"
+      ],
+      "appearances": [
+        "light",
+        "dark"
+      ],
+      "largeText": true,
+      "manifests": [
+        "build/block-03-fix-20261024/ui-screens/manifest.json",
+        "build/block-03-fix-20261024/verified-screens/manifest.json",
+        "build/block-03-fix-20261024/role-screens/manifest.json",
+        "build/block-03-fix-20261024/wording-screens/manifest.json",
+        "build/block-03-fix-20261024/final-visual-screens/manifest.json"
+      ],
+      "reviewed": [
+        "ui-screens/476E0569-A4DA-4AD1-A20C-7FAB661DC08E.png",
+        "ui-screens/D82EDDF2-258E-46F4-AC44-505820AC6B3A.png",
+        "verified-screens/86F07518-6D6B-4D4E-9D20-29FCF5D6CB64.png",
+        "verified-screens/3D896F14-0CA1-421E-A309-E7A4E496B688.png",
+        "role-screens/DF4783FB-4306-4A06-B292-845FB575D096.png",
+        "role-screens/5ADCD833-0EF8-4D78-9E49-D7A804CD1711.png",
+        "role-screens/461E5416-2E2A-4F6C-B16D-7D6AB1D606DF.png",
+        "wording-screens/CA71E956-3369-4789-BE1F-50EC2A108502.png",
+        "final-visual-screens/209E30D3-E836-4364-8346-0AC097A1DD5F.png",
+        "final-visual-screens/58D8B2C5-50EC-424E-AF59-FB0ABD6EC509.png"
+      ]
+    },
+    "localEmulators": "Auth/Firestore demo emulator session stopped after successful SDK verification; no production fixture writes.",
+    "finalVisual": {
+      "bundle": "build/block-03-fix-20261024/FinalVisualVerified.xcresult",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Full-width accessibility region picker, taller biography, ordinary-account deletion confirmation opened read-only and blocked without keyword; profile save regressions."
+    },
+    "finalSecurityState": {
+      "bundle": "build/block-03-fix-20261024/SecurityStateVerified.xcresult",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Unknown session-claim status is visible/retryable and cannot masquerade as an unauthenticated second factor; owner/admin security-before-legal gate; profile completion regressions."
+    },
+    "testCountNote": "Reported run counts overlap; they are not summed as unique tests."
+  },
+  "boundaries": [
+    "Simulator fixtures and local demo Firebase Auth/Firestore SDK tests are not physical iPhone production-account end-to-end checks.",
+    "No real Apple/Google linking, iCloud passkey, Face ID, APNs receipt, password email or destructive production deletion was performed.",
+    "No production data, server functions, rules, legal documents or consent defaults changed.",
+    "No TestFlight upload or App Store release; distributed build 116 does not include these source changes.",
+    "Two pre-existing dirty project/catalog files are preserved outside this change."
+  ],
+  "historicalVerificationNotes": [
+    "Initial compilation found an actor-isolated default argument and misplaced helper; fixed before tests.",
+    "First core test process crashed when the new avatar retry test reached an unconfigured Firebase Auth getter. Replaced direct getter with the validated application session identity; CoreVerified then passed all 90 tests.",
+    "MCP UIAndSDK call timed out at 300s including preparation; its completed xcresult was read directly. The single UI failure is tracked above rather than hidden."
+  ],
+  "delivery": {
+    "sourceOnly": true,
+    "serverDeployment": false,
+    "rulesDeployment": false,
+    "testFlightUpload": false,
+    "preservedBuildNumber": 116
+  },
+  "sourceBaseCommit": "3bea78ce4bb564282860619bf4281d5a6ba78545",
+  "concurrentWorkPreserved": {
+    "commit": "dda16c3c12e36ab71564cdf3503af039a856d991",
+    "scope": "Unrelated committed news-wave audit scripts; no overlap with this change."
+  }
+}

@@ -230,7 +230,6 @@ struct ProfilePreferencesView: View {
                     NavigationLink(value: ProfileNavigationRoute.legal(.terms)) {
                         ProfileModuleRow(
                             title: AppStrings.Settings.terms,
-                            subtitle: AppStrings.authCurrentTermsVersion(AuthService.currentTermsVersion),
                             systemImage: "doc.text",
                             status: .available
                         )
@@ -241,7 +240,6 @@ struct ProfilePreferencesView: View {
                     NavigationLink(value: ProfileNavigationRoute.legal(.privacy)) {
                         ProfileModuleRow(
                             title: AppStrings.Settings.privacyPolicy,
-                            subtitle: AppStrings.authCurrentPrivacyVersion(AuthService.currentPrivacyVersion),
                             systemImage: "lock.doc",
                             status: .available
                         )

@@ -97,6 +97,7 @@ struct BiometricLockSettingsSection: View {
         ))
         .disabled(lock.isAuthenticating || (!lock.canAuthenticate && !lock.isEnabled))
         .accessibilityLabel(AppStrings.AppLock.toggleTitle)
+        .tint(AppTheme.accentPrimary)
         .accessibilityIdentifier("profile.settings.appLock")
     }
 }

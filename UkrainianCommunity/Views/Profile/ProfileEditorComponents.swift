@@ -3,6 +3,7 @@ import SwiftUI
 import UIKit
 
 struct ProfileAvatarEditorCard: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let avatarURL: URL?
     let initials: String
     let previewImage: UIImage?
@@ -12,7 +13,9 @@ struct ProfileAvatarEditorCard: View {
 
     var body: some View {
         AppEditorSectionCard {
-            HStack(alignment: .center, spacing: 16) {
+            (dynamicTypeSize.isAccessibilitySize
+             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+             : AnyLayout(HStackLayout(alignment: .center, spacing: 16))) {
                 AvatarArtworkView(
                     avatarURL: avatarURL,
                     previewImage: previewImage,
@@ -63,6 +66,7 @@ struct ProfileAvatarEditorCard: View {
 
 
 struct ProfileEditorTextArea: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     @Binding var text: String
     let counterText: String
@@ -85,7 +89,7 @@ struct ProfileEditorTextArea: View {
             TextEditor(text: $text)
                 .font(.subheadline)
                 .scrollContentBackground(.hidden)
-                .frame(minHeight: 92)
+                .frame(minHeight: dynamicTypeSize.isAccessibilitySize ? 180 : 92)
                 .padding(8)
                 .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
                 .overlay(
@@ -103,6 +107,7 @@ struct ProfileEditorTextArea: View {
 
 
 struct ProfileEditorPickerRow<PickerContent: View>: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let systemImage: String
     let picker: PickerContent
@@ -114,7 +119,10 @@ struct ProfileEditorPickerRow<PickerContent: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
+        (dynamicTypeSize.isAccessibilitySize
+         ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+         : AnyLayout(HStackLayout(spacing: 10))) {
+            HStack(spacing: 10) {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
@@ -124,11 +132,12 @@ struct ProfileEditorPickerRow<PickerContent: View>: View {
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.textPrimary)
 
-            Spacer(minLength: 8)
-
+            }
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 8) }
             picker
                 .font(.subheadline)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, AppTheme.inputHorizontalPadding)
         .padding(.vertical, 10)
         .frame(minHeight: AppTheme.newsEditorInputHeight)

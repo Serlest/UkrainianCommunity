@@ -152,6 +152,72 @@ final class FeedbackInboxNavigationUITests: XCTestCase {
 
 /// Owner journeys use isolated UI-test repositories. No live mutations.
 final class OwnerProfileAuditUITests: XCTestCase {
+    @MainActor func testProfileSaveLocksFieldsAndRetriesAcknowledgedReadback() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestResetUserSettings": "1",
+            "UITestAppLanguage": "uk", "UITestAppAppearance": "light", "UITestFeedbackInbox": "1",
+            "UITestProfileSaveReadback": "1"]
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+        app.buttons["profile.edit.open"].tap()
+        let name = app.textFields["profile.edit.displayName"]
+        replace(name, with: "Confirmed Pending Profile")
+        let save = app.buttons["profile.edit.save"]
+        save.tap()
+        expectation(for: NSPredicate(format: "enabled == false"), evaluatedWith: name)
+        waitForExpectations(timeout: 3)
+        capture(app, "profile-save-inputs-disabled")
+        let pending = app.staticTexts["Зміни збережено. Не вдалося завантажити підтвердження. Перевірте з’єднання та повторіть перевірку."]
+        reveal(pending, in: app)
+        XCTAssertTrue(pending.waitForExistence(timeout: 8))
+        XCTAssertFalse(name.isEnabled)
+        XCTAssertEqual(save.label, "Перевірити збереження")
+        capture(app, "profile-save-awaiting-readback")
+        app.buttons["Скасувати"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["profile.edit.open"].waitForExistence(timeout: 5))
+        app.buttons["profile.edit.open"].tap()
+        XCTAssertEqual(name.value as? String, "Confirmed Pending Profile")
+        XCTAssertFalse(name.isEnabled)
+        save.tap()
+        XCTAssertTrue(app.buttons["profile.edit.open"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Confirmed Pending Profile"].exists)
+        app.buttons["profile.edit.open"].tap()
+        XCTAssertEqual(name.value as? String, "Confirmed Pending Profile")
+        XCTAssertTrue(name.isEnabled)
+        XCTAssertFalse(save.isEnabled)
+    }
+
+    @MainActor func testHiddenOrganizationSearchRequiresConfirmationAndKeepsOtherRows() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
+        app.launchEnvironment = ["UITestForceAuthenticatedSession": "1", "UITestResetUserSettings": "1",
+            "UITestAppLanguage": "de", "UITestAppAppearance": "dark", "UITestHiddenOrganizations": "1"]
+        app.launch()
+        let tab = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+        let settings = app.buttons["profile.settings.open"]; reveal(settings, in: app); settings.tap()
+        let hidden = app.buttons["profile.settings.blockedOrganizations"]; reveal(hidden, in: app); hidden.tap()
+        let search = app.textFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 8)); search.tap(); search.typeText("Graz\n")
+        XCTAssertTrue(app.staticTexts["Українська спільнота Graz"].exists)
+        XCTAssertFalse(app.staticTexts["Українська спільнота Wien"].exists)
+        capture(app, "hidden-organizations-de-large-search")
+        let unblock = app.buttons["organization.unblock.hidden-graz"]
+        reveal(unblock, in: app); unblock.tap()
+        // The dialog's localized action is resolved from its alert/sheet scope.
+        let dialog = app.sheets.firstMatch
+        XCTAssertTrue(dialog.waitForExistence(timeout: 5))
+        XCTAssertTrue(dialog.staticTexts["Inhalte von „Українська спільнота Graz“ werden wieder in Ihrem Feed angezeigt."].exists)
+        capture(app, "hidden-organizations-confirmation")
+        let action = dialog.buttons.element(boundBy: 0)
+        XCTAssertTrue(action.exists); action.tap()
+        XCTAssertTrue(unblock.waitForNonExistence(timeout: 8))
+    }
+
     @MainActor
     func testOwnerEditorGermanDarkLargeTextKeepsEveryFieldReachable() {
         let app = launch(language: "de", darkLarge: true)
@@ -712,6 +778,16 @@ final class OwnerProfileAuditUITests: XCTestCase {
         XCTAssertTrue(deletion.exists)
         XCTAssertFalse(app.staticTexts["profile.owner.deletionRestriction"].exists)
         capture(app, "settings-de-large-ordinary-account")
+        deletion.tap()
+        let keyword = app.textFields["profile.delete_account.confirmation"]
+        reveal(keyword, in: app)
+        XCTAssertTrue(keyword.exists)
+        let confirm = app.buttons["profile.delete_account.confirm"]
+        reveal(confirm, in: app)
+        XCTAssertFalse(confirm.isEnabled)
+        capture(app, "settings-de-large-deletion-confirmation")
+        app.buttons["Abbrechen"].firstMatch.tap()
+        XCTAssertTrue(deletion.waitForExistence(timeout: 5))
     }
 
     @MainActor

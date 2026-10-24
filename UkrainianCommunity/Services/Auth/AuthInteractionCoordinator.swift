@@ -4,6 +4,7 @@ import SwiftUI
 /// A UI lease shared by all authentication methods in one navigation flow.
 @MainActor
 final class AuthInteractionCoordinator: ObservableObject {
+    static let accountSecurity = AuthInteractionCoordinator()
     @Published private(set) var requestID: UUID?
     var isBusy: Bool { requestID != nil }
 
@@ -33,5 +34,20 @@ extension EnvironmentValues {
     var authInteraction: AuthInteractionCoordinator? {
         get { self[AuthInteractionKey.self] }
         set { self[AuthInteractionKey.self] = newValue }
+    }
+}
+
+struct AccountSecurityInteractionState: ViewModifier {
+    @ObservedObject var interaction: AuthInteractionCoordinator
+    func body(content: Content) -> some View {
+        content.disabled(interaction.isBusy)
+            .overlay(alignment: .topTrailing) {
+                if interaction.isBusy {
+                    ProgressView().padding(16)
+                        .accessibilityLabel(AppStrings.Common.loading)
+                        .accessibilityIdentifier("accountSecurity.operation.inProgress")
+                }
+            }
+            .environment(\.authInteraction, interaction)
     }
 }

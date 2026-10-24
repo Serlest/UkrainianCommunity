@@ -288,6 +288,13 @@ final class AuthMultiFactorService {
         _ = try await user.getIDTokenResult(forcingRefresh: true)
     }
 
+    func currentSessionAuthentication() async throws -> (totp: Bool, passkey: Bool) {
+        let user = try currentVerifiedUser()
+        let token = try await user.getIDTokenResult()
+        guard Auth.auth().currentUser?.uid == user.uid else { throw AuthMultiFactorFlowError.sessionChanged }
+        return (Self.claimsContainTOTPSignIn(token.claims), Self.claimsContainPasskeySignIn(token.claims))
+    }
+
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
         let user = try currentVerifiedUser()
         let token = try await user.getIDTokenResult()

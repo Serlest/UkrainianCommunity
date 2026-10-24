@@ -6,6 +6,21 @@ import Testing
 @MainActor
 @Suite("Auth session consistency")
 struct AuthSessionConsistencyTests {
+    @Test func completedDeletionForOldAccountDoesNotSignOutTheNewAccount() async {
+        let state = AuthState()
+        let newUser = makeUser(id: "new-account")
+        state.setAuthenticatedSession(user: newUser)
+        let backend = FakeAuthBackend()
+        backend.currentSessionUser = FakeAuthSessionUser(uid: newUser.id, email: newUser.email, isEmailVerified: true)
+        let notifications = FakeAuthNotificationRegistration()
+        let service = makeService(state: state, backend: backend, profiles: FakeAuthProfileProvider(), notifications: notifications)
+        #expect(await service.completeAccountDeletionSignOut(expectedUserID: "old-account"))
+        #expect(backend.currentSessionUser?.uid == newUser.id)
+        #expect(state.user?.id == newUser.id)
+        #expect(backend.signOutCallCount == 0)
+        #expect(notifications.completeCallCount == 0)
+    }
+
     @Test
     func federatedAccountWithoutProfileMustCompleteRegistrationBeforeAccess() async throws {
         let state = AuthState()

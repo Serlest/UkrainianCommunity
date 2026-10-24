@@ -64,6 +64,7 @@ struct LinkedAccountProvidersView: View {
 
                                     Toggle(AppStrings.AccountSecurity.appleLinkConsent, isOn: $appleLinkConsent)
                                         .font(.footnote)
+                                        .tint(AppTheme.accentPrimary)
                                         .accessibilityIdentifier("accountSecurity.provider.appleConsent")
                                 }
 

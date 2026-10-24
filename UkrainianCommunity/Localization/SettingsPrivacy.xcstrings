@@ -51,6 +51,125 @@
           }
         }
       }
+    },
+    "settingsPrivacy.profileSavedPending": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen sind gespeichert. Die Bestätigung konnte nicht geladen werden. Prüfen Sie die Verbindung und versuchen Sie die Bestätigung erneut."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зміни збережено. Не вдалося завантажити підтвердження. Перевірте з’єднання та повторіть перевірку."
+          }
+        }
+      }
+    },
+    "settingsPrivacy.verifySavedProfile": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicherung prüfen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевірити збереження"
+          }
+        }
+      }
+    },
+    "settingsPrivacy.verifyingProfile": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Speicherung wird geprüft…"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перевіряємо збереження…"
+          }
+        }
+      }
+    },
+    "settingsPrivacy.hiddenSearch": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ausgeblendete Organisationen suchen"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук прихованих організацій"
+          }
+        }
+      }
+    },
+    "settingsPrivacy.hiddenOrganizationsIntro": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organisationen, deren Inhalte Sie in Ihrem Feed ausgeblendet haben."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Організації, чиї матеріали ви приховали у своїй стрічці."
+          }
+        }
+      }
+    },
+    "settingsPrivacy.showOrganizationTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Organisation wieder anzeigen?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показувати організацію знову?"
+          }
+        }
+      }
+    },
+    "settingsPrivacy.showOrganizationMessage": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inhalte von „%@“ werden wieder in Ihrem Feed angezeigt."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Матеріали організації «%@» знову відображатимуться у вашій стрічці."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
