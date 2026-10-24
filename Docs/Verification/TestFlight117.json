@@ -1,0 +1,42 @@
+{
+  "version": "1.2.1",
+  "build": 117,
+  "sourceCommit": "33bcc37d4f9a92c60121d30e12f018b382fe7867",
+  "verifiedAt": "2026-10-24T09:02:49.513345+00:00",
+  "scope": [
+    "Startup, registration and sign-in audit fixes (block 2)",
+    "Profile, settings and account security audit fixes (block 3)"
+  ],
+  "archive": "succeeded",
+  "upload": "succeeded",
+  "processingState": "VALID",
+  "internalState": "IN_BETA_TESTING",
+  "externalState": "IN_BETA_TESTING",
+  "groups": [
+    "Beta Tester",
+    "Tester Serlest EXT"
+  ],
+  "testNoteLocales": [
+    "en-US",
+    "de-DE",
+    "uk"
+  ],
+  "exportCompliance": {
+    "usesNonExemptEncryption": false
+  },
+  "verification": [
+    "Deployed analytics consent contracts verified before archive; no missing contracts",
+    "Release configuration validated for build 117",
+    "Localization validator: 3280 entries, uk/de passed",
+    "Existing final SecurityStateVerified.xcresult rechecked: 16 passed, 0 failed, 0 skipped; earlier block evidence in associated audit reports",
+    "Release archive and upload succeeded; App Store Connect live readback VALID and IN_BETA_TESTING for both groups"
+  ],
+  "warnings": [
+    "Apple upload accepted with missing third-party openssl_grpc.framework dSYM warning; native stack symbolication for that framework may be limited"
+  ],
+  "boundaries": [
+    "No public App Store release",
+    "No new physical iPhone acceptance in this build turn",
+    "Unrelated pre-existing project reorder and localization catalog churn preserved"
+  ]
+}
