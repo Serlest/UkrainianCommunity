@@ -20,6 +20,6 @@ After server deployment, verify Cloud Run readiness and 100% traffic on the inte
 
 Follow [the audit method](Docs/AppAuditMethod.md) for the 19-block UAC review. Inventory nested routes, presentations and role-dependent variants before declaring a block covered. Verify transitions and intermediate loading frames, input/keyboard behavior, persistence after return, and actual visuals; test counts and opening a destination alone do not prove completeness. Separate simulator fixtures, production readback, device verification and TestFlight delivery in reports.
 
-The user explicitly authorized block 8 on 2026-10-24. Preserve the distinction between this authorization and physical-device acceptance of individual fixes. Continue one audit block at a time.
+The user explicitly authorized block 9 on 2026-10-24. Preserve the distinction between this authorization and physical-device acceptance of individual fixes. Continue one audit block at a time.
 
 Before a TestFlight delivery, inspect the required GitHub run for the source revision as well as local results. Investigate known failures; report a running hosted validation as pending, never as passed. Preserve assertions and production security/read deadlines when fixing CI scheduling.

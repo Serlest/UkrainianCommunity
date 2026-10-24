@@ -279,8 +279,9 @@ struct DirectoryHomeView: View {
 
     private func refresh() async {
         guard isAuthBootstrapReady else { return }
+        async let catalog: Void = contentStore.refresh()
         async let banner: Void = featuredBannerViewModel.refresh(for: .directory, federalState: selectedFederalState)
         async let recent: Void = recentAdditions.load(reset: true)
-        _ = await (banner, recent)
+        _ = await (catalog, banner, recent)
     }
 }

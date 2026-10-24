@@ -2,6 +2,8 @@ import SwiftUI
 
 struct DirectoryAddTopicView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var discard = false
+    private let initial: DirectoryManagedTopic
     @State private var topic: DirectoryManagedTopic
     @State private var editingLanguage: AppLanguage = .ukrainian
     @State private var errorMessage: String?
@@ -9,7 +11,8 @@ struct DirectoryAddTopicView: View {
     let onAdd: (DirectoryManagedTopic) -> Void
 
     init(groupID: String, order: Int, onAdd: @escaping (DirectoryManagedTopic) -> Void) {
-        _topic = State(initialValue: DirectoryEditorDrafts.topic(groupID: groupID, order: order))
+        initial = DirectoryEditorDrafts.topic(groupID: groupID, order: order)
+        _topic = State(initialValue: initial)
         self.onAdd = onAdd
     }
 
@@ -31,12 +34,13 @@ struct DirectoryAddTopicView: View {
             .navigationTitle(DirectoryEditorText.value("Нова стаття", "Neuer Beitrag"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(DirectoryEditorText.value("Скасувати", "Abbrechen")) { dismiss() }
+                    Button(DirectoryEditorText.value("Скасувати", "Abbrechen")) { if topic != initial { discard = true } else { dismiss() } }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(DirectoryEditorText.value("Додати", "Hinzufügen"), action: add)
                 }
             }
+            .modifier(DirectoryDraftDiscard(hasChanges: topic != initial, isPresented: $discard))
             .alert(DirectoryEditorText.value("Перевірте статтю", "Beitrag prüfen"),
                    isPresented: Binding(get: { errorMessage != nil },
                                         set: { if !$0 { errorMessage = nil } })) {
@@ -75,6 +79,7 @@ struct DirectoryAddTopicView: View {
 
 struct DirectoryAddGroupView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var discard = false
     @State private var title = DirectoryText(ukrainian: "", german: "")
     @State private var showError = false
     @State private var groupIssue = ""
@@ -91,7 +96,7 @@ struct DirectoryAddGroupView: View {
             .navigationTitle(DirectoryEditorText.value("Нова підкатегорія", "Neuer Unterbereich"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(DirectoryEditorText.value("Скасувати", "Abbrechen")) { dismiss() }
+                    Button(DirectoryEditorText.value("Скасувати", "Abbrechen")) { if !title.ukrainian.isEmpty || !title.german.isEmpty { discard = true } else { dismiss() } }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(DirectoryEditorText.value("Додати", "Hinzufügen")) {
@@ -107,6 +112,7 @@ struct DirectoryAddGroupView: View {
                     }
                 }
             }
+            .modifier(DirectoryDraftDiscard(hasChanges: !title.ukrainian.isEmpty || !title.german.isEmpty, isPresented: $discard))
             .environment(\.directoryShowsValidation, showError)
             .alert(DirectoryEditorText.value("Перевірте підкатегорію", "Unterbereich prüfen"), isPresented: $showError) {
                 Button(DirectoryEditorText.value("Гаразд", "OK"), role: .cancel) { }

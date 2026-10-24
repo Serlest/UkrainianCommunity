@@ -65,10 +65,7 @@ struct AuthFlowReliabilityTests {
         let repository = RegistrationLegalProbe()
         let model = RegistrationLegalDocumentsViewModel(repository: repository)
         let first = Task { await model.load() }
-        for _ in 0..<1000 {
-            if repository.pending.count == 2 { break }
-            await Task.yield()
-        }
+        await repository.waitForPendingPair()
         let second = Task { try await model.refreshForSubmission() }
         for _ in 0..<50 { await Task.yield() }
         #expect(repository.count == 2)
@@ -85,10 +82,7 @@ struct AuthFlowReliabilityTests {
         let repository = RegistrationLegalProbe()
         let model = RegistrationLegalDocumentsViewModel(repository: repository)
         let loading = Task { await model.load() }
-        for _ in 0..<1000 {
-            if repository.pending.count == 2 { break }
-            await Task.yield()
-        }
+        await repository.waitForPendingPair()
         repository.complete()
         await loading.value
         let reviewed = model.versionKey
@@ -102,10 +96,7 @@ struct AuthFlowReliabilityTests {
         #expect(model.errorMessage == AppStrings.Startup.connectionMessage)
         repository.error = nil
         let retry = Task { await model.load() }
-        for _ in 0..<1000 {
-            if repository.pending.count == 2 { break }
-            await Task.yield()
-        }
+        await repository.waitForPendingPair()
         repository.complete()
         await retry.value
         #expect(model.isReady)
@@ -131,10 +122,18 @@ private final class RegistrationLegalProbe: LegalDocumentRepository {
     var error: Error?
     var count = 0
     var pending: [(LegalDocumentType, CheckedContinuation<LegalDocument, Error>)] = []
+    private var ready: CheckedContinuation<Void, Never>?
+    func waitForPendingPair() async {
+        if pending.count == 2 { return }
+        await withCheckedContinuation { ready = $0 }
+    }
     func fetchActiveDocument(type: LegalDocumentType) async throws -> LegalDocument {
         count += 1
         if let error { throw error }
-        return try await withCheckedThrowingContinuation { pending.append((type, $0)) }
+        return try await withCheckedThrowingContinuation {
+            pending.append((type, $0))
+            if pending.count == 2 { ready?.resume(); ready = nil }
+        }
     }
     func complete() {
         let reads = pending

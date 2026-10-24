@@ -327,6 +327,7 @@ jobs:
           "-skip-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
           "-skip-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/dismissedDetailDoesNotRecordWhenConsentFinishesLater()"
           "-skip-testing:UkrainianCommunityTests/AuthFlowReliabilityTests/simultaneousDocumentLoadsShareOneRequestAndKeepAuthoritativePair()"
+          "-skip-testing:UkrainianCommunityTests/AuthFlowReliabilityTests/failedSubmissionRefreshPreservesReviewedVersionsButRequiresRetry()"
           "-skip-testing:UkrainianCommunityTests/ProfileCompletionReliabilityTests/concurrentSecurityClaimReadsShareOneSnapshot()"
           "-skip-testing:UkrainianCommunityTests/UkrainianCommunityTests/myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount()"
 
@@ -348,6 +349,7 @@ jobs:
           "-only-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
           "-only-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/dismissedDetailDoesNotRecordWhenConsentFinishesLater()"
           "-only-testing:UkrainianCommunityTests/AuthFlowReliabilityTests/simultaneousDocumentLoadsShareOneRequestAndKeepAuthoritativePair()"
+          "-only-testing:UkrainianCommunityTests/AuthFlowReliabilityTests/failedSubmissionRefreshPreservesReviewedVersionsButRequiresRetry()"
           "-only-testing:UkrainianCommunityTests/ProfileCompletionReliabilityTests/concurrentSecurityClaimReadsShareOneSnapshot()"
           "-only-testing:UkrainianCommunityTests/UkrainianCommunityTests/myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount()"
 
@@ -374,8 +376,8 @@ jobs:
               if not isinstance(count, int) or count < 1:
                   raise SystemExit(f"Expected at least one Swift unit test in {summary_path}, found {count!r}")
               counts.append(count)
-          if counts[1] != 7:
-              raise SystemExit(f"Expected exactly seven isolated Swift unit tests, found {counts[1]}")
+          if counts[1] != 8:
+              raise SystemExit(f"Expected exactly eight isolated Swift unit tests, found {counts[1]}")
           print(f"Verified {sum(counts)} discovered Swift unit tests across both runs")
           PY
 

@@ -12,6 +12,7 @@ private struct DirectoryEditorAccessModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
+            .disabled(!contentStore.canEdit)
             .scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .background(AppBackgroundView())

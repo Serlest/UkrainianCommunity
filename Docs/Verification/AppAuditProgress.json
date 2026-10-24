@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 8,
-  "remainingBlocks": 11,
-  "nextBlock": 9,
+  "completedBlocks": 9,
+  "remainingBlocks": 10,
+  "nextBlock": 10,
   "blocks": [
     {
       "number": 1,
@@ -71,7 +71,9 @@
     {
       "number": 9,
       "name": "Довідник и права редакторов",
-      "status": "pending"
+      "status": "implemented_verified_in_scope",
+      "inventory": "Docs/Verification/DirectoryInventory20261024.md",
+      "report": "Docs/Verification/DirectoryAudit20261024.json"
     },
     {
       "number": 10,
@@ -202,15 +204,17 @@
       5,
       6,
       7,
-      8
+      8,
+      9
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Blocks 1–8 verified within documented scope. TestFlight 122 contains 1–7; block 8 is source-only. Physical acceptance remains separate; block 9 not authorized.",
+    "meaning": "Blocks 1–9 verified within documented scope. TestFlight 122 contains 1–7; 8–9 are source-only. Physical acceptance is separate; block 10 not yet authorized.",
     "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
     "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом",
     "block6AuthorizedByUser": "2026-10-24: Преступай (после отчета пункта 5)",
     "block7AuthorizedByUser": "2026-10-24: Переходи к 7 му пункту",
-    "block8AuthorizedByUser": "2026-10-24: Приступай к следующему пункту"
+    "block8AuthorizedByUser": "2026-10-24: Приступай к следующему пункту",
+    "block9AuthorizedByUser": "2026-10-24: Приступай"
   }
 }

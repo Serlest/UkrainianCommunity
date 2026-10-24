@@ -108,7 +108,9 @@ struct DirectoryFirebaseCatalogTests {
     }
 
     /// Explicit read-only opt-in. Normal test runs never depend on production/network access.
-    @Test(.enabled(if: FileManager.default.fileExists(atPath: liveAuditFlag.path)))
+    @Test(.enabled(if: FileManager.default.fileExists(atPath: liveAuditFlag.path)
+        || ProcessInfo.processInfo.environment["UAC_DIRECTORY_READ_AUDIT"] == "1"
+        || ProcessInfo.processInfo.environment["TEST_RUNNER_UAC_DIRECTORY_READ_AUDIT"] == "1"))
     func liveProductionCatalogDecodesAndRoundTripsOffline() async throws {
         if FirebaseApp.app() == nil { FirebaseApp.configure() }
         let db = Firestore.firestore()
@@ -153,6 +155,9 @@ struct DirectoryFirebaseCatalogTests {
             try? await db.enableNetwork()
             throw error
         }
+        await offline.refresh()
+        #expect(offline.syncState == .current)
+        #expect(offline.isAuthoritative && !offline.categories.isEmpty)
         // Neither an empty SDK cache nor a failed marker/retry may discard the last complete cache.
         offline.applySnapshot([:], cached: true)
         #expect(offline.allManagedCategories.count == decoded.count)

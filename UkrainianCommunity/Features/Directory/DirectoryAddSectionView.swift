@@ -2,6 +2,8 @@ import SwiftUI
 
 struct DirectoryAddSectionView: View {
     @Environment(\.dismiss) private var dismiss
+    @State private var discard = false
+    private let initial: DirectoryManagedSection
     @State private var section: DirectoryManagedSection
     @State private var editingLanguage: AppLanguage = .ukrainian
     @State private var errorMessage: String?
@@ -11,6 +13,7 @@ struct DirectoryAddSectionView: View {
     init(order: Int, onAdd: @escaping (DirectoryManagedSection) -> Void) {
         var draft = DirectoryEditorDrafts.section(order: order)
         draft.source = .init(name: "", url: "")
+        initial = draft
         _section = State(initialValue: draft)
         self.onAdd = onAdd
     }
@@ -36,12 +39,13 @@ struct DirectoryAddSectionView: View {
             .navigationTitle(DirectoryEditorText.value("Новий блок", "Neuer Abschnitt"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(DirectoryEditorText.value("Скасувати", "Abbrechen")) { dismiss() }
+                    Button(DirectoryEditorText.value("Скасувати", "Abbrechen")) { if section != initial { discard = true } else { dismiss() } }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(DirectoryEditorText.value("Додати", "Hinzufügen"), action: add)
                 }
             }
+            .modifier(DirectoryDraftDiscard(hasChanges: section != initial, isPresented: $discard))
             .alert(DirectoryEditorText.value("Перевірте інформацію", "Information prüfen"),
                    isPresented: Binding(get: { errorMessage != nil },
                                         set: { if !$0 { errorMessage = nil } })) {

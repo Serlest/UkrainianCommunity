@@ -54,6 +54,8 @@ struct DirectoryFeedbackView: View {
     private var language: AppLanguage { AppLanguage(rawValue: languageCode) ?? .german }
 
     var body: some View {
+        Group {
+        if !PermissionService.isAppOwner(user: authState.user) {
         AppGlassCard(padding: 15, spacing: 8) {
             Label(kind.prompt(language), systemImage: kind.type == .question ? "questionmark.bubble" : "exclamationmark.bubble")
                 .font(.headline)
@@ -81,6 +83,9 @@ struct DirectoryFeedbackView: View {
                 .accessibilityIdentifier("directory.feedback.status")
             }
         }
+        }
+        }
+        .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in showingComposer = false; showingHistory = false }
         .sheet(isPresented: $showingComposer) {
             DirectoryFeedbackComposer(kind: kind, repository: repository)
                 .environmentObject(authState)
@@ -173,7 +178,9 @@ private struct DirectoryFeedbackComposer: View {
 
     private func submit() async {
         guard let user = authState.user, !isSending, !trimmed.isEmpty, trimmed.count <= 2000 else { return }
+        let identity = ProfileAccessIdentity(user: user)
         isSending = true
+        defer { isSending = false }
         error = nil
         let now = Date()
         let item = FeedbackItem(id: UUID().uuidString, type: kind.type, subject: kind.subject(language),
@@ -184,10 +191,11 @@ private struct DirectoryFeedbackComposer: View {
             lastMessageByRole: .user, unreadForOwner: true, unreadForUser: false)
         do {
             try await repository.submitFeedback(item)
+            guard ProfileAccessIdentity(user: authState.user) == identity else { return }
             sent = true
         } catch {
+            guard ProfileAccessIdentity(user: authState.user) == identity else { return }
             self.error = DirectoryText(ukrainian: "Не вдалося надіслати. Перевірте з’єднання та повторіть спробу.", german: "Senden fehlgeschlagen. Prüfen Sie die Verbindung und versuchen Sie es erneut.").value(for: language)
         }
-        isSending = false
     }
 }

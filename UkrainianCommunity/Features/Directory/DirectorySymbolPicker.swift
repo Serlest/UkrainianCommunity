@@ -54,6 +54,10 @@ struct DirectorySymbolPicker: View {
 
     var body: some View {
         List {
+            Section {
+                AppSearchField(placeholder: DirectoryEditorText.value("Пошук іконки", "Symbol suchen"),
+                               text: $query, fieldID: "directory.symbol.search")
+            }
             if !Self.options.contains(where: { $0.id == selection }) {
                 row(symbol: selection,
                     title: DirectoryEditorText.value("Поточна іконка", "Aktuelles Symbol"))
@@ -64,7 +68,6 @@ struct DirectorySymbolPicker: View {
         }
         .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Оберіть іконку", "Symbol auswählen"))
-        .searchable(text: $query, prompt: DirectoryEditorText.value("Пошук іконки", "Symbol suchen"))
     }
 
     private func row(symbol: String, title: String) -> some View {

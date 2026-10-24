@@ -74,6 +74,9 @@ struct ContentTranslationButton: View {
                 HStack {
                     if busy { ProgressView() } else { Image(systemName: "character.bubble") }
                     Text(targetLanguage == .german ? EditorTranslationStrings.translate : EditorTranslationStrings.translateToUkrainian)
+                        .lineLimit(nil)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                 }.frame(maxWidth: .infinity)
             }.appActionButtonStyle(.secondary)
                 .disabled(busy || !hasAccessContext || fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })

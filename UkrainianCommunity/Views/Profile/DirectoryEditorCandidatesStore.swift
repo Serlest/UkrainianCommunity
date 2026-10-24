@@ -10,6 +10,8 @@ final class DirectoryEditorCandidatesStore: ObservableObject {
     @Published private(set) var canLoadMore = false
     @Published private(set) var loadFailed = false
     @Published private(set) var total = 0
+    @Published private(set) var hasLoaded = false
+    private var failedPage = false
     private var actorID: String?
     private var query = ""
     private var cursor: String?
@@ -20,19 +22,21 @@ final class DirectoryEditorCandidatesStore: ObservableObject {
 
     func reset() {
         generation = UUID(); actorID = nil; query = ""; cursor = nil
-        users = []; total = 0; isLoading = false; isLoadingMore = false; canLoadMore = false; loadFailed = false
+        users = []; total = 0; hasLoaded = false; failedPage = false; isLoading = false; isLoadingMore = false; canLoadMore = false; loadFailed = false
     }
     func invalidate(actorID: String, query: String) {
         reset(); self.actorID = actorID; self.query = query; isLoading = true
     }
     func load(actorID: String, query: String) async {
-        invalidate(actorID: actorID, query: query)
+        if self.actorID != actorID || self.query != query { invalidate(actorID: actorID, query: query) }
+        else { generation = UUID() }
         await fetch(more: false)
     }
     func loadMore() async {
         guard canLoadMore, !isLoading, !isLoadingMore else { return }
         await fetch(more: true)
     }
+    func retry() async { await fetch(more: failedPage) }
     private func fetch(more: Bool) async {
         guard let actorID else { return }
         let requestGeneration = generation
@@ -44,10 +48,11 @@ final class DirectoryEditorCandidatesStore: ObservableObject {
             guard requestGeneration == generation, !Task.isCancelled else { return }
             let known = Set(more ? users.map(\.id) : [])
             users = (more ? users : []) + result.users.filter { !known.contains($0.id) }
+            hasLoaded = true; failedPage = false
             total = result.total; cursor = result.cursor; canLoadMore = result.cursor != nil
         } catch {
             guard requestGeneration == generation, !Task.isCancelled else { return }
-            loadFailed = true
+            loadFailed = true; failedPage = more
         }
     }
 }

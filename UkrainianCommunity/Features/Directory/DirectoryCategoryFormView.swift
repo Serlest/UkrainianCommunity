@@ -90,6 +90,7 @@ struct DirectoryCategoryFormView: View {
                                 Label(DirectoryEditorText.value("Назва та видимість", "Name und Sichtbarkeit"),
                                       systemImage: "square.and.pencil")
                             }
+                            .accessibilityIdentifier("directory.group.edit.\(groupID)")
                             if draft.groups.count > 1,
                                let rank = DirectoryEditorOrdering.groupIDs(draft.groups).firstIndex(of: groupID) {
                                 DirectoryMoveMenu(

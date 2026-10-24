@@ -5,7 +5,7 @@ import XCTest
         for language in ["uk", "de"] {
             let app = XCUIApplication()
             app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
-            app.launchEnvironment = ["UITestForceOwnerSession":"1", "UITestDirectoryAccess":"1", "UITestAppLanguage":language, "UITestAppAppearance":language == "de" ? "dark":"light", "UITestResetUserSettings":"1"]
+            app.launchEnvironment = ["UITestForceOwnerSession":"1", "UITestDirectoryAccess":"1", "UITestAppLanguage":language, "UITestAppAppearance":language == "de" ? "dark":"light", "UITestResetUserSettings":"1", "UITestResetAppLock":"1"]
             app.launch()
             XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout:20))
             app.tabBars.buttons.element(boundBy:4).tap()
@@ -32,6 +32,14 @@ import XCTest
             let status = app.staticTexts[language == "uk" ? "Має доступ":"Zugriff aktiv"].firstMatch
             XCTAssertTrue(status.waitForExistence(timeout:8))
             capture(app,"directory-access-granted-" + language)
+            let back = app.buttons["navigation.back"].firstMatch
+            for _ in 0..<20 {
+                if back.isHittable { break }
+                app.swipeDown()
+            }
+            XCTAssertTrue(back.isHittable); back.tap()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.tabBars.firstMatch.isHittable)
             app.terminate()
         }
     }
@@ -49,7 +57,7 @@ extension DirectoryEditorAccessUITests {
         for language in ["uk", "de"] {
             let app = XCUIApplication()
             app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
-            app.launchEnvironment = ["UITestForceOwnerSession":"1", "UITestDirectoryAccess":"1", "UITestAppLanguage":language, "UITestAppAppearance":language == "de" ? "dark":"light", "UITestResetUserSettings":"1"]
+            app.launchEnvironment = ["UITestForceOwnerSession":"1", "UITestDirectoryAccess":"1", "UITestAppLanguage":language, "UITestAppAppearance":language == "de" ? "dark":"light", "UITestResetUserSettings":"1", "UITestResetAppLock":"1"]
             app.launch(); XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout:20)); app.tabBars.buttons.element(boundBy:4).tap()
             let link = app.buttons["profile.directoryEditors"].firstMatch
             scroll(link,app:app); link.tap()

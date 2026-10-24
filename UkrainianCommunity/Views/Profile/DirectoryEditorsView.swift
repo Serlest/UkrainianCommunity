@@ -22,6 +22,7 @@ struct DirectoryEditorsView: View {
     private var isOwner: Bool { PermissionService.isAppOwner(user: actor) && PermissionService.isUsableAccount(user: actor) }
     private var principal: String { isOwner ? actor?.id ?? "" : "" }
     private var query: String { searchText.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var candidateUsers: [AppUser] { users.users.filter { $0.id != actor?.id && $0.globalRole.authorizationRole != .owner } }
     private var searchKey: String { principal + "|" + query }
     private func text(_ uk: String, _ de: String) -> String { DirectoryEditorText.value(uk, de) }
 
@@ -70,13 +71,13 @@ struct DirectoryEditorsView: View {
                         AppEditorSectionTitle(title: text("Зареєстровані користувачі", "Registrierte Nutzer"))
                         AppSearchField(placeholder: text("Ім’я або email", "Name oder E-Mail"),
                                        text: $searchText, fieldID: "directoryAccess.search")
-                        Text(text("Знайдено: ", "Gefunden: ") + String(users.total)).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                        Text(text("Завантажено кандидатів: ", "Geladene Kandidaten: ") + (users.hasLoaded ? String(candidateUsers.count) : "—")).font(.caption).foregroundStyle(AppTheme.textSecondary)
                         if users.isLoading { ProgressView() }
-                        if users.loadFailed { retryButton { await users.load(actorID: principal, query: query) } }
-                        if !users.isLoading && !users.loadFailed && users.users.isEmpty {
+                        if users.loadFailed { retryButton { await users.retry() } }
+                        if !users.isLoading && !users.loadFailed && candidateUsers.isEmpty {
                             Text(text("Користувачів не знайдено. Спробуйте інше ім’я або email.", "Keine Nutzer gefunden. Versuchen Sie einen anderen Namen oder eine E-Mail-Adresse.")).foregroundStyle(AppTheme.textSecondary)
                         }
-                        ForEach(users.users.filter { $0.id != actor?.id && $0.globalRole.authorizationRole != .owner }) { user in
+                        ForEach(candidateUsers) { user in
                             userRow(user)
                             Divider()
                         }

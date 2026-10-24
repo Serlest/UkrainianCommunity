@@ -5,8 +5,10 @@ final class DirectoryArticleEditorUITests: XCTestCase {
     func testExistingSectionDeletionDoesNotNavigateIntoTheSection() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestDirectoryRecentPreview"] = "1"
+        app.launchEnvironment["UITestResetAppLock"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launchEnvironment["UITestForceOwnerSession"] = "1"
         app.launch()
@@ -47,8 +49,10 @@ final class DirectoryArticleEditorUITests: XCTestCase {
     func testExistingRegionalSectionDeletionPersistsWhenReopened() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestDirectoryRecentPreview"] = "1"
+        app.launchEnvironment["UITestResetAppLock"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launchEnvironment["UITestForceOwnerSession"] = "1"
         app.launch()
@@ -91,8 +95,10 @@ final class DirectoryArticleEditorUITests: XCTestCase {
     private func addArticle(sourceURL: String) throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
         app.launchEnvironment["UITestResetUserSettings"] = "1"
+        app.launchEnvironment["UITestDirectoryRecentPreview"] = "1"
+        app.launchEnvironment["UITestResetAppLock"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "uk"
         app.launchEnvironment["UITestForceOwnerSession"] = "1"
         app.launch()

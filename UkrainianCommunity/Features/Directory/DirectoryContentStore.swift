@@ -22,7 +22,7 @@ final class DirectoryContentStore: ObservableObject {
         let placement: DirectoryManagedCategory.Placement
         let order: Int
     }
-    struct PublishedCategory: Codable {
+    struct PublishedCategory: Codable, Equatable {
         let content: DirectoryManagedCategory
         let revision: Int
         let updatedAt: Date?
@@ -32,14 +32,20 @@ final class DirectoryContentStore: ObservableObject {
     @Published private(set) var isAuthoritative = false
     @Published private(set) var isEditor = false
     @Published private(set) var syncState: SyncState = .loading
+    private var localWriteRevisions: [String: Int] = [:]
+    private var localDeletedIDs = Set<String>()
     private var deletedCategoryIDs: Set<String> = []
 
     private lazy var db = Firestore.firestore()
     private let cacheURL: URL?
     private var catalogListener: ListenerRegistration?
     private var activationInProgress = false
+    private var refreshTask: Task<Void, Never>?
     private var contentListener: ListenerRegistration?
     private var accessListener: ListenerRegistration?
+    private var accessGeneration = UUID()
+    private let api: DirectoryContentAPI
+    private var busyCategoryIDs = Set<String>()
     private var observedUserID: String?
     private var isOwner = false
     private var isAccountUsable = false
@@ -55,8 +61,9 @@ final class DirectoryContentStore: ObservableObject {
             .appendingPathComponent("complete-v1.json")
     }
 
-    init(cacheURL: URL? = DirectoryContentStore.defaultCacheURL) {
+    init(cacheURL: URL? = DirectoryContentStore.defaultCacheURL, api: DirectoryContentAPI? = nil) {
         self.cacheURL = cacheURL
+        self.api = api ?? DirectoryContentAPI.simulatorFixture ?? .live
 #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            ProcessInfo.processInfo.environment["UITestDirectoryRecentPreview"] == "1" {
@@ -82,7 +89,7 @@ final class DirectoryContentStore: ObservableObject {
         }
     }
 
-    var canEdit: Bool { isOwner || isEditor }
+    var canEdit: Bool { isAccountUsable && (isOwner || isEditor) }
     var categories: [DirectoryCategory] {
         displayEntries.map(\.category)
     }
@@ -169,6 +176,7 @@ final class DirectoryContentStore: ObservableObject {
         let owner = PermissionService.isAppOwner(user: user)
         let usable = PermissionService.isUsableAccount(user: user)
         guard observedUserID != uid || isOwner != owner || isAccountUsable != usable else { return }
+        accessGeneration = UUID()
         observedUserID = uid
         isOwner = owner
         isAccountUsable = usable
@@ -176,10 +184,18 @@ final class DirectoryContentStore: ObservableObject {
         accessListener?.remove()
         accessListener = nil
         guard let uid, usable, !owner else { return }
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestDirectoryEditor"] == "1" {
+            isEditor = true
+            return
+        }
+        #endif
+        let generation = accessGeneration
         accessListener = db.collection("directoryEditors").document(uid)
             .addSnapshotListener { [weak self] snapshot, _ in
                 Task { @MainActor in
-                    guard self?.observedUserID == uid else { return }
+                    guard self?.observedUserID == uid, self?.accessGeneration == generation else { return }
                     self?.isEditor = snapshot?.data()?["enabled"] as? Bool == true
                 }
             }
@@ -228,10 +244,12 @@ final class DirectoryContentStore: ObservableObject {
     private func consume(_ snapshot: QuerySnapshot, activateAuthority: Bool = false) {
         var decoded: [String: PublishedCategory] = [:]
         var deleted = Set<String>()
+        var deletionRevisions: [String: Int] = [:]
         var invalid = false
         for document in snapshot.documents {
             if document.data()["isDeleted"] as? Bool == true {
                 deleted.insert(document.documentID)
+                deletionRevisions[document.documentID] = document.data()["revision"] as? Int
                 continue
             }
             guard let payload = document.data()["payload"] as? String,
@@ -242,31 +260,47 @@ final class DirectoryContentStore: ObservableObject {
             decoded[content.id] = PublishedCategory(content: content, revision: revision,
                 updatedAt: (document.data()["updatedAt"] as? Timestamp)?.dateValue())
         }
-        applySnapshot(decoded, deleted: deleted,
+        applySnapshot(decoded, deleted: deleted, deletionRevisions: deletionRevisions,
             cached: snapshot.metadata.isFromCache || snapshot.metadata.hasPendingWrites,
             invalid: invalid, activateAuthority: activateAuthority)
     }
 
     /// Applies only a whole query snapshot; never persist a partial Firestore cache as a complete catalog.
     func applySnapshot(_ incoming: [String: PublishedCategory], deleted: Set<String> = [],
-                       cached: Bool, invalid: Bool = false, activateAuthority: Bool = false) {
+                       deletionRevisions: [String: Int] = [:], cached: Bool, invalid: Bool = false, activateAuthority: Bool = false) {
         if isAuthoritative && cached { return }
         if invalid && (isAuthoritative || activateAuthority) {
             syncState = .invalidContent
             return // Preserve the last valid complete snapshot, rather than mixing bundled records into it.
         }
-        let effectiveDeleted = cached ? deleted.union(deletedCategoryIDs) : deleted
+        var effectiveDeleted = cached ? deleted.union(deletedCategoryIDs) : deleted
         var decoded = incoming
+        // A callback already queued before a callable receipt may contain an older catalog.
+        // Confirmed revisions remain a floor even after acknowledgement: an older
+        // in-flight full refresh may finish after the newer listener callback.
+        for (id, revision) in localWriteRevisions {
+            if max(incoming[id]?.revision ?? 0, deletionRevisions[id] ?? 0) >= revision {
+                localWriteRevisions[id] = max(incoming[id]?.revision ?? 0, deletionRevisions[id] ?? 0)
+                if (deletionRevisions[id] ?? 0) >= (incoming[id]?.revision ?? 0) { localDeletedIDs.insert(id) }
+                else { localDeletedIDs.remove(id) }
+            } else if localDeletedIDs.contains(id) {
+                decoded.removeValue(forKey: id); effectiveDeleted.insert(id)
+            } else if let current = published[id] {
+                decoded[id] = current; effectiveDeleted.remove(id)
+            }
+        }
         if cached {
             for (id, current) in published where !effectiveDeleted.contains(id)
                 && current.revision > (decoded[id]?.revision ?? -1) { decoded[id] = current }
         }
         deletedCategoryIDs = effectiveDeleted
         for id in effectiveDeleted { decoded.removeValue(forKey: id) }
-        published = decoded
+        let changed = published != decoded || (activateAuthority && !isAuthoritative)
+        if published != decoded { published = decoded }
         if activateAuthority && !cached { isAuthoritative = true }
-        syncState = invalid ? .invalidContent : (cached ? .cached : .current)
-        if isAuthoritative && !cached { persistCompleteCatalog() }
+        let state: SyncState = invalid ? .invalidContent : (cached ? .cached : .current)
+        if syncState != state { syncState = state }
+        if isAuthoritative && !cached && changed { persistCompleteCatalog() }
     }
 
     private func persistCompleteCatalog() {
@@ -280,6 +314,35 @@ final class DirectoryContentStore: ObservableObject {
         } catch {
             // Current content remains usable; do not silently replace an older valid disk snapshot.
         }
+    }
+
+    /// Pull-to-refresh refreshes the catalog itself, not only banners and recent additions.
+    func refresh() async {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestDirectoryRecentPreview"] == "1" { return }
+        #endif
+        if let refreshTask { await refreshTask.value; return }
+        let task = Task { [self] in
+            do {
+                let mayActivate: Bool
+                if isAuthoritative { mayActivate = true }
+                else {
+                    let marker = try await RefreshRequest.run { [self] in
+                        try await db.collection("appConfig").document("directoryCatalog").getDocument(source: .server)
+                    }
+                    mayActivate = Self.isCompleteCatalogMarker(marker.data())
+                }
+                let snapshot = try await RefreshRequest.run { [self] in
+                    try await db.collection("directoryCategories").getDocuments(source: .server)
+                }
+                guard !Task.isCancelled else { return }
+                consume(snapshot, activateAuthority: mayActivate)
+            } catch { syncState = .failed }
+        }
+        refreshTask = task
+        await task.value
+        refreshTask = nil
     }
 
     func retryObserving() {
@@ -298,16 +361,17 @@ final class DirectoryContentStore: ObservableObject {
         guard let payload = String(data: encoded, encoding: .utf8) else {
             throw DirectoryManagedValidation.Failure.invalidContent
         }
-        let response = try await Functions.functions(region: "europe-west3")
-            .httpsCallable("saveDirectoryCategory")
-            .call(["categoryId": category.id, "payload": payload,
-                   "expectedRevision": expectedRevision])
-        guard let result = response.data as? [String: Any],
-              result["categoryId"] as? String == category.id,
-              result["revision"] as? Int == expectedRevision + 1 else {
-            throw AppError.validationFailed
+        guard busyCategoryIDs.insert(category.id).inserted else { throw AppError.validationFailed }
+        let generation = accessGeneration
+        defer { busyCategoryIDs.remove(category.id) }
+        let result = try await api.save(category.id, payload, expectedRevision)
+        guard canEdit, observedUserID == actorID, accessGeneration == generation, !Task.isCancelled else {
+            throw AppError.permissionDenied
         }
+        guard result.categoryID == category.id, result.revision == expectedRevision + 1 else { throw AppError.validationFailed }
         let nextRevision = expectedRevision + 1
+        localWriteRevisions[category.id] = nextRevision
+        localDeletedIDs.remove(category.id)
         if (published[category.id]?.revision ?? 0) <= nextRevision {
             published[category.id] = PublishedCategory(
                 content: category, revision: nextRevision, updatedAt: Date()
@@ -321,14 +385,16 @@ final class DirectoryContentStore: ObservableObject {
         guard id.hasPrefix("custom-"), expectedRevision > 0 else {
             throw DirectoryManagedValidation.Failure.invalidContent
         }
-        let response = try await Functions.functions(region: "europe-west3")
-            .httpsCallable("deleteDirectoryCategory")
-            .call(["categoryId": id, "expectedRevision": expectedRevision])
-        guard let result = response.data as? [String: Any],
-              result["categoryId"] as? String == id,
-              result["revision"] as? Int == expectedRevision + 1 else {
-            throw AppError.validationFailed
+        guard busyCategoryIDs.insert(id).inserted else { throw AppError.validationFailed }
+        let generation = accessGeneration
+        defer { busyCategoryIDs.remove(id) }
+        let result = try await api.delete(id, expectedRevision)
+        guard canEdit, observedUserID == actorID, accessGeneration == generation, !Task.isCancelled else {
+            throw AppError.permissionDenied
         }
+        guard result.categoryID == id, result.revision == expectedRevision + 1 else { throw AppError.validationFailed }
+        localWriteRevisions[id] = expectedRevision + 1
+        localDeletedIDs.insert(id)
         deletedCategoryIDs.insert(id)
         published.removeValue(forKey: id)
         if isAuthoritative { persistCompleteCatalog() }

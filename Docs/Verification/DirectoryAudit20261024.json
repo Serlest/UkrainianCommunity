@@ -1,0 +1,265 @@
+{
+  "block": 9,
+  "name": "Довідник и права редакторов",
+  "date": "2026-10-24",
+  "status": "implemented_verified_in_scope",
+  "startingRevision": "d081fb920da8c228a59917403fe4ff4883b21760",
+  "inventory": "Docs/Verification/DirectoryInventory20261024.md",
+  "userReport": "Docs/Verification/DirectoryAudit20261024.ru.md",
+  "changes": [
+    "Receipt revision floors prevent stale snapshots from undoing confirmed saves/deletions. Per-category busy and access-generation guards reject duplicates/old-account completions.",
+    "Catalog pull-to-refresh includes catalog, marker and whole server snapshot; refresh requests coalesce. Equal snapshots avoid redundant model notifications and cache rewrites.",
+    "Same-query candidate refresh retains confirmed rows on failure; failed-page retry preserves cursor. Visible candidate count excludes filtered owners and starts unknown.",
+    "Editing is disabled while publishing or after rights loss. Account changes dismiss editing; new topic/group/section drafts confirm discard.",
+    "Profile navigation honors hidden tab bar in editor-access destination and restores it on return.",
+    "Symbol search uses explicit shared field because native searchable did not render.",
+    "Translation action wraps at AX. Directory owner self-feedback removed; account changes close old feedback presentations.",
+    "Existing hosted auth-test scheduling failure addressed with readiness handshake and eight-test isolated CI gate."
+  ],
+  "evidence": {
+    "baseline": {
+      "bundle": "build/block09-baseline-real.xcresult",
+      "passed": 1,
+      "failed": 1,
+      "meaning": "Blocked owner access was already correct; same-query candidate refresh lost rows."
+    },
+    "localDataflow": {
+      "bundle": "build/block09-dataflow-fixed.xcresult",
+      "passed": 83,
+      "failed": 0,
+      "skipped": 1,
+      "skipReason": "Live production audit requires explicit opt-in and is exercised separately."
+    },
+    "uiAttempts": [
+      {
+        "bundle": "build/block09-editors-ui.xcresult",
+        "passed": 3,
+        "failed": 1,
+        "note": "Nested block/region/discard and old deletion regressions passed. Publish driver tapped a toolbar action while dismissing keyboard; switched to Return and verified persisted text."
+      },
+      {
+        "bundle": "build/block09-roles-publish-access.xcresult",
+        "passed": 7,
+        "failed": 1,
+        "note": "Publication/reopen/discard, all role entries, recent route and four new unit tests passed. Rights grant/revoke succeeded but tab-bar-hidden assertions failed in both languages; root navigation corrected."
+      },
+      {
+        "bundle": "build/block09-final-nested-access.xcresult",
+        "passed": 4,
+        "failed": 1,
+        "note": "Rights mutation and tab restoration, translation/source validation, nested region/section, alternate-theme public search passed. Symbol selector had no rendered search field; fixed. Single Swift Testing method selector did not select live test; corrected in final suite."
+      }
+    ],
+    "server": [
+      {
+        "log": "build/block09/server-integration.log",
+        "passed": 7,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "log": "build/block09/rules.log",
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "log": "build/block09/candidate-search.log",
+        "passed": 1,
+        "failed": 0,
+        "skipped": 0
+      }
+    ],
+    "productionRead": {
+      "categories": 25,
+      "offlineRoundTrip": true,
+      "project": "ukrainiancommunity-dbd5f",
+      "readAt": "2026-10-24T21:50:32Z",
+      "regionalSections": 288,
+      "serverMarker": true,
+      "serverSnapshot": true,
+      "topics": 145
+    },
+    "deployedSources": [
+      {
+        "function": "manageUserDirectory",
+        "state": "ACTIVE",
+        "revision": "manageuserdirectory-00003-sed",
+        "onDeployUpdatePolicy": true,
+        "sources": [
+          {
+            "path": "src/users/userDirectory.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "0f31e2517721036f4bbe4927c21b76c766c2613d790b377a3e4392aac377568b",
+            "checkoutSHA256": "0f31e2517721036f4bbe4927c21b76c766c2613d790b377a3e4392aac377568b"
+          }
+        ]
+      },
+      {
+        "function": "saveDirectoryCategory",
+        "state": "ACTIVE",
+        "revision": "savedirectorycategory-00007-mis",
+        "onDeployUpdatePolicy": true,
+        "sources": [
+          {
+            "path": "src/directory/directoryManagement.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "b5539f198d385a6454d46c4768220b4be4b50c5751a1ab177f1146d6afc4c268",
+            "checkoutSHA256": "b5539f198d385a6454d46c4768220b4be4b50c5751a1ab177f1146d6afc4c268"
+          },
+          {
+            "path": "src/directory/directoryPublishTransaction.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "d9777084bd27f897c2c165e313f62c913507fb3610d3980f37456ebfc5782135",
+            "checkoutSHA256": "d9777084bd27f897c2c165e313f62c913507fb3610d3980f37456ebfc5782135"
+          },
+          {
+            "path": "src/directory/directoryValidation.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "1b85f33aba432f223eb62bdfb1aa35c2a9d60faae5229ed83cddae56cda8fd07",
+            "checkoutSHA256": "1b85f33aba432f223eb62bdfb1aa35c2a9d60faae5229ed83cddae56cda8fd07"
+          }
+        ]
+      },
+      {
+        "function": "deleteDirectoryCategory",
+        "state": "ACTIVE",
+        "revision": "deletedirectorycategory-00003-koh",
+        "onDeployUpdatePolicy": true,
+        "sources": [
+          {
+            "path": "src/directory/directoryManagement.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "b5539f198d385a6454d46c4768220b4be4b50c5751a1ab177f1146d6afc4c268",
+            "checkoutSHA256": "b5539f198d385a6454d46c4768220b4be4b50c5751a1ab177f1146d6afc4c268"
+          }
+        ]
+      },
+      {
+        "function": "manageDirectoryEditorAccess",
+        "state": "ACTIVE",
+        "revision": "managedirectoryeditoraccess-00002-xof",
+        "onDeployUpdatePolicy": true,
+        "sources": [
+          {
+            "path": "src/directory/directoryEditorAccess.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "84ef95cd429cbc84a6290bfaee4aa42b4ad1f6dcae0aae72036ce361b8b7c01b",
+            "checkoutSHA256": "84ef95cd429cbc84a6290bfaee4aa42b4ad1f6dcae0aae72036ce361b8b7c01b"
+          }
+        ]
+      },
+      {
+        "function": "getDirectoryRecentAdditions",
+        "state": "ACTIVE",
+        "revision": "getdirectoryrecentadditions-00004-xuc",
+        "onDeployUpdatePolicy": true,
+        "sources": [
+          {
+            "path": "src/directory/directoryRecent.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "d762102919b975e03790c8f70a479400b10a3d8c01bedbc1aa12a46c5898a958",
+            "checkoutSHA256": "d762102919b975e03790c8f70a479400b10a3d8c01bedbc1aa12a46c5898a958"
+          },
+          {
+            "path": "src/directory/directoryRecentModel.ts",
+            "matchesCheckout": true,
+            "deployedSHA256": "2c29ec10789fc3e60a5fbb6348be3b7601fb55b4954f697904552f9ed457736b",
+            "checkoutSHA256": "2c29ec10789fc3e60a5fbb6348be3b7601fb55b4954f697904552f9ed457736b"
+          }
+        ]
+      }
+    ],
+    "visual": {
+      "environment": "iPhone 17e iOS 26.5 simulator; DEBUG fixture writes",
+      "reviewedContacts": [
+        "build/block09/editor-contact.jpg",
+        "build/block09/access-contact.jpg",
+        "build/block09/final-contact.jpg",
+        "build/block09/confirmed-contact.jpg"
+      ],
+      "screens": [
+        "build/block09/editor-screens",
+        "build/block09/roles-screens",
+        "build/block09/final-screens",
+        "build/block09/confirmed-screens"
+      ],
+      "combinations": [
+        "uk/light normal and AX1",
+        "de/dark normal and AX1",
+        "uk/dark normal",
+        "de/light normal"
+      ],
+      "videoBeforeSymbolFix": "build/block09/outline-transition/contact.png",
+      "maximumText": "AX5 public recent preview; nested editors AX1"
+    },
+    "static": [
+      "Repository structure passed",
+      "3296 uk/de localization entries and Swift references passed",
+      "diff whitespace passed",
+      "Eight isolated selectors match the eight main-run exclusions"
+    ],
+    "finalRegression": {
+      "bundle": "build/block09-final-regression-live.xcresult",
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "includes": [
+        "Confirmed save/delete after acknowledgement and late refresh",
+        "Catalog snapshots/cache/hidden/search",
+        "Real production Firebase read, offline cache roundtrip and refresh",
+        "All 11 role variants with positive public-category content assertions",
+        "Symbol search, group/new-group/new-category editors",
+        "Four language/theme combinations; public recent preview at maximum AX5"
+      ]
+    },
+    "transitionProof": {
+      "bundle": "build/block09-final-transition-proof.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "video": "build/block09/public-transitions-final.mp4",
+      "sampleRate": 4,
+      "contact": "build/block09/public-transition-proof/contact.png",
+      "focusedContact": "build/block09/public-transition-focus/contact.png",
+      "note": "The test intentionally restarts the app between uk/dark and de/light. Springboard and launch frames correspond to these explicit restarts; this is not a physical-device launch guarantee."
+    }
+  },
+  "roles": [
+    "platform owner",
+    "platform admin without directory grant",
+    "organization owner without grant",
+    "organization admin without grant",
+    "organization editor without grant",
+    "mixed global/organization role without grant",
+    "member",
+    "warned without grant",
+    "blocked",
+    "guest",
+    "delegated directory editor"
+  ],
+  "priorHostedFailure": {
+    "run": 40126982990,
+    "conclusion": "failure",
+    "appBuild": "success",
+    "failedTest": "AuthFlowReliabilityTests/failedSubmissionRefreshPreservesReviewedVersionsButRequiresRetry()",
+    "resolution": "Explicit repository readiness signal; run this scenario in the isolated gate with the unchanged assertions and production deadlines. Local AuthFlowReliabilityTests passed; new hosted result remains independent."
+  },
+  "delivery": {
+    "newBuildUploaded": false,
+    "currentTestFlight": "1.2.1 (122); excludes blocks 8 and 9",
+    "serverDeployed": false,
+    "rulesDeployed": false,
+    "productionContentOrRightsMutated": false
+  },
+  "boundaries": [
+    "UI publication and rights mutations use DEBUG simulator fixtures; real transactions/rules checked in isolated Firebase.",
+    "Production verification is read-only catalog/SDK/cache readback plus exact deployed source comparison.",
+    "No substantive current-law/health fact check of every article.",
+    "Real two-device APNs and physical-iPhone acceptance remain separate.",
+    "No measured production latency improvement claimed."
+  ],
+  "hostedCI": {
+    "status": "not_started_until_commit"
+  },
+  "completedAt": "2026-10-25 Europe/Vienna"
+}
