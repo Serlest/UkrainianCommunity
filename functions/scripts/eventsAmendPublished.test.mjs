@@ -20,3 +20,13 @@ test('missing document never creates and SDK timestamp codec retains cancelled s
  const result=sdkChanges({occurrences:[{id:'cancelled-slot',startDate:'2026-10-16T14:00:00.000Z',endDate:'2026-10-16T14:45:00.000Z',status:'cancelled'}]});assert.equal(result.occurrences[0].status,'cancelled');assert.equal(result.occurrences[0].startDate.toDate().toISOString(),'2026-10-16T14:00:00.000Z');
  }finally{await rm(dir,{recursive:true,force:true})}
 });
+
+import {retainedSeriesCoversDuplicate} from './eventsAmendPublished.mjs';
+test('duplicate archive retains a broader series and refuses unique or partial-overlap sessions',()=>{
+ const occurrence=startDate=>({startDate,status:'scheduled'});const common={moderationStatus:'approved',organizationId:'uac-burgenland-info',federalState:'burgenland'};
+ const before={...common,occurrences:[occurrence('2026-10-28T09:00:00.000Z')]};const kept={...common,occurrences:[occurrence('2026-10-11T12:00:00.000Z'),...before.occurrences]};
+ assert.equal(retainedSeriesCoversDuplicate(before,kept),true);
+ assert.equal(retainedSeriesCoversDuplicate({...before,occurrences:[...before.occurrences,occurrence('2026-10-29T09:00:00.000Z')]},kept),false);
+ assert.equal(retainedSeriesCoversDuplicate(before,{...kept,moderationStatus:'archived'}),false);
+ assert.equal(retainedSeriesCoversDuplicate(before,{...kept,organizationId:'other'}),false);
+});

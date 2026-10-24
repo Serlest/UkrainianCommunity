@@ -11,6 +11,13 @@ const base='/Users/serlest/.codex/uac-content-automation';
 const allowed=new Set(['title','summary','details','localizations','startDate','endDate','occurrences','price','pricing','requiresRegistration','participationMode','externalAction','contactURL','moderationStatus']);
 export const plain=v=>v?.toDate?v.toDate().toISOString():Array.isArray(v)?v.map(plain):v&&typeof v==='object'?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a.localeCompare(b)).map(([k,x])=>[k,plain(x)])):v;
 export const digest=v=>createHash('sha256').update(JSON.stringify(plain(v))).digest('hex');
+// A retained series may also contain historical or additional sessions.
+export function retainedSeriesCoversDuplicate(before, kept) {
+ if(kept.moderationStatus!=='approved'||kept.organizationId!==before.organizationId||kept.federalState!==before.federalState)return false;
+ const retained=new Set((kept.occurrences??[]).filter(o=>o.status==='scheduled').map(o=>o.startDate));
+ const duplicate=(before.occurrences??[]).filter(o=>o.status==='scheduled');
+ return duplicate.length>0&&duplicate.every(o=>retained.has(o.startDate));
+}
 export function validateAmendment(before,request){
  if(!/^[a-f0-9]{40}$/.test(request.id)||before.authorId!==EXPECTED_OWNER_ID||before.sourceType!=='organization'||before.organizationId!==`uac-${before.federalState}-info`||!['tirol','wien','niederoesterreich','oberoesterreich','salzburg','vorarlberg','steiermark','kaernten','burgenland'].includes(before.federalState)||!['approved','archived'].includes(before.moderationStatus))throw Error('Existing UAC organization event required');
  if(!request.reason||!request.verificationNotes||request.verificationNotes.length<3||!request.evidence?.length||!Object.keys(request.changes??{}).length)throw Error('Reason, evidence and changes required');
@@ -53,7 +60,7 @@ export async function amendPublishedEvent(config,{apply=false,db,checkLocks=owne
  {const baseline=JSON.parse(await readFile(config.baselinePath,'utf8'));if(digest(baseline.data)!==digest(before))throw Error('Reviewed baseline changed');}
  validateAmendment(before,request);
  const evidenceHashes=await Promise.all(request.evidence.map(async path=>({path,sha256:createHash('sha256').update(await readFile(path)).digest('hex')})));
- if(request.kind==='duplicate'){const keep=await db.doc('events/'+request.keepId).get();if(!keep.exists||keep.get('moderationStatus')!=='approved'||keep.get('organizationId')!==before.organizationId||digest(plain(keep.get('occurrences')).map(o=>o.startDate).sort())!==digest(before.occurrences.map(o=>o.startDate).sort()))throw Error('Retained approved event required');}
+ if(request.kind==='duplicate'){const keep=await db.doc('events/'+request.keepId).get();if(!keep.exists||!retainedSeriesCoversDuplicate(before,plain(keep.data())))throw Error('Retained approved event must cover every duplicate session');}
  const plan={version:1,id:request.id,requestHash:digest(request),beforeHash:digest(before),before,changes:request.changes,evidenceHashes,plannedAt:new Date().toISOString(),reason:request.reason};
  if(!apply){await writeFile(config.planPath,JSON.stringify(plan,null,2),{flag:'wx'});return {dryRun:true,id:request.id,fields:Object.keys(request.changes)};}
  const saved=JSON.parse(await readFile(config.planPath,'utf8'));
