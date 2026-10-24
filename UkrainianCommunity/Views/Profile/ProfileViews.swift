@@ -542,7 +542,8 @@ struct ProfileView: View {
                 organizationsViewModel: organizationsViewModel,
                 repository: organizationRepository,
                 newsRepository: newsRepository,
-                eventRepository: eventRepository
+                eventRepository: eventRepository,
+                legalDocumentRepository: legalDocumentRepository
             )
         case .registrations:
             MyRegistrationsView(

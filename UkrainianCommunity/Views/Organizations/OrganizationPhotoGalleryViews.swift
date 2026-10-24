@@ -16,6 +16,8 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
     private let organizationId: String
     private let repository: OrganizationPhotoRepository
     private(set) var hasLoaded = false
+    private var contentRevision = 0
+    private var refreshID = UUID()
 
     init(organizationId: String, repository: OrganizationPhotoRepository) {
         self.organizationId = organizationId
@@ -32,6 +34,7 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
 
     func replacePhoto(_ original: OrganizationPhoto, imageData: Data, caption: String?) async {
         guard !isUploading else { return }
+        contentRevision &+= 1
         isUploading = true
         errorMessage = nil
         hasReplacementConflict = false
@@ -77,14 +80,19 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
     }
 
     func refresh() async {
+        let requestID = UUID(); refreshID = requestID
+        let revision = contentRevision
         isLoading = true
-        defer { isLoading = false }
+        defer { if refreshID == requestID { isLoading = false } }
 
         do {
-            photos = try await RefreshRequest.run { [self] in try await repository.fetchPhotos(organizationId: organizationId) }
+            let fetched = try await RefreshRequest.run { [self] in try await repository.fetchPhotos(organizationId: organizationId) }
+            guard refreshID == requestID, contentRevision == revision, !Task.isCancelled else { return }
+            photos = fetched
             errorMessage = nil
             hasLoaded = true
         } catch {
+            guard refreshID == requestID, contentRevision == revision, !Task.isCancelled else { return }
             errorMessage = AppStrings.Organizations.photosLoadFailed
             hasLoaded = true
         }
@@ -97,6 +105,7 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
             return
         }
 
+        contentRevision &+= 1
         isUploading = true
         errorMessage = nil
         statusMessage = nil
@@ -123,6 +132,7 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
 
     func deletePhoto(_ photo: OrganizationPhoto) async {
         guard !deletingPhotoIDs.contains(photo.id) else { return }
+        contentRevision &+= 1
         deletingPhotoIDs.insert(photo.id)
         errorMessage = nil
         statusMessage = nil

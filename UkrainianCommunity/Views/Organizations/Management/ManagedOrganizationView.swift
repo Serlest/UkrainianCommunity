@@ -8,7 +8,18 @@ struct ManagedOrganizationView: View {
     @ObservedObject var organizationsViewModel: OrganizationsViewModel
     @ObservedObject private var accessStore = OrganizationAccessStore.shared
 
-    @StateObject private var teamViewModel = OrganizationTeamViewModel()
+    let newsRepository: NewsRepository
+    let eventRepository: EventRepository
+    @StateObject private var teamViewModel: OrganizationTeamViewModel
+
+    init(organization: Organization, organizationsViewModel: OrganizationsViewModel,
+         newsRepository: NewsRepository = FirestoreNewsRepository(), eventRepository: EventRepository = FirestoreEventRepository()) {
+        self.organization = organization
+        self.organizationsViewModel = organizationsViewModel
+        self.newsRepository = newsRepository
+        self.eventRepository = eventRepository
+        _teamViewModel = StateObject(wrappedValue: OrganizationTeamViewModel(organizationRepository: organizationsViewModel.editorRepository))
+    }
     @State private var authorityOrganization: Organization?
     @State private var authorityDenied = false
     @State private var authorityListener: AppRealtimeListener?
@@ -75,6 +86,7 @@ struct ManagedOrganizationView: View {
                     AppEditorSectionCard {
                         managementHubButton(title: OrganizationWorkspaceCopy.subscribers, subtitle: OrganizationWorkspaceCopy.subscribersHelper,
                             systemImage: "person.2") { isShowingSubscribers = true }
+                            .accessibilityIdentifier("organization.management.subscribers")
                     }
                 }
                 photoSectionCard
@@ -83,13 +95,14 @@ struct ManagedOrganizationView: View {
             }
         }
         .navigationDestination(isPresented: Binding(get: { contentDestination != nil }, set: { if !$0 { contentDestination = nil } })) {
-            if let type = contentDestination { OrganizationWorkspaceContentList(organization: currentOrganization, contentType: type) }
+            if let type = contentDestination { OrganizationWorkspaceContentList(organization: currentOrganization, contentType: type,
+                newsRepository: newsRepository, eventRepository: eventRepository) }
         }
         .navigationDestination(isPresented: $isShowingSubscribers) { OrganizationWorkspaceSubscribers(organization: currentOrganization) }
         .sheet(isPresented: $isShowingNewsEditor) {
             NavigationStack {
                 NewsEditorView(
-                    repository: FirestoreNewsRepository(),
+                    repository: newsRepository,
                     organizationId: currentOrganization.id,
                     organizationName: currentOrganization.name,
                     organizationImageURL: currentOrganization.imageURL,
@@ -100,7 +113,7 @@ struct ManagedOrganizationView: View {
         .sheet(isPresented: $isShowingEventEditor) {
             NavigationStack {
                 EventEditorView(
-                    repository: FirestoreEventRepository(),
+                    repository: eventRepository,
                     organizationId: currentOrganization.id,
                     organizationName: currentOrganization.name,
                     organizationImageURL: currentOrganization.imageURL,
@@ -113,7 +126,9 @@ struct ManagedOrganizationView: View {
                 OrganizationEditorView(
                     organizationsViewModel: organizationsViewModel,
                     organization: currentOrganization,
-                    onSaved: {}
+                    onSaved: {
+                        authorityOrganization = organizationsViewModel.organization(for: currentOrganization.id) ?? currentOrganization
+                    }
                 )
             }
         }
@@ -690,12 +705,17 @@ struct ManagedOrganizationView: View {
             return
         }
 
+        let identity = accessIdentity
+        let organizationID = currentOrganization.id
         let didUpdate = await teamViewModel.apply(action, organization: currentOrganization, actor: actor)
+        guard accessIdentity == identity else { return }
         pendingTeamAction = nil
 
         guard didUpdate else { return }
-        await organizationsViewModel.refresh()
-        let refreshedOrganization = organizationsViewModel.organization(for: currentOrganization.id) ?? currentOrganization
+        let fresh = await organizationsViewModel.resolveOrganization(id: organizationID, force: true)
+        guard accessIdentity == identity else { return }
+        let refreshedOrganization = fresh ?? currentOrganization
+        authorityOrganization = refreshedOrganization
         await teamViewModel.load(organization: refreshedOrganization, actor: actor)
 
         switch action {

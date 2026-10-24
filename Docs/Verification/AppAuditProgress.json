@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 7,
-  "remainingBlocks": 12,
-  "nextBlock": 8,
+  "completedBlocks": 8,
+  "remainingBlocks": 11,
+  "nextBlock": 9,
   "blocks": [
     {
       "number": 1,
@@ -64,7 +64,9 @@
     {
       "number": 8,
       "name": "Управление организациями и заявки",
-      "status": "pending"
+      "status": "implemented_verified_in_scope",
+      "inventory": "Docs/Verification/OrganizationManagementInventory20261024.md",
+      "report": "Docs/Verification/OrganizationManagementAudit20261024.json"
     },
     {
       "number": 9,
@@ -199,14 +201,16 @@
       4,
       5,
       6,
-      7
+      7,
+      8
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Blocks 1–7 implemented and verified in documented scope; physical-device acceptance remains separate. Blocks 5–7 delivered in TestFlight 1.2.1 (122). Block 8 awaits authorization.",
+    "meaning": "Blocks 1–8 verified within documented scope. TestFlight 122 contains 1–7; block 8 is source-only. Physical acceptance remains separate; block 9 not authorized.",
     "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
     "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом",
     "block6AuthorizedByUser": "2026-10-24: Преступай (после отчета пункта 5)",
-    "block7AuthorizedByUser": "2026-10-24: Переходи к 7 му пункту"
+    "block7AuthorizedByUser": "2026-10-24: Переходи к 7 му пункту",
+    "block8AuthorizedByUser": "2026-10-24: Приступай к следующему пункту"
   }
 }

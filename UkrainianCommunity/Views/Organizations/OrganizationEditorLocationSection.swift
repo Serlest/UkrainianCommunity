@@ -40,8 +40,10 @@ extension OrganizationEditorView {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("organization.editor.region")
 
                 iconTextField(systemImage: "building.2", placeholder: AppStrings.Organizations.fieldCity, text: $viewModel.city)
+                    .accessibilityIdentifier("organization.editor.city")
 
                 iconTextField(systemImage: "mappin.circle", placeholder: AppStrings.Organizations.fieldAddress, text: $viewModel.address)
             }

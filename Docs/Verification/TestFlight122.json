@@ -31,12 +31,14 @@
   "userChecklist": "Docs/Verification/TestFlight122.ru.md",
   "ci": {
     "sourceRun": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40121574417",
-    "status": "in_progress",
-    "note": "Static and Firebase checks passed. iOS app build passed; Swift unit tests still running at last read-back. Not a hosted success claim.",
+    "status": "completed",
+    "note": "Source run read back as SUCCESS on 2026-10-24; all required iOS and Firebase jobs completed.",
     "buildNumberRun": {
       "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40122026241",
-      "status": "pending"
-    }
+      "status": "completed",
+      "conclusion": "cancelled"
+    },
+    "conclusion": "success"
   },
   "boundaries": [
     "No public App Store release.",

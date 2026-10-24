@@ -15,6 +15,9 @@ struct OrganizationEditorView: View {
     @State var ignoresNextPhotoClear = false
     @State var isShowingDraftRecoveryDialog = false
     @State var isShowingDraftCloseConfirmation = false
+    @State var isShowingEditDiscardConfirmation = false
+    @State var isSubmittingForm = false
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var currentStep = OrganizationEditorStep.basics
     @State var organizationRulesDocument: LegalDocument?
     @State var presentedOrganizationRules: LegalDocument?
@@ -39,7 +42,7 @@ struct OrganizationEditorView: View {
     ) {
         self.organizationsViewModel = organizationsViewModel
         self.legalDocumentRepository = legalDocumentRepository
-        _viewModel = StateObject(wrappedValue: OrganizationEditorViewModel(mode: .create))
+        _viewModel = StateObject(wrappedValue: OrganizationEditorViewModel(mode: .create, rulesAcceptance: OrganizationEditorViewModel.simulatorRulesAcceptance))
         self.onSaved = onSaved
     }
 
@@ -58,7 +61,7 @@ struct OrganizationEditorView: View {
     var body: some View {
         EditorScreenShell(
             title: viewModel.navigationTitle,
-            subtitle: AppStrings.Organizations.editorSubtitle,
+            subtitle: viewModel.isEditing ? OrganizationWorkspaceCopy.editSubtitle : AppStrings.Organizations.editorSubtitle,
             closeStyle: .cancel,
             closeAction: requestClose
         ) {
@@ -66,8 +69,10 @@ struct OrganizationEditorView: View {
             editorProgress
             editorStepContent
                 .id(currentStep)
-            editorNavigation
+                .disabled(isSaving)
+            editorNavigation.disabled(isSaving)
         }
+        .id(currentStep)
         .tint(AppTheme.accentPrimary)
         .sheet(isPresented: $isShowingLogoCrop, onDismiss: resetLogoCropSelection) {
             if let cropSourceLogoImage {
@@ -126,7 +131,12 @@ struct OrganizationEditorView: View {
         } message: {
             Text(AppStrings.DraftRecovery.organizationCloseMessage)
         }
-        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss)
+        .alert(OrganizationWorkspaceCopy.discardTitle, isPresented: $isShowingEditDiscardConfirmation) {
+            Button(AppStrings.FeaturedEditor.discardChanges, role: .destructive) { dismiss() }
+                .accessibilityIdentifier("organizationEditor.discard.confirm")
+            Button(AppStrings.DraftRecovery.continueEditing, role: .cancel) {}
+        } message: { Text(OrganizationWorkspaceCopy.discardMessage) }
+        .interactiveDismissDisabled(isSaving || viewModel.shouldConfirmDraftBeforeDismiss)
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false
@@ -135,6 +145,13 @@ struct OrganizationEditorView: View {
             Task {
                 await loadSelectedPhoto(item: newItem)
             }
+        }
+        .onChange(of: authState.user?.id) { _, _ in
+            hasConfirmedOrganizationRules = false
+            hasViewedOrganizationRules = false
+            organizationRulesDocument = nil
+            presentedOrganizationRules = nil
+            if viewModel.isEditing { dismiss() }
         }
         .task(id: authState.user?.id) {
             await loadRecoverableDraftIfNeeded()
@@ -176,8 +193,8 @@ struct OrganizationEditorView: View {
             organizationDirectoryLocalizationCard
         case .preview:
             organizationPreviewCard
-            moderationNoticeCard
             if !viewModel.isEditing {
+                moderationNoticeCard
                 organizationRulesCard
             }
         }
@@ -226,7 +243,8 @@ struct OrganizationEditorView: View {
     }
 
     private var editorNavigation: some View {
-        HStack(spacing: AppTheme.dashboardSpacing) {
+        (typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: AppTheme.dashboardSpacing))
+            : AnyLayout(HStackLayout(spacing: AppTheme.dashboardSpacing))) {
             if currentStep != .basics {
                 Button {
                     currentStep = currentStep.previous
@@ -236,6 +254,7 @@ struct OrganizationEditorView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .accessibilityIdentifier("organizationEditor.previous")
             }
 
             if currentStep == .preview {
@@ -248,6 +267,7 @@ struct OrganizationEditorView: View {
                 ) {
                     currentStep = currentStep.next
                 }
+                .accessibilityIdentifier("organizationEditor.next")
             }
         }
     }
@@ -374,6 +394,7 @@ struct OrganizationEditorView: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("organizationEditor.rules.read")
                     .padding(12)
                     .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
@@ -477,6 +498,7 @@ private struct OrganizationRulesReaderSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(AppStrings.OrganizationRules.close) { dismiss() }
+                        .accessibilityIdentifier("organizationEditor.rules.close")
                 }
             }
         }

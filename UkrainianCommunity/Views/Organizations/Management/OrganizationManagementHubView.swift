@@ -42,6 +42,7 @@ struct OrganizationManagementHubView: View {
     private let repository: OrganizationRepository
     private let newsRepository: NewsRepository
     private let eventRepository: EventRepository
+    private let legalDocumentRepository: LegalDocumentRepository
     @ObservedObject private var organizationsViewModel: OrganizationsViewModel
     @StateObject private var authoringOrganizations: OrganizationManagementListModel
     @FocusState private var searchFocused: Bool
@@ -66,7 +67,8 @@ struct OrganizationManagementHubView: View {
         organizationsViewModel: OrganizationsViewModel,
         repository: OrganizationRepository = FirestoreOrganizationRepository(),
         newsRepository: NewsRepository = FirestoreNewsRepository(),
-        eventRepository: EventRepository = FirestoreEventRepository()
+        eventRepository: EventRepository = FirestoreEventRepository(),
+        legalDocumentRepository: LegalDocumentRepository = FirestoreLegalDocumentRepository()
     ) {
         self.focusedOrganizationID = focusedOrganizationID
         self.organizationsViewModel = organizationsViewModel
@@ -74,6 +76,7 @@ struct OrganizationManagementHubView: View {
         self.repository = repository
         self.newsRepository = newsRepository
         self.eventRepository = eventRepository
+        self.legalDocumentRepository = legalDocumentRepository
     }
 
     private var manageableOrganizations: [Organization] {
@@ -174,6 +177,7 @@ struct OrganizationManagementHubView: View {
             NavigationStack {
                 OrganizationEditorView(
                     organizationsViewModel: organizationsViewModel,
+                    legalDocumentRepository: legalDocumentRepository,
                     onSaved: {
                                     await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                     }
@@ -186,6 +190,7 @@ struct OrganizationManagementHubView: View {
                 OrganizationEditorView(
                     organizationsViewModel: organizationsViewModel,
                     organization: organization,
+                    legalDocumentRepository: legalDocumentRepository,
                     onSaved: {
                         await organizationsViewModel.loadOrganizationRequests(for: authorityUser)
                     }
@@ -298,7 +303,8 @@ struct OrganizationManagementHubView: View {
                             contentStats: organizationContentStats[organization.id],
                             isLoadingContentStats: loadingContentStatOrganizationIDs.contains(organization.id),
                             statsError: statsErrors[organization.id],
-                            retryStats: { Task { await loadStats(for: organization.id, force: true) } }
+                            retryStats: { Task { await loadStats(for: organization.id, force: true) } },
+                            newsRepository: newsRepository, eventRepository: eventRepository
                         )
                         .task(id: "\(accessIdentity)-\(organization.id)-\(statsEpoch)") { await loadStats(for: organization.id) }
                     }

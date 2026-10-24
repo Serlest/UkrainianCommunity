@@ -10,6 +10,7 @@ extension OrganizationEditorView {
         ) {
             submit()
         }
+        .accessibilityIdentifier("organizationEditor.submit")
     }
 
     var bottomSubmitTitle: String {
@@ -21,7 +22,7 @@ extension OrganizationEditorView {
     }
 
     var isSaving: Bool {
-        organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage
+        organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage || viewModel.isSubmitting || isSubmittingForm
     }
 
     var canTapSubmit: Bool {
@@ -32,7 +33,10 @@ extension OrganizationEditorView {
 
     func submit() {
         guard canTapSubmit else { return }
+        let identity = ProfileAccessIdentity(user: authState.user)
+        isSubmittingForm = true
         Task {
+            defer { isSubmittingForm = false }
             let didSave = await viewModel.submit(
                 with: organizationsViewModel,
                 user: authState.user,
@@ -40,14 +44,17 @@ extension OrganizationEditorView {
             )
             // Keep the accepted rules and the concrete failure visible so the
             // user can retry without reopening the document and losing context.
-            guard didSave else { return }
+            guard didSave, ProfileAccessIdentity(user: authState.user) == identity else { return }
             await onSaved()
             dismiss()
         }
     }
 
     func requestClose() {
-        if viewModel.shouldConfirmDraftBeforeDismiss {
+        guard !isSaving else { return }
+        if viewModel.isEditing && viewModel.hasUnsavedEdits {
+            isShowingEditDiscardConfirmation = true
+        } else if viewModel.shouldConfirmDraftBeforeDismiss {
             isShowingDraftCloseConfirmation = true
         } else {
             dismiss()
@@ -56,7 +63,7 @@ extension OrganizationEditorView {
 
     @ViewBuilder
     var statusContent: some View {
-        if organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage {
+        if organizationsViewModel.isSavingOrganization || viewModel.isProcessingImage || viewModel.isSubmitting || isSubmittingForm {
             editorCard {
                 Label(
                     organizationsViewModel.isUploadingOrganizationImage ? AppStrings.NewsEditor.uploadingImage : AppStrings.Organizations.publishing,

@@ -287,6 +287,10 @@ final class OwnerProfileAuditUITests: XCTestCase {
             search.tap(); search.typeText("zzzz-no-organization")
             XCTAssertTrue(app.buttons["organization.manage.org-1"].waitForNonExistence(timeout: 8))
             app.buttons["organization.management.search.clear"].tap()
+            if app.keyboards.firstMatch.exists {
+                app.coordinate(withNormalizedOffset: .init(dx: 0.85, dy: 0.10)).tap()
+                XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+            }
             let manage = app.buttons["organization.manage.org-1"]
             reveal(manage, in: app); XCTAssertTrue(manage.waitForExistence(timeout: 10)); manage.tap()
             for (buttonID, label) in [("organization.management.createNews", "news"), ("organization.management.createEvent", "events")] {

@@ -1,0 +1,151 @@
+{
+  "block": 8,
+  "name": "Управление организациями и заявки",
+  "date": "2026-10-24",
+  "status": "implemented_verified_in_scope",
+  "startingRevision": "6413c362",
+  "inventory": "Docs/Verification/OrganizationManagementInventory20261024.md",
+  "userReport": "Docs/Verification/OrganizationManagementAudit20261024.ru.md",
+  "changes": [
+    "Unsaved-edit close confirmation with actual draft equality; unchanged edits close directly.",
+    "Synchronous view and model submit guards cover rules acceptance, save and navigation.",
+    "Workspace rows/counters survive failed refresh; failed page retries its own cursor; new query/account rejects stale data.",
+    "Child news/events/team/public-detail routes receive parent repositories. Confirmed saves update the management authority snapshot.",
+    "Team changes reload the exact organization rather than the entire catalog.",
+    "Photo refresh generation/content revision prevents a stale read from restoring deleted photos.",
+    "Organization review locks submitted decision/reason while processing.",
+    "Wizard resets scroll between steps and stacks actions at accessibility sizes; edit-specific copy; unknown counts display a dash."
+  ],
+  "evidence": {
+    "baseline": {
+      "bundle": "build/block08-baseline.xcresult",
+      "failed": 3,
+      "passed": 0,
+      "meaning": "Expected regression reproduction before fixes"
+    },
+    "localDataflow": [
+      {
+        "bundle": "build/block08-dataflow-fixed.xcresult",
+        "passed": 63,
+        "failed": 0
+      },
+      {
+        "bundle": "build/block08-workspaces-roles-review.xcresult",
+        "passed": 14,
+        "failed": 0,
+        "note": "Unit tests only; initial UI selectors used wrong class and were corrected in subsequent bundles."
+      }
+    ],
+    "uiAttempts": [
+      {
+        "bundle": "build/block08-editor-and-ui.xcresult",
+        "passed": 4,
+        "failed": 2,
+        "note": "Edit save/reopen, German AX nested windows, org role matrix and review/history passed. Driver hit keyboard in create and search routes."
+      },
+      {
+        "bundle": "build/block08-final-create-search-roles.xcresult",
+        "passed": 2,
+        "failed": 1,
+        "note": "Search/content and admin/warned/blocked/guest passed. City identifier matched an icon; changed query to TextField."
+      },
+      {
+        "bundle": "build/block08-final-request.xcresult",
+        "passed": 0,
+        "failed": 1,
+        "note": "Creation, rules, persisted request and preview passed; driver expected alert instead of native popover on withdrawal."
+      }
+    ],
+    "server": [
+      {
+        "log": "build/block08/server-integration.log",
+        "passed": 28,
+        "failed": 0,
+        "environment": "Isolated Auth/Firestore/Storage emulators"
+      },
+      {
+        "log": "build/block08/rules-correct-project.log",
+        "passed": 54,
+        "failed": 0,
+        "environment": "Isolated Firestore/Storage; demo-ukrainian-community-rules"
+      },
+      {
+        "log": "build/block08/server-contracts.log",
+        "passed": 18,
+        "failed": 0
+      }
+    ],
+    "rulesEnvironmentCorrection": "Initial 41 pass/13 fail was caused by mismatched primary emulator project for Storage cross-service reads; same rules passed with the required demo project.",
+    "visual": {
+      "environment": "iPhone 17e iOS 26.5 simulator; DEBUG fixtures",
+      "reviewedCombinations": [
+        "uk/light normal text",
+        "de/dark AX1"
+      ],
+      "screenshots": "build/block08/screens",
+      "requestScreens": "build/block08/request-screens",
+      "reviewedContacts": [
+        "build/block08/visual-contact.jpg",
+        "build/block08/visual-contact-2.jpg",
+        "build/block08/request-transition/contact.png",
+        "build/block08/final-visual.jpg"
+      ],
+      "videoSampleRate": 4,
+      "videoContactIntervalSeconds": 5,
+      "finalScreens": "build/block08/final-screens"
+    },
+    "static": [
+      "Repository structure passed",
+      "3296 uk/de localization entries and Swift references passed",
+      "git diff --check passed"
+    ],
+    "finalRegression": {
+      "bundle": "build/block08-final-confirmed.xcresult",
+      "passed": 9,
+      "failed": 0,
+      "skipped": 0,
+      "cases": "Seven new dataflow regression tests plus complete create/preview/withdraw and German dark AX nested windows."
+    }
+  },
+  "roles": [
+    "platform owner own/foreign",
+    "platform admin",
+    "organization owner",
+    "organization admin",
+    "organization editor/moderator",
+    "mixed organization roles",
+    "ordinary member",
+    "warned",
+    "blocked",
+    "guest"
+  ],
+  "performance": {
+    "changes": [
+      "Exact organization refresh after team mutation",
+      "Retain confirmed rows on refresh error",
+      "Cursor-bound pagination and retry"
+    ],
+    "existingServerPageSize": 30,
+    "boundaries": [
+      "No measured production latency improvement claimed.",
+      "Sparse searches may scan multiple indexed candidate batches; index-not-ready fallback can scan more."
+    ]
+  },
+  "delivery": {
+    "newBuildUploaded": false,
+    "currentTestFlight": "1.2.1 (122), excludes block 8",
+    "serverDeployed": false,
+    "rulesDeployed": false,
+    "liveUserDataMutated": false
+  },
+  "limitations": [
+    "UI legal acceptance is a DEBUG simulator fixture; actual acceptance contracts verified separately in isolated server tests.",
+    "Photo picker/crop/upload on physical iPhone remains a manual gate.",
+    "Notification records verified; actual two-device APNs delivery not exercised.",
+    "Maximum AX5 and every language/theme cross-product not exercised in this block.",
+    "General moderation belongs to block 10; shared content editors to blocks 5 and 6."
+  ],
+  "hostedCI": {
+    "status": "not_started_until_commit"
+  }
+}

@@ -991,6 +991,7 @@ private struct ModerationOrganizationRequestSheet: View {
                                     }
                                 }
                             }
+                            .disabled(isProcessing)
                             .id("decision")
                         } else {
                             InlineMessageCard(style: .info, message: AppStrings.Moderation.organizationRequestAlreadyReviewed)

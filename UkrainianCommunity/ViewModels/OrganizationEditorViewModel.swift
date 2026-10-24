@@ -278,23 +278,27 @@ final class OrganizationEditorViewModel: ObservableObject {
     private let mode: Mode
     private let draftRecoveryService: LocalDraftRecoveryService
     private let functionsClient: CloudFunctionsClient
+    private let rulesAcceptance: ((String, String, String) async throws -> Void)?
     private let createOrganizationID = UUID().uuidString
     private let validationService = OrganizationValidationService()
     private var draftAutosaveTask: Task<Void, Never>?
     private var hasCheckedCreateDraftRecovery = false
     private var createDraftOwnerID: String?
     private var isApplyingRecoveredDraft = false
-    private var isSubmittingCreate = false
+    @Published private(set) var isSubmitting = false
+    private var initialEditDraft: OrganizationCreateDraft?
     private var hasMeaningfulCreateDraftMetadata = false
 
     init(
         mode: Mode = .create,
         draftRecoveryService: LocalDraftRecoveryService? = nil,
-        functionsClient: CloudFunctionsClient? = nil
+        functionsClient: CloudFunctionsClient? = nil,
+        rulesAcceptance: ((String, String, String) async throws -> Void)? = nil
     ) {
         self.mode = mode
         self.draftRecoveryService = draftRecoveryService ?? .shared
         self.functionsClient = functionsClient ?? .shared
+        self.rulesAcceptance = rulesAcceptance
 
         if case let .edit(existingOrganization) = mode {
             name = existingOrganization.name
@@ -344,11 +348,19 @@ final class OrganizationEditorViewModel: ObservableObject {
             foundedMonth = existingOrganization.foundedYear == nil ? nil : existingOrganization.foundedMonth
             languages = existingOrganization.languages.joined(separator: ", ")
             legacySocialLinks = existingOrganization.socialLinks
+            initialEditDraft = currentOrganizationCreateDraft(updatedAt: .distantPast)
         }
     }
 
     deinit {
         draftAutosaveTask?.cancel()
+    }
+
+    static var simulatorRulesAcceptance: ((String, String, String) async throws -> Void)? {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing") { return { _, _, _ in } }
+        #endif
+        return nil
     }
 
     var navigationTitle: String {
@@ -369,9 +381,13 @@ final class OrganizationEditorViewModel: ObservableObject {
     }
 
     var shouldConfirmDraftBeforeDismiss: Bool {
-        guard isCreateMode else { return false }
-        guard !isSubmittingCreate, !isProcessingImage else { return false }
+        guard !isSubmitting, !isProcessingImage else { return false }
+        if isEditing { return hasUnsavedEdits }
         return currentOrganizationCreateDraft().hasMeaningfulContent
+    }
+
+    var hasUnsavedEdits: Bool {
+        isEditing && (selectedImageData != nil || initialEditDraft != currentOrganizationCreateDraft(updatedAt: .distantPast))
     }
 
     var existingImageURL: String? {
@@ -544,6 +560,7 @@ final class OrganizationEditorViewModel: ObservableObject {
         user: AppUser?,
         organizationRulesVersion: String? = nil
     ) async -> Bool {
+        guard !isSubmitting, !isProcessingImage else { return false }
         successMessage = nil
         errorMessage = nil
 
@@ -551,6 +568,8 @@ final class OrganizationEditorViewModel: ObservableObject {
             return false
         }
 
+        isSubmitting = true
+        defer { isSubmitting = false }
         let now = Date()
         var organization: Organization
         switch mode {
@@ -666,13 +685,14 @@ final class OrganizationEditorViewModel: ObservableObject {
         do {
             switch mode {
             case .create:
-                isSubmittingCreate = true
-                defer { isSubmittingCreate = false }
                 guard let organizationRulesVersion else {
                     errorMessage = AppStrings.OrganizationRules.loadFailed
                     return false
                 }
                 do {
+                    if let rulesAcceptance {
+                        try await rulesAcceptance(organization.id, organization.name, organizationRulesVersion)
+                    } else {
                     _ = try await functionsClient.acceptOrganizationRules(
                         organizationId: organization.id,
                         organizationName: organization.name,
@@ -680,6 +700,7 @@ final class OrganizationEditorViewModel: ObservableObject {
                         appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
                         locale: AppLanguage.stored.rawValue
                     )
+                    }
                 } catch {
                     let functionsCode = FunctionsErrorCode(rawValue: (error as NSError).code)
                     errorMessage = functionsCode == .resourceExhausted
@@ -707,6 +728,8 @@ final class OrganizationEditorViewModel: ObservableObject {
                     imageData: selectedImageData,
                     user: user
                 )
+                initialEditDraft = currentOrganizationCreateDraft(updatedAt: .distantPast)
+                selectedImageData = nil
                 successMessage = AppStrings.Organizations.updatedSuccessfully
             }
 
@@ -907,7 +930,7 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     private func scheduleCreateDraftAutosave() {
         guard isCreateMode, !isApplyingRecoveredDraft else { return }
-        guard !isSubmittingCreate, !isProcessingImage else { return }
+        guard !isSubmitting, !isProcessingImage else { return }
 
         draftAutosaveTask?.cancel()
         draftAutosaveTask = Task { [weak self] in
@@ -919,14 +942,14 @@ final class OrganizationEditorViewModel: ObservableObject {
 
     private func markCreateDraftMetadataChanged() {
         guard isCreateMode, !isApplyingRecoveredDraft else { return }
-        guard !isSubmittingCreate, !isProcessingImage else { return }
+        guard !isSubmitting, !isProcessingImage else { return }
         hasMeaningfulCreateDraftMetadata = true
         scheduleCreateDraftAutosave()
     }
 
     private func saveCurrentCreateDraftIfNeeded() async {
         guard isCreateMode else { return }
-        guard !isSubmittingCreate, !isProcessingImage else { return }
+        guard !isSubmitting, !isProcessingImage else { return }
         guard let createDraftStorageKey else { return }
 
         let draft = currentOrganizationCreateDraft()

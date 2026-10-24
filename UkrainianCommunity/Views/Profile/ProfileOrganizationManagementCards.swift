@@ -202,6 +202,7 @@ struct OrganizationRequestCard: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(deleteActionTitle)
+                    .accessibilityIdentifier("organization.request.delete.\(organization.id)")
                 }
             }
         }
@@ -221,6 +222,7 @@ struct OrganizationRequestCard: View {
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
+        .accessibilityIdentifier("organization.request.preview.\(organization.id)")
     }
 
     private var cleanupDate: Date? {
@@ -286,6 +288,8 @@ struct ManagedOrganizationCard: View {
     let isLoadingContentStats: Bool
     var statsError: String? = nil
     var retryStats: (() -> Void)? = nil
+    var newsRepository: NewsRepository = FirestoreNewsRepository()
+    var eventRepository: EventRepository = FirestoreEventRepository()
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -351,7 +355,9 @@ struct ManagedOrganizationCard: View {
         NavigationLink {
             ManagedOrganizationView(
                 organization: organization,
-                organizationsViewModel: organizationsViewModel
+                organizationsViewModel: organizationsViewModel,
+                newsRepository: newsRepository,
+                eventRepository: eventRepository
             )
         } label: {
             managedOrganizationActionLabel(
@@ -366,7 +372,10 @@ struct ManagedOrganizationCard: View {
         NavigationLink {
             OrganizationDetailView(
                 viewModel: organizationsViewModel,
-                organizationID: organization.id
+                organizationID: organization.id,
+                newsRepository: newsRepository,
+                eventRepository: eventRepository,
+                organizationRepository: organizationsViewModel.editorRepository
             )
         } label: {
             managedOrganizationActionLabel(

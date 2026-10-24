@@ -37,6 +37,7 @@ extension OrganizationEditorView {
                 .textInputAutocapitalization(.sentences)
                 .organizationEditorCompactInputStyle(minHeight: summaryInputHeight)
                 .accessibilityLabel(AppStrings.Organizations.fieldDescription)
+                .accessibilityIdentifier("organization.editor.description")
         }
     }
 

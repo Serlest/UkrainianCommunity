@@ -3,7 +3,7 @@ import Foundation
 import FirebaseFunctions
 import SwiftUI
 
-nonisolated struct OrganizationWorkspaceRequest: Codable {
+nonisolated struct OrganizationWorkspaceRequest: Codable, Equatable {
     let action: String
     let principalId: String
     var organizationId: String? = nil
@@ -76,6 +76,9 @@ struct ManagedOrganizationPage { let items: [Organization]; let cursor: String? 
 
 enum OrganizationWorkspaceCopy {
     private static func value(_ uk: String, _ de: String) -> String { LocalizationStore.language == .german ? de : uk }
+    static var editSubtitle: String { value("Оновіть дані організації та збережіть зміни.", "Angaben der Organisation aktualisieren und Änderungen sichern.") }
+    static var discardTitle: String { value("Відхилити зміни?", "Änderungen verwerfen?") }
+    static var discardMessage: String { value("Зміни в організації ще не збережено.", "Die Änderungen an der Organisation sind noch nicht gespeichert.") }
     static var search: String { value("Пошук за назвою або містом", "Name oder Ort suchen") }
     static var allRegions: String { value("Усі землі", "Alle Bundesländer") }
     static var platformOwner: String { value("Власник застосунку", "App-Inhaber") }
