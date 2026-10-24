@@ -148,7 +148,12 @@
     "serverDeploy": false,
     "physicalIPhoneVerified": false,
     "testFlightBuildContainingChanges": null,
-    "hostedCI": "pending source commit"
+    "hostedCI": {
+      "run": 40105289685,
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40105289685",
+      "status": "in_progress",
+      "checkedAt": "2026-10-24T15:04:48.139681+00:00"
+    }
   },
   "proposals": [
     {
@@ -181,5 +186,6 @@
     "Comment list currently streams latest 100; older-history pagination is proposed separately.",
     "Production read-back verifies six concrete public query shapes as Admin, not all roles or every possible filter combination. Emulator tests provide separate security evidence."
   ],
-  "sourceOnly": true
+  "sourceOnly": true,
+  "sourceRevision": "97498e08762a004ae296603f9b934e094d5b89fa"
 }
