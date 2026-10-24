@@ -90,7 +90,16 @@
       "light",
       "dark"
     ],
-    "largeText": "German shared-search journey uses Accessibility M. Prior auth audit covers XXXL."
+    "largeText": "German shared-search journey uses Accessibility M. Prior auth audit covers XXXL.",
+    "additionalSearchScreens": [
+      "build/block-01-recheck-20261024/additional-screens/701DC17B-4E33-4FFA-9EF2-B9A35EBE2C70.png",
+      "build/block-01-recheck-20261024/additional-screens/9A29A749-334F-4B5C-9719-2F44D164E75C.png"
+    ],
+    "startupVideo": "build/block-01-recheck-20261024/build120-launch-verified.mp4",
+    "startupFrames": "build/block-01-recheck-20261024/build120-frames/contact.png",
+    "startupFrameSamplingHz": 60,
+    "startupNearWhiteSamples": 0,
+    "startupCapture": "Debug owner fixture, cold launch through root feed. First unrelated recording had an idle home-screen prefix and was not used as launch evidence."
   },
   "roleCoverage": [
     "owner through administration/search",

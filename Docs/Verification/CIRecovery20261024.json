@@ -54,5 +54,12 @@
     "No backend deployment; dependency repair is source/lockfile only until an authorized deployment.",
     "Hosted rerun status must be read back separately; local success is not reported as GitHub success.",
     "No iOS product code or read deadlines were changed to silence these CI failures."
-  ]
+  ],
+  "hostedConfirmation": {
+    "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40091691758",
+    "commit": "c64c705db67fe8ab3bec65f900bda473cecc8950",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": "All five jobs passed, including iOS build and unit checks and Firebase affected checks."
+  }
 }

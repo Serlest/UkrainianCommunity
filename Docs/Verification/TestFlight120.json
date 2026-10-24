@@ -1,0 +1,81 @@
+{
+  "version": "1.2.1",
+  "build": 120,
+  "sourceCommit": "c64c705db67fe8ab3bec65f900bda473cecc8950",
+  "applicationChangesCommit": "c8fcdbd9",
+  "verifiedAt": "2026-10-24T12:02:34.889Z",
+  "scope": "Blocks 1–3 recheck delivery: shared interface/navigation, startup/authentication forms, profile/settings/security",
+  "archive": "succeeded",
+  "upload": "succeeded with the signed-in Xcode account after API Cloud signing permission failure",
+  "processingState": "VALID",
+  "internalState": "IN_BETA_TESTING",
+  "externalState": "IN_BETA_TESTING",
+  "groups": [
+    {
+      "name": "Beta Tester",
+      "isInternal": true,
+      "hasAccessToAllBuilds": true,
+      "containsBuild": true
+    },
+    {
+      "name": "Tester Serlest EXT",
+      "isInternal": false,
+      "hasAccessToAllBuilds": null,
+      "containsBuild": true
+    }
+  ],
+  "testNoteLocales": [
+    "uk",
+    "en-US",
+    "de-DE"
+  ],
+  "exportCompliance": {
+    "usesNonExemptEncryption": false
+  },
+  "archiveChecks": {
+    "version": "1.2.1",
+    "build": "120",
+    "compiledLaunchStoryboard": "LaunchScreen",
+    "path": "build/UAC-120-verified.xcarchive"
+  },
+  "reports": [
+    "Docs/Verification/GeneralInterfaceRecheck20261024.json",
+    "Docs/Verification/AuthPresentationImprovements20261024.json",
+    "Docs/Verification/ProfileSettingsFixes.json",
+    "Docs/Verification/CIRecovery20261024.json"
+  ],
+  "ci": {
+    "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40091691758",
+    "status": "completed",
+    "localIosPassed": 769,
+    "localIosSkipped": 10,
+    "localServerUnitPassed": 505,
+    "localServerIntegrationScenariosSkippedInUnitCommand": 142,
+    "conclusion": "success",
+    "verifiedAt": "2026-10-24T12:25:47.693636+00:00"
+  },
+  "thirdPartySymbolUploadWarnings": [
+    "FirebaseFirestoreInternal.framework",
+    "absl.framework",
+    "grpc.framework",
+    "grpcpp.framework",
+    "openssl_grpc.framework"
+  ],
+  "preservedExistingLocalChanges": {
+    "UkrainianCommunity/Localization/Localizable.xcstrings": {
+      "sha256": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a",
+      "note": "Existing changes from before this task retained, including in the archive; not included in focused source commits."
+    },
+    "UkrainianCommunity.xcodeproj/project.pbxproj": "Existing reorder preserved locally; only build-number change committed."
+  },
+  "boundaries": [
+    "No public App Store release.",
+    "Physical iPhone acceptance of blocks 1–3 is pending. Stop before block 4.",
+    "Backend body-parser security repair is in the source lockfile; no backend deployment performed.",
+    "Swift unit tests requiring separate emulator/system/live environments are not claimed as passed.",
+    "Symbol warnings affect third-party crash symbolication, not the confirmed Apple processing/distribution result."
+  ],
+  "verificationVideo": "build/block-01-recheck-20261024/build120-launch-verified.mp4",
+  "verificationFrames": "build/block-01-recheck-20261024/build120-frames/contact.png",
+  "verificationVideoScope": "Default synthetic owner cold start, first 12 seconds sampled at 60 Hz, reviewed visually; no repeated security-requirement screen or near-white frame observed. This does not prove every launch/device/network condition."
+}
