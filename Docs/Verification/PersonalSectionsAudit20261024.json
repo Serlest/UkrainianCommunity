@@ -142,7 +142,7 @@
   "delivery": {
     "source": "implemented and locally verified; committed separately from preserved pre-existing project/catalog changes",
     "serverDeployment": "not required; not performed",
-    "testFlight": "No new binary uploaded for block 4. Existing TestFlight 120 does not contain these changes.",
+    "testFlight": "1.2.1 (121) VALID, internal/external IN_BETA_TESTING; both existing groups contain this build, notes verified in uk/de-DE/en-US. See TestFlight121.json.",
     "physicalIPhone": "not verified in this block",
     "publicAppStoreRelease": "not performed"
   },

@@ -1,0 +1,69 @@
+{
+  "version": "1.2.1",
+  "build": 121,
+  "sourceCommit": "9c4e46522b2648d8ed2f8e78ae3f5b32e61a04a0",
+  "changesCommits": [
+    "2ea825997086b810bda2767eec7e1fd7264fd3a0",
+    "2d7b4ecbd6d370f0a88e5802cc70264eb2015f51"
+  ],
+  "verifiedAt": "2026-10-24T13:43:01.008Z",
+  "archive": "build/UAC-121.xcarchive",
+  "archiveResult": "succeeded",
+  "upload": "succeeded via signed-in Xcode account after API Cloud Signing failed",
+  "processingState": "VALID",
+  "internalState": "IN_BETA_TESTING",
+  "externalState": "IN_BETA_TESTING",
+  "groups": [
+    {
+      "name": "Beta Tester",
+      "isInternal": true,
+      "hasAccessToAllBuilds": true,
+      "containsBuild": true
+    },
+    {
+      "name": "Tester Serlest EXT",
+      "isInternal": false,
+      "hasAccessToAllBuilds": null,
+      "containsBuild": true
+    }
+  ],
+  "testNoteLocales": [
+    "uk",
+    "de-DE",
+    "en-US"
+  ],
+  "testNotesReadback": "All three locale texts match the submitted notes exactly.",
+  "exportCompliance": {
+    "usesNonExemptEncryption": false
+  },
+  "sourceHashes": {
+    "UkrainianCommunity/Localization/Localizable.xcstrings": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a",
+    "UkrainianCommunity.xcodeproj/project.pbxproj": "74b7d26ebc14b4fef0f3aef1b8b31685f6c241b80a4ecd0311bd8b90c95c362e"
+  },
+  "preservedExistingLocalChanges": [
+    "Project reordering outside the focused build-number commit",
+    "Existing Localizable.xcstrings changes retained in the archive, not included in focused commits"
+  ],
+  "verification": [
+    "Docs/Verification/PersonalSectionsAudit20261024.json",
+    "Docs/Verification/AppleButtonDisabledAppearance20261024.json"
+  ],
+  "userChecklist": "Docs/Verification/TestFlight121.ru.md",
+  "ci": {
+    "sourceRun": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40098099536",
+    "status": "in_progress",
+    "note": "Static checks passed; iOS build and unit checks remain running. This is not a hosted success claim."
+  },
+  "symbolWarnings": [
+    "FirebaseFirestoreInternal.framework",
+    "absl.framework",
+    "grpc.framework",
+    "grpcpp.framework",
+    "openssl_grpc.framework"
+  ],
+  "boundaries": [
+    "No public App Store release.",
+    "No backend deployment.",
+    "Physical iPhone acceptance remains with the user; audit section 5 not started."
+  ]
+}

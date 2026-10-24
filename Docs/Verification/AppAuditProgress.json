@@ -31,7 +31,8 @@
       "name": "Личные разделы",
       "status": "implemented_verified_in_scope",
       "report": "Docs/Verification/PersonalSectionsAudit20261024.json",
-      "inventory": "Docs/Verification/PersonalSectionsInventory20261024.md"
+      "inventory": "Docs/Verification/PersonalSectionsInventory20261024.md",
+      "testFlightBuild": 121
     },
     {
       "number": 5,
