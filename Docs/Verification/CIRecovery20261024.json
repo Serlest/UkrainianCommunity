@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-24T11:53:15.308838+00:00",
+  "failedRun": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40088726653",
+  "failedCommit": "8b35537f5a696cbf0e5a20b509f69da717c562ec",
+  "findings": [
+    {
+      "area": "Firebase affected checks",
+      "cause": "npm audit found high-severity body-parser 2.3.0 advisory GHSA-27r3-jxmh-p828; the required-status alias inherited the failure.",
+      "fix": "Lock only body-parser 2.4.0 and its qs 6.16.1 requirement; no audit threshold suppression.",
+      "advisory": "https://github.com/advisories/GHSA-27r3-jxmh-p828"
+    },
+    {
+      "area": "iOS unit checks",
+      "cause": "Full-run xcresult has 3 failed tests among 774: legal read coalescing threw network timeout, security coalescing returned false, and registrations remained empty after refresh. The run reports 151–225 second durations for many normally millisecond MainActor tests, consistent with overloaded parallel execution and read deadlines.",
+      "failedTests": [
+        "AuthFlowReliabilityTests/simultaneousDocumentLoadsShareOneRequestAndKeepAuthoritativePair()",
+        "ProfileCompletionReliabilityTests/concurrentSecurityClaimReadsShareOneSnapshot()",
+        "UkrainianCommunityTests/myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount()"
+      ],
+      "fix": "Move these three to the existing timeout-sensitive isolated lane: seven tests in total, all assertions and production deadlines unchanged. Run isolation even if the main test step fails; require exactly seven discovered tests.",
+      "localProof": "The same 3 tests pass unchanged in isolation; the complete revised main set and the exact isolated set pass locally. Hosted confirmation remains separate."
+    },
+    {
+      "area": "Cancelled diagnostics",
+      "cause": "Every following push to main cancelled the in-progress required workflow, including release/evidence commits.",
+      "fix": "Preserve running main validation; retain cancellation for pull requests and other push branches."
+    }
+  ],
+  "verification": {
+    "productionDependencyAudit": "0 vulnerabilities",
+    "typescript": "tsc --noEmit passed",
+    "serverUnitTests": {
+      "passed": 505,
+      "failed": 0,
+      "skipped": 142,
+      "note": "Skipped integration scenarios require their dedicated emulator commands; not claimed as passed."
+    },
+    "iosMain": {
+      "bundle": "build/block-01-recheck-20261024/CICompleteMain.xcresult",
+      "passed": 762,
+      "failed": 0,
+      "skipped": 10
+    },
+    "iosIsolated": {
+      "bundle": "build/block-01-recheck-20261024/CIIsolatedSeven.xcresult",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    "classifierTests": 19,
+    "validationRunnerTests": 16
+  },
+  "boundaries": [
+    "No backend deployment; dependency repair is source/lockfile only until an authorized deployment.",
+    "Hosted rerun status must be read back separately; local success is not reported as GitHub success.",
+    "No iOS product code or read deadlines were changed to silence these CI failures."
+  ]
+}

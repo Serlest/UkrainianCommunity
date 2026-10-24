@@ -16,7 +16,8 @@ permissions:
 
 concurrency:
   group: quality-${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+  # Keep main validation alive when a release-evidence/docs commit follows.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref != 'refs/heads/main') }}
 
 jobs:
   changes:
@@ -325,9 +326,12 @@ jobs:
           "-skip-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-skip-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
           "-skip-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/dismissedDetailDoesNotRecordWhenConsentFinishesLater()"
+          "-skip-testing:UkrainianCommunityTests/AuthFlowReliabilityTests/simultaneousDocumentLoadsShareOneRequestAndKeepAuthoritativePair()"
+          "-skip-testing:UkrainianCommunityTests/ProfileCompletionReliabilityTests/concurrentSecurityClaimReadsShareOneSnapshot()"
+          "-skip-testing:UkrainianCommunityTests/UkrainianCommunityTests/myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount()"
 
-      - name: Run timeout-sensitive analytics unit tests in isolation
-        if: needs.changes.outputs.ios_unit == 'true'
+      - name: Run timeout-sensitive unit tests in isolation
+        if: ${{ !cancelled() && needs.changes.outputs.ios_unit == 'true' }}
         run: >
           xcodebuild
           -project UkrainianCommunity.xcodeproj
@@ -343,6 +347,9 @@ jobs:
           "-only-testing:UkrainianCommunityTests/OwnerAnalyticsAuditTests/contentDetailLatestPeriodSelectionWinsWhenOlderRequestFinishesLast()"
           "-only-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/visibleDetailsRetryAfterConsentConfirmationWithoutDuplicates()"
           "-only-testing:UkrainianCommunityTests/AnalyticsDeliveryConsistencyTests/dismissedDetailDoesNotRecordWhenConsentFinishesLater()"
+          "-only-testing:UkrainianCommunityTests/AuthFlowReliabilityTests/simultaneousDocumentLoadsShareOneRequestAndKeepAuthoritativePair()"
+          "-only-testing:UkrainianCommunityTests/ProfileCompletionReliabilityTests/concurrentSecurityClaimReadsShareOneSnapshot()"
+          "-only-testing:UkrainianCommunityTests/UkrainianCommunityTests/myRegistrationsViewModelCancelRegistrationRemovesEventAndUpdatesCount()"
 
       - name: Verify Swift unit tests were discovered
         if: ${{ always() && needs.changes.outputs.ios_unit == 'true' }}
@@ -367,8 +374,8 @@ jobs:
               if not isinstance(count, int) or count < 1:
                   raise SystemExit(f"Expected at least one Swift unit test in {summary_path}, found {count!r}")
               counts.append(count)
-          if counts[1] != 4:
-              raise SystemExit(f"Expected exactly four isolated Swift unit tests, found {counts[1]}")
+          if counts[1] != 7:
+              raise SystemExit(f"Expected exactly seven isolated Swift unit tests, found {counts[1]}")
           print(f"Verified {sum(counts)} discovered Swift unit tests across both runs")
           PY
 
