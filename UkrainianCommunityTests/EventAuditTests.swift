@@ -4,8 +4,8 @@ import Testing
 
 @MainActor
 struct EventAuditTests {
-    func fixture() -> Event {
-        let start = Date().addingTimeInterval(86400)
+    func fixture(start: Date? = nil) -> Event {
+        let start = start ?? Date().addingTimeInterval(86400)
         return Event(id: "event-audit-" + UUID().uuidString, schemaVersion: 2,
             localizations: ["de": EventLocalizedContent(title: "Deutscher Titel", summary: "Zusammenfassung", details: "Beschreibung")],
             title: "Title", summary: "Summary", details: "Details", federalState: .tirol,
@@ -68,12 +68,35 @@ struct EventAuditTests {
     @Test func todayIncludesOngoingMultiDayEventsButNotOldOrCancelledSessions() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/Vienna")!
-        let event = fixture()
+        let event = fixture(start: calendar.date(from: DateComponents(year: 2026, month: 10, day: 25, hour: 12))!)
         let now = event.occurrences[1].startDate.addingTimeInterval(1800)
         #expect(EventDiscoveryFilter.today.matches(event, at: now, calendar: calendar))
         #expect(!EventDiscoveryFilter.today.matches(event, at: event.startDate, calendar: calendar))
         #expect(!EventDiscoveryFilter.today.matches(event, at: now.addingTimeInterval(86400), calendar: calendar))
         #expect(EventDiscoveryFilter.all.matches(event, at: now.addingTimeInterval(86400), calendar: calendar))
+    }
+
+    @Test(arguments: [DateComponents(year: 2026, month: 3, day: 29),
+                      DateComponents(year: 2026, month: 10, day: 25)])
+    func overnightSessionAppearsOnBothCalendarDaysAcrossClockChanges(day: DateComponents) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Vienna")!
+        let midnight = calendar.date(from: day)!
+        let start = calendar.date(byAdding: .minute, value: -30, to: midnight)!
+        let end = calendar.date(bySettingHour: 4, minute: 0, second: 0, of: midnight)!
+        func overnight(status: EventOccurrenceStatus) -> Event {
+            Event(id: "overnight", title: "Overnight", summary: "Summary", details: "Details", city: "Wien", venue: "Hall",
+                  startDate: start, endDate: end,
+                  occurrences: [EventOccurrence(id: "overnight", startDate: start, endDate: end, status: status)],
+                  createdAt: start, updatedAt: start, capacity: nil, registeredCount: 0, comments: [],
+                  moderationStatus: .approved, registrationState: .notRegistered, likeCount: 0, likeState: .notLiked)
+        }
+        let event = overnight(status: .scheduled)
+        #expect(EventDiscoveryFilter.today.matches(event, at: start, calendar: calendar))
+        #expect(EventDiscoveryFilter.today.matches(event, at: midnight, calendar: calendar))
+        let followingDay = calendar.date(byAdding: .day, value: 1, to: midnight)!
+        #expect(!EventDiscoveryFilter.today.matches(event, at: followingDay, calendar: calendar))
+        #expect(!EventDiscoveryFilter.today.matches(overnight(status: .cancelled), at: midnight, calendar: calendar))
     }
 
     @Test func todayIncludesAnEventWhichStartedYesterday() {

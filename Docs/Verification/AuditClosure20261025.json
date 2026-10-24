@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-25",
+  "status": "in_progress",
+  "sourceBaseline": "4d938f4f",
+  "closedChecks": [],
+  "evidence": [
+    {
+      "kind": "hosted_failure_reproduced",
+      "run": 40136715113,
+      "suite": "EventAuditTests",
+      "baseline": "build/audit-closure-20261025/DateBaseline.xcresult",
+      "fixed": "build/audit-closure-20261025/DateFixed2.xcresult",
+      "result": "8 tests passed; parameterized overnight DST cases both passed",
+      "scope": "Calendar filter test fixed; product filter unchanged"
+    },
+    {
+      "check": "R02-B",
+      "kind": "live_configuration_read",
+      "transport": "Identity Toolkit admin v2 with existing Firebase CLI OAuth",
+      "project": "ukrainiancommunity-dbd5f",
+      "status": 200,
+      "emailPassword": true,
+      "appleEnabled": true,
+      "appleClientIDConfigured": true,
+      "googleEnabled": true,
+      "googleClientIDConfigured": true,
+      "googleClientSecretConfigured": true,
+      "totpEnabled": true,
+      "limitation": "Does not prove actual provider sign-in, Apple key validity or email relay; those remain R02-A/C"
+    }
+  ]
+}
