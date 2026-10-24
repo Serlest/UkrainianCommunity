@@ -1,7 +1,9 @@
 import SwiftUI
+import UIKit
 
 struct NewsHomeCard: View {
     let post: NewsPost
+    var previewImage: UIImage? = nil
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
@@ -30,11 +32,17 @@ struct NewsHomeCard: View {
         .accessibilityLabel(accessibilitySummary)
     }
 
-    private var thumbnail: some View {
+    @ViewBuilder private var thumbnail: some View {
+        if let previewImage {
+            Image(uiImage: previewImage).resizable().scaledToFill()
+                .frame(width: thumbnailSize, height: thumbnailSize)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        } else {
         AppFeedThumbnail(imageURL: post.imageURL, fallbackSystemImage: "newspaper",
                          tint: AppTheme.accentSuccessForeground, fill: AppTheme.badgeGreenFill,
                          size: thumbnailSize, source: "NewsHomeCard")
             .frame(width: thumbnailSize, height: thumbnailSize)
+        }
     }
 
     private var details: some View {

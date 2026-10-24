@@ -76,7 +76,7 @@ struct NewsHomeView: View {
                             ? 0 : AppTheme.homeSectionSpacing)
 
                     NewsHomeFilterRow(filter: $filter, selectedFederalState: $selectedFederalState,
-                                      authenticated: authState.isAuthenticated)
+                                      authenticated: authState.isAuthenticated && PermissionService.isUsableAccount(user: authState.user))
                         .id(languageCode)
                         .padding(.bottom, AppTheme.homeSectionSpacing)
 
@@ -106,6 +106,13 @@ struct NewsHomeView: View {
         .appRefreshable { await refresh() }
         .task(id: browseLoadKey) {
             guard isActive, isAuthBootstrapReady else { return }
+            // Avoid sending a page request for each keystroke. Clearing search
+            // and explicit refresh remain immediate.
+            if !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                do { try await Task.sleep(for: .milliseconds(300)) }
+                catch { return }
+            }
+            guard !Task.isCancelled else { return }
             await newsBrowser.loadIfNeeded(browseQuery, visibility: newsViewModel.visibilityPolicy)
         }
         .task(id: bannerLoadKey) {
@@ -115,12 +122,14 @@ struct NewsHomeView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in
             guard isActive else { return }
-            Task { await newsViewModel.refresh() }
+            referenceDate = Date()
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             if isActive && filter.scope == .subscribed { referenceDate = Date() }
         }
-        .onChange(of: newsViewModel.contentVersion) { _, _ in
+        .onChange(of: newsViewModel.visibilityPolicy) { _, _ in
+            // Unlike a like/bookmark, a visibility change can reveal rows that
+            // were intentionally omitted while the blocking policy was loading.
             referenceDate = Date()
         }
         .onChange(of: authState.user?.id) { _, _ in
@@ -183,17 +192,20 @@ struct NewsHomeView: View {
                 Button(NewsBrowseStrings.text("more")) {
                     Task { await newsBrowser.loadMore(visibility: newsViewModel.visibilityPolicy) }
                 }
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .accessibilityIdentifier("home.news.more")
             } else if visiblePosts.isEmpty && newsBrowser.error == nil {
                 Text(NewsBrowseStrings.text("empty")).accessibilityIdentifier("home.news.empty")
                 if filter.period != .all {
                     Button(NewsBrowseStrings.text("expandPeriod")) { filter.period = .all }
+                        .foregroundStyle(AppTheme.accentPrimaryForeground)
                 }
                 Button(NewsBrowseStrings.text("reset")) {
                     filter = NewsBrowseFilter()
                     searchText = ""
                     selectedFederalState = nil
                 }
+                .foregroundStyle(AppTheme.accentPrimaryForeground)
                 .accessibilityIdentifier("home.news.clear")
             }
         }
@@ -205,7 +217,8 @@ struct NewsHomeView: View {
     }
 
     private var visiblePosts: [NewsPost] {
-        newsViewModel.visibilityPolicy.visibleNews(newsBrowser.posts)
+        newsBrowser.visiblePosts(updates: newsViewModel.posts, removedIDs: newsViewModel.deletedNewsIDs,
+                                 visibility: newsViewModel.visibilityPolicy)
     }
 
     private var browseLoadKey: String { "\(browseQuery.hashValue):\(isActive)" }
@@ -238,7 +251,8 @@ struct NewsHomeView: View {
     @ViewBuilder private func destinationView(for destination: HomeFeedDestinationReference) -> some View {
         switch destination {
         case let .news(id):
-            NewsDetailView(viewModel: newsViewModel, postID: id, onNewsDeleted: {}, onNavigateBack: popDetail)
+            NewsDetailView(viewModel: newsViewModel, postID: id, onNewsDeleted: {},
+                           organizationRepository: organizationsViewModel.editorRepository, onNavigateBack: popDetail)
         case let .event(id):
             EventDetailView(viewModel: eventsViewModel, eventID: id, onEventDeleted: {}, onNavigateBack: popDetail)
         case let .organization(id):

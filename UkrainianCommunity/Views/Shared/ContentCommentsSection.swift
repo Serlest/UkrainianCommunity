@@ -97,6 +97,7 @@ struct ContentCommentComposer: View {
                                 ProgressView().tint(.white)
                             } else {
                                 Image(systemName: "paperplane.fill").font(.subheadline.weight(.bold))
+                                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                             }
                         }
                         .foregroundStyle(.white)
@@ -157,6 +158,7 @@ struct ContentCommentRow<Actions: View>: View {
                 showsBorder: false, shadowOpacity: 0, shadowRadius: 0, shadowY: 0,
                 initialsFont: .caption.weight(.bold), placeholderFill: AppTheme.accentPrimarySoft
             )
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .top, spacing: 8) {

@@ -576,3 +576,101 @@ struct ContentEditorValidationTests {
         )
     }
 }
+
+
+extension ContentEditorValidationTests {
+    @Test func newsPublishEnforcesTheSameOptionalFieldLimitsAsItsButton() async {
+        let editor = NewsEditorViewModel(repository: MockNewsRepository(), mode: .create(context: .init(
+            organizationId: "validation-only", organizationName: "Test", organizationImageURL: nil, organizationFederalState: .tirol)))
+        editor.title = "Новина"; editor.summary = "Опис"; editor.body = "Текст"
+        editor.germanTitle = String(repeating: "x", count: NewsEditorViewModel.titleLimit + 1)
+        #expect(!editor.canPublish)
+        #expect(!(await editor.publish()))
+        #expect(editor.errorMessage == ContentPublishingStrings.publishingFieldsTooLong)
+    }
+}
+
+
+extension ContentEditorValidationTests {
+    @Test func newsPublishRejectsAnExpiredScheduleBeforeWriting() async {
+        let editor = NewsEditorViewModel(repository: MockNewsRepository(), mode: .create(context: .init(
+            organizationId: "schedule-validation-only", organizationName: "Test", organizationImageURL: nil, organizationFederalState: .tirol)))
+        editor.title = "Новина"; editor.summary = "Опис"; editor.body = "Текст"
+        editor.publicationMode = .scheduled; editor.scheduledAt = Date().addingTimeInterval(-60)
+        #expect(!editor.canPublish)
+        #expect(!(await editor.publish()))
+        #expect(editor.errorMessage == AppStrings.ContentPublishing.invalidSchedule)
+    }
+}
+
+
+extension ContentEditorValidationTests {
+    @Test func editingUnrelatedTextPreservesBothSourceFieldsAndTracksUnsavedChanges() {
+        let original = NewsPost(id: "edit-roundtrip", title: "Title", subtitle: "Summary", federalState: .tirol,
+            sourceName: "Official Source", sourceURL: "https://example.org/original", body: "Body", authorName: "Author",
+            publishedAt: .now, createdAt: .now, updatedAt: .now, comments: [], moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
+        let editor = NewsEditorViewModel(repository: MockNewsRepository(), mode: .edit(existing: original))
+        #expect(!editor.hasUnsavedEdits)
+        editor.title += " edited"
+        #expect(editor.hasUnsavedEdits)
+        #expect(editor.previewPost.sourceName == original.sourceName)
+        #expect(editor.previewPost.sourceURL == original.sourceURL)
+        editor.title = original.title
+        #expect(!editor.hasUnsavedEdits)
+        editor.germanBody = "Deutscher Text"
+        #expect(editor.hasUnsavedEdits)
+    }
+}
+
+
+extension ContentEditorValidationTests {
+    @Test func editingPreservesAuthorshipWithANewImageAndAppliesAnExplicitRegion() {
+        let original = NewsPost(id: "national-edit", title: "Title", subtitle: "Summary", regionScope: .austria,
+            federalState: nil, body: "Body", authorId: "original-author", authorName: "Original Author",
+            publishedAt: .now, createdAt: .now, updatedAt: .now, comments: [], moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
+        let editor = NewsEditorViewModel(repository: MockNewsRepository(), mode: .edit(existing: original))
+        editor.setSelectedImageData(Data([1]))
+        #expect(editor.previewPost.authorName == "Original Author")
+        editor.selectedRegionScope = .federalState
+        #expect(editor.previewFederalState == nil)
+        #expect(!editor.canPublish)
+        editor.selectedFederalState = .wien
+        #expect(editor.previewFederalState == .wien)
+        #expect(editor.previewPost.federalState == .wien)
+        #expect(editor.hasUnsavedEdits)
+    }
+}
+
+
+extension ContentEditorValidationTests {
+    @Test func editRoundTripRetainsEveryPublishingFieldAndServerCounter() async throws {
+        let repository = MockNewsRepository()
+        let id = "roundtrip-" + UUID().uuidString
+        let original = NewsPost(id: id, schemaVersion: 2,
+            localizations: ["de": NewsLocalizedContent(title: "DE Title", subtitle: "DE Summary", body: "DE Body")],
+            title: "Title", subtitle: "Summary", federalState: .tirol, category: .housing, additionalCategories: [.work], tags: ["tag"],
+            source: ContentSourceMetadata(sourceType: .organization, organizationId: "test-org", organizationName: "Test Org"),
+            sourceName: "Official Source", sourceURL: "https://example.org/source", imageURL: "https://example.org/image.jpg",
+            mediaMetadata: NewsMediaMetadata(caption: "Caption", alternativeText: "Alt", credit: "Credit"),
+            externalAction: ExternalContentAction(title: "Details", url: "https://example.org/details"),
+            body: "Body", authorId: "original-author", authorName: "Original Author", publishedAt: .now, createdAt: .now, updatedAt: .now,
+            comments: [], moderationStatus: .approved, likeCount: 24, likeState: .liked, viewCount: 99, isBookmarked: true, commentCount: 150)
+        try await repository.createNews(original)
+        let editor = NewsEditorViewModel(repository: repository, mode: .edit(existing: original))
+        editor.title = "Edited Title"; editor.selectedFederalState = .wien
+        #expect(await editor.publish())
+        let stored = try await repository.fetchNews(id: id)
+        #expect(stored.title == "Edited Title" && stored.federalState == .wien)
+        #expect(stored.schemaVersion == 2 && stored.localizations["de"] == original.localizations["de"])
+        #expect(stored.localizations["uk"]?.title == "Edited Title")
+        #expect(stored.additionalCategories == original.additionalCategories && stored.tags == original.tags)
+        #expect(stored.sourceName == original.sourceName && stored.sourceURL == original.sourceURL)
+        #expect(stored.mediaMetadata == original.mediaMetadata && stored.externalAction == original.externalAction)
+        #expect(stored.imageURL == original.imageURL)
+        #expect(stored.authorId == original.authorId && stored.authorName == original.authorName)
+        #expect(stored.createdAt == original.createdAt && stored.publishedAt == original.publishedAt)
+        #expect(stored.likeCount == 24 && stored.viewCount == 99 && stored.commentCount == 150)
+        #expect(stored.likeState == .liked && stored.isBookmarked)
+        try await repository.deleteNews(id: id)
+    }
+}

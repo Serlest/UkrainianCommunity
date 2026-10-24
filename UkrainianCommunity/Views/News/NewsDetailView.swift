@@ -48,6 +48,10 @@ struct NewsDetailView: View {
         self.organizationRepository = organizationRepository
     }
 
+    var canUseNewsInteractions: Bool {
+        !authState.isAuthenticated || PermissionService.isUsableAccount(user: authState.user)
+    }
+
     var canEditNews: Bool {
         guard let post = viewModel.post(for: postID) else { return false }
         if PermissionService.canEditNews(user: authState.user) {
@@ -66,6 +70,7 @@ struct NewsDetailView: View {
     }
 
     var canDeleteNews: Bool {
+        guard PermissionService.isUsableAccount(user: authState.user) else { return false }
         guard let post = viewModel.post(for: postID) else { return false }
         guard let organizationID = post.source.organizationId else {
             return PermissionService.canDeleteNews(post, user: authState.user)
@@ -83,8 +88,9 @@ struct NewsDetailView: View {
     var editSheetContent: some View {
         if let post = viewModel.post(for: postID) {
             NavigationStack {
-                NewsEditorView(repository: viewModel.editorRepository, news: post) { _ in
-                    await viewModel.refresh()
+                NewsEditorView(repository: viewModel.editorRepository, news: post, organizationRepository: organizationRepository) { _ in
+                    // Refresh this exact item, including articles outside the first page.
+                    await loadNewsDetail(force: true, loadsRecommendations: true)
                     return true
                 }
             }
@@ -145,38 +151,19 @@ struct NewsDetailView: View {
                 }
             }
         }
-        .appDestructiveActionDialog(Binding(
-            get: {
-                guard showDeleteConfirmation else { return nil }
-                return AppDestructiveActionDialog(
-                    title: AppStrings.News.deleteConfirmation,
-                    message: "",
-                    destructiveActionTitle: AppStrings.News.delete,
-                    cancelTitle: AppStrings.News.cancel
-                ) {
-                    Task {
-                        await deleteCurrentNews()
-                    }
-                }
-            },
-            set: { if $0 == nil { showDeleteConfirmation = false } }
-        ))
-        .appDestructiveActionDialog(Binding(
-            get: {
-                guard let commentID = pendingCommentDeleteID else { return nil }
-                return AppDestructiveActionDialog(
-                    title: AppStrings.Common.deleteCommentConfirmation,
-                    message: "",
-                    destructiveActionTitle: AppStrings.Action.delete,
-                    cancelTitle: AppStrings.News.cancel
-                ) {
-                    Task {
-                        await deleteComment(commentID: commentID)
-                    }
-                }
-            },
-            set: { if $0 == nil { pendingCommentDeleteID = nil } }
-        ))
+        .alert(AppStrings.News.deleteConfirmation, isPresented: $showDeleteConfirmation) {
+            Button(AppStrings.News.delete, role: .destructive) { Task { await deleteCurrentNews() } }
+            Button(AppStrings.News.cancel, role: .cancel) {}
+        }
+        .alert(AppStrings.Common.deleteCommentConfirmation, isPresented: Binding(
+            get: { pendingCommentDeleteID != nil },
+            set: { if !$0 { pendingCommentDeleteID = nil } }
+        )) {
+            Button(AppStrings.Action.delete, role: .destructive) {
+                if let commentID = pendingCommentDeleteID { Task { await deleteComment(commentID: commentID) } }
+            }
+            Button(AppStrings.News.cancel, role: .cancel) { pendingCommentDeleteID = nil }
+        }
         .appErrorDialog(Binding(
             get: {
                 deleteErrorMessage.map {
@@ -289,12 +276,15 @@ struct NewsDetailView: View {
         }
 
         guard let post = viewModel.post(for: postID) else { return }
-        await loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
-        await viewModel.loadComments(for: postID, forceRefresh: force)
+        // These independent reads must not queue behind organization permissions.
+        async let permissions: Void = loadPermissionOrganizationIfNeeded(organizationID: post.source.organizationId)
+        async let comments: Void = viewModel.loadComments(for: postID, forceRefresh: force)
         if loadsRecommendations {
             relatedNewsCandidates = await viewModel.recommendationCandidates(for: post)
             refreshRelatedNewsRecommendations()
         }
+        _ = await (permissions, comments)
+        guard !Task.isCancelled else { return }
         guard !recordedViewKeys.contains(newsViewTaskID) else { return }
         recordedViewKeys.insert(newsViewTaskID)
         viewModel.recordView(for: postID)
@@ -381,7 +371,7 @@ struct NewsDetailView: View {
         do {
             try await viewModel.deleteNews(id: postID)
             pendingRemovalPostID = postID
-            dismiss()
+            navigateBack()
             onNewsDeleted()
         } catch let appError as AppError {
             deleteErrorMessage = readableNewsErrorText(appError)
@@ -396,6 +386,7 @@ struct NewsDetailView: View {
             return
         }
 
+        guard canUseNewsInteractions else { return }
         viewModel.toggleLike(for: postID)
     }
 
@@ -405,6 +396,7 @@ struct NewsDetailView: View {
             return
         }
 
+        guard canUseNewsInteractions else { return }
         viewModel.toggleBookmark(for: postID)
     }
 }

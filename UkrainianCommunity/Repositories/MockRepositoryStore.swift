@@ -14,6 +14,20 @@ actor MockRepositoryStore {
         return MockContentBuilder.currentUser()
     }()
     private var personalPageRequests: [String: Int] = [:]
+    private var newsBrowseReadCount = 0
+    func newsBrowsePageIsEmpty() async throws -> Bool {
+        #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            let state = ProcessInfo.processInfo.environment["UITestNewsPageState"]
+            if state == "empty" { return true }
+            if state == "retry" {
+                newsBrowseReadCount += 1
+                if newsBrowseReadCount == 1 { try await Task.sleep(for: .seconds(4)); throw AppError.network }
+            }
+        }
+        #endif
+        return false
+    }
     func personalPageIsEmpty(_ section: String) async throws -> Bool {
 #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
@@ -387,17 +401,22 @@ actor MockRepositoryStore {
         let existingItem = news[index]
         news[index] = NewsPost(
             id: existingItem.id,
+            schemaVersion: item.schemaVersion,
+            localizations: item.localizations,
             title: item.title,
             subtitle: item.subtitle,
             regionScope: item.regionScope,
             federalState: item.federalState,
             city: item.city,
             category: item.category,
+            additionalCategories: item.additionalCategories,
             tags: item.tags,
             source: item.source,
             sourceName: item.sourceName,
             sourceURL: item.sourceURL,
             imageURL: item.imageURL,
+            mediaMetadata: item.mediaMetadata,
+            externalAction: item.externalAction,
             body: item.body,
             authorId: existingItem.authorId,
             authorName: item.authorName,
@@ -406,7 +425,7 @@ actor MockRepositoryStore {
             createdAt: existingItem.createdAt,
             updatedAt: item.updatedAt,
             comments: existingItem.comments,
-            moderationStatus: existingItem.moderationStatus,
+            moderationStatus: item.moderationStatus,
             likeCount: existingItem.likeCount,
             likeState: existingItem.likeState,
             viewCount: existingItem.viewCount,
@@ -1029,6 +1048,7 @@ private extension NewsPost {
             federalState: federalState,
             city: city,
             category: category,
+            additionalCategories: additionalCategories,
             tags: tags,
             source: source,
             sourceName: sourceName,

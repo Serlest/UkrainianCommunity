@@ -1,0 +1,54 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "editor.discard.title": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відхилити зміни?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Änderungen verwerfen?"
+          }
+        }
+      }
+    },
+    "editor.discard.message": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зміни в цій новині ще не збережено."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Änderungen an dieser Nachricht wurden noch nicht gespeichert."
+          }
+        }
+      }
+    },
+    "editor.region.choose": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оберіть федеральну землю"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bundesland auswählen"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

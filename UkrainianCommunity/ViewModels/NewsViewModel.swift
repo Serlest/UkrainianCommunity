@@ -10,6 +10,7 @@ final class NewsViewModel: ObservableObject {
     @Published private(set) var isLoadingNextPage = false
     @Published private(set) var hasMorePages = false
     @Published private(set) var contentVersion = 0
+    @Published private(set) var deletedNewsIDs = Set<String>()
     @Published private(set) var pendingNewsLikeIDs = Set<String>()
     @Published private(set) var pendingNewsBookmarkIDs = Set<String>()
     @Published private(set) var pendingNewsViewIDs = Set<String>()
@@ -37,6 +38,7 @@ final class NewsViewModel: ObservableObject {
         self.repository = repository
         self.analyticsService = analyticsService
         posts = []
+        deletedNewsIDs = []
         isLoading = false
     }
 
@@ -127,6 +129,7 @@ final class NewsViewModel: ObservableObject {
         recommendationCandidateTasks.removeAll()
         recommendationCandidateCache.removeAll()
         posts = []
+        deletedNewsIDs = []
         isLoading = false
         isLoadingNextPage = false
         hasMorePages = false
@@ -380,9 +383,7 @@ final class NewsViewModel: ObservableObject {
             let comments = try await RefreshRequest.run { [repository] in try await repository.fetchNewsComments(newsID: postID) }
             guard isCurrentAuthGeneration(generation),
                   let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return }
-            let visibleComments = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
-            posts[currentIndex].comments = visibleComments
-            posts[currentIndex].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            applyLoadedComments(comments, at: currentIndex)
             commentLoadStates[postID] = .loaded
             error = nil
         } catch let appError as AppError {
@@ -395,6 +396,15 @@ final class NewsViewModel: ObservableObject {
             commentLoadStates[postID] = .failed(mapped)
             self.error = mapped
         }
+    }
+
+    private func applyLoadedComments(_ comments: [Comment], at index: Int) {
+        let visible = visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
+        posts[index].comments = visible
+        let count = visible.filter { !$0.isDeleted }.count
+        // Firestore streams the latest 100 comments, not necessarily the entire
+        // discussion. Do not replace a confirmed total of 500 with 100.
+        posts[index].commentCount = comments.count >= 100 ? max(posts[index].commentCount, count) : count
     }
 
     func stopListeningComments(for postID: String) {
@@ -412,9 +422,7 @@ final class NewsViewModel: ObservableObject {
             guard let self,
                   self.isCurrentAuthGeneration(generation),
                   let index = self.posts.firstIndex(where: { $0.id == postID }) else { return }
-            let visibleComments = self.visibilityPolicy.visibleComments(comments.deduplicatedCommentsByID())
-            self.posts[index].comments = visibleComments
-            self.posts[index].commentCount = visibleComments.filter { !$0.isDeleted }.count
+            self.applyLoadedComments(comments, at: index)
             self.commentLoadStates[postID] = .loaded
             self.error = nil
         } onError: { [weak self] appError in
@@ -445,8 +453,10 @@ final class NewsViewModel: ObservableObject {
             let comment = try await repository.addNewsComment(newsID: postID, text: text, author: author)
             guard isCurrentAuthGeneration(generation),
                   let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return .ignored }
+            let alreadyKnown = posts[currentIndex].comments.contains { $0.id == comment.id }
             posts[currentIndex].comments.upsertCommentByID(comment)
-            posts[currentIndex].commentCount = posts[currentIndex].comments.filter { !$0.isDeleted }.count
+            posts[currentIndex].commentCount = max(posts[currentIndex].commentCount + (alreadyKnown ? 0 : 1),
+                                                  posts[currentIndex].comments.filter { !$0.isDeleted }.count)
             error = nil
             return .success
         } catch {
@@ -506,8 +516,10 @@ final class NewsViewModel: ObservableObject {
             try await repository.deleteNewsComment(newsID: postID, commentID: commentID)
             guard isCurrentAuthGeneration(generation),
                   let currentIndex = posts.firstIndex(where: { $0.id == postID }) else { return .ignored }
+            let wasVisible = posts[currentIndex].comments.contains { $0.id == commentID }
             posts[currentIndex].comments.removeAll { $0.id == commentID }
-            posts[currentIndex].commentCount = posts[currentIndex].comments.filter { !$0.isDeleted }.count
+            posts[currentIndex].commentCount = max(posts[currentIndex].commentCount - (wasVisible ? 1 : 0),
+                                                  posts[currentIndex].comments.filter { !$0.isDeleted }.count)
             error = nil
             return .success
         } catch {
@@ -573,6 +585,7 @@ final class NewsViewModel: ObservableObject {
             try await repository.deleteNews(id: id)
             guard isCurrentAuthGeneration(generation) else { return }
             observedNewsCommentIDs.remove(id)
+            deletedNewsIDs.insert(id)
             posts.removeAll { $0.id == id }
             contentVersion &+= 1
             error = nil
@@ -665,12 +678,15 @@ final class NewsViewModel: ObservableObject {
     }
 
     func recommendationCandidates(for source: NewsPost, limit: Int = ContentRecommendationEngine.candidateLimit) async -> [NewsPost] {
+        // An edited article may have a different topic/tags. Cache per revision,
+        // while retaining coalescing for repeated opens of the unchanged item.
+        let cacheKey = "\(source.id):\(source.updatedAt.timeIntervalSince1970)"
         let boundedLimit = min(max(1, limit), ContentRecommendationEngine.candidateLimit)
-        if let cached = recommendationCandidateCache[source.id] {
+        if let cached = recommendationCandidateCache[cacheKey] {
             return Array(cached.prefix(boundedLimit))
         }
         let generation = authGeneration
-        if let existingTask = recommendationCandidateTasks[source.id] {
+        if let existingTask = recommendationCandidateTasks[cacheKey] {
             let fetched = await existingTask.value
             guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return [] }
             return Array(visibilityPolicy.visibleNews(fetched)
@@ -689,14 +705,14 @@ final class NewsViewModel: ObservableObject {
                 return fallback
             }
         }
-        recommendationCandidateTasks[source.id] = task
+        recommendationCandidateTasks[cacheKey] = task
         let fetched = await task.value
         guard !Task.isCancelled, isCurrentAuthGeneration(generation) else { return [] }
-        recommendationCandidateTasks[source.id] = nil
+        recommendationCandidateTasks[cacheKey] = nil
         let visible = visibilityPolicy.visibleNews(fetched)
             .filter { $0.id != source.id }
             .deduplicatedNewsByID()
-        recommendationCandidateCache[source.id] = visible
+        recommendationCandidateCache[cacheKey] = visible
         return Array(visible.prefix(boundedLimit))
     }
 
@@ -813,6 +829,7 @@ final class NewsViewModel: ObservableObject {
         loadTask = nil
         nextPageTask = nil
         posts = []
+        deletedNewsIDs = []
         isLoading = false
         isLoadingNextPage = false
         hasMorePages = false

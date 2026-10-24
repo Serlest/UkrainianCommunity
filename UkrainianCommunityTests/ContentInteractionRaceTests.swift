@@ -51,6 +51,21 @@ struct ContentInteractionRaceTests {
         #expect(second.map(\.id) == first.map(\.id))
     }
 
+    @Test func editingNewsInvalidatesRecommendationCandidates() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        repository.recommendationCandidates = [makeNewsPost(id: "old-candidate")]
+        let original = makeNewsPost(id: "edited-source")
+        _ = await model.recommendationCandidates(for: original)
+        repository.recommendationCandidates = [makeNewsPost(id: "new-candidate")]
+        let edited = NewsPost(id: original.id, title: "Changed", subtitle: "Summary", body: "Different topic",
+            authorName: "Author", publishedAt: original.publishedAt, createdAt: original.createdAt,
+            updatedAt: original.updatedAt.addingTimeInterval(1), comments: [], moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
+        let candidates = await model.recommendationCandidates(for: edited)
+        #expect(candidates.map(\.id) == ["new-candidate"])
+        #expect(repository.recommendationRequestCount == 2)
+    }
+
     @Test func smallRecommendationRequestDoesNotTruncateTheSharedCandidateCache() async {
         let repository = ControlledNewsRepository()
         let model = NewsViewModel(repository: repository)
@@ -416,6 +431,17 @@ struct ContentInteractionRaceTests {
         #expect(await eventually { viewModel.pendingNewsLikeIDs.isEmpty })
         #expect(viewModel.post(for: contentID)?.likeState == .liked)
         #expect(viewModel.post(for: contentID)?.likeCount == 41)
+    }
+
+    @Test func boundedNewsCommentsDoNotReplaceTheTotalWithOneHundred() async {
+        let repository = ControlledNewsRepository()
+        let model = NewsViewModel(repository: repository)
+        let id = "large-discussion"
+        model.posts = [makeNewsPost(id: id, commentCount: 500)]
+        await model.loadComments(for: id)
+        repository.emitNewsComments(newsID: id, comments: (0..<100).map { makeComment(id: "comment-\($0)") })
+        #expect(model.post(for: id)?.comments.count == 100)
+        #expect(model.post(for: id)?.commentCount == 500)
     }
 
     @Test func newsCommentDeleteDoesNotDoubleDecrementCountAfterRefresh() async {
@@ -949,6 +975,8 @@ private final class ControlledNewsRepository: NewsRepository, NewsRealtimeReposi
     private(set) var commentDeleteRequestCount = 0
     private(set) var deleteRequestCount = 0
     private(set) var commentListeners: [NewsCommentTestListener] = []
+    private var newsCommentsCallback: (@MainActor ([UkrainianCommunity.Comment]) -> Void)?
+    func emitNewsComments(newsID: String, comments: [UkrainianCommunity.Comment]) { newsCommentsCallback?(comments) }
     private var likeContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
     private var viewContinuations: [Int: CheckedContinuation<Bool, Error>] = [:]
     private var bookmarkContinuations: [Int: CheckedContinuation<Void, Error>] = [:]
@@ -984,6 +1012,7 @@ private final class ControlledNewsRepository: NewsRepository, NewsRealtimeReposi
         onChange: @escaping @MainActor ([UkrainianCommunity.Comment]) -> Void,
         onError: @escaping @MainActor (AppError) -> Void
     ) -> AppRealtimeListener {
+        newsCommentsCallback = onChange
         let listener = NewsCommentTestListener()
         commentListeners.append(listener)
         return listener

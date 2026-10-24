@@ -36,6 +36,7 @@ extension NewsEditorView {
                 additionalDetailsCard
                 newsExternalActionCard
                 newsPublicationSettingsCard
+                if viewModel.isEditing && viewModel.selectedRegionScope != .austria { settingsCard }
                 if let validationMessage = viewModel.validationMessage {
                     editorCard {
                         Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
@@ -148,6 +149,7 @@ extension NewsEditorView {
             ) {
                 submit()
             }
+            .accessibilityIdentifier("editor.news.submit")
         }
 
         func submit() {
@@ -196,7 +198,10 @@ extension NewsEditorView {
         }
 
         func requestClose() {
-            if viewModel.shouldConfirmDraftBeforeDismiss {
+            guard !isSavingPublication else { return }
+            if viewModel.hasUnsavedEdits {
+                isShowingEditDiscardConfirmation = true
+            } else if viewModel.shouldConfirmDraftBeforeDismiss {
                 isShowingDraftCloseConfirmation = true
             } else {
                 dismiss()

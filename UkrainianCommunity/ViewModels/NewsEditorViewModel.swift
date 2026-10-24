@@ -79,7 +79,7 @@ final class NewsEditorViewModel: ObservableObject {
         didSet { scheduleCreateDraftAutosave() }
     }
     @Published var selectedFederalState: AustrianFederalState = .tirol {
-        didSet { scheduleCreateDraftAutosave() }
+        didSet { hasSelectedEditRegion = true; scheduleCreateDraftAutosave() }
     }
     @Published var selectedRegionScope: RegionScope = .federalState {
         didSet { scheduleCreateDraftAutosave() }
@@ -114,6 +114,8 @@ final class NewsEditorViewModel: ObservableObject {
     private var hasCheckedCreateDraftRecovery = false
     private var hasCompletedCreateDraftRecoveryCheck = false
     private var isApplyingRecoveredDraft = false
+    private var initialEditFields: [String] = []
+    private var hasSelectedEditRegion = false
 
     init(
         repository: NewsRepository,
@@ -152,6 +154,11 @@ final class NewsEditorViewModel: ObservableObject {
             externalActionTitle = existingNews.externalAction?.title ?? ""
             externalActionURL = existingNews.externalAction?.url ?? ""
         }
+
+        // Property-wrapper observers can run while hydrating the initial form.
+        // Hydration is not an explicit user choice of a regional destination.
+        hasSelectedEditRegion = false
+        initialEditFields = editableFieldValues
 
         if case .create = mode, let draft = sourceDraft?.newsDraft {
             applyRecoveredDraft(draft)
@@ -261,6 +268,18 @@ final class NewsEditorViewModel: ObservableObject {
 
     var hasPendingRecoveryDraft: Bool {
         pendingRecoveryDraft != nil
+    }
+
+    var hasUnsavedEdits: Bool {
+        isEditing && (editableFieldValues != initialEditFields || selectedImageData != nil || removesExistingImage)
+    }
+
+    private var editableFieldValues: [String] {
+        [title, summary, body, germanTitle, germanSummary, germanBody,
+         sourceInput, tagsInput, imageCaption, imageAlternativeText, imageCredit,
+         externalActionTitle, externalActionURL, selectedCategory.rawValue,
+         additionalCategories.map(\.rawValue).joined(separator: ","),
+         selectedFederalState.rawValue, selectedRegionScope.rawValue, resolvedFederalState?.rawValue ?? "none"]
     }
 
     var shouldConfirmDraftBeforeDismiss: Bool {
@@ -722,6 +741,12 @@ final class NewsEditorViewModel: ObservableObject {
 
     private var resolvedArticleSource: (sourceName: String?, sourceURL: String?) {
         let source = sourceInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        if case let .edit(existing) = mode,
+           source == (existing.sourceName ?? existing.sourceURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines) {
+            // The compact input shows one value; preserve both original fields
+            // when editing unrelated content rather than silently dropping the URL.
+            return (existing.sourceName, existing.sourceURL)
+        }
         guard !source.isEmpty else {
             return (nil, nil)
         }
@@ -941,12 +966,14 @@ final class NewsEditorViewModel: ObservableObject {
         case .create:
             return selectedCreateContext?.organizationFederalState
         case let .edit(existingNews):
-            return existingNews.federalState
+            // Nationwide articles have no regional value. Require an explicit
+            // choice rather than silently assigning the initial picker default.
+            return existingNews.federalState != nil || hasSelectedEditRegion ? selectedFederalState : nil
         }
     }
 
     private var resolvedAuthorName: String {
-        if case let .edit(existingNews) = mode, selectedImageData == nil, authState?.user == nil {
+        if case let .edit(existingNews) = mode {
             return existingNews.authorName
         }
 
@@ -1009,6 +1036,14 @@ final class NewsEditorViewModel: ObservableObject {
     }
 
     private func validate() -> Bool {
+        guard isValidSchedule else {
+            errorMessage = AppStrings.ContentPublishing.invalidSchedule
+            return false
+        }
+        guard isValidPublishingMetadata && isValidGermanContent else {
+            errorMessage = ContentPublishingStrings.publishingFieldsTooLong
+            return false
+        }
         guard isValidExternalAction else {
             errorMessage = ContentPublishingStrings.secureWebLinkRequired
             successMessage = nil

@@ -279,6 +279,21 @@ enum MockContentBuilder {
     nonisolated static func newsPosts() -> [NewsPost] {
         var items = baseNewsPosts()
         #if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestNewsAudit"] == "1" {
+            for (index, organizationID) in ["role-fixture", "org-1"].enumerated() {
+                items.append(NewsPost(id: index == 0 ? "audit-own" : "audit-foreign",
+                    title: index == 0 ? "Audit Own News" : "Audit Foreign News",
+                    subtitle: "Тестова новина для перевірки прав і збереження змін",
+                    federalState: .tirol, category: .housing,
+                    source: ContentSourceMetadata(sourceType: .organization, organizationId: organizationID, organizationName: "Audit Organization"),
+                    sourceName: "Official source", sourceURL: "https://example.org/news",
+                    externalAction: ExternalContentAction(title: "Details", url: "https://example.org/details"),
+                    body: "Детальний текст новини. Перевірка читабельності, збереження та повернення до стрічки.",
+                    authorId: "fixture-author", authorName: "Audit Author",
+                    publishedAt: Date().addingTimeInterval(Double(-index)), createdAt: .now, updatedAt: .now,
+                    comments: sampleComments(), moderationStatus: .approved, likeCount: 0, likeState: .notLiked))
+            }
+        }
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestSavedContent"] == "1" {
             for index in items.indices { items[index].isBookmarked = true }
         }

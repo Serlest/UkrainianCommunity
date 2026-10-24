@@ -8,6 +8,22 @@ struct MockNewsRepository: NewsRepository {
         self.seededNews = seededNews
     }
 
+    func fetchNewsBrowsePage(query: NewsBrowseQuery, limit: Int, after: NewsPageCursor?) async throws -> NewsPage {
+        if try await store.newsBrowsePageIsEmpty() { return NewsPage(items: [], nextCursor: nil, hasMore: false) }
+        let subscribedIDs = await Set(store.organizations.filter(\.isSubscribed).map(\.id))
+        let posts = try await fetchNews().filter { query.matches($0) }
+            .filter { query.filter.scope != .saved || $0.isBookmarked }
+            .filter { query.filter.scope != .subscribed || subscribedIDs.contains($0.source.organizationId ?? "") }
+            .sorted(by: query.precedes)
+        let remaining = posts.filter { post in
+            guard let after else { return true }
+            if post.publishedAt == after.publishedAt { return query.filter.oldestFirst ? post.id > after.documentID : post.id < after.documentID }
+            return query.filter.oldestFirst ? post.publishedAt > after.publishedAt : post.publishedAt < after.publishedAt
+        }
+        let items = Array(remaining.prefix(max(1, min(limit, 50))))
+        return NewsPage(items: items, nextCursor: items.last.map { NewsPageCursor(publishedAt: $0.publishedAt, documentID: $0.id) }, hasMore: remaining.count > items.count)
+    }
+
     func fetchNews() async throws -> [NewsPost] {
 #if DEBUG && targetEnvironment(simulator)
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),

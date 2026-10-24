@@ -40,6 +40,7 @@ extension NewsDetailView {
             } label: {
                 Image(systemName: "ellipsis.circle.fill")
                     .font(.title3.weight(.semibold))
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(AppTheme.accentPrimaryForeground)
                     .frame(
@@ -51,14 +52,15 @@ extension NewsDetailView {
             .menuStyle(.button)
             .buttonStyle(.plain)
             .accessibilityLabel(AppStrings.Safety.moreActions)
+            .accessibilityIdentifier("news.comment.actions.\(comment.id)")
         }
 
         func canReportComment(_ comment: Comment) -> Bool {
-            !authState.isAuthenticated || comment.authorId != authState.user?.id
+            canUseNewsInteractions && (!authState.isAuthenticated || comment.authorId != authState.user?.id)
         }
 
         func canBlockComment(_ comment: Comment) -> Bool {
-            authState.isAuthenticated && comment.authorId != nil && comment.authorId != authState.user?.id
+            authState.isAuthenticated && PermissionService.isUsableAccount(user: authState.user) && comment.authorId != nil && comment.authorId != authState.user?.id
         }
 
         func commentComposer(parentID: String) -> some View {

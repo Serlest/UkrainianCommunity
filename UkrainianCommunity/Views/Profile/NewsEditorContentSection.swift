@@ -93,7 +93,8 @@ extension NewsEditorView {
             editorCard {
                 VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                     editorSectionTitle(AppStrings.NewsEditor.previewTitle)
-                    NewsCard(post: viewModel.previewPost, previewImage: selectedPreviewImage)
+                    NewsHomeCard(post: viewModel.previewPost, previewImage: selectedPreviewImage)
+                        .accessibilityIdentifier("editor.news.preview")
                 }
             }
         }
@@ -130,12 +131,14 @@ extension NewsEditorView {
                             detailRow(
                                 systemImage: "map",
                                 title: AppStrings.NewsEditor.regionSectionTitle,
-                                value: viewModel.selectedFederalState.displayName,
+                                value: viewModel.previewFederalState?.displayName ?? LocalizationStore.localizedString(
+                                    "editor.region.choose", defaultValue: "Оберіть федеральну землю", table: "NewsExperience"),
                                 showsChevron: true
                             )
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("editor.news.region")
                 }
             }
         }

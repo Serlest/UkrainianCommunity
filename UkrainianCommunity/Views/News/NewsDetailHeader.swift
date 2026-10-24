@@ -14,7 +14,7 @@ extension NewsDetailView {
                 DetailHeaderActionButton(
                     systemImage: post.isBookmarked ? "bookmark.fill" : "bookmark",
                     accessibilityLabel: post.isBookmarked ? AppStrings.Action.unsave : AppStrings.Action.save,
-                    isDisabled: viewModel.pendingNewsBookmarkIDs.contains(post.id),
+                    isDisabled: !canUseNewsInteractions || viewModel.pendingNewsBookmarkIDs.contains(post.id),
                     isSelected: post.isBookmarked
                 ) {
                     handleBookmark(for: post.id)
@@ -30,7 +30,7 @@ extension NewsDetailView {
                     onEdit: canEditNews
                         ? { isShowingEditSheet = true }
                         : nil,
-                    onReport: post.authorId != authState.user?.id || !authState.isAuthenticated
+                    onReport: canUseNewsInteractions && (post.authorId != authState.user?.id || !authState.isAuthenticated)
                         ? { presentContentReport(.news(post)) }
                         : nil,
                     onBlock: newsBlockAction(for: post),
@@ -44,7 +44,7 @@ extension NewsDetailView {
         }
 
         func newsBlockAction(for post: NewsPost) -> (() -> Void)? {
-            guard authState.isAuthenticated,
+            guard authState.isAuthenticated, PermissionService.isUsableAccount(user: authState.user),
                   let target = UserBlockTarget.news(post),
                   target.userId != authState.user?.id else {
                 return nil
@@ -71,7 +71,7 @@ extension NewsDetailView {
             guard let value = value?.trimmingCharacters(in: .whitespacesAndNewlines),
                   let url = URL(string: value),
                   let scheme = url.scheme?.lowercased(),
-                  scheme == "https" || scheme == "http" else { return nil }
+                  (scheme == "https" || scheme == "http"), url.host?.isEmpty == false else { return nil }
             return url
         }
 
@@ -143,6 +143,7 @@ extension NewsDetailView {
                 HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
                     Image(systemName: "info.circle")
                         .font(AppTheme.sectionTitleFont)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: 24)
 
@@ -170,7 +171,7 @@ extension NewsDetailView {
 
                     Text(post.localizedBody)
                         .font(AppTheme.cardSubtitleFont)
-                        .foregroundStyle(AppTheme.accentPrimaryForeground)
+                        .foregroundStyle(AppTheme.textPrimary)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -210,7 +211,7 @@ extension NewsDetailView {
         func articleSourceDisplay(for post: NewsPost) -> (title: String, url: URL?)? {
             let name = trimmedNonEmpty(post.sourceName)
             let urlString = trimmedNonEmpty(post.sourceURL)
-            let url = urlString.flatMap(URL.init(string:))
+            let url = safeShareURL(urlString)
 
             if let url {
                 return (name ?? url.absoluteString, url)
@@ -292,7 +293,7 @@ extension NewsDetailView {
                         ) {
                             handleLike(for: post.id)
                         }
-                        .disabled(viewModel.pendingNewsLikeIDs.contains(post.id))
+                        .disabled(!canUseNewsInteractions || viewModel.pendingNewsLikeIDs.contains(post.id))
                         .accessibilityIdentifier("news.like.\(post.id)")
                         .accessibilityHint(AppStrings.Common.likes)
 
@@ -367,6 +368,7 @@ extension NewsDetailView {
                                         viewModel: viewModel,
                                         postID: recommendation.post.id,
                                         onNewsDeleted: onNewsDeleted,
+                                        organizationRepository: organizationRepository,
                                         analyticsSourceScreen: "news_recommendation"
                                     )
                                     .environment(\.newsPresentationMode, presentationMode)

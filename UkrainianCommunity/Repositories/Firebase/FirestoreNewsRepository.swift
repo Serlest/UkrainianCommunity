@@ -166,8 +166,20 @@ struct FirestoreNewsRepository: NewsRepository {
         }
         var subscriptions = Set<String>()
         if request.filter.scope == .subscribed, let uid {
-            let snapshot = try await likesCollection.whereField("userId", isEqualTo: uid).getDocuments()
-            subscriptions = Set(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
+            if let cached = await sessionDataCache.cachedSubscribedOrganizationIDs(for: uid) {
+                subscriptions = cached
+            } else {
+                // Read follow markers only, not every news/event/organization like.
+                // Uses the same query shape as the paginated subscriptions screen.
+                let prefix = "organization_follow_"
+                let snapshot = try await likesCollection.whereField("userId", isEqualTo: uid)
+                    .whereField(FieldPath.documentID(), isGreaterThanOrEqualTo: prefix)
+                    .whereField(FieldPath.documentID(), isLessThan: prefix + "\u{f8ff}")
+                    .order(by: FieldPath.documentID()).getDocuments()
+                guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
+                subscriptions = Set(snapshot.documents.compactMap { $0.data()["subscribedOrganizationId"] as? String })
+                await sessionDataCache.storeSubscribedOrganizationIDs(subscriptions, for: uid)
+            }
             if subscriptions.isEmpty { return NewsPage(items: [], nextCursor: nil, hasMore: false) }
         }
         var query: Query = collection

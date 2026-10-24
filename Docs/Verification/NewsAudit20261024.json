@@ -1,0 +1,185 @@
+{
+  "block": 5,
+  "totalBlocks": 19,
+  "name": "Новости",
+  "status": "implemented_verified_in_documented_scope",
+  "date": "2026-10-24",
+  "inventory": "Docs/Verification/NewsInventory20261024.md",
+  "sourceBase": "bdd18cdc",
+  "findings": [
+    {
+      "area": "browse",
+      "fix": "Coalesce identical reads across tab task cancellation; debounce nonempty search 300ms; update detail flags locally instead of re-reading feed per interaction; reload on actual visibility/content changes."
+    },
+    {
+      "area": "detail and publishing",
+      "fix": "Reload edited item by exact ID instead of replacing shared model with first page; preserve source name + URL and original author; apply explicit edited region without inventing a region for national articles."
+    },
+    {
+      "area": "editor safety",
+      "fix": "Enforce optional field and schedule limits in publish, freeze fields and close while saving, confirm discard of unsaved edit, use actual home-card preview."
+    },
+    {
+      "area": "roles",
+      "fix": "Inject matching organization repository through detail, related news and editor; blocked accounts retain read/share but cannot like/save/report/block/comment; guest gates retained."
+    },
+    {
+      "area": "visual",
+      "fix": "Primary body text, readable dark empty-list actions, capped symbols inside 44pt controls, avatar/send symbols fit at AX size, centered deletion alerts."
+    },
+    {
+      "area": "optimization",
+      "fix": "Parallel independent detail reads; read and cache only follow markers for subscribed feed; recommendations cached per content revision."
+    },
+    {
+      "area": "discussion totals",
+      "fix": "Keep confirmed totals above 100 when realtime snapshot is bounded to the latest 100; avoid duplicate decrement after refresh."
+    }
+  ],
+  "evidence": {
+    "baseline": "build/block05-baseline-suites-20261024.xcresult: 30 passed, 2 failed (identical requests=2; oversized field was published). Earlier method-only selection ran zero tests and is explicitly excluded.",
+    "units": {
+      "bundle": "build/block05-final-verification-20261024.xcresult",
+      "totalPassed": 118,
+      "unitPassed": 115,
+      "uiPassed": 3,
+      "failed": 0,
+      "includes": "Final role-disabled controls and light/dark five-tab navigation; unit/race/validation/recommendation/contrast checks"
+    },
+    "uiRoles": "build/block05-access-and-discard-20261024.xcresult: 3 passed, including 8 usable roles x own/foreign menu; guest and unsaved edit flows",
+    "uiJourneys": "build/block05-final-ui-20261024.xcresult: 8 passed; uk/de filters, create/translation/preview, exact edit/reopen, saved scope, dark AX comments/delete cancel, feed failure/retry/empty and system share",
+    "rules": "build/block05-rules-20261024.log: 33 passed, 0 failed; topic/region/sort browse, content schemas and role matrix, region scope and comment moderation prohibitions",
+    "callable": "build/block05-comments-server-20261024.log: 1 passed, 0 skipped; callable validation, persistence and independent read in emulator",
+    "productionReadback": {
+      "checkedAt": "2026-10-24T14:36:11.263652+00:00",
+      "project": "ukrainiancommunity-dbd5f",
+      "mode": "read-only, Admin API; Rules tested separately in emulator",
+      "results": [
+        {
+          "topic": null,
+          "region": "tirol + austria",
+          "direction": "ASCENDING",
+          "success": true,
+          "count": 2,
+          "seconds": 0.393
+        },
+        {
+          "topic": null,
+          "region": "tirol + austria",
+          "direction": "DESCENDING",
+          "success": true,
+          "count": 2,
+          "seconds": 0.299
+        },
+        {
+          "topic": "housing",
+          "region": "tirol + austria",
+          "direction": "ASCENDING",
+          "success": true,
+          "count": 2,
+          "seconds": 0.214
+        },
+        {
+          "topic": "housing",
+          "region": "tirol + austria",
+          "direction": "DESCENDING",
+          "success": true,
+          "count": 2,
+          "seconds": 0.336
+        },
+        {
+          "topic": "health",
+          "region": "tirol + austria",
+          "direction": "ASCENDING",
+          "success": true,
+          "count": 2,
+          "seconds": 0.259
+        },
+        {
+          "topic": "health",
+          "region": "tirol + austria",
+          "direction": "DESCENDING",
+          "success": true,
+          "count": 2,
+          "seconds": 0.27
+        }
+      ]
+    },
+    "visual": [
+      "build/block05-access-screens/contact-0.jpg",
+      "build/block05-access-screens/contact-1.jpg",
+      "build/block05-final-screens/contact-0.jpg",
+      "build/block05-final-screens/contact-1.jpg",
+      "build/block05-actions-screens/contact-0.jpg",
+      "build/block05-verification-screens/contact-0.jpg",
+      "build/block05-verification-screens/contact-1.jpg"
+    ],
+    "video": {
+      "path": "build/block05/verified-transitions-2.mp4",
+      "overview": "build/block05/video-2/contact.png",
+      "sampling": "4fps overview; 360 frames sampled at 60fps over 24–30s. Reviewed loading → failure → explicit retry → content; then XCTest intentionally terminates the app.",
+      "detail": "build/block05/loading-60fps/contact.png"
+    },
+    "additionalPageRegression": {
+      "bundle": "build/block05-page-cancellation-final-20261024.xcresult",
+      "passed": 14,
+      "failed": 0
+    },
+    "finalActions": {
+      "bundle": "build/block05-final-actions-20261024.xcresult",
+      "passed": 4,
+      "failed": 0,
+      "scope": [
+        "region save and read-back",
+        "comment and article deletion + read-back",
+        "report target and cancel",
+        "new matching feed preview and translation"
+      ]
+    },
+    "publishingRoundtrip": {
+      "bundle": "build/block05-publishing-roundtrip-final-20261024.xcresult",
+      "passed": 26,
+      "failed": 0,
+      "scope": "Full-field editor save → repository → independent read and UI regional save/read-back, including retained external URL. Combined with earlier final sets; repeated tests are not counted as additional coverage."
+    }
+  },
+  "boundaries": {
+    "productionWrites": false,
+    "serverDeploy": false,
+    "physicalIPhoneVerified": false,
+    "testFlightBuildContainingChanges": null,
+    "hostedCI": "pending source commit"
+  },
+  "proposals": [
+    {
+      "proposal": "Paginate historical comments beyond the latest 100 instead of loading the entire growing discussion.",
+      "status": "existing latest-100 cap remains; full historical browsing is an additional feature, not claimed implemented"
+    },
+    {
+      "proposal": "Consider a server full-text index when the news archive grows. Current bounded scan explicitly offers continuation and does not claim no matches before scan ends.",
+      "status": "future design proposal; no new paid service or unbounded reads introduced"
+    }
+  ],
+  "roles": {
+    "uiPositiveAndNegative": [
+      "app owner",
+      "app admin",
+      "organization owner",
+      "organization admin",
+      "organization editor/moderator",
+      "mixed app/org",
+      "member",
+      "warned member",
+      "guest",
+      "blocked member"
+    ],
+    "matrix": "8 usable roles × own/foreign news menu, plus guest gates and blocked read-only result. Not every theme/action/role Cartesian combination was executed."
+  },
+  "scopeLimits": [
+    "Physical iPhone and real user-owned news mutations were not exercised. No claim that simulator mocks prove real production writes.",
+    "System Photos picker, crop gestures and external-browser provider UI were inspected in source; their physical-device interactions remain in the device checklist.",
+    "Comment list currently streams latest 100; older-history pagination is proposed separately.",
+    "Production read-back verifies six concrete public query shapes as Admin, not all roles or every possible filter combination. Emulator tests provide separate security evidence."
+  ],
+  "sourceOnly": true
+}

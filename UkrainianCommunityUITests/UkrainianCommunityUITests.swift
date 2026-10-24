@@ -537,7 +537,9 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(newsNext.isEnabled)
         newsNext.tap()
         XCTAssertTrue(app.staticTexts["Як виглядатиме новина"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["Тестова новина"].waitForExistence(timeout: 10))
+        let newsPreview = app.descendants(matching: .any).matching(identifier: "editor.news.preview").firstMatch
+        XCTAssertTrue(newsPreview.waitForExistence(timeout: 10))
+        XCTAssertTrue(newsPreview.label.contains("Тестова новина"))
         let closeButton = app.buttons["Скасувати"].firstMatch
         XCTAssertTrue(closeButton.isHittable)
         XCTAssertGreaterThanOrEqual(closeButton.frame.minX, app.frame.minX + 8)

@@ -129,6 +129,8 @@ struct AppGlassIconLabel: View {
     var body: some View {
         Image(systemName: systemImage)
             .font(AppTheme.glassIconButtonIconFont)
+            // The target stays 44pt; accessibility text must not push its symbol outside it.
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
             .frame(width: 20, height: 20)
             .foregroundStyle(role == .destructive ? AppTheme.accentDestructiveForeground : AppTheme.accentPrimaryForeground)
     }

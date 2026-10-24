@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 4,
-  "remainingBlocks": 15,
-  "nextBlock": 5,
+  "completedBlocks": 5,
+  "remainingBlocks": 14,
+  "nextBlock": 6,
   "blocks": [
     {
       "number": 1,
@@ -37,7 +37,10 @@
     {
       "number": 5,
       "name": "Новости",
-      "status": "pending"
+      "status": "implemented_verified_in_scope",
+      "inventory": "Docs/Verification/NewsInventory20261024.md",
+      "report": "Docs/Verification/NewsAudit20261024.json",
+      "testFlightBuild": null
     },
     {
       "number": 6,
@@ -184,11 +187,13 @@
       1,
       2,
       3,
-      4
+      4,
+      5
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Completed count records implementation and verification in documented scope; physical iPhone acceptance and TestFlight delivery remain separate. Block 4 was explicitly authorized; block 5 has not started.",
-    "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме"
+    "meaning": "Completed count records implementation and verification in documented scope. Physical-device acceptance remains separate; block 5 is source/simulator verified and is not yet in TestFlight. Block 6 has not started.",
+    "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
+    "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом"
   }
 }

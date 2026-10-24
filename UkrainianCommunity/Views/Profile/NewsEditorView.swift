@@ -19,6 +19,7 @@ struct NewsEditorView: View {
     @State var isShowingOrganizerPicker = false
     @State var isShowingDraftRecoveryDialog = false
     @State var isShowingDraftCloseConfirmation = false
+    @State var isShowingEditDiscardConfirmation = false
     @State var isPreparingPlanningPublication = false
     @State var currentStep = NewsEditorStep.basics
     @FocusState var focusedField: NewsEditorFocusField?
@@ -131,7 +132,9 @@ struct NewsEditorView: View {
                     // subtree an explicit identity prevents SwiftUI from
                     // reusing stale text fields/layers when the preview opens.
                     .id(currentStep)
+                    .disabled(isSavingPublication)
                 editorNavigation
+                    .disabled(isSavingPublication)
             }
         }
         .tint(AppTheme.accentPrimary)
@@ -200,7 +203,16 @@ struct NewsEditorView: View {
         } message: {
             Text(AppStrings.DraftRecovery.closeMessage)
         }
-        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss)
+        .alert(
+            LocalizationStore.localizedString("editor.discard.title", defaultValue: "Відхилити зміни?", table: "NewsExperience"),
+            isPresented: $isShowingEditDiscardConfirmation
+        ) {
+            Button(AppStrings.FeaturedEditor.discardChanges, role: .destructive) { dismiss() }
+            Button(AppStrings.DraftRecovery.continueEditing, role: .cancel) {}
+        } message: {
+            Text(LocalizationStore.localizedString("editor.discard.message", defaultValue: "Зміни в цій новині ще не збережено.", table: "NewsExperience"))
+        }
+        .interactiveDismissDisabled(viewModel.shouldConfirmDraftBeforeDismiss || viewModel.hasUnsavedEdits || isSavingPublication)
         .onChange(of: selectedPhoto) { _, newItem in
             if newItem == nil, ignoresNextPhotoClear {
                 ignoresNextPhotoClear = false
@@ -226,6 +238,10 @@ struct NewsEditorView: View {
         .onDisappear {
             imageProcessingTask?.cancel()
         }
+    }
+
+    var isSavingPublication: Bool {
+        isPreparingPlanningPublication || viewModel.isPublishing || viewModel.isUploadingImage
     }
 
     var availableOrganizerOrganizations: [Organization] {

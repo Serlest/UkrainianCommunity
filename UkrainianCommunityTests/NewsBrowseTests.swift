@@ -154,3 +154,82 @@ struct NewsBrowseTests {
         #expect(model.error == nil && model.posts.isEmpty && !model.hasMore)
     }
 }
+
+
+extension NewsBrowseTests {
+    @Test func simultaneousIdenticalLoadsIssueOnlyOnePageRequest() async {
+        var releases: [CheckedContinuation<NewsPage, Never>] = []
+        var calls = 0
+        let model = NewsBrowseViewModel { _, _, _ in
+            calls += 1
+            return await withCheckedContinuation { releases.append($0) }
+        }
+        let query = NewsBrowseQuery(filter: .init(), region: nil, referenceDate: now)
+        let first = Task { await model.loadIfNeeded(query, visibility: .init()) }
+        while releases.isEmpty { await Task.yield() }
+        let second = Task { await model.loadIfNeeded(query, visibility: .init()) }
+        for _ in 0..<50 { await Task.yield() }
+        #expect(calls == 1)
+        for release in releases { release.resume(returning: NewsPage(items: [post("result")], nextCursor: nil, hasMore: false)) }
+        await first.value
+        await second.value
+        #expect(model.posts.map(\.id) == ["result"])
+    }
+}
+
+
+extension NewsBrowseTests {
+    @Test func detailInteractionsUpdateTheFeedWithoutAnotherRead() async {
+        var calls = 0
+        var initial = post("saved"); initial.isBookmarked = true
+        let model = NewsBrowseViewModel { _, _, _ in
+            calls += 1
+            return NewsPage(items: [initial], nextCursor: nil, hasMore: false)
+        }
+        var filter = NewsBrowseFilter(); filter.scope = .saved
+        await model.reload(NewsBrowseQuery(filter: filter, region: nil, referenceDate: now), visibility: .init())
+        var changed = initial; changed.likeState = .liked; changed.likeCount = 9
+        #expect(model.visiblePosts(updates: [changed], removedIDs: [], visibility: .init()).first?.likeCount == 9)
+        changed.isBookmarked = false
+        #expect(model.visiblePosts(updates: [changed], removedIDs: [], visibility: .init()).isEmpty)
+        #expect(model.visiblePosts(updates: [], removedIDs: [initial.id], visibility: .init()).isEmpty)
+        #expect(calls == 1)
+    }
+
+    @Test func aFailedRefreshKeepsConfirmedRowsAndRetryReplacesThem() async {
+        var calls = 0
+        let model = NewsBrowseViewModel { _, _, _ in
+            calls += 1
+            if calls == 2 { throw AppError.network }
+            return NewsPage(items: [post(calls == 1 ? "before" : "after")], nextCursor: nil, hasMore: false)
+        }
+        let query = NewsBrowseQuery(filter: .init(), region: nil, referenceDate: now)
+        await model.reload(query, visibility: .init())
+        await model.reload(query, visibility: .init())
+        #expect(model.posts.map(\.id) == ["before"] && model.error != nil)
+        await model.loadMore(visibility: .init())
+        #expect(model.posts.map(\.id) == ["after"] && model.error == nil)
+    }
+}
+
+
+extension NewsBrowseTests {
+    @Test func cancellingTheFirstTabTaskDoesNotStrandTheReturningTab() async {
+        var release: CheckedContinuation<NewsPage, Never>?
+        var calls = 0
+        let model = NewsBrowseViewModel { _, _, _ in
+            calls += 1
+            return await withCheckedContinuation { release = $0 }
+        }
+        let query = NewsBrowseQuery(filter: .init(), region: nil, referenceDate: now)
+        let leaving = Task { await model.loadIfNeeded(query, visibility: .init()) }
+        while release == nil { await Task.yield() }
+        leaving.cancel()
+        let returning = Task { await model.loadIfNeeded(query, visibility: .init()) }
+        for _ in 0..<50 { await Task.yield() }
+        release?.resume(returning: NewsPage(items: [post("returned")], nextCursor: nil, hasMore: false))
+        await leaving.value; await returning.value
+        #expect(calls == 1)
+        #expect(model.posts.map(\.id) == ["returned"] && !model.loading)
+    }
+}
