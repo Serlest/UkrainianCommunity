@@ -614,8 +614,12 @@ struct EventRegistrationRaceTests {
     }
 
     @Test func boundedEventCommentsRetainConfirmedTotal() async {
+        // This test controls the repository response, not elapsed network time.
+        // The complete CI suite can starve MainActor long enough to fire a real deadline.
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
         let repository = ControlledEventRepository()
-        let model = EventsViewModel(repository: repository)
+        let model = EventsViewModel(repository: repository, commentReadDeadline: deadline.sleep)
         var event = makeEvent(id: "bounded-comments")
         event.commentCount = 150
         model.events = [event]

@@ -98,10 +98,25 @@
   "hostedCI": {
     "run": 40108565543,
     "sourceRevision": "b0f3ca4f73e5e0938918881724795df3dc72ca9a",
-    "status": "in_progress",
-    "conclusion": null,
+    "status": "completed",
+    "conclusion": "failure",
     "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40108565543",
-    "note": "A running hosted validation is pending, not passed."
+    "note": "Downloaded hosted xcresult: one failure in boundedEventCommentsRetainConfirmedTotal; a real read deadline expired under full-suite scheduling. Seven isolated tests passed."
   },
-  "sourceRevision": "b0f3ca4f73e5e0938918881724795df3dc72ca9a"
+  "sourceRevision": "b0f3ca4f73e5e0938918881724795df3dc72ca9a",
+  "hostedCIFollowup": {
+    "date": "2026-10-24",
+    "change": "Use existing ManualRefreshDeadline in boundedEventCommentsRetainConfirmedTotal, matching adjacent controlled-response tests. Production deadline and assertions unchanged.",
+    "localVerification": {
+      "bundle": "build/block06-ci-deadline-fix.xcresult",
+      "passed": 54,
+      "failed": 0,
+      "includes": [
+        "EventRegistrationRaceTests",
+        "PullToRefreshTests",
+        "productionClockStillExpiresAnUnresponsiveRead"
+      ]
+    },
+    "hostedRerun": "pending_push"
+  }
 }
