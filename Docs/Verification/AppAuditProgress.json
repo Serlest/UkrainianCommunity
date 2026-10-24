@@ -40,7 +40,8 @@
       "status": "implemented_verified_in_scope",
       "inventory": "Docs/Verification/NewsInventory20261024.md",
       "report": "Docs/Verification/NewsAudit20261024.json",
-      "testFlightBuild": null
+      "testFlightBuild": 122,
+      "deliveryReport": "Docs/Verification/TestFlight122.json"
     },
     {
       "number": 6,
@@ -48,7 +49,8 @@
       "status": "implemented_verified_in_scope",
       "inventory": "Docs/Verification/EventsInventory20261024.md",
       "report": "Docs/Verification/EventsAudit20261024.json",
-      "testFlightBuild": null
+      "testFlightBuild": 122,
+      "deliveryReport": "Docs/Verification/TestFlight122.json"
     },
     {
       "number": 7,
@@ -56,7 +58,8 @@
       "status": "implemented_verified_in_scope",
       "inventory": "Docs/Verification/PublicOrganizationsInventory20261024.md",
       "report": "Docs/Verification/PublicOrganizationsAudit20261024.json",
-      "testFlightBuild": null
+      "testFlightBuild": 122,
+      "deliveryReport": "Docs/Verification/TestFlight122.json"
     },
     {
       "number": 8,
@@ -200,7 +203,7 @@
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Blocks 1–7 implemented and verified in documented scope; physical-device acceptance remains separate. Block 8 awaits authorization; no TestFlight delivery in blocks 5–7.",
+    "meaning": "Blocks 1–7 implemented and verified in documented scope; physical-device acceptance remains separate. Blocks 5–7 delivered in TestFlight 1.2.1 (122). Block 8 awaits authorization.",
     "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
     "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом",
     "block6AuthorizedByUser": "2026-10-24: Преступай (после отчета пункта 5)",

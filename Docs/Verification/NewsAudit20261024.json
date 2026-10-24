@@ -187,5 +187,11 @@
     "Production read-back verifies six concrete public query shapes as Admin, not all roles or every possible filter combination. Emulator tests provide separate security evidence."
   ],
   "sourceOnly": true,
-  "sourceRevision": "97498e08762a004ae296603f9b934e094d5b89fa"
+  "sourceRevision": "97498e08762a004ae296603f9b934e094d5b89fa",
+  "subsequentDelivery": {
+    "report": "Docs/Verification/TestFlight122.json",
+    "build": 122,
+    "version": "1.2.1",
+    "physicalDeviceAcceptance": "pending_user_validation"
+  }
 }

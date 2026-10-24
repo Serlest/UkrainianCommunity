@@ -1,0 +1,76 @@
+{
+  "version": "1.2.1",
+  "build": 122,
+  "sourceCommit": "2db9d57c714ed90299fca717ce64081d43e18ef4",
+  "status": "available_in_testflight",
+  "archive": "build/UAC-122.xcarchive",
+  "archiveResult": "succeeded",
+  "upload": "succeeded via signed-in Xcode account after API export fallback",
+  "processingState": "VALID",
+  "testNoteLocales": [
+    "uk",
+    "de-DE",
+    "en-US"
+  ],
+  "exportCompliance": {
+    "usesNonExemptEncryption": false
+  },
+  "sourceHashes": {
+    "UkrainianCommunity.xcodeproj/project.pbxproj": "b478a37a0d6bd0c4c2b655a229ddfdad628cbfb14da6fc580b01b52cfb1cbe4e",
+    "UkrainianCommunity/Localization/Localizable.xcstrings": "bb56175012119a73fddd48100c4dc0c9116c6237f9432a1e9d0b8a186c25793a"
+  },
+  "preservedExistingLocalChanges": [
+    "Project reordering outside focused build-number commit",
+    "Existing Localizable.xcstrings extraction/order retained in archive and excluded from focused commits"
+  ],
+  "verification": [
+    "Docs/Verification/NewsAudit20261024.json",
+    "Docs/Verification/EventsAudit20261024.json",
+    "Docs/Verification/PublicOrganizationsAudit20261024.json"
+  ],
+  "userChecklist": "Docs/Verification/TestFlight122.ru.md",
+  "ci": {
+    "sourceRun": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40121574417",
+    "status": "in_progress",
+    "note": "Static and Firebase checks passed. iOS app build passed; Swift unit tests still running at last read-back. Not a hosted success claim.",
+    "buildNumberRun": {
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40122026241",
+      "status": "pending"
+    }
+  },
+  "boundaries": [
+    "No public App Store release.",
+    "No server code or rules deployed for this build. Block 7 additive event index already READY.",
+    "Physical-iPhone acceptance is the user checklist. Block 8 has not started."
+  ],
+  "verifiedAt": "2026-10-24T18:56:19.759667+00:00",
+  "internalState": "IN_BETA_TESTING",
+  "externalState": "IN_BETA_TESTING",
+  "groups": [
+    {
+      "name": "Beta Tester",
+      "isInternal": true,
+      "containsBuild": true
+    },
+    {
+      "name": "Tester Serlest EXT",
+      "isInternal": false,
+      "containsBuild": true
+    }
+  ],
+  "testNotesReadback": "All three locale texts exactly match the submitted notes.",
+  "changesCommits": [
+    "97498e08762a004ae296603f9b934e094d5b89fa",
+    "b0f3ca4f73e5e0938918881724795df3dc72ca9a",
+    "f6b8c63c3c98132026a9b03c905a735a635dfda7",
+    "12f25b964a4907325c205e7c057506cb184916be"
+  ],
+  "metadataNote": "The first Beta Review submission was accepted and external testing became active. A redundant submission during the second locale update returned 422 because the build was already in testing; final notes and both group assignments were read back successfully.",
+  "symbolWarnings": [
+    "FirebaseFirestoreInternal.framework",
+    "absl.framework",
+    "grpc.framework",
+    "grpcpp.framework",
+    "openssl_grpc.framework"
+  ]
+}

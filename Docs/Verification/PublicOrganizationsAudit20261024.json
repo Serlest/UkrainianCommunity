@@ -168,5 +168,11 @@
     "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40121574417",
     "note": "Started after the source push. Local targeted results passed as documented; this run has not reached a terminal result."
   },
-  "sourceRevision": "12f25b964a4907325c205e7c057506cb184916be"
+  "sourceRevision": "12f25b964a4907325c205e7c057506cb184916be",
+  "subsequentDelivery": {
+    "report": "Docs/Verification/TestFlight122.json",
+    "build": 122,
+    "version": "1.2.1",
+    "physicalDeviceAcceptance": "pending_user_validation"
+  }
 }

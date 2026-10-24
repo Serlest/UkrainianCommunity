@@ -124,5 +124,11 @@
       "conclusion": "success",
       "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40112369191"
     }
+  },
+  "subsequentDelivery": {
+    "report": "Docs/Verification/TestFlight122.json",
+    "build": 122,
+    "version": "1.2.1",
+    "physicalDeviceAcceptance": "pending_user_validation"
   }
 }
