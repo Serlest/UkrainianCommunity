@@ -12,6 +12,36 @@ struct AuthUIIntegrationTests {
         Attachment.record([UInt8](data), named: filename)
     }
 
+    @Test func appleButtonDisabledAppearanceHasOneUniformBackground() throws {
+        for scheme in [ColorScheme.light, .dark] {
+            for enabled in [true, false] {
+                let content = LocalizedAppleSignInButton(title: "Продовжити з Apple", action: {})
+                    .disabled(!enabled)
+                    .padding(16)
+                    .frame(width: 390, height: 82)
+                    .background(scheme == .light ? Color.white : Color.gray)
+                    .environment(\.colorScheme, scheme)
+                let renderer = ImageRenderer(content: content)
+                renderer.scale = 1
+                let image = try #require(renderer.uiImage)
+                try recordPNG(image, named: "apple-button-\(scheme)-\(enabled ? "enabled" : "disabled")")
+                let cgImage = try #require(image.cgImage)
+                var pixels = [UInt8](repeating: 0, count: 390 * 82 * 4)
+                let context = try #require(CGContext(data: &pixels, width: 390, height: 82,
+                    bitsPerComponent: 8, bytesPerRow: 390 * 4,
+                    space: CGColorSpaceCreateDeviceRGB(),
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+                context.draw(cgImage, in: CGRect(x: 0, y: 0, width: 390, height: 82))
+                // Across the top of the label, above the glyphs: artwork must not
+                // leave a different rectangle when the complete button is disabled.
+                for channel in 0..<3 {
+                    let values = (40..<350).map { pixels[(20 * 390 + $0) * 4 + channel] }
+                    #expect(Int(values.max()!) - Int(values.min()!) <= 2)
+                }
+            }
+        }
+    }
+
     @Test(arguments: [320.0, 390.0], [false, true])
     func registrationAnalyticsConsentRendersCompleteDisclosure(width: Double, accessibilityText: Bool) throws {
         let previousLanguage = LocalizationStore.language

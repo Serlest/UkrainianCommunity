@@ -25,8 +25,22 @@ struct LocalizedAppleSignInButton: View {
             .padding(.horizontal, 16)
             .background(.black, in: RoundedRectangle(cornerRadius: 8))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(AppleSignInButtonStyle())
         .accessibilityLabel(title)
+    }
+}
+
+
+/// The official logo includes a black backing. Composite it with the matching
+/// button background before applying pressed/disabled opacity; fading individual
+/// children leaves a dark tile behind the logo during another provider's request.
+private struct AppleSignInButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .compositingGroup()
+            .opacity(isEnabled ? (configuration.isPressed ? 0.8 : 1) : 0.5)
     }
 }
 

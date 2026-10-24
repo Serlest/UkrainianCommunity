@@ -1,0 +1,18 @@
+{
+  "issue": "Apple logo leaves a dark rectangle when another provider disables the authentication form.",
+  "cause": "Official artwork includes an opaque black backing; the plain button style fades foreground/background children separately.",
+  "fix": "Shared Apple button style composites the entire label before applying uniform pressed/disabled opacity. Official artwork remains unchanged.",
+  "scope": [
+    "Sign in",
+    "Registration method selection",
+    "Account linking",
+    "Account deletion reauthentication"
+  ],
+  "verification": {
+    "baseline": "build/AppleButtonBaseline.xcresult: regression test failed; disabled rendering reproduces the attached screenshot.",
+    "fixed": "build/AppleButtonFixed.xcresult: 1 passed, 0 failed; all four enabled/disabled and light/dark renders reviewed.",
+    "images": "build/apple-button-fixed-images",
+    "test": "AuthUIIntegrationTests/appleButtonDisabledAppearanceHasOneUniformBackground()"
+  },
+  "delivery": "Source fix only; already uploaded TestFlight 120 does not contain this later correction."
+}
