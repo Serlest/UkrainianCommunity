@@ -153,6 +153,10 @@ final class NewsEditorViewModel: ObservableObject {
             imageCredit = existingNews.mediaMetadata?.credit ?? ""
             externalActionTitle = existingNews.externalAction?.title ?? ""
             externalActionURL = existingNews.externalAction?.url ?? ""
+            if let existingScheduledAt = existingNews.scheduledAt {
+                publicationMode = .scheduled
+                scheduledAt = existingScheduledAt
+            }
         }
 
         // Property-wrapper observers can run while hydrating the initial form.
@@ -551,6 +555,16 @@ final class NewsEditorViewModel: ObservableObject {
             credit: imageCredit
         )
         let externalAction = resolvedExternalAction
+        let publicationDate: Date?
+        if contentAlreadyExists {
+            publicationDate = existingModerationStatus == .draft ? scheduledAt : existingScheduledAt
+        } else if case let .edit(existingNews) = mode {
+            // Normal edit is not a rescheduling action. Keep the stored date;
+            // otherwise updating text silently strands an unpublished draft.
+            publicationDate = existingNews.scheduledAt
+        } else {
+            publicationDate = publicationMode == .scheduled ? scheduledAt : nil
+        }
         let news = NewsPost(
             id: newsID,
             schemaVersion: 2,
@@ -573,9 +587,7 @@ final class NewsEditorViewModel: ObservableObject {
             authorId: existingAuthorID,
             authorName: resolvedAuthorName,
             publishedAt: publishedAt,
-            scheduledAt: contentAlreadyExists
-                ? (existingModerationStatus == .draft ? scheduledAt : existingScheduledAt)
-                : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
+            scheduledAt: publicationDate,
             createdAt: createdAt,
             updatedAt: now,
             comments: existingComments,
@@ -669,9 +681,7 @@ final class NewsEditorViewModel: ObservableObject {
             lastPublicationResult = ContentPlanningPublicationResult(
                 kind: .news,
                 contentID: news.id,
-                scheduledAt: contentAlreadyExists
-                    ? (existingModerationStatus == .draft ? scheduledAt : existingScheduledAt)
-                    : (isCreateMode && publicationMode == .scheduled ? scheduledAt : nil),
+                scheduledAt: publicationDate,
                 publicationLeaseID: publicationLeaseID
             )
             return true

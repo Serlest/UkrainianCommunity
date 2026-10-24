@@ -201,6 +201,7 @@ struct PasskeyEnrollmentOfferView: View {
             }
 
             Button(AppStrings.AccountSecurity.passkeyLater, action: onFinish)
+                .accessibilityIdentifier("auth.passkeySuggestion.later")
                 .font(.subheadline.weight(.semibold))
                 .frame(maxWidth: .infinity)
                 .disabled(isRegistering)

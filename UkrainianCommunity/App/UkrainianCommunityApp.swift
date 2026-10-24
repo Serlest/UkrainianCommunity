@@ -21,6 +21,11 @@ enum AppTestHost {
         arguments: [String], environment: [String: String], hasXCTestCase: Bool
     ) -> Bool {
         guard !arguments.contains("-ui-testing") else { return false }
+#if DEBUG && targetEnvironment(simulator)
+        // Connected UI journeys use real forms/repositories, with every Firebase
+        // transport pinned to the disposable demo project before construction.
+        if arguments.contains("-sdk-ui-audit"), environment["UACFirebaseEmulators"] == "1" { return false }
+#endif
         return environment["XCTestConfigurationFilePath"] != nil
             || environment["XCTestBundlePath"] != nil
             || hasXCTestCase
@@ -154,6 +159,12 @@ struct UkrainianCommunityApp: App {
         let processInfo = ProcessInfo.processInfo
         let isUITesting = processInfo.arguments.contains("-ui-testing")
         let environment = ProcessInfo.processInfo.environment
+#if DEBUG && targetEnvironment(simulator)
+        if processInfo.arguments.contains("-sdk-ui-audit") {
+            precondition(environment["UACFirebaseEmulators"] == "1" && !isUITesting,
+                         "Connected audit must use local emulators without fixture UI mode")
+        }
+#endif
 
         if AppTestHost.isUnitTesting {
             // Do not construct live repositories, restore Auth, or mount AppStartupGate.

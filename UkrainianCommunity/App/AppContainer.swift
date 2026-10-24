@@ -26,7 +26,8 @@ struct AppContainer {
         RemoteNotificationRegistrationService.shared.configureUser(id, notificationsEnabled: enabled)
     }
 
-    /// Production dependency graph. Preview and UI-test code must use `uiTesting`.
+    /// Actual SDK graph. Fixture UI tests use `uiTesting`; opt-in connected
+    /// Debug Simulator journeys pin Firebase to the local demo before using this graph.
     static var live: AppContainer {
         AppContainer(
             announcementRepository: CloudAnnouncementRepository(),

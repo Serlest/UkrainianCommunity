@@ -36,6 +36,13 @@ struct AppTestHostTests {
         ))
     }
 
+    @Test func connectedUIAuditRequiresExplicitLocalOptIn() {
+#if DEBUG && targetEnvironment(simulator)
+        #expect(AppTestHost.isUnitTesting(arguments: ["-sdk-ui-audit"], environment: [:], hasXCTestCase: true))
+        #expect(!AppTestHost.isUnitTesting(arguments: ["-sdk-ui-audit"], environment: ["UACFirebaseEmulators": "1"], hasXCTestCase: true))
+#endif
+    }
+
     @Test @MainActor func actualUnitHostNeverConfiguresTheLiveFirebaseApp() {
         #expect(AppTestHost.isUnitTesting)
 #if DEBUG && targetEnvironment(simulator)

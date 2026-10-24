@@ -27,6 +27,63 @@
       "googleClientSecretConfigured": true,
       "totpEnabled": true,
       "limitation": "Does not prove actual provider sign-in, Apple key validity or email relay; those remain R02-A/C"
+    },
+    {
+      "checks": [
+        "R04-A",
+        "R04-C",
+        "R07-A"
+      ],
+      "kind": "actual_iOS_SDK",
+      "resultBundle": "build/audit-closure-20261025/ConnectedSDKAccepted.xcresult",
+      "tests": [
+        "AuditClosureSDKTests/testPersonalRepositoriesPersistAndIsolateAccounts",
+        "AuditClosureSDKTests/testPendingActivitySurvivesStoreRecreationAndDeliversOnlyForItsAccount"
+      ],
+      "verified": [
+        "news/event/org bookmarks and organization subscriptions written and independently read from server",
+        "event register/cancel callable and counter readback",
+        "recent views and immutable activity record/reopen",
+        "signout/signin with fresh repository caches",
+        "second member cannot read another member private bookmark or write their recent view",
+        "pending activity survives store reconstruction, wrong account delivery denied, same-account delivery persisted"
+      ],
+      "remaining": "Other personal-section connected UI journeys and full process-restart outbox path remain open"
+    },
+    {
+      "checks": [
+        "R04-A",
+        "R04-C",
+        "R05-A"
+      ],
+      "kind": "connected_UI",
+      "resultBundle": "build/audit-closure-20261025/ConnectedUIRetry.xcresult",
+      "test": "ConnectedAuditUITests/testMemberBookmarkThroughUIAndReopenAfterProcessRestart",
+      "verified": [
+        "actual email form signs into local Auth emulator",
+        "actual SDK graph and production UI; no fixture dependency graph or role",
+        "bookmark news, terminate, restore session, saved-content route, open and unbookmark"
+      ],
+      "screens": "build/audit-closure-20261025/connected-screens",
+      "remaining": "Additional connected personal actions remain"
+    },
+    {
+      "check": "R05-A",
+      "kind": "defect_fixed",
+      "failure": "Ordinary scheduled-news edit removed scheduledAt; preserving date then exposed Firestore evaluator expression limit",
+      "fix": [
+        "Preserve stored schedule in normal news edit and returned publication result",
+        "Hydrate schedule from edited news",
+        "Cache previous/next maps in the unchanged rules predicate to reduce expression cost"
+      ],
+      "baseline": [
+        "build/audit-closure-20261025/NewsSDK.xcresult",
+        "build/audit-closure-20261025/NewsSDKFixed.xcresult"
+      ],
+      "accepted": "build/audit-closure-20261025/NewsSDKRulesFixed.xcresult",
+      "securityRegression": "build/audit-closure-20261025/content-rules.log: 36 passed, 0 failed",
+      "delivery": "Local/source only; Firestore rules not deployed yet",
+      "remaining": "Actual UI bilingual scheduled create/edit and other region/publication branches"
     }
   ]
 }

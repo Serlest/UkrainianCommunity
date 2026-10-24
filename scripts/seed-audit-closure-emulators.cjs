@@ -1,0 +1,43 @@
+// Disposable fixtures for the connected iOS audit. Fixed loopback/demo transport only.
+const {createRequire}=require('node:module');
+const req=createRequire(require('node:path').join(__dirname,'../functions/package.json'));
+const project='demo-uac-release-audit';
+for(const [key,value] of Object.entries({GCLOUD_PROJECT:project,GOOGLE_CLOUD_PROJECT:project,FIRESTORE_EMULATOR_HOST:'127.0.0.1:28080',FIREBASE_AUTH_EMULATOR_HOST:'127.0.0.1:19099',FIREBASE_STORAGE_EMULATOR_HOST:'127.0.0.1:29199'})) {
+ if(process.env[key] && process.env[key]!==value) throw Error('Refusing conflicting '+key);
+ process.env[key]=value;
+}
+const {initializeApp}=req('firebase-admin/app');
+const {getAuth}=req('firebase-admin/auth');
+const {Firestore,Timestamp}=req('firebase-admin/firestore');
+initializeApp({projectId:project,credential:{getAccessToken:async()=>({access_token:'owner',expires_in:3600})}});
+const db=new Firestore({projectId:project,host:'127.0.0.1:28080',ssl:false});
+const auth=getAuth();
+(async()=>{
+ const now=Timestamp.now(),future=Timestamp.fromMillis(Date.now()+7*86400000);
+ for(const role of ['owner','member','other']) {
+  const uid='closure-'+role,email=uid+'@uac.test';
+  try {
+   const existing=await auth.getUser(uid);
+   if(existing.email!==email)throw Error('Unowned identity');
+   await auth.updateUser(uid,{password:'Emulator-Only-2026!',emailVerified:true,displayName:uid});
+  } catch(e) {
+   if(e.code!=='auth/user-not-found')throw e;
+   await auth.createUser({uid,email,password:'Emulator-Only-2026!',emailVerified:true,displayName:uid});
+  }
+  await db.doc('users/'+uid).set({id:uid,email,fullName:uid,displayName:uid,globalRole:role==='owner'?'owner':'user',accountStatus:'active',blockState:'active',requiresMultiFactorAuth:false,selectedFederalState:'tirol',acceptedTermsVersion:'2026.1',acceptedPrivacyVersion:'2026.1',createdAt:now,updatedAt:now,auditFixture:'closure-20261025'});
+ }
+ const {createHash}=require('node:crypto');
+ const hash=s=>createHash('sha256').update(s).digest('hex');
+ for(const type of ['terms','privacy']) {
+  const locales=Object.fromEntries(['de','uk'].map(locale=>{const title='Audit '+type+' '+locale,contentMarkdown='Local test document. Not production legal terms.';return [locale,{title,contentMarkdown,contentHash:hash(contentMarkdown)}];}));
+  const contentHash=hash(Object.keys(locales).sort().map(locale=>[locale,locales[locale].title,locales[locale].contentMarkdown,locales[locale].contentHash].join('\n')).join('\n---\n'));
+  const metadata={documentType:type,version:'2026.1',versionNumber:202601,status:'published',requiresAcceptance:true,defaultLocale:'de',canonicalLocale:'de'};
+  await db.doc('legalDocuments/'+type).set({...metadata,activeVersion:'2026.1'});
+  await db.doc('legalDocuments/'+type+'/versions/2026.1').set({...metadata,locales,contentHash,updatedAt:now,publishedAt:now});
+ }
+ const common={auditFixture:'closure-20261025',moderationStatus:'approved',regionScope:'federalState',federalState:'tirol',authorId:'closure-owner',authorName:'Closure Owner',sourceType:'organization',organizationId:'closure-org',organizationName:'Closure Organization',createdAt:now,updatedAt:now,publishedAt:now};
+ await db.doc('organizations/closure-org').set({...common,id:'closure-org',name:'Closure Organization',shortDescription:'Isolated test organization',fullDescription:'Isolated test organization details',ownerId:'closure-owner',city:'Innsbruck',teamMembers:[],likeCount:0,commentCount:0});
+ await db.doc('news/closure-news').set({...common,id:'closure-news',title:'Closure News',subtitle:'SDK fixture',summary:'SDK fixture',body:'SDK fixture details',likeCount:0,commentCount:0,viewCount:0});
+ await db.doc('events/closure-event').set({...common,id:'closure-event',title:'Closure Event',summary:'SDK fixture',details:'SDK fixture details',city:'Innsbruck',venue:'Test hall',startDate:future,endDate:Timestamp.fromMillis(future.toMillis()+3600000),requiresRegistration:true,capacity:10000,registeredCount:0,pricing:{kind:'free'},likeCount:0,commentCount:0,viewCount:0});
+ console.log(JSON.stringify({project,fixture:'closure-20261025',users:3,content:3,status:'seeded'}));
+})().catch(e=>{console.error(e.message);process.exitCode=1;});

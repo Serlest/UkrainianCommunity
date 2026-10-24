@@ -1921,6 +1921,41 @@ service cloud.firestore {
       }
     }
 
+    // Cache document maps for the evaluator: repeating full resource paths in
+    // the full-payload edit contract can exceed Firestore's expression budget.
+    // This is the same authorization/validation predicate, without relaxed checks.
+    function canSaveNewsEdit(newsId) {
+      let next = request.resource.data;
+      let previous = resource.data;
+      return validNewsDocument(next, newsId)
+          && contentReviewFieldsArePreserved()
+          && (canUpdateOrganizationContent() || canUpdateAppContent())
+          && next.id == previous.id
+          && (
+            (!('authorId' in previous) && !('authorId' in next))
+            || (
+              ('authorId' in previous)
+              && ('authorId' in next)
+              && next.authorId == previous.authorId
+            )
+          )
+          && next.createdAt == previous.createdAt
+          && (
+            (next.moderationStatus == previous.moderationStatus
+              && (
+                previous.moderationStatus != 'approved'
+                || !('regionScope' in next)
+                || next.regionScope != 'austria'
+                || canUseOrganizationOverride()
+              ))
+            || (
+              previous.moderationStatus == 'approved'
+              && next.moderationStatus == 'pendingReview'
+              && next.regionScope == 'austria'
+            )
+          );
+    }
+
     match /news/{newsId} {
       allow read: if isApprovedContent()
         || canReadOwnScheduledDraft(resource.data)
@@ -1948,33 +1983,7 @@ service cloud.firestore {
       allow delete: if false;
       allow update: if onlyModerationStatusChanged()
         ? canModerateAppContent('news')
-        : (validNewsDocument(request.resource.data, newsId)
-          && contentReviewFieldsArePreserved()
-          && (canUpdateOrganizationContent() || canUpdateAppContent())
-          && request.resource.data.id == resource.data.id
-          && (
-            (!('authorId' in resource.data) && !('authorId' in request.resource.data))
-            || (
-              ('authorId' in resource.data)
-              && ('authorId' in request.resource.data)
-              && request.resource.data.authorId == resource.data.authorId
-            )
-          )
-          && request.resource.data.createdAt == resource.data.createdAt
-          && (
-            (request.resource.data.moderationStatus == resource.data.moderationStatus
-              && (
-                resource.data.moderationStatus != 'approved'
-                || !('regionScope' in request.resource.data)
-                || request.resource.data.regionScope != 'austria'
-                || canUseOrganizationOverride()
-              ))
-            || (
-              resource.data.moderationStatus == 'approved'
-              && request.resource.data.moderationStatus == 'pendingReview'
-              && request.resource.data.regionScope == 'austria'
-            )
-          ));
+        : canSaveNewsEdit(newsId);
 
       match /comments/{commentId} {
         allow read: if get(/databases/$(database)/documents/news/$(newsId)).data.moderationStatus == 'approved'
