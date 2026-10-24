@@ -30,6 +30,9 @@ final class UITestOwnerAuthBackend: AuthBackendProviding {
     }
 
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
+        if ProcessInfo.processInfo.environment["UITestStartupSecurityDelay"] == "1" {
+            try await Task.sleep(for: .seconds(3))
+        }
         guard session != nil, session?.isEmailVerified == true else { return false }
         return AuthMultiFactorService.claimsContainTOTPSignIn([
             "firebase": ["sign_in_second_factor": hasSecondFactor ? "totp" : "password"]

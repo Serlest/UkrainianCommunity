@@ -215,6 +215,7 @@ final class AuthService {
     private let restorationTimeout: Duration
     @MainActor private var publicProfileRepairs: [String: Task<Void, Never>] = [:]
     @MainActor private var transitionGeneration: UInt = 0
+    @MainActor private var completedProtectionCheckKey: String?
     @MainActor private var pendingMultiFactorSignIn: PendingMultiFactorSignIn?
     // Firebase user and session calls cannot be cancelled once started.
     // Serializing them lets a newer transition replace any stale backend result
@@ -686,8 +687,10 @@ final class AuthService {
     }
 
     @MainActor
-    func refreshPrivilegedMultiFactorRequirement() async {
+    func refreshPrivilegedMultiFactorRequirement(skipIfAlreadyVerified: Bool = false) async {
         guard authState.isAuthenticated, let user = authState.user else { return }
+        let key = protectionCheckKey(for: user)
+        if skipIfAlreadyVerified, completedProtectionCheckKey == key { return }
         await updatePrivilegedMultiFactorPresentation(
             for: user,
             dismissResolvedAuthFlow: false
@@ -716,6 +719,11 @@ final class AuthService {
     }
 
     @MainActor
+    private func protectionCheckKey(for user: AppUser) -> String {
+        "\(transitionGeneration):\(user.id):\(user.globalRole.rawValue):\(user.requiresMultiFactorAuth == true)"
+    }
+
+    @MainActor
     private func updatePrivilegedMultiFactorPresentation(
         for user: AppUser,
         dismissResolvedAuthFlow: Bool
@@ -736,8 +744,10 @@ final class AuthService {
             return
         }
 
-        // Protect the UI before suspension, including token refresh delays.
-        authState.presentAuthFlow(.privilegedMultiFactorRequirement)
+        // Unknown security state blocks access with a neutral startup screen.
+        // Present enrollment/re-authentication only after the check resolves.
+        let checkID = authState.beginProtectedSessionVerification()
+        defer { authState.finishProtectedSessionVerification(checkID) }
         async let totp = RefreshRequest.run(timeout: .seconds(15)) {
             try await self.backend.isCurrentSessionTOTPAuthenticated()
         }
@@ -745,9 +755,10 @@ final class AuthService {
             try await self.backend.isCurrentSessionPasskeyAuthenticated()
         }
         let isTOTPAuthenticated = (try? await totp) == true
-        guard isCurrent() else { return }
+        guard isCurrent(), authState.protectedSessionCheckID == checkID else { return }
         let isPasskeyAuthenticated = (try? await passkey) == true
-        guard isCurrent() else { return }
+        guard isCurrent(), authState.protectedSessionCheckID == checkID else { return }
+        completedProtectionCheckKey = protectionCheckKey(for: user)
         if AuthSecurityPolicy.protectedSessionIsReady(
             user: user,
             isTOTPAuthenticated: isTOTPAuthenticated,

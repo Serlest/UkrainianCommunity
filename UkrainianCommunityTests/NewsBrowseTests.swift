@@ -14,6 +14,23 @@ struct NewsBrowseTests {
                         publishedAt: date, createdAt: date, updatedAt: date, comments: [],
                         moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
     }
+    @Test func initialAndResetFeedRemainUnresolvedUntilTheFirstResponse() async throws {
+        var release: CheckedContinuation<NewsPage, Never>?
+        let model = NewsBrowseViewModel { _, _, _ in
+            await withCheckedContinuation { release = $0 }
+        }
+        #expect(model.isAwaitingFirstResult)
+        let request = Task { await model.reload(NewsBrowseQuery(filter: .init(), region: nil, referenceDate: now), visibility: .init()) }
+        while release == nil { await Task.yield() }
+        #expect(model.loading && model.isAwaitingFirstResult)
+        release?.resume(returning: NewsPage(items: [], nextCursor: nil, hasMore: false))
+        await request.value
+        #expect(!model.loading && !model.isAwaitingFirstResult)
+        #expect(model.posts.isEmpty)
+        model.clear()
+        #expect(model.isAwaitingFirstResult)
+    }
+
     @Test func topicIncludesAdditionalCategoryAndNationalNewsBeforePagination() async throws {
         let repository = MockNewsRepository(seededNews: (0..<35).map { post("other-\($0)", category: .transport) }
             + [post("national", category: .work, additional: [.housing], region: nil),

@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import FirebaseAuth
 import Testing
@@ -1332,6 +1333,35 @@ struct AuthSessionConsistencyTests {
     }
 
     @Test
+    func delayedProtectionCheckNeverPresentsARequirementForAnAlreadyProtectedSession() async throws {
+        let user = makeUser(id: "protected-owner", globalRole: .owner, requiresMultiFactorAuth: true)
+        let state = AuthState()
+        let identity = FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true)
+        let backend = FakeAuthBackend(currentUser: identity)
+        let service = makeService(state: state, backend: backend,
+                                  profiles: FakeAuthProfileProvider(profiles: [user.id: user]))
+        var completion: CheckedContinuation<Bool, Never>?
+        var destinations: [AuthFlowDestination?] = []
+        let observation = state.$presentedAuthFlow.sink { destinations.append($0) }
+        defer { observation.cancel() }
+        backend.totpCheckHandler = { await withCheckedContinuation { completion = $0 } }
+        let restoring = Task { await service.restoreSession() }
+        for _ in 0..<10000 {
+            if completion != nil { break }
+            await Task.yield()
+        }
+        let pending = try #require(completion)
+        #expect(state.isVerifyingProtectedSession)
+        #expect(state.presentedAuthFlow != .privilegedMultiFactorRequirement)
+        pending.resume(returning: true)
+        await restoring.value
+        #expect(!state.isVerifyingProtectedSession)
+        #expect(!destinations.contains(.privilegedMultiFactorRequirement))
+        backend.totpCheckHandler = { Issue.record("Mounting content must not repeat the completed security check"); return true }
+        await service.refreshPrivilegedMultiFactorRequirement(skipIfAlreadyVerified: true)
+    }
+
+    @Test
     func auditLateProtectionCheckCannotAffectNewAccount() async throws {
         let state = AuthState()
         let old = makeUser(id: "old-owner", globalRole: .owner, requiresMultiFactorAuth: true)
@@ -1349,6 +1379,7 @@ struct AuthSessionConsistencyTests {
             await Task.yield()
         }
         let suspended = try #require(completion)
+        #expect(state.isVerifyingProtectedSession)
         _ = try await service.signIn(email: new.email, password: "valid-password")
         #expect(state.user?.id == new.id)
         #expect(state.presentedAuthFlow == nil)
@@ -1356,6 +1387,7 @@ struct AuthSessionConsistencyTests {
         await restoring.value
         #expect(state.user?.id == new.id)
         #expect(state.presentedAuthFlow == nil, "Late old-owner protection check must not gate new-user")
+        #expect(!state.isVerifyingProtectedSession)
     }
 
     @Test

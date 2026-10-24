@@ -1,0 +1,40 @@
+{
+  "reportedBuild": 117,
+  "verifiedAt": "2026-10-24T09:18:52.253438+00:00",
+  "causes": [
+    "Security requirement was presented before token verification resolved, even for already protected sessions",
+    "The privileged requirement had two presentation owners: startup shield and content sheet",
+    "News browse idle state was rendered as an empty successful result before the first request started"
+  ],
+  "changes": [
+    "Separate generation-fenced neutral protected-session verification from the confirmed MFA requirement",
+    "Startup readiness blocks while protection is pending or required",
+    "Startup shield exclusively owns privileged requirement; content sheet cannot dismiss that root-owned flow",
+    "Avoid repeating the same completed security check when authenticated content mounts; explicit security refresh still runs",
+    "Keep an already visible requirement mounted during its own recheck to preserve its task and inputs",
+    "News first-load/reset state remains unresolved until successful data or an error arrives"
+  ],
+  "verification": {
+    "resultBundle": "build/startup-transition-fix-20261024/FinalVerified.xcresult",
+    "passed": 62,
+    "failed": 0,
+    "skipped": 0,
+    "includes": [
+      "Observable auth presentation history through delayed protected-owner restoration",
+      "Delayed old-account response fencing and same-account newer sign-in",
+      "News unresolved, empty success, error and account-reset states",
+      "Runtime cold startup with 3-second security delay and 8-second news delay",
+      "Owner/admin real security gate still reachable when legal fetch fails"
+    ],
+    "screensReviewed": [
+      "Neutral branded verification splash",
+      "News spinner without empty-result copy",
+      "Loaded news feed"
+    ]
+  },
+  "boundaries": [
+    "Synthetic simulator session; no new real iPhone verification in this turn",
+    "No server changes or production data mutation",
+    "Device-only Apple/Google/TOTP entry not exercised"
+  ]
+}

@@ -206,6 +206,9 @@ struct UkrainianCommunityApp: App {
                 await AuthService.shared.restoreSession()
             }
 #if DEBUG && targetEnvironment(simulator)
+            if isUITesting, environment["UITestStartupSecurityDelay"] == "1" {
+                await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
+            }
             if isUITesting, environment["UITestStartupSecurityBeforeLegal"] == "1",
                AuthSecurityPolicy.requiresProtectedSession(sharedAuthState.user) {
                 sharedAuthState.presentAuthFlow(.privilegedMultiFactorRequirement)

@@ -7,6 +7,7 @@ final class NewsBrowseViewModel: ObservableObject {
     @Published private(set) var loading = false
     @Published private(set) var error: String?
     @Published private(set) var hasMore = false
+    var isAwaitingFirstResult: Bool { lastLoadedAt == nil && error == nil }
     private let loadPage: (NewsBrowseQuery, Int, NewsPageCursor?) async throws -> NewsPage
     private var cursor: NewsPageCursor?
     private var query: NewsBrowseQuery?

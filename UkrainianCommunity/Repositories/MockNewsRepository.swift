@@ -9,6 +9,12 @@ struct MockNewsRepository: NewsRepository {
     }
 
     func fetchNews() async throws -> [NewsPost] {
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestNewsBrowseDelay"] == "1" {
+            try await Task.sleep(for: .seconds(8))
+        }
+#endif
         if let seededNews {
             return seededNews
                 .filter { $0.moderationStatus == .approved }

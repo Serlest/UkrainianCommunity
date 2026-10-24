@@ -44,6 +44,7 @@ final class AuthState: ObservableObject {
     @Published private(set) var sessionRecoveryFailure: StartupVerificationFailure?
     @Published private(set) var pendingSessionUserID: String?
     @Published private(set) var sessionState: AuthSessionState = .restoring
+    @Published private(set) var protectedSessionCheckID: UUID?
     @Published var presentedAuthFlow: AuthFlowDestination?
     @Published private(set) var passkeyOfferForUserID: String?
 
@@ -145,6 +146,21 @@ final class AuthState: ObservableObject {
         pendingSessionUserID = user.id
         sessionState = .authenticated
         errorMessage = nil
+    }
+
+    var isVerifyingProtectedSession: Bool { protectedSessionCheckID != nil }
+
+    @MainActor
+    func beginProtectedSessionVerification() -> UUID {
+        let id = UUID()
+        protectedSessionCheckID = id
+        return id
+    }
+
+    @MainActor
+    func finishProtectedSessionVerification(_ id: UUID) {
+        guard protectedSessionCheckID == id else { return }
+        protectedSessionCheckID = nil
     }
 
     @MainActor
@@ -287,6 +303,7 @@ final class AuthState: ObservableObject {
 
     @MainActor
     private func invalidateUserLoad() {
+        protectedSessionCheckID = nil
         sessionRecoveryFailure = nil
         userLoadGeneration &+= 1
         isLoading = false

@@ -174,7 +174,7 @@ struct NewsHomeView: View {
                 .accessibilityIdentifier("home.card.news-\(post.id)")
             }
 
-            if newsBrowser.loading {
+            if newsBrowser.loading || newsBrowser.isAwaitingFirstResult {
                 ProgressView().frame(maxWidth: .infinity).accessibilityIdentifier("home.news.loading")
             } else if newsBrowser.hasMore {
                 if visiblePosts.isEmpty {

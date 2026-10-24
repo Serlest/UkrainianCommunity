@@ -105,6 +105,8 @@ struct AppStartupGate: View {
 
     private var isAccessReady: Bool {
         !authState.isRestoring && !isShowingSplash && authState.isAuthenticated
+            && !authState.isVerifyingProtectedSession
+            && authState.presentedAuthFlow != .privilegedMultiFactorRequirement
             && legalComplianceMonitor.verificationFailure == nil
             && legalComplianceMonitor.activeRequirement == nil
             && legalComplianceMonitor.verifiedKey == legalComplianceKey
@@ -116,7 +118,11 @@ struct AppStartupGate: View {
 
     @ViewBuilder
     private var accessGateContent: some View {
-        if authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
+        if authState.isVerifyingProtectedSession,
+           authState.presentedAuthFlow != .privilegedMultiFactorRequirement {
+            SplashLoadingView()
+                .accessibilityIdentifier("startup.security.verifying")
+        } else if authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
             // A protected session may be needed to accept legal updates.
             // Keep that security flow reachable even when legal verification fails.
             AuthFlowContainerView(initialDestination: .privilegedMultiFactorRequirement, allowsDismissal: false)

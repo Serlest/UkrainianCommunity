@@ -144,6 +144,28 @@ final class RequiredRegistrationUITests: XCTestCase {
     }
 
     @MainActor
+    func testProtectedStartupNeverShowsRequirementOrPrematureEmptyNews() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestStartupSecurityDelay": "1",
+            "UITestNewsBrowseDelay": "1", "UITestResetUserSettings": "1", "UITestAppLanguage": "uk",
+            "UITestAppAppearance": "light", "UITestResetAppLock": "1"]
+        app.launch()
+        let verifying = app.otherElements["startup.security.verifying"].firstMatch
+        XCTAssertTrue(verifying.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.otherElements["auth.mfa.privilegedRequirement"].exists)
+        capture(app, "protected-startup-neutral-verification")
+        let loading = app.descendants(matching: .any)["home.news.loading"].firstMatch
+        XCTAssertTrue(loading.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.staticTexts["home.news.empty"].exists)
+        capture(app, "news-first-load-no-false-empty")
+        XCTAssertTrue(app.buttons["home.card.news-news-1"].firstMatch.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.otherElements["auth.mfa.privilegedRequirement"].exists)
+        XCTAssertEqual(app.tabBars.buttons.count, 5)
+        capture(app, "protected-startup-ready-news")
+    }
+
+    @MainActor
     private func capture(_ app: XCUIApplication, _ name: String) {
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = name

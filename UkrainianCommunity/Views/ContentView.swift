@@ -286,7 +286,7 @@ struct ContentView: View {
         }
         .task(id: privilegedMFARequirementKey) {
             let key = privilegedMFARequirementKey
-            await AuthService.shared.refreshPrivilegedMultiFactorRequirement()
+            await AuthService.shared.refreshPrivilegedMultiFactorRequirement(skipIfAlreadyVerified: true)
             if !Task.isCancelled, key == privilegedMFARequirementKey { updateMFACheckKey = key }
         }
     }
@@ -358,7 +358,12 @@ struct ContentView: View {
 
     private var editorPresentationContent: some View {
         observationContent
-        .sheet(item: $authState.presentedAuthFlow) { destination in
+        .sheet(item: Binding(
+            get: { authState.presentedAuthFlow == .privilegedMultiFactorRequirement ? nil : authState.presentedAuthFlow },
+            set: { value in
+                if authState.presentedAuthFlow != .privilegedMultiFactorRequirement { authState.presentedAuthFlow = value }
+            }
+        )) { destination in
             AuthFlowContainerView(initialDestination: destination)
                 .environmentObject(authState)
         }
