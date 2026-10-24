@@ -160,5 +160,13 @@
     "sourceRevision": "f6b8c63c3c98132026a9b03c905a735a635dfda7",
     "conclusion": "success"
   },
-  "hostedCI": "not_pushed_yet"
+  "hostedCI": {
+    "run": 40121574417,
+    "sourceRevision": "12f25b964a4907325c205e7c057506cb184916be",
+    "status": "in_progress",
+    "conclusion": null,
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40121574417",
+    "note": "Started after the source push. Local targeted results passed as documented; this run has not reached a terminal result."
+  },
+  "sourceRevision": "12f25b964a4907325c205e7c057506cb184916be"
 }
