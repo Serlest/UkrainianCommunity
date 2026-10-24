@@ -21,6 +21,29 @@ final class RootTabHeaderAlignmentUITests: XCTestCase {
     }
 
     @MainActor
+    func testRootDestinationsForAdminAndEveryOrganizationRole() {
+        let screens = ["screen.home", "screen.events", "screen.organizations", "screen.directory", "screen.profile"]
+        for role in ["admin", "org-owner", "org-admin", "org-moderator", "mixed"] {
+            let app = XCUIApplication()
+            app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
+            app.launchEnvironment = ["UITestProfileRole": role, "UITestResetUserSettings": "1",
+                "UITestAppLanguage": "uk", "UITestAppAppearance": "dark", "UITestResetAppLock": "1"]
+            app.launch()
+            let tabs = app.tabBars.buttons
+            XCTAssertTrue(tabs.element(boundBy: 0).waitForExistence(timeout: 20))
+            XCTAssertEqual(tabs.count, 5)
+            for (index, screen) in screens.enumerated() {
+                let tab = tabs.element(boundBy: index)
+                XCTAssertTrue(tab.isHittable); tab.tap(); XCTAssertTrue(tab.isSelected)
+                XCTAssertTrue(app.descendants(matching: .any).matching(identifier: screen).firstMatch.waitForExistence(timeout: 8), role + ": " + screen)
+            }
+            let shot = XCTAttachment(screenshot: app.screenshot())
+            shot.name = "root-navigation-" + role; shot.lifetime = .keepAlways; add(shot)
+            app.terminate()
+        }
+    }
+
+    @MainActor
     func testBrandHeaderKeepsSameVerticalPositionAcrossTabs() throws {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]

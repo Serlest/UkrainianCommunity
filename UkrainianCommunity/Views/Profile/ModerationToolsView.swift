@@ -723,24 +723,8 @@ struct ModerationToolsView: View {
     private var moderationFilters: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(AppTheme.textSecondary)
-                    TextField(AppStrings.Moderation.searchPlaceholder, text: $searchText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .font(.subheadline)
-                    if !searchText.isEmpty {
-                        AppSearchClearButton { searchText = "" }
-                    }
-                }
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.searchControlHeight)
-                .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous)
-                        .strokeBorder(AppTheme.borderSubtle)
-                }
+                AppSearchField(placeholder: AppStrings.Moderation.searchPlaceholder,
+                               text: $searchText, fieldID: "organization.requests.search")
 
                 AppHorizontalFilterRow {
                     if scope != .organizationRequests {

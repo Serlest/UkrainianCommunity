@@ -76,7 +76,7 @@ private struct KeyboardDismissTapObserver: UIViewRepresentable {
         }
 
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
-            !touch.isInsideTextInput
+            !touch.isInsideTextInput && !KeyboardFocusRegion.contains(touch)
         }
 
         func gestureRecognizer(
@@ -88,7 +88,38 @@ private struct KeyboardDismissTapObserver: UIViewRepresentable {
     }
 }
 
+/// Marks the whole input control, including SwiftUI accessory buttons. Window
+/// tap observers must not treat its clear/reveal actions as background touches.
+private struct KeyboardFocusRegion: UIViewRepresentable {
+    private static let regions = NSHashTable<UIView>.weakObjects()
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.isUserInteractionEnabled = false
+        Self.regions.add(view)
+        return view
+    }
+    func updateUIView(_ uiView: UIView, context: Context) {}
+    static func dismantleUIView(_ uiView: UIView, coordinator: ()) { regions.remove(uiView) }
+
+    static func contains(_ touch: UITouch) -> Bool {
+        regions.allObjects.contains { region in
+            guard region.window === touch.window, !region.bounds.isEmpty else { return false }
+            var ancestor: UIView? = region
+            while let view = ancestor {
+                if view.isHidden || view.alpha < 0.01 { return false }
+                ancestor = view.superview
+            }
+            return region.bounds.contains(touch.location(in: region))
+        }
+    }
+}
+
 extension View {
+    func preservesKeyboardFocusWithinBounds() -> some View {
+        background(KeyboardFocusRegion())
+    }
+
     func dismissesKeyboardOnBackgroundTap() -> some View {
         modifier(DismissKeyboardOnTapModifier())
     }

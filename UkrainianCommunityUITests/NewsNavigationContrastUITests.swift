@@ -9,7 +9,7 @@ final class NewsNavigationContrastUITests: XCTestCase {
 
     private func audit(appearance: String, language: String) {
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
         app.launchEnvironment = ["UITestForceAuthenticatedSession": "1", "UITestResetUserSettings": "1",
             "UITestResetAppLock": "1", "UITestAppLanguage": language, "UITestAppAppearance": appearance]
         app.launch()

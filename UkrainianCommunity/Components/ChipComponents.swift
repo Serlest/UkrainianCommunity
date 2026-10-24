@@ -225,6 +225,7 @@ struct AppHorizontalFilterRow<Content: View>: View {
                 HStack(spacing: AppTheme.eventsMetadataSpacing) {
                     content
                 }
+                .fixedSize(horizontal: true, vertical: false)
             }
             .padding(.vertical, 1)
         }

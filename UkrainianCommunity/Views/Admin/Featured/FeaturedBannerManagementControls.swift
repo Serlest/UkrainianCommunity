@@ -47,27 +47,8 @@ struct FeaturedBannerManagementControls: View {
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                HStack(spacing: AppTheme.eventsMetadataSpacing) {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundStyle(AppTheme.textSecondary)
-
-                    TextField(AppStrings.FeaturedManagement.searchPlaceholder, text: $searchText)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-
-                    if !searchText.isEmpty {
-                        AppSearchClearButton {
-                            searchText = ""
-                        }
-                    }
-                }
-                .padding(.horizontal, AppTheme.inputHorizontalPadding)
-                .frame(minHeight: AppTheme.newsEditorInputHeight)
-                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous))
-                .overlay {
-                    RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
-                        .strokeBorder(AppTheme.borderSubtle)
-                }
+                AppSearchField(placeholder: AppStrings.FeaturedManagement.searchPlaceholder,
+                               text: $searchText, fieldID: "featured.management.search")
 
                 ViewThatFits(in: .horizontal) {
                     HStack {

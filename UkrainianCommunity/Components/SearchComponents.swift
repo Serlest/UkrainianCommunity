@@ -35,7 +35,7 @@ struct AppSearchField: View {
                 .accessibilityIdentifier(fieldID ?? "")
             if isSearching { ProgressView().controlSize(.small) }
             if !text.isEmpty {
-                AppSearchClearButton { text = ""; onClear?() }
+                AppSearchClearButton { text = ""; effectiveFocus.wrappedValue = true; onClear?() }
                     .accessibilityIdentifier(fieldID.map { $0 + ".clear" } ?? "")
             }
         }
@@ -47,6 +47,7 @@ struct AppSearchField: View {
                 .contentShape(Rectangle())
                 .onTapGesture { effectiveFocus.wrappedValue = true }
         }
+        .preservesKeyboardFocusWithinBounds()
         .overlay {
             RoundedRectangle(cornerRadius: AppTheme.inputRadius, style: .continuous)
                 .strokeBorder(AppTheme.borderSubtle)

@@ -49,6 +49,23 @@ struct AppThemeContrastTests {
         }
     }
 
+    @Test func bannerCaptionRemainsReadableOverWhiteArtwork() {
+        for style: UIUserInterfaceStyle in [.light, .dark] {
+            UITraitCollection(userInterfaceStyle: style).performAsCurrent {
+                let scheme: ColorScheme = style == .dark ? .dark : .light
+                let scrim = UIColor(AppTheme.bannerTextScrimBackground(for: scheme)).resolvedColor(with: .current)
+                var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+                scrim.getRed(&r, green: &g, blue: &b, alpha: &a)
+                // White artwork is the brightest background; subtitle alpha is 0.88.
+                let background = UIColor(red: r*a + 1-a, green: g*a + 1-a, blue: b*a + 1-a, alpha: 1)
+                background.getRed(&r, green: &g, blue: &b, alpha: &a)
+                let subtitle = UIColor(red: 0.88 + r*0.12, green: 0.88 + g*0.12, blue: 0.88 + b*0.12, alpha: 1)
+                #expect(contrastRatio(.white, background) >= 4.5)
+                #expect(contrastRatio(subtitle, background) >= 4.5)
+            }
+        }
+    }
+
     @Test func tabForegroundsRemainLegibleOnMaterialExtremes() {
         for style: UIUserInterfaceStyle in [.light, .dark] {
             UITraitCollection(userInterfaceStyle: style).performAsCurrent {

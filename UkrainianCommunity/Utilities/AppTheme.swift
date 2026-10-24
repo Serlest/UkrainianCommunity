@@ -296,9 +296,9 @@ enum AppTheme {
     static func bannerTextScrimBackground(for colorScheme: ColorScheme) -> Color {
         switch colorScheme {
         case .dark:
-            Color.black.opacity(0.32)
+            Color.black.opacity(0.64)
         default:
-            Color.black.opacity(0.26)
+            Color.black.opacity(0.64)
         }
     }
 

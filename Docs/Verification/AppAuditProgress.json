@@ -8,14 +8,16 @@
     {
       "number": 1,
       "name": "Общий интерфейс и навигация",
-      "status": "implemented_verified_in_scope"
+      "status": "implemented_verified_in_scope",
+      "recheckReport": "Docs/Verification/GeneralInterfaceRecheck20261024.json"
     },
     {
       "number": 2,
       "name": "Запуск, регистрация и вход",
       "status": "implemented_verified_in_scope",
       "report": "Docs/Verification/StartupAuthAudit.json",
-      "resolutionReport": "Docs/Verification/StartupAuthFixes.json"
+      "resolutionReport": "Docs/Verification/StartupAuthFixes.json",
+      "presentationFollowup": "Docs/Verification/AuthPresentationImprovements20261024.json"
     },
     {
       "number": 3,
@@ -171,6 +173,17 @@
       "Publication importer metadata still reports 10 synchronization errors; investigate source completeness in block 16.",
       "Measured first-request latency correlates with backend instance startup; warm requests are faster. No minimum-instance billing change made. Further performance work belongs to blocks 16 and 17.",
       "Completion covers shared controls and navigation only; detailed feature flows remain assigned to their blocks."
-    ]
+    ],
+    "recheckReport": "Docs/Verification/GeneralInterfaceRecheck20261024.json"
+  },
+  "acceptanceGate": {
+    "pendingBlocks": [
+      1,
+      2,
+      3
+    ],
+    "nextBlockRequiresUserAcceptance": true,
+    "method": "Docs/AppAuditMethod.md",
+    "meaning": "Completed count records implementation; physical iPhone acceptance is separate and pending."
   }
 }

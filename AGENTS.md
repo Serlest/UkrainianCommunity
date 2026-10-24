@@ -15,3 +15,9 @@ Keep ordinary CI configuration validation offline; use the explicit flag for rel
 The 2026-10-23 runtime incident was isolated to automatic base-image composition. Production functions use `buildConfig.onDeployUpdatePolicy`; patches are received on deployment. Preserve that policy until an isolated automatic-update canary has passed an actual cold start. New functions must explicitly use the same policy. See [runtime recovery](Docs/CloudFunctionsRuntimeRecovery.md).
 
 After server deployment, verify Cloud Run readiness and 100% traffic on the intended revision, actual callable responses, and Eventarc triggers. Cloud Functions `ACTIVE` alone is insufficient. Do not replace a source verification with an unauthenticated health probe.
+
+# Application audit acceptance
+
+Follow [the audit method](Docs/AppAuditMethod.md) for the 19-block UAC review. Inventory nested routes, presentations and role-dependent variants before declaring a block covered. Verify transitions and intermediate loading frames, input/keyboard behavior, persistence after return, and actual visuals; test counts and opening a destination alone do not prove completeness. Separate simulator fixtures, production readback, device verification and TestFlight delivery in reports.
+
+Blocks 1–3 are awaiting the user's hands-on acceptance. Do not start block 4 until the user confirms these three.

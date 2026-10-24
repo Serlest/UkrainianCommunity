@@ -1,0 +1,115 @@
+{
+  "block": 1,
+  "name": "Общий интерфейс и навигация",
+  "date": "2026-10-24T11:50:12.575123+00:00",
+  "status": "rechecked_awaiting_device_acceptance",
+  "scope": [
+    "Shared search input, clearing, keyboard focus, padding hit area and search submission",
+    "Five root tabs and aligned headers; role-dependent root navigation",
+    "Reusable horizontal filters and caption contrast over bright artwork",
+    "Shared pushed/admin/editor chrome and glass fallback source inspection",
+    "News/event navigation and reading position through foreground verification",
+    "Read coalescing and retained publication data/error states; warning honesty",
+    "Regression coverage for startup/auth transitions and profile save/readback"
+  ],
+  "fixes": [
+    {
+      "id": "UI-01",
+      "finding": "Window background-tap observers dismissed the keyboard when clearing a SwiftUI search control. The earlier test only asserted that the text was cleared.",
+      "fix": "A weakly registered input region protects the complete shared search control from background dismissal. Clearing explicitly retains focus.",
+      "reproduction": "SearchBaseline.xcresult: 1 failed, 7 passed; the new keyboard assertion failed before the fix."
+    },
+    {
+      "id": "UI-02",
+      "finding": "Organization requests and featured-banner management still had handwritten search variants.",
+      "fix": "Both now use AppSearchField, including semantic colors, focus, clear and submit behavior."
+    },
+    {
+      "id": "UI-03",
+      "finding": "Horizontal filter labels could be compressed and ellipsized even though their row scrolls.",
+      "fix": "The shared horizontal row measures its contents at natural horizontal size; actual Ukrainian/German screenshots reviewed."
+    },
+    {
+      "id": "UI-04",
+      "finding": "Caption scrim could be too light for white text and translucent subtitles over bright banner artwork.",
+      "fix": "Use a 0.64 black scrim in both themes; contrast test composites white artwork and 0.88-alpha subtitle and asserts at least 4.5:1."
+    }
+  ],
+  "verification": [
+    {
+      "bundle": "build/block-01-recheck-20261024/SearchFixed.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "bundle": "build/block-01-recheck-20261024/InterfaceVerified.xcresult",
+      "passed": 19,
+      "failed": 1,
+      "skipped": 0
+    },
+    {
+      "bundle": "build/block-01-recheck-20261024/AdditionalSearchVerified.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "bundle": "build/block-01-recheck-20261024/RolesAndTransitions.xcresult",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "bundle": "build/block-01-recheck-20261024/FinalVisuals.xcresult",
+      "passed": 10,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "bundle": "build/block-01-recheck-20261024/ProfileRegression.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "historicalFailureExplanation": "InterfaceVerified had one fixture/setup failure: organization queue was empty, so its search control correctly was absent. Added the existing organization-review fixture. AdditionalSearchVerified then passed both real route journeys; production empty-state behavior was unchanged.",
+  "visualEvidence": {
+    "manifest": "build/block-01-recheck-20261024/final-screens/manifest.json",
+    "reviewed": [
+      "D4B5027C-E3F3-4187-BDA9-5830F4D34B6D.png",
+      "1D3715D1-D768-40A3-935B-2991CA0DD8F9.png"
+    ],
+    "previousManifest": "build/block-01-recheck-20261024/screens/manifest.json",
+    "environment": "iPhone 17e Simulator, iOS 26.5",
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "appearances": [
+      "light",
+      "dark"
+    ],
+    "largeText": "German shared-search journey uses Accessibility M. Prior auth audit covers XXXL."
+  },
+  "roleCoverage": [
+    "owner through administration/search",
+    "ordinary user through both themed root journeys",
+    "guest through all five roots",
+    "platform admin",
+    "organization owner",
+    "organization admin",
+    "organization moderator/editor",
+    "mixed memberships"
+  ],
+  "method": "Docs/AppAuditMethod.md",
+  "boundaries": [
+    "Physical iPhone acceptance of blocks 1–3 is pending; do not begin block 4.",
+    "No production content writes or backend deployment in this audit.",
+    "Reduced-transparency branch inspected in source, not newly verified via the physical system setting.",
+    "Publication synchronization warnings are retained when incomplete data remains; source completeness belongs to block 16.",
+    "No claim of production latency improvement from UI tests. Shared UI changes add no database queries.",
+    "Live provider sign-ins and destructive production account operations were not exercised."
+  ],
+  "build": "TestFlight 120 prepared separately; actual delivery must be read back in TestFlight120.json"
+}
