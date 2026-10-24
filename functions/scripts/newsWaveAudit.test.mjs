@@ -107,3 +107,34 @@ test('wave audit derives closure from Salzburg report decisions after emergency 
   assert.ok(scope.publications.every(x=>x.verifiedReceipt));
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit prefers closed decisions and follows nested production read-back paths',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-nested-readback-'));const run='news-2026-10-24T18';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const receipt=join(root,'production-readback.json');
+  await writeFile(receipt,JSON.stringify({contentId:'published-id',allVerified:true}));
+  const decisions=[
+   {url:'https://example.at/story',outcome:'published',contentId:'published-id',manifestPath:'/manifest.json',editorialReceiptPath:'/editorial.json',productionReadback:{verified:true,contentId:'published-id',receiptPath:receipt}},
+   {url:'https://example.at/limited',outcome:'rejected',reason:'unverified'},
+  ];
+  await writeFile(join(root,`reports/${run}/steiermark.json`),JSON.stringify({
+   status:'partial',workflowComplete:true,decisions,
+   openedArticles:[{url:'https://example.at/story',outcome:'published'},{url:'https://example.at/limited',outcome:'rejected',reason:'unverified'}],
+  }));
+  await writeFile(join(root,'scopes/steiermark.json'),JSON.stringify({
+   lastCandidateBatch:{runId:'emergency-2026-10-24T18-00',candidateDecisionsComplete:true,candidates:1,published:0,rejected:1},
+   candidateDecisions:{},
+  }));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='steiermark');
+  assert.equal(scope.batchSource,'closed_report');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_report');
+  assert.equal(scope.decisionLedger.reportedCandidates,2);
+  assert.equal(scope.publications[0].contentId,'published-id');
+  assert.equal(scope.publications[0].receiptPath,receipt);
+  assert.equal(scope.publications[0].verifiedReceipt,true);
+  assert.equal(scope.publications[0].manifestPath,'/manifest.json');
+ }finally{await rm(root,{recursive:true,force:true});}
+});

@@ -27,10 +27,13 @@ export async function auditNewsWave(root, runId) {
     // `lastCandidateBatch` is a mutable checkpoint and is replaced by the next
     // pass. Closed per-wave reports are immutable, so use their explicit
     // terminal counts when auditing an older wave.
-    const reportDecisionEntries = Array.isArray(report.openedArticles) && report.openedArticles.length > 0 &&
-      report.openedArticles.every((entry) => entry.outcome === "published" || entry.outcome === "rejected")
-      ? report.openedArticles
-      : Array.isArray(report.decisions) ? report.decisions : null;
+    const isTerminalDecisionList = (entries) => Array.isArray(entries) && entries.length > 0 &&
+      entries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+    // `decisions` is the closed decision ledger. Some newer scope reports also
+    // put terminal outcomes on `openedArticles`, but those entries can be only
+    // lead summaries and omit publication IDs and read-back paths.
+    const reportDecisionEntries = isTerminalDecisionList(report.decisions) ? report.decisions
+      : isTerminalDecisionList(report.openedArticles) ? report.openedArticles : null;
     const explicitTerminalCounts = report.candidateDecisionsComplete === true &&
       Number.isInteger(report.decidedCandidates) && Number.isInteger(report.published) &&
       Number.isInteger(report.rejected);
@@ -61,9 +64,10 @@ export async function auditNewsWave(root, runId) {
       const retained = state.candidateDecisions?.[entry.url] ??
         Object.values(state.candidateDecisions ?? {}).find((value) =>
           value.runId === runId && entry.contentId && value.contentId === entry.contentId);
+      const retainedReceiptPath = retained?.contentId && retained.contentId === entry.contentId
+        ? retained.readbackReceiptPath : undefined;
       return {...retained, ...entry, runId,
-        readbackReceiptPath: retained?.contentId && retained.contentId === entry.contentId
-          ? retained.readbackReceiptPath : undefined};
+        readbackReceiptPath: retainedReceiptPath ?? entry.readbackReceiptPath ?? entry.productionReadback?.receiptPath};
     }) : retainedDecisions;
     const publications = [];
     for (const decision of decisions.filter((value) => value.outcome === "published")) {
