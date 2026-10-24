@@ -1,0 +1,39 @@
+{
+  "version": "1.2.1",
+  "build": 118,
+  "sourceCommit": "4ad8d7fa",
+  "verifiedAt": "2026-10-24T09:28:43.356168+00:00",
+  "scope": "Startup transition correction after user report on build 117",
+  "fixReport": "Docs/Verification/StartupTransitionFixes.json",
+  "archive": "succeeded",
+  "upload": "succeeded",
+  "processingState": "VALID",
+  "internalState": "IN_BETA_TESTING",
+  "externalState": "IN_BETA_TESTING",
+  "groups": [
+    "Beta Tester",
+    "Tester Serlest EXT"
+  ],
+  "testNoteLocales": [
+    "de-DE",
+    "uk",
+    "en-US"
+  ],
+  "verification": {
+    "testsPassed": 62,
+    "testsFailed": 0,
+    "testsSkipped": 0,
+    "deployedAnalyticsContracts": "passed, no missing contracts",
+    "releaseConfiguration": "passed for 118",
+    "localization": "passed, 3280 entries, uk/de",
+    "exportCompliance": "usesNonExemptEncryption=false in archived app"
+  },
+  "warnings": [
+    "Upload accepted with missing prebuilt FirebaseFirestoreInternal/absl/grpc/grpcpp/openssl_grpc dSYM warnings; symbolication within these third-party frameworks may be limited"
+  ],
+  "boundaries": [
+    "No public App Store release",
+    "No new physical iPhone acceptance; delayed startup verified on simulator",
+    "Existing unrelated project reorder and localization catalog churn preserved"
+  ]
+}
