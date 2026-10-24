@@ -1,0 +1,171 @@
+{
+  "block": 3,
+  "name": "Профиль, настройки и безопасность",
+  "status": "audited_changes_proposed",
+  "auditedAt": "2026-10-24T05:06:27.960910+00:00",
+  "sourceCommit": "6bbd18347fe3e49243e9b9b3a41accb4bc7c5367",
+  "scope": [
+    "Profile root: identity card, role-sensitive section ordering, nested route authorization, profile refresh, counters, logout confirmation and failure",
+    "Profile editor: display/full name, biography, city, federal state, Telegram, photo selection/crop/upload, validation, save, reopen and discard",
+    "Preferences: device language/appearance persistence, optional analytics/banner consent state and retry, notification preferences and reminders",
+    "Security: passkey listing/enrollment/removal, provider listing/linking and Apple consent, password link, authenticator enrollment/removal and protected-role policy",
+    "Device lock: enable/disable authorization, per-user storage, immediate/one-minute delay and foreground state",
+    "Hidden users/organizations: lists, search where available, unblock, loading/error/retry states",
+    "Legal reader entry routing and labels; account deletion restriction, confirmation, Apple revocation, server call and local cleanup"
+  ],
+  "roles": [
+    "platform owner",
+    "platform admin",
+    "ordinary user",
+    "organization owner",
+    "organization admin",
+    "organization editor/moderator",
+    "mixed memberships",
+    "restricted/unauthenticated routes (source and policy tests)"
+  ],
+  "findings": [
+    {
+      "id": "PROFILE-01",
+      "priority": "high",
+      "area": "Account deletion",
+      "evidenceType": "source-confirmed missing session fence; destructive race not executed",
+      "sources": [
+        "UkrainianCommunity/ViewModels/ProfileViewModel.swift:516",
+        "UkrainianCommunity/Services/Auth/AuthService.swift:449"
+      ],
+      "finding": "After awaiting repository deletion, local cleanup and unconditional current-session sign-out run without checking the original account/generation. resetForAuthChange resets deletion busy state but does not fence this continuation. A late old-account completion can affect a newly signed-in session.",
+      "proposal": "Scope deletion completion/cleanup and sign-out to expected UID and session generation; preserve server-confirmed cleanup for the original account and add delayed-success/error/account-switch tests."
+    },
+    {
+      "id": "PROFILE-02",
+      "priority": "medium",
+      "area": "Profile save",
+      "evidenceType": "source confirmed; normal mock and SDK save paths checked separately",
+      "sources": [
+        "UkrainianCommunity/Views/Profile/ProfileViews.swift:749",
+        "UkrainianCommunity/Views/Profile/ProfileEditorComponents.swift:44",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift:539"
+      ],
+      "finding": "The save button and dismissal are guarded, while editable fields remain active. Photo picker is disabled only when a photo was already included in the request. Edits made after submission are discarded when successful completion closes the sheet. Repository also combines confirmed private write and subsequent readback into one throwing operation.",
+      "proposal": "Freeze all editor inputs/photo controls during save; distinguish confirmed write with pending readback from rejected write, retain drafts on unresolved failure and avoid repeated upload on retry."
+    },
+    {
+      "id": "PROFILE-03",
+      "priority": "medium",
+      "area": "Security loading and operation coordination",
+      "evidenceType": "source confirmed",
+      "sources": [
+        "UkrainianCommunity/Views/Profile/AuthSecurityViews.swift:181",
+        "UkrainianCommunity/Views/Profile/AuthSecurityViews.swift:201",
+        "UkrainianCommunity/Views/Profile/AuthSecurityViews.swift:360",
+        "UkrainianCommunity/Views/Profile/LinkedAccountProvidersView.swift:133",
+        "UkrainianCommunity/Services/Auth/PasskeyService.swift:126"
+      ],
+      "finding": "Factor reload, two sequential token reads and provider reload use independent states and lack explicit bounded UI read deadlines. Passkey/provider/MFA/password actions are coordinated only within each subview/service, so distinct operations can overlap.",
+      "proposal": "Coalesce and bound pure reads, share the token snapshot where possible, show precise retryable errors and use a shared security-operation lease. Do not timeout/cancel mutations in a way that allows overlapping backend work."
+    },
+    {
+      "id": "PROFILE-04",
+      "priority": "medium",
+      "area": "Root counters and load",
+      "evidenceType": "source confirmed",
+      "sources": [
+        "UkrainianCommunity/Views/Profile/ProfileOwnerVisibilityViewModel.swift:47",
+        "UkrainianCommunity/Views/Profile/ProfileOwnerVisibilityViewModel.swift:86",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift:691",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift:1118",
+        "UkrainianCommunity/Views/Profile/ProfileViews.swift:442"
+      ],
+      "finding": "Unread-feedback badge counts unread entries only within newest 100 records. Initial load starts a listener and separately fetches the same page. Request-count refresh has no in-flight coalescing and is triggered by every unread-notification count change.",
+      "proposal": "Use an exact authorized count for the badge, avoid fetching full inbox solely for a count, and coalesce event-driven count refreshes. Coordinate detailed inbox work with block 12."
+    },
+    {
+      "id": "PROFILE-05",
+      "priority": "medium",
+      "area": "Visual consistency and accessible layouts",
+      "evidenceType": "source confirmed; runtime images reviewed in verification evidence",
+      "sources": [
+        "UkrainianCommunity/Views/Profile/ProfileSettingsRows.swift:75",
+        "UkrainianCommunity/Views/Profile/BiometricLockViews.swift:94",
+        "UkrainianCommunity/Views/Profile/LinkedAccountProvidersView.swift:76",
+        "UkrainianCommunity/Views/Profile/ProfileEditorComponents.swift:15",
+        "UkrainianCommunity/Views/Profile/ProfileEditorComponents.swift:119",
+        "UkrainianCommunity/Views/Profile/AccountDeletionConfirmationSheet.swift:85"
+      ],
+      "finding": "Settings toggles inherit foreground tint intended for links, instead of fixed control fill. Profile avatar/picker and hidden-organization rows remain horizontal at accessibility sizes. Apple deletion uses device-language native button; its confirmation screen repeats the deletion heading.",
+      "proposal": "Use semantic fill versus foreground colors consistently; adapt crowded rows at large text; use the already approved official Apple artwork/localized button in deletion while retaining revocation; simplify duplicate heading and align hidden-content affordances.",
+      "runtimeNote": "German accessibility security screenshot still shows the tab bar despite tabBarHidden=true in the screen. Align intended visibility and verify the last action remains reachable; do not infer obscured final actions solely from this initial scroll position."
+    },
+    {
+      "id": "PROFILE-06",
+      "priority": "medium",
+      "area": "Legal entry labels",
+      "evidenceType": "source confirmed potential mismatch, not a claim of current production document mismatch",
+      "sources": [
+        "UkrainianCommunity/Views/Profile/ProfileRootDestinationViews.swift:232",
+        "UkrainianCommunity/Services/Auth/AuthService.swift:203",
+        "UkrainianCommunity/Views/Profile/LegalViews.swift:45"
+      ],
+      "finding": "Settings rows describe bundled version constants as current, while the reader loads server active versions. Server publication can leave the entry label outdated.",
+      "proposal": "Remove static current-version subtitles or derive them from the same authoritative cached legal state; keep full version detail in reader. Detailed legal publication remains block 18."
+    }
+  ],
+  "keep": [
+    "Existing role-based root section grouping and owner self-support exclusion",
+    "Device-local language/appearance and per-account lock preferences",
+    "Optional analytics consent defaults",
+    "Server checks preventing self-deletion of platform owner and organization owner before transfer",
+    "Existing explicit destructive confirmations and settings retry states"
+  ],
+  "boundaries": [
+    "This is an audit, not implementation approval or completed block 3. Completed blocks remain 2 of 19.",
+    "Live Apple/Google linking, iCloud passkeys, Face ID, APNs receipt, password email and account deletion were not executed on production accounts.",
+    "Detailed personal-content flows belong to block 4, organization administration to block 8, support to block 12, analytics to block 15 and legal management to block 18. Entry routing and access are included here.",
+    "No backend deployment, TestFlight upload or production-data mutation."
+  ],
+  "verification": {
+    "profileSettings": {
+      "bundle": "build/block-03-audit-20261024/ProfileSettingsAudit.xcresult",
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0,
+      "durationSeconds": 287.003,
+      "note": "MCP call timed out at 300 seconds including preparation, but completed xcresult was read directly and confirmed Passed; no test failure."
+    },
+    "visualReview": {
+      "environment": "iPhone 17e iOS 26.5 simulator; deterministic fixtures, not production account sessions",
+      "manifest": "build/block-03-audit-20261024/screens/manifest.json",
+      "reviewed": [
+        "A666576C-3DD2-4691-997C-4C3905340A6B.png",
+        "086957E8-95A8-49AE-ABBE-9BED56B0F2DA.png",
+        "9056D991-E3BB-46EA-8167-352A120B8AD2.png",
+        "49245B82-49BE-4F1C-AA10-BFAE3004776A.png",
+        "84AE7E6A-1646-425E-9FB5-96191FA6ADC7.png",
+        "accessibility-screens/C0A2F2C3-C636-45FB-80E9-FE6DAA12204B.png",
+        "accessibility-screens/9337EC41-C1AC-4EE3-A8E6-0D8E67DB0D80.png"
+      ],
+      "accessibilityManifest": "build/block-03-audit-20261024/accessibility-screens/manifest.json"
+    },
+    "sdkAndAccessibility": {
+      "bundle": "build/block-03-audit-20261024/SDKAndAccessibility.xcresult",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Firebase iOS SDK profile write, public projection, persistence after sign-out/sign-in, cross-account denial with production rules on isolated localhost demo emulators; German dark large-text editor; consent retry and language/appearance persistence after restart."
+    },
+    "localEmulators": "Stopped after SDK test completed; no production fixture writes.",
+    "notSelectedInitially": "Five Swift Testing method selectors without parentheses matched no tests in SDKAndAccessibility. Corrected selectors are executed separately in RoleAndLockAudit; no claim based on the unmatched selection.",
+    "rolesAndDeviceLock": {
+      "bundle": "build/block-03-audit-20261024/RoleAndLockAudit.xcresult",
+      "passed": 5,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Profile route matrix, restricted-account access, role revocation, immediate/delayed device lock and account isolation."
+    },
+    "total": {
+      "passed": 45,
+      "failed": 0,
+      "skipped": 0
+    }
+  }
+}

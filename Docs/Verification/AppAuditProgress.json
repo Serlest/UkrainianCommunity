@@ -20,7 +20,8 @@
     {
       "number": 3,
       "name": "Профиль, настройки и безопасность",
-      "status": "pending"
+      "status": "audited_changes_proposed",
+      "report": "Docs/Verification/ProfileSettingsAudit.json"
     },
     {
       "number": 4,
