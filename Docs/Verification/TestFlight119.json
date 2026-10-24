@@ -1,0 +1,44 @@
+{
+  "version": "1.2.1",
+  "build": 119,
+  "sourceCommit": "68b11da9",
+  "verifiedAt": "2026-10-24T10:03:41.984926+00:00",
+  "scope": "One stable startup splash and removal of blank launch frames",
+  "fixReport": "Docs/Verification/SingleStartupSplashFixes.json",
+  "archive": "succeeded",
+  "upload": "succeeded",
+  "processingState": "VALID",
+  "internalState": "IN_BETA_TESTING",
+  "externalState": "IN_BETA_TESTING",
+  "groups": [
+    "Beta Tester",
+    "Tester Serlest EXT"
+  ],
+  "testNoteLocales": [
+    "de-DE",
+    "uk",
+    "en-US"
+  ],
+  "verification": {
+    "testsPassed": 65,
+    "testsFailed": 0,
+    "testsSkipped": 0,
+    "deployedAnalyticsContracts": "passed, no missing contracts",
+    "releaseConfiguration": "passed for 119",
+    "localization": "passed, 3280 entries, uk/de",
+    "compiledLaunchStoryboard": "Present in archived app and UILaunchStoryboardName=LaunchScreen",
+    "exportCompliance": "usesNonExemptEncryption=false"
+  },
+  "thirdPartySymbolUploadWarnings": [
+    "FirebaseFirestoreInternal.framework",
+    "absl.framework",
+    "grpc.framework",
+    "grpcpp.framework",
+    "openssl_grpc.framework"
+  ],
+  "boundaries": [
+    "No public App Store release",
+    "Startup recording and UI tests on simulator; physical iPhone acceptance pending",
+    "Existing unrelated project reorder and localization changes preserved"
+  ]
+}
