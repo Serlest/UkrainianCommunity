@@ -69,3 +69,41 @@ test('wave audit reports a published closed-report entry without a content ID in
   assert.match(scope.publications[0].error,/path|argument/i);
  }finally{await rm(root,{recursive:true,force:true});}
 });
+
+test('wave audit derives closure from Salzburg report decisions after emergency replaces the scope checkpoint',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'news-wave-audit-salzburg-'));const run='news-2026-10-24T09';
+ try{
+  for(const p of ['snapshots','source-policies','scopes',`reports/${run}`])await mkdir(join(root,p),{recursive:true});
+  await writeFile(join(root,`snapshots/${run}.json`),JSON.stringify([{sourceId:'one',sourcePolicyVersion:4,links:[{url:'https://example.at/story'}]}]));
+  await writeFile(join(root,'source-policies/v4.json'),JSON.stringify({sources:[{sourceId:'one',active:true}]}));
+  const decisions=[
+   {url:'wrong-scope',outcome:'rejected',reason:'wrong_scope'},
+   {url:'unverified',outcome:'rejected',reason:'unverified'},
+   {url:'published-a',outcome:'published',contentId:'a',manifestPath:'/a.json'},
+   {url:'unverified-b',outcome:'rejected',reason:'unverified'},
+   {url:'published-b',outcome:'published',contentId:'b',manifestPath:'/b.json'},
+  ];
+  await writeFile(join(root,`reports/${run}/salzburg.json`),JSON.stringify({
+   status:'partial',workflowComplete:true,decisions,
+   openedArticles:[{url:'published-a',decision:{outcome:'published'}},{url:'published-b',decision:{outcome:'published'}}],
+  }));
+  const receiptA=join(root,'receipt-a.json'),receiptB=join(root,'receipt-b.json');
+  await writeFile(receiptA,JSON.stringify({contentId:'a',allVerified:true}));
+  await writeFile(receiptB,JSON.stringify({contentId:'b',allVerified:true}));
+  const candidateDecisions=Object.fromEntries(decisions.map((entry)=>[entry.url,{
+   ...entry,runId:run,readbackReceiptPath:entry.contentId==='a'?receiptA:entry.contentId==='b'?receiptB:undefined,
+  }]));
+  await writeFile(join(root,'scopes/salzburg.json'),JSON.stringify({
+   lastCandidateBatch:{runId:'emergency-2026-10-24T10-00',candidateDecisionsComplete:true,candidates:1,published:1,rejected:0},
+   candidateDecisions,
+  }));
+  const result=await auditNewsWave(root,run);const scope=result.scopes.find(x=>x.scope==='salzburg');
+  assert.deepEqual(scope.batch,{runId:run,candidateDecisionsComplete:true,candidates:5,published:2,rejected:3});
+  assert.equal(scope.batchSource,'closed_report');
+  assert.equal(scope.decisionLedger.decisionsReadFrom,'closed_report');
+  assert.equal(scope.decisionLedger.retainedDecisionCountMatches,true);
+  assert.equal(scope.rejectionReasons.unverified,2);
+  assert.equal(scope.publications.length,2);
+  assert.ok(scope.publications.every(x=>x.verifiedReceipt));
+ }finally{await rm(root,{recursive:true,force:true});}
+});

@@ -27,17 +27,32 @@ export async function auditNewsWave(root, runId) {
     // `lastCandidateBatch` is a mutable checkpoint and is replaced by the next
     // pass. Closed per-wave reports are immutable, so use their explicit
     // terminal counts when auditing an older wave.
-    const reportHasTerminalCounts = report.candidateDecisionsComplete === true &&
+    const reportDecisionEntries = Array.isArray(report.openedArticles) && report.openedArticles.length > 0 &&
+      report.openedArticles.every((entry) => entry.outcome === "published" || entry.outcome === "rejected")
+      ? report.openedArticles
+      : Array.isArray(report.decisions) ? report.decisions : null;
+    const explicitTerminalCounts = report.candidateDecisionsComplete === true &&
       Number.isInteger(report.decidedCandidates) && Number.isInteger(report.published) &&
       Number.isInteger(report.rejected);
+    // Salzburg's immutable report schema records a terminal `decisions` list
+    // and `workflowComplete`, while the mutable scope checkpoint can already
+    // have advanced to a later emergency batch. Derive counts from that closed
+    // list instead of treating the overwritten checkpoint as missing closure.
+    const derivedTerminalCounts = report.workflowComplete === true &&
+      Array.isArray(report.decisions) && report.decisions.length > 0 &&
+      report.decisions.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
+    const reportHasTerminalCounts = explicitTerminalCounts || derivedTerminalCounts;
+    const terminalCandidates = explicitTerminalCounts ? report.decidedCandidates : derivedTerminalCounts ? report.decisions.length : 0;
+    const terminalPublished = explicitTerminalCounts ? report.published : derivedTerminalCounts ? report.decisions.filter((entry) => entry.outcome === "published").length : 0;
+    const terminalRejected = explicitTerminalCounts ? report.rejected : derivedTerminalCounts ? report.decisions.filter((entry) => entry.outcome === "rejected").length : 0;
     const reportBatch = reportHasTerminalCounts ? {
-      runId, candidateDecisionsComplete: true, candidates: report.decidedCandidates,
-      published: report.published, rejected: report.rejected,
+      runId, candidateDecisionsComplete: true, candidates: terminalCandidates,
+      published: terminalPublished, rejected: terminalRejected,
     } : null;
     const batch = reportBatch ?? currentBatch;
-    const reportEntries = report.openedArticles;
+    const reportEntries = reportDecisionEntries;
     const reportHasCompleteDecisionList = reportHasTerminalCounts && Array.isArray(reportEntries) &&
-      reportEntries.length === report.decidedCandidates &&
+      reportEntries.length === terminalCandidates &&
       reportEntries.every((entry) => entry.outcome === "published" || entry.outcome === "rejected");
     // Prefer the immutable per-wave decision list when it is demonstrably
     // complete. The scope ledger is keyed by URL and later waves may replace
@@ -65,9 +80,9 @@ export async function auditNewsWave(root, runId) {
     scopes.push({scope, reportedStatus: report.status, batch,
       batchSource: reportBatch ? "closed_report" : currentBatch ? "scope_state" : null,
       decisionLedger: reportHasTerminalCounts ? {
-        reportedCandidates: report.decidedCandidates,
+        reportedCandidates: terminalCandidates,
         retainedDecisionsForWave: retainedDecisions.length,
-        retainedDecisionCountMatches: retainedDecisions.length === report.decidedCandidates,
+        retainedDecisionCountMatches: retainedDecisions.length === terminalCandidates,
         decisionsReadFrom: reportHasCompleteDecisionList ? "closed_report" : "scope_state",
       } : undefined,
       evidenceLimits: {unverifiedCandidates: unverified, sourceErrors: report.sourceErrors ?? [],
