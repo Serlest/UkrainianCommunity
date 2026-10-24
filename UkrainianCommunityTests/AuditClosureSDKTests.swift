@@ -69,6 +69,7 @@ final class AuditClosureSDKTests: XCTestCase {
         editor.germanTitle = "Aktualisierter Titel"
         let saved = await editor.publish()
         XCTAssertTrue(saved, editor.errorMessage ?? "Editor must save")
+        guard saved else { return } // Preserve the failing isolated payload for diagnosis.
         let stored = try await repository.fetchManagedNews(id: original.id, organizationID: "closure-org")
         XCTAssertEqual(stored.title, editor.title)
         XCTAssertEqual(stored.localizations["de"]?.title, editor.germanTitle)
@@ -82,6 +83,78 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertEqual(raw.get("title") as? String, editor.title)
         XCTAssertEqual(raw.get("moderationStatus") as? String, "draft")
         try await repository.deleteNews(id: original.id)
+    }
+
+    func testBilingualEventEditorRetainsScheduledOccurrencesAndRegistrationSettings() async throws {
+        try await signIn("owner")
+        defer { try? Auth.auth().signOut() }
+        let repository = FirestoreEventRepository(sessionDataCache: SessionDataCache())
+        let now = Date(), start = now.addingTimeInterval(7 * 86400), scheduled = now.addingTimeInterval(3600)
+        let occurrences = [EventOccurrence(id: "first", startDate: start, endDate: start.addingTimeInterval(3600)),
+                           EventOccurrence(id: "second", startDate: start.addingTimeInterval(86400), endDate: start.addingTimeInterval(90000))]
+        let original = Event(id: "closure-event-edit-" + UUID().uuidString, schemaVersion: 2,
+            localizations: ["de": EventLocalizedContent(title: "Deutscher Titel", summary: "Zusammenfassung", details: "Deutsche Beschreibung")],
+            title: "Зустріч громади", summary: "Короткий опис", details: "Повний опис зустрічі для перевірки.",
+            regionScope: .federalState, federalState: .tirol,
+            source: ContentSourceMetadata(sourceType: .organization, organizationId: "closure-org", organizationName: "Closure Organization"),
+            authorId: "closure-owner", authorName: "Closure Owner", city: "Innsbruck", venue: "Test hall", address: "Test 1",
+            latitude: 47.26, longitude: 11.39, contactEmail: "audit@example.org",
+            mediaMetadata: EventMediaMetadata(caption: "Caption", alternativeText: "Alternative", credit: "Credit"),
+            startDate: start, endDate: start.addingTimeInterval(3600), occurrences: occurrences,
+            createdAt: now, updatedAt: now, scheduledAt: scheduled, requiresRegistration: true,
+            pricing: EventPricing(kind: .free), capacity: 20, registeredCount: 0, comments: [],
+            moderationStatus: .draft, registrationState: .notRegistered, likeCount: 0, likeState: .notLiked)
+        try await repository.createEvent(original)
+        let initial = try await repository.fetchManagedEvent(id: original.id, organizationID: "closure-org")
+        let editor = EventEditorViewModel(repository: repository, mode: .edit(existing: initial))
+        editor.title = "Оновлена зустріч"
+        editor.germanTitle = "Aktualisierte Veranstaltung"
+        let saved = await editor.publish()
+        XCTAssertTrue(saved, editor.errorMessage ?? "Editor must save")
+        guard saved else { return } // Preserve the failing isolated payload for diagnosis.
+        let stored = try await repository.fetchManagedEvent(id: original.id, organizationID: "closure-org")
+        XCTAssertEqual(stored.title, editor.title)
+        XCTAssertEqual(stored.localizations["de"]?.title, editor.germanTitle)
+        XCTAssertEqual(stored.localizations["de"]?.details, original.localizations["de"]?.details)
+        XCTAssertEqual(stored.occurrences.map(\.id), initial.occurrences.map(\.id))
+        for (actual, expected) in zip(stored.occurrences, initial.occurrences) {
+            XCTAssertEqual(actual.startDate.timeIntervalSince1970, expected.startDate.timeIntervalSince1970, accuracy: 0.001)
+            XCTAssertEqual(actual.endDate.timeIntervalSince1970, expected.endDate.timeIntervalSince1970, accuracy: 0.001)
+            XCTAssertEqual(actual.isAllDay, expected.isAllDay)
+            XCTAssertEqual(actual.status, expected.status)
+        }
+        XCTAssertEqual(stored.contactEmail, original.contactEmail)
+        XCTAssertEqual(stored.mediaMetadata, original.mediaMetadata)
+        XCTAssertEqual(stored.federalState, .tirol)
+        XCTAssertEqual(stored.source.organizationId, "closure-org")
+        XCTAssertEqual(stored.capacity, 20)
+        XCTAssertTrue(stored.requiresRegistration)
+        XCTAssertEqual(stored.registeredCount, 0)
+        XCTAssertEqual(stored.scheduledAt?.timeIntervalSince1970 ?? 0, scheduled.timeIntervalSince1970, accuracy: 0.001)
+        let raw = try await Firestore.firestore().document("events/\(original.id)").getDocument(source: .server)
+        XCTAssertEqual(raw.get("title") as? String, editor.title)
+        XCTAssertEqual(raw.get("moderationStatus") as? String, "draft")
+        try await repository.deleteEvent(id: original.id)
+    }
+
+    func testThousandAttendeesLoadWithCompleteNamesAndStableOrder() async throws {
+        guard ProcessInfo.processInfo.environment["UACAuditAttendeeLoad"] == "1" else {
+            throw XCTSkip("Seed --load and opt in to the 1000-attendee journey")
+        }
+        try await signIn("owner")
+        defer { try? Auth.auth().signOut() }
+        let repository = FirestoreEventRepository(sessionDataCache: SessionDataCache())
+        let start = Date()
+        let attendees = try await repository.fetchEventRegistrations(eventID: "closure-large-event")
+        let elapsed = Date().timeIntervalSince(start)
+        XCTAssertEqual(attendees.count, 1000)
+        XCTAssertEqual(attendees.first?.userID, "closure-attendee-0000")
+        XCTAssertEqual(attendees.last?.userID, "closure-attendee-0999")
+        XCTAssertEqual(Set(attendees.map(\.userID)).count, 1000)
+        XCTAssertTrue(attendees.allSatisfy { $0.displayName?.hasPrefix("Audit Attendee ") == true })
+        XCTAssertLessThan(elapsed, 15, "Must complete within the current UI request deadline in the local load environment")
+        let measurement = XCTAttachment(string: "Local emulator cold session: 1000 attendees, \(elapsed) seconds. This is not internet latency proof.")
+        measurement.name = "attendee-load-timing"; measurement.lifetime = .keepAlways; add(measurement)
     }
 
     func testPersonalRepositoriesPersistAndIsolateAccounts() async throws {

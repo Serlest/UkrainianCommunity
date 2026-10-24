@@ -1449,17 +1449,27 @@ struct FirestoreEventRepository: EventRepository {
 
     private func fetchPublicProfilesFromFirestore(userIDs: [String]) async throws -> [String: PublicUserProfile] {
         var profilesByID: [String: PublicUserProfile] = [:]
-        for chunk in userIDs.chunked(into: 10) {
-            let snapshot = try await publicProfilesCollection
-                .whereField(FieldPath.documentID(), in: Array(chunk))
-                .getDocuments()
-
-            for document in snapshot.documents {
-                guard let profile = makePublicUserProfile(from: document) else { continue }
-                profilesByID[profile.id] = profile
+        // Firestore supports 30 IDs per `in` query. Bound concurrency to four:
+        // 1000 attendees need 34 queries in nine waves, rather than 100 serial
+        // requests. Preserve complete-list search/sort and offline cache fallback.
+        let chunks = userIDs.chunked(into: 30)
+        for window in chunks.chunked(into: 4) {
+            try Task.checkCancellation()
+            let profiles = try await withThrowingTaskGroup(of: [PublicUserProfile].self) { group in
+                for chunk in window {
+                    group.addTask { @MainActor in
+                        let snapshot = try await publicProfilesCollection
+                            .whereField(FieldPath.documentID(), in: Array(chunk))
+                            .getDocuments()
+                        return snapshot.documents.compactMap { makePublicUserProfile(from: $0) }
+                    }
+                }
+                var result: [PublicUserProfile] = []
+                for try await batch in group { result.append(contentsOf: batch) }
+                return result
             }
+            for profile in profiles { profilesByID[profile.id] = profile }
         }
-
         return profilesByID
     }
 

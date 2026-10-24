@@ -39,5 +39,19 @@ const auth=getAuth();
  await db.doc('organizations/closure-org').set({...common,id:'closure-org',name:'Closure Organization',shortDescription:'Isolated test organization',fullDescription:'Isolated test organization details',ownerId:'closure-owner',city:'Innsbruck',teamMembers:[],likeCount:0,commentCount:0});
  await db.doc('news/closure-news').set({...common,id:'closure-news',title:'Closure News',subtitle:'SDK fixture',summary:'SDK fixture',body:'SDK fixture details',likeCount:0,commentCount:0,viewCount:0});
  await db.doc('events/closure-event').set({...common,id:'closure-event',title:'Closure Event',summary:'SDK fixture',details:'SDK fixture details',city:'Innsbruck',venue:'Test hall',startDate:future,endDate:Timestamp.fromMillis(future.toMillis()+3600000),requiresRegistration:true,capacity:10000,registeredCount:0,pricing:{kind:'free'},likeCount:0,commentCount:0,viewCount:0});
- console.log(JSON.stringify({project,fixture:'closure-20261025',users:3,content:3,status:'seeded'}));
+ if(process.argv.includes('--load')) {
+  const source=(await db.doc('events/closure-event').get()).data();
+  await db.doc('events/closure-large-event').set({...source,id:'closure-large-event',registeredCount:1000});
+  for(let offset=0;offset<1000;offset+=200) {
+   const batch=db.batch();
+   for(let index=offset;index<Math.min(offset+200,1000);index++) {
+    const uid='closure-attendee-'+String(index).padStart(4,'0');
+    const registeredAt=Timestamp.fromMillis(now.toMillis()+index*1000);
+    batch.set(db.doc('publicProfiles/'+uid),{id:uid,displayName:'Audit Attendee '+index,city:'Innsbruck',federalState:'tirol',updatedAt:now,auditFixture:'closure-20261025'});
+    batch.set(db.doc('registrations/event_closure-large-event_'+uid),{id:'event_closure-large-event_'+uid,eventId:'closure-large-event',userId:uid,registeredAt,createdAt:registeredAt,auditFixture:'closure-20261025'});
+   }
+   await batch.commit();
+  }
+ }
+ console.log(JSON.stringify({project,fixture:'closure-20261025',users:3,content:3,loadAttendees:process.argv.includes('--load')?1000:0,status:'seeded'}));
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

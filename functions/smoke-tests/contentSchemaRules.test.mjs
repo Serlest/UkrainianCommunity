@@ -567,3 +567,52 @@ describe("platform moderation and server-owned deletion", () => {
     ), { text: "Changed", body: "Changed", updatedAt: NOW }));
   });
 });
+
+// Full SDK-shaped documents exercise the evaluator budget; the minimal schema
+// fixture did not expose the production-sized create/edit failure.
+function fullSDKEvent(id, authorId) {
+  const future = new Date(Date.now() + 7 * 86400000);
+  return {...event(id, authorId), schemaVersion: 2, regionScope: "federalState", federalState: "tirol",
+    organizationName: "Schema Organization", organizationImageURL: null, imageURL: null,
+    localizations: {de: {title: "Deutscher Titel", summary: "Zusammenfassung", details: "Beschreibung"}},
+    category: "meetups", additionalCategories: [], audience: "everyone", tags: [],
+    authorName: "Organization Owner", address: "Test 1", latitude: 47.26, longitude: 11.39,
+    contactEmail: "audit@example.org", capacity: 20, participationMode: "inAppRegistration",
+    pricing: {kind: "free"}, mediaMetadata: {caption: "Caption", alternativeText: "Alternative", credit: "Credit"},
+    startDate: future, endDate: new Date(future.getTime() + 3600000),
+    occurrences: [{id: "first", startDate: future, endDate: new Date(future.getTime() + 3600000), isAllDay: false, status: "scheduled"}],
+    moderationStatus: "draft", scheduledAt: new Date(Date.now() + 3600000)};
+}
+
+test("full SDK event payload can be created and edited by every authorized role", async t => {
+  for (const uid of ["owner", "org-owner", "org-admin", "org-moderator"]) {
+   await t.test(uid, async () => {
+    const database = db(uid);
+    const value = fullSDKEvent("full-sdk-event-" + uid, uid);
+    const reference = doc(database, "events", value.id);
+    await assertSucceeds(setDoc(reference, value));
+    await assertSucceeds(updateDoc(reference, {title: "Updated", localizations: {de: {title: "Aktualisiert", summary: "Zusammenfassung", details: "Beschreibung"}}, updatedAt: new Date()}));
+   });
+  }
+});
+
+test("every required event field remains mandatory in the optimized full-payload rules", async () => {
+  const database = db("org-owner");
+  for (const key of ["id", "title", "summary", "details", "sourceType", "city", "venue", "startDate", "endDate", "createdAt", "updatedAt", "price", "registeredCount", "moderationStatus", "registrationState", "likeCount", "likeState", "viewCount", "commentCount", "visibility", "isAllDay"]) {
+    const value = fullSDKEvent("missing-" + key, "org-owner"); delete value[key];
+    await assertFails(setDoc(doc(database, "events", "missing-" + key), value));
+  }
+});
+
+test("full SDK event edits preserve rights, source binding, counters and server review fields", async () => {
+  const ownerDB = db("org-owner"), memberDB = db("regular-user");
+  const value = fullSDKEvent("full-sdk-protected", "org-owner");
+  const reference = doc(ownerDB, "events", value.id);
+  await assertSucceeds(setDoc(reference, value));
+  await assertFails(updateDoc(doc(memberDB, "events", value.id), {title: "Unauthorized"}));
+  for (const changes of [{registeredCount: 1}, {likeCount: 1}, {viewCount: 1}, {commentCount: 1},
+    {organizationId: "another-org"}, {sourceType: "app"}, {moderationReason: "Forged"},
+    {cancellationState: "cancelled"}, {createdAt: new Date()}]) {
+    await assertFails(updateDoc(reference, changes));
+  }
+});
