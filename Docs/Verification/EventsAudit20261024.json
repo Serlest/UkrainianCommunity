@@ -2,7 +2,7 @@
   "block": 6,
   "name": "Мероприятия",
   "date": "2026-10-24",
-  "status": "implemented_verified_in_scope",
+  "status": "implemented_verification_incomplete",
   "startingRevision": "0a158772",
   "changes": [
     "Restore German localized fields on edit; preserve primary occurrence ID and cancellation status.",
@@ -21,7 +21,7 @@
     "baseline": "build/block06-baseline.xcresult: 2 failing regression methods before fixes",
     "editor": "build/block06-editor.xcresult: 59 passed",
     "interactions": "build/block06-final-interactions.xcresult: 113 passed (includes 4 UI methods)",
-    "roleAndSchedule": "build/block06-functional.xcresult: 99 passed executions, one editor UI test failed because keyboard remained open; corrected driver and rerun passed in interactions",
+    "roleAndSchedule": "build/block06-functional.xcresult: 92 passed executions, one editor UI test failed because keyboard remained open; corrected driver and rerun passed in interactions",
     "rules": "build/block06-rules.log: 44 passed",
     "deletionIntegration": "build/block06-deletion.log: 2 passed",
     "registrationServer": "build/block06-registration-server.log: 6 passed",
@@ -130,5 +130,25 @@
     "build": 122,
     "version": "1.2.1",
     "physicalDeviceAcceptance": "pending_user_validation"
+  },
+  "evidenceCountCorrection": {
+    "date": "2026-10-25",
+    "field": "evidence.roleAndSchedule",
+    "previousPassed": 99,
+    "actualPassed": 92,
+    "actualFailed": 1,
+    "source": "build/block06-functional.xcresult",
+    "note": "Read directly from xcresult summary. Later successful editor/interactions results remain valid."
+  },
+  "completionReview": {
+    "date": "2026-10-25",
+    "previousStatus": "implemented_verified_in_scope",
+    "status": "implemented_verification_incomplete",
+    "report": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+    "openChecks": [
+      "R06-A",
+      "R06-B",
+      "R06-C"
+    ]
   }
 }

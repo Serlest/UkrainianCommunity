@@ -1,79 +1,142 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 9,
-  "remainingBlocks": 10,
-  "nextBlock": 10,
+  "completedBlocks": 0,
+  "remainingBlocks": 19,
+  "nextBlock": null,
   "blocks": [
     {
       "number": 1,
       "name": "Общий интерфейс и навигация",
-      "status": "implemented_verified_in_scope",
-      "recheckReport": "Docs/Verification/GeneralInterfaceRecheck20261024.json"
+      "status": "implemented_verification_incomplete",
+      "recheckReport": "Docs/Verification/GeneralInterfaceRecheck20261024.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R01-A",
+        "R01-B",
+        "R01-C"
+      ]
     },
     {
       "number": 2,
       "name": "Запуск, регистрация и вход",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "report": "Docs/Verification/StartupAuthAudit.json",
       "resolutionReport": "Docs/Verification/StartupAuthFixes.json",
-      "presentationFollowup": "Docs/Verification/AuthPresentationImprovements20261024.json"
+      "presentationFollowup": "Docs/Verification/AuthPresentationImprovements20261024.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R02-A",
+        "R02-B",
+        "R02-C"
+      ]
     },
     {
       "number": 3,
       "name": "Профиль, настройки и безопасность",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "report": "Docs/Verification/ProfileSettingsAudit.json",
-      "resolutionReport": "Docs/Verification/ProfileSettingsFixes.json"
+      "resolutionReport": "Docs/Verification/ProfileSettingsFixes.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R03-A",
+        "R03-B",
+        "R03-C"
+      ]
     },
     {
       "number": 4,
       "name": "Личные разделы",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "report": "Docs/Verification/PersonalSectionsAudit20261024.json",
       "inventory": "Docs/Verification/PersonalSectionsInventory20261024.md",
-      "testFlightBuild": 121
+      "testFlightBuild": 121,
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R04-A",
+        "R04-B",
+        "R04-C"
+      ]
     },
     {
       "number": 5,
       "name": "Новости",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "inventory": "Docs/Verification/NewsInventory20261024.md",
       "report": "Docs/Verification/NewsAudit20261024.json",
       "testFlightBuild": 122,
-      "deliveryReport": "Docs/Verification/TestFlight122.json"
+      "deliveryReport": "Docs/Verification/TestFlight122.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R05-A",
+        "R05-B",
+        "R05-C"
+      ]
     },
     {
       "number": 6,
       "name": "Мероприятия",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "inventory": "Docs/Verification/EventsInventory20261024.md",
       "report": "Docs/Verification/EventsAudit20261024.json",
       "testFlightBuild": 122,
-      "deliveryReport": "Docs/Verification/TestFlight122.json"
+      "deliveryReport": "Docs/Verification/TestFlight122.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R06-A",
+        "R06-B",
+        "R06-C"
+      ]
     },
     {
       "number": 7,
       "name": "Публичные организации",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "inventory": "Docs/Verification/PublicOrganizationsInventory20261024.md",
       "report": "Docs/Verification/PublicOrganizationsAudit20261024.json",
       "testFlightBuild": 122,
-      "deliveryReport": "Docs/Verification/TestFlight122.json"
+      "deliveryReport": "Docs/Verification/TestFlight122.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R07-A",
+        "R07-B",
+        "R07-C"
+      ]
     },
     {
       "number": 8,
       "name": "Управление организациями и заявки",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "inventory": "Docs/Verification/OrganizationManagementInventory20261024.md",
-      "report": "Docs/Verification/OrganizationManagementAudit20261024.json"
+      "report": "Docs/Verification/OrganizationManagementAudit20261024.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R08-A",
+        "R08-B",
+        "R08-C"
+      ]
     },
     {
       "number": 9,
       "name": "Довідник и права редакторов",
-      "status": "implemented_verified_in_scope",
+      "status": "implemented_verification_incomplete",
       "inventory": "Docs/Verification/DirectoryInventory20261024.md",
-      "report": "Docs/Verification/DirectoryAudit20261024.json"
+      "report": "Docs/Verification/DirectoryAudit20261024.json",
+      "previousStatus": "implemented_verified_in_scope",
+      "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+      "openChecks": [
+        "R09-A",
+        "R09-B",
+        "R09-C"
+      ]
     },
     {
       "number": 10,
@@ -209,12 +272,21 @@
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Blocks 1–9 verified within documented scope. TestFlight 122 contains 1–7; 8–9 are source-only. Physical acceptance is separate; block 10 not yet authorized.",
+    "meaning": "Nine blocks have implemented fixes, but completeness review is reopened in all nine. Physical acceptance and delivery are separate. New block 10 is held until the documented backlog is closed.",
     "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
     "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом",
     "block6AuthorizedByUser": "2026-10-24: Преступай (после отчета пункта 5)",
     "block7AuthorizedByUser": "2026-10-24: Переходи к 7 му пункту",
     "block8AuthorizedByUser": "2026-10-24: Приступай к следующему пункту",
-    "block9AuthorizedByUser": "2026-10-24: Приступай"
-  }
+    "block9AuthorizedByUser": "2026-10-24: Приступай",
+    "reconciliationAuthorizedByUser": "2026-10-25: Сверяй"
+  },
+  "schemaVersion": 2,
+  "blocksWithImplementedFixes": 9,
+  "blocksReopenedForCompletion": 9,
+  "notStartedBlocks": 10,
+  "nextNewBlock": 10,
+  "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
+  "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+  "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10."
 }

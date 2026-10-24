@@ -2,7 +2,7 @@
   "block": 1,
   "name": "Общий интерфейс и навигация",
   "date": "2026-10-24T11:50:12.575123+00:00",
-  "status": "rechecked_awaiting_device_acceptance",
+  "status": "implemented_verification_incomplete",
   "scope": [
     "Shared search input, clearing, keyboard focus, padding hit area and search submission",
     "Five root tabs and aligned headers; role-dependent root navigation",
@@ -120,5 +120,16 @@
     "No claim of production latency improvement from UI tests. Shared UI changes add no database queries.",
     "Live provider sign-ins and destructive production account operations were not exercised."
   ],
-  "build": "TestFlight 120 prepared separately; actual delivery must be read back in TestFlight120.json"
+  "build": "TestFlight 120 prepared separately; actual delivery must be read back in TestFlight120.json",
+  "completionReview": {
+    "date": "2026-10-25",
+    "previousStatus": "rechecked_awaiting_device_acceptance",
+    "status": "implemented_verification_incomplete",
+    "report": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+    "openChecks": [
+      "R01-A",
+      "R01-B",
+      "R01-C"
+    ]
+  }
 }

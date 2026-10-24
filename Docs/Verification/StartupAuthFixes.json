@@ -1,7 +1,7 @@
 {
   "block": 2,
   "name": "Запуск, регистрация и вход",
-  "status": "implemented_verified_in_scope",
+  "status": "implemented_verification_incomplete",
   "verifiedAt": "2026-10-23T22:52:51.909083+00:00",
   "resolvesAudit": "Docs/Verification/StartupAuthAudit.json",
   "changes": {
@@ -92,5 +92,16 @@
     "No claim that all network mutations can be forcibly cancelled: Firebase session operations remain serialized until completion; expired read results are fenced from UI.",
     "No production account, legal document, analytics contract or role was modified.",
     "Two pre-existing dirty project/catalog files are preserved outside this change."
-  ]
+  ],
+  "completionReview": {
+    "date": "2026-10-25",
+    "previousStatus": "implemented_verified_in_scope",
+    "status": "implemented_verification_incomplete",
+    "report": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+    "openChecks": [
+      "R02-A",
+      "R02-B",
+      "R02-C"
+    ]
+  }
 }

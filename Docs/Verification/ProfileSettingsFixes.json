@@ -1,7 +1,7 @@
 {
   "block": 3,
   "name": "Профиль, настройки и безопасность",
-  "status": "implemented_verified_in_scope",
+  "status": "implemented_verification_incomplete",
   "verifiedAt": "2026-10-24T08:37:29.946694+00:00",
   "resolvesAudit": "Docs/Verification/ProfileSettingsAudit.json",
   "changes": {
@@ -123,5 +123,16 @@
   "concurrentWorkPreserved": {
     "commit": "dda16c3c12e36ab71564cdf3503af039a856d991",
     "scope": "Unrelated committed news-wave audit scripts; no overlap with this change."
+  },
+  "completionReview": {
+    "date": "2026-10-25",
+    "previousStatus": "implemented_verified_in_scope",
+    "status": "implemented_verification_incomplete",
+    "report": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+    "openChecks": [
+      "R03-A",
+      "R03-B",
+      "R03-C"
+    ]
   }
 }

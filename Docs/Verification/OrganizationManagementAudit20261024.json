@@ -2,7 +2,7 @@
   "block": 8,
   "name": "Управление организациями и заявки",
   "date": "2026-10-24",
-  "status": "implemented_verified_in_scope",
+  "status": "implemented_verification_incomplete",
   "startingRevision": "6413c362",
   "inventory": "Docs/Verification/OrganizationManagementInventory20261024.md",
   "userReport": "Docs/Verification/OrganizationManagementAudit20261024.ru.md",
@@ -147,5 +147,16 @@
   ],
   "hostedCI": {
     "status": "not_started_until_commit"
+  },
+  "completionReview": {
+    "date": "2026-10-25",
+    "previousStatus": "implemented_verified_in_scope",
+    "status": "implemented_verification_incomplete",
+    "report": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+    "openChecks": [
+      "R08-A",
+      "R08-B",
+      "R08-C"
+    ]
   }
 }

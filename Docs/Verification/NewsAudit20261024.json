@@ -2,7 +2,7 @@
   "block": 5,
   "totalBlocks": 19,
   "name": "Новости",
-  "status": "implemented_verified_in_documented_scope",
+  "status": "implemented_verification_incomplete",
   "date": "2026-10-24",
   "inventory": "Docs/Verification/NewsInventory20261024.md",
   "sourceBase": "bdd18cdc",
@@ -193,5 +193,16 @@
     "build": 122,
     "version": "1.2.1",
     "physicalDeviceAcceptance": "pending_user_validation"
+  },
+  "completionReview": {
+    "date": "2026-10-25",
+    "previousStatus": "implemented_verified_in_documented_scope",
+    "status": "implemented_verification_incomplete",
+    "report": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+    "openChecks": [
+      "R05-A",
+      "R05-B",
+      "R05-C"
+    ]
   }
 }

@@ -2,7 +2,7 @@
   "block": 7,
   "name": "Публичные организации",
   "date": "2026-10-24",
-  "status": "implemented_verified_in_scope",
+  "status": "implemented_verification_incomplete",
   "startingRevision": "f6b8c63c3c98132026a9b03c905a735a635dfda7",
   "inventory": "Docs/Verification/PublicOrganizationsInventory20261024.md",
   "changes": [
@@ -174,5 +174,16 @@
     "build": 122,
     "version": "1.2.1",
     "physicalDeviceAcceptance": "pending_user_validation"
+  },
+  "completionReview": {
+    "date": "2026-10-25",
+    "previousStatus": "implemented_verified_in_scope",
+    "status": "implemented_verification_incomplete",
+    "report": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
+    "openChecks": [
+      "R07-A",
+      "R07-B",
+      "R07-C"
+    ]
   }
 }

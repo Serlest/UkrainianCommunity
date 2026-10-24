@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-10-25",
+  "scope": "Reconcile blocks 1–9 against the agreed audit method; no new product testing or functional fixes in this task.",
+  "sourceRevision": "1e954b94f301fc457cdcd99c703610556b413be5",
+  "method": "Docs/AppAuditMethod.md",
+  "evidenceReadback": "Docs/Verification/AuditEvidenceReadback20261025.json",
+  "conclusion": "All nine blocks contain substantial confirmed implementation/testing, but complete closure against the method is not demonstrated. Preserve evidence; reopen missing checks.",
+  "counts": {
+    "blocksWithImplementedFixes": 9,
+    "fullyClosedAgainstMethod": 0,
+    "reopenedForCompletion": 9,
+    "notStarted": 10,
+    "evidenceBundlesRead": 70,
+    "missingReferencedBundles": 0,
+    "historicallyFailingMethodsWithSuccessfulEvidence": 25,
+    "openScenarioGroups": 27
+  },
+  "classificationRules": [
+    "Missing evidence is not a confirmed product defect.",
+    "Independent UI fixtures and server tests remain valid, but do not substitute for an unexecuted linked SDK journey.",
+    "A physical-iPhone gate is recorded separately; it is not the sole reason every block is reopened.",
+    "Shared layout proof can cover roles with identical rendering; permissions still need all applicable roles. No blind full Cartesian retest.",
+    "Deferred feature proposals (global search, older-comment pagination), Android parity and substantive article fact checking are not invented completion requirements."
+  ],
+  "packages": [
+    {
+      "id": "A",
+      "name": "Общие окна, роли и визуальная матрица",
+      "blocks": [
+        1,
+        3,
+        4,
+        5,
+        7
+      ],
+      "goal": "Map retained proof to unique window/state/layout variants; inspect only missing or affected variants on final source."
+    },
+    {
+      "id": "B",
+      "name": "Системные интеграции и защищённый доступ",
+      "blocks": [
+        2,
+        3,
+        5,
+        6,
+        7,
+        8
+      ],
+      "goal": "Actual provider/system flows on controlled accounts/device; include cancel/deny/error. Prepare concrete dependencies before any user action request."
+    },
+    {
+      "id": "C",
+      "name": "Связанные пути данных через SDK",
+      "blocks": [
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "goal": "Reuse isolated Firebase environment and actual iOS repositories for writes, independent reads, account change and restart."
+    },
+    {
+      "id": "D",
+      "name": "Недостающие вложенные административные действия",
+      "blocks": [
+        8,
+        9
+      ],
+      "goal": "Complete team/request/directory editor journeys and conflicts; preserve target identity and notification evidence."
+    }
+  ],
+  "blocks": [
+    {
+      "number": 1,
+      "name": "Общий интерфейс и навигация",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Общие поиски, пять корневых вкладок, часть вариантов ролей, фон/контраст и сохранение позиции проверены в работающем симуляторе.",
+        "Есть отдельная видеопроверка холодного запуска и повторный успешный прогон исторического сбоя поиска."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/GeneralInterfaceRecheck20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R01-A",
+          "package": "A",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Не сведены все варианты общей навигации и перекрывающих её настроек в проверяемую матрицу. Дефект панели прав редакторов, найденный только в пункте 9, показывает этот пробел.",
+          "closureCriterion": "Проверить политику панелей и возврат на корень для каждого уникального семейства pushed/admin/editor/sheet, с разрешённой и ограниченной ролью."
+        },
+        {
+          "id": "R01-B",
+          "package": "A",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Уменьшение прозрачности было просмотрено в коде; runtime-доказательства системных ветвей прозрачности/контраста/движения неполны.",
+          "closureCriterion": "Зафиксировать фактические системные настройки и снимки применимых общих компонентов в обеих темах; не заменять их чтением if-ветки."
+        },
+        {
+          "id": "R01-C",
+          "package": "A",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Нет полной связи «уникальное окно/состояние → рассмотренный снимок» и перечня затронутых общих компонентов после последующих изменений.",
+          "closureCriterion": "Связать существующие снимки с вариантами окон и допроверить только оставшиеся варианты и затронутые общие элементы."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "TestFlight122_contains_1_7"
+    },
+    {
+      "number": 2,
+      "name": "Запуск, регистрация и вход",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Проходы входа/регистрации/сброса, клавиатура, защита от повторных действий и медленных ответов проверены на зависимостях симулятора.",
+        "Проекция профиля и часть связности Firebase подтверждены реальным SDK с эмуляторами."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/StartupAuthAudit.json",
+        "Docs/Verification/StartupAuthFixes.json",
+        "Docs/Verification/AuthPresentationImprovements20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R02-A",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Настоящие Apple/Google/iCloud passkey авторизации и доставка/открытие email-ссылок не подтверждены этими прогонами.",
+          "closureCriterion": "Пройти на контролируемых тестовых аккаунтах первый и повторный вход, отмену и ошибку, подтверждение email и сброс пароля с открытием ссылки."
+        },
+        {
+          "id": "R02-B",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "В аудите запрос конфигурации провайдеров вернул 403; наличие кода и mock-успех не подтверждают работающий провайдер.",
+          "closureCriterion": "Проверить текущую конфигурацию доступным способом и подтвердить реальную авторизацию, сохранив точную причину ограничения при её наличии."
+        },
+        {
+          "id": "R02-C",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Защитные экраны/MFA проверены моделями и fixtures, но полный действующий TOTP/passkey цикл защищённой роли не закрыт.",
+          "closureCriterion": "Проверить вход, отмену, повтор и восстановление после ошибки защищённой роли; не ослаблять MFA/юридические проверки."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "TestFlight122_contains_1_7"
+    },
+    {
+      "number": 3,
+      "name": "Профиль, настройки и безопасность",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Редактирование текста профиля, подтверждённое сохранение/повторное чтение и часть ошибок проверены в UI и SDK эмулятора.",
+        "Есть матрица политик, настройки согласий/уведомлений, сохранение языка/темы и подтверждение снятия скрытия организации."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/ProfileSettingsAudit.json",
+        "Docs/Verification/ProfileSettingsFixes.json"
+      ],
+      "gaps": [
+        {
+          "id": "R03-A",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Системный выбор/обрезка/выгрузка фото и отказ в доступе не подтверждены полным маршрутом этих проверок.",
+          "closureCriterion": "Пройти выбор → обрезку → загрузку → независимое повторное чтение, ошибку и повтор на тестовом профиле."
+        },
+        {
+          "id": "R03-B",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Связка/отвязка провайдеров, ключи доступа, биометрическая блокировка/задержка и удаление тестового аккаунта не доказаны полным действующим циклом.",
+          "closureCriterion": "Пройти системные подтверждения/отмену и возврат из фона; удаление выполнять только для специального тестового аккаунта с проверкой очистки."
+        },
+        {
+          "id": "R03-C",
+          "package": "A",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Открытие вложенных пунктов не подтверждает все их действия; например, отдельного завершённого UI-цикла скрытого пользователя в приведённых результатах нет.",
+          "closureCriterion": "Свести матрицу всех вложенных настроек и выполнить недостающие действия/ошибки, сохраняя уже подтверждённые настройки и скрытые организации."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "TestFlight122_contains_1_7"
+    },
+    {
+      "number": 4,
+      "name": "Личные разделы",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Все пять личных разделов имеют успешные маршруты, состояния загрузки/ошибки/повтора, подтверждения удаления и проверки гостя/блокировки.",
+        "UI выполняет операции с fixtures; правила отдельно проверяют владение данными."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/PersonalSectionsAudit20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R04-A",
+          "package": "C",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Нет доказательства всего пути личной операции через настоящий iOS Firebase-репозиторий к изолированной базе и обратно в эти экраны.",
+          "closureCriterion": "В одной тестовой сессии проверить закладку, подписку, регистрацию, недавний просмотр и запись активности через реальные SDK-репозитории с независимым чтением."
+        },
+        {
+          "id": "R04-B",
+          "package": "A",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Роли проверены на вход в разделы, а подробные действия преимущественно выполнены владельцем; полного сопоставления различающихся состояний и визуальных вариантов нет.",
+          "closureCriterion": "Подтвердить обычного пользователя и смену аккаунта на связанном наборе данных; завершить матрицу уникальных пустых/ошибочных/недоступных строк и диалогов."
+        },
+        {
+          "id": "R04-C",
+          "package": "C",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Поведение после перезапуска приложения и восстановления отложенных записей должно быть связано с тем же реальным тестовым хранилищем, не только памятью mock.",
+          "closureCriterion": "Включить перезапуск/смену аккаунта и доставку отложенной активности в общий SDK-сценарий."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "TestFlight122_contains_1_7"
+    },
+    {
+      "number": 5,
+      "name": "Новости",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Есть UI сохранения/повторного открытия новости, фильтров, ролей, комментариев/удаления, жалобы с правильной целью и открытия Share.",
+        "Поля редактора проверены обратным чтением в тестовом репозитории; правила, callable комментариев и шесть production read-only запросов проверены отдельно."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/NewsAudit20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R05-A",
+          "package": "C",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Полный маршрут сохранения новости через настоящий iOS Firebase-репозиторий не подтверждён указанными UI/mock-прогонами.",
+          "closureCriterion": "Проверить обе языковые версии и связанные поля, регион/планирование/публикацию в изолированном SDK-цикле с повторным открытием."
+        },
+        {
+          "id": "R05-B",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Системный PhotosPicker/кроп/отказ доступа и внешняя ссылка просмотрены в коде, но не закрыты полным runtime-проходом.",
+          "closureCriterion": "Проверить системное окно, жест обрезки, отказ/отмену, сохранённое изображение и правильный внешний URL; открытие Share уже подтверждено."
+        },
+        {
+          "id": "R05-C",
+          "package": "A",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Темы, роли и AX покрыты отдельными сценариями, без полной ведомости каждого уникального окна/состояния редактора и комментариев.",
+          "closureCriterion": "Свести существующие доказательства и допроверить недостающие состояния, включая затронутую в пункте 9 общую кнопку перевода."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "TestFlight122_contains_1_7"
+    },
+    {
+      "number": 6,
+      "name": "Мероприятия",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Участие/отмена/закладка с возвратом, редактор и повторное открытие, меню ролей, сеансы/даты и список участников проверены в UI.",
+        "Регистрации/отмена и правила проверены отдельными серверными эмуляторами; production-запросы были только чтением."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/EventsAudit20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R06-A",
+          "package": "C",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Запись события через фактический iOS Firebase-репозиторий и соединение с серверной регистрацией не доказаны общей связанной сессией этих UI-прогонов.",
+          "closureCriterion": "Проверить сохранение полного события, сеансов и обоих языков; другим тестовым пользователем зарегистрироваться/отменить и перечитать результат."
+        },
+        {
+          "id": "R06-B",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Календарь, внешняя запись/билеты, карты и системные фото не подтверждены полными runtime-сценариями.",
+          "closureCriterion": "Проверить разрешить/отказать/отменить, ожидаемую цель перехода и результат календаря без реальных покупок/чужих записей."
+        },
+        {
+          "id": "R06-C",
+          "package": "C",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Список участников выбирается целиком; в отчёте это ограничение указано, но приемлемая нагрузка большого состава не доказана.",
+          "closureCriterion": "Проверить крупный изолированный набор участников; по результату подтвердить допустимый предел либо исправить загрузку. Пагинация не считается уже реализованной."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "TestFlight122_contains_1_7"
+    },
+    {
+      "number": 7,
+      "name": "Публичные организации",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Все шесть публичных вкладок, страницы материалов, быстрые переключения, ошибка/повтор, роли и контакты имеют успешные UI-проверки.",
+        "Закладка/подписка проверены fixtures, права — отдельно; регистрация комментария организации встречается в общем тесте пункта 6."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/PublicOrganizationsAudit20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R07-A",
+          "package": "C",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Подписка/закладка и обновление связанного публичного результата не связаны с настоящим SDK-хранилищем в этих UI-пруфах.",
+          "closureCriterion": "Включить публичную карточку в общий SDK-сценарий двух тестовых пользователей и проверку возврата/перезапуска."
+        },
+        {
+          "id": "R07-B",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Реальные изображения галереи и системные телефон/email/карта/Share не подтверждены этими fixtures.",
+          "closureCriterion": "Проверить загрузку/ошибку настоящего тестового изображения и правильные системные цели; не совершать реальные звонки/отправку сообщений."
+        },
+        {
+          "id": "R07-C",
+          "package": "A",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Не подтверждён полный набор действий комментария именно из организации и все уникальные варианты состояний вкладок.",
+          "closureCriterion": "Проверить цели удаления/жалобы/блокировки автора и отсутствующие визуальные состояния; переиспользовать доказательство общего ввода комментария только при совпадении контекста."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "TestFlight122_contains_1_7"
+    },
+    {
+      "number": 8,
+      "name": "Управление организациями и заявки",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "UI подтверждает редактирование/сохранение/возврат, подачу/просмотр/отзыв заявки и решение «на исправление» с историей.",
+        "Серверные изолированные проверки покрывают роли команды/передачу, ревизии, уведомления, фото и права; UI команды проверяет в основном открытие."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/OrganizationManagementAudit20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R08-A",
+          "package": "D",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Назначение/изменение/снятие роли и передача владельца не пройдены целиком через UI в перечисленных прогонах.",
+          "closureCriterion": "Выполнить операции в тестовой организации, проверить обновление списка и прав второго аккаунта, отмену/ошибку/конфликт и запись уведомления."
+        },
+        {
+          "id": "R08-B",
+          "package": "D",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Полный UI-цикл вернуть заявку → исправить → отправить → одобрить/отклонить не закрыт; серверная логика проверена отдельно.",
+          "closureCriterion": "Пройти одну связанную заявку от заявителя до допустимого решения и истории, включая прямой переход из уведомления."
+        },
+        {
+          "id": "R08-C",
+          "package": "B",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Фото управления (выбор/обрезка/замена/удаление/повтор) и все изменяемые поля пока не имеют полного UI → SDK → сервер подтверждения.",
+          "closureCriterion": "Подключить реальные репозитории к изолированным данным, проверить фото/лимиты и независимое чтение; завершить матрицу визуальных вариантов."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "source_only_not_in_TestFlight122"
+    },
+    {
+      "number": 9,
+      "name": "Довідник и права редакторов",
+      "status": "implemented_verification_incomplete",
+      "confirmed": [
+        "Есть UI публикации/возврата/отказа от изменений, вложенных форм, перевода, удаления блоков, назначения прав и 11 вариантов роли.",
+        "Настоящий каталог прочитан через SDK, офлайн/обновление прошли; развёрнутые исходники пяти функций совпали; серверные записи проверены отдельно."
+      ],
+      "evidenceReports": [
+        "Docs/Verification/DirectoryAudit20261024.json"
+      ],
+      "gaps": [
+        {
+          "id": "R09-A",
+          "package": "D",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Существование формы и поиск символа не доказывают все действия: выбор символа с сохранением, перенос/порядок/скрытие, контакты и изменённая новая подкатегория не закрыты полными UI-циклами.",
+          "closureCriterion": "Пройти составной редакторский сценарий с этими изменениями, публикацией и чтением публичного результата, включая отмену и валидацию."
+        },
+        {
+          "id": "R09-B",
+          "package": "C",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "UI публикации и назначения прав использует fixture API; реальный SDK-каталог проверен только на чтение.",
+          "closureCriterion": "Соединить редактор с SDK/Functions эмуляторов, сохранить/удалить, проверить версии и повторное открытие; не менять реальные статьи."
+        },
+        {
+          "id": "R09-C",
+          "package": "D",
+          "kind": "evidence_gap",
+          "status": "open",
+          "finding": "Нет полного UI-сценария одновременного редактирования и отзыва прав у уже открытого второго редактора.",
+          "closureCriterion": "Назначить → открыть второй аккаунт → изменить/конфликтовать → отозвать → убедиться в запрете и понятном состоянии; проверить нужного получателя уведомления."
+        }
+      ],
+      "physicalAcceptance": "separate_pending_gate",
+      "delivery": "source_only_not_in_TestFlight122"
+    }
+  ],
+  "bookkeepingCorrections": [
+    {
+      "block": 6,
+      "field": "evidence.roleAndSchedule",
+      "reportedPassed": 99,
+      "actualPassed": 92,
+      "actualFailed": 1,
+      "bundle": "build/block06-functional.xcresult",
+      "correctedReport": "Docs/Verification/EventsAudit20261024.json"
+    }
+  ],
+  "currentHostedCI": {
+    "run": 40136715113,
+    "sourceRevision": "1e954b94f301fc457cdcd99c703610556b413be5",
+    "status": "in_progress",
+    "firebase": "success",
+    "static": "success",
+    "ios": "in_progress",
+    "meaning": "Status read during reconciliation; no hosted-success claim."
+  },
+  "nextAction": "Close the documented 1–9 backlog before block 10; do not discard successful evidence."
+}

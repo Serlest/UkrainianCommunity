@@ -1,0 +1,1112 @@
+{
+  "reviewedAt": "2026-10-25",
+  "sourceRevision": "1e954b94f301fc457cdcd99c703610556b413be5",
+  "kind": "Read-back of retained test results, not a new functional execution",
+  "bundlesInspected": 70,
+  "missingBundles": 0,
+  "bundles": [
+    {
+      "path": "build/auth-presentation-20261024/RegressionChecks.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 63,
+      "passedTests": 63,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/auth-presentation-20261024/VerifiedJourneys.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 4,
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-01-recheck-20261024/AdditionalSearchVerified.xcresult",
+      "blocks": [
+        1
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-01-recheck-20261024/FinalVisuals.xcresult",
+      "blocks": [
+        1
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 10,
+      "passedTests": 10,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-01-recheck-20261024/InterfaceVerified.xcresult",
+      "blocks": [
+        1
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 20,
+      "passedTests": 19,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-01-recheck-20261024/ProfileRegression.xcresult",
+      "blocks": [
+        1
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-01-recheck-20261024/RolesAndTransitions.xcresult",
+      "blocks": [
+        1
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 3,
+      "passedTests": 3,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-01-recheck-20261024/SearchFixed.xcresult",
+      "blocks": [
+        1
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-audit-20261024/AuthCore.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 78,
+      "passedTests": 78,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-audit-20261024/AuthScreens.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 6,
+      "passedTests": 6,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-audit-20261024/ProtectionRaceVerified.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 45,
+      "passedTests": 44,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-audit-20261024/RegistrationAndForeground.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 4,
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-fix-20261024/AuthCore.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 72,
+      "passedTests": 72,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-fix-20261024/FinalAuthVerification.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 65,
+      "passedTests": 65,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-fix-20261024/InteractionVerified.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 55,
+      "passedTests": 55,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-fix-20261024/SDKAndVerificationLayouts.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 2,
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-02-fix-20261024/SecurityRecoveryVerified.xcresult",
+      "blocks": [
+        2
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 7,
+      "passedTests": 7,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-audit-20261024/ProfileSettingsAudit.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 37,
+      "passedTests": 37,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-audit-20261024/RoleAndLockAudit.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 5,
+      "passedTests": 5,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-audit-20261024/SDKAndAccessibility.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 3,
+      "passedTests": 3,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-fix-20261024/CompletionVerified.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 33,
+      "passedTests": 33,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-fix-20261024/CoreVerified.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 90,
+      "passedTests": 90,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-fix-20261024/FinalVisualVerified.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 16,
+      "passedTests": 16,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-fix-20261024/OrganizationWordingVerified.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-fix-20261024/RolesAndPreferencesVerified.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 30,
+      "passedTests": 30,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-fix-20261024/SecurityStateVerified.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 16,
+      "passedTests": 16,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block-03-fix-20261024/UIAndSDK.xcresult",
+      "blocks": [
+        3
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 5,
+      "passedTests": 4,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block04-dialogs-and-guest-20261024.xcresult",
+      "blocks": [
+        4
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 6,
+      "passedTests": 6,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block04-final-capture-20261024.xcresult",
+      "blocks": [
+        4
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 2,
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block04-final-journeys-20261024.xcresult",
+      "blocks": [
+        4
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 6,
+      "passedTests": 6,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block04-final-verification-20261024.xcresult",
+      "blocks": [
+        4
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 97,
+      "passedTests": 95,
+      "failedTests": 2,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block04-retry-and-denied-20261024.xcresult",
+      "blocks": [
+        4
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 2,
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block04-roles-20261024.xcresult",
+      "blocks": [
+        4
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 2,
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block04-states-20261024.xcresult",
+      "blocks": [
+        4
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 3,
+      "passedTests": 1,
+      "failedTests": 2,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block05-access-and-discard-20261024.xcresult",
+      "blocks": [
+        5
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 3,
+      "passedTests": 3,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block05-baseline-suites-20261024.xcresult",
+      "blocks": [
+        5
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 32,
+      "passedTests": 30,
+      "failedTests": 2,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block05-final-actions-20261024.xcresult",
+      "blocks": [
+        5
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 4,
+      "passedTests": 4,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block05-final-ui-20261024.xcresult",
+      "blocks": [
+        5
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 8,
+      "passedTests": 8,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block05-final-verification-20261024.xcresult",
+      "blocks": [
+        5
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 118,
+      "passedTests": 118,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block05-page-cancellation-final-20261024.xcresult",
+      "blocks": [
+        5
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 14,
+      "passedTests": 14,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block05-publishing-roundtrip-final-20261024.xcresult",
+      "blocks": [
+        5
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 26,
+      "passedTests": 26,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block06-baseline.xcresult",
+      "blocks": [
+        6
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 3,
+      "passedTests": 1,
+      "failedTests": 2,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block06-ci-deadline-fix.xcresult",
+      "blocks": [
+        6
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 54,
+      "passedTests": 54,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block06-editor.xcresult",
+      "blocks": [
+        6
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 59,
+      "passedTests": 59,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block06-final-dates-visual.xcresult",
+      "blocks": [
+        6
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 12,
+      "passedTests": 12,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block06-final-interactions.xcresult",
+      "blocks": [
+        6
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 113,
+      "passedTests": 113,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block06-final-roundtrip.xcresult",
+      "blocks": [
+        6
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 69,
+      "passedTests": 69,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block06-functional.xcresult",
+      "blocks": [
+        6
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 93,
+      "passedTests": 92,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-AX-final.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 4,
+      "passedTests": 2,
+      "failedTests": 2,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-baseline.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 3,
+      "passedTests": 2,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-contacts-block-final.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 2,
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-dataflow-fixed.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 49,
+      "passedTests": 49,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-final-tabs.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 56,
+      "passedTests": 55,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-final-theme-transitions.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-final-visual.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 2,
+      "passedTests": 2,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block07-roles-and-tabs-fixed.xcresult",
+      "blocks": [
+        7
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 14,
+      "passedTests": 13,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block08-baseline.xcresult",
+      "blocks": [
+        8
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 3,
+      "passedTests": 0,
+      "failedTests": 3,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block08-dataflow-fixed.xcresult",
+      "blocks": [
+        8
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 63,
+      "passedTests": 63,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block08-editor-and-ui.xcresult",
+      "blocks": [
+        8
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 6,
+      "passedTests": 4,
+      "failedTests": 2,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block08-final-confirmed.xcresult",
+      "blocks": [
+        8
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 9,
+      "passedTests": 9,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block08-final-create-search-roles.xcresult",
+      "blocks": [
+        8
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 3,
+      "passedTests": 2,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block08-final-request.xcresult",
+      "blocks": [
+        8
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 1,
+      "passedTests": 0,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block08-workspaces-roles-review.xcresult",
+      "blocks": [
+        8
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 14,
+      "passedTests": 14,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block09-baseline-real.xcresult",
+      "blocks": [
+        9
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 2,
+      "passedTests": 1,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block09-dataflow-fixed.xcresult",
+      "blocks": [
+        9
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 84,
+      "passedTests": 83,
+      "failedTests": 0,
+      "skippedTests": 1
+    },
+    {
+      "path": "build/block09-editors-ui.xcresult",
+      "blocks": [
+        9
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 4,
+      "passedTests": 3,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block09-final-nested-access.xcresult",
+      "blocks": [
+        9
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 5,
+      "passedTests": 4,
+      "failedTests": 1,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block09-final-regression-live.xcresult",
+      "blocks": [
+        9
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 14,
+      "passedTests": 14,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block09-final-transition-proof.xcresult",
+      "blocks": [
+        9
+      ],
+      "exists": true,
+      "result": "Passed",
+      "totalTestCount": 1,
+      "passedTests": 1,
+      "failedTests": 0,
+      "skippedTests": 0
+    },
+    {
+      "path": "build/block09-roles-publish-access.xcresult",
+      "blocks": [
+        9
+      ],
+      "exists": true,
+      "result": "Failed",
+      "totalTestCount": 8,
+      "passedTests": 7,
+      "failedTests": 1,
+      "skippedTests": 0
+    }
+  ],
+  "failedMethodsWithSuccessfulEvidence": [
+    {
+      "method": "SharedControlsUITests/testOrganizationRequestsAndBannerSearchUseSharedInteraction()",
+      "failedBundles": [
+        "build/block-01-recheck-20261024/InterfaceVerified.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block-01-recheck-20261024/AdditionalSearchVerified.xcresult"
+      ]
+    },
+    {
+      "method": "AuthSessionConsistencyTests/auditLateProtectionCheckCannotAffectNewAccount()",
+      "failedBundles": [
+        "build/block-02-audit-20261024/ProtectionRaceVerified.xcresult"
+      ],
+      "successfulBundles": [
+        "build/auth-presentation-20261024/RegressionChecks.xcresult",
+        "build/block-02-fix-20261024/AuthCore.xcresult",
+        "build/block-02-fix-20261024/FinalAuthVerification.xcresult",
+        "build/block-02-fix-20261024/InteractionVerified.xcresult",
+        "build/block-03-fix-20261024/CoreVerified.xcresult"
+      ]
+    },
+    {
+      "method": "OwnerProfileAuditUITests/testHiddenOrganizationSearchRequiresConfirmationAndKeepsOtherRows()",
+      "failedBundles": [
+        "build/block-03-fix-20261024/UIAndSDK.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block-03-fix-20261024/CompletionVerified.xcresult",
+        "build/block-03-fix-20261024/OrganizationWordingVerified.xcresult"
+      ]
+    },
+    {
+      "method": "PersonalSectionsAuditUITests/testGuestAndBlockedAccountDoNotExposePersonalRoutes()",
+      "failedBundles": [
+        "build/block04-final-verification-20261024.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block04-dialogs-and-guest-20261024.xcresult",
+        "build/block04-retry-and-denied-20261024.xcresult"
+      ]
+    },
+    {
+      "method": "PersonalSectionsAuditUITests/testGuestProfileInGermanDarkLargeText()",
+      "failedBundles": [
+        "build/block04-final-verification-20261024.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block04-dialogs-and-guest-20261024.xcresult",
+        "build/block04-final-capture-20261024.xcresult"
+      ]
+    },
+    {
+      "method": "PersonalSectionsAuditUITests/testEverySectionShowsLoadingFailureAndRecoversWithRetry()",
+      "failedBundles": [
+        "build/block04-states-20261024.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block04-final-capture-20261024.xcresult",
+        "build/block04-retry-and-denied-20261024.xcresult"
+      ]
+    },
+    {
+      "method": "PersonalSectionsAuditUITests/testUnavailableContentCanBeRemovedWithoutDeletingLiveContent()",
+      "failedBundles": [
+        "build/block04-states-20261024.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block04-dialogs-and-guest-20261024.xcresult"
+      ]
+    },
+    {
+      "method": "NewsBrowseTests/simultaneousIdenticalLoadsIssueOnlyOnePageRequest()",
+      "failedBundles": [
+        "build/block05-baseline-suites-20261024.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block05-final-verification-20261024.xcresult",
+        "build/block05-page-cancellation-final-20261024.xcresult"
+      ]
+    },
+    {
+      "method": "ContentEditorValidationTests/newsPublishEnforcesTheSameOptionalFieldLimitsAsItsButton()",
+      "failedBundles": [
+        "build/block05-baseline-suites-20261024.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block05-final-verification-20261024.xcresult",
+        "build/block05-publishing-roundtrip-final-20261024.xcresult",
+        "build/block06-editor.xcresult",
+        "build/block06-final-interactions.xcresult",
+        "build/block06-final-roundtrip.xcresult"
+      ]
+    },
+    {
+      "method": "EventAuditTests/editorKeepsGermanAndOccurrenceIdentity()",
+      "failedBundles": [
+        "build/block06-baseline.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block06-editor.xcresult",
+        "build/block06-final-dates-visual.xcresult",
+        "build/block06-final-interactions.xcresult",
+        "build/block06-final-roundtrip.xcresult",
+        "build/block06-functional.xcresult"
+      ]
+    },
+    {
+      "method": "EventAuditTests/editSaveAndReadRetainsPublishingFieldsAndCounters()",
+      "failedBundles": [
+        "build/block06-baseline.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block06-editor.xcresult",
+        "build/block06-final-dates-visual.xcresult",
+        "build/block06-final-interactions.xcresult",
+        "build/block06-final-roundtrip.xcresult",
+        "build/block06-functional.xcresult"
+      ]
+    },
+    {
+      "method": "EventsAuditUITests/testOwnerEditsAndReopensExactEvent()",
+      "failedBundles": [
+        "build/block06-functional.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block06-final-interactions.xcresult",
+        "build/block06-final-roundtrip.xcresult"
+      ]
+    },
+    {
+      "method": "UkrainianCommunityUITests/testOrganizationBlockCanBeUndoneWithoutBlockingItsOwner()",
+      "failedBundles": [
+        "build/block07-AX-final.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block07-contacts-block-final.xcresult"
+      ]
+    },
+    {
+      "method": "UkrainianCommunityUITests/testOrganizationDetailShowsPersistedProfileAndContacts()",
+      "failedBundles": [
+        "build/block07-AX-final.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block07-contacts-block-final.xcresult"
+      ]
+    },
+    {
+      "method": "PublicOrganizationsAuditTests/rapidNewsToEventsSwitchLoadsBothSections()",
+      "failedBundles": [
+        "build/block07-baseline.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block07-dataflow-fixed.xcresult",
+        "build/block07-final-tabs.xcresult",
+        "build/block07-roles-and-tabs-fixed.xcresult"
+      ]
+    },
+    {
+      "method": "PublicOrganizationsAuditUITests/testGermanDarkLargeTextAcrossPublicTabs()",
+      "failedBundles": [
+        "build/block07-final-tabs.xcresult",
+        "build/block07-roles-and-tabs-fixed.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block07-AX-final.xcresult",
+        "build/block07-final-visual.xcresult"
+      ]
+    },
+    {
+      "method": "OrganizationManagementAuditTests/failedRefreshKeepsWorkspaceRowsAndCounters()",
+      "failedBundles": [
+        "build/block08-baseline.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block08-dataflow-fixed.xcresult",
+        "build/block08-final-confirmed.xcresult",
+        "build/block08-workspaces-roles-review.xcresult"
+      ]
+    },
+    {
+      "method": "OrganizationManagementAuditTests/editingRequiresConfirmationOnlyAfterActualChanges()",
+      "failedBundles": [
+        "build/block08-baseline.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block08-dataflow-fixed.xcresult",
+        "build/block08-final-confirmed.xcresult",
+        "build/block08-workspaces-roles-review.xcresult"
+      ]
+    },
+    {
+      "method": "OrganizationManagementAuditTests/aDifferentRequestCannotReuseThePreviousPageCursor()",
+      "failedBundles": [
+        "build/block08-baseline.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block08-dataflow-fixed.xcresult",
+        "build/block08-final-confirmed.xcresult",
+        "build/block08-workspaces-roles-review.xcresult"
+      ]
+    },
+    {
+      "method": "OrganizationManagementAuditUITests/testMemberCreatesRequestThroughAllStepsAndRules()",
+      "failedBundles": [
+        "build/block08-editor-and-ui.xcresult",
+        "build/block08-final-create-search-roles.xcresult",
+        "build/block08-final-request.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block08-final-confirmed.xcresult"
+      ]
+    },
+    {
+      "method": "OwnerProfileAuditUITests/testOrganizationWorkspaceSearchAndContentListsInBothLanguages()",
+      "failedBundles": [
+        "build/block08-editor-and-ui.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block08-final-create-search-roles.xcresult"
+      ]
+    },
+    {
+      "method": "DirectoryAuditTests/sameCandidateQueryRefreshKeepsConfirmedRowsWhenOffline()",
+      "failedBundles": [
+        "build/block09-baseline-real.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block09-dataflow-fixed.xcresult",
+        "build/block09-final-regression-live.xcresult",
+        "build/block09-roles-publish-access.xcresult"
+      ]
+    },
+    {
+      "method": "DirectoryAuditUITests/testPublishReopenAndDiscardCategoryInBothThemes()",
+      "failedBundles": [
+        "build/block09-editors-ui.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block09-roles-publish-access.xcresult"
+      ]
+    },
+    {
+      "method": "DirectoryAuditUITests/testCategoryGroupSymbolAndNewCategoryForms()",
+      "failedBundles": [
+        "build/block09-final-nested-access.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block09-final-regression-live.xcresult"
+      ]
+    },
+    {
+      "method": "DirectoryEditorAccessUITests/testGrantAndRevokeWithLongIdentityInUkrainianAndGerman()",
+      "failedBundles": [
+        "build/block09-roles-publish-access.xcresult"
+      ],
+      "successfulBundles": [
+        "build/block09-final-nested-access.xcresult"
+      ]
+    }
+  ]
+}
