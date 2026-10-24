@@ -9,11 +9,9 @@ struct AppStartupGate: View {
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var legalComplianceMonitor: LegalComplianceMonitorService
     @ObservedObject private var remoteNotificationRouteCoordinator = RemoteNotificationRouteCoordinator.shared
-    @State private var isShowingSplash = true
+    @AppStorage("selectedAppAppearance") private var selectedAppearanceCode = AppAppearance.stored.rawValue
     @State private var hasEnteredBackground = false
     @State private var mountedContentUserID: String?
-
-    private let transitionDuration = 0.25
 
     init(container: AppContainer) {
         self.container = container
@@ -32,15 +30,12 @@ struct AppStartupGate: View {
         return nil
     }
 
-    private var reduceMotionEnabled: Bool {
-        UIAccessibility.isReduceMotionEnabled
-    }
-
     var body: some View {
         rootContent
+        .preferredColorScheme((AppAppearance(rawValue: selectedAppearanceCode) ?? .system).colorScheme)
         .background(AppAccessShield(
             authState: authState,
-            isAccessBlocked: authState.isAuthenticated && !isAccessReady,
+            isAccessBlocked: hasMountedCurrentContent && !isAccessReady,
             accessContent: accessGateContent
                 .environmentObject(authState)
                 .preferredColorScheme(AppAppearance.stored.colorScheme)
@@ -51,12 +46,6 @@ struct AppStartupGate: View {
         }
         .onChange(of: authState.user?.id) { _, userID in
             if userID == nil { mountedContentUserID = nil }
-        }
-        .onAppear {
-            evaluateStartupState()
-        }
-        .onChange(of: authState.isRestoring) { _, _ in
-            evaluateStartupState()
         }
         .task(id: legalComplianceKey) {
             await legalComplianceMonitor.configure(user: authState.isAuthenticated ? authState.user : nil)
@@ -92,8 +81,10 @@ struct AppStartupGate: View {
         } else if usesGuestUITestFixture {
             ContentView(container: container)
                 .environmentObject(authState)
-        } else if authState.isRestoring || isShowingSplash || authState.isAuthenticated {
-            SplashLoadingView()
+        } else if authState.isRestoring || authState.isAuthenticated {
+            // Initial verification stays in this window and this view identity.
+            // The overlay window is only needed after content has been admitted.
+            accessGateContent
         } else {
             AuthFlowContainerView(initialDestination: requiredAuthDestination, allowsDismissal: false)
                 .id(requiredAuthDestination)
@@ -104,12 +95,17 @@ struct AppStartupGate: View {
     }
 
     private var isAccessReady: Bool {
-        !authState.isRestoring && !isShowingSplash && authState.isAuthenticated
+        !authState.isRestoring && authState.isAuthenticated
             && !authState.isVerifyingProtectedSession
             && authState.presentedAuthFlow != .privilegedMultiFactorRequirement
             && legalComplianceMonitor.verificationFailure == nil
             && legalComplianceMonitor.activeRequirement == nil
             && legalComplianceMonitor.verifiedKey == legalComplianceKey
+    }
+
+    private var hasMountedCurrentContent: Bool {
+        authState.isAuthenticated && mountedContentUserID != nil
+            && mountedContentUserID == authState.user?.id
     }
 
     private var readyContentUserID: String? {
@@ -118,20 +114,19 @@ struct AppStartupGate: View {
 
     @ViewBuilder
     private var accessGateContent: some View {
-        if authState.isVerifyingProtectedSession,
-           authState.presentedAuthFlow != .privilegedMultiFactorRequirement {
-            SplashLoadingView()
-                .accessibilityIdentifier("startup.security.verifying")
-        } else if authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
+        if authState.isAuthenticated,
+           authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
             // A protected session may be needed to accept legal updates.
             // Keep that security flow reachable even when legal verification fails.
             AuthFlowContainerView(initialDestination: .privilegedMultiFactorRequirement, allowsDismissal: false)
                 .environmentObject(authState)
-        } else if let failure = legalComplianceMonitor.verificationFailure {
+        } else if authState.isAuthenticated, !authState.isVerifyingProtectedSession,
+                  let failure = legalComplianceMonitor.verificationFailure {
             StartupAccessFailureView(failure: failure) {
                 await legalComplianceMonitor.retryVerification(user: authState.user)
             }
-        } else if let requirement = legalComplianceMonitor.activeRequirement,
+        } else if authState.isAuthenticated, !authState.isVerifyingProtectedSession,
+                  let requirement = legalComplianceMonitor.activeRequirement,
                   requirement.userID == authState.user?.id {
             LegalComplianceView(
                 requirement: requirement,
@@ -146,7 +141,8 @@ struct AppStartupGate: View {
             )
         } else {
             SplashLoadingView()
-                .accessibilityIdentifier("startup.access.verifying")
+                .accessibilityIdentifier(authState.isVerifyingProtectedSession
+                    ? "startup.security.verifying" : "startup.access.verifying")
         }
     }
 
@@ -185,21 +181,4 @@ struct AppStartupGate: View {
         )
     }
 
-    private func evaluateStartupState() {
-        guard isShowingSplash else {
-            return
-        }
-
-        guard !authState.isRestoring else {
-            return
-        }
-
-        if reduceMotionEnabled {
-            isShowingSplash = false
-        } else {
-            withAnimation(.easeInOut(duration: transitionDuration)) {
-                isShowingSplash = false
-            }
-        }
-    }
 }

@@ -35,6 +35,9 @@ struct SplashVideoBackgroundView: View {
                 fallbackBackground
             }
         }
+        // A video layer and extracted first frame are asynchronous. Never expose
+        // the hosting window's default color while either of them is preparing.
+        .background(AppBackgroundView())
     }
 
     private var fallbackBackground: some View {

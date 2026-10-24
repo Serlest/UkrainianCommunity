@@ -1,0 +1,51 @@
+{
+  "reportedBuild": 118,
+  "verifiedAt": "2026-10-24T09:47:07.751474+00:00",
+  "causes": [
+    "Cold launch moved between independently mounted splash views in the root and access-shield window, restarting the logo/video",
+    "Splash video/first-frame preparation exposed a transparent hosting surface",
+    "Native launch screen was generated without the application background",
+    "Initial splash did not consistently use the selected app appearance"
+  ],
+  "changes": [
+    "Keep initial session/security/legal verification in one root-window splash identity",
+    "Only use the access overlay window for already-mounted content and device lock/privacy protection",
+    "Remove the separate animated splash flag and let access readiness perform one content transition",
+    "Always paint the application background while video/frame decoding prepares",
+    "Use a compiled static background launch storyboard with an adaptive light/dark overlay",
+    "Observe selected appearance at startup so splash and content use the same setting"
+  ],
+  "verification": {
+    "bundle": "build/startup-transition-fix-20261024/SingleSplashVerified.xcresult",
+    "passed": 65,
+    "failed": 0,
+    "skipped": 0,
+    "includes": [
+      "Same actual splash state UUID across delayed security and legal verification",
+      "Protected startup: no premature security requirement or empty news",
+      "Owner/admin required protection remains reachable during legal failure",
+      "Background legal verification blocks access while preserving the same settings position",
+      "Session races, news loading/reset/errors, video asset integrity"
+    ],
+    "videoBefore": "build/startup-transition-fix-20261024/before-flicker.mp4",
+    "videoAfter": "build/startup-transition-fix-20261024/after-single-splash.mp4",
+    "frameSamplingHz": 60,
+    "sampledSeconds": 12,
+    "nearWhiteScreenDefinition": "mean frame RGB brightness > 0.97; diagnostic threshold, not a complete visual-quality measure",
+    "beforeNearWhiteIntervalsSeconds": [
+      [
+        1.383,
+        2.067
+      ]
+    ],
+    "afterNearWhiteIntervalsSeconds": [],
+    "visualReview": "Reviewed before/after contact sheets, continuous splash followed by main feed; no repeat logo reveal in observed delayed-owner launch",
+    "compiledLaunchStoryboardVerified": true
+  },
+  "boundaries": [
+    "Recorded and tested on iPhone simulator with synthetic owner session; physical iPhone not verified in this turn",
+    "No server deployment or production-data writes",
+    "Existing unrelated project reorder and localization catalog changes preserved"
+  ],
+  "captureNote": "MCP video recording did not produce a file; recordings made with simctl and decoded with AVFoundation"
+}

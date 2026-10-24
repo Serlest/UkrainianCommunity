@@ -166,6 +166,29 @@ final class RequiredRegistrationUITests: XCTestCase {
     }
 
     @MainActor
+    func testColdStartupRetainsOneSplashAcrossSecurityAndLegalChecks() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-ui-testing"]
+        app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestStartupSecurityDelay": "1",
+            "UITestLegalReverification": "cold-slow", "UITestResetUserSettings": "1",
+            "UITestAppLanguage": "uk", "UITestAppAppearance": "dark", "UITestResetAppLock": "1"]
+        app.launch()
+        let security = app.otherElements["startup.security.verifying"].firstMatch
+        XCTAssertTrue(security.waitForExistence(timeout: 10))
+        let instance = security.value as? String
+        XCTAssertNotNil(instance)
+        XCTAssertFalse(instance?.isEmpty ?? true)
+        let legal = app.otherElements["startup.access.verifying"].firstMatch
+        XCTAssertTrue(legal.waitForExistence(timeout: 10))
+        XCTAssertEqual(legal.value as? String, instance, "Changing startup phase must not recreate the splash or restart its video/logo")
+        capture(app, "same-splash-during-legal-check")
+        XCTAssertTrue(app.buttons["home.card.news-news-1"].firstMatch.waitForExistence(timeout: 20))
+        XCTAssertFalse(legal.exists)
+        XCTAssertFalse(security.exists)
+        capture(app, "one-transition-to-news-dark")
+    }
+
+    @MainActor
     private func capture(_ app: XCUIApplication, _ name: String) {
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = name

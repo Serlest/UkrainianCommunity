@@ -3,6 +3,9 @@ import SwiftUI
 struct SplashLoadingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotionEnabled
     @State private var hasPresentedLogo = false
+#if DEBUG
+    @State private var instanceID = UUID().uuidString
+#endif
 
     private enum SplashTiming {
         static let logoSize: CGFloat = 220
@@ -38,6 +41,9 @@ struct SplashLoadingView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("startup.splash")
+#if DEBUG
+        .accessibilityValue(ProcessInfo.processInfo.arguments.contains("-ui-testing") ? instanceID : "")
+#endif
         .onAppear {
             presentLogo()
         }
