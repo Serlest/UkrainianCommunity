@@ -16,6 +16,7 @@ struct MockEventRepository: EventRepository {
     }
 
     func fetchRegisteredEventsPage(limit: Int, after cursor: RegistrationPageCursor?) async throws -> RegistrationPage {
+        if try await store.personalPageIsEmpty("registrations") { return RegistrationPage(items: [], nextCursor: nil, hasMore: false) }
         try await store.registrationAuditPageWillLoad()
         let sorted = try await fetchRegisteredEvents().sorted { $0.id < $1.id }
         let remaining = sorted.filter { cursor == nil || $0.id > cursor!.documentID }

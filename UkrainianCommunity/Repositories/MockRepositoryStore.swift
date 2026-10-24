@@ -13,6 +13,26 @@ actor MockRepositoryStore {
         #endif
         return MockContentBuilder.currentUser()
     }()
+    private var personalPageRequests: [String: Int] = [:]
+    func personalPageIsEmpty(_ section: String) async throws -> Bool {
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            let state = ProcessInfo.processInfo.environment["UITestPersonalState"]
+            if state == "empty" { return true }
+            if state == "retry" {
+                personalPageRequests[section, default: 0] += 1
+                if personalPageRequests[section] == 1 {
+                    try await Task.sleep(for: .seconds(5))
+                    throw AppError.network
+                }
+            }
+        }
+#endif
+        return false
+    }
+    private var removedPersonalFixtureIDs = Set<String>()
+    func personalFixtureIsRemoved(_ id: String) -> Bool { removedPersonalFixtureIDs.contains(id) }
+    func removePersonalFixture(_ id: String) { removedPersonalFixtureIDs.insert(id) }
     var news = MockContentBuilder.newsPosts()
     var registrationAuditPageRequests = 0
     func registrationAuditPageWillLoad() throws {

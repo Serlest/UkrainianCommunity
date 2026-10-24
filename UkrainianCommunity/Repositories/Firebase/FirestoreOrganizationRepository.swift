@@ -139,26 +139,58 @@ struct FirestoreOrganizationRepository: OrganizationRepository {
             let snapshot = try await query.getDocuments(source: .server)
             guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
             let markers = Array(snapshot.documents.prefix(size))
-            var records: [SavedContentRecord<Organization>] = []
-            for marker in markers {
+            let ids = Array(Set(markers.compactMap { $0.data()["subscribedOrganizationId"] as? String }))
+            async let liked = fetchLikedOrganizationIDs(for: ids)
+            async let bookmarked = fetchBookmarkedOrganizationIDs(for: ids)
+            let (likedIDs, bookmarkedIDs) = try await (liked, bookmarked)
+            var byID: [String: Organization] = [:]
+            // Resolve a bounded page in groups, preserving each marker (including
+            // unavailable content) and all personal flags when caching a detail.
+            for chunk in ids.chunked(into: 10) {
                 try Task.checkCancellation()
-                guard let id = marker.data()["subscribedOrganizationId"] as? String else { continue }
-                var organization: Organization?
-                do {
-                    let docs = try await collection.whereField(FieldPath.documentID(), isEqualTo: id)
-                        .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue).getDocuments(source: .server)
-                    if let doc = docs.documents.first {
-                        organization = try Organization(dto: makeOrganizationDTO(from: doc, likedOrganizationIDs: [], subscribedOrganizationIDs: [id], bookmarkedOrganizationIDs: []))
-                    }
-                } catch {
-                    if (error as NSError).domain != FirestoreErrorDomain || (error as NSError).code != FirestoreErrorCode.permissionDenied.rawValue { throw error }
+                let documents = try await subscriptionOrganizationDocuments(ids: Array(chunk))
+                for doc in documents {
+                    byID[doc.documentID] = try Organization(dto: makeOrganizationDTO(from: doc,
+                        likedOrganizationIDs: likedIDs, subscribedOrganizationIDs: Set(ids),
+                        bookmarkedOrganizationIDs: bookmarkedIDs))
                 }
-                records.append(SavedContentRecord(id: id, savedAt: (marker.data()["createdAt"] as? Timestamp)?.dateValue(), content: organization))
+            }
+            let records = markers.compactMap { marker -> SavedContentRecord<Organization>? in
+                guard let id = marker.data()["subscribedOrganizationId"] as? String else { return nil }
+                return SavedContentRecord(id: id, savedAt: (marker.data()["createdAt"] as? Timestamp)?.dateValue(), content: byID[id])
             }
             guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
             return SavedContentPage(items: records, nextCursor: snapshot.documents.count > size ? markers.last?.documentID : nil)
         } catch is CancellationError { throw CancellationError() }
         catch { throw FirebaseReadErrorMapper.map(error) }
+    }
+
+    private func subscriptionOrganizationDocuments(ids: [String]) async throws -> [QueryDocumentSnapshot] {
+        do {
+            return try await collection.whereField(FieldPath.documentID(), in: ids)
+                .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+                .getDocuments(source: .server).documents
+        } catch {
+            let failure = error as NSError
+            guard failure.domain == FirestoreErrorDomain,
+                  failure.code == FirestoreErrorCode.permissionDenied.rawValue else { throw error }
+            // Preserve the former per-marker behavior when a restricted target
+            // prevents a grouped query: other subscriptions remain resolvable.
+            var documents: [QueryDocumentSnapshot] = []
+            for id in ids {
+                try Task.checkCancellation()
+                do {
+                    let result = try await collection.whereField(FieldPath.documentID(), isEqualTo: id)
+                        .whereField("moderationStatus", isEqualTo: ModerationStatus.approved.rawValue)
+                        .getDocuments(source: .server)
+                    documents.append(contentsOf: result.documents)
+                } catch {
+                    let failure = error as NSError
+                    if failure.domain != FirestoreErrorDomain || failure.code != FirestoreErrorCode.permissionDenied.rawValue { throw error }
+                }
+            }
+            return documents
+        }
     }
 
     func fetchOrganizationSubscriptions(forceRefresh: Bool) async throws -> [SavedContentRecord<Organization>] {

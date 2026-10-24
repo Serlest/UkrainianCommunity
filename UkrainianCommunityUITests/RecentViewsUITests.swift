@@ -6,9 +6,9 @@ final class RecentViewsUITests: XCTestCase {
         continueAfterFailure = false
         for language in ["uk", "de"] {
             let app = XCUIApplication()
-            app.launchArguments = ["-ui-testing"]
+            app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
             if language == "de" {
-                app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
+                app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
             }
             app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestResetUserSettings": "1",
                 "UITestAppLanguage": language, "UITestResetAppLock": "1", "UITestRecentViews": "1",
@@ -61,12 +61,12 @@ final class RecentViewsUITests: XCTestCase {
             let remove = app.buttons["recentViews.delete.news_news-1"]
             reveal(remove, app); remove.tap()
             let confirm = app.buttons["recentViews.delete.confirm"].firstMatch
-            XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+            XCTAssertTrue(confirm.waitForExistence(timeout: 5)); capture(app, "recentViews-delete-dialog-" + language); confirm.tap()
             XCTAssertTrue(app.buttons["recentViews.open.news_news-1"].waitForNonExistence(timeout: 8))
             let clear = app.buttons[language == "uk" ? "Очистити історію" : "Verlauf löschen"].firstMatch
             reveal(clear, app); clear.tap()
             let clearConfirm = app.buttons["recentViews.clear.confirm"].firstMatch
-            XCTAssertTrue(clearConfirm.waitForExistence(timeout: 5)); clearConfirm.tap()
+            XCTAssertTrue(clearConfirm.waitForExistence(timeout: 5)); capture(app, "recentViews-clear-dialog-" + language); clearConfirm.tap()
             XCTAssertTrue(app.buttons["recentViews.open.event_event-1"].waitForNonExistence(timeout: 8))
             capture(app, "history-cleared-" + language)
             app.terminate()

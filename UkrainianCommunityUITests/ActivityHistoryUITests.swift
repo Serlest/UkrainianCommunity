@@ -6,9 +6,9 @@ final class ActivityHistoryUITests: XCTestCase {
         continueAfterFailure = false
         for language in ["uk", "de"] {
             let app = XCUIApplication()
-            app.launchArguments = ["-ui-testing"]
+            app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
             if language == "de" {
-                app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
+                app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"]
             }
             app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestResetUserSettings": "1",
                 "UITestAppLanguage": language, "UITestResetAppLock": "1", "UITestActivityHistory": "1",
@@ -61,12 +61,12 @@ final class ActivityHistoryUITests: XCTestCase {
             let remove = app.buttons["activityHistory.delete.activity-news"]
             reveal(remove, app); remove.tap()
             let confirm = app.buttons["activityHistory.delete.confirm"].firstMatch
-            XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+            XCTAssertTrue(confirm.waitForExistence(timeout: 5)); capture(app, "activityHistory-delete-dialog-" + language); confirm.tap()
             XCTAssertTrue(app.buttons["activityHistory.open.activity-news"].waitForNonExistence(timeout: 8))
             let clear = app.buttons[language == "uk" ? "Очистити історію" : "Verlauf löschen"].firstMatch
             reveal(clear, app); clear.tap()
             let clearConfirm = app.buttons["activityHistory.clear.confirm"].firstMatch
-            XCTAssertTrue(clearConfirm.waitForExistence(timeout: 5)); clearConfirm.tap()
+            XCTAssertTrue(clearConfirm.waitForExistence(timeout: 5)); capture(app, "activityHistory-clear-dialog-" + language); clearConfirm.tap()
             XCTAssertTrue(app.buttons["activityHistory.open.activity-event"].waitForNonExistence(timeout: 8))
             capture(app, "history-cleared-" + language)
             app.terminate()

@@ -196,11 +196,11 @@ enum MockContentBuilder {
 #if DEBUG && targetEnvironment(simulator)
         guard ProcessInfo.processInfo.arguments.contains("-ui-testing"),
               let role = ProcessInfo.processInfo.environment["UITestProfileRole"],
-              ["admin", "org-owner", "org-admin", "org-moderator", "mixed"].contains(role) else { return nil }
+              ["admin", "org-owner", "org-admin", "org-moderator", "mixed", "member", "warned", "blocked"].contains(role) else { return nil }
         let admin = role == "admin" || role == "mixed"
         return AppUser(id: role + "-1", fullName: "Profile Role Fixture", city: "Innsbruck",
             email: "profile@example.com", bio: "", role: .user, globalRole: admin ? .admin : .user,
-            requiresMultiFactorAuth: admin, blockState: .active, selectedFederalState: .tirol,
+            requiresMultiFactorAuth: admin, blockState: role == "blocked" ? .bannedPermanent : role == "warned" ? .warned : .active, selectedFederalState: .tirol,
             acceptedTermsAt: .now, acceptedPrivacyAt: .now,
             acceptedTermsVersion: AuthService.currentTermsVersion,
             acceptedPrivacyVersion: AuthService.currentPrivacyVersion, createdAt: .now, updatedAt: .now)

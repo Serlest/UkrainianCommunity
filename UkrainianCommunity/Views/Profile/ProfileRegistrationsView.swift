@@ -87,7 +87,7 @@ struct MyRegistrationsView: View {
                         .accessibilityIdentifier("registrations.partial")
                 }
                 if viewModel.isLoading && viewModel.events.isEmpty {
-                    LoadingStateCard(title: AppStrings.Profile.registrationsLoading)
+                    LoadingStateCard(title: AppStrings.Profile.registrationsLoading).accessibilityIdentifier("registrations.loading")
                 } else if visible.isEmpty && viewModel.error == nil {
                     ProfileDestinationEmptyStateCard(systemImage: selectedSegment.systemImage,
                         title: selectedSegment.emptyTitle,
@@ -118,7 +118,7 @@ struct MyRegistrationsView: View {
                 }
             }
         }
-        .task { await viewModel.loadIfNeeded(); await viewModel.refreshIfStale() }
+        .task { await viewModel.refreshIfStale() }
         .appRefreshable { await viewModel.refresh() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await viewModel.refreshIfStale() } }

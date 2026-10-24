@@ -603,7 +603,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
     private func launch(language: String = "uk", darkLarge: Bool = false, reportContext: Bool = false, registrations: Bool = false, registrationsOffline: Bool = false, saved: Bool = false, subscriptions: Bool = false) -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-ui-testing"]
+        app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryL"]
         app.launchEnvironment = ["UITestForceOwnerSession": "1", "UITestResetUserSettings": "1",
                                  "UITestAppLanguage": language, "UITestResetAppLock": "1",
                                  "UITestFeedbackInbox": "1", "UITestLegalEvidence": "1", "UITestUserRefresh": "1"]
@@ -613,7 +613,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
         if saved { app.launchEnvironment["UITestSavedContent"] = "1" }
         if registrations { app.launchEnvironment["UITestMyRegistrations"] = "1" }
         if registrationsOffline { app.launchEnvironment["UITestMyRegistrationsOffline"] = "1" }
-        if darkLarge { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"] }
+        if darkLarge { app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityM"] }
         app.launch()
         let profile = app.tabBars.buttons.element(boundBy: 4)
         XCTAssertTrue(profile.waitForExistence(timeout: 20)); profile.tap()

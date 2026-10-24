@@ -493,8 +493,8 @@ struct SavedContentView: View {
                 error: viewModel.error,
                 items: currentItems,
                 emptySystemImage: emptyStateSystemImage,
-                emptyTitle: selectedSegment.title,
-                emptyMessage: emptyStateMessage,
+                emptyTitle: searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? selectedSegment.title : AppStrings.Search.noResultsTitle,
+                emptyMessage: searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? emptyStateMessage : AppStrings.Search.noResultsMessage,
                 pendingRemovalIDs: viewModel.pendingRemovalIDs,
                 retry: refresh,
                 removeUnavailable: removeUnavailable,
@@ -632,14 +632,14 @@ private struct SavedContentResults<Destination: View>: View {
     var body: some View {
         Group {
             if isLoading {
-                LoadingStateCard(title: AppStrings.Profile.savedContent)
+                LoadingStateCard(title: AppStrings.Profile.savedContent).accessibilityIdentifier("saved.loading")
             } else if let error, items.isEmpty {
                 ErrorStateCard(
                     title: AppStrings.Profile.savedContent,
                     message: savedErrorMessage(error),
                     retryTitle: AppStrings.Action.retry,
                     retryAction: retry
-                )
+                ).accessibilityIdentifier("saved.error")
             } else if items.isEmpty {
                 ProfileDestinationEmptyStateCard(
                     systemImage: emptySystemImage,
@@ -650,10 +650,13 @@ private struct SavedContentResults<Destination: View>: View {
                 LazyVStack(spacing: AppTheme.feedRowSpacing) {
                     if let error {
                         InlineMessageCard(style: .error, message: savedErrorMessage(error))
+                        Button(AppStrings.Action.retry, action: retry)
+                            .accessibilityIdentifier("saved.retry")
                     }
                     ForEach(items) { item in
                         if item.isUnavailable {
                             UnavailableSavedContentCard(
+                                itemID: item.id,
                                 systemImage: item.systemImage,
                                 kindTitle: item.kindTitle,
                                 isRemoving: pendingRemovalIDs.contains(item.id),
@@ -712,6 +715,7 @@ private struct SavedContentResults<Destination: View>: View {
 }
 
 private struct UnavailableSavedContentCard: View {
+    let itemID: String
     let systemImage: String
     let kindTitle: String
     let isRemoving: Bool
@@ -750,6 +754,7 @@ private struct UnavailableSavedContentCard: View {
                     .buttonStyle(.bordered)
                     .disabled(isRemoving)
                     .accessibilityLabel(AppStrings.Organizations.removeBookmark)
+                    .accessibilityIdentifier("saved.removeUnavailable.\(itemID)")
                 }
 
                 Spacer(minLength: 0)
@@ -822,10 +827,9 @@ struct FollowedOrganizationsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
             Task { await refreshSubscriptions(forceRefresh: false) }
         }
-        .confirmationDialog(
+        .alert(
             AppStrings.Organizations.confirmUnsubscribeTitle,
-            isPresented: unavailableSubscriptionConfirmationBinding,
-            titleVisibility: .visible
+            isPresented: unavailableSubscriptionConfirmationBinding
         ) {
             Button(AppStrings.Organizations.confirmUnsubscribeButton, role: .destructive) {
                 guard let id = unavailableSubscriptionPendingConfirmation else { return }
@@ -841,7 +845,7 @@ struct FollowedOrganizationsView: View {
     @ViewBuilder
     private var followedOrganizationsContent: some View {
         if isLoading {
-            LoadingStateCard(title: AppStrings.Profile.organizationSubscriptions)
+            LoadingStateCard(title: AppStrings.Profile.organizationSubscriptions).accessibilityIdentifier("subscriptions.loading")
         } else if let error = model.error, visibleSubscriptions.isEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.organizationSubscriptions,
@@ -849,8 +853,14 @@ struct FollowedOrganizationsView: View {
                 retryTitle: AppStrings.Action.retry
             ) {
                 Task { await refreshSubscriptions(forceRefresh: true) }
-            }
+            }.accessibilityIdentifier("subscriptions.error")
         } else if sortedSubscriptions.isEmpty {
+            if let error = model.error {
+                InlineMessageCard(style: .error, message: followedOrganizationsErrorMessage(error))
+                Button(AppStrings.Action.retry) { Task { await model.load() } }
+                    .disabled(model.isLoading || !model.pending.isEmpty)
+                    .accessibilityIdentifier("subscriptions.retry")
+            }
             ProfileDestinationEmptyStateCard(
                 systemImage: "person.2",
                 title: AppStrings.Profile.organizationSubscriptions,
@@ -860,6 +870,9 @@ struct FollowedOrganizationsView: View {
             LazyVStack(spacing: AppTheme.feedRowSpacing) {
                 if let error = model.error {
                     InlineMessageCard(style: .error, message: followedOrganizationsErrorMessage(error))
+                    Button(AppStrings.Action.retry) { Task { await model.load() } }
+                        .disabled(model.isLoading || !model.pending.isEmpty)
+                        .accessibilityIdentifier("subscriptions.retry")
                 }
                 ForEach(sortedSubscriptions, id: \.id) { record in
                     if let organization = record.content {
@@ -886,6 +899,7 @@ struct FollowedOrganizationsView: View {
                         }
                     } else {
                         UnavailableOrganizationSubscriptionCard(
+                            itemID: record.id,
                             isRemoving: model.pending.contains(record.id),
                             remove: { unavailableSubscriptionPendingConfirmation = record.id }
                         )
@@ -896,7 +910,8 @@ struct FollowedOrganizationsView: View {
     }
 
     private var sortedSubscriptions: [SavedContentRecord<Organization>] {
-        visibleSubscriptions.filter { searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || ($0.content?.localizedName ?? AppStrings.Profile.unavailableSubscriptionTitle).localizedStandardContains(searchText) }.sorted { lhs, rhs in
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return visibleSubscriptions.filter { query.isEmpty || ($0.content?.localizedName ?? AppStrings.Profile.unavailableSubscriptionTitle).localizedStandardContains(query) }.sorted { lhs, rhs in
             switch sortOption {
             case .newest:
                 return compareSubscriptionDates(lhs, rhs, ascending: false)
@@ -981,6 +996,7 @@ struct FollowedOrganizationsView: View {
 }
 
 private struct UnavailableOrganizationSubscriptionCard: View {
+    let itemID: String
     let isRemoving: Bool
     let remove: () -> Void
 
@@ -1013,6 +1029,7 @@ private struct UnavailableOrganizationSubscriptionCard: View {
                     .buttonStyle(.bordered)
                     .disabled(isRemoving)
                     .accessibilityLabel(AppStrings.Profile.removeUnavailableSubscription)
+                    .accessibilityIdentifier("subscriptions.removeUnavailable.\(itemID)")
                 }
 
                 Spacer(minLength: 0)

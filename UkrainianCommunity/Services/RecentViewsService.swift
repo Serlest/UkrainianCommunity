@@ -451,7 +451,10 @@ final class UITestRecentViewsRepository: RecentViewsRepository {
             RecentViewItem(itemId: org.id, itemType: .organization, title: org.localizedName, subtitle: org.city, imageURL: nil, viewedAt: Date().addingTimeInterval(-120))
         ]
     }()
-    func fetchRecentViews(userID: String, limit: Int) async throws -> [RecentViewItem] { Array(items.prefix(limit)) }
+    func fetchRecentViews(userID: String, limit: Int) async throws -> [RecentViewItem] {
+        if try await MockRepositoryStore.shared.personalPageIsEmpty("recentViews") { return [] }
+        return Array(items.prefix(limit))
+    }
     func recordRecentView(_ item: RecentViewItem, userID: String) async throws {}
     func deleteRecentView(id: String, userID: String, through: Date) async throws {
         items.removeAll { $0.id == id && $0.viewedAt <= through }

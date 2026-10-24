@@ -136,7 +136,7 @@ struct RecentViewsView: View {
         .appRefreshable {
             await refreshRecentViews()
         }
-        .confirmationDialog(
+        .alert(
             AppStrings.Profile.recentlyViewedClearConfirmationTitle,
             isPresented: $isShowingClearConfirmation
         ) {
@@ -147,7 +147,7 @@ struct RecentViewsView: View {
         } message: {
             Text(AppStrings.Profile.recentlyViewedClearConfirmationMessage)
         }
-        .confirmationDialog(
+        .alert(
             AppStrings.Profile.recentlyViewedDeleteConfirmationTitle,
             isPresented: Binding(
                 get: { itemPendingDeletion != nil },
@@ -205,7 +205,7 @@ struct RecentViewsView: View {
     @ViewBuilder
     private var recentViewsContent: some View {
         if isLoading {
-            LoadingStateCard(title: AppStrings.Profile.recentlyViewed)
+            LoadingStateCard(title: AppStrings.Profile.recentlyViewed).accessibilityIdentifier("recentViews.loading")
         } else if let error = recentViewsViewModel.error, recentViewsViewModel.items.isEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.recentlyViewed,
@@ -213,7 +213,7 @@ struct RecentViewsView: View {
                 retryTitle: AppStrings.Action.retry
             ) {
                 Task { await recentViewsViewModel.refresh() }
-            }
+            }.accessibilityIdentifier("recentViews.error")
         } else {
             if let error = recentViewsViewModel.error {
                 InlineMessageCard(style: .error, message: recentViewsErrorMessage(error))
@@ -384,11 +384,9 @@ private struct RecentViewRow: View {
 
     private var accessibilityLayout: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
-                thumbnail
-                title
-                Spacer(minLength: 0)
-            }
+            thumbnail
+            title
+                .frame(maxWidth: .infinity, alignment: .leading)
             subtitleText
             viewedAtLabel
         }

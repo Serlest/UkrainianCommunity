@@ -1,0 +1,40 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "personal.guest.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ihr persönlicher Bereich"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ваш особистий простір"
+          }
+        }
+      }
+    },
+    "personal.guest.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Melden Sie sich an oder erstellen Sie ein Konto, um Inhalte zu speichern, Organisationen zu folgen und Ihre Anmeldungen und Ihren Verlauf zu sehen."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увійдіть або створіть обліковий запис, щоб зберігати матеріали, підписуватися на організації та переглядати свої реєстрації й історію."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -221,6 +221,29 @@ struct UkrainianCommunityTests {
         #expect(ProfileAccessIdentity(user: admin) != ProfileAccessIdentity(user: makeUser(id: "admin", globalRole: .user)))
     }
 
+    @Test func personalRoutesArePrivateAndIndependentOfAdministrativeRole() {
+        let routes: [ProfileNavigationRoute] = [.registrations, .savedContent, .followedOrganizations, .recentViews, .activityHistory]
+        for role in [GlobalRole.owner, .admin, .user] {
+            let active = makeUser(id: "actor", globalRole: role)
+            let warned = makeUser(id: "actor", globalRole: role, blockState: .warned)
+            let blocked = makeUser(id: "actor", globalRole: role, blockState: .bannedPermanent)
+            for route in routes {
+                #expect(ProfileAccessPolicy(user: active).allows(route))
+                #expect(ProfileAccessPolicy(user: warned).allows(route))
+                #expect(!ProfileAccessPolicy(user: blocked).allows(route))
+                #expect(!ProfileAccessPolicy(user: nil).allows(route))
+                for status in AccountStatus.allCases {
+                    let candidate = makeUser(id: "actor", globalRole: role, accountStatus: status)
+                    #expect(ProfileAccessPolicy(user: candidate).allows(route) == (status == .active || status == .warned))
+                }
+                for state in UserBlockState.allCases {
+                    let candidate = makeUser(id: "actor", globalRole: role, blockState: state, accountStatus: .active)
+                    #expect(ProfileAccessPolicy(user: candidate).allows(route) == (state == .active || state == .warned))
+                }
+            }
+        }
+    }
+
     @Test func restrictedAccountsKeepTheirOwnDecisionAndHistoryButLoseOperationalAccess() {
         let restricted = makeUser(id: "restricted", globalRole: .admin, blockState: .bannedPermanent)
         let policy = ProfileAccessPolicy(user: restricted)

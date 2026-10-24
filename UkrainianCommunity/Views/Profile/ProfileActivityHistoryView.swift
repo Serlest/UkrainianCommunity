@@ -139,7 +139,7 @@ struct ActivityHistoryView: View {
         .appRefreshable {
             await refreshActivityHistory()
         }
-        .confirmationDialog(
+        .alert(
             AppStrings.Profile.activityHistoryClearConfirmationTitle,
             isPresented: $isShowingClearConfirmation
         ) {
@@ -150,7 +150,7 @@ struct ActivityHistoryView: View {
         } message: {
             Text(ActivityHistoryText.clearMessage)
         }
-        .confirmationDialog(
+        .alert(
             AppStrings.Profile.activityHistoryDeleteConfirmationTitle,
             isPresented: Binding(
                 get: { itemPendingDeletion != nil },
@@ -210,7 +210,7 @@ struct ActivityHistoryView: View {
     @ViewBuilder
     private var activityHistoryContent: some View {
         if isLoading {
-            LoadingStateCard(title: AppStrings.Profile.activityHistoryModule)
+            LoadingStateCard(title: AppStrings.Profile.activityHistoryModule).accessibilityIdentifier("activityHistory.loading")
         } else if let error = activityLogViewModel.error, activityLogViewModel.items.isEmpty {
             ErrorStateCard(
                 title: AppStrings.Profile.activityHistoryModule,
@@ -218,7 +218,7 @@ struct ActivityHistoryView: View {
                 retryTitle: AppStrings.Action.retry
             ) {
                 Task { await activityLogViewModel.refresh() }
-            }
+            }.accessibilityIdentifier("activityHistory.error")
         } else {
             if let error = activityLogViewModel.error {
                 InlineMessageCard(style: .error, message: activityHistoryErrorMessage(error))

@@ -1,0 +1,149 @@
+{
+  "block": 4,
+  "totalBlocks": 19,
+  "name": "Личные разделы",
+  "scope": "iOS",
+  "inventory": "Docs/Verification/PersonalSectionsInventory20261024.md",
+  "baseCommit": "2ea82599",
+  "findingsAndFixes": [
+    {
+      "area": "Subscription and registration details",
+      "finding": "Pages created objects with default false personal like/bookmark flags; caching a detail outside the main feed could show incorrect actions.",
+      "fix": "Load the current user’s bounded like/bookmark sets before building objects; retain canonical membership state."
+    },
+    {
+      "area": "Subscription loading",
+      "finding": "Up to 20 organization content queries ran sequentially for one page.",
+      "fix": "Normal path resolves organizations in batches of ten; preserve per-target permission fallback and unavailable markers.",
+      "performanceEvidence": "Source request structure, not a measured production latency claim; document reads are not claimed to decrease."
+    },
+    {
+      "area": "Registration first-load error",
+      "finding": "The view ran loadIfNeeded and refreshIfStale consecutively. An initial failure immediately started a second request and replaced its retry UI.",
+      "fix": "Use refreshIfStale as the single entry point; it already handles an initial load.",
+      "reproduction": "The extended retry UI scenario failed because registrations.retry vanished, then passed after removing the duplicated call."
+    },
+    {
+      "area": "Activity history waiting",
+      "finding": "Reading history waited for acknowledgement of queued writes, including sequential retries after failure.",
+      "fix": "Publish the bounded read before synchronizing pending writes; coalesce synchronization within the session and stop the retry pass on the first failure, keeping undelivered entries persisted.",
+      "regressionTest": "pendingWriteAcknowledgementDoesNotDelayReadableHistory"
+    },
+    {
+      "area": "Search and retry",
+      "finding": "Saved search could describe an empty collection despite nonempty saved data. Subscription matching retained surrounding whitespace; refresh errors could lack an explicit retry or disappear under a no-match filter.",
+      "fix": "Separate no-match copy, normalize subscription queries, retain errors and retry actions with loaded rows or an empty filtered result."
+    },
+    {
+      "area": "Large text and confirmations",
+      "finding": "Recent-view thumbnails squeezed large titles; compact confirmation popovers severely wrapped German explanatory text.",
+      "fix": "Give accessibility titles their own full-width row; use standard centered alerts with explicit cancellation for history deletion/clear and subscription removal."
+    },
+    {
+      "area": "Guest profile",
+      "finding": "The private-content entry point rendered an indefinite progress indicator for a guest. Checking only absence of private routes initially missed this unusable positive state.",
+      "fix": "Add a localized guest card with sign-in and account creation, verified cancellation/return, clear primary/secondary contrast, and no private routes."
+    }
+  ],
+  "roles": {
+    "routeJourneys": [
+      "app owner",
+      "app admin",
+      "organization owner",
+      "organization admin",
+      "organization moderator/editor",
+      "mixed app/organization role",
+      "member",
+      "warned member"
+    ],
+    "deniedUI": [
+      "guest",
+      "blocked account"
+    ],
+    "policyMatrix": "All five personal routes × supported platform roles × every AccountStatus/UserBlockState; guest denied. Organization roles do not change personal query ownership.",
+    "detailActionBasis": "Detailed mutation journeys use isolated owner fixtures; per-user authorization is checked independently in Firestore Rules with ordinary member/cross-user contexts. No claim that every action/theme/role Cartesian combination was executed."
+  },
+  "dataFlows": {
+    "saved": "users/{uid}/{news,event,organization}Bookmarks → bounded resolution → own unsave → activity record → shared feed reconciliation",
+    "subscriptions": "own likes markers → approved organization resolution and personal flags → unsubscribe → confirmation → persisted readback",
+    "registrations": "own registrations → approved organization events → canonical register/unregister callable → shared membership/count/reminder update",
+    "recent": "detail recording → users/{uid}/recentViews → latest 30 → deletion/clear with cutoffs; primary content retained",
+    "activity": "acknowledged action → persistent outbox → own activityLog → latest 100; clear/delete does not undo the action"
+  },
+  "verification": {
+    "roleAndSearchBundle": "build/block04-roles-20261024.xcresult",
+    "roleAndSearchPassed": 2,
+    "finalJourneyBundle": "build/block04-final-journeys-20261024.xcresult",
+    "finalJourneyPassed": 6,
+    "emptyStateBundle": "build/block04-states-20261024.xcresult",
+    "emptyStatePassed": 1,
+    "emptyStateNote": "Two other harness failures in this bundle were investigated; later bundles contain the corrected cases.",
+    "retryAndDeniedBundle": "build/block04-retry-and-denied-20261024.xcresult",
+    "retryAndDeniedPassed": 2,
+    "deniedNote": "The later guest scenario adds a positive guest UI and authentication navigation assertion.",
+    "dialogsAndGuestBundle": "build/block04-dialogs-and-guest-20261024.xcresult",
+    "dialogsAndGuestPassed": 6,
+    "unitBundle": "build/block04-final-verification-20261024.xcresult",
+    "unitPassed": 95,
+    "unitNote": "Only the 95 unit tests passed in this bundle; two guest UI identifier failures were resolved and rerun in dialogs-and-guest. The parent container identifier had overridden child identifiers.",
+    "rules": {
+      "logs": [
+        "build/block04-rules-20261024.log",
+        "build/block04-saved-rules-20261024.log"
+      ],
+      "passed": 18,
+      "failed": 0,
+      "environment": "Isolated Firestore Emulator; no production user data mutated"
+    },
+    "localizations": "de/uk validation passed; 3291 entries and Swift references",
+    "structure": "passed",
+    "visuals": [
+      "build/block04-role-screens",
+      "build/block04-retry-screens",
+      "build/block04-final-screens",
+      "build/block04-dialogs-screens",
+      "build/block04-last-screens"
+    ],
+    "finalCapture": {
+      "bundle": "build/block04-final-capture-20261024.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "note": "Final compiled sources; loading/error/retry of all five sections and guest German dark accessibility-size UI after the contrast correction."
+    },
+    "video": {
+      "path": "build/block04-verified-transitions-20261024.mp4",
+      "durationSeconds": 92.22,
+      "origin": "Actual XCTest simulator capture; includes test device startup and between-scenario relaunches.",
+      "overview": "build/block04-video-overview/contact.png",
+      "focusedWindowSeconds": [
+        30,
+        42
+      ],
+      "focusedFrames": 720,
+      "focusedTimeline": "build/block04-transition-60fps/timeline.csv",
+      "focusedContact": "build/block04-transition-60fps/contact.png",
+      "observed": "Saved loading → readable error/retry → acknowledged data → return to profile. No near-white frame in this sampled dark-theme window; no misleading empty-state flash observed in the reviewed contact. This is not a universal no-flicker guarantee."
+    },
+    "uniqueUIScenariosPassed": 13,
+    "uniqueUIScenariosNote": "Distinct scenario methods; repeated runs are not added to this count. Role scenario traverses five sections for eight active role variants.",
+    "ci": "Pending push/readback; hosted checks are distinct from local results."
+  },
+  "productDecisions": [
+    "Keep the five sections separate: current saved/subscription/registration membership differs from recent opens and historical actions.",
+    "Keep clear limits/partial-page explanations; search/sort/counters apply to loaded records while more pages remain. No false global totals.",
+    "Do not add administration tools or send-self support actions to personal sections."
+  ],
+  "delivery": {
+    "source": "implemented and locally verified; committed separately from preserved pre-existing project/catalog changes",
+    "serverDeployment": "not required; not performed",
+    "testFlight": "No new binary uploaded for block 4. Existing TestFlight 120 does not contain these changes.",
+    "physicalIPhone": "not verified in this block",
+    "publicAppStoreRelease": "not performed"
+  },
+  "boundaries": [
+    "Simulator fixtures and Emulator Rules checks do not prove a live two-account production round trip.",
+    "Nested content details are covered here for correct target and personal actions; full editors/comments/recommendations remain in blocks 5–10.",
+    "Android source and delivered store binaries were not changed.",
+    "Pre-existing project reorder and Localizable.xcstrings changes preserved outside focused commits."
+  ]
+}

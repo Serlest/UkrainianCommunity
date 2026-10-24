@@ -380,6 +380,9 @@ struct FirestoreEventRepository: EventRepository {
         guard Auth.auth().currentUser?.uid == uid else { throw CancellationError() }
         let documents = Array(snapshot.documents.prefix(size))
         let ids = Set(documents.compactMap { $0.data()["eventId"] as? String })
+        async let liked = fetchLikedEventIDs(for: Array(ids))
+        async let bookmarked = fetchBookmarkedEventIDs(for: Array(ids))
+        let (likedIDs, bookmarkedIDs) = try await (liked, bookmarked)
         var result: [Event] = []
         // At most 50 direct reads, in bounded groups. An unavailable/deleted event
         // must not make every other registration on the page disappear.
@@ -390,7 +393,7 @@ struct FirestoreEventRepository: EventRepository {
                         do {
                             let eventSnapshot = try await collection.document(id).getDocument(source: .server)
                             guard eventSnapshot.exists else { return nil }
-                            let dto = try makeEventDTO(from: eventSnapshot, likedEventIDs: [], registeredEventIDs: ids, bookmarkedEventIDs: [])
+                            let dto = try makeEventDTO(from: eventSnapshot, likedEventIDs: likedIDs, registeredEventIDs: ids, bookmarkedEventIDs: bookmarkedIDs)
                             guard dto.moderationStatus == ModerationStatus.approved.rawValue else { return nil }
                             let event = Event(dto: dto)
                             return event.isOrganizationEvent ? event : nil

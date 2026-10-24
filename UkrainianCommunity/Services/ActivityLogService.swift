@@ -268,6 +268,7 @@ final class ActivityLogViewModel: ObservableObject {
     private var deletedIDs = Set<String>()
     var isMutating: Bool { isClearing || !deletingIDs.isEmpty }
     private var hasLoaded = false
+    private var isSynchronizingPending = false
     private var loadedUserID: String?
     private var sessionGeneration: UInt = 0
     private var refreshGeneration: UInt = 0
@@ -304,6 +305,7 @@ final class ActivityLogViewModel: ObservableObject {
         hasLoaded = false
         loadedUserID = nil
         localUpdates = [:]
+        isSynchronizingPending = false
         revision = 0
         clearedThrough = nil
         deletedIDs = []
@@ -326,7 +328,6 @@ final class ActivityLogViewModel: ObservableObject {
         }
 
         do {
-            let recordingError = await synchronizePending(requestedUserID)
             let refreshedItems = try await RefreshRequest.run { [self] in
                 try await repository.fetchActivityLog(userID: requestedUserID, limit: Self.historyLimit)
             }
@@ -336,8 +337,12 @@ final class ActivityLogViewModel: ObservableObject {
             for update in localUpdates.values where update.revision > baseline { merged[update.item.id] = update.item }
             items = bounded(Array(merged.values))
             localUpdates = [:]
-            error = recordingError
+            error = nil
             hasLoaded = true
+            // The read is ready. Pending write acknowledgements must not hold
+            // this screen behind a spinner (or delay its first read).
+            isLoading = false
+            await synchronizePendingIfNeeded(userID: requestedUserID, generation: generation)
         } catch let appError as AppError {
             guard generation == refreshGeneration, requestedUserID == loadedUserID else { return }
             error = appError
@@ -347,6 +352,16 @@ final class ActivityLogViewModel: ObservableObject {
             self.error = FirebaseReadErrorMapper.map(error)
             hasLoaded = true
         }
+    }
+
+    private func synchronizePendingIfNeeded(userID: String, generation: UInt) async {
+        guard !isSynchronizingPending else { return }
+        let session = sessionGeneration
+        isSynchronizingPending = true
+        defer { if session == sessionGeneration { isSynchronizingPending = false } }
+        let recordingError = await synchronizePending(userID)
+        guard generation == refreshGeneration, session == sessionGeneration, userID == loadedUserID else { return }
+        if let recordingError { error = recordingError }
     }
 
     func applyRecorded(_ item: ActivityLogItem, userID: String) {
@@ -590,7 +605,12 @@ enum ActivityLogRecorder {
                         try await repository.recordActivity(item, userID: userID)
                         await PendingActivityLogStore.shared.remove(id: item.id, userID: userID)
                         didRecord.send(ActivityLogRecordingEvent(item: item, userID: userID))
-                    } catch { lastError = FirebaseReadErrorMapper.map(error) }
+                    } catch {
+                        // Keep the queue intact and retry later; an offline first
+                        // write must not trigger up to 99 more sequential failures.
+                        lastError = FirebaseReadErrorMapper.map(error)
+                        break
+                    }
                 }
             }
         } catch { lastError = FirebaseReadErrorMapper.map(error) }
@@ -628,7 +648,10 @@ final class UITestActivityLogRepository: ActivityLogRepository {
                 title: org.localizedName, subtitle: org.city, imageURL: nil, createdAt: Date().addingTimeInterval(-120))
         ]
     }()
-    func fetchActivityLog(userID: String, limit: Int) async throws -> [ActivityLogItem] { Array(items.prefix(limit)) }
+    func fetchActivityLog(userID: String, limit: Int) async throws -> [ActivityLogItem] {
+        if try await MockRepositoryStore.shared.personalPageIsEmpty("activityHistory") { return [] }
+        return Array(items.prefix(limit))
+    }
     func recordActivity(_ item: ActivityLogItem, userID: String) async throws {}
     func deleteActivity(id: String, userID: String) async throws { items.removeAll { $0.id == id } }
     func clearActivityLog(userID: String, through: Date) async throws { items.removeAll { $0.createdAt <= through } }

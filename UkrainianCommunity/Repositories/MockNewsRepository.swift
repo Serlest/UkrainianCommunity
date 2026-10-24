@@ -25,6 +25,19 @@ struct MockNewsRepository: NewsRepository {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    func fetchSavedNews() async throws -> [SavedContentRecord<NewsPost>] {
+        if try await store.personalPageIsEmpty("saved") { return [] }
+        var records = try await fetchNews().filter(\.isBookmarked).map { SavedContentRecord(id: $0.id, savedAt: nil, content: $0) }
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestUnavailablePersonalContent"] == "1",
+           !(await store.personalFixtureIsRemoved("unavailable-news")) {
+            records.append(SavedContentRecord(id: "unavailable-news", savedAt: .now, content: nil))
+        }
+#endif
+        return records
+    }
+
     func fetchPendingNews() async throws -> [NewsPost] {
         await store.pendingNews()
     }
@@ -74,6 +87,12 @@ struct MockNewsRepository: NewsRepository {
     }
 
     func unbookmarkNews(id: String) async throws {
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestUnavailablePersonalContent"] == "1", id == "unavailable-news" {
+            await store.removePersonalFixture(id); return
+        }
+#endif
         try await store.setNewsBookmark(id: id, isBookmarked: false)
     }
 

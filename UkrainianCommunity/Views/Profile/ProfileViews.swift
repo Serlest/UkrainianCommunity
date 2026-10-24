@@ -361,6 +361,12 @@ struct ProfileView: View {
                                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
                                     if let user = displayUser {
                                         userProfileContent(for: user)
+                                    } else if authState.isGuest {
+                                        ProfileGuestContent {
+                                            authState.presentAuthFlow(.login)
+                                        } createAccount: {
+                                            authState.presentAuthFlow(.register)
+                                        }
                                     } else {
                                         ProgressView()
                                             .frame(maxWidth: .infinity)

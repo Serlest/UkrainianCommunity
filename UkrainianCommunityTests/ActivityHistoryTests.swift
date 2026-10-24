@@ -8,6 +8,25 @@ struct ActivityHistoryTests {
         ActivityLogItem(id: id, actionType: .savedNews, targetId: id, targetType: .news, title: id, subtitle: nil, imageURL: nil, createdAt: time)
     }
 
+    @Test func pendingWriteAcknowledgementDoesNotDelayReadableHistory() async {
+        let repo = ActivityHistoryRepository()
+        let row = item("available")
+        repo.fetch = { _ in [row] }
+        var pending: CheckedContinuation<AppError?, Never>?
+        let model = ActivityLogViewModel(repository: repo, synchronizePending: { _ in
+            await withCheckedContinuation { pending = $0 }
+        })
+        let refresh = Task { await model.loadIfNeeded(userID: "a") }
+        for _ in 0..<200 { if pending != nil { break }; await Task.yield() }
+        #expect(pending != nil)
+        #expect(model.items == [row])
+        #expect(!model.isLoading)
+        // A delayed acknowledgement is still shown as an error when received.
+        pending?.resume(returning: .network)
+        await refresh.value
+        #expect(model.items == [row] && model.error == .network)
+    }
+
     @Test func newViewsDeduplicateAndRemainBounded() async {
         let repo = ActivityHistoryRepository()
         let model = ActivityLogViewModel(repository: repo, synchronizePending: { _ in nil })

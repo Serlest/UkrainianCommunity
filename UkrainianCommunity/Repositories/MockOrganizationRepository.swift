@@ -9,6 +9,19 @@ struct MockOrganizationRepository: OrganizationRepository {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    func fetchOrganizationSubscriptions(forceRefresh: Bool) async throws -> [SavedContentRecord<Organization>] {
+        if try await store.personalPageIsEmpty("subscriptions") { return [] }
+        var records = try await fetchOrganizations().filter(\.isSubscribed).map { SavedContentRecord(id: $0.id, savedAt: nil, content: $0) }
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestUnavailablePersonalContent"] == "1",
+           !(await store.personalFixtureIsRemoved("unavailable-organization")) {
+            records.append(SavedContentRecord(id: "unavailable-organization", savedAt: .now, content: nil))
+        }
+#endif
+        return records
+    }
+
     func fetchOrganization(id: String) async throws -> Organization {
         try await store.organization(id: id)
     }
@@ -50,6 +63,12 @@ struct MockOrganizationRepository: OrganizationRepository {
     }
 
     func unsubscribeOrganization(id: String, actionCapture: AnalyticsActionCapture?) async throws {
+#if DEBUG && targetEnvironment(simulator)
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestUnavailablePersonalContent"] == "1", id == "unavailable-organization" {
+            await store.removePersonalFixture(id); return
+        }
+#endif
         try await store.toggleOrganizationSubscription(id: id, isSubscribed: false)
     }
 

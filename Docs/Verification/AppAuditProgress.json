@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 3,
-  "remainingBlocks": 16,
-  "nextBlock": 4,
+  "completedBlocks": 4,
+  "remainingBlocks": 15,
+  "nextBlock": 5,
   "blocks": [
     {
       "number": 1,
@@ -29,7 +29,9 @@
     {
       "number": 4,
       "name": "Личные разделы",
-      "status": "pending"
+      "status": "implemented_verified_in_scope",
+      "report": "Docs/Verification/PersonalSectionsAudit20261024.json",
+      "inventory": "Docs/Verification/PersonalSectionsInventory20261024.md"
     },
     {
       "number": 5,
@@ -180,10 +182,12 @@
     "pendingBlocks": [
       1,
       2,
-      3
+      3,
+      4
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Completed count records implementation; physical iPhone acceptance is separate and pending."
+    "meaning": "Completed count records implementation and verification in documented scope; physical iPhone acceptance and TestFlight delivery remain separate. Block 4 was explicitly authorized; block 5 has not started.",
+    "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме"
   }
 }
