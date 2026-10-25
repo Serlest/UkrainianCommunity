@@ -84,3 +84,39 @@ test("modern retry resumes session revocation without a duplicate notification",
  await db.doc(`users/${uid}`).update({accountStatus:"active",blockState:"active"});
  await assert.rejects(banUser.run(request(input)),{code:"aborted"});assert.equal(calls,2);
 });
+
+test("chronological directory includes legacy profiles without createdAt and counts the same regional accounts", {skip: !enabled}, async () => {
+ const uid = `${prefix}-legacy-date`;
+ await seed(uid, {displayName: "Legacy account", globalRole: "user", accountStatus: "active", selectedFederalState: "tirol"});
+ const expected = (await db.collection("users").where("selectedFederalState", "==", "tirol").count().get()).data().count;
+ const result = await manageUserDirectory.run(request({action: "list", principalId: actor, region: "tirol", sort: "oldest"}));
+ assert.equal(result.totalMatches, expected);
+ assert.equal(result.userIds![0], uid);
+ const seen = [...result.userIds!]; let cursor = result.cursor;
+ while (cursor) {
+   assert.equal(JSON.parse(Buffer.from(cursor, "base64url").toString()).includesLegacyDates, true);
+   const page = await manageUserDirectory.run(request({action: "list", principalId: actor, region: "tirol", sort: "oldest", cursor}));
+   assert.equal(page.totalMatches, expected); seen.push(...page.userIds!); cursor = page.cursor;
+ }
+ assert.equal(new Set(seen).size, expected); assert.equal(seen.length, expected);
+ const newest = await manageUserDirectory.run(request({action: "list", principalId: actor, region: "tirol", sort: "newest"}));
+ assert.equal(newest.totalMatches, expected); assert.ok(newest.userIds!.every(id => id !== uid));
+});
+
+test("directory authorization covers administrator, organization roles, restricted accounts and missing MFA", {skip: !enabled}, async () => {
+ for (const [name, globalRole, status, allowed] of [
+   ["app-admin", "admin", "active", true], ["org-owner", "user", "active", false],
+   ["org-admin", "user", "active", false], ["org-editor", "user", "active", false],
+   ["member", "user", "active", false], ["legacy", "topAdmin", "active", false],
+   ["blocked-owner", "owner", "bannedPermanent", false], ["deactivated-admin", "admin", "deactivated", false],
+ ] as const) {
+   const uid = `${prefix}-matrix-${name}`;
+   await seed(uid, {globalRole, accountStatus: status, requiresMultiFactorAuth: globalRole === "owner" || globalRole === "admin"});
+   await seedCurrentLegalForIntegration(uid);
+   const input = request({action: "list", principalId: uid}, uid);
+   if (allowed) assert.ok((await manageUserDirectory.run(input)).userIds);
+   else await assert.rejects(manageUserDirectory.run(input), {code: "permission-denied"});
+ }
+ const protectedAdmin = `${prefix}-matrix-app-admin`;
+ await assert.rejects(manageUserDirectory.run({auth: {uid: protectedAdmin, token: {email_verified: true, firebase: {}}}, data: {action: "list", principalId: protectedAdmin}} as never), {code: "failed-precondition"});
+});

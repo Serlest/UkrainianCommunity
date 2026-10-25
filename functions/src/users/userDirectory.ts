@@ -31,11 +31,12 @@ function organization(document: QueryDocumentSnapshot) {
     accessRevision:time?.seconds !== undefined ? `${time.seconds}:${time.nanoseconds}` : null,
     moderationStatus:data.moderationStatus ?? "draft"};
 }
-type Cursor = {signature:string; key:number|string; id:string};
+type Cursor = {signature:string; key:number|string; id:string; includesLegacyDates?:boolean};
 function decodeCursor(raw: unknown, signature: string): Cursor | undefined {
   if (raw == null) return;
   try {
     const cursor = JSON.parse(Buffer.from(text(raw,2000),"base64url").toString()) as Cursor;
+    if (cursor.includesLegacyDates !== undefined && typeof cursor.includesLegacyDates !== "boolean") throw Error();
     if (cursor.signature !== signature || !cursor.id || cursor.id.includes("/") || cursor.id.length > 128 || !["string","number"].includes(typeof cursor.key)) throw Error();
     return cursor;
   } catch { throw new HttpsError("invalid-argument", "The filter changed. Restart the list."); }
@@ -81,15 +82,27 @@ export const manageUserDirectory = onCall({region:"europe-west3",maxInstances:10
     return (ascending ? order : -order) || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
   };
   let items: QueryDocumentSnapshot[] = [], total = 0, hasMore = false, indexedPage = false;
+  let includesLegacyDates = cursor?.includesLegacyDates ?? false;
   // The common unfiltered chronological list uses an indexed page + aggregate,
   // rather than streaming every account on every next-page request.
-  if (!query && filter === "all" && !sort.startsWith("name") && region !== "unknown") {
-    let base = db.collection("users").orderBy("createdAt",ascending?"asc":"desc").orderBy(FieldPath.documentId());
-    if (region) base = base.where("selectedFederalState","==",region);
+  if (!query && filter === "all" && !sort.startsWith("name") && region !== "unknown" && !includesLegacyDates) {
+    const collection = region ? db.collection("users").where("selectedFederalState","==",region) : db.collection("users");
+    const base = collection.orderBy("createdAt",ascending?"asc":"desc").orderBy(FieldPath.documentId());
     const pageQuery = cursor ? base.startAfter(new Timestamp(...String(cursor.key).split(":").map(Number) as [number,number]),cursor.id) : base;
     try {
-      const [page,count] = await Promise.all([pageQuery.limit(41).get(),base.count().get()]);
-      items = page.docs.slice(0,40); total = count.data().count; hasMore = page.size > 40; indexedPage = true;
+      // orderBy excludes profiles that predate the required createdAt field.
+      // Check coverage on the first page (and old cursors); never silently drop
+      // those accounts or invent a registration date. Subsequent modern pages
+      // retain this coverage decision and need only the normal aggregate.
+      const checkCoverage = cursor?.includesLegacyDates === undefined;
+      const [page,count,datedCount] = await Promise.all([
+        pageQuery.select("createdAt").limit(41).get(), collection.count().get(),
+        checkCoverage ? base.count().get() : Promise.resolve(undefined),
+      ]);
+      includesLegacyDates = datedCount !== undefined && datedCount.data().count !== count.data().count;
+      if (!includesLegacyDates) {
+        items = page.docs.slice(0,40); total = count.data().count; hasMore = page.size > 40; indexedPage = true;
+      }
     } catch (error) {
       if ((error as {code?:number}).code !== 9) throw error;
       // An index building in production must not prevent an authorized read.
@@ -125,5 +138,5 @@ export const manageUserDirectory = onCall({region:"europe-west3",maxInstances:10
     for (const doc of pages.flatMap(p=>p.docs)) organizations.set(doc.id,organization(doc));
   }
   const last = items.at(-1);
-  return {organizations:[...organizations.values()],userIds:items.map(d=>d.id),totalMatches:total,cursor:hasMore && last ? Buffer.from(JSON.stringify({signature,key:key(last),id:last.id})).toString("base64url"):null};
+  return {organizations:[...organizations.values()],userIds:items.map(d=>d.id),totalMatches:total,cursor:hasMore && last ? Buffer.from(JSON.stringify({signature,key:key(last),id:last.id,includesLegacyDates})).toString("base64url"):null};
 });
