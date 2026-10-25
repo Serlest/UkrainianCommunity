@@ -1,7 +1,7 @@
 {
   "date": "2026-10-25",
   "status": "in_progress_not_full_acceptance",
-  "sourceOnDevice": "81772376",
+  "sourceOnDevice": "e82f2ef8",
   "device": "iPhone 16 Pro Max, iOS 27.0.1",
   "verified": {
     "appleCancel": "Native Apple sheet cancellation returned usable provider buttons",
@@ -22,7 +22,8 @@
     "ownerSecurityReads": "PhysicalOwnerSecurityReadOnly.xcresult: keys/providers/required-factor policy and disabled-lock background return.",
     "biometricGate": "PhysicalBiometricProtectedGate.xcresult: Home/background -> lock, protected controls not hittable. User confirmed Face ID unlock/off restoration; live off state observed afterward.",
     "mfaRecoveryHelp": "PhysicalMFARecoveryHelp.xcresult: 1 passed; real pending challenge preserved after help sheet closes; no code read or mail sent.",
-    "biometricRestoration": "User confirmed real Face ID unlock and returning lock to off. PhysicalLocalizedSecurityRelease.xcresult separately confirms off and background return."
+    "biometricRestoration": "User confirmed real Face ID unlock and returning lock to off. PhysicalLocalizedSecurityRelease.xcresult separately confirms off and background return.",
+    "passkeyCreation": "User personally created key on secondary Serlest Gmail; independent production metadata count 0 -> 1. PhysicalSecondaryKeyDateFixed.xcresult passed; actual date matches server and Ukrainian app locale. Removal handoff pending."
   },
   "correction": "Initial missing-confirmation suspicion is not a confirmed failure: user acknowledged manually confirming while remote observation missed the dialog. No automatic or unconfirmed transfer established.",
   "pending": [

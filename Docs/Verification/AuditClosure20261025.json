@@ -997,8 +997,30 @@
       "build/audit-closure-20261025/physical-resolved-keys-images/81B40921-8EA5-4247-A4BD-3D93DDF20AC3.png"
     ],
     "harnessCorrection": "Initial key-list capture occurred while loading. It does not prove resolved key dates; wait for enabled add button before capture.",
-    "boundary": "Controlled native credential lifecycle remains pending. Existing legacy key has no createdAt and correctly uses the key label fallback; resolved UI was visually reviewed. No mail sent or credentials changed.",
+    "boundary": "Controlled native credential removal remains pending. Fractional timestamp defect corrected and physically reviewed in passkeyDateFollowup. No email sent; new key created personally by user only on controlled secondary account.",
     "resolvedKeysBundle": "build/audit-closure-20261025/PhysicalResolvedKeysAndRecoveryLogin.xcresult",
     "closedCheck": "R02-C"
+  },
+  "passkeyDateFollowup": {
+    "sourceCommit": "e82f2ef8",
+    "finding": "Both original and newly created passkeys had server createdAt timestamps, but default ISO8601DateFormatter rejected fractional seconds; UI silently fell back to generic key label. Earlier legacy-null hypothesis was disproved by independent metadata reads.",
+    "fix": "Decode fractional-second Internet date/time first and retain seconds-only compatibility; nil/invalid dates retain safe fallback.",
+    "unitBundle": "build/audit-closure-20261025/PasskeyDateDecodingAccepted.xcresult",
+    "passed": 11,
+    "failed": 0,
+    "physicalBundle": "build/audit-closure-20261025/PhysicalSecondaryKeyDateFixed.xcresult",
+    "physicalPassed": 1,
+    "installedReleaseLog": "build/audit-closure-20261025/physical/passkey-date-release-install.log",
+    "reviewedImage": "build/audit-closure-20261025/physical-secondary-key-date-fixed-images/62CDE970-C021-4821-A788-78336468606A.png",
+    "exactDisplayedDate": "25 жовт. 2026 р., 15:03",
+    "metadataReadback": "build/audit-closure-20261025/physical/secondary-key-created-metadata.json",
+    "controlledCreation": "User personally created one key on Serlest Gmail; independent server count 0 -> 1. Original owner key was not modified.",
+    "remaining": "User credential-removal handoff requested; cleanup and final closed ledger pending."
+  },
+  "latestHostedValidation": {
+    "sourceCommit": "e82f2ef8",
+    "runId": 40201134977,
+    "lastObservedStatus": "pending",
+    "boundary": "Not a passing result. Previous source 128fd1d8 run 40200435036 still in progress at observation."
   }
 }
