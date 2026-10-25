@@ -1,6 +1,7 @@
 import Foundation
 
 enum UserAdministrationCopy {
+    static var directoryLoadFailed: String { text("directory_load_failed", "Не вдалося завантажити список користувачів. Спробуйте ще раз.") }
     static var warningCount: String { text("warning_count", "Кількість попереджень") }
     static var auditNotice: String { text("audit_notice", "Успішну зміну буде збережено в історії. Відповідні користувачі отримають сповіщення.") }
     static var unavailable: String { text("unavailable", "Акаунт видалено або він більше недоступний.") }

@@ -110,6 +110,28 @@
           }
         }
       }
+    },
+    "users_audit.directory_load_failed": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося завантажити список користувачів. Спробуйте ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Nutzerliste konnte nicht geladen werden. Versuchen Sie es erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The user list could not be loaded. Please try again."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

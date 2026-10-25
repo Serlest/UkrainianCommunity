@@ -365,7 +365,7 @@ struct UserManagementView: View {
             UnifiedEmptyStateCard(
                 systemImage: "exclamationmark.triangle",
                 title: AppStrings.UserManagement.title,
-                message: AppStrings.UserManagement.loadError
+                message: UserAdministrationCopy.directoryLoadFailed
             ) {
                 PrimaryActionButton(title: AppStrings.UserManagement.retry, systemImage: "arrow.clockwise") {
                     Task { if viewModel.usesDirectory { await viewModel.loadDirectory(actor: actor, query: directoryQuery) } else { await viewModel.refresh(actor: actor) } }
