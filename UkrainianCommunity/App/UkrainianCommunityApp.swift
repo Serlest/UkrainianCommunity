@@ -268,6 +268,14 @@ struct UkrainianCommunityApp: App {
         if let container {
             AppStartupGate(container: container)
                 .environmentObject(authState)
+                .overlay(alignment: .topLeading) {
+#if DEBUG && targetEnvironment(simulator)
+                    if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+                       ProcessInfo.processInfo.environment["UITestSystemAccessibilityProbe"] == "1" {
+                        AccessibilityAuditProbe()
+                    }
+#endif
+                }
                 .onChange(of: presenceUserID, initial: true) { _, userID in
                     presence.update(userID: userID, isActive: scenePhase == .active)
                 }

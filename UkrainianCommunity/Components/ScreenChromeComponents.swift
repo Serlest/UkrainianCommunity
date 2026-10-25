@@ -1133,6 +1133,7 @@ struct AppSearchableBrandHeader: View {
                     ) {
                         toggleSearch()
                     }
+                    .accessibilityIdentifier("header.search.toggle")
                     if let creationKind { QuickCreationButton(kind: creationKind) }
                     if let additionalCreateAction, let additionalCreateTitle {
                         AppGlassIconButton(systemImage: "plus", accessibilityLabel: additionalCreateTitle, action: additionalCreateAction)

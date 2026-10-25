@@ -14,7 +14,6 @@
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
         "R01-A",
-        "R01-B",
         "R01-C"
       ]
     },
@@ -303,8 +302,8 @@
   "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
-    "closedScenarioGroups": 5,
-    "remainingScenarioGroups": 22,
+    "closedScenarioGroups": 6,
+    "remainingScenarioGroups": 21,
     "fullyClosedBlocks": 0
   }
 }
