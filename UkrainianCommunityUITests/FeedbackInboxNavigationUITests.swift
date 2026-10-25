@@ -555,11 +555,20 @@ final class OwnerProfileAuditUITests: XCTestCase {
             selectModerationOption("content.review.language", index: 1, title: "Deutsch", app: app)
             XCTAssertTrue(app.staticTexts["Nachricht der Gemeinschaft 0"].firstMatch.waitForExistence(timeout: 5))
             capture(app, "content-moderation-preview-" + language)
+            XCUIDevice.shared.press(.home)
+            app.activate()
+            XCTAssertTrue(app.staticTexts["Nachricht der Gemeinschaft 0"].firstMatch.waitForExistence(timeout: 8))
+            capture(app, "content-moderation-preview-after-background-" + language)
             let revise = app.buttons["content.review.choice.needsRevision"]
             revealModeration(revise, app); revise.tap()
             let reason = app.textFields["content.review.reason"]
             XCTAssertTrue(reason.waitForExistence(timeout: 5))
             revealModeration(reason, app); reason.tap(); reason.typeText("Please verify the official source")
+            if app.keyboards.firstMatch.exists {
+                app.coordinate(withNormalizedOffset: .init(dx: 0.95, dy: 0.12)).tap()
+                if app.keyboards.firstMatch.exists { app.swipeDown() }
+                XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+            }
             let confirm = app.buttons["content.review.confirm"]
             revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled); confirm.tap()
             let execute = app.buttons["content.review.execute"].firstMatch
@@ -605,6 +614,7 @@ final class OwnerProfileAuditUITests: XCTestCase {
     @MainActor
     private func revealModeration(_ target: XCUIElement, _ app: XCUIApplication) {
         _ = target.waitForExistence(timeout: 5)
+        if app.alerts.firstMatch.exists, target.exists, target.isHittable { return }
         for _ in 0..<24 {
             let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
             let top = max(scroll?.frame.minY ?? 80, app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : 80) + 12

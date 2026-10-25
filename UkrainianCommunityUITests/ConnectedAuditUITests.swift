@@ -1229,6 +1229,7 @@ final class ConnectedAuditUITests: XCTestCase {
 
     func testConnectedModerationReturnNotificationCorrectionAndPublication() async throws {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let noticeWindowStart = Date()
         let path = "news/mod-audit-news"
         ownedRequestDocumentPaths.insert(path)
         let before = try await readDemoDocument(path)
@@ -1253,7 +1254,7 @@ final class ConnectedAuditUITests: XCTestCase {
         XCTAssertEqual((returned["fields"] as? [String: [String: Any]])?["moderationStatus"]?["stringValue"] as? String, "needsRevision")
         app.terminate()
 
-        let noticeID = try await moderationNoticeID(source: "news:mod-audit-news", status: "needsRevision")
+        let noticeID = try await moderationNoticeID(source: "news:mod-audit-news", status: "needsRevision", after: noticeWindowStart)
         let author = launchMember(account: "member")
         author.tabBars.buttons.element(boundBy: 4).tap()
         let inbox = author.buttons["profile.notifications.open"].firstMatch
@@ -1312,6 +1313,7 @@ final class ConnectedAuditUITests: XCTestCase {
 
     func testConnectedEventModerationCorrectionResubmissionAndRejection() async throws {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let noticeWindowStart = Date()
         let path = "events/mod-audit-event"
         ownedRequestDocumentPaths.insert(path)
         let before = try await readDemoDocument(path)
@@ -1333,7 +1335,7 @@ final class ConnectedAuditUITests: XCTestCase {
         let execute = app.alerts.buttons["content.review.execute"].firstMatch
         XCTAssertTrue(execute.waitForExistence(timeout: 5)); execute.tap()
         XCTAssertTrue(row.waitForNonExistence(timeout: 20)); app.terminate()
-        let noticeID = try await moderationNoticeID(source: "event:mod-audit-event", status: "needsRevision")
+        let noticeID = try await moderationNoticeID(source: "event:mod-audit-event", status: "needsRevision", after: noticeWindowStart)
         let author = launchMember(account: "member")
         author.tabBars.buttons.element(boundBy: 4).tap()
         let inbox = author.buttons["profile.notifications.open"].firstMatch
@@ -1382,11 +1384,12 @@ final class ConnectedAuditUITests: XCTestCase {
         XCTAssertTrue(pending.waitForNonExistence(timeout: 20))
         let rejected = try await readDemoDocument(path)
         XCTAssertEqual((rejected["fields"] as? [String: [String: Any]])?["moderationStatus"]?["stringValue"] as? String, "rejected")
-        _ = try await moderationNoticeID(source: "event:mod-audit-event", status: "rejected")
+        _ = try await moderationNoticeID(source: "event:mod-audit-event", status: "rejected", after: noticeWindowStart)
     }
 
     private func revealModeration(_ target: XCUIElement, _ app: XCUIApplication) {
         _ = target.waitForExistence(timeout: 5)
+        if app.alerts.firstMatch.exists, target.exists, target.isHittable { return }
         for _ in 0..<24 {
             let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
             let top = max(scroll?.frame.minY ?? 80, app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : 80) + 12
@@ -1406,13 +1409,14 @@ final class ConnectedAuditUITests: XCTestCase {
         XCTFail("Moderation control not visible in its scroll viewport: \(target)")
     }
 
-    private func moderationNoticeID(source: String, status: String) async throws -> String {
+    private func moderationNoticeID(source: String, status: String, after: Date? = nil) async throws -> String {
         for _ in 0..<30 {
             var request = URLRequest(url: URL(string: "http://127.0.0.1:28080/v1/projects/demo-uac-release-audit/databases/(default)/documents/users/closure-member:runQuery")!)
             request.httpMethod = "POST"; request.setValue("Bearer owner", forHTTPHeaderField: "Authorization")
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
             request.httpBody = try JSONSerialization.data(withJSONObject: ["structuredQuery": ["from": [["collectionId": "notificationInbox"]],
-                "where": ["fieldFilter": ["field": ["fieldPath": "sourceId"], "op": "EQUAL", "value": ["stringValue": source]]], "limit": 20]])
+                "where": ["fieldFilter": ["field": ["fieldPath": "sourceId"], "op": "EQUAL", "value": ["stringValue": source]]],
+                "orderBy": [["field": ["fieldPath": "createdAt"], "direction": "DESCENDING"]], "limit": 20]])
             let (data, response) = try await URLSession.shared.data(for: request)
             XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
             let result = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
@@ -1422,6 +1426,14 @@ final class ConnectedAuditUITests: XCTestCase {
                       values["moderationStatus"]?["stringValue"] as? String == status,
                       fields["recipientUserId"]?["stringValue"] as? String == "closure-member",
                       let name = document["name"] as? String, let id = name.split(separator: "/").last else { continue }
+                if let after {
+                    guard let raw = fields["createdAt"]?["timestampValue"] as? String else { continue }
+                    let parser = ISO8601DateFormatter()
+                    parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    var created = parser.date(from: raw)
+                    if created == nil { parser.formatOptions = [.withInternetDateTime]; created = parser.date(from: raw) }
+                    guard let created, created >= after else { continue }
+                }
                 return String(id)
             }
             try await Task.sleep(for: .milliseconds(200))

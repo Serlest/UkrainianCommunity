@@ -174,6 +174,7 @@ final class ModerationAuditUITests: XCTestCase {
     }
     private func reveal(_ target: XCUIElement, _ app: XCUIApplication) {
         _ = target.waitForExistence(timeout: 5)
+        if app.alerts.firstMatch.exists, target.exists, target.isHittable { return }
         for _ in 0..<24 {
             let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
             let top = max(scroll?.frame.minY ?? 80, app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : 80) + 12
