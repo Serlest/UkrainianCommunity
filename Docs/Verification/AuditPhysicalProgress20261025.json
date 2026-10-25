@@ -1,7 +1,7 @@
 {
   "date": "2026-10-25",
   "status": "in_progress_not_full_acceptance",
-  "sourceOnDevice": "ce5e910f plus uncommitted OrganizationTeamCandidateRow hit-area fix",
+  "sourceOnDevice": "3fbf796f",
   "device": "iPhone 16 Pro Max, iOS 27.0.1",
   "verified": {
     "appleCancel": "Native Apple sheet cancellation returned usable provider buttons",
@@ -13,7 +13,8 @@
     "mail": "Native Mail composer opened with exact public organization email recipient; no message sent.",
     "passkeySignIn": "After signed Release installation, user confirmed successful sign-in; protected platform-owner System Journal visibly open on iPhone.",
     "ownershipCancellation": "Physical XCTest passed: exact candidate confirmation opened from center-row tap; outside cancellation; independent server owner/admin/moderator fields unchanged.",
-    "googleCancellation": "Physical test passed: native accounts.google.com consent cancelled, Apple and Google buttons enabled again; repeated opening succeeded. Full Google sign-in remains user handoff."
+    "googleCancellation": "Physical test passed: native accounts.google.com consent cancelled, Apple and Google buttons enabled again; repeated opening succeeded. Full Google sign-in remains user handoff.",
+    "googleSignIn": "User completed existing Google account sign-in; physical preparation test then verified exact Serlest Gmail profile before editing."
   },
   "correction": "Initial missing-confirmation suspicion is not a confirmed failure: user acknowledged manually confirming while remote observation missed the dialog. No automatic or unconfirmed transfer established.",
   "pending": [
@@ -45,7 +46,9 @@
     "account": "Serlest Gmail",
     "requestName": "UAC — тест перевірки заявки",
     "authorizedScenario": "Return for revision, inspect notifications and history, then withdraw; do not publish or modify other organizations",
-    "status": "authorized_not_started"
+    "status": "form_prepared_legal_acceptance_and_submission_user_handoff",
+    "evidence": "build/audit-closure-20261025/PhysicalTestRequestPreparation.xcresult: 1 passed",
+    "boundary": "No organization submission or publication performed by preparation test. Native rules reader left open for user."
   },
   "physicalAutomation": {
     "configuration": "UACPhysicalAudit / Release; production SDK and App Check; explicit opt-in physical device only",

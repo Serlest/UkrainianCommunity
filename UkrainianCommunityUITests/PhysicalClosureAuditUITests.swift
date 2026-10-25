@@ -102,6 +102,51 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         // Legal acceptance and final submission are deliberately left to the user.
     }
 
+    func testReturnOnlyTheAuthorizedTestRequestForRevisionAndReadHistory() throws {
+        let requestID = ProcessInfo.processInfo.environment["UACPhysicalAuditRequestID"] ?? ""
+        guard !requestID.isEmpty else { throw XCTSkip("Exact controlled request ID required") }
+        let app = XCUIApplication()
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true)
+        XCTAssertTrue(owner.exists, "Use the authorized platform owner account")
+        let requests = app.buttons["profile.organizationRequests"].firstMatch
+        reveal(requests, app); requests.tap()
+        let open = app.buttons["organization.requests.open." + requestID].firstMatch
+        XCTAssertTrue(open.waitForExistence(timeout: 20)); reveal(open, app); open.tap()
+        XCTAssertTrue(app.staticTexts["UAC — тест перевірки заявки"].firstMatch.waitForExistence(timeout: 10),
+                      "Never review another organization's request")
+        let confirm = app.buttons["organization.request.confirm"].firstMatch
+        XCTAssertTrue(confirm.exists); XCTAssertFalse(confirm.isEnabled)
+        let approve = app.buttons["organization.request.choice.approve"].firstMatch
+        reveal(approve, app); approve.tap()
+        XCTAssertTrue(confirm.isEnabled)
+        let reject = app.buttons["organization.request.choice.reject"].firstMatch
+        reveal(reject, app); reject.tap()
+        XCTAssertFalse(confirm.isEnabled, "A rejection requires a reason")
+        let revision = app.buttons["organization.request.choice.requestRevision"].firstMatch
+        reveal(revision, app); revision.tap()
+        XCTAssertFalse(confirm.isEnabled, "A revision request requires a reason")
+        let reasonText = "Тест перевірки: уточніть опис і надішліть заявку повторно. Це контрольована перевірка UAC; організацію не публікувати."
+        let reason = app.textFields["organization.request.reason"].firstMatch
+        XCTAssertTrue(reason.waitForExistence(timeout: 5))
+        reveal(reason, app); reason.tap(); reason.typeText(reasonText); dismissKeyboard(app)
+        XCTAssertTrue(confirm.isEnabled); capture(app, "physical-review-test-revision-reason")
+        confirm.tap()
+        let execute = app.buttons["organization.request.execute"].firstMatch
+        XCTAssertTrue(execute.waitForExistence(timeout: 5))
+        capture(app, "physical-review-test-revision-confirmation")
+        execute.tap()
+        XCTAssertTrue(revision.waitForNonExistence(timeout: 20))
+        XCTAssertTrue(open.waitForNonExistence(timeout: 20))
+        let history = app.segmentedControls["organization.requests.mode"].firstMatch
+        XCTAssertTrue(history.exists); history.buttons.element(boundBy: 1).tap()
+        let recordedReason = app.staticTexts[reasonText].firstMatch
+        XCTAssertTrue(recordedReason.waitForExistence(timeout: 15)); reveal(recordedReason, app)
+        capture(app, "physical-review-test-history")
+        // The only submitted decision is requestRevision for the exact controlled ID.
+    }
+
     private func openProfile(_ app: XCUIApplication) {
         app.activate()
         let candidateCancel = app.buttons["organization.team.cancelSearch"].firstMatch

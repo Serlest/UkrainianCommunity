@@ -660,6 +660,21 @@
         "Repeated native consent opened and continued"
       ],
       "boundary": "Test completion closes the browser session; user asked to complete existing Serlest Gmail sign-in separately. Does not establish Google sign-in completion or new registration."
+    },
+    {
+      "checks": [
+        "R02-A",
+        "R08-B"
+      ],
+      "kind": "physical_existing_google_account_and_test_form_partial",
+      "bundle": "build/audit-closure-20261025/PhysicalTestRequestPreparation.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "verified": [
+        "User completed Google sign-in; real exact Serlest Gmail profile verified",
+        "Create form four steps: name, description, Tirol, Innsbruck, preview, actual legal rules reader"
+      ],
+      "boundary": "No acceptance or submission automated. Applicant legal acceptance and submission remain user handoff; no new account registration."
     }
   ],
   "remainingScenarioGroups": 5,
@@ -806,7 +821,7 @@
   },
   "remainingChecks": {
     "R01-C": "Complete protected/system variants of window-state ledger; ordinary changed visual families have runtime evidence.",
-    "R02-A": "Apple cancellation and repeat Apple+TOTP sign-in plus Google cancellation/repeated native consent verified on physical iPhone. Google sign-in completion remains. New registration excluded by user; email reset links unverified.",
+    "R02-A": "Apple and Google cancellation/repeat plus Apple+TOTP and existing Google account sign-in verified on physical iPhone. New registration excluded by user. Email password-reset links remain unverified.",
     "R02-C": "Successful real Apple+TOTP and passkey sign-in verified on iPhone; remaining MFA/passkey cancellation, retry and recovery transitions.",
     "R03-B": "Real provider link/unlink, passkey and Face ID lock/background-return confirmations. Disposable deletion already passed.",
     "R08-B": "Protected reviewer full UI decisions/history and exact reviewer notification destination. Server lifecycle and actual applicant notice/edit/resubmit passed."
