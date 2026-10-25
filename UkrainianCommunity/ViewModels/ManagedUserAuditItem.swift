@@ -29,7 +29,7 @@ struct ManagedUserAuditItem: Identifiable {
     }
 
     var changeSummary: String? {
-        let keys = ["accountStatus", "blockState", "globalRole", "role", "organizationId", "directoryEditorEnabled", "banExpiresAt"]
+        let keys = ["accountStatus", "blockState", "globalRole", "role", "organizationId", "directoryEditorEnabled", "banExpiresAt", "warningCount", "ownerId"]
         let changes = keys.compactMap { key -> String? in
             let previous = displayValue(previousValue[key], key: key)
             let next = displayValue(newValue[key], key: key)
@@ -37,6 +37,8 @@ struct ManagedUserAuditItem: Identifiable {
             let label: String = switch key {
             case "accountStatus", "blockState": AppStrings.Common.status
             case "banExpiresAt": AppStrings.UserManagement.blockedUntil
+            case "warningCount": UserAdministrationCopy.warningCount
+            case "ownerId": AppStrings.Organizations.communityOwner
             case "globalRole": AppStrings.UserManagement.currentPlatformRole
             case "role": AppStrings.Profile.role
             case "directoryEditorEnabled": DirectoryEditorText.value("Редагування довідника", "Ratgeber bearbeiten")
@@ -50,6 +52,16 @@ struct ManagedUserAuditItem: Identifiable {
     }
 
     private func displayValue(_ value: Any?, key: String) -> String? {
+        guard let value, !(value is NSNull) else { return nil }
+        if key == "banExpiresAt", let raw = value as? String {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let fractional = formatter.date(from: raw)
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = fractional ?? formatter.date(from: raw) {
+                return LocalizationStore.dateString(from: date, dateStyle: .medium, timeStyle: .short)
+            }
+        }
         if let date = (value as? Timestamp)?.dateValue() {
             return LocalizationStore.dateString(from: date, dateStyle: .medium, timeStyle: .short)
         }
@@ -72,8 +84,7 @@ struct ManagedUserAuditItem: Identifiable {
         return switch value {
         case let string as String: string
         case let number as NSNumber: number.stringValue
-        case nil: nil
-        default: String(describing: value!)
+                default: String(describing: value)
         }
     }
 }

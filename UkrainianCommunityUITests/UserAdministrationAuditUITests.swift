@@ -136,7 +136,16 @@ import XCTest
         XCTAssertTrue(row.waitForExistence(timeout: 5)); capture(app, "user-return-retains-search-and-confirmed-page")
     }
 
-    private func launch(language: String, maximum: Bool = false, mode: String = "normal", role: String = "owner") -> XCUIApplication {
+    func testOrganizationRolesAndMembersCannotOpenGlobalUserManagement() {
+        for role in ["org-owner", "org-admin", "org-moderator", "member", "warned"] {
+            let app = launch(language: "uk", role: role, openManagement: false)
+            XCTAssertFalse(app.buttons["profile.userManagement"].exists, role)
+            capture(app, "user-management-hidden-for-" + role)
+            app.terminate()
+        }
+    }
+
+    private func launch(language: String, maximum: Bool = false, mode: String = "normal", role: String = "owner", openManagement: Bool = true) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", maximum ? "UICTContentSizeCategoryAccessibilityXXXL" : "UICTContentSizeCategoryL"]
         app.launchEnvironment = ["UITestUserAdministrationAudit": "1", "UITestUserAdministrationState": mode,
@@ -146,8 +155,10 @@ import XCTest
         else { app.launchEnvironment["UITestProfileRole"] = role }
         app.launch(); XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
         app.tabBars.buttons.element(boundBy: 4).tap()
-        let entry = app.buttons["profile.userManagement"].firstMatch
-        reveal(entry, app); entry.tap()
+        if openManagement {
+            let entry = app.buttons["profile.userManagement"].firstMatch
+            reveal(entry, app); entry.tap()
+        }
         return app
     }
     private func openUser(_ id: String, _ app: XCUIApplication, waitForDetail: Bool = true) {
@@ -175,8 +186,8 @@ import XCTest
             let upward = target.exists && target.frame.midY < top
             let upper = min(max((top + 30) / app.frame.height, 0.2), 0.55)
             let lower = max(min((bottom - 25) / app.frame.height, 0.8), upper + 0.15)
-            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? upper : lower))
-                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? lower : upper)))
+            app.coordinate(withNormalizedOffset: .init(dx: 0.95, dy: upward ? upper : lower))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.95, dy: upward ? lower : upper)))
         }
         print(app.debugDescription)
         capture(app, "unreachable-user-control")

@@ -3,6 +3,20 @@ import Testing
 @testable import UkrainianCommunity
 
 @Suite(.serialized) @MainActor struct ManagedUserAuditStoreTests {
+    @Test func serverAuditShapeFormatsExpiryNullsCountsAndOwnership() {
+        let date = Date(timeIntervalSince1970: 1793000000)
+        let iso = ISO8601DateFormatter().string(from: date)
+        let history = ManagedUserAuditItem(id: "expiry", actionType: "userSuspended", reason: "Reviewed", performedBy: "owner",
+            previousValue: ["banExpiresAt": NSNull(), "warningCount": 1],
+            newValue: ["banExpiresAt": iso, "warningCount": 2], createdAt: .now)
+        #expect(history.changeSummary?.contains(iso) == false)
+        #expect(history.changeSummary?.contains("<null>") == false)
+        #expect(history.changeSummary?.contains(LocalizationStore.dateString(from: date, dateStyle: .medium, timeStyle: .short)) == true)
+        #expect(history.changeSummary?.contains("1 → 2") == true)
+        let ownership = ManagedUserAuditItem(id: "owner", actionType: "organizationOwnerChanged", reason: "Reviewed", performedBy: "owner",
+            previousValue: ["ownerId": "old-owner"], newValue: ["ownerId": "new-owner"], createdAt: .now)
+        #expect(ownership.changeSummary?.contains("old-owner → new-owner") == true)
+    }
     private func item(_ id: String) -> ManagedUserAuditItem {
         .init(id: id, actionType: "userWarned", reason: "Review reason", performedBy: "owner", previousValue: [:], newValue: [:], createdAt: Date(timeIntervalSince1970: 1000))
     }

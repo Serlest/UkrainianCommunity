@@ -88,6 +88,28 @@
           }
         }
       }
+    },
+    "users_audit.warning_count": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кількість попереджень"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anzahl der Verwarnungen"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Warning count"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
