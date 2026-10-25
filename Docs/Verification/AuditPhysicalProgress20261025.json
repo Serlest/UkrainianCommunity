@@ -1,7 +1,7 @@
 {
   "date": "2026-10-25",
   "status": "in_progress_not_full_acceptance",
-  "sourceOnDevice": "ce5e910f",
+  "sourceOnDevice": "ce5e910f plus uncommitted OrganizationTeamCandidateRow hit-area fix",
   "device": "iPhone 16 Pro Max, iOS 27.0.1",
   "verified": {
     "appleCancel": "Native Apple sheet cancellation returned usable provider buttons",
@@ -11,7 +11,9 @@
     "shareSheet": "Native iOS share sheet opened from real organization detail and dismissed back without sending.",
     "phone": "Native SIM selector displayed the exact public organization phone number; cancelled without dialing.",
     "mail": "Native Mail composer opened with exact public organization email recipient; no message sent.",
-    "passkeySignIn": "After signed Release installation, user confirmed successful sign-in; protected platform-owner System Journal visibly open on iPhone."
+    "passkeySignIn": "After signed Release installation, user confirmed successful sign-in; protected platform-owner System Journal visibly open on iPhone.",
+    "ownershipCancellation": "Physical XCTest passed: exact candidate confirmation opened from center-row tap; outside cancellation; independent server owner/admin/moderator fields unchanged.",
+    "googleCancellation": "Physical test passed: native accounts.google.com consent cancelled, Apple and Google buttons enabled again; repeated opening succeeded. Full Google sign-in remains user handoff."
   },
   "correction": "Initial missing-confirmation suspicion is not a confirmed failure: user acknowledged manually confirming while remote observation missed the dialog. No automatic or unconfirmed transfer established.",
   "pending": [
@@ -52,12 +54,14 @@
     "attemptBundle": "build/audit-closure-20261025/PhysicalOwnerCancellationRelease.xcresult",
     "attemptResult": "Runner failed to initialize: Timed out while enabling automation mode",
     "executedApplicationActions": 0,
-    "status": "blocked_by_concrete_dependency",
-    "dependency": "User completes system passcode prompt directly on the iPhone. Do not read or enter the code remotely.",
-    "boundary": "Build success does not prove ownership cancellation, Google cancellation, applicant submission or reviewer notifications. No additional scenario group closed.",
+    "status": "available_user_system_confirmation_completed",
+    "dependency": null,
+    "boundary": "Only ownership confirmation cancellation closes here; Google, reviewer notifications and security scenarios retain their own pending evidence.",
     "nextAttemptBundle": "build/audit-closure-20261025/PhysicalOwnerCancellationEnabled.xcresult",
     "nextAttemptObservation": "Actual iPhone system prompt: iPhone-Code für XCTest eingeben / Enable UI Automation. User asked to complete device passcode handoff.",
-    "nextAttemptResult": "Timed out while enabling automation mode after 63.584 seconds; no application test body executed. Awaiting user completion of system passcode prompt before retry."
+    "nextAttemptResult": "Timed out while enabling automation mode after 63.584 seconds; no application test body executed. Awaiting user completion of system passcode prompt before retry.",
+    "acceptedBundle": "build/audit-closure-20261025/PhysicalOwnerCancellationInstalledFixed.xcresult",
+    "acceptedResult": "1 passed; actual production iPhone; baseline center-row tap failure corrected by full row hit shape."
   },
   "registrationScope": "User declined new registration. No account creation or separate registration email requested further; registration is excluded, not verified."
 }

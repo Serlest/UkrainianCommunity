@@ -17,9 +17,7 @@ final class PhysicalClosureAuditUITests: XCTestCase {
     func testControlledOwnershipConfirmationCancelRetainsServerOwner() async throws {
         let before = try await authority()
         let app = XCUIApplication()
-        app.activate()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
-        app.tabBars.buttons.element(boundBy: 4).tap()
+        openProfile(app)
         let management = app.buttons["profile.organizationManagement"].firstMatch
         reveal(management, app, towardTop: true); management.tap()
         let search = app.textFields.firstMatch
@@ -47,14 +45,7 @@ final class PhysicalClosureAuditUITests: XCTestCase {
 
     func testGoogleCancellationThenPrepareControlledSignIn() {
         let app = XCUIApplication()
-        app.activate()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
-        app.tabBars.buttons.element(boundBy: 4).tap()
-        for _ in 0..<6 {
-            let back = app.buttons["navigation.back"].firstMatch
-            if !back.exists { break }
-            back.tap()
-        }
+        openProfile(app)
         let logout = app.buttons["profile.logout.button"].firstMatch
         reveal(logout, app); logout.tap()
         let confirm = app.alerts.buttons["profile.logout.confirm"].firstMatch
@@ -80,9 +71,7 @@ final class PhysicalClosureAuditUITests: XCTestCase {
 
     func testPrepareControlledTestRequestWithoutAcceptingLegalTermsOrSubmitting() {
         let app = XCUIApplication()
-        app.activate()
-        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
-        app.tabBars.buttons.element(boundBy: 4).tap()
+        openProfile(app)
         let name = app.staticTexts["Serlest Gmail"].firstMatch
         reveal(name, app, towardTop: true)
         XCTAssertTrue(name.exists, "Use only the second account explicitly identified by the user")
@@ -111,6 +100,19 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         XCTAssertTrue(app.buttons["organizationEditor.rules.close"].firstMatch.waitForExistence(timeout: 10))
         capture(app, "physical-test-request-legal-review-user-handoff")
         // Legal acceptance and final submission are deliberately left to the user.
+    }
+
+    private func openProfile(_ app: XCUIApplication) {
+        app.activate()
+        let candidateCancel = app.buttons["organization.team.cancelSearch"].firstMatch
+        if candidateCancel.exists && candidateCancel.isHittable { candidateCancel.tap() }
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        for _ in 0..<6 {
+            let back = app.buttons["navigation.back"].firstMatch
+            if !back.exists { break }
+            back.tap()
+        }
     }
 
     private func dismissKeyboard(_ app: XCUIApplication) {

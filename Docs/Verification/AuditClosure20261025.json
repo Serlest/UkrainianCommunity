@@ -23,7 +23,8 @@
     "R09-A",
     "R09-B",
     "R09-C",
-    "R07-B"
+    "R07-B",
+    "R08-A"
   ],
   "evidence": [
     {
@@ -629,9 +630,39 @@
         "Phone SIM selector displayed exact public organization number; cancelled without dialing",
         "Mail composer displayed exact public organization recipient; closed without sending"
       ]
+    },
+    {
+      "check": "R08-A",
+      "kind": "physical_production_cancellation_and_hit_area_fix",
+      "baseline": "build/audit-closure-20261025/PhysicalOwnerCancellationAuthorized.xcresult",
+      "accepted": "build/audit-closure-20261025/PhysicalOwnerCancellationInstalledFixed.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "fix": "OrganizationTeamCandidateRow uses a rectangular content shape covering its complete row, including blank label space. Both transfer and role assignment share the row.",
+      "verified": [
+        "Actual center-row tap opens exact Serlest Gmail ownership confirmation",
+        "Cancel by outside-popover tap closes confirmation",
+        "Independent masked Firestore read matches ownerId/adminIds/moderatorIds before and after"
+      ],
+      "installation": "Signed Release app explicitly installed before accepted test; earlier app.activate-only rerun retained old process and is not fix evidence.",
+      "images": "build/audit-closure-20261025/physical-owner-cancel-fixed-images",
+      "boundary": "No ownership change confirmed by automation. Earlier user-confirmed transfer/restoration evidence retained."
+    },
+    {
+      "check": "R02-A",
+      "kind": "physical_google_cancel_partial",
+      "bundle": "build/audit-closure-20261025/PhysicalGoogleCancellation.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "verified": [
+        "Native accounts.google.com consent cancelled",
+        "Apple and Google provider buttons enabled after cancellation",
+        "Repeated native consent opened and continued"
+      ],
+      "boundary": "Test completion closes the browser session; user asked to complete existing Serlest Gmail sign-in separately. Does not establish Google sign-in completion or new registration."
     }
   ],
-  "remainingScenarioGroups": 6,
+  "remainingScenarioGroups": 5,
   "deployment": {
     "scope": "firestore:rules only",
     "project": "ukrainiancommunity-dbd5f",
@@ -775,10 +806,9 @@
   },
   "remainingChecks": {
     "R01-C": "Complete protected/system variants of window-state ledger; ordinary changed visual families have runtime evidence.",
-    "R02-A": "Apple cancellation and repeat Apple+TOTP sign-in verified on physical iPhone. Remaining: controlled Google/provider-first-use scenarios and real email verification/reset action-link completion.",
+    "R02-A": "Apple cancellation and repeat Apple+TOTP sign-in plus Google cancellation/repeated native consent verified on physical iPhone. Google sign-in completion remains. New registration excluded by user; email reset links unverified.",
     "R02-C": "Successful real Apple+TOTP and passkey sign-in verified on iPhone; remaining MFA/passkey cancellation, retry and recovery transitions.",
     "R03-B": "Real provider link/unlink, passkey and Face ID lock/background-return confirmations. Disposable deletion already passed.",
-    "R08-A": "Physical transfer to controlled Serlest Gmail and restoration to Serlest independently read back. Remaining: confirmation cancellation and no authority change; ordinary role/conflict evidence retained.",
     "R08-B": "Protected reviewer full UI decisions/history and exact reviewer notification destination. Server lifecycle and actual applicant notice/edit/resubmit passed."
   },
   "finalLocalRegression": {
@@ -795,11 +825,9 @@
   "physicalContinuation": {
     "report": "Docs/Verification/AuditPhysicalProgress20261025.json",
     "prepared": "Release-only physical audit scheme and explicit opt-in controlled-account tests compiled successfully",
-    "deviceBlocker": "After user enabled UI Automation, the physical iPhone visibly displayed the system passcode prompt for XCTest. User handoff requested; test body not yet observed.",
+    "deviceBlocker": null,
     "openChecksUnchanged": true,
-    "dependencies": [
-      "Physical XCTest system passcode confirmation by user; no code in chat"
-    ]
+    "dependencies": []
   },
   "userScopeAdjustments": [
     {

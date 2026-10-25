@@ -277,16 +277,18 @@
         "review queue/reason/history/notification route"
       ],
       "evidenceReports": [
-        "OrganizationManagementAudit20261024.json"
+        "OrganizationManagementAudit20261024.json",
+        "AuditPhysicalProgress20261025.json"
       ],
       "roleBoundary": "Ordinary organization owner can manage own organization; only platform owner transfers ownership. Current authoritative documents determine roles.",
       "remaining": [
-        "Protected platform-owner ownership transfer and reviewer UI lifecycle/direct reviewer notification route. Ordinary applicant notice/edit/resubmission and ordinary-owner team concurrent-change path passed actual SDK/UI."
+        "Protected reviewer UI lifecycle/history/direct reviewer notification route. Actual physical ownership transfer, restoration and cancellation now verified; ordinary applicant/team evidence retained."
       ],
       "reviewedImages": [
         "build/audit-closure-20261025/replacement-maps-translation/79E397DD-C4AE-4258-9F83-8F575486EACE.png",
         "build/audit-closure-20261025/replacement-maps-translation/2CE262FF-8386-44D6-A562-3C549F63455B.png",
-        "build/audit-closure-20261025/replacement-maps-translation/BF1B0336-CE58-401E-9CA6-64AA81110C70.png"
+        "build/audit-closure-20261025/replacement-maps-translation/BF1B0336-CE58-401E-9CA6-64AA81110C70.png",
+        "build/audit-closure-20261025/physical-owner-cancel-fixed-images/80EF6D79-0F94-46D0-8096-0D524C51CB5E.png"
       ],
       "status": "open"
     },

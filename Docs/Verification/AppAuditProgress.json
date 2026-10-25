@@ -137,10 +137,10 @@
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
-        "R08-A",
         "R08-B"
       ],
       "closedChecks": [
+        "R08-A",
         "R08-C"
       ]
     },
@@ -323,8 +323,8 @@
   "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
-    "closedScenarioGroups": 21,
-    "remainingScenarioGroups": 6,
+    "closedScenarioGroups": 22,
+    "remainingScenarioGroups": 5,
     "fullyClosedBlocks": 5
   }
 }

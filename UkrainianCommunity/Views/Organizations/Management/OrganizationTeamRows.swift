@@ -136,6 +136,7 @@ struct OrganizationTeamCandidateRow: View {
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())
     }
 }
 
