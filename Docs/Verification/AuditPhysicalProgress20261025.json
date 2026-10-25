@@ -10,7 +10,8 @@
     "ownershipRestoration": "User performed final confirmation. Independent server readback matches original ownerId and original adminIds/moderatorIds.",
     "shareSheet": "Native iOS share sheet opened from real organization detail and dismissed back without sending.",
     "phone": "Native SIM selector displayed the exact public organization phone number; cancelled without dialing.",
-    "mail": "Native Mail composer opened with exact public organization email recipient; no message sent."
+    "mail": "Native Mail composer opened with exact public organization email recipient; no message sent.",
+    "passkeySignIn": "After signed Release installation, user confirmed successful sign-in; protected platform-owner System Journal visibly open on iPhone."
   },
   "correction": "Initial missing-confirmation suspicion is not a confirmed failure: user acknowledged manually confirming while remote observation missed the dialog. No automatic or unconfirmed transfer established.",
   "pending": [
@@ -24,8 +25,10 @@
     "cause": "Installed Debug configuration uses AppCheckDebugProviderFactory, whose local debug token is not registered with production",
     "credentialState": "No credential deletion, replacement or weakening of server enforcement",
     "remediation": "Install signed Release configuration from previously validated ce5e910f source and retry real device flow",
-    "status": "release_installed_waiting_user_retry",
+    "status": "resolved_on_device_user_confirmed",
     "evidence": "build/audit-closure-20261025/physical/passkey-begin-logs.json",
-    "releaseInstall": "build/audit-closure-20261025/device-release-auth-install.json"
+    "releaseInstall": "build/audit-closure-20261025/device-release-auth-install.json",
+    "outcome": "Replaced Debug copy with signed Release; original key retained; user successfully signed in.",
+    "successLogs": "build/audit-closure-20261025/physical/passkey-release-success-logs.json"
   }
 }
