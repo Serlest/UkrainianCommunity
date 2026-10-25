@@ -114,3 +114,79 @@ test("installed Date-based clients retain a safe microsecond revision comparison
   await seed("legacy-stale");
   await assert.rejects(reviewContentModeration.run(request(ids[0], {contentType: "news", contentId: "legacy-stale", decision: "approved", expectedRevision: "1792670000:123457001", operationId: "legacy-stale"})), {code: "aborted"});
 });
+
+
+test("preview preserves publication details while later queue pages omit redundant counts", {skip: !enabled}, async () => {
+  await seed("full-preview", "event");
+  const expected = {regionScope: "austria", category: "culture", additionalCategories: ["education"], tags: ["family", "music"],
+    locationNote: "Second floor", organizerName: "Test organizer", organizerURL: "https://example.org/organizer",
+    contactPhone: "+431234567", contactEmail: "fixture@example.org", contactURL: "https://example.org/contact", latitude: 47.26, longitude: 11.4,
+    participationMode: "externalTickets", requiresRegistration: true, isAllDay: true, price: 12,
+    pricing: {kind: "range", amount: 12, maximumAmount: 20, currencyCode: "EUR", note: "Child discount"}, capacity: 60,
+    audience: "families", minimumAge: 6, maximumAge: 99, externalAction: {title: "Tickets", url: "https://example.org/tickets"},
+    mediaMetadata: {caption: "Stage", alternativeText: "Accessible description", credit: "Fixture author"}, cancellationState: "active", cancellationReason: ""};
+  await db.doc("events/full-preview").update({...expected,
+    localizations: {uk: {title: "Подія", summary: "Вступ", details: "Усі подробиці"}, de: {title: "Termin", summary: "Einleitung", details: "Alle Angaben"}},
+    occurrences: [{id: "session-1", startDate: stamp, endDate: Timestamp.fromMillis(stamp.toMillis() + 3600000), isAllDay: true, status: "scheduled"}]});
+  const response = await manageContentModeration.run(request(ids[0], {action: "preview", contentType: "event", contentId: "full-preview"}));
+  assert.ok("item" in response); if (!("item" in response)) throw new Error("Missing preview");
+  const publication = response.item.publication;
+  assert.ok(publication); assert.equal(response.item.translations.de.body, "Alle Angaben");
+  for (const [key, value] of Object.entries(expected)) assert.deepEqual(publication[key as keyof typeof publication], value, key);
+  assert.equal(publication.occurrences[0].startDate, stamp.toMillis()); assert.equal(publication.occurrences[0].status, "scheduled");
+  await db.doc("events/full-preview").update({pricing: {kind: "free"}});
+  const legacy = await manageContentModeration.run(request(ids[0], {action: "preview", contentType: "event", contentId: "full-preview"}));
+  assert.ok("item" in legacy); if ("item" in legacy) assert.equal(legacy.item.publication?.pricing?.currencyCode, "EUR");
+  const page = await manageContentModeration.run(request(ids[0], {action: "list", contentType: "event", limit: 1, includeCounts: false}));
+  assert.ok("items" in page); assert.ok(!("counts" in page));
+  if ("items" in page && page.items) assert.ok(page.items.every(item => !("publication" in item)));
+});
+
+test("all role variants protect decisions and organization preview editing", {skip: !enabled}, async () => {
+  const roles = ["owner", "admin", "user", "user", "user", "user", "owner", "topAdmin"];
+  const actors = roles.map((_, i) => `matrix-review-${i}`);
+  await seedVerifiedAuthForIntegration(...actors);
+  for (const [i, uid] of actors.entries()) await db.doc(`users/${uid}`).set({globalRole: roles[i], accountStatus: "active", blockState: i === 6 ? "bannedPermanent" : "active"});
+  await seedCurrentLegalForIntegration(...actors);
+  await db.doc("organizations/matrix-review-org").set({ownerId: actors[2], adminIds: [actors[3]], moderatorIds: [actors[4]]});
+  for (const [i, uid] of actors.entries()) {
+    const id = `matrix-material-${i}`; await seed(id); await db.doc(`news/${id}`).update({organizationId: "matrix-review-org", authorId: actors[4]});
+    const payload = {contentType: "news", contentId: id, decision: "approved", operationId: id, expectedRevision: revision, principalId: uid};
+    if (i < 2) { await reviewContentModeration.run(request(uid, payload)); }
+    else { await assert.rejects(reviewContentModeration.run(request(uid, payload)), {code: "permission-denied"}); }
+    if (i >= 2 && i <= 4) {
+      const preview = await manageContentModeration.run(request(uid, {action: "preview", contentType: "news", contentId: id}));
+      assert.ok("item" in preview); if ("item" in preview) { assert.equal(preview.item.canReview, false); assert.ok("canEdit" in preview.item && preview.item.canEdit === true); }
+    }
+  }
+  await assert.rejects(manageContentModeration.run(request(actors[5], {action: "preview", contentType: "news", contentId: "matrix-material-5"})), {code: "permission-denied"});
+  await assert.rejects(manageContentModeration.run({data: {action: "list", contentType: "news"}} as never), {code: "unauthenticated"});
+});
+
+test("approving queued news assigns the actual publication time without adding news-only fields to events", {skip: !enabled}, async () => {
+  for (const contentType of ["news", "event"]) {
+    const id = `publish-clock-${contentType}`; await seed(id, contentType);
+    const path = `${contentType === "news" ? "news" : "events"}/${id}`;
+    const result = await reviewContentModeration.run(request(ids[0], {contentType, contentId: id, decision: "approved", expectedRevision: revision, operationId: id, principalId: ids[0]}));
+    const saved = await db.doc(path).get();
+    if (contentType === "news") assert.equal(saved.get("publishedAt").toDate().toISOString(), result.updatedAt);
+    else assert.equal(saved.get("publishedAt"), undefined);
+  }
+});
+
+
+test("a reviewer revoked after preview cannot decide, and deleted material retains its history without exposing a preview", {skip: !enabled}, async () => {
+  await seed("revoked-reviewer");
+  const preview = await manageContentModeration.run(request(ids[0], {action: "preview", contentType: "news", contentId: "revoked-reviewer"}));
+  assert.ok("item" in preview && preview.item?.canReview);
+  await db.doc(`users/${ids[0]}`).update({globalRole: "user", role: "user"});
+  try {
+    await assert.rejects(reviewContentModeration.run(request(ids[0], {contentType: "news", contentId: "revoked-reviewer", decision: "approved", expectedRevision: revision, operationId: "revoked-after-preview", principalId: ids[0]})), {code: "permission-denied"});
+    assert.equal((await db.doc("news/revoked-reviewer").get()).get("moderationStatus"), "pendingReview");
+  } finally { await db.doc(`users/${ids[0]}`).update({globalRole: "owner", role: "user"}); }
+  await seed("deleted-reviewed-material");
+  await reviewContentModeration.run(request(ids[1], {contentType: "news", contentId: "deleted-reviewed-material", decision: "approved", expectedRevision: revision, operationId: "deleted-history", principalId: ids[1]}));
+  await db.doc("news/deleted-reviewed-material").delete();
+  await assert.rejects(manageContentModeration.run(request(ids[1], {action: "preview", contentType: "news", contentId: "deleted-reviewed-material"})), {code: "not-found"});
+  assert.equal((await db.collection("contentModerationOperations").where("contentId", "==", "deleted-reviewed-material").get()).size, 1);
+});

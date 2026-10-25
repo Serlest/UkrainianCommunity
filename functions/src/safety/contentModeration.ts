@@ -119,6 +119,8 @@ export const reviewContentModeration = onCall(
       }
       transaction.update(contentReference, {
         moderationStatus: request.decision,
+        // Approval is the publication moment; a queued article must not enter an old feed position.
+        ...(request.contentType === "news" && request.decision === "approved" ? {publishedAt: now} : {}),
         updatedAt: now,
         moderationOperationId: request.operationId,
         moderatedByUserId: actor.uid,
@@ -187,7 +189,30 @@ const text = (value: unknown): string => typeof value === "string" ? value : "";
 const member = (data: FirebaseFirestore.DocumentData | undefined, uid: string): boolean => !!data &&
   (data.ownerId === uid || [data.adminIds, data.moderatorIds].some(v => Array.isArray(v) && v.includes(uid)));
 const millis = (value: unknown): number | null => value instanceof Timestamp ? value.toMillis() : null;
-function preview(id: string, type: ModeratedContentType, d: FirebaseFirestore.DocumentData, canReview: boolean) {
+const stringList = (value: unknown): string[] => Array.isArray(value) ? value.filter(v => typeof v === "string") : [];
+const optionalNumber = (value: unknown): number | null => typeof value === "number" && Number.isFinite(value) ? value : null;
+function publicationDetails(d: FirebaseFirestore.DocumentData) {
+  const pricing = d.pricing && typeof d.pricing === "object" ? {
+    kind: text(d.pricing.kind) || "unspecified", amount: optionalNumber(d.pricing.amount),
+    maximumAmount: optionalNumber(d.pricing.maximumAmount), currencyCode: text(d.pricing.currencyCode) || "EUR", note: text(d.pricing.note) || null,
+  } : null;
+  return {
+    regionScope: text(d.regionScope), category: text(d.category), additionalCategories: stringList(d.additionalCategories), tags: stringList(d.tags),
+    locationNote: text(d.locationNote), organizerName: text(d.organizerName), organizerURL: text(d.organizerURL),
+    contactPhone: text(d.contactPhone), contactEmail: text(d.contactEmail), contactURL: text(d.contactURL),
+    latitude: optionalNumber(d.latitude), longitude: optionalNumber(d.longitude),
+    isAllDay: d.isAllDay === true, requiresRegistration: d.requiresRegistration === true, participationMode: text(d.participationMode),
+    price: optionalNumber(d.price), pricing, capacity: optionalNumber(d.capacity), audience: text(d.audience),
+    minimumAge: optionalNumber(d.minimumAge), maximumAge: optionalNumber(d.maximumAge),
+    externalAction: d.externalAction ?? null, mediaMetadata: d.mediaMetadata ?? null,
+    cancellationState: text(d.cancellationState), cancellationReason: text(d.cancellationReason),
+    occurrences: Array.isArray(d.occurrences) ? d.occurrences.map((occurrence, index) => ({
+      id: text(occurrence.id) || String(index), startDate: millis(occurrence.startDate), endDate: millis(occurrence.endDate),
+      isAllDay: occurrence.isAllDay === true, status: text(occurrence.status),
+    })) : [],
+  };
+}
+function preview(id: string, type: ModeratedContentType, d: FirebaseFirestore.DocumentData, canReview: boolean, includePublication = true) {
   const translations = Object.fromEntries(["uk", "de"].map(language => {
     const localized = d.localizations?.[language] ?? {};
     return [language, {title: text(localized.title) || text(d.title),
@@ -199,7 +224,8 @@ function preview(id: string, type: ModeratedContentType, d: FirebaseFirestore.Do
     authorName: text(d.authorName), createdAt: millis(d.createdAt) ?? 0, imageURL: text(d.imageURL),
     sourceName: text(d.sourceName), sourceURL: text(d.sourceURL), region: text(d.federalState),
     venue: text(d.venue), city: text(d.city), address: text(d.address), startDate: millis(d.startDate), endDate: millis(d.endDate),
-    reason: text(d.moderationReason), canReview: canReview && d.moderationStatus === "pendingReview"};
+    reason: text(d.moderationReason), canReview: canReview && d.moderationStatus === "pendingReview",
+    ...(includePublication ? {publication: publicationDetails(d)} : {})};
 }
 export const manageContentModeration = onCall(
   {region: "europe-west3", maxInstances: 20, enforceAppCheck: false}, async call => {
@@ -260,12 +286,16 @@ export const manageContentModeration = onCall(
     if (!["news", "event"].includes(type)) throw new HttpsError("invalid-argument", "Invalid content type.");
     let q = db.collection(collections[type]).where("moderationStatus", "==", "pendingReview").orderBy("createdAt", "desc").orderBy(FieldPath.documentId(), "desc");
     if (cursor) q = q.startAfter(new Timestamp(cursor.seconds, cursor.nanoseconds), cursor.id);
-    const [docs, newsCount, eventCount] = await Promise.all([q.select("title", "summary", "subtitle", "createdAt", "updatedAt", "moderationStatus", "authorName", "organizationId", "organizationName",
+    if (data.includeCounts !== undefined && typeof data.includeCounts !== "boolean") throw new HttpsError("invalid-argument", "Invalid count option.");
+    const [docs, counts] = await Promise.all([q.select("title", "summary", "subtitle", "createdAt", "updatedAt", "moderationStatus", "authorName", "organizationId", "organizationName",
       "localizations.uk.title", "localizations.uk.subtitle", "localizations.uk.summary", "localizations.de.title", "localizations.de.subtitle", "localizations.de.summary").limit((limit as number) + 1).get(),
-      db.collection("news").where("moderationStatus", "==", "pendingReview").count().get(),
-      db.collection("events").where("moderationStatus", "==", "pendingReview").count().get()]);
+      data.includeCounts === false ? Promise.resolve(null) : Promise.all([
+        db.collection("news").where("moderationStatus", "==", "pendingReview").count().get(),
+        db.collection("events").where("moderationStatus", "==", "pendingReview").count().get(),
+      ])]);
     const selected = docs.docs.slice(0, limit as number); const last = selected.at(-1);
-    return {items: selected.map(doc => preview(doc.id, type, doc.data(), true)), counts: {news: newsCount.data().count, event: eventCount.data().count},
+    return {items: selected.map(doc => preview(doc.id, type, doc.data(), true, false)),
+      ...(counts ? {counts: {news: counts[0].data().count, event: counts[1].data().count}} : {}),
       cursor: docs.size > (limit as number) && last ? {seconds: last.get("createdAt").seconds, nanoseconds: last.get("createdAt").nanoseconds, id: last.id} : null};
   }
 );
