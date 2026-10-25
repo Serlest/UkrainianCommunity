@@ -2,7 +2,7 @@
   "block": 10,
   "totalBlocks": 19,
   "name": "Модерація",
-  "status": "local_verification_complete_final_device_and_qa_ci_pending",
+  "status": "verification_closed_pending_device_acceptance",
   "method": "Docs/AppAuditMethod.md",
   "sourceBaseline": "c0eee2f1",
   "boundaries": [
@@ -1020,8 +1020,8 @@
   "implementationStatus": "implemented",
   "finalGates": {
     "sourceCI": "4f00a4df success, 40216661564",
-    "finalDeviceRepeat": "pending reconnection; earlier production read passed, final signed binary installation succeeded",
-    "qaOnlyCI": "68f03e0f success, 40218413558; b2233d9d in_progress, 40219225423",
+    "finalDeviceRepeat": "passed: final signed source 4f00a4df, real Serlest production session, both queues and history, 1 pass / 0 failures / 0 skips",
+    "qaOnlyCI": "68f03e0f success 40218413558; b2233d9d success 40219225423; evidence commit success 40219815285",
     "manualAcceptance": "pending",
     "testFlight": "not requested"
   }

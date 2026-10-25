@@ -2,7 +2,7 @@
   "block": 10,
   "totalBlocks": 19,
   "name": "Модерація",
-  "status": "local_verification_complete_final_device_and_qa_ci_pending",
+  "status": "verification_closed_pending_device_acceptance",
   "method": "Docs/AppAuditMethod.md",
   "sourceBaseline": "c0eee2f1",
   "serverCommit": "5574c1ed",
@@ -51,10 +51,13 @@
       "scope": "Independent readback after the exact accepted test start time; one outcome notice per contributor, staff-only own resubmission, no reviewer/outsider delivery"
     },
     "device": {
-      "artifact": "build/audit-moderation-20261025/ModerationPhysicalProductionRead.xcresult",
+      "artifact": "build/audit-moderation-20261025/ModerationPhysicalFinalConnectedRead.xcresult",
       "passed": 1,
       "failed": 0,
-      "scope": "Explicitly installed signed Release, Serlest account, actual production news/event queues and history; no content writes"
+      "skipped": 0,
+      "scope": "Final signed Release from product source 4f00a4df explicitly installed. Current Serlest production session, confirmed server counts and loaded news/event queues plus history; no content decisions or writes.",
+      "startedAtUTC": "2026-10-25T19:06:50.962000+00:00",
+      "finishedAtUTC": "2026-10-25T19:07:29.302000+00:00"
     },
     "deployment": {
       "artifacts": [
@@ -220,8 +223,7 @@
     "testFlightChanged": false,
     "publicAppStoreChanged": false,
     "manualAcceptance": "pending user review",
-    "lastInstalledFinalSource": "4f00a4df signed Release installation succeeded; repeated production read currently waiting for device reconnection",
-    "physicalFinalReadDependency": "devicectl reports Serlest Mobile unavailable; user asked to reconnect. Prior production read passed before last local display/navigation refinements."
+    "lastInstalledFinalSource": "4f00a4df signed Release: installed and verified against production on the physical iPhone"
   },
   "ci": {
     "serverRun": 40213586050,
@@ -231,7 +233,9 @@
     "qaRun": 40218413558,
     "qaResult": "success",
     "qaFocusRun": 40219225423,
-    "qaFocusResult": "in_progress"
+    "qaFocusResult": "success",
+    "evidenceRun": 40219815285,
+    "evidenceResult": "success"
   },
   "nextBlock": 11,
   "advanceToNextBlockWithoutUserAcceptance": false,
@@ -321,7 +325,21 @@
         "state": "moderation-deleted-material-explanation"
       }
     ],
-    "equivalence": "Owner/admin share the reviewed queue layout. Organization roles, member and warned use the existing profile layout; all seven visibility variants asserted in states. No claim that each negative role has a separate moderation screen."
+    "equivalence": "Owner/admin share the reviewed queue layout. Organization roles, member and warned use the existing profile layout; all seven visibility variants asserted in states. No claim that each negative role has a separate moderation screen.",
+    "physical-final-images": [
+      {
+        "path": "build/audit-moderation-20261025/physical-final-images/4DDC0C2E-5E22-4452-BFD9-3ACD097656E3.png",
+        "state": "physical-production-moderation-history"
+      },
+      {
+        "path": "build/audit-moderation-20261025/physical-final-images/5526D48E-7BC4-4FB1-A67A-9A35D0416052.png",
+        "state": "physical-production-moderation-type-1"
+      },
+      {
+        "path": "build/audit-moderation-20261025/physical-final-images/7098BF9D-34B6-4B21-83A3-C58BFDB965E1.png",
+        "state": "physical-production-moderation-type-0"
+      }
+    ]
   },
   "qaCommits": [
     "68f03e0fab03d05e8bbe86f18db8582d3b755011",
@@ -329,13 +347,15 @@
   ],
   "localVerification": "passed",
   "serverVerification": "deployed and verified; authorized production read passed",
-  "openChecks": [
-    "M10-FINAL-DEVICE: reconnect the physical iPhone for a repeated read from the exact final installed binary",
-    "M10-QA-CI: hosted verification of the QA-only follow-up commits remains pending"
-  ],
+  "openChecks": [],
   "cleanup": {
     "localEmulatorsStopped": true,
     "export": "build/audit-moderation-20261025/connected-emulator-export/firebase-export-metadata.json",
     "productionTestContentCreated": false
-  }
+  },
+  "closedFinalChecks": [
+    "M10-FINAL-DEVICE",
+    "M10-QA-CI"
+  ],
+  "physicalVerification": "passed on final installed source"
 }

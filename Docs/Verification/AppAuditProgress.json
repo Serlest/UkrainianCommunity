@@ -1,9 +1,9 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 9,
-  "remainingBlocks": 10,
-  "nextBlock": 10,
+  "completedBlocks": 10,
+  "remainingBlocks": 9,
+  "nextBlock": 11,
   "blocks": [
     {
       "number": 1,
@@ -161,17 +161,20 @@
     {
       "number": 10,
       "name": "Модерация",
-      "status": "local_verification_complete_final_device_and_qa_ci_pending",
-      "openChecks": [
-        "M10-FINAL-DEVICE",
-        "M10-QA-CI"
-      ],
+      "status": "verification_closed_pending_device_acceptance",
+      "openChecks": [],
       "inventory": "Docs/Verification/ModerationInventory20261025.json",
       "authorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10",
       "report": "Docs/Verification/ModerationAudit20261025.json",
       "sourceCommit": "4f00a4df",
       "serverCommit": "5574c1ed",
-      "testFlightChanged": false
+      "testFlightChanged": false,
+      "closedChecks": [
+        "M10-FINAL-DEVICE",
+        "M10-QA-CI"
+      ],
+      "closedScenarioChecks": 32,
+      "physicalEvidence": "build/audit-moderation-20261025/ModerationPhysicalFinalConnectedRead.xcresult"
     },
     {
       "number": 11,
@@ -307,11 +310,12 @@
       6,
       7,
       8,
-      9
+      9,
+      10
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "All 27 recorded reconciliation groups for blocks 1–9 have terminal evidence or explicit approved boundaries. Final user acceptance, hosted checks and TestFlight delivery remain separately tracked.",
+    "meaning": "All 27 reconciliation groups for blocks 1–9 and the 32-scenario block 10 ledger have terminal evidence or explicit approved boundaries. User acceptance and TestFlight delivery are separate gates.",
     "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
     "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом",
     "block6AuthorizedByUser": "2026-10-24: Преступай (после отчета пункта 5)",
@@ -322,17 +326,19 @@
     "block10AuthorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10"
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 9,
+  "blocksWithImplementedFixes": 10,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 10,
-  "nextNewBlock": 10,
+  "notStartedBlocks": 9,
+  "nextNewBlock": 11,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Audit block 10 moderation against complete scenario/role/window ledger; blocks 11–19 remain pending.",
+  "nextAction": "Await user acceptance of block 10, then start block 11 only on authorization. TestFlight delivery remains separately requested.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
     "remainingScenarioGroups": 0,
-    "fullyClosedBlocks": 9
+    "fullyClosedBlocks": 10,
+    "block10Report": "Docs/Verification/ModerationAudit20261025.json",
+    "block10ScenarioChecks": 32
   }
 }
