@@ -233,12 +233,11 @@
         "subscribe/bookmark/share/Maps/Phone/Mail"
       ],
       "evidenceReports": [
-        "PublicOrganizationsAudit20261024.json"
+        "PublicOrganizationsAudit20261024.json",
+        "AuditPhysicalProgress20261025.json"
       ],
       "roleBoundary": "Public context does not expose gallery management; sanitized public profiles and signed-in subscriber identities retain separate rights.",
-      "remaining": [
-        "Actual iPhone Phone/Mail/Share system destinations; no calls or message sending"
-      ],
+      "remaining": [],
       "reviewedImages": [
         "build/audit-closure-20261025/visual-latest/042FE1CB-AABC-46D3-9E20-18645ED7488D.png",
         "build/audit-closure-20261025/org-form-public-final/7AA7215C-CB99-4E0C-829C-3CFA53FCED84.png",
@@ -260,7 +259,7 @@
         "build/audit-closure-20261025/form-close-diagnostic/74C484F7-4DDB-4F94-9CFA-EC761C1E567A.png",
         "build/audit-closure-20261025/form-close-diagnostic/95930766-80FB-4531-A486-E858B44A496D.png"
       ],
-      "status": "open"
+      "status": "verified_with_linked_evidence"
     },
     {
       "id": "organization-workspace",

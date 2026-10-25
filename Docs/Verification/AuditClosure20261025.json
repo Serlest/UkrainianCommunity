@@ -775,10 +775,10 @@
   },
   "remainingChecks": {
     "R01-C": "Complete protected/system variants of window-state ledger; ordinary changed visual families have runtime evidence.",
-    "R02-A": "Real Apple/Google first/repeat/cancel/error and email verification/reset action-link completion with a controlled account.",
-    "R02-C": "Real privileged MFA/passkey sign-in, cancellation, retry and recovery.",
+    "R02-A": "Apple cancellation and repeat Apple+TOTP sign-in verified on physical iPhone. Remaining: controlled Google/provider-first-use scenarios and real email verification/reset action-link completion.",
+    "R02-C": "Successful real Apple+TOTP and passkey sign-in verified on iPhone; remaining MFA/passkey cancellation, retry and recovery transitions.",
     "R03-B": "Real provider link/unlink, passkey and Face ID lock/background-return confirmations. Disposable deletion already passed.",
-    "R08-A": "Protected platform-owner ownership-transfer UI with controlled accounts/organization. Ordinary team paths and conflict passed.",
+    "R08-A": "Physical transfer to controlled Serlest Gmail and restoration to Serlest independently read back. Remaining: confirmation cancellation and no authority change; ordinary role/conflict evidence retained.",
     "R08-B": "Protected reviewer full UI decisions/history and exact reviewer notification destination. Server lifecycle and actual applicant notice/edit/resubmit passed."
   },
   "finalLocalRegression": {
@@ -791,5 +791,15 @@
     "isolatedFailed": 0,
     "isolatedSkipped": 0,
     "skipBoundary": "Connected emulator, process-handoff, explicit production/catalog and opt-in system-queue tests do not run in the default unit environment; their separate evidence and remaining boundaries are retained. Eight timeout-sensitive tests use the existing CI isolation list, not newly skipped."
+  },
+  "physicalContinuation": {
+    "report": "Docs/Verification/AuditPhysicalProgress20261025.json",
+    "prepared": "Release-only physical audit scheme and explicit opt-in controlled-account tests compiled successfully",
+    "deviceBlocker": "UI test runner timed out enabling automation before executing the test body",
+    "openChecksUnchanged": true,
+    "dependencies": [
+      "Unlocked iPhone with UI Automation available",
+      "Controlled test email for real verification and password-reset links"
+    ]
   }
 }

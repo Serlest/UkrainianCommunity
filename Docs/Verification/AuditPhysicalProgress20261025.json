@@ -38,5 +38,22 @@
       "evidence": "build/audit-closure-20261025/physical/logout-push-rejection-logs.json",
       "boundary": "Old error retained in journal; current Release passkey begin and finish returned HTTP 200 at 11:57 local."
     }
+  },
+  "controlledRequestAuthorization": {
+    "account": "Serlest Gmail",
+    "requestName": "UAC — тест перевірки заявки",
+    "authorizedScenario": "Return for revision, inspect notifications and history, then withdraw; do not publish or modify other organizations",
+    "status": "authorized_not_started"
+  },
+  "physicalAutomation": {
+    "configuration": "UACPhysicalAudit / Release; production SDK and App Check; explicit opt-in physical device only",
+    "preparedBuild": "build/audit-closure-20261025/physical-audit-prepared.log",
+    "buildResult": "TEST BUILD SUCCEEDED",
+    "attemptBundle": "build/audit-closure-20261025/PhysicalOwnerCancellationRelease.xcresult",
+    "attemptResult": "Runner failed to initialize: Timed out while enabling automation mode",
+    "executedApplicationActions": 0,
+    "status": "blocked_by_concrete_dependency",
+    "dependency": "Device UI Automation readiness and unlocked iPhone; user asked to check Enable UI Automation. Disabled setting is not established as the cause.",
+    "boundary": "Build success does not prove ownership cancellation, Google cancellation, applicant submission or reviewer notifications. No additional scenario group closed."
   }
 }
