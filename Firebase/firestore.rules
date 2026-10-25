@@ -1110,8 +1110,12 @@ service cloud.firestore {
     function organizationDocumentStructurallyValid(data, organizationId) {
       // Gallery callables maintain this counter after creation. It is valid
       // stored data, but remains absent from every client mutation allowlist.
-      return data.keys().hasOnly(organizationRequestCreateFields().concat(['photoCount']))
+      return data.keys().hasOnly(organizationRequestCreateFields().concat(['photoCount', 'workspaceSearchV1']))
         && (!('photoCount' in data) || (data.photoCount is int && data.photoCount >= 0))
+        // The workspace trigger owns this index. It may be retained during an
+        // authorized edit; the create guard and update allowlists forbid clients
+        // from creating, replacing or deleting it.
+        && (!('workspaceSearchV1' in data) || (data.workspaceSearchV1 is list && data.workspaceSearchV1.size() <= 4000))
         && data.id == organizationId
         && data.name is string && data.name.size() > 0 && data.name.size() <= 180
         && data.description is string && data.description.size() <= 1000
@@ -1157,6 +1161,7 @@ service cloud.firestore {
       // budget for a fully populated directory profile with acceptance proof.
       return isVerifiedActiveUser()
         && !('photoCount' in data)
+        && !('workspaceSearchV1' in data)
         && hasValidOrganizationCreationProof(organizationId, data.name)
         && organizationDocumentStructurallyValid(data, organizationId)
         && (

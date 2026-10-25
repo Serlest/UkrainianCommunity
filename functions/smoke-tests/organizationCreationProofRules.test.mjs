@@ -327,6 +327,32 @@ describe("organization creation rules evidence", () => {
     }
   });
 
+  test("server workspace index survives request resubmission and profile edits but remains immutable", async () => {
+    for (const status of ["pendingReview", "needsRevision", "rejected", "approved"]) {
+      const id = `indexed-${status}`;
+      await testEnv.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), "organizations", id), {
+        ...populatedRequest(id), moderationStatus: status, workspaceSearchV1: ["ukr", "inn"],
+        ...(status === "approved" ? {ownerId: "creator"} : {}),
+        ...(status === "needsRevision" ? {reviewMessage: "Clarify hours"} : {}),
+        ...(status === "rejected" ? {rejectionReason: "Clarify purpose"} : {}),
+      }));
+      const ref = doc(creatorDb(), "organizations", id);
+      await assertSucceeds(updateDoc(ref, {website: "https://example.com/edited", updatedAt: new Date()}));
+      for (const value of [["forged"], [], deleteField(), null, "forged"]) {
+        await assertFails(updateDoc(ref, {workspaceSearchV1: value}));
+      }
+      if (["needsRevision", "rejected"].includes(status)) {
+        await assertSucceeds(updateDoc(ref, {moderationStatus: "pendingReview", reviewMessage: deleteField(), rejectionReason: deleteField(), updatedAt: new Date()}));
+      }
+      const stored = (await getDoc(ref)).data();
+      if (JSON.stringify(stored.workspaceSearchV1) !== JSON.stringify(["ukr", "inn"])) throw new Error("Index changed");
+    }
+    await seedProof("forged-index-create");
+    await assertFails(setDoc(doc(creatorDb(), "organizations", "forged-index-create"), {
+      ...populatedRequest("forged-index-create"), workspaceSearchV1: ["ukr"],
+    }));
+  });
+
   test("does not expose creation proofs to clients", async () => {
     await seedProof("private-proof");
     await assertFails(getDoc(doc(creatorDb(), "organizationCreationProofs", "private-proof")));
