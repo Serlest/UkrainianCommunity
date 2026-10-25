@@ -1,0 +1,204 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "account_security_help.recovery.title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign-in help"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Допомога зі входом"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hilfe bei der Anmeldung"
+          }
+        }
+      }
+    },
+    "account_security_help.recovery.action": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can't access your code?"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не маєте доступу до коду?"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kein Zugriff auf den Code?"
+          }
+        }
+      }
+    },
+    "account_security_help.recovery.body": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If you have a saved passkey, close this window, cancel code verification and choose passkey sign-in.\n\nIf neither your authenticator nor a passkey is available, contact support. Recovery options can be reviewed after confirming account ownership.\n\nDo not send passwords or one-time codes."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Якщо маєте збережений ключ доступу, закрийте це вікно, скасуйте перевірку коду та виберіть вхід із ключем доступу.\n\nЯкщо доступу немає ані до автентифікатора, ані до ключа, зверніться до підтримки. Можливість відновлення доступу перевіряється після підтвердження власника акаунта.\n\nНе надсилайте пароль або одноразові коди."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wenn ein Passkey gespeichert ist, schließen Sie dieses Fenster, brechen Sie die Code-Bestätigung ab und wählen Sie die Anmeldung mit Passkey.\n\nWenn weder der Authenticator noch ein Passkey verfügbar ist, kontaktieren Sie den Support. Für eine mögliche Wiederherstellung muss zunächst die Kontoinhaberschaft bestätigt werden.\n\nSenden Sie keine Passwörter oder Einmalcodes."
+          }
+        }
+      }
+    },
+    "account_security_help.recovery.contact": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Contact support"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Написати до підтримки"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Support kontaktieren"
+          }
+        }
+      }
+    },
+    "account_security_help.app_lock.registration_help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional. Confirm protection with Face ID, Touch ID or your device passcode. It will apply to this account on this device after registration. You can change it in Profile settings. Your account's sign-in methods remain available."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Необов’язково. Підтвердьте захист через Face ID, Touch ID або код пристрою. Він увімкнеться для цього акаунта на цьому пристрої після реєстрації. Змінити його можна в налаштуваннях профілю. Ваші способи входу до акаунта залишаються доступними."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Optional. Bestätigen Sie den Schutz per Face ID, Touch ID oder Gerätecode. Er gilt nach der Registrierung für dieses Konto auf diesem Gerät. Sie können ihn in den Profileinstellungen ändern. Die Anmeldemethoden Ihres Kontos bleiben verfügbar."
+          }
+        }
+      }
+    },
+    "account_security_help.app_lock.settings_help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Protection applies after the selected interval in the background. After restarting, Face ID, Touch ID or your device passcode is required. After signing out, use one of the sign-in methods linked to your account."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Після згортання застосунку захист вмикається через вибраний інтервал. Після перезапуску потрібен Face ID, Touch ID або код пристрою. Після виходу скористайтеся одним зі способів входу, підключених до вашого акаунта."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nach dem Wechsel in den Hintergrund wird der Schutz nach dem gewählten Intervall aktiv. Nach einem Neustart ist Face ID, Touch ID oder der Gerätecode erforderlich. Nach dem Abmelden nutzen Sie eine mit Ihrem Konto verknüpfte Anmeldemethode."
+          }
+        }
+      }
+    },
+    "account_security_help.app_lock.alternative_sign_in": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use another sign-in method"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Інший спосіб входу"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Andere Anmeldemethode"
+          }
+        }
+      }
+    },
+    "account_security_help.app_lock.authentication_failed": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Access could not be confirmed. Try again or choose another sign-in method."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося підтвердити доступ. Спробуйте ще раз або виберіть інший спосіб входу."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Zugriff konnte nicht bestätigt werden. Versuchen Sie es erneut oder wählen Sie eine andere Anmeldemethode."
+          }
+        }
+      }
+    },
+    "account_security_help.recovery.close": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Закрити"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schließen"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

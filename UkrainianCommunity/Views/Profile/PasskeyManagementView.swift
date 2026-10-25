@@ -40,7 +40,7 @@ struct PasskeyManagementView: View {
                     (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: AppTheme.dashboardSpacing))) {
                         Image(systemName: "key.fill")
                             .foregroundStyle(AppTheme.accentPrimaryForeground)
-                        Text(passkey.createdAt?.formatted(date: .abbreviated, time: .shortened)
+                        Text(passkey.createdAt.map { LocalizationStore.dateString(from: $0, timeStyle: .short) }
                              ?? AppStrings.AccountSecurity.passkeyTitle)
                             .font(.subheadline)
                             .fixedSize(horizontal: false, vertical: true)

@@ -9,6 +9,7 @@ struct MultiFactorSignInView: View {
     @ObservedObject var coordinator: AuthMultiFactorSignInCoordinator
     @State private var code = ""
     @State private var isSubmitting = false
+    @State private var showsRecoveryHelp = false
     @FocusState private var codeFocused: Bool
 
     private var selectedFactorID: String? {
@@ -82,6 +83,12 @@ struct MultiFactorSignInView: View {
                     .frame(maxWidth: .infinity)
                     .disabled(coordinator.isResolving)
                     .accessibilityIdentifier("auth.mfa.cancel")
+
+                    Button(AccountSecurityCopy.recoveryAction) { showsRecoveryHelp = true }
+                        .font(.footnote.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                        .disabled(coordinator.isResolving)
+                        .accessibilityIdentifier("auth.mfa.recovery.open")
                 }
             }
         }
@@ -89,6 +96,7 @@ struct MultiFactorSignInView: View {
         .navigationBarTitleDisplayMode(.inline)
         .interactiveDismissDisabled()
         .onAppear { codeFocused = true }
+        .sheet(isPresented: $showsRecoveryHelp) { AuthRecoveryHelpView() }
         .accessibilityIdentifier("auth.mfa.screen")
     }
 
@@ -533,7 +541,7 @@ struct AccountSecurityView: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
 
-                        Text(factor.enrollmentDate.formatted(date: .abbreviated, time: .shortened))
+                        Text(LocalizationStore.dateString(from: factor.enrollmentDate, timeStyle: .short))
                             .font(.footnote)
                             .foregroundStyle(AppTheme.textSecondary)
 

@@ -6,6 +6,17 @@ import Testing
 @Suite("Auth security")
 struct AuthSecurityTests {
     @Test
+    func recoveryContactMatchesPublishedBundledPolicyWithoutAccountData() throws {
+        let url = try #require(AccountRecoverySupport.composeURL)
+        #expect(url.scheme == "mailto")
+        #expect(url.path == AccountRecoverySupport.email)
+        #expect(url.query == nil)
+        let policy = try #require(Bundle.main.url(forResource: "LegalDocuments", withExtension: "json"))
+        let content = try String(contentsOf: policy, encoding: .utf8)
+        #expect(content.contains(AccountRecoverySupport.email))
+    }
+
+    @Test
     func loginAcceptsAnyNonEmptyExistingPassword() {
         let service = AuthValidationService()
 

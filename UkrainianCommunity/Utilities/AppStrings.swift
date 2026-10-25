@@ -67,18 +67,18 @@ enum AppStrings {
         static var delayImmediately: String { text("app_lock.delay_immediately", "Одразу") }
         static var delayMinute: String { text("app_lock.delay_minute", "Через хвилину") }
         static var registrationTitle: String { text("app_lock.registration_title", "Enable account protection") }
-        static var registrationHelp: String { text("app_lock.registration_help", "Необов’язково. Підтвердьте захист через Face ID, Touch ID або код пристрою. Він увімкнеться для цього акаунта на цьому пристрої після успішної реєстрації. Згодом його можна ввімкнути або вимкнути в налаштуваннях профілю. Звичайний вхід з email і паролем залишається доступним.") }
+        static var registrationHelp: String { AccountSecurityCopy.registrationHelp }
         static var registrationFailed: String { text("app_lock.registration_failed", "Захист не ввімкнено. Спробуйте ще раз або продовжуйте реєстрацію без нього.") }
         static var settingsTitle: String { text("app_lock.settings_title", "Захист доступу") }
         static var toggleTitle: String { text("app_lock.toggle_title", "Protect this account") }
-        static var settingsHelp: String { text("app_lock.settings_help", "Після згортання застосунку захист цього акаунту вмикається через вибраний інтервал. Після перезапуску потрібен Face ID, Touch ID або код пристрою. Після виходу з акаунту потрібно знову ввести email і пароль.") }
+        static var settingsHelp: String { AccountSecurityCopy.settingsHelp }
         static var unavailable: String { text("app_lock.unavailable", "Set a device passcode or Face ID / Touch ID in Settings, then allow access for the app.") }
         static var lockedTitle: String { text("app_lock.locked_title", "Доступ заблоковано") }
         static var lockedHelp: String { text("app_lock.locked_help", "Натисніть «Розблокувати», щоб підтвердити доступ через Face ID, Touch ID або код пристрою.") }
         static var unlock: String { text("app_lock.unlock", "Розблокувати") }
         static var reason: String { text("app_lock.reason", "Підтвердьте доступ до вашого акаунту.") }
-        static var failed: String { text("app_lock.failed", "Не вдалося підтвердити доступ. Спробуйте ще раз або увійдіть з паролем.") }
-        static var passwordSignIn: String { text("app_lock.password_sign_in", "Увійти з паролем") }
+        static var failed: String { AccountSecurityCopy.authenticationFailed }
+        static var passwordSignIn: String { AccountSecurityCopy.alternativeSignIn }
         static var passwordHelp: String { text("app_lock.password_help", "Ця дія завершить поточний сеанс і відкриє звичайний вхід. Незбережені зміни може бути втрачено.") }
         static var signOutFailed: String { text("app_lock.sign_out_failed", "Не вдалося завершити сеанс. Доступ залишається заблокованим. Спробуйте ще раз.") }
     }
