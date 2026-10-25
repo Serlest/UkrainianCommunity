@@ -1333,13 +1333,66 @@ struct AuthSessionConsistencyTests {
     }
 
     @Test
+    func failedProtectedClaimReadShowsRecoveryInsteadOfEnrollment() async {
+        let user = makeUser(id: "claim-read-owner", globalRole: .owner, requiresMultiFactorAuth: true)
+        let state = AuthState()
+        let backend = FakeAuthBackend(currentUser: FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true))
+        backend.totpCheckError = AppError.network
+        let service = makeService(state: state, backend: backend, profiles: FakeAuthProfileProvider(profiles: [user.id: user]))
+        var destinations: [AuthFlowDestination?] = []
+        let observation = state.$presentedAuthFlow.sink { destinations.append($0) }
+        defer { observation.cancel() }
+        await service.restoreSession()
+        #expect(state.presentedAuthFlow == .sessionRecovery)
+        #expect(!state.isAuthenticated)
+        #expect(backend.currentSessionUser?.uid == user.id)
+        #expect(!destinations.contains(.privilegedMultiFactorRequirement))
+        backend.totpCheckError = nil
+        backend.currentSessionTOTPAuthenticated = true
+        await service.restoreSession()
+        #expect(state.isAuthenticated)
+        #expect(state.user?.id == user.id)
+        #expect(state.presentedAuthFlow == nil)
+    }
+
+    @Test
+    func protectedClaimDeadlineKeepsAccessClosedAndIgnoresLateSuccess() async throws {
+        let user = makeUser(id: "claim-timeout-owner", globalRole: .owner, requiresMultiFactorAuth: true)
+        let state = AuthState()
+        let backend = FakeAuthBackend(currentUser: FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true))
+        let claims = ManualRefreshDeadline(), restoreDeadline = ManualRefreshDeadline()
+        defer { claims.cancel(); restoreDeadline.cancel() }
+        var response: CheckedContinuation<Bool, Never>?
+        backend.totpCheckHandler = { await withCheckedContinuation { response = $0 } }
+        let service = makeService(state: state, backend: backend, profiles: FakeAuthProfileProvider(profiles: [user.id: user]), startupDeadline: { duration in
+            if duration == .seconds(15) { try await claims.sleep(for: duration) }
+            else { try await restoreDeadline.sleep(for: duration) }
+        })
+        let restoring = Task { await service.restoreSession() }
+        await claims.waitUntilScheduled()
+        while response == nil { await Task.yield() }
+        claims.expire()
+        await restoring.value
+        #expect(!state.isAuthenticated)
+        #expect(state.presentedAuthFlow == .sessionRecovery)
+        #expect(claims.durations.contains(.seconds(15)))
+        #expect(restoreDeadline.durations == [.seconds(20)])
+        response?.resume(returning: true)
+        await Task.yield()
+        #expect(!state.isAuthenticated)
+        #expect(state.presentedAuthFlow == .sessionRecovery)
+    }
+
+    @Test
     func delayedProtectionCheckNeverPresentsARequirementForAnAlreadyProtectedSession() async throws {
         let user = makeUser(id: "protected-owner", globalRole: .owner, requiresMultiFactorAuth: true)
         let state = AuthState()
         let identity = FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true)
         let backend = FakeAuthBackend(currentUser: identity)
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
         let service = makeService(state: state, backend: backend,
-                                  profiles: FakeAuthProfileProvider(profiles: [user.id: user]))
+                                  profiles: FakeAuthProfileProvider(profiles: [user.id: user]), startupDeadline: deadline.sleep)
         var completion: CheckedContinuation<Bool, Never>?
         var destinations: [AuthFlowDestination?] = []
         let observation = state.$presentedAuthFlow.sink { destinations.append($0) }
@@ -1356,6 +1409,7 @@ struct AuthSessionConsistencyTests {
         pending.resume(returning: true)
         await restoring.value
         #expect(!state.isVerifyingProtectedSession)
+        #expect(state.isAuthenticated)
         #expect(!destinations.contains(.privilegedMultiFactorRequirement))
         backend.totpCheckHandler = { Issue.record("Mounting content must not repeat the completed security check"); return true }
         await service.refreshPrivilegedMultiFactorRequirement(skipIfAlreadyVerified: true)
@@ -1370,7 +1424,9 @@ struct AuthSessionConsistencyTests {
         let newIdentity = FakeAuthSessionUser(uid: new.id, email: new.email, isEmailVerified: true)
         let backend = FakeAuthBackend(currentUser: oldIdentity, signInUser: newIdentity)
         let profiles = FakeAuthProfileProvider(profiles: [old.id: old, new.id: new])
-        let service = makeService(state: state, backend: backend, profiles: profiles)
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
+        let service = makeService(state: state, backend: backend, profiles: profiles, startupDeadline: deadline.sleep)
         var completion: CheckedContinuation<Bool, Never>?
         backend.totpCheckHandler = { await withCheckedContinuation { completion = $0 } }
         let restoring = Task { await service.restoreSession() }
@@ -1397,7 +1453,9 @@ struct AuthSessionConsistencyTests {
         let identity = FakeAuthSessionUser(uid: user.id, email: user.email, isEmailVerified: true)
         let backend = FakeAuthBackend(signInUser: identity)
         let profiles = FakeAuthProfileProvider(profiles: [user.id: user])
-        let service = makeService(state: state, backend: backend, profiles: profiles)
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
+        let service = makeService(state: state, backend: backend, profiles: profiles, startupDeadline: deadline.sleep)
         var completion: CheckedContinuation<Bool, Never>?
         backend.totpCheckHandler = { await withCheckedContinuation { completion = $0 } }
         let old = Task { try await service.signIn(email: user.email, password: "valid-password") }
@@ -1469,7 +1527,8 @@ struct AuthSessionConsistencyTests {
         backend: FakeAuthBackend,
         profiles: FakeAuthProfileProvider,
         notifications: FakeAuthNotificationRegistration? = nil,
-        consent: (any AnalyticsConsentProviding)? = nil
+        consent: (any AnalyticsConsentProviding)? = nil,
+        startupDeadline: @escaping RefreshRequest.Deadline = RefreshRequest.continuousDeadline
     ) -> AuthService {
         let resolvedNotifications: FakeAuthNotificationRegistration
         if let notifications {
@@ -1483,7 +1542,8 @@ struct AuthSessionConsistencyTests {
             backend: backend,
             profileProvider: profiles,
             notificationRegistration: resolvedNotifications,
-            analyticsConsent: consent ?? RecordingRegistrationConsent()
+            analyticsConsent: consent ?? RecordingRegistrationConsent(),
+            startupDeadline: startupDeadline
         )
     }
 
@@ -1606,6 +1666,7 @@ private final class FakeAuthBackend: AuthBackendProviding {
     var signOutError: Error?
     var multiFactorChallenge: (any AuthMultiFactorSignInChallengeProviding)?
     var totpCheckHandler: (() async -> Bool)?
+    var totpCheckError: Error?
     var currentSessionTOTPAuthenticated = false
     private(set) var signOutCallCount = 0
 
@@ -1668,6 +1729,7 @@ private final class FakeAuthBackend: AuthBackendProviding {
     }
 
     func isCurrentSessionTOTPAuthenticated() async throws -> Bool {
+        if let totpCheckError { throw totpCheckError }
         if let totpCheckHandler { return await totpCheckHandler() }
         return currentSessionTOTPAuthenticated
     }

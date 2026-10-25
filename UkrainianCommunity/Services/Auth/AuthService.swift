@@ -213,6 +213,7 @@ final class AuthService {
     private let notificationRegistration: (any AuthNotificationRegistrationProviding)?
     private let analyticsConsent: any AnalyticsConsentProviding
     private let restorationTimeout: Duration
+    private let startupDeadline: RefreshRequest.Deadline
     @MainActor private var publicProfileRepairs: [String: Task<Void, Never>] = [:]
     @MainActor private var transitionGeneration: UInt = 0
     @MainActor private var completedProtectionCheckKey: String?
@@ -237,7 +238,8 @@ final class AuthService {
         profileProvider: any AuthProfileProviding,
         notificationRegistration: (any AuthNotificationRegistrationProviding)? = nil,
         analyticsConsent: (any AnalyticsConsentProviding)? = nil,
-        restorationTimeout: Duration = .seconds(20)
+        restorationTimeout: Duration = .seconds(20),
+        startupDeadline: @escaping RefreshRequest.Deadline = RefreshRequest.continuousDeadline
     ) {
         self.authState = authState
         self.backend = backend
@@ -245,6 +247,7 @@ final class AuthService {
         self.notificationRegistration = notificationRegistration
         self.analyticsConsent = analyticsConsent ?? AnalyticsConsentService()
         self.restorationTimeout = restorationTimeout
+        self.startupDeadline = startupDeadline
     }
 
     @MainActor
@@ -261,7 +264,7 @@ final class AuthService {
         // Expiry only fences their UI result; it never guesses a write outcome.
         let deadline = Task { @MainActor [weak self] in
             guard let self else { return }
-            do { try await Task.sleep(for: self.restorationTimeout) } catch { return }
+            do { try await self.startupDeadline(self.restorationTimeout) } catch { return }
             guard self.isCurrentTransition(transition), self.authState.isRestoring,
                   let user = self.backend.currentSessionUser, !user.isAnonymous else { return }
             let expiryTransition = self.beginTransition()
@@ -748,22 +751,34 @@ final class AuthService {
         // Present enrollment/re-authentication only after the check resolves.
         let checkID = authState.beginProtectedSessionVerification()
         defer { authState.finishProtectedSessionVerification(checkID) }
-        async let totp = RefreshRequest.run(timeout: .seconds(15)) {
+        async let totp = RefreshRequest.run(timeout: .seconds(15), deadline: startupDeadline) {
             try await self.backend.isCurrentSessionTOTPAuthenticated()
         }
-        async let passkey = RefreshRequest.run(timeout: .seconds(15)) {
+        async let passkey = RefreshRequest.run(timeout: .seconds(15), deadline: startupDeadline) {
             try await self.backend.isCurrentSessionPasskeyAuthenticated()
         }
-        let isTOTPAuthenticated = (try? await totp) == true
+        var claimFailure: Error?
+        let isTOTPAuthenticated: Bool
+        do { isTOTPAuthenticated = try await totp }
+        catch { isTOTPAuthenticated = false; claimFailure = error }
         guard isCurrent(), authState.protectedSessionCheckID == checkID else { return }
-        let isPasskeyAuthenticated = (try? await passkey) == true
+        let isPasskeyAuthenticated: Bool
+        do { isPasskeyAuthenticated = try await passkey }
+        catch { isPasskeyAuthenticated = false; if claimFailure == nil { claimFailure = error } }
         guard isCurrent(), authState.protectedSessionCheckID == checkID else { return }
-        completedProtectionCheckKey = protectionCheckKey(for: user)
-        if AuthSecurityPolicy.protectedSessionIsReady(
+        let isReady = AuthSecurityPolicy.protectedSessionIsReady(
             user: user,
             isTOTPAuthenticated: isTOTPAuthenticated,
             isPasskeyAuthenticated: isPasskeyAuthenticated
-        ) {
+        )
+        if !isReady, let claimFailure, let session = backend.currentSessionUser {
+            // An unavailable claim read does not prove that MFA is missing.
+            // Keep access closed and expose the existing retryable recovery UI.
+            publishUnavailableSession(session, error: claimFailure, transition: transition)
+            return
+        }
+        completedProtectionCheckKey = protectionCheckKey(for: user)
+        if isReady {
             if dismissResolvedAuthFlow
                 || authState.presentedAuthFlow == .privilegedMultiFactorRequirement {
                 authState.dismissAuthFlow()
