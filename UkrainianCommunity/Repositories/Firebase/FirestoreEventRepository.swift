@@ -581,6 +581,7 @@ struct FirestoreEventRepository: EventRepository {
             likeState: event.likeState,
             viewCount: event.viewCount,
             category: event.category,
+            additionalCategories: event.additionalCategories,
             audience: event.audience,
             minimumAge: event.minimumAge,
             maximumAge: event.maximumAge,

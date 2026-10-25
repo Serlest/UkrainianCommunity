@@ -575,7 +575,7 @@ function fullSDKEvent(id, authorId) {
   return {...event(id, authorId), schemaVersion: 2, regionScope: "federalState", federalState: "tirol",
     organizationName: "Schema Organization", organizationImageURL: null, imageURL: null,
     localizations: {de: {title: "Deutscher Titel", summary: "Zusammenfassung", details: "Beschreibung"}},
-    category: "meetups", additionalCategories: [], audience: "everyone", tags: [],
+    category: "meetups", additionalCategories: ["training", "culture"], audience: "everyone", tags: ["community"], minimumAge: 0, maximumAge: 120,
     authorName: "Organization Owner", address: "Test 1", latitude: 47.26, longitude: 11.39,
     contactEmail: "audit@example.org", capacity: 20, participationMode: "inAppRegistration",
     pricing: {kind: "free"}, mediaMetadata: {caption: "Caption", alternativeText: "Alternative", credit: "Credit"},
@@ -614,5 +614,52 @@ test("full SDK event edits preserve rights, source binding, counters and server 
     {organizationId: "another-org"}, {sourceType: "app"}, {moderationReason: "Forged"},
     {cancellationState: "cancelled"}, {createdAt: new Date()}]) {
     await assertFails(updateDoc(reference, changes));
+  }
+});
+
+function fullSDKNews(id, authorId, scope, status) {
+  return {...news(id, authorId), schemaVersion: 2, summary: "SDK summary", regionScope: scope,
+    federalState: scope === "austria" ? null : "tirol", city: "Innsbruck", category: "news", additionalCategories: [],
+    organizationName: "Schema Organization", organizationImageURL: null, imageURL: null,
+    localizations: {de: {title: "Titel", subtitle: "Zusammenfassung", body: "Beschreibung"}},
+    sourceName: "Organizer", sourceURL: "https://example.org/source",
+    mediaMetadata: {caption: "Caption", alternativeText: "Alternative", credit: "Credit"},
+    externalAction: {title: "Read more", url: "https://example.org/details"}, moderationStatus: status};
+}
+
+test("full SDK news respects national approval and every organization role", async t => {
+  for (const uid of ["owner", "org-owner", "org-admin", "org-moderator"]) {
+    await t.test(uid, async () => {
+      const database = db(uid);
+      for (const scope of ["federalState", "austria"]) {
+        const status = scope === "austria" && uid !== "owner" ? "pendingReview" : "approved";
+        const value = fullSDKNews("sdk-news-" + uid + "-" + scope, uid, scope, status);
+        const reference = doc(database, "news", value.id);
+        await assertSucceeds(setDoc(reference, value));
+        await assertSucceeds(updateDoc(reference, {title: "Updated", updatedAt: new Date()}));
+        if (scope === "austria" && uid !== "owner") {
+          const forbidden = {...value, id: value.id + "-forged", moderationStatus: "approved"};
+          await assertFails(setDoc(doc(database, "news", forbidden.id), forbidden));
+          await assertFails(updateDoc(reference, {moderationStatus: "approved"}));
+        }
+      }
+    });
+  }
+});
+
+test("optimized full event validation still rejects invalid optional types and bounds", async () => {
+  const database = db("org-owner");
+  const changes = [{capacity: 0}, {capacity: -1}, {capacity: 1.5}, {capacity: "20"}, {capacity: null},
+    {minimumAge: -1}, {minimumAge: 121}, {minimumAge: "0"}, {minimumAge: null},
+    {maximumAge: -1}, {maximumAge: 121}, {maximumAge: "80"}, {maximumAge: null}, {minimumAge: 100, maximumAge: 20},
+    {additionalCategories: null}, {additionalCategories: {}}, {additionalCategories: ["bad"]},
+    {additionalCategories: ["meetups"]}, {additionalCategories: ["training", "culture", "music"]},
+    {imageURL: 42}, {mediaMetadata: []}, {mediaMetadata: {credit: 42}},
+    {mediaMetadata: {caption: "x".repeat(501)}}, {mediaMetadata: {alternativeText: "x".repeat(1001)}},
+    {mediaMetadata: {credit: "x".repeat(301)}}, {federalState: 42}, {city: null}, {city: "x".repeat(161)},
+    {regionScope: "unknown"}, {regionScope: null}];
+  for (const [index, fields] of changes.entries()) {
+    const value = {...fullSDKEvent("invalid-full-" + index, "org-owner"), ...fields};
+    await assertFails(setDoc(doc(database, "events", value.id), value));
   }
 });

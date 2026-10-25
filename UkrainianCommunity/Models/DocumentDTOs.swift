@@ -450,7 +450,8 @@ extension NewsPost {
             title: dto.title,
             subtitle: dto.subtitle,
             regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .federalState,
-            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
+            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:))
+                ?? (dto.regionScope == RegionScope.austria.rawValue ? nil : .tirol),
             city: dto.city,
             category: dto.category.flatMap(NewsCategory.init(rawValue:)) ?? .news,
             additionalCategories: (dto.additionalCategories ?? []).compactMap(NewsCategory.init(rawValue:)),
@@ -533,7 +534,8 @@ extension Event {
             summary: dto.summary,
             details: dto.details,
             regionScope: dto.regionScope.flatMap(RegionScope.init(rawValue:)) ?? .city,
-            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:)) ?? .tirol,
+            federalState: dto.federalState.flatMap(AustrianFederalState.init(rawValue:))
+                ?? (dto.regionScope == RegionScope.austria.rawValue ? nil : .tirol),
             source: ContentSourceMetadata(
                 sourceType: dto.sourceType.flatMap(ContentSourceType.init(rawValue:)) ?? .app,
                 organizationId: dto.organizationId,

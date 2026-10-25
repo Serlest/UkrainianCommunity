@@ -3,7 +3,11 @@
   "status": "in_progress",
   "sourceBaseline": "4d938f4f",
   "closedChecks": [
-    "R02-B"
+    "R02-B",
+    "R04-A",
+    "R05-A",
+    "R06-A",
+    "R06-C"
   ],
   "evidence": [
     {
@@ -114,7 +118,101 @@
       },
       "reference": "https://firebase.google.com/docs/firestore/query-data/queries",
       "limitation": "Local execution does not measure internet latency. Large-list UI validation still pending."
+    },
+    {
+      "checks": [
+        "R04-A",
+        "R05-A",
+        "R06-A",
+        "R06-C"
+      ],
+      "kind": "closure_acceptance",
+      "resultBundle": "build/audit-closure-20261025/FullFieldsSDKAccepted.xcresult",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "scope": [
+        "Actual SDK bookmark/subscription/registration/recent/activity same-session path and independent reads",
+        "Regional scheduled and national published bilingual news, full payload, source URL/name, author/counters, schedule and reopened public read",
+        "Scheduled and published bilingual event with stable occurrences, additional categories, min/max ages, capacity and metadata",
+        "Another user registers for the newly published full event, then cancels; independent count reads 1→0",
+        "1000-attendee names/unique IDs/order and bounded query concurrency"
+      ],
+      "limitations": "Does not close separate UI role/visual/system-integration groups; no unbounded-scale claim"
+    },
+    {
+      "checks": [
+        "R03-A",
+        "R05-B",
+        "R06-B",
+        "R08-C"
+      ],
+      "kind": "shared_photo_UI_partial",
+      "resultBundle": "build/audit-closure-20261025/ConnectedUIVisualFinal.xcresult",
+      "contrastFollowup": "build/audit-closure-20261025/ProfilePhotoContrastFixed.xcresult",
+      "verified": "Actual PhotosPicker selection of synthetic local image, crop cancel/reset/zoom/apply and profile preview; Ukrainian/light and German/dark accessibility text; screenshot inspection exposed dark tint, fixed and observed bright adaptive foreground",
+      "fix": "Crop uses vertical scroll and a six-button 3-column grid; reset is an accessible icon; adaptive foreground tint; all tested controls have >=44pt bounds",
+      "remaining": "Upload/profile association/retry and distinct non-profile crop aspect ratios not yet closed"
+    },
+    {
+      "checks": [
+        "R09-B",
+        "R09-C"
+      ],
+      "kind": "connected_directory_store_and_API_partial",
+      "resultBundle": "build/audit-closure-20261025/DirectorySDKAccepted.xcresult",
+      "verified": [
+        "Typed iOS DirectoryEditorAccessAPI grants/revokes another actual test account",
+        "Actual DirectoryContentStore → callable publication → independent payload/revision read and reopened store",
+        "Stale revision rejected; revoked open store cannot save",
+        "Two operation notices independently read in exact target notificationInbox with matching recipient/actor/source IDs",
+        "Delete custom category produces revision-3 tombstone and versions 1/2/3"
+      ],
+      "remaining": "Actual nested UI edits, conflict/revocation presentation still require connected UI proof"
+    },
+    {
+      "kind": "additional_defects_fixed",
+      "baseline": "build/audit-closure-20261025/AllConnectedSDK.xcresult",
+      "accepted": "build/audit-closure-20261025/FullFieldsSDKAccepted.xcresult",
+      "fixes": [
+        "Reuse verified actor/role decisions for national news approval, avoiding repeated Rules evaluator work",
+        "National news/event decoding does not invent Tirol when federalState is absent; explicit valid location and legacy regional defaults preserved",
+        "FirestoreEventRepository.createEvent normalization retains additionalCategories"
+      ],
+      "security": "All non-Storage Rules run: 213 passed, 1 setup-contamination failure, 1 unrelated banner SDK skipped; isolated repeat of corrected owned activity fixture passes. Storage in matching dedicated demo project: 21 passed. Original mixed-project Storage failure was not counted as product success."
     }
   ],
-  "remainingScenarioGroups": 26
+  "remainingScenarioGroups": 22,
+  "deployment": {
+    "scope": "firestore:rules only",
+    "project": "ukrainiancommunity-dbd5f",
+    "sourceCommit": "49d35424",
+    "readback": {
+      "release": "projects/ukrainiancommunity-dbd5f/releases/cloud.firestore",
+      "ruleset": "projects/ukrainiancommunity-dbd5f/rulesets/0a5f3e83-e78d-4301-89c0-a7fae7b0fe10",
+      "updatedAt": "2026-10-24T23:58:58.677809Z",
+      "liveHash": "042ebfbb0eaf05326a33d3e7ab87e46fc41502d1e580347e74b2930944a41e30",
+      "localHash": "042ebfbb0eaf05326a33d3e7ab87e46fc41502d1e580347e74b2930944a41e30",
+      "exactMatch": true
+    },
+    "compatibilityReadback": [
+      {
+        "collection": "news",
+        "status": 200,
+        "documents": 1
+      },
+      {
+        "collection": "events",
+        "status": 200,
+        "documents": 1
+      },
+      {
+        "collection": "organizations",
+        "status": 200,
+        "documents": 1
+      }
+    ],
+    "securityTests": "build/audit-closure-20261025/content-security-accepted.log: 59 passed",
+    "limitations": "No production user/content writes performed for verification; privileged mutations were verified against identical Rules in isolated emulators. No iOS binary uploaded."
+  }
 }

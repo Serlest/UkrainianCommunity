@@ -2,6 +2,8 @@ import XCTest
 import FirebaseAuth
 import FirebaseCore
 import FirebaseFirestore
+import FirebaseFunctions
+import CryptoKit
 @testable import UkrainianCommunity
 
 /// Connected repository/Functions checks, never run against a production project.
@@ -46,6 +48,14 @@ final class AuditClosureSDKTests: XCTestCase {
     }
 
     func testBilingualNewsEditorPersistsFullPayloadThroughActualRepository() async throws {
+        try await newsEditorRoundTrip(scheduled: true)
+    }
+
+    func testPublishedNationalBilingualNewsPersistsThroughActualRepository() async throws {
+        try await newsEditorRoundTrip(scheduled: false)
+    }
+
+    private func newsEditorRoundTrip(scheduled isScheduled: Bool) async throws {
         try await signIn("owner")
         defer { try? Auth.auth().signOut() }
         let user = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-owner")
@@ -54,15 +64,15 @@ final class AuditClosureSDKTests: XCTestCase {
         let now = Date(), scheduled = now.addingTimeInterval(3600)
         let original = NewsPost(id: "closure-news-edit-" + UUID().uuidString, schemaVersion: 2,
             localizations: ["de": NewsLocalizedContent(title: "Deutscher Titel", subtitle: "Zusammenfassung", body: "Deutsche Beschreibung")],
-            title: "Заголовок", subtitle: "Короткий опис", regionScope: .federalState, federalState: .tirol, city: "Innsbruck",
+            title: "Заголовок", subtitle: "Короткий опис", regionScope: isScheduled ? .federalState : .austria, federalState: isScheduled ? .tirol : nil, city: "Innsbruck",
             category: .news, tags: ["audit"],
             source: ContentSourceMetadata(sourceType: .organization, organizationId: "closure-org", organizationName: "Closure Organization"),
             sourceName: "Organizer", sourceURL: "https://example.org/source", imageURL: nil,
             mediaMetadata: NewsMediaMetadata(caption: "Caption", alternativeText: "Alternative", credit: "Credit"),
             externalAction: ExternalContentAction(title: "Read more", url: "https://example.org/details"),
             body: "Повний опис новини для перевірки збереження.", authorId: "closure-owner", authorName: "Closure Owner",
-            publishedAt: now, scheduledAt: scheduled, createdAt: now, updatedAt: now,
-            comments: [], moderationStatus: .draft, likeCount: 0, likeState: .notLiked)
+            publishedAt: now, scheduledAt: isScheduled ? scheduled : nil, createdAt: now, updatedAt: now,
+            comments: [], moderationStatus: isScheduled ? .draft : .approved, likeCount: 0, likeState: .notLiked)
         try await repository.createNews(original)
         let editor = NewsEditorViewModel(repository: repository, authState: authState, mode: .edit(existing: original))
         editor.title = "Оновлений заголовок"
@@ -74,18 +84,39 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertEqual(stored.title, editor.title)
         XCTAssertEqual(stored.localizations["de"]?.title, editor.germanTitle)
         XCTAssertEqual(stored.localizations["de"]?.body, original.localizations["de"]?.body)
-        XCTAssertEqual(stored.federalState, .tirol)
+        XCTAssertEqual(stored.federalState, isScheduled ? .tirol : nil)
+        XCTAssertEqual(stored.regionScope, isScheduled ? .federalState : .austria)
         XCTAssertEqual(stored.source.organizationId, "closure-org")
         XCTAssertEqual(stored.mediaMetadata, original.mediaMetadata)
         XCTAssertEqual(stored.externalAction, original.externalAction)
-        XCTAssertEqual(stored.scheduledAt?.timeIntervalSince1970 ?? 0, scheduled.timeIntervalSince1970, accuracy: 0.001)
+        XCTAssertEqual(stored.sourceName, original.sourceName)
+        XCTAssertEqual(stored.sourceURL, original.sourceURL)
+        XCTAssertEqual(stored.authorId, original.authorId)
+        XCTAssertEqual(stored.likeCount, 0)
+        XCTAssertEqual(stored.commentCount, 0)
+        XCTAssertEqual(stored.viewCount, 0)
+        if isScheduled {
+            XCTAssertEqual(stored.scheduledAt?.timeIntervalSince1970 ?? 0, scheduled.timeIntervalSince1970, accuracy: 0.001)
+        } else { XCTAssertNil(stored.scheduledAt) }
         let raw = try await Firestore.firestore().document("news/\(original.id)").getDocument(source: .server)
         XCTAssertEqual(raw.get("title") as? String, editor.title)
-        XCTAssertEqual(raw.get("moderationStatus") as? String, "draft")
+        XCTAssertEqual(raw.get("moderationStatus") as? String, isScheduled ? "draft" : "approved")
+        if !isScheduled {
+            let publicRead = try await repository.fetchNews(id: original.id)
+            XCTAssertEqual(publicRead.localizations["de"]?.title, editor.germanTitle)
+        }
         try await repository.deleteNews(id: original.id)
     }
 
     func testBilingualEventEditorRetainsScheduledOccurrencesAndRegistrationSettings() async throws {
+        try await eventEditorRoundTrip(scheduled: true)
+    }
+
+    func testPublishedBilingualEventCanBeRegisteredByAnotherUserAndCanceled() async throws {
+        try await eventEditorRoundTrip(scheduled: false)
+    }
+
+    private func eventEditorRoundTrip(scheduled isScheduled: Bool) async throws {
         try await signIn("owner")
         defer { try? Auth.auth().signOut() }
         let repository = FirestoreEventRepository(sessionDataCache: SessionDataCache())
@@ -101,9 +132,10 @@ final class AuditClosureSDKTests: XCTestCase {
             latitude: 47.26, longitude: 11.39, contactEmail: "audit@example.org",
             mediaMetadata: EventMediaMetadata(caption: "Caption", alternativeText: "Alternative", credit: "Credit"),
             startDate: start, endDate: start.addingTimeInterval(3600), occurrences: occurrences,
-            createdAt: now, updatedAt: now, scheduledAt: scheduled, requiresRegistration: true,
+            createdAt: now, updatedAt: now, scheduledAt: isScheduled ? scheduled : nil, requiresRegistration: true,
             pricing: EventPricing(kind: .free), capacity: 20, registeredCount: 0, comments: [],
-            moderationStatus: .draft, registrationState: .notRegistered, likeCount: 0, likeState: .notLiked)
+            moderationStatus: isScheduled ? .draft : .approved, registrationState: .notRegistered, likeCount: 0, likeState: .notLiked,
+            category: .meetups, additionalCategories: [.training, .culture], audience: .everyone, minimumAge: 0, maximumAge: 120)
         try await repository.createEvent(original)
         let initial = try await repository.fetchManagedEvent(id: original.id, organizationID: "closure-org")
         let editor = EventEditorViewModel(repository: repository, mode: .edit(existing: initial))
@@ -127,13 +159,32 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertEqual(stored.mediaMetadata, original.mediaMetadata)
         XCTAssertEqual(stored.federalState, .tirol)
         XCTAssertEqual(stored.source.organizationId, "closure-org")
+        XCTAssertEqual(stored.additionalCategories, original.additionalCategories)
+        XCTAssertEqual(stored.minimumAge, 0)
+        XCTAssertEqual(stored.maximumAge, 120)
         XCTAssertEqual(stored.capacity, 20)
         XCTAssertTrue(stored.requiresRegistration)
         XCTAssertEqual(stored.registeredCount, 0)
-        XCTAssertEqual(stored.scheduledAt?.timeIntervalSince1970 ?? 0, scheduled.timeIntervalSince1970, accuracy: 0.001)
+        if isScheduled {
+            XCTAssertEqual(stored.scheduledAt?.timeIntervalSince1970 ?? 0, scheduled.timeIntervalSince1970, accuracy: 0.001)
+        } else { XCTAssertNil(stored.scheduledAt) }
         let raw = try await Firestore.firestore().document("events/\(original.id)").getDocument(source: .server)
         XCTAssertEqual(raw.get("title") as? String, editor.title)
-        XCTAssertEqual(raw.get("moderationStatus") as? String, "draft")
+        XCTAssertEqual(raw.get("moderationStatus") as? String, isScheduled ? "draft" : "approved")
+        if !isScheduled {
+            try await signIn("member")
+            let publicRead = try await FirestoreEventRepository(sessionDataCache: SessionDataCache()).fetchEvent(id: original.id)
+            XCTAssertEqual(publicRead.localizations["de"]?.title, editor.germanTitle)
+            let registered = try await repository.registerForEvent(id: original.id, actionCapture: nil)
+            XCTAssertEqual(registered.registrationState, .registered)
+            let withRegistration = try await Firestore.firestore().document("events/\(original.id)").getDocument(source: .server)
+            XCTAssertEqual(withRegistration.get("registeredCount") as? Int, 1)
+            let canceled = try await repository.cancelEventRegistration(id: original.id, actionCapture: nil)
+            XCTAssertEqual(canceled.registrationState, .notRegistered)
+            let withoutRegistration = try await Firestore.firestore().document("events/\(original.id)").getDocument(source: .server)
+            XCTAssertEqual(withoutRegistration.get("registeredCount") as? Int, 0)
+            try await signIn("owner")
+        }
         try await repository.deleteEvent(id: original.id)
     }
 
@@ -155,6 +206,75 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertLessThan(elapsed, 15, "Must complete within the current UI request deadline in the local load environment")
         let measurement = XCTAttachment(string: "Local emulator cold session: 1000 attendees, \(elapsed) seconds. This is not internet latency proof.")
         measurement.name = "attendee-load-timing"; measurement.lifetime = .keepAlways; add(measurement)
+    }
+
+    func testDirectorySDKPublicationRevisionConflictRevocationAndTargetNotifications() async throws {
+        try await signIn("owner")
+        defer { try? Auth.auth().signOut() }
+        let access = DirectoryEditorAccessAPI.live
+        let inspect = try XCTUnwrap(access.inspect), mutate = try XCTUnwrap(access.mutate)
+        let inspected = try await inspect("closure-owner", ["closure-other"])
+        let previous = try XCTUnwrap(inspected.first)
+        let grantOperation = UUID().uuidString
+        let granted = try await mutate("closure-owner", previous, true, grantOperation)
+        XCTAssertTrue(granted.enabled)
+        try await signIn("other")
+        let editorUser = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-other")
+        let first = DirectoryContentStore(cacheURL: nil)
+        first.configure(user: editorUser)
+        for _ in 0..<50 { if first.canEdit { break }; try await Task.sleep(for: .milliseconds(50)) }
+        XCTAssertTrue(first.canEdit)
+        let base = try XCTUnwrap(DirectoryCatalog.categories.first { $0.id == "first-steps" })
+        var category = DirectoryManagedCategory.bundled(base)
+        category.id = "custom-" + UUID().uuidString.lowercased()
+        category.title = DirectoryText(ukrainian: "Локальна перевірка", german: "Lokaler Test")
+        category.symbol = "book"
+        try await first.save(category, expectedRevision: 0, actorID: editorUser.id)
+        let db = Firestore.firestore(), reference = db.collection("directoryCategories").document(category.id)
+        let stored = try await reference.getDocument(source: .server)
+        XCTAssertEqual(stored.get("revision") as? Int, 1)
+        let payload = try XCTUnwrap(stored.get("payload") as? String)
+        XCTAssertEqual(try JSONDecoder().decode(DirectoryManagedCategory.self, from: Data(payload.utf8)), category)
+        let reopened = DirectoryContentStore(cacheURL: nil)
+        reopened.configure(user: editorUser); reopened.startObserving()
+        for _ in 0..<50 { if reopened.category(category.id) != nil && reopened.canEdit { break }; try await Task.sleep(for: .milliseconds(50)) }
+        XCTAssertEqual(reopened.category(category.id), category)
+        category.title = DirectoryText(ukrainian: "Оновлено", german: "Aktualisiert")
+        try await first.save(category, expectedRevision: 1, actorID: editorUser.id)
+        do {
+            try await reopened.save(category, expectedRevision: 1, actorID: editorUser.id)
+            XCTFail("A stale open editor must not overwrite revision 2")
+        } catch { XCTAssertEqual((error as NSError).code, FunctionsErrorCode.aborted.rawValue) }
+        let revision2 = try await reference.getDocument(source: .server)
+        XCTAssertEqual(revision2.get("revision") as? Int, 2)
+        try await signIn("owner")
+        let revokeOperation = UUID().uuidString
+        let revoked = try await mutate("closure-owner", granted, false, revokeOperation)
+        XCTAssertFalse(revoked.enabled)
+        try await signIn("other")
+        for _ in 0..<50 { if !reopened.canEdit { break }; try await Task.sleep(for: .milliseconds(50)) }
+        XCTAssertFalse(reopened.canEdit)
+        do {
+            try await reopened.save(category, expectedRevision: 2, actorID: editorUser.id)
+            XCTFail("Revoked open editor must not save")
+        } catch { XCTAssertEqual(error as? AppError, .permissionDenied) }
+        for operation in [grantOperation, revokeOperation] {
+            let key = SHA256.hash(data: Data(("closure-owner" + "\0" + operation).utf8)).map { String(format: "%02x", $0) }.joined()
+            let notice = try await db.document("users/closure-other/notificationInbox/directory-access-\(key)").getDocument(source: .server)
+            XCTAssertEqual(notice.get("recipientUserId") as? String, "closure-other")
+            XCTAssertEqual(notice.get("actorUserId") as? String, "closure-owner")
+            XCTAssertEqual(notice.get("sourceId") as? String, "closure-other")
+        }
+        // Delete with the owner after revocation and independently read tombstone/history.
+        try await signIn("owner")
+        let ownerUser = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-owner")
+        let ownerStore = DirectoryContentStore(cacheURL: nil); ownerStore.configure(user: ownerUser)
+        try await ownerStore.deleteCustomCategory(category.id, expectedRevision: 2, actorID: ownerUser.id)
+        let deleted = try await reference.getDocument(source: .server)
+        XCTAssertEqual(deleted.get("isDeleted") as? Bool, true)
+        XCTAssertEqual(deleted.get("revision") as? Int, 3)
+        let versions = try await reference.collection("versions").getDocuments(source: .server)
+        XCTAssertEqual(Set(versions.documents.map(\.documentID)), ["1", "2", "3"])
     }
 
     func testPersonalRepositoriesPersistAndIsolateAccounts() async throws {

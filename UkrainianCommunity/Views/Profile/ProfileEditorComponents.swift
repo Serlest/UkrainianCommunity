@@ -46,6 +46,7 @@ struct ProfileAvatarEditorCard: View {
                     .buttonStyle(.plain)
                     .disabled(isSavingAvatar)
                     .accessibilityLabel(AppStrings.Profile.changeAvatar)
+                    .accessibilityIdentifier("profile.edit.photo")
 
                     if isLoadingAvatar {
                         Text(AppStrings.Profile.avatarLoading)

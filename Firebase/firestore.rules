@@ -210,9 +210,8 @@ service cloud.firestore {
     }
 
     function validOptionalString(data, field, maximumLength) {
-      return !(field in data)
-        || data[field] == null
-        || (data[field] is string && data[field].size() <= maximumLength);
+      let value = data.get(field, null);
+      return value == null || (value is string && value.size() <= maximumLength);
     }
 
     function validProfileAvatarURL(uid, value) {
@@ -226,21 +225,23 @@ service cloud.firestore {
     }
 
     function validContentMediaMetadata(data) {
-      return !('mediaMetadata' in data)
-        || data.mediaMetadata == null
-        || (
-          data.mediaMetadata is map
-          && data.mediaMetadata.keys().hasOnly(['caption', 'alternativeText', 'credit'])
-          && validOptionalString(data.mediaMetadata, 'caption', 500)
-          && validOptionalString(data.mediaMetadata, 'alternativeText', 1000)
-          && validOptionalString(data.mediaMetadata, 'credit', 300)
-        );
+      let metadata = data.get('mediaMetadata', null);
+      return metadata == null || (
+        metadata is map
+        && metadata.keys().hasOnly(['caption', 'alternativeText', 'credit'])
+        && validOptionalString(metadata, 'caption', 500)
+        && validOptionalString(metadata, 'alternativeText', 1000)
+        && validOptionalString(metadata, 'credit', 300)
+      );
+    }
+
+    function validContentRegionScope(data) {
+      return (!('regionScope' in data) || data.regionScope in ['austria', 'federalState', 'city'])
+        && validOptionalString(data, 'federalState', 64);
     }
 
     function validContentRegion(data) {
-      return (!('regionScope' in data) || data.regionScope in ['austria', 'federalState', 'city'])
-        && validOptionalString(data, 'federalState', 64)
-        && validOptionalString(data, 'city', 160);
+      return validContentRegionScope(data) && validOptionalString(data, 'city', 160);
     }
 
     function validNewsDocument(data, newsId) {
@@ -291,6 +292,10 @@ service cloud.firestore {
     }
 
     function validEventDocument(data, eventId) {
+      let capacity = data.get('capacity', 1);
+      let minimumAge = data.get('minimumAge', 0);
+      let maximumAge = data.get('maximumAge', 120);
+      let additionalCategories = data.get('additionalCategories', []);
       return data.keys().hasOnly(eventDocumentFields())
         // Every required field is accessed and type/value checked below;
         // missing fields are denied. Avoid evaluating the same required keys
@@ -323,25 +328,24 @@ service cloud.firestore {
         && data.likeState is string
         && data.visibility == 'public'
         && data.isAllDay is bool
-        && (!('capacity' in data) || (data.capacity is int && data.capacity > 0))
-        && (!('minimumAge' in data) || (data.minimumAge is int && data.minimumAge >= 0 && data.minimumAge <= 120))
-        && (!('maximumAge' in data) || (data.maximumAge is int && data.maximumAge >= 0 && data.maximumAge <= 120))
-        && (!('minimumAge' in data) || !('maximumAge' in data) || data.minimumAge <= data.maximumAge)
+        && capacity is int && capacity > 0
+        && minimumAge is int && minimumAge >= 0 && minimumAge <= 120
+        && maximumAge is int && maximumAge >= 0 && maximumAge <= 120
+        && minimumAge <= maximumAge
         && (!('tags' in data) || (data.tags is list && data.tags.size() <= 12))
-        && (!('additionalCategories' in data)
-          || (data.additionalCategories is list
-            && data.additionalCategories.size() <= 2
-            && data.additionalCategories.hasOnly([
+        && (additionalCategories is list
+            && additionalCategories.size() <= 2
+            && additionalCategories.hasOnly([
               'meetups', 'training', 'culture', 'education', 'childrenAndFamily',
               'sportsAndWellness', 'excursionsAndNature', 'music',
               'nightlifeAndParties', 'foodAndMarket', 'festivalsAndFairs',
               'businessAndNetworking', 'volunteering', 'supportAndIntegration',
               'celebration', 'saleAndPromotion', 'other'
             ])
-            && (!('category' in data) || !(data.category in data.additionalCategories))))
+            && (!('category' in data) || !(data.category in additionalCategories)))
         && validOptionalString(data, 'imageURL', 2048)
         && validContentMediaMetadata(data)
-        && validContentRegion(data);
+        && validContentRegionScope(data);
     }
 
     function userSelfEditableFields() {
@@ -1418,7 +1422,7 @@ service cloud.firestore {
         && (!('registeredCount' in previous) || next.registeredCount == previous.registeredCount);
     }
 
-    function canWriteOrganizationContent(organizationId) {
+    function canWriteOrganizationContent(organizationId, ownerOnly) {
       // Keep authorization self-contained and reuse lookups/role lists. Full
       // event payloads must also fit the evaluator budget for the last role
       // branch (organization moderator), not just the platform owner.
@@ -1436,23 +1440,25 @@ service cloud.firestore {
         && hasActiveUserState(actor)
         && (
           actor.get('globalRole', '') == 'owner'
-          || organization.get('ownerId', '') == uid
-          || (admins is list && admins.hasAny([uid]))
-          || (moderators is list && moderators.hasAny([uid]))
+          || (!ownerOnly && (
+            organization.get('ownerId', '') == uid
+            || (admins is list && admins.hasAny([uid]))
+            || (moderators is list && moderators.hasAny([uid]))
+          ))
         );
     }
 
-    function canCreateOrganizationContent(data) {
+    function canCreateOrganizationContent(data, ownerOnly) {
       // Current policy: organization team members create content within their organization.
       // Both callers first validate the full schema, including a nonempty
       // organizationId for sourceType=organization. Keep the organization-only
       // restriction here without evaluating the same schema checks twice.
       return data.sourceType == 'organization'
         && aggregateCountersAreZeroOnCreate(data)
-        && canWriteOrganizationContent(data.organizationId);
+        && canWriteOrganizationContent(data.organizationId, ownerOnly);
     }
 
-    function canUpdateOrganizationContent(previous, next) {
+    function canUpdateOrganizationContent(previous, next, ownerOnly) {
       // Called only after the full next-document schema check; that already
       // requires a nonempty organizationId for organization content. Equality
       // binds it to the previous organization without repeating that schema.
@@ -1460,7 +1466,7 @@ service cloud.firestore {
         && next.sourceType == previous.sourceType
         && next.organizationId == previous.organizationId
         && aggregateCountersArePreservedOnUpdate(previous, next)
-        && canWriteOrganizationContent(previous.organizationId);
+        && canWriteOrganizationContent(previous.organizationId, ownerOnly);
     }
 
     function canUpdateAppContent(previous, next) {
@@ -1913,7 +1919,7 @@ service cloud.firestore {
       let previous = resource.data;
       return validNewsDocument(next, newsId)
           && contentReviewFieldsArePreserved()
-          && (canUpdateOrganizationContent(previous, next) || canUpdateAppContent(previous, next))
+          && (canUpdateOrganizationContent(previous, next, next.moderationStatus == 'approved' && next.get('regionScope', '') == 'austria') || canUpdateAppContent(previous, next))
           && next.id == previous.id
           && (
             (!('authorId' in previous) && !('authorId' in next))
@@ -1925,13 +1931,7 @@ service cloud.firestore {
           )
           && next.createdAt == previous.createdAt
           && (
-            (next.moderationStatus == previous.moderationStatus
-              && (
-                previous.moderationStatus != 'approved'
-                || !('regionScope' in next)
-                || next.regionScope != 'austria'
-                || canUseOrganizationOverride()
-              ))
+            next.moderationStatus == previous.moderationStatus
             || (
               previous.moderationStatus == 'approved'
               && next.moderationStatus == 'pendingReview'
@@ -1945,7 +1945,7 @@ service cloud.firestore {
       return validNewsDocument(next, newsId)
         && !next.keys().hasAny(serverContentReviewFields())
         && hasValidPublicationSchedule(next)
-        && canCreateOrganizationContent(next)
+        && canCreateOrganizationContent(next, next.moderationStatus == 'approved' && next.get('regionScope', '') == 'austria')
         && next.authorId is string
         && next.authorId == request.auth.uid
         && (
@@ -1956,10 +1956,7 @@ service cloud.firestore {
             && next.regionScope == 'austria'
             && !('scheduledAt' in next))
           || (next.moderationStatus == 'approved'
-            && !('scheduledAt' in next)
-            && (!('regionScope' in next)
-              || next.regionScope != 'austria'
-              || canUseOrganizationOverride()))
+            && !('scheduledAt' in next))
         );
     }
 
@@ -1995,7 +1992,7 @@ service cloud.firestore {
         && !next.keys().hasAny(serverContentReviewFields())
         && !next.keys().hasAny(serverEventCancellationFields())
         && hasValidPublicationSchedule(next)
-        && canCreateOrganizationContent(next)
+        && canCreateOrganizationContent(next, false)
         && next.requiresRegistration is bool
         && (!('authorId' in next)
           || next.authorId == request.auth.uid)
@@ -2015,7 +2012,7 @@ service cloud.firestore {
             && next.updatedAt is timestamp)
           ? canModerateAppContent('events')
           : (validEventDocument(next, eventId)
-            && (canUpdateOrganizationContent(previous, next) || canUpdateAppContent(previous, next))
+            && (canUpdateOrganizationContent(previous, next, false) || canUpdateAppContent(previous, next))
             && next.id == previous.id
             && next.createdAt == previous.createdAt
             && next.moderationStatus == previous.moderationStatus));

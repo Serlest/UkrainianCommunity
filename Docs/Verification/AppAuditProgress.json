@@ -60,10 +60,13 @@
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
-        "R04-A",
         "R04-B",
         "R04-C"
-      ]
+      ],
+      "closedChecks": [
+        "R04-A"
+      ],
+      "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
     {
       "number": 5,
@@ -76,10 +79,13 @@
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
-        "R05-A",
         "R05-B",
         "R05-C"
-      ]
+      ],
+      "closedChecks": [
+        "R05-A"
+      ],
+      "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
     {
       "number": 6,
@@ -92,10 +98,13 @@
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
+        "R06-B"
+      ],
+      "closedChecks": [
         "R06-A",
-        "R06-B",
         "R06-C"
-      ]
+      ],
+      "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
     {
       "number": 7,
@@ -294,8 +303,8 @@
   "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
-    "closedScenarioGroups": 1,
-    "remainingScenarioGroups": 26,
+    "closedScenarioGroups": 5,
+    "remainingScenarioGroups": 22,
     "fullyClosedBlocks": 0
   }
 }

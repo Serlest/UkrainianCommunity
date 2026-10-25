@@ -24,6 +24,9 @@ async function record(db,id,targetId='post') {
 test('activity retry is idempotent with immutable rules; bounded private history clears only older records',async()=>{
  const env=await initializeTestEnvironment({projectId:'demo-uac-activity-history',firestore:{rules:readFileSync(new URL('../../Firebase/firestore.rules',import.meta.url),'utf8')}});
  try {
+  // This suite owns its dedicated demo namespace. A retry must not reuse an
+  // immutable "stable" entry from an earlier run with a different occurredAt.
+  await env.clearFirestore();
   await env.withSecurityRulesDisabled(async ctx=>{
    const db=ctx.firestore();
    for(const uid of ['member','other']) await setDoc(doc(db,'users/'+uid),{id:uid,globalRole:'user',accountStatus:'active',blockState:'active',acceptedTermsVersion:'2026.13',acceptedPrivacyVersion:'2026.13'});
