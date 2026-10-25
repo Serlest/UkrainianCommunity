@@ -235,6 +235,7 @@ extension NewsDetailView {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(AppTheme.accentPrimary)
+                .accessibilityIdentifier("news.externalAction.\(post.id)")
             }
         }
 

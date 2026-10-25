@@ -348,6 +348,7 @@ extension EventDetailView {
                 eventActionButton(title: AppStrings.Events.showOnMap, systemImage: "location.north", isDisabled: !canOpenEventInMaps(event)) {
                     openEventInMaps(event)
                 }
+                .accessibilityIdentifier("event.map.\(event.id)")
                 .padding(.top, 2)
             }
             .frame(minHeight: alignsWithMapPreview ? 124 : 0, alignment: .top)

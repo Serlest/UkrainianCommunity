@@ -8,6 +8,7 @@ extension NewsEditorView {
                 .init("summary", AppStrings.NewsEditor.summaryFieldRequired, source: viewModel.summary, target: $viewModel.germanSummary, limit: 200),
                 .init("body", AppStrings.NewsEditor.bodySectionTitle, source: viewModel.body, target: $viewModel.germanBody, limit: 10000)
             ], organizationId: viewModel.selectedOrganizationId)
+                .accessibilityIdentifier("editor.news.translation")
                 .padding(.bottom, AppTheme.dashboardSpacing)
             DisclosureGroup {
                 VStack(alignment: .leading, spacing: editorCardSpacing) {
@@ -16,6 +17,7 @@ extension NewsEditorView {
                         .foregroundStyle(AppTheme.textSecondary)
                     editorField(title: AppStrings.NewsEditor.titleFieldRequired, counterText: counterText(viewModel.germanTitle.count, limit: titleLimit)) {
                         TextField(AppStrings.NewsEditor.titlePlaceholder, text: $viewModel.germanTitle)
+                            .accessibilityIdentifier("editor.news.germanTitle")
                             .newsEditorCompactInputStyle(minHeight: compactInputHeight)
                     }
                     editorField(title: AppStrings.NewsEditor.summaryFieldRequired, counterText: counterText(viewModel.germanSummary.count, limit: summaryLimit)) {
@@ -36,6 +38,8 @@ extension NewsEditorView {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("editor.news.germanFields")
         }
     }
 

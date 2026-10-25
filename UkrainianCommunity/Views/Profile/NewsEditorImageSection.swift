@@ -12,6 +12,7 @@ extension NewsEditorView {
                         coverPickerContent
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("editor.news.photo")
                     .disabled(viewModel.isProcessingImage || viewModel.isPublishing)
                     .overlay {
                         if viewModel.isProcessingImage {
@@ -62,13 +63,15 @@ extension NewsEditorView {
                             .strokeBorder(AppTheme.glassBorder(for: colorScheme))
                     )
             } else if let existingImageURL = viewModel.existingImageURL {
-                RemoteImageView(
-                    imageURL: existingImageURL,
-                    height: uploadMinHeight,
-                    cornerRadius: AppTheme.imageRadius,
-                    source: "NewsEditorView",
-                    placeholderStyle: .glassSkeleton
-                )
+                GeometryReader { geometry in
+                    RemoteImageView(
+                        imageURL: existingImageURL,
+                        height: geometry.size.width * 9.0 / 16.0,
+                        cornerRadius: AppTheme.imageRadius,
+                        source: "NewsEditorView",
+                        placeholderStyle: .glassSkeleton
+                    )
+                }
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 .clipped()
                 .overlay(alignment: .bottomTrailing) {

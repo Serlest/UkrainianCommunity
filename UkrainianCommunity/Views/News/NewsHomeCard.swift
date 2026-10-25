@@ -68,7 +68,7 @@ struct NewsHomeCard: View {
             Label(publisherText, systemImage: "person.crop.circle")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(AppTheme.feedSecondaryText)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 1)
         }

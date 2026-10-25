@@ -91,6 +91,7 @@ extension EventDetailView {
                             }
                             .buttonStyle(.borderedProminent)
                             .tint(AppTheme.accentPrimary)
+                            .accessibilityIdentifier("event.externalAction.\(event.id)")
                         }
 
                         eventActionButton(
@@ -100,6 +101,7 @@ extension EventDetailView {
                         ) {
                             addToCalendar(event)
                         }
+                        .accessibilityIdentifier("event.calendar.\(event.id)")
                         .frame(maxWidth: .infinity)
                     }
                 }

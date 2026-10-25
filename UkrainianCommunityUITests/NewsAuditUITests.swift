@@ -4,6 +4,27 @@ import XCTest
 final class NewsAuditUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    func testEditorStepsAndTranslationAtGermanDarkAccessibilitySize() {
+        let app = launch(role: "owner", language: "de", dark: true, large: true)
+        open("audit-own", app); app.buttons["detail.header.more-actions"].tap(); app.buttons["Bearbeiten"].tap()
+        let next = app.buttons["editor.news.next"].firstMatch
+        XCTAssertTrue(next.waitForExistence(timeout: 8)); capture(app, "news-editor-basics-de-dark-AX")
+        reveal(next, app); next.tap()
+        let translate = app.buttons["translation.news"].firstMatch
+        reveal(translate, app, fullyVisible: true); capture(app, "news-editor-translation-de-dark-AX")
+        let fields = app.descendants(matching: .any)["editor.news.germanFields"].firstMatch
+        reveal(fields, app); fields.tap()
+        let germanTitle = app.textFields["editor.news.germanTitle"].firstMatch
+        reveal(germanTitle, app, fullyVisible: true); XCTAssertTrue(germanTitle.exists); capture(app, "news-editor-german-fields-de-dark-AX")
+        reveal(next, app); next.tap()
+        let preview = app.descendants(matching: .any)["editor.news.preview"].firstMatch
+        reveal(preview, app); alignTop(preview, app); capture(app, "news-editor-preview-de-dark-AX")
+        let notice = app.staticTexts["editor.news.publicationNotice"].firstMatch
+        reveal(notice, app); alignTop(notice, app); capture(app, "news-editor-notice-de-dark-AX")
+        app.buttons["editor.close"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["news.like.audit-own"].firstMatch.waitForExistence(timeout: 8))
+    }
+
     func testOwnAndForeignNewsMenusRespectEveryUsableRole() {
         for role in ["owner", "admin", "org-owner", "org-admin", "org-moderator", "mixed", "member", "warned"] {
             let app = launch(role: role)
@@ -231,12 +252,25 @@ final class NewsAuditUITests: XCTestCase {
         XCTAssertTrue(app.buttons["navigation.back"].waitForExistence(timeout: 8))
     }
 
-    private func reveal(_ element: XCUIElement, _ app: XCUIApplication, up: Bool = true) {
+    private func reveal(_ element: XCUIElement, _ app: XCUIApplication, up: Bool = true, fullyVisible: Bool = false) {
         for _ in 0..<18 {
-            if element.exists && element.isHittable { return }
-            if up { app.swipeUp() } else { app.swipeDown() }
+            let fits = !fullyVisible || (element.frame.minY > 70 && element.frame.maxY < app.frame.height - 70)
+            if element.exists && element.isHittable && fits { return }
+            let towardTop = element.exists ? element.frame.minY < 70 : !up
+            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? 0.35 : 0.65))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? 0.65 : 0.35)))
         }
         XCTAssertTrue(element.exists && element.isHittable)
+    }
+
+    private func alignTop(_ element: XCUIElement, _ app: XCUIApplication) {
+        for _ in 0..<32 {
+            if element.frame.minY >= 70 && element.frame.minY <= 260 { return }
+            let towardTop = element.frame.minY < 70
+            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? 0.4 : 0.55))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? 0.55 : 0.4)))
+        }
+        XCTFail("Cannot align top of " + element.identifier)
     }
 
     private func dismissKeyboard(_ app: XCUIApplication) {

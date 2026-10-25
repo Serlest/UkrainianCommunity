@@ -14,6 +14,7 @@ extension EventEditorView {
                     .buttonStyle(.plain)
                     .disabled(viewModel.isProcessingImage || viewModel.isPublishing)
                     .accessibilityLabel(AppStrings.Events.imageSectionTitle)
+                    .accessibilityIdentifier("editor.event.photo")
                     .overlay {
                         if viewModel.isProcessingImage {
                             imageProcessingOverlay
@@ -78,13 +79,15 @@ extension EventEditorView {
                             .strokeBorder(AppTheme.glassBorder(for: colorScheme))
                     )
             } else if let existingImageURL = viewModel.existingImageURL {
-                RemoteImageView(
-                    imageURL: existingImageURL,
-                    height: uploadMinHeight,
-                    cornerRadius: AppTheme.imageRadius,
-                    source: "EventEditorView",
-                    placeholderStyle: .glassSkeleton
-                )
+                GeometryReader { geometry in
+                    RemoteImageView(
+                        imageURL: existingImageURL,
+                        height: geometry.size.width * 9.0 / 16.0,
+                        cornerRadius: AppTheme.imageRadius,
+                        source: "EventEditorView",
+                        placeholderStyle: .glassSkeleton
+                    )
+                }
                 .aspectRatio(16.0 / 9.0, contentMode: .fit)
                 .clipped()
             } else {

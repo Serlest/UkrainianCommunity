@@ -18,25 +18,45 @@ extension NewsEditorView {
             .accessibilityElement(children: .combine)
         }
 
-        @ViewBuilder
-        var editorStepContent: some View {
+        // Keep the three large form trees behind separate evaluation boundaries.
+        // Returning the combined conditional generic type overflows the stack in
+        // Debug when the content step instantiates its photo/translation controls.
+        var editorStepContent: AnyView {
             switch currentStep {
-            case .basics:
+            case .basics: AnyView(editorBasicsStep)
+            case .content: AnyView(editorContentStep)
+            case .preview: AnyView(editorPreviewStep)
+            }
+        }
+
+        @ViewBuilder
+        private var editorBasicsStep: some View {
+            Group {
                 if !viewModel.isEditing {
-                    organizerCard
+                    AnyView(organizerCard)
                 }
-                mainInformationCard
-                newsCategoryCard
-            case .content:
-                coverImageCard
-                newsMediaMetadataCard
-                bodyContentCard
-                newsLocalizationCard
-            case .preview:
-                additionalDetailsCard
-                newsExternalActionCard
-                newsPublicationSettingsCard
-                if viewModel.isEditing && viewModel.selectedRegionScope != .austria { settingsCard }
+                AnyView(mainInformationCard)
+                AnyView(newsCategoryCard)
+            }
+        }
+
+        @ViewBuilder
+        private var editorContentStep: some View {
+            Group {
+                AnyView(coverImageCard)
+                AnyView(newsMediaMetadataCard)
+                AnyView(bodyContentCard)
+                AnyView(newsLocalizationCard)
+            }
+        }
+
+        @ViewBuilder
+        private var editorPreviewStep: some View {
+            Group {
+                AnyView(additionalDetailsCard)
+                AnyView(newsExternalActionCard)
+                AnyView(newsPublicationSettingsCard)
+                if viewModel.isEditing && viewModel.selectedRegionScope != .austria { AnyView(settingsCard) }
                 if let validationMessage = viewModel.validationMessage {
                     editorCard {
                         Label(validationMessage, systemImage: "exclamationmark.triangle.fill")
@@ -44,8 +64,8 @@ extension NewsEditorView {
                             .foregroundStyle(AppTheme.accentDestructiveForeground)
                     }
                 }
-                newsPreviewCard
-                publicationNoticeCard
+                AnyView(newsPreviewCard)
+                AnyView(publicationNoticeCard)
             }
         }
 
@@ -100,7 +120,8 @@ extension NewsEditorView {
         }
 
         var editorNavigation: some View {
-            HStack(spacing: AppTheme.dashboardSpacing) {
+            (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: AppTheme.dashboardSpacing))
+                : AnyLayout(HStackLayout(spacing: AppTheme.dashboardSpacing))) {
                 if currentStep != .basics {
                     Button {
                         focusedField = nil

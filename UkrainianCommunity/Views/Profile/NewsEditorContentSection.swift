@@ -103,11 +103,13 @@ extension NewsEditorView {
             editorCard {
                 HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
                     Image(systemName: "info.circle")
-                        .font(.subheadline.weight(.semibold))
+                        .font(.system(size: AppTheme.metadataIconSize, weight: .semibold))
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
                         .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
+                        .accessibilityHidden(true)
 
                     Text(AppStrings.NewsEditor.publicationNotice)
+                        .accessibilityIdentifier("editor.news.publicationNotice")
                         .font(.footnote.weight(.medium))
                         .foregroundStyle(AppTheme.textSecondary)
                         .lineSpacing(3)

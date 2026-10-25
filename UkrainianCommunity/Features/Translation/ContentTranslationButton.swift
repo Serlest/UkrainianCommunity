@@ -60,6 +60,7 @@ struct ContentTranslationButton: View {
         self.organizationId = organizationId
     }
     @EnvironmentObject private var authState: AuthState
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var preview: ContentTranslationPreview?
     @State private var error: String?
     @State private var busy = false
@@ -68,18 +69,30 @@ struct ContentTranslationButton: View {
         !["news", "event", "organization"].contains(kind) || organizationId != nil
             || PermissionService.isAppOwner(user: authState.user)
     }
+    private var canTranslate: Bool {
+        !busy && hasAccessContext && !fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: translate) {
-                HStack {
-                    if busy { ProgressView() } else { Image(systemName: "character.bubble") }
+                (dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(spacing: 8))
+                    : AnyLayout(HStackLayout(spacing: 8))) {
+                    Group {
+                        if busy { ProgressView() } else { Image(systemName: "character.bubble") }
+                    }
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     Text(targetLanguage == .german ? EditorTranslationStrings.translate : EditorTranslationStrings.translateToUkrainian)
                         .lineLimit(nil)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
-                }.frame(maxWidth: .infinity)
-            }.appActionButtonStyle(.secondary)
-                .disabled(busy || !hasAccessContext || fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .appGlassActionSurface(.regular, isEnabled: canTranslate, isInteractive: !busy)
+            }.buttonStyle(.plain)
+                .disabled(!canTranslate)
                 .accessibilityIdentifier("translation.\(kind)")
             Text(EditorTranslationStrings.hint)
                 .font(.caption).foregroundStyle(AppTheme.textSecondary)
@@ -87,6 +100,7 @@ struct ContentTranslationButton: View {
                 .fixedSize(horizontal: false, vertical: true)
             if let error { InlineMessageCard(style: .error, message: error) }
         }
+        .accessibilityElement(children: .contain)
         .sheet(item: $preview) { draft in
             NavigationStack { ContentTranslationReview(draft: draft, fields: fields, targetLanguage: targetLanguage) { result in
                 guard result.isCurrent(userID: authState.user?.id, organizationID: organizationId,

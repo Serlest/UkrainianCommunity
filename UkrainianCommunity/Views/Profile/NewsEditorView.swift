@@ -6,6 +6,7 @@ struct NewsEditorView: View {
     @EnvironmentObject var authState: AuthState
     @Environment(\.dismiss) var dismiss
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
     @Environment(\.accessibilityReduceTransparency) var reduceTransparency
     @StateObject var viewModel: NewsEditorViewModel
     @StateObject var organizerOrganizationsViewModel: AuthoringOrganizationsViewModel
