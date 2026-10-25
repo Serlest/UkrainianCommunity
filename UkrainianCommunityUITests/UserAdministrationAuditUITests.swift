@@ -79,7 +79,7 @@ import XCTest
         reveal(retry, app); retry.tap()
         XCTAssertTrue(app.descendants(matching: .any)["user.audit.item.audit-39"].waitForExistence(timeout: 8))
         reveal(more, app); more.tap()
-        let last = app.descendants(matching: .any)["user.audit.item.audit-44"]
+        let last = app.descendants(matching: .any)["user.audit.item.audit-44"].firstMatch
         reveal(last, app); capture(app, "user-audit-all-45-records")
         XCTAssertFalse(more.exists)
     }
@@ -118,6 +118,24 @@ import XCTest
         capture(app, "user-app-admin-hierarchy-de-dark-maximum")
     }
 
+    func testSlowLoadAndReturnKeepDirectoryQuery() {
+        let app = launch(language: "uk", mode: "slow")
+        capture(app, "user-directory-initial-loading")
+        let search = app.textFields["userManagement.search"].firstMatch
+        reveal(search, app); search.tap(); search.typeText("audit-member")
+        dismissKeyboard(app)
+        let row = app.descendants(matching: .any)["userManagement.user.audit-member"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 12)); reveal(row, app); row.tap()
+        capture(app, "user-detail-initial-loading")
+        let loading = app.descendants(matching: .any)["user.detail.loading"].firstMatch
+        XCTAssertTrue(loading.waitForNonExistence(timeout: 12))
+        let warning = app.buttons["user.detail.accountAction.warningIssued"].firstMatch
+        reveal(warning, app); XCTAssertTrue(warning.isEnabled)
+        app.buttons["navigation.back"].firstMatch.tap()
+        XCTAssertEqual(search.value as? String, "audit-member")
+        XCTAssertTrue(row.waitForExistence(timeout: 5)); capture(app, "user-return-retains-search-and-confirmed-page")
+    }
+
     private func launch(language: String, maximum: Bool = false, mode: String = "normal", role: String = "owner") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", maximum ? "UICTContentSizeCategoryAccessibilityXXXL" : "UICTContentSizeCategoryL"]
@@ -151,9 +169,8 @@ import XCTest
     private func reveal(_ target: XCUIElement, _ app: XCUIApplication) {
         _ = target.waitForExistence(timeout: 5)
         for _ in 0..<35 {
-            let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
-            let top = max(scroll?.frame.minY ?? 90, app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : 90) + 15
-            let bottom = min(scroll?.frame.maxY ?? app.frame.height, app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 12 : app.frame.height - 35)
+            let top = app.frame.minY + 110
+            let bottom = app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 12 : app.frame.maxY - 35
             if target.exists && target.isHittable && target.frame.midY > top && target.frame.midY < bottom { return }
             let upward = target.exists && target.frame.midY < top
             let upper = min(max((top + 30) / app.frame.height, 0.2), 0.55)
@@ -161,7 +178,9 @@ import XCTest
             app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? upper : lower))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? lower : upper)))
         }
-        XCTFail("Unreachable user administration control: \(target)")
+        print(app.debugDescription)
+        capture(app, "unreachable-user-control")
+        XCTFail("Unreachable user administration control: \(target), frame: \(target.frame), app: \(app.frame)")
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
         let a = XCTAttachment(screenshot: app.screenshot()); a.name = name; a.lifetime = .keepAlways; add(a)

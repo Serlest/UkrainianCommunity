@@ -166,7 +166,8 @@ test("legacy callable contract, authorization and actual event handler survive i
     await assert.rejects(searchManagedUsers.run(regional("invalid")), {code: "invalid-argument"});
     await refs[1].delete();
     const legal = await listLegalEvidenceAccounts.run(request());
-    assert.equal(legal.totalMatches, 1);
+    assert.equal(legal.totalMatches, null); // Bounded legal-account search deliberately omits a full count.
+    assert.deepEqual(legal.accounts.map(account => account.userId), [ids[0]]);
     assert.equal(legal.nextCursor, null);
     await assert.rejects(searchManagedUsers.run({data: {query: "eventfixture"}} as never), {code: "unauthenticated"});
     await actor.update({globalRole: "user"});

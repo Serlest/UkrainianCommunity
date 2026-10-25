@@ -1382,6 +1382,31 @@ final class ConnectedAuditUITests: XCTestCase {
         app.terminate()
     }
 
+    func testConnectedUserRoleNoticeOpensTheExactOrganization() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let raw = try await readDemoDocument("users/closure-member/notificationInbox")
+        let documents = raw["documents"] as? [[String: Any]] ?? []
+        let matching = documents.filter { document in
+            let fields = document["fields"] as? [String: [String: Any]]
+            let metadata = fields?["metadata"]?["mapValue"] as? [String: Any]
+            let values = metadata?["fields"] as? [String: [String: Any]]
+            return values?["newRole"]?["stringValue"] as? String == "communityOwner"
+                && values?["organizationId"]?["stringValue"] as? String == "users-audit-org"
+        }.sorted { ($0["createTime"] as? String ?? "") > ($1["createTime"] as? String ?? "") }
+        let noticeID = try XCTUnwrap((matching.first?["name"] as? String)?.split(separator: "/").last.map(String.init))
+        let app = launchMember(account: "member")
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let inbox = app.buttons["profile.notifications.open"].firstMatch
+        revealModeration(inbox, app); inbox.tap()
+        let notice = app.buttons["notificationInbox.open." + noticeID].firstMatch
+        revealModeration(notice, app); notice.tap()
+        let destination = app.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 10)); capture(app, "sdk-user-role-notice-details"); destination.tap()
+        let name = app.staticTexts["User Administration Audit Organization"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 20)); capture(app, "sdk-user-role-notice-exact-organization")
+        app.terminate()
+    }
+
     private func openConnectedManagedUser(_ app: XCUIApplication) {
         app.tabBars.buttons.element(boundBy: 4).tap()
         let entry = app.buttons["profile.userManagement"].firstMatch

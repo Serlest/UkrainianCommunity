@@ -28,7 +28,7 @@ import FirebaseFirestore
                 let items = (start..<end).map { index in
                     ManagedUserAuditItem(id: "audit-\(index)", actionType: index.isMultiple(of: 2) ? "userWarned" : "userSuspensionExpired",
                         reason: "Перевірено повідомлення користувача / Nutzerhinweis geprüft · \(index)", performedBy: "Serlest",
-                        previousValue: ["accountStatus": "active"], newValue: ["accountStatus": "warned"], createdAt: .now.addingTimeInterval(-Double(index * 60)))
+                        previousValue: ["accountStatus": index.isMultiple(of: 2) ? "active" : "suspendedUntil"], newValue: ["accountStatus": index.isMultiple(of: 2) ? "warned" : "active"], createdAt: .now.addingTimeInterval(-Double(index * 60)))
                 }
                 return .init(items: items, cursor: end < 45 ? .init(seconds: 1, nanoseconds: 0, id: String(end)) : nil, hasMore: end < 45)
             }, directory: { actor, query, cursor in

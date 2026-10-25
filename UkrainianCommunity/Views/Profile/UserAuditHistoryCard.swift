@@ -30,6 +30,7 @@ struct UserAuditHistoryCard: View {
                     UserManagementAuditRow(title: item.title,
                         date: item.createdAt == .distantPast ? AppStrings.Common.notAvailable : LocalizationStore.dateString(from: item.createdAt, dateStyle: .short, timeStyle: .short),
                         reason: item.reason, performedBy: item.performedBy, changeSummary: item.changeSummary)
+                        .accessibilityElement(children: .combine)
                         .accessibilityIdentifier("user.audit.item.\(item.id)")
                 }
                 if model.hasMore {
@@ -41,6 +42,5 @@ struct UserAuditHistoryCard: View {
         .task(id: "\(userID)|\(actor?.id ?? "")|\(PermissionService.canManageUsers(user: actor))|\(refreshToken)") {
             await model.ensure(userID: userID, actor: actor, refreshToken: refreshToken)
         }
-        .accessibilityIdentifier("user.audit.section")
     }
 }

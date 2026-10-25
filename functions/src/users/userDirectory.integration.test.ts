@@ -40,12 +40,12 @@ test("organization roles include archived/draft memberships; choice picker retur
  const uid=`${prefix}-member`;
  for (const [i,status] of ["draft","archived","approved"].entries()) {const path=`organizations/${prefix}-org${i}`;refs.push(path);await db.doc(path).set({name:`Org ${i}`,moderationStatus:status,ownerId:uid,adminIds:[uid],moderatorIds:[uid],updatedAt:new Timestamp(10,123000)});}
  const memberships=await manageUserDirectory.run(request({action:"memberships",principalId:actor,userId:uid}));assert.equal(memberships.organizations!.length,3);assert.equal(memberships.organizations![0].accessRevision,"10:123000");
- const filtered=await manageUserDirectory.run(request({action:"list",principalId:actor,filter:"organizationOwners"}));
+ const filtered=await manageUserDirectory.run(request({action:"list",principalId:actor,query:prefix,filter:"organizationOwners"}));
  // A role orphan with no profile must not create a phantom user.
  assert.equal(filtered.totalMatches,0);
  await seed(uid,{displayName:"Owner member",globalRole:"user",createdAt:Timestamp.now()});
- assert.equal((await manageUserDirectory.run(request({action:"list",principalId:actor,filter:"organizationAdmins"}))).totalMatches,0);
- assert.equal((await manageUserDirectory.run(request({action:"list",principalId:actor,filter:"organizationModerators"}))).totalMatches,0);
+ assert.equal((await manageUserDirectory.run(request({action:"list",principalId:actor,query:prefix,filter:"organizationAdmins"}))).totalMatches,0);
+ assert.equal((await manageUserDirectory.run(request({action:"list",principalId:actor,query:prefix,filter:"organizationModerators"}))).totalMatches,0);
  const choices=await manageUserDirectory.run(request({action:"organizations",principalId:actor,query:prefix}));assert.equal(choices.organizations!.length,1);
  const batch=db.batch();for(let i=0;i<65;i++){const path=`organizations/${prefix}-choice${String(i).padStart(3,"0")}`;refs.push(path);batch.set(db.doc(path),{name:"WorkspaceCandidate",ownerId:actor,moderationStatus:"approved"});}await batch.commit();
  let cursor:string|null|undefined;let count=0;
@@ -113,6 +113,11 @@ test("directory authorization covers administrator, organization roles, restrict
    const uid = `${prefix}-matrix-${name}`;
    await seed(uid, {globalRole, accountStatus: status, requiresMultiFactorAuth: globalRole === "owner" || globalRole === "admin"});
    await seedCurrentLegalForIntegration(uid);
+   if (name.startsWith("org-")) {
+     const path = `organizations/${prefix}-matrix-${name}`; refs.push(path);
+     await db.doc(path).set({name, moderationStatus:"approved", ownerId:name === "org-owner" ? uid : actor,
+       adminIds:name === "org-admin" ? [uid] : [], moderatorIds:name === "org-editor" ? [uid] : []});
+   }
    const input = request({action: "list", principalId: uid}, uid);
    if (allowed) assert.ok((await manageUserDirectory.run(input)).userIds);
    else await assert.rejects(manageUserDirectory.run(input), {code: "permission-denied"});

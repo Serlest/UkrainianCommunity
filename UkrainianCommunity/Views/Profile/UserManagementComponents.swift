@@ -253,8 +253,8 @@ struct ManagedUserRow: View {
                 UserManagementStatusBadge(title: primaryOrganizationRole, tint: AppTheme.accentPrimaryForeground)
             }
 
-            if organizationRoles.count > 1 {
-                UserManagementStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count - 1), tint: AppTheme.accentPrimaryForeground)
+            if !organizationRoles.isEmpty {
+                UserManagementStatusBadge(title: AppStrings.UserManagement.organizationRolesAdditionalCount(organizationRoles.count), tint: AppTheme.accentPrimaryForeground)
             }
         }
     }
