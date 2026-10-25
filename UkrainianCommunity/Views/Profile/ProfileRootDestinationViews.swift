@@ -280,6 +280,7 @@ struct ProfilePreferencesView: View {
             }
         }
         .tint(AppTheme.accentPrimaryForeground)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("screen.profile.preferences")
         .onChange(of: currentUser?.id) { _, _ in
             accountDeletionCandidate = nil

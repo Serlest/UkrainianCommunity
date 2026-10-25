@@ -913,6 +913,7 @@ struct EditorScreenShell<Content: View, BottomActionContent: View, TrailingConte
                     dismiss()
                 }
             }
+            .accessibilityIdentifier("editor.close")
         } titleContent: {
             editorTitleBlock
         } trailingContent: {

@@ -229,6 +229,7 @@ struct PublicationControlView: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("screen.publicationControl")
         .task(id: key) {
             guard !actor.isEmpty else { store.reset(); return }

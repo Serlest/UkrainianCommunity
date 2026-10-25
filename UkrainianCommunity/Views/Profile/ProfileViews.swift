@@ -43,6 +43,16 @@ enum ProfileNavigationRoute: Hashable {
     case myFeedback(userID: String)
     case dsaStatement(statementID: String)
     case legal(LegalDocumentKind)
+
+    // The owning NavigationStack must apply this policy too: after dismissing
+    // a sheet, its automatic toolbar preference can otherwise override a
+    // destination's hidden tab bar. Other routes intentionally retain tabs.
+    var hidesRootTabBar: Bool {
+        switch self {
+        case .accountSecurity, .directoryEditors, .userManagement, .contentPlanning(draftID: nil): true
+        default: false
+        }
+    }
 }
 
 struct ProfileView: View {
