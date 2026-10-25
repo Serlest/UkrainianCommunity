@@ -1,8 +1,8 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 5,
-  "remainingBlocks": 14,
+  "completedBlocks": 7,
+  "remainingBlocks": 12,
   "nextBlock": null,
   "blocks": [
     {
@@ -24,18 +24,17 @@
     {
       "number": 2,
       "name": "Запуск, регистрация и вход",
-      "status": "implemented_verification_incomplete",
+      "status": "verification_closed_pending_device_acceptance",
       "report": "Docs/Verification/StartupAuthAudit.json",
       "resolutionReport": "Docs/Verification/StartupAuthFixes.json",
       "presentationFollowup": "Docs/Verification/AuthPresentationImprovements20261024.json",
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-      "openChecks": [
-        "R02-A",
-        "R02-C"
-      ],
+      "openChecks": [],
       "closedChecks": [
-        "R02-B"
+        "R02-A",
+        "R02-B",
+        "R02-C"
       ],
       "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
@@ -131,18 +130,19 @@
     {
       "number": 8,
       "name": "Управление организациями и заявки",
-      "status": "implemented_verification_incomplete",
+      "status": "verification_closed_pending_device_acceptance",
       "inventory": "Docs/Verification/OrganizationManagementInventory20261024.md",
       "report": "Docs/Verification/OrganizationManagementAudit20261024.json",
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-      "openChecks": [
-        "R08-B"
-      ],
+      "openChecks": [],
       "closedChecks": [
         "R08-A",
+        "R08-B",
         "R08-C"
-      ]
+      ],
+      "closureEvidence": "Docs/Verification/AuditClosure20261025.json",
+      "physicalEvidence": "Docs/Verification/AuditPhysicalProgress20261025.json"
     },
     {
       "number": 9,
@@ -315,7 +315,7 @@
   },
   "schemaVersion": 2,
   "blocksWithImplementedFixes": 9,
-  "blocksReopenedForCompletion": 4,
+  "blocksReopenedForCompletion": 2,
   "notStartedBlocks": 10,
   "nextNewBlock": 10,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
@@ -323,8 +323,8 @@
   "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
-    "closedScenarioGroups": 22,
-    "remainingScenarioGroups": 5,
-    "fullyClosedBlocks": 5
+    "closedScenarioGroups": 25,
+    "remainingScenarioGroups": 2,
+    "fullyClosedBlocks": 7
   }
 }

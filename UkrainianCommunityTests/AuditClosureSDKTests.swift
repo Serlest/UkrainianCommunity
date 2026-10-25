@@ -26,6 +26,167 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertEqual(result.user.uid, "closure-\(role)")
     }
 
+    func testActualProviderLinkRetainsIdentityRejectsDuplicateAndOtherAccountThenRestoresFixture() async throws {
+        try await signIn("member")
+        defer { try? Auth.auth().signOut() }
+        let backend = FirebaseAccountProviderLinkBackend()
+        let original = try await backend.snapshot()
+        XCTAssertEqual(original.userID, "closure-member")
+        XCTAssertTrue(original.isEmailVerified)
+        guard !original.providerIDs.contains("google.com") else {
+            throw NSError(domain: "AuditFixtureAlreadyLinked", code: 1)
+        }
+        let user = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-member")
+        let state = AuthState(); state.setAuthenticatedSession(user: user)
+        let service = AccountProviderLinkService(authState: state, backend: backend)
+        // Strict JSON ID tokens are an explicitly supported Auth Emulator contract.
+        // These synthetic credentials are never sent to Google or production Firebase.
+        let subject = "closure-provider-" + UUID().uuidString.lowercased()
+        let payload = try JSONSerialization.data(withJSONObject: [
+            "sub": subject, "email": subject + "@uac.test", "email_verified": true,
+            "iss": "https://accounts.google.com", "aud": "demo-uac-release-audit"
+        ])
+        let credential = GoogleAuthProvider.credential(withIDToken: String(decoding: payload, as: UTF8.self), accessToken: "emulator-only")
+        func restoreFixture() async throws {
+            try await signIn("member")
+            let current = try XCTUnwrap(Auth.auth().currentUser)
+            if current.providerData.contains(where: { $0.providerID == "google.com" }) {
+                _ = try await current.unlink(fromProvider: "google.com")
+            }
+            let restoredProviders = try await emulatorAuthProviders(userID: "closure-member")
+            XCTAssertEqual(restoredProviders, original.providerIDs)
+        }
+        do {
+            let linked = try await service.link(credential)
+            XCTAssertEqual(linked, original.providerIDs.union(["google.com"]))
+            let independentlyLinked = try await emulatorAuthProviders(userID: "closure-member")
+            XCTAssertEqual(independentlyLinked, linked)
+            try Auth.auth().signOut()
+            let throughGoogle = try await Auth.auth().signIn(with: credential)
+            XCTAssertEqual(throughGoogle.user.uid, "closure-member", "Linking must preserve the existing account")
+            try await signIn("member")
+            do {
+                _ = try await service.link(credential)
+                XCTFail("Already linked provider must be rejected")
+            } catch let error as AccountProviderLinkError { XCTAssertEqual(error, .alreadyLinked) }
+            try await signIn("other")
+            let other = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-other")
+            let otherState = AuthState(); otherState.setAuthenticatedSession(user: other)
+            let otherService = AccountProviderLinkService(authState: otherState, backend: backend)
+            do {
+                _ = try await otherService.link(credential)
+                XCTFail("A provider already owned by another account must not be attached")
+            } catch {
+                XCTAssertEqual((error as NSError).code, AuthErrorCode.credentialAlreadyInUse.rawValue)
+            }
+            XCTAssertEqual(Auth.auth().currentUser?.uid, "closure-other")
+            let otherProviders = try await emulatorAuthProviders(userID: "closure-other")
+            XCTAssertFalse(otherProviders.contains("google.com"))
+            try await restoreFixture()
+        } catch {
+            try? await restoreFixture()
+            throw error
+        }
+    }
+
+    func testExistingFixtureVerificationAndPasswordResetActionCodesWithoutRegistration() async throws {
+        try await signIn("other")
+        defer { try? Auth.auth().signOut() }
+        let email = "closure-other@uac.test"
+        let updatePath = "identitytoolkit.googleapis.com/v1/projects/demo-uac-release-audit/accounts:update"
+        func restoreFixture() async throws {
+            _ = try await emulatorAuthObject(path: updatePath, method: "POST", body: [
+                "localId": "closure-other", "emailVerified": true, "password": "Emulator-Only-2026!"
+            ])
+            try await signIn("other")
+        }
+        func latestCode(_ type: String, mode: String) async throws -> String {
+            let response = try await emulatorAuthObject(path: "emulator/v1/projects/demo-uac-release-audit/oobCodes")
+            let codes = try XCTUnwrap(response["oobCodes"] as? [[String: Any]])
+            let entry = try XCTUnwrap(codes.last { $0["email"] as? String == email && $0["requestType"] as? String == type })
+            let url = try XCTUnwrap(URLComponents(string: try XCTUnwrap(entry["oobLink"] as? String)))
+            XCTAssertEqual(url.host, "127.0.0.1")
+            XCTAssertEqual(url.queryItems?.first { $0.name == "mode" }?.value, mode)
+            let code = try XCTUnwrap(entry["oobCode"] as? String)
+            XCTAssertEqual(url.queryItems?.first { $0.name == "oobCode" }?.value, code)
+            return code
+        }
+        do {
+            _ = try await emulatorAuthObject(path: updatePath, method: "POST", body: ["localId": "closure-other", "emailVerified": false])
+            let session = try XCTUnwrap(Auth.auth().currentUser)
+            try await session.reload(); XCTAssertFalse(session.isEmailVerified)
+            let profile = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-other")
+            let state = AuthState(); state.setAuthenticatedSession(user: profile)
+            let service = AuthService(authState: state, backend: FirebaseAuthBackend(), profileProvider: UserProfileService.shared)
+            try await service.sendEmailVerification()
+            let verification = try await latestCode("VERIFY_EMAIL", mode: "verifyEmail")
+            let action = try await Auth.auth().checkActionCode(verification)
+            // Auth Emulator returns VERIFY_EMAIL, while SDK operation mapping expects verifyEmail.
+            // The app does not inspect that enum; verify recipient, one-use code and actual state transition.
+            XCTAssertEqual(action.email, email)
+            try await Auth.auth().applyActionCode(verification)
+            try await session.reload(); XCTAssertTrue(session.isEmailVerified)
+            do {
+                try await Auth.auth().applyActionCode(verification)
+                XCTFail("Consumed verification link must not be reusable")
+            } catch { XCTAssertEqual((error as NSError).code, AuthErrorCode.invalidActionCode.rawValue) }
+            try await service.sendPasswordReset(email: email)
+            let reset = try await latestCode("PASSWORD_RESET", mode: "resetPassword")
+            let resetEmail = try await Auth.auth().verifyPasswordResetCode(reset)
+            XCTAssertEqual(resetEmail, email)
+            try await Auth.auth().confirmPasswordReset(withCode: reset, newPassword: "Emulator-Only-Reset-2026!")
+            try Auth.auth().signOut()
+            do {
+                _ = try await Auth.auth().signIn(withEmail: email, password: "Emulator-Only-2026!")
+                XCTFail("Previous fixture password must stop working")
+            } catch { XCTAssertNotNil(error as NSError) }
+            let changed = try await Auth.auth().signIn(withEmail: email, password: "Emulator-Only-Reset-2026!")
+            XCTAssertEqual(changed.user.uid, "closure-other")
+            do {
+                _ = try await Auth.auth().verifyPasswordResetCode(reset)
+                XCTFail("Consumed reset link must not be reusable")
+            } catch { XCTAssertEqual((error as NSError).code, AuthErrorCode.invalidActionCode.rawValue) }
+            try await restoreFixture()
+        } catch {
+            try? await restoreFixture()
+            throw error
+        }
+    }
+
+    private func emulatorAuthObject(path: String, method: String = "GET", body: [String: Any]? = nil) async throws -> [String: Any] {
+        guard FirebaseApp.app()?.options.projectID == "demo-uac-release-audit",
+              Firestore.firestore().settings.host == "127.0.0.1:28080" else {
+            throw NSError(domain: "RefusingNonLocalAudit", code: 3)
+        }
+        let url = try XCTUnwrap(URL(string: "http://127.0.0.1:19099/" + path))
+        var request = URLRequest(url: url); request.httpMethod = method
+        request.setValue("Bearer owner", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if let body { request.httpBody = try JSONSerialization.data(withJSONObject: body) }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    private func emulatorAuthProviders(userID: String) async throws -> Set<String> {
+        guard ["closure-member", "closure-other"].contains(userID),
+              FirebaseApp.app()?.options.projectID == "demo-uac-release-audit" else {
+            throw NSError(domain: "RefusingNonLocalAudit", code: 2)
+        }
+        let url = URL(string: "http://127.0.0.1:19099/identitytoolkit.googleapis.com/v1/projects/demo-uac-release-audit/accounts:lookup")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer owner", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["localId": [userID]])
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        let users = try XCTUnwrap(object["users"] as? [[String: Any]])
+        let user = try XCTUnwrap(users.first { $0["localId"] as? String == userID })
+        return Set((user["providerUserInfo"] as? [[String: Any]] ?? []).compactMap { $0["providerId"] as? String })
+    }
+
     func testAuditFixturesAcceptActualRepositoryEditsAndPublicProfileSync() async throws {
         try await signIn("editor")
         defer { try? Auth.auth().signOut() }

@@ -102,6 +102,25 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         // Legal acceptance and final submission are deliberately left to the user.
     }
 
+    func testSubmitOnlyUserConfirmedPreparedTestRequest() throws {
+        guard ProcessInfo.processInfo.environment["UACPhysicalLegalSubmissionConfirmed"] == "2026-10-25" else {
+            throw XCTSkip("Action-time user confirmation required for the prepared application")
+        }
+        let app = XCUIApplication()
+        app.activate()
+        XCTAssertTrue(app.staticTexts["UAC — тест перевірки заявки"].firstMatch.waitForExistence(timeout: 10))
+        let acceptance = app.switches["organizationEditor.rules.confirm"].firstMatch
+        XCTAssertTrue(acceptance.exists)
+        XCTAssertEqual(acceptance.value as? String, "1", "The user must personally accept the rules")
+        let submit = app.buttons["organizationEditor.submit"].firstMatch
+        XCTAssertTrue(submit.exists); XCTAssertTrue(submit.isEnabled)
+        XCTAssertEqual(submit.label, "Подати заявку", "Never use the platform-owner Publish action")
+        capture(app, "physical-request-user-confirmed-before-submit")
+        submit.tap()
+        XCTAssertTrue(submit.waitForNonExistence(timeout: 25))
+        capture(app, "physical-request-submission-result")
+    }
+
     func testReturnOnlyTheAuthorizedTestRequestForRevisionAndReadHistory() throws {
         let requestID = ProcessInfo.processInfo.environment["UACPhysicalAuditRequestID"] ?? ""
         guard !requestID.isEmpty else { throw XCTSkip("Exact controlled request ID required") }
@@ -110,15 +129,32 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         let owner = app.staticTexts["Serlest"].firstMatch
         reveal(owner, app, towardTop: true)
         XCTAssertTrue(owner.exists, "Use the authorized platform owner account")
-        let requests = app.buttons["profile.organizationRequests"].firstMatch
-        reveal(requests, app); requests.tap()
+        let noticeID = ProcessInfo.processInfo.environment["UACPhysicalAuditReviewerNoticeID"] ?? ""
+        if !noticeID.isEmpty {
+            let inbox = app.buttons["profile.notifications.open"].firstMatch
+            reveal(inbox, app); inbox.tap()
+            let notice = app.buttons.matching(NSPredicate(format: "identifier == %@", "notificationInbox.open." + noticeID)).firstMatch
+            XCTAssertTrue(notice.waitForExistence(timeout: 15)); reveal(notice, app); notice.tap()
+            let body = app.staticTexts["notificationDetail.body"].firstMatch
+            XCTAssertTrue(body.waitForExistence(timeout: 10))
+            XCTAssertTrue(body.label.contains("UAC — тест перевірки заявки"))
+            capture(app, "physical-reviewer-exact-submission-notice")
+            let destination = app.buttons["notificationDetail.openDestination"].firstMatch
+            reveal(destination, app); destination.tap()
+        } else {
+            let requests = app.buttons["profile.organizationRequests"].firstMatch
+            reveal(requests, app); requests.tap()
+        }
         let open = app.buttons["organization.requests.open." + requestID].firstMatch
-        XCTAssertTrue(open.waitForExistence(timeout: 20)); reveal(open, app); open.tap()
+        let approve = app.buttons["organization.request.choice.approve"].firstMatch
+        // A targeted notification opens the exact review sheet directly.
+        if !approve.waitForExistence(timeout: 5) {
+            XCTAssertTrue(open.waitForExistence(timeout: 20)); reveal(open, app); open.tap()
+        }
         XCTAssertTrue(app.staticTexts["UAC — тест перевірки заявки"].firstMatch.waitForExistence(timeout: 10),
                       "Never review another organization's request")
         let confirm = app.buttons["organization.request.confirm"].firstMatch
         XCTAssertTrue(confirm.exists); XCTAssertFalse(confirm.isEnabled)
-        let approve = app.buttons["organization.request.choice.approve"].firstMatch
         reveal(approve, app); approve.tap()
         XCTAssertTrue(confirm.isEnabled)
         let reject = app.buttons["organization.request.choice.reject"].firstMatch
@@ -139,6 +175,11 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         execute.tap()
         XCTAssertTrue(revision.waitForNonExistence(timeout: 20))
         XCTAssertTrue(open.waitForNonExistence(timeout: 20))
+        if !noticeID.isEmpty {
+            openProfile(app)
+            let requests = app.buttons["profile.organizationRequests"].firstMatch
+            reveal(requests, app); requests.tap()
+        }
         let history = app.segmentedControls["organization.requests.mode"].firstMatch
         XCTAssertTrue(history.exists); history.buttons.element(boundBy: 1).tap()
         let recordedReason = app.staticTexts[reasonText].firstMatch
@@ -147,15 +188,251 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         // The only submitted decision is requestRevision for the exact controlled ID.
     }
 
+    func testApplicantRevisionNoticeEditorAndAuthorizedTestRequestCleanup() throws {
+        let requestID = ProcessInfo.processInfo.environment["UACPhysicalAuditRequestID"] ?? ""
+        let noticeID = ProcessInfo.processInfo.environment["UACPhysicalAuditApplicantNoticeID"] ?? ""
+        guard !requestID.isEmpty && !noticeID.isEmpty else { throw XCTSkip("Exact disposable request and recipient notice required") }
+        let app = XCUIApplication()
+        openProfile(app)
+        let account = app.staticTexts["Serlest Gmail"].firstMatch
+        reveal(account, app, towardTop: true); XCTAssertTrue(account.exists)
+        let inbox = app.buttons["profile.notifications.open"].firstMatch
+        reveal(inbox, app); inbox.tap()
+        let notice = app.buttons.matching(NSPredicate(format: "identifier == %@", "notificationInbox.open." + noticeID)).firstMatch
+        XCTAssertTrue(notice.waitForExistence(timeout: 15)); reveal(notice, app); notice.tap()
+        let body = app.staticTexts["notificationDetail.body"].firstMatch
+        XCTAssertTrue(body.waitForExistence(timeout: 10))
+        XCTAssertTrue(body.label.contains("UAC — тест перевірки заявки"))
+        XCTAssertTrue(body.label.contains("уточніть опис"))
+        capture(app, "physical-applicant-exact-revision-notice")
+        let destination = app.buttons["notificationDetail.openDestination"].firstMatch
+        reveal(destination, app); destination.tap()
+        let name = app.textFields["organization.editor.name"].firstMatch
+        if !name.waitForExistence(timeout: 3) {
+            let edit = app.buttons["organization.request.preview." + requestID].firstMatch
+            XCTAssertTrue(edit.waitForExistence(timeout: 15)); reveal(edit, app); edit.tap()
+        }
+        XCTAssertTrue(name.waitForExistence(timeout: 10))
+        XCTAssertEqual(name.value as? String, "UAC — тест перевірки заявки")
+        capture(app, "physical-applicant-exact-revision-editor")
+        let close = app.buttons["editor.close"].firstMatch
+        XCTAssertTrue(close.exists); close.tap()
+        XCTAssertTrue(name.waitForNonExistence(timeout: 8))
+        let removeID = "organization.request.delete." + requestID
+        let remove = app.buttons[removeID].firstMatch
+        reveal(remove, app); remove.tap()
+        let confirm = app.buttons.matching(NSPredicate(format: "label == %@ AND identifier != %@", "Видалити заявку", removeID)).firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        capture(app, "physical-applicant-test-request-cleanup-confirmation")
+        confirm.tap()
+        XCTAssertTrue(remove.waitForNonExistence(timeout: 25))
+        capture(app, "physical-applicant-test-request-removed")
+    }
+
+    func testExistingOwnerSecurityPagesWithoutCredentialChanges() {
+        let app = XCUIApplication()
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        reveal(settings, app); settings.tap()
+        let lock = app.switches["profile.settings.appLock"].firstMatch
+        reveal(lock, app)
+        let originalLockValue = lock.value as? String
+        XCTAssertTrue(originalLockValue == "0" || originalLockValue == "1")
+        capture(app, "physical-owner-app-lock-existing-setting")
+        let security = app.buttons["profile.settings.accountSecurity"].firstMatch
+        reveal(security, app, towardTop: true); security.tap()
+        let passkey = app.buttons["accountSecurity.passkey.add"].firstMatch
+        XCTAssertTrue(passkey.waitForExistence(timeout: 15)); reveal(passkey, app)
+        let keysLoaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: passkey)
+        XCTAssertEqual(XCTWaiter.wait(for: [keysLoaded], timeout: 20), .completed,
+                       "Capture the resolved key list, not its initial loading frame")
+        XCTAssertFalse(app.buttons["accountSecurity.passkey.retry"].firstMatch.exists)
+        capture(app, "physical-owner-existing-passkeys")
+        let providers = app.descendants(matching: .any).matching(identifier: "accountSecurity.linkedMethods").firstMatch
+        reveal(providers, app); capture(app, "physical-owner-existing-signin-methods")
+        let linking = app.buttons["Додати спосіб входу"].firstMatch
+        if linking.exists {
+            reveal(linking, app); linking.tap(); capture(app, "physical-owner-linking-options-without-linking")
+        }
+        let manage = app.buttons["Керувати автентифікатором"].firstMatch
+        reveal(manage, app); manage.tap()
+        let protectedFactor = app.staticTexts["Останній автентифікатор не можна видалити, доки для цього акаунта обов’язковий двофакторний захист."].firstMatch
+        XCTAssertTrue(protectedFactor.waitForExistence(timeout: 15)); reveal(protectedFactor, app)
+        capture(app, "physical-owner-required-authenticator")
+        XCTAssertFalse(app.buttons["accountSecurity.retry"].firstMatch.exists)
+        XCTAssertFalse(app.buttons["accountSecurity.mfa.retry"].firstMatch.exists)
+        if originalLockValue == "0" {
+            XCUIDevice.shared.press(.home)
+            app.activate()
+            XCTAssertTrue(protectedFactor.waitForExistence(timeout: 15))
+            capture(app, "physical-owner-security-after-background-with-lock-disabled")
+        }
+        // No provider, key, password, factor, app-lock or grace-period mutation.
+    }
+
+    func testExistingPasskeyNativeCancellationAndRepeatWithoutCredentialChanges() {
+        let app = XCUIApplication()
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        let logout = app.buttons["profile.logout.button"].firstMatch
+        reveal(logout, app); logout.tap()
+        let confirm = app.alerts.buttons["profile.logout.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        let passkey = app.buttons["auth.passkey.signIn"].firstMatch
+        XCTAssertTrue(passkey.waitForExistence(timeout: 20))
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for attempt in 1...2 {
+            passkey.tap()
+            let predicate = NSPredicate(format: "label IN %@", ["Abbrechen", "Cancel", "Скасувати", "Schließen", "Close"])
+            let inApp = app.buttons.matching(predicate).firstMatch
+            let cancel = inApp.waitForExistence(timeout: 10) ? inApp : system.buttons.matching(predicate).firstMatch
+            XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+            capture(app, "physical-passkey-native-cancel-\(attempt)")
+            cancel.tap()
+            XCTAssertTrue(cancel.waitForNonExistence(timeout: 10))
+            XCTAssertTrue(passkey.isEnabled)
+            XCTAssertTrue(app.buttons["auth.provider.apple"].firstMatch.isEnabled)
+            XCTAssertTrue(app.buttons["auth.provider.google"].firstMatch.isEnabled)
+            capture(app, "physical-passkey-cancel-restored-\(attempt)")
+        }
+    }
+
+    func testCancelActualOwnerMFAChallengeRestoresAllSignInMethods() {
+        let app = XCUIApplication()
+        app.activate()
+        let code = app.textFields["auth.mfa.code"].firstMatch
+        XCTAssertTrue(code.waitForExistence(timeout: 10))
+        let submit = app.buttons["auth.mfa.submit"].firstMatch
+        XCTAssertFalse(submit.isEnabled)
+        capture(app, "physical-owner-mfa-before-cancel")
+        let cancel = app.buttons["auth.mfa.cancel"].firstMatch
+        XCTAssertTrue(cancel.isEnabled); cancel.tap()
+        XCTAssertTrue(code.waitForNonExistence(timeout: 10))
+        for id in ["auth.provider.apple", "auth.provider.google", "auth.passkey.signIn"] {
+            let method = app.buttons[id].firstMatch
+            XCTAssertTrue(method.waitForExistence(timeout: 10)); XCTAssertTrue(method.isEnabled)
+        }
+        capture(app, "physical-owner-mfa-cancel-restored")
+    }
+
+    func testPrepareOwnerBiometricSettingsWithoutChangingThem() {
+        let app = XCUIApplication()
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        reveal(settings, app); settings.tap()
+        let lock = app.switches["profile.settings.appLock"].firstMatch
+        reveal(lock, app)
+        XCTAssertEqual(lock.value as? String, "0", "Keep the original setting until the user's device confirmation")
+        capture(app, "physical-owner-biometric-settings-user-handoff")
+    }
+
+    func testEnabledAppLockHidesProtectedUIAfterBackground() {
+        let app = XCUIApplication()
+        app.activate()
+        let unlock = app.buttons["appLock.unlock"].firstMatch
+        if !unlock.waitForExistence(timeout: 3) {
+            let setting = app.switches["profile.settings.appLock"].firstMatch
+            XCTAssertTrue(setting.waitForExistence(timeout: 10))
+            XCTAssertEqual(setting.value as? String, "1")
+            capture(app, "physical-biometric-enabled-before-background")
+            XCUIDevice.shared.press(.home)
+            app.activate()
+        }
+        // Starting the XCTest runner itself can already background the protected app.
+        XCTAssertTrue(unlock.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["profile.settings.accountSecurity"].firstMatch.isHittable)
+        XCTAssertFalse(app.tabBars.buttons["tab.profile"].firstMatch.isHittable)
+        capture(app, "physical-biometric-protected-content-hidden")
+        // Leave real authentication to the human on the physical device.
+    }
+
+    func testPrepareSecondaryPasskeySettingsWithoutCredentialChanges() {
+        let app = XCUIApplication()
+        openProfile(app)
+        let member = app.staticTexts["Serlest Gmail"].firstMatch
+        reveal(member, app, towardTop: true); XCTAssertTrue(member.exists)
+        let settings = app.buttons["profile.settings.open"].firstMatch
+        reveal(settings, app); settings.tap()
+        let security = app.buttons["profile.settings.accountSecurity"].firstMatch
+        reveal(security, app, towardTop: true); security.tap()
+        let add = app.buttons["accountSecurity.passkey.add"].firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 15)); reveal(add, app)
+        let loaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: add)
+        XCTAssertEqual(XCTWaiter.wait(for: [loaded], timeout: 20), .completed)
+        capture(app, "physical-secondary-resolved-passkey-settings-before-user-action")
+        // Credential creation/removal are user handoffs, never performed by this test.
+    }
+
+    func testPrepareOwnerSignInForRecoveryHelp() {
+        let app = XCUIApplication()
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        let logout = app.buttons["profile.logout.button"].firstMatch
+        reveal(logout, app); logout.tap()
+        let confirm = app.alerts.buttons["profile.logout.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(app.buttons["auth.provider.apple"].firstMatch.waitForExistence(timeout: 20))
+        capture(app, "physical-recovery-check-ready-for-apple-signin")
+    }
+
+    func testActualMFARecoveryHelpPreservesPendingChallenge() {
+        let app = XCUIApplication()
+        app.activate()
+        let code = app.textFields["auth.mfa.code"].firstMatch
+        XCTAssertTrue(code.waitForExistence(timeout: 10))
+        let empty = (code.value as? String ?? "").isEmpty || code.value as? String == code.placeholderValue
+        XCTAssertTrue(empty, "Leave the code empty for this presentation check")
+        let help = app.buttons["auth.mfa.recovery.open"].firstMatch
+        reveal(help, app); help.tap()
+        let contact = app.descendants(matching: .any).matching(identifier: "auth.mfa.recovery.email").firstMatch
+        XCTAssertTrue(contact.waitForExistence(timeout: 10)); reveal(contact, app)
+        XCTAssertTrue(app.staticTexts["ukrainian.community@outlook.com"].firstMatch.exists)
+        capture(app, "physical-mfa-recovery-help-and-contact")
+        let close = app.buttons["auth.mfa.recovery.close"].firstMatch
+        XCTAssertTrue(close.isHittable); close.tap()
+        XCTAssertTrue(code.waitForExistence(timeout: 10))
+        let stillEmpty = (code.value as? String ?? "").isEmpty || code.value as? String == code.placeholderValue
+        XCTAssertTrue(stillEmpty)
+        XCTAssertFalse(app.buttons["auth.mfa.submit"].firstMatch.isEnabled)
+        capture(app, "physical-mfa-recovery-return-preserves-challenge")
+    }
+
     private func openProfile(_ app: XCUIApplication) {
         app.activate()
+        let passkeyLater = app.buttons["auth.passkeySuggestion.later"].firstMatch
+        if passkeyLater.waitForExistence(timeout: 3) {
+            reveal(passkeyLater, app); capture(app, "physical-passkey-offer-deferred"); passkeyLater.tap()
+        }
         let candidateCancel = app.buttons["organization.team.cancelSearch"].firstMatch
         if candidateCancel.exists && candidateCancel.isHittable { candidateCancel.tap() }
+        if app.buttons["organization.request.choice.approve"].firstMatch.exists {
+            let reviewCancel = app.buttons["Скасувати"].firstMatch
+            if reviewCancel.exists && reviewCancel.isHittable { reviewCancel.tap() }
+        }
+        returnFromPushedScreens(app)
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 20))
-        app.tabBars.buttons.element(boundBy: 4).tap()
-        for _ in 0..<6 {
-            let back = app.buttons["navigation.back"].firstMatch
-            if !back.exists { break }
+        let profile = app.tabBars.buttons["tab.profile"].firstMatch
+        XCTAssertTrue(profile.isHittable, "Return from a tab-bar-hidden screen before selecting Profile")
+        profile.tap()
+        returnFromPushedScreens(app)
+    }
+
+    private func returnFromPushedScreens(_ app: XCUIApplication) {
+        for _ in 0..<8 {
+            let identified = app.buttons["navigation.back"].firstMatch
+            if identified.exists && identified.isHittable { identified.tap(); continue }
+            // A screen-level accessibility identifier can override the shared back ID.
+            let candidates = app.buttons.matching(NSPredicate(format: "label IN %@", ["Назад", "Zurück", "Back"]))
+                .allElementsBoundByIndex
+            guard let back = candidates.first(where: {
+                $0.isHittable && $0.frame.minY < 200 && $0.frame.minX < 100
+            }) else { break }
             back.tap()
         }
     }

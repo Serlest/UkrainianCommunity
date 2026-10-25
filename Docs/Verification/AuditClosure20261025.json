@@ -24,7 +24,10 @@
     "R09-B",
     "R09-C",
     "R07-B",
-    "R08-A"
+    "R08-A",
+    "R08-B",
+    "R02-A",
+    "R02-C"
   ],
   "evidence": [
     {
@@ -675,9 +678,119 @@
         "Create form four steps: name, description, Tirol, Innsbruck, preview, actual legal rules reader"
       ],
       "boundary": "No acceptance or submission automated. Applicant legal acceptance and submission remain user handoff; no new account registration."
+    },
+    {
+      "check": "R08-B",
+      "kind": "physical_application_submission_and_production_readback_partial",
+      "bundle": "build/audit-closure-20261025/PhysicalConfirmedRequestSubmission.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "requestId": "96B57462-68CF-4EAC-9928-320181705378",
+      "verified": [
+        "User personally enabled legal acceptance and confirmed submission",
+        "Exact prepared form submitted through real iOS app",
+        "Independent server read: one request with pendingReview",
+        "Exactly one matching organizationRequestSubmitted notice in original platform owner inbox; action openOrganizationRequest, exact target ID"
+      ],
+      "boundary": "No approval/publication. Reviewer notification UI route/decision/history and applicant response/withdrawal remain pending."
+    },
+    {
+      "check": "R08-B",
+      "kind": "physical_production_reviewer_and_applicant_terminal_evidence",
+      "reviewerBundle": "build/audit-closure-20261025/PhysicalReviewerDirectRouteRevisionHistory.xcresult",
+      "reviewerPassed": 1,
+      "applicantBundle": "build/audit-closure-20261025/PhysicalApplicantNoticeEditorCleanupFinal.xcresult",
+      "applicantPassed": 1,
+      "verified": [
+        "Platform owner exact inbox notice -> direct review sheet for controlled request",
+        "Approval selection enables confirmation; empty rejection and revision reasons disable confirmation; only revision submitted",
+        "Successful requestRevision; exact reason and reviewer displayed in history; independent needsRevision/audit entry readback",
+        "Exact applicant inbox notice contains organization name/reason and opens own existing editor",
+        "Authorized test request removed through own request UI; independent document HTTP 404",
+        "Working organization authority fields unchanged from restored baseline"
+      ],
+      "readback": [
+        "build/audit-closure-20261025/physical/test-request-needs-revision.json",
+        "build/audit-closure-20261025/physical/test-request-applicant-notifications.json",
+        "build/audit-closure-20261025/physical/test-request-review-audit.json",
+        "build/audit-closure-20261025/physical/test-request-cleanup-readback.json"
+      ],
+      "images": [
+        "build/audit-closure-20261025/physical-reviewer-accepted-images",
+        "build/audit-closure-20261025/physical-applicant-accepted-images"
+      ],
+      "harnessCorrections": [
+        "Dismiss optional passkey offer without creating credentials",
+        "Navigate out of hidden-tab-bar screens using visible back control",
+        "Targeted reviewer notification opens the review sheet directly",
+        "Long notification identifiers require NSPredicate exact matching"
+      ],
+      "boundary": "Physical checks use existing controlled accounts. No new registration, organization approval/publication, credential change or TestFlight upload. No APNs receipt proven by this inbox scenario; no private push delivery record or matching log was found."
+    },
+    {
+      "check": "R02-A",
+      "kind": "actual_email_action_codes_sensitive_mutation_isolated",
+      "bundle": "build/audit-closure-20261025/EmailActionCodesActualSDKAccepted.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "verified": [
+        "Existing seeded account only; no registration",
+        "App AuthService sends verification and reset through FirebaseAuthBackend",
+        "Generated verification URL target/mode, recipient and single-use code; unverified -> verified actual SDK state",
+        "Password reset URL/recipient/code, previous password rejected, new password signs in with same UID, consumed reset code rejected",
+        "Original fixture password and verification state restored"
+      ],
+      "boundary": "Local Auth Emulator; no SMTP/inbox/browser delivery claim and no production password changed. New real registration excluded by user. Emulator VERIFY_EMAIL vs SDK verifyEmail operation-enum mismatch documented; acceptance uses exact link mode/recipient, actual state transition and replay rejection, not that unused enum."
+    },
+    {
+      "check": "R03-B",
+      "kind": "actual_provider_link_sensitive_mutation_isolated",
+      "bundle": "build/audit-closure-20261025/ProviderLinkActualSDK.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "verified": [
+        "Actual AccountProviderLinkService and FirebaseAccountProviderLinkBackend",
+        "Link Google to existing fixture account; independent Auth REST provider read",
+        "Linked credential sign-in preserves same UID and original password login",
+        "Duplicate link rejected; same provider cannot be attached to another account or silently switch current account",
+        "Fixture provider set restored through SDK cleanup and independent read"
+      ],
+      "boundary": "Synthetic federated token accepted only by fixed-loopback Auth Emulator. Genuine Google native sign-in separately observed on iPhone; production credential bindings not changed. Product exposes listing/linking, not unlink; SDK unlink is fixture cleanup only."
+    },
+    {
+      "checks": [
+        "R02-C",
+        "R03-B"
+      ],
+      "kind": "physical_auth_cancellation_and_security_readback",
+      "passkeyCancelBundle": "build/audit-closure-20261025/PhysicalPasskeyCancelNoFace.xcresult",
+      "mfaCancelBundle": "build/audit-closure-20261025/PhysicalOwnerMFACancelRetry.xcresult",
+      "securityReadBundle": "build/audit-closure-20261025/PhysicalOwnerSecurityReadOnly.xcresult",
+      "acceptedMethods": 3,
+      "verified": [
+        "Native passkey prompt cancelled twice with enabled provider buttons after each cancellation",
+        "Empty owner MFA cannot submit; cancellation returns enabled Apple/Google/passkey buttons",
+        "User completed repeat Apple+TOTP login after cancellation",
+        "Existing key/provider reads and mandatory last-factor protection; background return with lock disabled"
+      ],
+      "boundary": "Earlier automatic Face ID completion was a genuine successful sign-in, not accepted cancellation proof. One MFA-runner initialization timeout retried sequentially and passed."
+    },
+    {
+      "check": "R03-B",
+      "kind": "physical_biometric_gate_partial",
+      "bundle": "build/audit-closure-20261025/PhysicalBiometricProtectedGate.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "verified": [
+        "User enabled app lock via real device authentication",
+        "Explicit Home/background and app activation displays lock screen",
+        "Profile settings and navigation controls not hittable behind protected screen",
+        "User confirmed Face ID unlock and disabling protection to restore original off state; subsequent live Device Hub observation showed off"
+      ],
+      "boundary": "Original-setting test ran before UI restoration settled and did not pass; off-state restoration is live visual observation plus user confirmation, not that failed test. No security preference changed by automation."
     }
   ],
-  "remainingScenarioGroups": 5,
+  "remainingScenarioGroups": 2,
   "deployment": {
     "scope": "firestore:rules only",
     "project": "ukrainiancommunity-dbd5f",
@@ -821,10 +934,7 @@
   },
   "remainingChecks": {
     "R01-C": "Complete protected/system variants of window-state ledger; ordinary changed visual families have runtime evidence.",
-    "R02-A": "Apple and Google cancellation/repeat plus Apple+TOTP and existing Google account sign-in verified on physical iPhone. New registration excluded by user. Email password-reset links remain unverified.",
-    "R02-C": "Successful real Apple+TOTP and passkey sign-in verified on iPhone; remaining MFA/passkey cancellation, retry and recovery transitions.",
-    "R03-B": "Real provider link/unlink, passkey and Face ID lock/background-return confirmations. Disposable deletion already passed.",
-    "R08-B": "Protected reviewer full UI decisions/history and exact reviewer notification destination. Server lifecycle and actual applicant notice/edit/resubmit passed."
+    "R03-B": "Controlled native passkey creation/removal remains pending. Owner real Face ID gate/unlock/restoration, existing key list, localized dates and recovery-help presentation/return/repeated Apple+TOTP login have actual physical evidence; sensitive provider mutations have isolated actual SDK evidence."
   },
   "finalLocalRegression": {
     "mainBundle": "build/audit-closure-20261025/ClosureFullUnitFinal.xcresult",
@@ -851,5 +961,44 @@
       "effect": "Do not create a new account or require a separate registration email. New-account registration/first-use and its verification link are excluded from this continuation, not marked as tested.",
       "boundary": "Does not prove email password-reset links, and does not authorize password changes to existing accounts."
     }
-  ]
+  ],
+  "scopeCorrections": {
+    "providerUnlink": "R03-B historical wording mentioned unlink, but current product inventory exposes only listing/linking. No unlink UI is claimed or added. Isolated SDK unlink is cleanup, not product coverage."
+  },
+  "hostedContinuation": {
+    "failedRuns": [
+      40189952096,
+      40191313310,
+      40191891501
+    ],
+    "verifiedCause": "Missing shared main scheme after adding physical-only shared scheme; build/test jobs could not resolve UkrainianCommunity scheme",
+    "fixCommit": "5e54e70e",
+    "cleanProjectReadback": "build/audit-closure-20261025/clean-shared-schemes-readback.json",
+    "acceptedRun": 40194677988,
+    "acceptedRunStatus": "completed_success",
+    "boundary": "This hosted result covers 5e54e70e, not later uncommitted recovery UI and test additions."
+  },
+  "securityRecoveryFollowup": {
+    "sourceCommit": "81772376",
+    "installedConfiguration": "signed Release; explicit device installation",
+    "unitBundle": "build/audit-closure-20261025/RecoverySupportAndAuthSecurityAccepted.xcresult",
+    "unitPassed": 10,
+    "physicalRecoveryBundle": "build/audit-closure-20261025/PhysicalMFARecoveryHelp.xcresult",
+    "physicalRecoveryPassed": 1,
+    "verified": [
+      "Help sheet opens during actual pending Apple/TOTP challenge; public support contact readable; close returns same empty challenge and disabled submit",
+      "Authenticator date visually reviewed in Ukrainian rather than system German",
+      "User confirmed actual Face ID unlock and restoring app-lock off; subsequent Release physical read confirms off",
+      "User completed actual TOTP sign-in after help; PhysicalResolvedKeysAndRecoveryLogin.xcresult passed, verifies owner identity, resolved enabled key list and off-lock return."
+    ],
+    "reviewedImages": [
+      "build/audit-closure-20261025/physical-mfa-recovery-help-images/304FCB9E-790B-43D1-AF6B-BB733F2606B9.png",
+      "build/audit-closure-20261025/physical-localized-security-images/490ECE34-3BBD-4801-9A92-37E7E1DB7F82.png",
+      "build/audit-closure-20261025/physical-resolved-keys-images/81B40921-8EA5-4247-A4BD-3D93DDF20AC3.png"
+    ],
+    "harnessCorrection": "Initial key-list capture occurred while loading. It does not prove resolved key dates; wait for enabled add button before capture.",
+    "boundary": "Controlled native credential lifecycle remains pending. Existing legacy key has no createdAt and correctly uses the key label fallback; resolved UI was visually reviewed. No mail sent or credentials changed.",
+    "resolvedKeysBundle": "build/audit-closure-20261025/PhysicalResolvedKeysAndRecoveryLogin.xcresult",
+    "closedCheck": "R02-C"
+  }
 }

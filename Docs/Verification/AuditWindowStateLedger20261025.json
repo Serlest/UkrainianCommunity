@@ -51,14 +51,13 @@
       ],
       "evidenceReports": [
         "AuthPresentationImprovements20261024.json",
-        "StartupAuthFixes.json"
+        "StartupAuthFixes.json",
+        "AuditPhysicalProgress20261025.json"
       ],
       "roleBoundary": "Unauthenticated entry and restored sessions. Privileged verification is separate.",
-      "remaining": [
-        "Actual Apple/Google first and repeat login, cancellation/error and email action-link completion on controlled accounts"
-      ],
+      "remaining": [],
       "reviewedImages": [],
-      "status": "open"
+      "status": "verified_with_linked_evidence"
     },
     {
       "id": "security",
@@ -70,7 +69,7 @@
         "account security",
         "TOTP requirement/enrollment/sign-in",
         "passkey list/add/remove/sign-in",
-        "provider link/unlink",
+        "provider listing/linking (unlink not exposed)",
         "biometric lock",
         "delete-account confirmation and return"
       ],
@@ -79,10 +78,13 @@
       ],
       "roleBoundary": "Member security, owner/admin protected gate; organization-owner and platform-owner deletion restrictions retained.",
       "remaining": [
-        "Controlled privileged MFA and real provider/passkey/biometric confirmations, background/return and recovery"
+        "Controlled native passkey creation/removal. Recovery-help sheet and localized resolved security visuals passed on signed physical Release."
       ],
       "reviewedImages": [
-        "build/audit-closure-20261025/deletion-settled/9EB71032-CC51-4393-8501-0035B5C06B8E.png"
+        "build/audit-closure-20261025/deletion-settled/9EB71032-CC51-4393-8501-0035B5C06B8E.png",
+        "build/audit-closure-20261025/physical-mfa-recovery-help-images/304FCB9E-790B-43D1-AF6B-BB733F2606B9.png",
+        "build/audit-closure-20261025/physical-resolved-keys-images/81B40921-8EA5-4247-A4BD-3D93DDF20AC3.png",
+        "build/audit-closure-20261025/physical-localized-security-images/490ECE34-3BBD-4801-9A92-37E7E1DB7F82.png"
       ],
       "status": "open"
     },
@@ -281,16 +283,15 @@
         "AuditPhysicalProgress20261025.json"
       ],
       "roleBoundary": "Ordinary organization owner can manage own organization; only platform owner transfers ownership. Current authoritative documents determine roles.",
-      "remaining": [
-        "Protected reviewer UI lifecycle/history/direct reviewer notification route. Actual physical ownership transfer, restoration and cancellation now verified; ordinary applicant/team evidence retained."
-      ],
+      "remaining": [],
       "reviewedImages": [
         "build/audit-closure-20261025/replacement-maps-translation/79E397DD-C4AE-4258-9F83-8F575486EACE.png",
         "build/audit-closure-20261025/replacement-maps-translation/2CE262FF-8386-44D6-A562-3C549F63455B.png",
         "build/audit-closure-20261025/replacement-maps-translation/BF1B0336-CE58-401E-9CA6-64AA81110C70.png",
-        "build/audit-closure-20261025/physical-owner-cancel-fixed-images/80EF6D79-0F94-46D0-8096-0D524C51CB5E.png"
+        "build/audit-closure-20261025/physical-owner-cancel-fixed-images/80EF6D79-0F94-46D0-8096-0D524C51CB5E.png",
+        "build/audit-closure-20261025/physical-reviewer-accepted-images/DAE339C4-D85F-416E-9DB8-B2655C7C3FFD.png"
       ],
-      "status": "open"
+      "status": "verified_with_linked_evidence"
     },
     {
       "id": "directory",
