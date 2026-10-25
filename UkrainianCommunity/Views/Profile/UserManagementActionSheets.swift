@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AccountActionConfirmationSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let action: UserAdminAction
     let target: AppUser
@@ -14,9 +16,16 @@ struct AccountActionConfirmationSheet: View {
     private let suspensionOptions = [1, 7, 14, 30]
 
     private var canSubmit: Bool {
-        actor != nil
+        reviewIsCurrent
             && !viewModel.updatingUserIDs.contains(target.id)
             && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && reason.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 2000
+    }
+
+    private var reviewIsCurrent: Bool {
+        guard let actor else { return false }
+        return viewModel.isReviewCurrent(target: target, actor: actor, currentActor: authState.user)
+            && viewModel.canManage(target: target, actor: actor)
     }
 
     var body: some View {
@@ -34,7 +43,7 @@ struct AccountActionConfirmationSheet: View {
                                 Text(AppStrings.UserManagement.suspensionDays(days)).tag(days)
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .modifier(UserActionDurationPickerStyle())
                     }
 
                     Label(action.effectDescription, systemImage: "info.circle.fill")
@@ -44,9 +53,15 @@ struct AccountActionConfirmationSheet: View {
 
                     TextField(AppStrings.UserManagement.reasonPlaceholder, text: $reason, axis: .vertical)
                         .lineLimit(3...6)
+                        .accessibilityIdentifier("user.action.reason")
                         .padding(AppTheme.inputHorizontalPadding)
                         .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
 
+                    Text(UserAdministrationCopy.reasonLimit)
+                        .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    if !reviewIsCurrent {
+                        InlineMessageCard(style: .info, message: UserAdministrationCopy.reviewChanged)
+                    }
                     Text(AppStrings.UserManagement.actionAuditNotice)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -61,10 +76,12 @@ struct AccountActionConfirmationSheet: View {
                         isLoading: viewModel.updatingUserIDs.contains(target.id),
                         systemImage: action.systemImage,
                         action: performAction
-                    )
+                    ).accessibilityIdentifier("user.action.confirm")
                 }
                 .padding(AppTheme.pageHorizontal)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .background(AppBackgroundView())
             .navigationTitle(AppStrings.UserManagement.actionFallbackTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -81,7 +98,7 @@ struct AccountActionConfirmationSheet: View {
     }
 
     private func performAction() {
-        guard let actor else { return }
+        guard let actor, reviewIsCurrent else { return }
         Task {
             await viewModel.perform(action, target: target, actor: actor, reason: reason, suspensionDays: suspensionDays)
             if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { dismiss() }
@@ -91,12 +108,20 @@ struct AccountActionConfirmationSheet: View {
 
 struct PlatformRoleConfirmationSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let action: PlatformRoleAction
     let target: AppUser
     let actor: AppUser?
     @ObservedObject var viewModel: UserManagementViewModel
     @State private var reason = ""
+
+    private var reviewIsCurrent: Bool {
+        guard let actor else { return false }
+        return viewModel.isReviewCurrent(target: target, actor: actor, currentActor: authState.user)
+            && viewModel.canManagePlatformRole(target: target, actor: actor)
+    }
 
     var body: some View {
         AdminReasonSheetLayout(
@@ -109,7 +134,7 @@ struct PlatformRoleConfirmationSheet: View {
             actionImage: action.systemImage,
             isEnabled: canSubmit,
             isLoading: viewModel.updatingUserIDs.contains(target.id),
-            message: viewModel.statusMessage,
+            message: reviewIsCurrent ? viewModel.statusMessage : UserAdministrationCopy.reviewChanged,
             onCancel: { dismiss() },
             onConfirm: performAction
         )
@@ -117,12 +142,13 @@ struct PlatformRoleConfirmationSheet: View {
     }
 
     private var canSubmit: Bool {
-        actor != nil && !viewModel.updatingUserIDs.contains(target.id)
+        reviewIsCurrent && !viewModel.updatingUserIDs.contains(target.id)
             && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && reason.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 2000
     }
 
     private func performAction() {
-        guard let actor else { return }
+        guard let actor, reviewIsCurrent else { return }
         Task {
             await viewModel.performPlatformRoleAction(action, target: target, actor: actor, reason: reason)
             if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { dismiss() }
@@ -132,12 +158,20 @@ struct PlatformRoleConfirmationSheet: View {
 
 struct OrganizationRoleRemovalSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     let organization: ManagedOrganization
     let target: AppUser
     let actor: AppUser?
     @ObservedObject var viewModel: UserManagementViewModel
     @State private var reason = ""
+
+    private var reviewIsCurrent: Bool {
+        guard let actor else { return false }
+        return viewModel.isReviewCurrent(target: target, actor: actor, currentActor: authState.user)
+            && viewModel.canManageOrganizationRoles(in: organization, actor: actor) && organization.ownerId != target.id
+    }
 
     var body: some View {
         AdminReasonSheetLayout(
@@ -150,7 +184,7 @@ struct OrganizationRoleRemovalSheet: View {
             actionImage: "minus.circle",
             isEnabled: canSubmit,
             isLoading: viewModel.updatingUserIDs.contains(target.id),
-            message: viewModel.statusMessage,
+            message: reviewIsCurrent ? viewModel.statusMessage : UserAdministrationCopy.reviewChanged,
             onCancel: { dismiss() },
             onConfirm: performAction
         )
@@ -158,12 +192,13 @@ struct OrganizationRoleRemovalSheet: View {
     }
 
     private var canSubmit: Bool {
-        actor != nil && !viewModel.updatingUserIDs.contains(target.id)
+        reviewIsCurrent && !viewModel.updatingUserIDs.contains(target.id)
             && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && reason.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 2000
     }
 
     private func performAction() {
-        guard let actor else { return }
+        guard let actor, reviewIsCurrent else { return }
         Task {
             await viewModel.removeRole(in: organization, from: target, actor: actor, reason: reason)
             if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { dismiss() }
@@ -198,8 +233,10 @@ private struct AdminReasonSheetLayout: View {
                     }
                     TextField(AppStrings.UserManagement.reasonPlaceholder, text: $reason, axis: .vertical)
                         .lineLimit(3...6)
+                        .accessibilityIdentifier("user.action.reason")
                         .padding(AppTheme.inputHorizontalPadding)
                         .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                    Text(UserAdministrationCopy.reasonLimit).font(.caption).foregroundStyle(AppTheme.textSecondary)
                     Text(notice)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -212,10 +249,12 @@ private struct AdminReasonSheetLayout: View {
                         isLoading: isLoading,
                         systemImage: actionImage,
                         action: onConfirm
-                    )
+                    ).accessibilityIdentifier("user.action.confirm")
                 }
                 .padding(AppTheme.pageHorizontal)
             }
+            .scrollDismissesKeyboard(.interactively)
+            .background(AppBackgroundView())
             .navigationTitle(AppStrings.UserManagement.actionFallbackTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -241,5 +280,62 @@ struct UserManagementOperationMessage: View {
     var body: some View {
         InlineMessageCard(style: style, message: message)
             .accessibilityIdentifier("user.action.result")
+    }
+}
+
+private struct UserActionDurationPickerStyle: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var size
+    @ViewBuilder func body(content: Content) -> some View {
+        if size.isAccessibilitySize { content.pickerStyle(.menu) }
+        else { content.pickerStyle(.segmented) }
+    }
+}
+
+struct UserOwnershipTransferReviewSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var authState: AuthState
+    let organization: ManagedOrganization
+    let target: AppUser
+    let actor: AppUser
+    let reason: String
+    @ObservedObject var viewModel: UserManagementViewModel
+    let onSuccess: () -> Void
+
+    private var busy: Bool { viewModel.updatingUserIDs.contains(target.id) }
+    private var canConfirm: Bool {
+        guard viewModel.isReviewCurrent(target: target, actor: actor, currentActor: authState.user),
+              PermissionService.canInitiateOwnershipTransferWorkflow(user: authState.user),
+              let current = (viewModel.organizationChoices + viewModel.organizations).first(where: { $0.id == organization.id }) else { return false }
+        return current.accessRevision == organization.accessRevision && current.ownerId == organization.ownerId
+            && current.adminIds == organization.adminIds && current.moderatorIds == organization.moderatorIds
+            && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && reason.utf16.count <= 2000
+    }
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    SectionHeaderBlock(title: AppStrings.UserManagement.ownerTransferConfirmationTitle,
+                        subtitle: AppStrings.UserManagement.ownerTransferConfirmationMessage(target.preferredDisplayName, organization.name))
+                    Text(reason).font(.body).foregroundStyle(AppTheme.textPrimary).textSelection(.enabled)
+                    Text(AppStrings.UserManagement.platformRoleAuditNotice).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    if !canConfirm { InlineMessageCard(style: .info, message: UserAdministrationCopy.reviewChanged) }
+                    if let message = viewModel.statusMessage { UserManagementOperationMessage(message: message) }
+                    PrimaryActionButton(title: AppStrings.UserManagement.changeOwnerButton,
+                        isEnabled: canConfirm && !busy, isLoading: busy, systemImage: "person.crop.circle.badge.checkmark") {
+                        guard canConfirm else { return }
+                        Task {
+                            await viewModel.changeOwner(in: organization, to: target, actor: actor, reason: reason)
+                            if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { onSuccess(); dismiss() }
+                        }
+                    }.accessibilityIdentifier("user.ownership.confirm")
+                }.padding(AppTheme.pageHorizontal)
+            }
+            .background(AppBackgroundView())
+            .navigationTitle(AppStrings.UserManagement.ownerTransferConfirmationTitle)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .cancellationAction) {
+                Button(AppStrings.Common.cancel) { dismiss() }.disabled(busy).accessibilityIdentifier("user.ownership.cancel")
+            } }
+        }.interactiveDismissDisabled(busy).onAppear { viewModel.statusMessage = nil }
     }
 }

@@ -250,6 +250,9 @@ final class UserManagementViewModel: ObservableObject {
 
     @Published private(set) var directoryHasLoaded = false
     @Published private(set) var unavailableUserIDs = Set<String>()
+    @Published private(set) var loadingDetailUserIDs = Set<String>()
+    @Published private(set) var confirmedDetailUserIDs = Set<String>()
+    @Published private(set) var failedDetailUserIDs = Set<String>()
     private var directoryRequest: Task<Void, Never>?
     private var directoryRequestKey: String?
 
@@ -282,6 +285,7 @@ final class UserManagementViewModel: ObservableObject {
     }
 
     func loadDirectory(actor: AppUser?, query: UserDirectoryQuery, more: Bool = false) async {
+        if more, !isDirectoryCurrent(actor: actor, query: query) { return }
         prepareDirectory(actor: actor, query: query)
         let actorKey = managementActorKey(for: actor)
         guard let actor, actorKey != nil, let fetch = reads.directory else { return }
@@ -545,6 +549,10 @@ final class UserManagementViewModel: ObservableObject {
         }
     }
 
+    func loadAuditHistory(userID: String, cursor: QueryDocumentSnapshot?) async throws -> ManagedUserAuditPage {
+        try await reads.auditHistory(userID, cursor)
+    }
+
     func loadPresence(userID: String) async throws -> ManagedUserPresenceSnapshot {
         try await reads.presence(userID)
     }
@@ -723,6 +731,17 @@ final class UserManagementViewModel: ObservableObject {
         }
     }
 
+    func isReviewCurrent(target: AppUser, actor: AppUser, currentActor: AppUser?) -> Bool {
+        ProfileAccessIdentity(user: actor) == ProfileAccessIdentity(user: currentActor)
+            && PermissionService.canManageUsers(user: currentActor)
+            && managementActorKey(for: actor) == loadedActorKey
+            && !unavailableUserIDs.contains(target.id)
+            && !loadingDetailUserIDs.contains(target.id)
+            && !failedDetailUserIDs.contains(target.id)
+            && confirmedDetailUserIDs.contains(target.id)
+            && user(withID: target.id)?.managementRevision == target.managementRevision
+    }
+
     func canManage(target: AppUser, actor: AppUser) -> Bool {
         PermissionService.canManageUserTarget(actor: actor, target: target)
     }
@@ -772,6 +791,11 @@ final class UserManagementViewModel: ObservableObject {
         sessionRevocationAction: UserAdminAction? = nil,
         operation: () async throws -> Void
     ) async {
+        guard managementActorKey(for: actor) == loadedActorKey, loadedActorKey != nil,
+              !unavailableUserIDs.contains(target.id) else {
+            statusMessage = UserDirectoryCopy.changed
+            return
+        }
         guard !updatingUserIDs.contains(target.id) else { return }
         updatingUserIDs.insert(target.id)
         statusMessage = nil
@@ -833,6 +857,8 @@ final class UserManagementViewModel: ObservableObject {
         let session = sessionRevision
         detailRevisions[id, default: 0] &+= 1
         let revision = detailRevisions[id]
+        loadingDetailUserIDs.insert(id); failedDetailUserIDs.remove(id)
+        defer { if session == sessionRevision && revision == detailRevisions[id] { loadingDetailUserIDs.remove(id) } }
         do {
             let refreshedUser = try await RefreshRequest.run(deadline: detailReadDeadline) { [reads] in try await reads.user(id) }
             guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
@@ -844,12 +870,14 @@ final class UserManagementViewModel: ObservableObject {
                 if afterMutation { statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed }
                 return
             }
-            unavailableUserIDs.remove(id)
+            guard refreshedUser.id == id else { throw AppError.permissionDenied }
+            unavailableUserIDs.remove(id); confirmedDetailUserIDs.insert(id)
             if let index = users.firstIndex(where: { $0.id == id }) { users[index] = refreshedUser }
             detailUsersByID[id] = refreshedUser
             if let index = searchResults.firstIndex(where: { $0.id == id }) { searchResults[index] = refreshedUser }
         } catch {
             guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
+            failedDetailUserIDs.insert(id)
             self.error = .network
             if afterMutation { statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed }
         }
@@ -1074,6 +1102,7 @@ final class UserManagementViewModel: ObservableObject {
         directoryGeneration = UUID(); directoryQuery = nil; directoryCursor = nil; directoryTotal = 0
         directoryRequest?.cancel(); directoryRequest = nil; directoryRequestKey = nil
         directoryHasLoaded = false; unavailableUserIDs = []
+        loadingDetailUserIDs = []; confirmedDetailUserIDs = []; failedDetailUserIDs = []
         organizationGeneration = UUID(); organizationChoices = []; organizationCursor = nil; isLoadingOrganizations = false
         sessionRevision &+= 1
         refreshRevision &+= 1

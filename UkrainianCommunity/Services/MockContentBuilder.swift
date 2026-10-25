@@ -140,7 +140,8 @@ enum MockContentBuilder {
             userReads += 1
             try await Task.sleep(for: .milliseconds(700))
             if failOnce && userReads == 1 { throw AppError.network }
-            let member = currentUser()
+            guard let member = users.first(where: { $0.id == id }) else { return nil }
+            if regional || longContent { return member }
             return AppUser(id: member.id, fullName: member.fullName, displayName: "Olena (updated)",
                 city: member.city, email: member.email, bio: member.bio, role: member.role,
                 blockState: member.blockState, createdAt: member.createdAt, updatedAt: .now)
@@ -169,6 +170,7 @@ enum MockContentBuilder {
             }
             return .init(users: matches, totalMatches: matches.count)
         })
+        reads.auditHistory = { _, _ in .init(items: [], cursor: nil, hasMore: false) }
         if ProcessInfo.processInfo.environment["UITestUserDirectory"] == "1" {
             reads.directory = { _, query, cursor in
                 if query.search == "error" { throw AppError.network }

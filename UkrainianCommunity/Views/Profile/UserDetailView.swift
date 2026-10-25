@@ -5,15 +5,25 @@ private enum UserDetailFocusField {
     case roleReason
 }
 
+private struct PendingUserReview<Action>: Identifiable {
+    let id = UUID()
+    let action: Action
+    let target: AppUser
+    let actor: AppUser
+}
+
 private struct PendingOwnershipTransfer: Identifiable {
     let organization: ManagedOrganization
     let target: AppUser
     let reason: String
+    let actor: AppUser
 
     var id: String { "\(organization.id)|\(target.id)" }
 }
 
 struct UserDetailView: View {
+    @EnvironmentObject private var authState: AuthState
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     private var profileIdentityLayout: AnyLayout {
         dynamicTypeSize.isAccessibilitySize
@@ -29,10 +39,11 @@ struct UserDetailView: View {
     @State private var selectedRole: CommunityRole = .communityModerator
     @State private var organizationSearchText = ""
     @State private var roleReason = ""
+    @State private var historyRefresh = 0
     @State private var isChoosingOrganization = false
-    @State private var pendingAction: UserAdminAction?
-    @State private var pendingRoleRemoval: ManagedOrganization?
-    @State private var pendingPlatformRoleAction: PlatformRoleAction?
+    @State private var pendingAction: PendingUserReview<UserAdminAction>?
+    @State private var pendingRoleRemoval: PendingUserReview<ManagedOrganization>?
+    @State private var pendingPlatformRoleAction: PendingUserReview<PlatformRoleAction>?
     @State private var pendingOwnershipTransfer: PendingOwnershipTransfer?
     @StateObject private var presenceModel: ManagedUserPresenceViewModel
 
@@ -128,6 +139,7 @@ struct UserDetailView: View {
         guard PermissionService.isUsableAccount(user: user) else {
             return AppStrings.UserManagement.platformRoleTargetAccountNotUsable
         }
+        if securityMetadata == nil { return AppStrings.UserManagement.securityLoadHint }
         if securityMetadata?.emailVerified == false {
             return AppStrings.UserManagement.organizationRoleTargetEmailUnverified
         }
@@ -142,6 +154,9 @@ struct UserDetailView: View {
         }
         if selectedRole == .communityOwner && !canTransferOwnership {
             return AppStrings.UserManagement.ownerChangePermissionDenied
+        }
+        if roleReason.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count > 2000 {
+            return UserAdministrationCopy.reasonLimit
         }
         if roleReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return AppStrings.UserManagement.reasonRequired
@@ -174,52 +189,39 @@ struct UserDetailView: View {
             .toolbar(.hidden, for: .tabBar)
             .sheet(item: $pendingAction) { action in
                 AccountActionConfirmationSheet(
-                    action: action,
-                    target: user,
-                    actor: actor,
+                    action: action.action,
+                    target: action.target,
+                    actor: action.actor,
                     viewModel: viewModel
                 )
             }
             .sheet(item: $pendingPlatformRoleAction) { action in
                 PlatformRoleConfirmationSheet(
-                    action: action,
-                    target: user,
-                    actor: actor,
+                    action: action.action,
+                    target: action.target,
+                    actor: action.actor,
                     viewModel: viewModel
                 )
             }
             .sheet(item: $pendingRoleRemoval) { organization in
                 OrganizationRoleRemovalSheet(
-                    organization: organization,
-                    target: user,
-                    actor: actor,
+                    organization: organization.action,
+                    target: organization.target,
+                    actor: organization.actor,
                     viewModel: viewModel
                 )
             }
-            .confirmationDialog(
-                AppStrings.UserManagement.ownerTransferConfirmationTitle,
-                isPresented: Binding(
-                    get: { pendingOwnershipTransfer != nil },
-                    set: { if !$0 { pendingOwnershipTransfer = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let pendingOwnershipTransfer {
-                    Button(AppStrings.UserManagement.changeOwnerButton, role: .destructive) {
-                        performOwnershipTransfer(pendingOwnershipTransfer)
+            .sheet(item: $pendingOwnershipTransfer) { transfer in
+                UserOwnershipTransferReviewSheet(organization: transfer.organization,
+                    target: transfer.target, actor: transfer.actor, reason: transfer.reason, viewModel: viewModel) {
+                        roleReason = ""
                     }
-                }
-                Button(AppStrings.Common.cancel, role: .cancel) {}
-            } message: {
-                if let pendingOwnershipTransfer {
-                    Text(
-                        AppStrings.UserManagement.ownerTransferConfirmationMessage(
-                            pendingOwnershipTransfer.target.preferredDisplayName,
-                            pendingOwnershipTransfer.organization.name
-                        )
-                    )
-                }
             }
+    }
+
+    private var canReviewCurrentUser: Bool {
+        guard let actor else { return false }
+        return viewModel.isReviewCurrent(target: user, actor: actor, currentActor: authState.user)
     }
 
     private var baseScreen: some View {
@@ -229,7 +231,19 @@ struct UserDetailView: View {
         ) {
             AppGroupedContentPlane {
                 VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                    if viewModel.unavailableUserIDs.contains(userID) {
+                        UnifiedEmptyStateCard(systemImage: "person.crop.circle.badge.xmark", title: AppStrings.UserManagement.title,
+                            message: UserAdministrationCopy.unavailable)
+                            .accessibilityIdentifier("user.detail.unavailable")
+                    } else {
                     profileCard
+                    if viewModel.loadingDetailUserIDs.contains(userID) {
+                        ProgressView().accessibilityIdentifier("user.detail.loading")
+                    } else if viewModel.failedDetailUserIDs.contains(userID) {
+                        InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
+                        Button(AppStrings.UserManagement.retry) { Task { await viewModel.refreshDetail(userID: userID, actor: actor) } }
+                            .accessibilityIdentifier("user.detail.retry")
+                    }
                     if let message = viewModel.statusMessage {
                         UserManagementOperationMessage(message: message)
                     }
@@ -248,7 +262,9 @@ struct UserDetailView: View {
                         }
                     } else { roleAssignmentCard }
                     securityCard
-                    UserAuditHistoryCard(userId: user.id, refreshToken: viewModel.mutationRevision)
+                    UserAuditHistoryCard(userID: user.id, actor: authState.user,
+                        refreshToken: "\(viewModel.mutationRevision)|\(historyRefresh)", load: viewModel.loadAuditHistory)
+                    }
                 }
             }
         }
@@ -261,15 +277,14 @@ struct UserDetailView: View {
                 async let details: Void = viewModel.refreshDetail(userID: userID, actor: actor)
                 async let presence: Void = presenceModel.refresh(userID: userID, actor: actor)
                 _ = await (details, presence)
+                historyRefresh += 1
                 ensureSelectedOrganization()
                 ensureSelectedRole()
             }
             .task {
                 ensureSelectedOrganization()
                 ensureSelectedRole()
-                async let security: Void = viewModel.loadSecurityMetadata(userID: userID, actor: actor)
-                async let memberships: Void = viewModel.loadMemberships(userID: userID, actor: actor)
-                _ = await (security, memberships)
+                await viewModel.refreshDetail(userID: userID, actor: actor)
             }
             .task(id: "\(isChoosingOrganization)|\(organizationSearchText)") {
                 guard viewModel.usesDirectory, isChoosingOrganization else { return }
@@ -277,6 +292,10 @@ struct UserDetailView: View {
                 guard !Task.isCancelled else { return }
                 await viewModel.loadOrganizationChoices(actor: actor, search: organizationSearchText)
                 ensureSelectedOrganization(); ensureSelectedRole()
+            }
+            .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in
+                pendingAction = nil; pendingRoleRemoval = nil; pendingPlatformRoleAction = nil; pendingOwnershipTransfer = nil
+                dismiss()
             }
             .onChange(of: viewModel.organizationChoices.count) { _, _ in ensureSelectedOrganization(); ensureSelectedRole() }
             .onChange(of: viewModel.organizations.count) { _, _ in
@@ -450,7 +469,7 @@ struct UserDetailView: View {
                                     .accessibilityLabel(AppStrings.UserManagement.ownerTransferOnly)
                             } else if let actor, viewModel.canManageOrganizationRoles(in: organization, actor: actor) {
                                 Button {
-                                    pendingRoleRemoval = organization
+                                    pendingRoleRemoval = .init(action: organization, target: user, actor: actor)
                                 } label: {
                                     Image(systemName: "minus.circle")
                                         .foregroundStyle(AppTheme.accentDestructiveForeground)
@@ -461,7 +480,7 @@ struct UserDetailView: View {
                                 }
                                 .accessibilityLabel(AppStrings.UserManagement.removeOrganizationRoleButton)
                                 .accessibilityIdentifier("user.detail.organizationRole.remove.\(organization.id)")
-                                .disabled(isUpdating)
+                                .disabled(isUpdating || !canReviewCurrentUser)
                             }
                         }
                     }
@@ -582,6 +601,7 @@ struct UserDetailView: View {
                     .onSubmit { focusedField = nil }
                     .disabled(!canManageSelectedOrganizationRoles || selectedOrganization?.ownerId == user.id)
 
+                Text(UserAdministrationCopy.reasonLimit).font(.caption).foregroundStyle(AppTheme.textSecondary)
                 if let roleAssignmentBlockingMessage {
                     Label(roleAssignmentBlockingMessage, systemImage: "info.circle")
                         .font(.caption)
@@ -591,7 +611,7 @@ struct UserDetailView: View {
 
                 PrimaryActionButton(
                     title: selectedRole == .communityOwner ? AppStrings.UserManagement.changeOwnerButton : AppStrings.UserManagement.assignRoleButton,
-                    isEnabled: canManageSelectedOrganizationRoles && canAssignSelectedOrganizationRole && roleAssignmentBlockingMessage == nil,
+                    isEnabled: canReviewCurrentUser && canManageSelectedOrganizationRoles && canAssignSelectedOrganizationRole && roleAssignmentBlockingMessage == nil,
                     isLoading: isUpdating,
                     systemImage: selectedRole == .communityOwner ? "person.crop.circle.badge.checkmark" : "person.badge.key"
                 ) {
@@ -604,7 +624,8 @@ struct UserDetailView: View {
                         pendingOwnershipTransfer = PendingOwnershipTransfer(
                             organization: selectedOrganization,
                             target: currentUser,
-                            reason: submittedReason
+                            reason: submittedReason,
+                            actor: actor
                         )
                     } else {
                         Task {
@@ -629,11 +650,11 @@ struct UserDetailView: View {
 
                 if canManage {
                     ForEach(availableAccountActions) { action in
-                        Button { pendingAction = action } label: {
+                        Button { if let actor { pendingAction = .init(action: action, target: user, actor: actor) } } label: {
                             actionLabel(action, tint: accountActionTint(action))
                         }
                         .accessibilityIdentifier("user.detail.accountAction.\(action.rawValue)")
-                        .disabled(isUpdating)
+                        .disabled(isUpdating || !canReviewCurrentUser)
                     }
                 } else {
                     Label(accountActionsUnavailableMessage, systemImage: "lock.fill")
@@ -731,15 +752,15 @@ struct UserDetailView: View {
 
     private var canAssignAppAdmin: Bool {
         guard let actor else { return false }
-        return canChangePlatformRoles
+        return canReviewCurrentUser && canChangePlatformRoles
             && PermissionService.canAssignAppAdmin(user: actor)
-            && securityMetadata?.emailVerified != false
+            && securityMetadata?.emailVerified == true
             && user.globalRole.authorizationRole != .admin
     }
 
     private var canRemoveAppAdmin: Bool {
         guard let actor else { return false }
-        return canChangePlatformRoles
+        return canReviewCurrentUser && canChangePlatformRoles
             && PermissionService.canAssignAppAdmin(user: actor)
             && user.globalRole.authorizationRole == .admin
     }
@@ -768,7 +789,7 @@ struct UserDetailView: View {
 
     private func roleActionButton(_ action: PlatformRoleAction, isEnabled: Bool) -> some View {
         Button {
-            pendingPlatformRoleAction = action
+            if let actor { pendingPlatformRoleAction = .init(action: action, target: user, actor: actor) }
         } label: {
             Label(action.title, systemImage: action.systemImage)
                 .font(.subheadline.weight(.semibold))
@@ -828,21 +849,6 @@ struct UserDetailView: View {
         selectedRole = assignableRoles.first ?? .communityModerator
     }
 
-    private func performOwnershipTransfer(_ transfer: PendingOwnershipTransfer) {
-        guard let actor else { return }
-        Task {
-            await viewModel.changeOwner(
-                in: transfer.organization,
-                to: transfer.target,
-                actor: actor,
-                reason: transfer.reason
-            )
-            if viewModel.statusMessage == AppStrings.UserManagement.changesSaved {
-                roleReason = ""
-            }
-        }
-    }
-
     private func roleTitle(_ role: CommunityRole) -> String {
         switch role {
         case .communityOwner:
@@ -866,181 +872,6 @@ struct UserDetailView: View {
             "shield"
         case .member:
             "person"
-        }
-    }
-}
-
-private struct UserAuditHistoryCard: View {
-    let userId: String
-    let refreshToken: Int
-    @State private var items: [UserAuditHistoryItem] = []
-    @State private var isLoading = false
-    @State private var loadError = false
-    @State private var canLoadMore = false
-    @State private var lastDocument: QueryDocumentSnapshot?
-
-    var body: some View {
-        AppEditorSectionCard {
-            VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                SectionHeaderBlock(
-                    title: AppStrings.UserManagement.auditHistoryTitle,
-                    subtitle: AppStrings.UserManagement.auditHistorySubtitle
-                )
-
-                if isLoading && items.isEmpty {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else if loadError && items.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(AppStrings.UserManagement.auditHistoryLoadError)
-                            .font(.subheadline)
-                            .foregroundStyle(AppTheme.textSecondary)
-                        Button(AppStrings.UserManagement.retry) {
-                            Task { await load(reset: true) }
-                        }
-                    }
-                } else if items.isEmpty {
-                    Text(AppStrings.UserManagement.auditHistoryEmpty)
-                        .font(.subheadline)
-                        .foregroundStyle(AppTheme.textSecondary)
-                } else {
-                    if loadError {
-                        InlineMessageCard(style: .error, message: AppStrings.UserManagement.auditHistoryLoadError)
-                        Button(AppStrings.UserManagement.retry) { Task { await load(reset: true) } }
-                    }
-                    ForEach(items) { item in
-                        UserManagementAuditRow(
-                            title: item.title,
-                            date: LocalizationStore.dateString(from: item.createdAt, dateStyle: .short, timeStyle: .short),
-                            reason: item.reason,
-                            performedBy: item.performedBy,
-                            changeSummary: item.changeSummary
-                        )
-                    }
-
-                    if canLoadMore {
-                        Button(AppStrings.UserManagement.loadMore) {
-                            Task { await load(reset: false) }
-                        }
-                        .disabled(isLoading)
-                    }
-                }
-            }
-        }
-        .task(id: "\(userId)|\(refreshToken)") {
-            await load(reset: true)
-        }
-    }
-
-    private func load(reset: Bool) async {
-        guard !isLoading else { return }
-        isLoading = true
-        loadError = false
-        defer { isLoading = false }
-
-        do {
-            var query: Query = Firestore.firestore()
-                .collection("auditLogs")
-                .whereField("targetUserId", isEqualTo: userId)
-                .order(by: "createdAt", descending: true)
-                .limit(to: 20)
-            if !reset, let lastDocument {
-                query = query.start(afterDocument: lastDocument)
-            }
-            let snapshot = try await RefreshRequest.run { try await query.getDocuments(source: .server) }
-            guard !Task.isCancelled else { return }
-
-            let newItems = snapshot.documents.map { document in
-                let data = document.data()
-                return UserAuditHistoryItem(
-                    id: document.documentID,
-                    actionType: data["actionType"] as? String ?? "unknown",
-                    reason: data["reason"] as? String ?? "",
-                    performedBy: data["performedBy"] as? String ?? "",
-                    previousValue: data["previousValue"] as? [String: Any] ?? [:],
-                    newValue: data["newValue"] as? [String: Any] ?? [:],
-                    createdAt: (data["createdAt"] as? Timestamp)?.dateValue() ?? .distantPast
-                )
-            }
-            items = reset ? newItems : items + newItems
-            lastDocument = snapshot.documents.last
-            canLoadMore = snapshot.documents.count == 20
-        } catch {
-            guard !Task.isCancelled else { return }
-            loadError = true
-        }
-    }
-}
-
-private struct UserAuditHistoryItem: Identifiable {
-    let id: String
-    let actionType: String
-    let reason: String
-    let performedBy: String
-    let previousValue: [String: Any]
-    let newValue: [String: Any]
-    let createdAt: Date
-
-    var title: String {
-        switch actionType {
-        case "userWarned": AppStrings.UserManagement.actionWarn
-        case "userSuspended": AppStrings.UserManagement.actionSuspend
-        case "userBanned": AppStrings.UserManagement.actionBan
-        case "userDeactivated": AppStrings.UserManagement.actionDeactivate
-        case "userRestored": AppStrings.UserManagement.actionUnblock
-        case "appAdminAssigned": AppStrings.UserManagement.assignAppAdmin
-        case "appAdminRemoved": AppStrings.UserManagement.removeAppAdmin
-        case "directoryEditorGranted": DirectoryEditorText.value("Надано доступ до довідника", "Ratgeberzugriff erteilt")
-        case "directoryEditorRevoked": DirectoryEditorText.value("Відкликано доступ до довідника", "Ratgeberzugriff entzogen")
-        case "organizationRoleAssigned": AppStrings.UserManagement.assignRoleButton
-        case "organizationRoleRemoved": AppStrings.UserManagement.removeOrganizationRoleButton
-        case "organizationOwnerChanged": AppStrings.UserManagement.changeOwnerButton
-        default: actionType
-        }
-    }
-
-    var changeSummary: String? {
-        let keys = ["accountStatus", "blockState", "globalRole", "role", "organizationId", "directoryEditorEnabled"]
-        let changes = keys.compactMap { key -> String? in
-            let previous = displayValue(previousValue[key], key: key)
-            let next = displayValue(newValue[key], key: key)
-            guard previous != next, previous != nil || next != nil else { return nil }
-            let label: String = switch key {
-            case "accountStatus", "blockState": AppStrings.Common.status
-            case "globalRole": AppStrings.UserManagement.currentPlatformRole
-            case "role": AppStrings.Profile.role
-            case "directoryEditorEnabled": DirectoryEditorText.value("Редагування довідника", "Ratgeber bearbeiten")
-            default: AppStrings.Organizations.title
-            }
-            return "\(label): \(previous ?? "—") → \(next ?? "—")"
-        }
-        var seen = Set<String>()
-        let unique = changes.filter { seen.insert($0).inserted }
-        return unique.isEmpty ? nil : unique.joined(separator: " · ")
-    }
-
-    private func displayValue(_ value: Any?, key: String) -> String? {
-        if key == "directoryEditorEnabled", let enabled = value as? Bool {
-            return enabled ? DirectoryEditorText.value("Доступ надано", "Zugriff erteilt") : DirectoryEditorText.value("Без доступу", "Kein Zugriff")
-        }
-        if let raw = value as? String {
-            if key == "accountStatus", let status = AccountStatus(rawValue: raw) { return status.title }
-            if key == "blockState", let status = UserBlockState(rawValue: raw) { return status.title }
-            if key == "globalRole", let role = GlobalRole(rawValue: raw) { return role.title }
-            if key == "role", let role = CommunityRole(rawValue: raw) {
-                return switch role {
-                case .communityOwner: AppStrings.Organizations.communityOwner
-                case .communityAdmin: AppStrings.Organizations.communityAdmin
-                case .communityModerator: AppStrings.Organizations.communityModerator
-                case .member: AppStrings.Organizations.communityMember
-                }
-            }
-        }
-        return switch value {
-        case let string as String: string
-        case let number as NSNumber: number.stringValue
-        case nil: nil
-        default: String(describing: value!)
         }
     }
 }

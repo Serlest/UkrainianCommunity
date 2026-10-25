@@ -20,6 +20,7 @@ struct UserManagementReads {
     var organizations: () async throws -> [ManagedOrganization]
     var securityMetadata: (String) async throws -> ManagedUserSecurityMetadata
     var presence: (String) async throws -> ManagedUserPresenceSnapshot = UserPresenceAPI.load
+    var auditHistory: (String, QueryDocumentSnapshot?) async throws -> ManagedUserAuditPage = ManagedUserAuditReader.page
 
     var regionalSearch: (String, String, String?) async throws -> SearchResult = { query, region, cursor in
         let response = try await CloudFunctionsClient.shared.searchManagedUsers(query: query, limit: 40, region: region, startAfterUserID: cursor)

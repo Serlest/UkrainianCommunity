@@ -128,6 +128,38 @@ import Testing
         #expect(model.organizationRoles(for: user("member")).map(\.organization.name) == ["After"])
         #expect(model.organizations.count == 1)
     }
+    @Test func reviewedActionRejectsChangedTargetAndDifferentCurrentPrincipal() async {
+        let owner = MockContentBuilder.ownerUser()
+        let original = user("member")
+        var current = original; var reader = reads()
+        reader.directory = { _, _, _ in .init(users: [original], organizations: [], total: 1, cursor: nil) }
+        reader.memberships = { _, _ in [] }
+        reader.user = { _ in current }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        #expect(!model.isReviewCurrent(target: original, actor: owner, currentActor: owner))
+        await model.refreshDetail(userID: original.id, actor: owner)
+        #expect(model.isReviewCurrent(target: original, actor: owner, currentActor: owner))
+        #expect(!model.isReviewCurrent(target: original, actor: owner, currentActor: nil))
+        #expect(!model.isReviewCurrent(target: original, actor: owner, currentActor: user("other")))
+        current = UserManagementViewModel.makeUser(id: original.id, data: ["displayName":"member", "accountStatus":"warned", "globalRole":"user", "warningCount":1])
+        await model.refreshDetail(userID: original.id, actor: owner)
+        #expect(!model.isReviewCurrent(target: original, actor: owner, currentActor: owner))
+        #expect(model.isReviewCurrent(target: current, actor: owner, currentActor: owner))
+    }
+    @Test func oldFilterLoadMoreCannotReplaceTheSelectedDirectory() async {
+        var reader = reads(); var requested: [String] = []
+        reader.directory = { _, query, _ in
+            requested.append(query.filter)
+            return .init(users: [self.user(query.filter)], organizations: [], total: 2, cursor: "next")
+        }
+        let owner = MockContentBuilder.ownerUser(); let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init(filter: "active"))
+        await model.loadDirectory(actor: owner, query: .init(filter: "banned"))
+        await model.loadDirectory(actor: owner, query: .init(filter: "active"), more: true)
+        #expect(requested == ["active", "banned"])
+        #expect(model.users.map(\.id) == ["banned"])
+    }
     @Test func organizationChoicesAreOnDemandAndPaginated() async {
         let owner=MockContentBuilder.ownerUser();var reader=reads();var calls=0
         reader.directory={_,_,_ in .init(users:[self.user("member")],organizations:[],total:1,cursor:nil)}

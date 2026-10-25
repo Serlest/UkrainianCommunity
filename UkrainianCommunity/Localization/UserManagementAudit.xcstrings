@@ -1,0 +1,72 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "users_audit.unavailable": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Акаунт видалено або він більше недоступний."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Konto wurde gelöscht oder ist nicht mehr verfügbar."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The account was deleted or is no longer available."
+          }
+        }
+      }
+    },
+    "users_audit.review_changed": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дані користувача або ваші права змінилися. Закрийте це вікно, оновіть картку та перевірте дію ще раз."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Nutzerdaten oder Ihre Berechtigungen haben sich geändert. Schließen Sie dieses Fenster, aktualisieren Sie die Karte und prüfen Sie die Aktion erneut."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The user data or your permissions changed. Close this window, refresh the user card and review the action again."
+          }
+        }
+      }
+    },
+    "users_audit.reason_limit": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Причина: не більше 2000 символів."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Grund: maximal 2000 Zeichen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reason: no more than 2000 characters."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}
