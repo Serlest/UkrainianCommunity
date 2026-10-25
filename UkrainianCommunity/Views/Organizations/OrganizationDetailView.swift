@@ -470,6 +470,7 @@ struct OrganizationDetailView: View {
             Button(organizationSubscriptionConfirmationButton, role: pendingSubscriptionConfirmation?.isUnsubscribe == true ? .destructive : nil) {
                 confirmPendingSubscriptionChange()
             }
+            .accessibilityIdentifier("organization.subscription.confirm")
             Button(AppStrings.Organizations.cancel, role: .cancel) {
                 pendingSubscriptionConfirmation = nil
             }

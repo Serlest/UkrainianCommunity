@@ -14,7 +14,7 @@ const db=new Firestore({projectId:project,host:'127.0.0.1:28080',ssl:false});
 const auth=getAuth();
 (async()=>{
  const now=Timestamp.now(),future=Timestamp.fromMillis(Date.now()+7*86400000);
- for(const role of ['owner','member','other']) {
+ for(const role of ['owner','member','other','editor']) {
   const uid='closure-'+role,email=uid+'@uac.test';
   try {
    const existing=await auth.getUser(uid);
@@ -26,6 +26,7 @@ const auth=getAuth();
   }
   await db.doc('users/'+uid).set({id:uid,email,fullName:uid,displayName:uid,globalRole:role==='owner'?'owner':'user',accountStatus:'active',blockState:'active',requiresMultiFactorAuth:false,selectedFederalState:'tirol',acceptedTermsVersion:'2026.1',acceptedPrivacyVersion:'2026.1',createdAt:now,updatedAt:now,auditFixture:'closure-20261025'});
  }
+ await db.doc('directoryEditors/closure-editor').set({enabled:true,revision:1,updatedAt:now});
  const {createHash}=require('node:crypto');
  const hash=s=>createHash('sha256').update(s).digest('hex');
  for(const type of ['terms','privacy']) {
@@ -53,5 +54,5 @@ const auth=getAuth();
    await batch.commit();
   }
  }
- console.log(JSON.stringify({project,fixture:'closure-20261025',users:3,content:3,loadAttendees:process.argv.includes('--load')?1000:0,status:'seeded'}));
+ console.log(JSON.stringify({project,fixture:'closure-20261025',users:4,content:3,loadAttendees:process.argv.includes('--load')?1000:0,status:'seeded'}));
 })().catch(e=>{console.error(e.message);process.exitCode=1;});

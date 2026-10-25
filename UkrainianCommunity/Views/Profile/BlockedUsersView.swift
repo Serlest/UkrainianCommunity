@@ -28,7 +28,7 @@ struct BlockedUsersView: View {
             }
             content
         }
-        .confirmationDialog(
+        .alert(
             AppStrings.Safety.unblockConfirmationTitle,
             isPresented: Binding(
                 get: { userPendingUnblock != nil },
@@ -36,10 +36,12 @@ struct BlockedUsersView: View {
             ),
             presenting: userPendingUnblock
         ) { user in
-            Button(AppStrings.Safety.unblockAction, role: .destructive) {
+            Button(AppStrings.Safety.unblockAction) {
                 Task { await coordinator.unblock(user) }
             }
+            .accessibilityIdentifier("blockedUsers.confirmUnblock")
             Button(AppStrings.Common.cancel, role: .cancel) {}
+                .accessibilityIdentifier("blockedUsers.cancelUnblock")
         } message: { user in
             Text(AppStrings.Safety.unblockConfirmationMessage(user.displayName))
         }
@@ -92,7 +94,7 @@ struct BlockedUsersView: View {
     }
 
     private var blockedUsersSearchField: some View {
-        AppSearchField(placeholder: AppStrings.Safety.blockedUsersSearchPlaceholder, text: $searchText)
+        AppSearchField(placeholder: AppStrings.Safety.blockedUsersSearchPlaceholder, text: $searchText, fieldID: "blockedUsers.search")
     }
 
     private func blockedUserRow(_ user: BlockedUser) -> some View {
@@ -146,6 +148,7 @@ struct BlockedUsersView: View {
         Button(AppStrings.Safety.unblockAction) {
             userPendingUnblock = user
         }
+        .accessibilityIdentifier("blockedUsers.unblock." + user.id)
         .font(AppTheme.metadataStrongFont)
         .buttonStyle(.bordered)
         .disabled(!coordinator.mutatingUserIDs.isEmpty)

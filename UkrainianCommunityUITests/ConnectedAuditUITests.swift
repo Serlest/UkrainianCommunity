@@ -75,17 +75,230 @@ final class ConnectedAuditUITests: XCTestCase {
         app.terminate()
     }
 
-    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false) -> XCUIApplication {
+
+    func testConnectedDirectoryPublishReopenConflictAndLiveRevocation() async throws {
+        try await directoryJourney(language: "uk", appearance: "light")
+    }
+
+    func testConnectedDirectoryGermanDarkConflictAndRevocation() async throws {
+        try await directoryJourney(language: "de", appearance: "dark")
+    }
+
+    private func directoryJourney(language: String, appearance: String) async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires isolated emulator fixtures")
+        }
+        try await patchDemoDocument("directoryEditors/closure-editor", fields: ["enabled": ["booleanValue": true]])
+        let app = launchMember(language: language, appearance: appearance, account: "editor")
+        app.tabBars.buttons.element(boundBy: 3).tap()
+        let manage = app.buttons["directory.manage"].firstMatch
+        reveal(manage, app); XCTAssertTrue(manage.waitForExistence(timeout: 10)); manage.tap()
+        let category = app.buttons["directory.category.manage.first-steps"].firstMatch
+        XCTAssertTrue(category.waitForExistence(timeout: 10)); reveal(category, app); category.tap()
+        let name = app.textFields["directory.field.categoryTitle.uk"].firstMatch
+        reveal(name, app); XCTAssertTrue(name.exists)
+        let suffix = " " + String(UUID().uuidString.prefix(6))
+        let original = try XCTUnwrap(name.value as? String)
+        name.tap(); name.typeText(suffix + "\n")
+        let edited = try XCTUnwrap(name.value as? String)
+        XCTAssertNotEqual(edited, original)
+        XCTAssertTrue(edited.contains(suffix.trimmingCharacters(in: .whitespaces)))
+        let publish = app.buttons["directory.category.publish"].firstMatch
+        XCTAssertTrue(publish.isEnabled); publish.tap()
+        let confirm = app.buttons["directory.category.confirmPublish"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(name.waitForNonExistence(timeout: 20))
+        let stored = try await readDemoDocument("directoryCategories/first-steps")
+        let fields = try XCTUnwrap(stored["fields"] as? [String: [String: Any]])
+        let revision = try XCTUnwrap(fields["revision"]?["integerValue"] as? String)
+        let payload = try XCTUnwrap(fields["payload"]?["stringValue"] as? String)
+        XCTAssertTrue(payload.contains(edited))
+        reveal(category, app); category.tap(); reveal(name, app)
+        XCTAssertEqual(name.value as? String, edited)
+        capture(app, "sdk-directory-published-reopened")
+        name.tap(); name.typeText(" conflict\n")
+        // Simulate another editor committing while this UI retains its original revision.
+        let nextRevision = try XCTUnwrap(Int(revision)).advanced(by: 1)
+        try await patchDemoDocument("directoryCategories/first-steps", fields: ["revision": ["integerValue": String(nextRevision)]])
+        publish.tap(); XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        let conflict = app.alerts.firstMatch
+        XCTAssertTrue(conflict.waitForExistence(timeout: 15))
+        XCTAssertTrue(conflict.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", language == "uk" ? "іншому пристрої" : "anderen Gerät")).firstMatch.exists)
+        capture(app, "sdk-directory-revision-conflict-" + language + "-" + appearance)
+        conflict.buttons.firstMatch.tap()
+        let afterConflict = try await readDemoDocument("directoryCategories/first-steps")
+        let afterFields = try XCTUnwrap(afterConflict["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(afterFields["payload"]?["stringValue"] as? String, payload)
+        try await patchDemoDocument("directoryEditors/closure-editor", fields: ["enabled": ["booleanValue": false]])
+        let unavailable = app.buttons["directory.accessUnavailable.back"].firstMatch
+        XCTAssertTrue(unavailable.waitForExistence(timeout: 15))
+        XCTAssertFalse(publish.exists)
+        capture(app, "sdk-directory-access-revoked-open-editor-" + language + "-" + appearance)
+        unavailable.tap()
+        // The management route is restricted too, with an explicit safe return.
+        XCTAssertTrue(unavailable.waitForExistence(timeout: 8)); unavailable.tap()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 8))
+        XCTAssertFalse(manage.exists)
+        try await patchDemoDocument("directoryEditors/closure-editor", fields: ["enabled": ["booleanValue": true]])
+        app.terminate()
+    }
+
+    func testConnectedOrganizationPersonalRoutesRestartAndAccountIsolation() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires isolated emulator fixtures")
+        }
+        let app = launchMember()
+        app.tabBars.buttons.element(boundBy: 2).tap()
+        let card = app.buttons["organization.card.closure-org"].firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 15)); reveal(card, app); card.tap()
+        let bookmark = app.buttons["detail.header.action.bookmark"].firstMatch
+        XCTAssertTrue(bookmark.waitForExistence(timeout: 10)); bookmark.tap()
+        XCTAssertTrue(app.buttons["detail.header.action.bookmark.fill"].waitForExistence(timeout: 10))
+        let follow = app.buttons["organization.subscribe.closure-org"].firstMatch
+        reveal(follow, app)
+        if follow.isSelected {
+            follow.tap()
+            let unfollow = app.buttons["organization.subscription.confirm"].firstMatch
+            XCTAssertTrue(unfollow.waitForExistence(timeout: 5)); unfollow.tap()
+            let removed = expectation(for: NSPredicate(format: "selected == false"), evaluatedWith: follow)
+            await fulfillment(of: [removed], timeout: 15)
+        }
+        follow.tap()
+        let selected = NSPredicate(format: "selected == true")
+        let followed = expectation(for: selected, evaluatedWith: follow)
+        await fulfillment(of: [followed], timeout: 15)
+        capture(app, "sdk-organization-saved-followed")
+        let bookmarkPath = "users/closure-member/organizationBookmarks/closure-org"
+        let followPath = "likes/organization_follow_closure-org_closure-member"
+        _ = try await readDemoDocument(bookmarkPath)
+        let subscription = try await readDemoDocument(followPath)
+        let followFields = try XCTUnwrap(subscription["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(followFields["userId"]?["stringValue"] as? String, "closure-member")
+        app.terminate(); app.launch()
+        XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
+        for (route, row) in [("savedContent", "saved.open.organization-closure-org"),
+                             ("followedOrganizations", "subscriptions.open.closure-org"),
+                             ("recentViews", "recentViews.open.organization_closure-org")] {
+            app.tabBars.buttons.element(boundBy: 4).tap()
+            let entry = app.buttons["profile." + route]
+            reveal(entry, app); entry.tap()
+            let target = app.buttons[row].firstMatch
+            XCTAssertTrue(target.waitForExistence(timeout: 15)); reveal(target, app)
+            capture(app, "sdk-personal-after-restart-" + route)
+            app.buttons["navigation.back"].firstMatch.tap()
+        }
+        app.terminate()
+        let other = launchMember(account: "other")
+        other.tabBars.buttons.element(boundBy: 4).tap()
+        for (route, row) in [("savedContent", "saved.open.organization-closure-org"),
+                             ("followedOrganizations", "subscriptions.open.closure-org")] {
+            let entry = other.buttons["profile." + route]
+            reveal(entry, other); entry.tap()
+            let search = other.textFields[route == "savedContent" ? "saved.search" : "subscriptions.search"]
+            XCTAssertTrue(search.waitForExistence(timeout: 10))
+            XCTAssertFalse(other.buttons[row].exists)
+            capture(other, "sdk-other-account-" + route)
+            other.buttons["navigation.back"].firstMatch.tap()
+        }
+        other.terminate()
+        let member = launchMember()
+        member.tabBars.buttons.element(boundBy: 4).tap()
+        let saved = member.buttons["profile.savedContent"]
+        reveal(saved, member); saved.tap()
+        let savedOrg = member.buttons["saved.open.organization-closure-org"].firstMatch
+        XCTAssertTrue(savedOrg.waitForExistence(timeout: 15)); reveal(savedOrg, member); savedOrg.tap()
+        let remove = member.buttons["detail.header.action.bookmark.fill"].firstMatch
+        XCTAssertTrue(remove.waitForExistence(timeout: 10)); remove.tap()
+        XCTAssertTrue(member.buttons["detail.header.action.bookmark"].waitForExistence(timeout: 10))
+        capture(member, "sdk-member-data-restored-after-account-switch")
+        let unfollow = member.buttons["organization.subscribe.closure-org"].firstMatch
+        reveal(unfollow, member); XCTAssertTrue(unfollow.isSelected); unfollow.tap()
+        let confirmRemoval = member.buttons["organization.subscription.confirm"].firstMatch
+        XCTAssertTrue(confirmRemoval.waitForExistence(timeout: 5)); confirmRemoval.tap()
+        let removed = expectation(for: NSPredicate(format: "selected == false"), evaluatedWith: unfollow)
+        await fulfillment(of: [removed], timeout: 15)
+        member.terminate()
+    }
+
+    func testConnectedHiddenUserSearchCancelUnblockAndReopen() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires isolated emulator fixtures")
+        }
+        let path = "users/closure-member/blockedUsers/closure-other"
+        try await patchDemoDocument(path, fields: ["targetUserId": ["stringValue": "closure-other"],
+            "displayName": ["stringValue": "Closure Other"], "updatedAt": ["timestampValue": "2026-10-25T00:00:00Z"]])
+        let app = launchMember(language: "de", appearance: "dark", large: true)
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let settings = app.buttons["profile.settings.open"]
+        reveal(settings, app); settings.tap()
+        let hidden = app.buttons["profile.settings.blockedUsers"]
+        reveal(hidden, app); XCTAssertTrue(hidden.exists); hidden.tap()
+        let unblock = app.buttons["blockedUsers.unblock.closure-other"].firstMatch
+        reveal(unblock, app); XCTAssertTrue(unblock.waitForExistence(timeout: 15))
+        let search = app.textFields["blockedUsers.search"].firstMatch
+        search.tap(); search.typeText("  Closure  \n")
+        XCTAssertTrue(unblock.exists); reveal(unblock, app); unblock.tap()
+        let confirm = app.buttons["blockedUsers.confirmUnblock"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        capture(app, "sdk-hidden-user-unblock-confirm-de-dark-AX")
+        app.alerts.buttons["blockedUsers.cancelUnblock"].firstMatch.tap()
+        XCTAssertTrue(confirm.waitForNonExistence(timeout: 5)); XCTAssertTrue(unblock.exists)
+        _ = try await readDemoDocument(path)
+        unblock.tap(); XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(unblock.waitForNonExistence(timeout: 15))
+        _ = try await demoRequest(path, method: "GET", fields: nil, expectedStatus: 404)
+        capture(app, "sdk-hidden-user-empty-after-unblock-de-dark-AX")
+        app.buttons["navigation.back"].firstMatch.tap()
+        reveal(hidden, app); hidden.tap()
+        XCTAssertFalse(unblock.exists)
+        app.terminate()
+    }
+
+    private func readDemoDocument(_ path: String) async throws -> [String: Any] {
+        try await demoRequest(path, method: "GET", fields: nil)
+    }
+    private func patchDemoDocument(_ path: String, fields: [String: [String: Any]]) async throws {
+        _ = try await demoRequest(path, method: "PATCH", fields: fields)
+    }
+    private func demoRequest(_ path: String, method: String, fields: [String: [String: Any]]?, expectedStatus: Int = 200) async throws -> [String: Any] {
+        // Fixed loopback + demo project. This helper cannot address production.
+        guard ["directoryEditors/closure-editor", "directoryCategories/first-steps",
+               "users/closure-member/organizationBookmarks/closure-org",
+               "likes/organization_follow_closure-org_closure-member",
+               "users/closure-member/blockedUsers/closure-other"].contains(path) else {
+            throw NSError(domain: "AuditFixture", code: 1)
+        }
+        var components = URLComponents(string: "http://127.0.0.1:28080/v1/projects/demo-uac-release-audit/databases/(default)/documents/" + path)!
+        if let fields { components.queryItems = fields.keys.sorted().map { URLQueryItem(name: "updateMask.fieldPaths", value: $0) } }
+        var request = URLRequest(url: components.url!); request.httpMethod = method
+        request.setValue("Bearer owner", forHTTPHeaderField: "Authorization")
+        if let fields {
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["fields": fields])
+        }
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, expectedStatus)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false, account: String = "member") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-sdk-ui-audit", "-selectedAppLanguage", language, "-selectedAppAppearance", appearance,
                                "-UIPreferredContentSizeCategoryName", large ? "UICTContentSizeCategoryAccessibilityM" : "UICTContentSizeCategoryL"]
         app.launchEnvironment = ["UACFirebaseEmulators": "1"]
         app.launch()
         let signIn = app.buttons["auth.landing.signIn"]
+        if app.tabBars.firstMatch.waitForExistence(timeout: 8) {
+            app.tabBars.buttons.element(boundBy: 4).tap()
+            let logout = app.buttons["profile.logout.button"]
+            reveal(logout, app); logout.tap()
+            let confirm = app.alerts.buttons["profile.logout.confirm"].firstMatch
+            XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        }
         if signIn.waitForExistence(timeout: 20) {
             signIn.tap()
             let email = app.textFields["auth.login.email"]
-            XCTAssertTrue(email.waitForExistence(timeout: 8)); email.tap(); email.typeText("closure-member@uac.test")
+            XCTAssertTrue(email.waitForExistence(timeout: 8)); email.tap(); email.typeText("closure-" + account + "@uac.test")
             let password = app.secureTextFields["auth.login.password"]
             password.tap(); password.typeText("Emulator-Only-2026!")
             app.swipeUp()

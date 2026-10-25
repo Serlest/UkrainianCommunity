@@ -5,10 +5,16 @@
   "closedChecks": [
     "R01-B",
     "R02-B",
+    "R03-C",
     "R04-A",
+    "R04-B",
+    "R04-C",
     "R05-A",
     "R06-A",
-    "R06-C"
+    "R06-C",
+    "R07-A",
+    "R09-B",
+    "R09-C"
   ],
   "evidence": [
     {
@@ -196,9 +202,104 @@
       ],
       "screens": "build/audit-closure-20261025/system-visual-final",
       "limitation": "Simulator system settings; physical iPhone acceptance remains separate"
+    },
+    {
+      "checks": [
+        "R04-B",
+        "R07-A"
+      ],
+      "kind": "connected_UI_restart_account_isolation_and_state_matrix",
+      "accepted": "build/audit-closure-20261025/PersonalDirectoryFinal.xcresult",
+      "methods": [
+        "ConnectedAuditUITests/testConnectedOrganizationPersonalRoutesRestartAndAccountIsolation",
+        "PersonalSectionsAuditUITests/testEverySectionHasAnHonestEmptyState",
+        "PersonalSectionsAuditUITests/testEverySectionShowsLoadingFailureAndRecoversWithRetry"
+      ],
+      "result": "All three methods passed; unrelated directory assertion in this bundle was corrected and repeated separately",
+      "verified": [
+        "Actual email login, organization public card bookmark/subscription and independent server reads",
+        "Terminate/restore process: saved organizations, subscriptions and recent views reopen",
+        "Second account has neither private bookmark nor subscription; signing back in restores the member record",
+        "Actual UI unsubscribes and removes bookmark; unique five-section empty/error/retry states plus retained unavailable-item and deletion dialogs reviewed"
+      ],
+      "visualLedger": "Docs/Verification/AuditClosureUIStates20261025.json"
+    },
+    {
+      "check": "R04-C",
+      "kind": "actual_two_process_outbox",
+      "bundles": [
+        "build/audit-closure-20261025/OutboxProcess1.xcresult",
+        "build/audit-closure-20261025/OutboxProcess2.xcresult"
+      ],
+      "passed": 2,
+      "verified": [
+        "Actual PendingActivityLogStore enqueue in first app test host process",
+        "Next invocation asserts a different process ID and restores the exact pending entry",
+        "Wrong account cannot deliver original account activity",
+        "Correct account reconciles through actual SDK; independent server document read; queue emptied and disposable record removed"
+      ],
+      "limitation": "Isolated demo transports; not an internet outage measurement"
+    },
+    {
+      "checks": [
+        "R09-B",
+        "R09-C"
+      ],
+      "kind": "connected_editor_and_live_access_state",
+      "bundles": [
+        "build/audit-closure-20261025/ConnectedDirectoryPersonal.xcresult",
+        "build/audit-closure-20261025/DirectoryHiddenUsersFixed.xcresult",
+        "build/audit-closure-20261025/DirectorySDKAccepted.xcresult"
+      ],
+      "verified": [
+        "Real second-account editor UI publishes via SDK/Functions and reopens exact entered text; independent payload/revision read",
+        "Stale UI revision receives explicit conflict; independent payload remains unchanged",
+        "Live access revocation disables publication and replaces editor/management with explained safe return",
+        "Actual DirectoryContentStore/API SDK test separately verifies stale second-store rejection, typed grant/revoke, exact recipient notices, custom deletion/tombstone and revision history"
+      ],
+      "fixes": [
+        "Restricted directory routes no longer render empty or silently disappear",
+        "Common prominent action surface fixes white-on-white dark-theme Back button",
+        "Debug simulator fixture/demo durable catalogs are isolated from each other and normal app cache"
+      ],
+      "limitations": [
+        "The live UI revocation stimulus is a bounded local admin test mutation; target notification contents are verified through the actual typed grant/revoke API in the separate SDK journey",
+        "Nested symbol/group/contact/reorder actions remain R09-A"
+      ]
+    },
+    {
+      "check": "R03-C",
+      "kind": "nested_settings_matrix_and_connected_hidden_user",
+      "bundle": "build/audit-closure-20261025/DirectoryHiddenUsersFixed.xcresult",
+      "reliabilityBundle": "build/audit-closure-20261025/HiddenUsersReliability.xcresult",
+      "reliabilityPassed": 8,
+      "verified": [
+        "Actual hidden-user search with surrounding whitespace, cancel retaining relationship, confirm via actual callable, independent 404 read and empty reopened list",
+        "German/dark/accessibility screenshot reviewed: explicit action and cancel both fit",
+        "Loading/mutation failure retry, preserved rows on refresh failure, wrong-target receipt and late old-account response verified"
+      ],
+      "fix": "Use an alert with explicit cancel for unblock instead of a narrow accessibility popover; unblock is a restorative action rather than destructive red",
+      "matrix": {
+        "language_and_appearance": "Retained RolesAndPreferencesVerified: testSettingsPrivacyRetryChoicesAndDevicePreferencesSurviveReopening",
+        "analytics_banner_consent_notification_preferences": "Retained RolesAndPreferencesVerified: actual UI retry choices plus consent version/withdrawal, scheduling/cancellation and account isolation tests",
+        "legal_reader_links_and_role_routes": "Retained ProfileSettingsFixes and StartupAuthFixes; owner/admin/member nested route assertions",
+        "hidden_organizations": "Retained CompletionVerified and OrganizationWordingVerified full search/cancel/confirm/reopen",
+        "hidden_users": "New actual connected UI plus reliability suite",
+        "photo_provider_biometric_and_deletion": "Separate R03-A/B and R02-A/C remain open; not absorbed into this closure"
+      }
+    },
+    {
+      "check": "R08-A",
+      "kind": "actual_team_service_partial",
+      "bundle": "build/audit-closure-20261025/OrganizationTeamSDKRetry.xcresult",
+      "verified": [
+        "Assign admin, stale review rejected, change moderator, remove role, transfer owner, independent organization read, second account permissions, restore test owner",
+        "Four new notices read while authenticated as exact target: recipient, actor, organization source/action target and type"
+      ],
+      "remaining": "Actual nested team UI candidate/list update, cancel and error states still need connected proof"
     }
   ],
-  "remainingScenarioGroups": 21,
+  "remainingScenarioGroups": 15,
   "deployment": {
     "scope": "firestore:rules only",
     "project": "ukrainiancommunity-dbd5f",

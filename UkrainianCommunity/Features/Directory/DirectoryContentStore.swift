@@ -56,8 +56,18 @@ final class DirectoryContentStore: ObservableObject {
     }
 
     nonisolated static var defaultCacheURL: URL? {
-        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
-            .appendingPathComponent("DirectoryCatalog", isDirectory: true)
+        var directoryName = "DirectoryCatalog"
+        #if DEBUG && targetEnvironment(simulator)
+        // Fixture publications and local-demo reads must never share a durable
+        // authoritative catalog with the normal application transport.
+        if ProcessInfo.processInfo.arguments.contains("-ui-testing") {
+            directoryName += "-fixture"
+        } else if ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" {
+            directoryName += "-demo-uac-release-audit"
+        }
+        #endif
+        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first?
+            .appendingPathComponent(directoryName, isDirectory: true)
             .appendingPathComponent("complete-v1.json")
     }
 

@@ -223,25 +223,25 @@ struct DirectoryHomeView: View {
         case let .recent(item):
             DirectoryRecentDestinationView(item: item, feedbackRepository: feedbackRepository)
         case .manage:
-            if contentStore.canEdit { DirectoryManagementView() }
+            if contentStore.canEdit { DirectoryManagementView() } else { DirectoryEditingAccessUnavailableView() }
         case let .edit(categoryID):
             if contentStore.canEdit, let category = contentStore.category(categoryID) {
                 DirectoryCategoryEditorView(category: category,
                                             expectedRevision: contentStore.revision(categoryID))
-            }
+            } else if !contentStore.canEdit { DirectoryEditingAccessUnavailableView() }
         case let .editTopic(categoryID, topicID):
             if contentStore.canEdit, let category = contentStore.category(categoryID),
                category.topics.contains(where: { $0.id == topicID }) {
                 DirectoryCategoryEditorView(category: category,
                                             expectedRevision: contentStore.revision(categoryID),
                                             focusTopicID: topicID)
-            }
+            } else if !contentStore.canEdit { DirectoryEditingAccessUnavailableView() }
         case let .create(placement):
             if contentStore.canEdit {
                 DirectoryCategoryEditorView(category: nil, newPlacement: placement,
                                             newOrder: DirectoryEditorOrdering.nextOrder(
                                                 in: placement, categories: contentStore.allManagedCategories))
-            }
+            } else { DirectoryEditingAccessUnavailableView() }
         case let .category(id):
             if let category = contentStore.categories.first(where: { $0.id == id }) {
                 if contentStore.published[id] != nil || DirectoryTopicGroups.isComplete(categoryID: id) {

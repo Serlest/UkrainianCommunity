@@ -51,7 +51,7 @@ struct DirectoryCategoryEditorView: View {
         .environment(\.directoryShowsValidation, showsValidation)
         .interactiveDismissDisabled(isSaving || hasUnsavedChanges)
         .onChange(of: ProfileAccessIdentity(user: authState.user)) { _, _ in confirmation = nil; dismiss() }
-        .onChange(of: contentStore.canEdit) { _, allowed in if !allowed { confirmation = nil; dismiss() } }
+        .onChange(of: contentStore.canEdit) { _, allowed in if !allowed { confirmation = nil } }
         .navigationBarBackButtonHidden()
         .navigationTitle(focusTopicID.flatMap { id in
             draft.topics.first { $0.id == id }?.title.value(for: language)
@@ -96,6 +96,7 @@ struct DirectoryCategoryEditorView: View {
                     confirmation = nil
                     Task { await save() }
                 }
+                .accessibilityIdentifier("directory.category.confirmPublish")
             case .discard:
                 Button(DirectoryEditorText.value("Відкинути зміни", "Änderungen verwerfen"), role: .destructive) {
                     confirmation = nil

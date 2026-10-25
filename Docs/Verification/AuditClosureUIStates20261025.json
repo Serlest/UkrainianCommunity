@@ -1,0 +1,178 @@
+{
+  "date": "2026-10-25",
+  "scope": "R04-B / R07-A plus initial directory conflict/revocation visuals",
+  "reviewedImages": [
+    {
+      "image": "build/audit-closure-20261025/personal-directory-final/35D86CB4-1C78-4C6F-B753-33E0D14A7961.png",
+      "state": "personal-empty-activityHistory_0_4DD9F143-D969-4FB6-A7A4-416F59272B7C.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/personal-directory-final/1CC188D9-83C5-4BD3-B948-8CF73BAF2FC9.png",
+      "state": "personal-empty-recentViews_0_5F75911C-1912-4C11-973C-FDD5F0DBC214.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/personal-directory-final/C625C628-CEFA-4609-8955-68EDDC7D76CC.png",
+      "state": "personal-empty-registrations_0_3E91EAEE-FB7C-4617-8D65-C3F56CEB28E0.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/personal-directory-final/FB9F6685-F8D1-4EC3-B565-5C034F22FACE.png",
+      "state": "personal-empty-followedOrganizations_0_17D7AA04-C426-4C39-BFFB-47CF9F86E265.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/personal-directory-final/0BF184FD-8A5E-41B8-8343-A2E017B1A709.png",
+      "state": "personal-empty-savedContent_0_0599FD55-B97F-4864-9E02-FC3301CF5DD5.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/personal-directory-final/DECA4808-7C97-42BC-8E25-BB5C14D70E4E.png",
+      "state": "personal-error-subscriptions_0_CCFEB7D7-B7B5-4DF4-BFF4-88CD3AB8EAF8.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-last-screens/E4E02B5A-1640-49F1-ABD3-D0BCA748B6B6.png",
+      "state": "personal-error-saved_0_0DCA8DB0-82B6-4FBE-84DD-EF60F381C92D.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-last-screens/CDCE468A-6D9C-4215-BFB5-9B8ECC8C1463.png",
+      "state": "personal-error-registrations_0_7D15DEC3-38D4-4F3F-A220-B96A80B9146A.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-last-screens/6D79737D-D4DF-4E84-8618-A0DABF4B043A.png",
+      "state": "personal-error-recentViews_0_4F9D4066-E538-478C-BDC1-CF3DD12EBB84.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-last-screens/553DF05A-972D-4F73-A191-DA068A050606.png",
+      "state": "personal-error-activityHistory_0_5594AE71-4DC3-4004-969B-1B5F1AD04514.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-dialogs-screens/A89FA1E8-A670-4894-A3C1-4275BF0A29BB.png",
+      "state": "personal-unavailable-saved_0_63E3C3B0-675E-4E01-89D7-A03F107C34D4.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-dialogs-screens/2D36349D-88F2-4ED2-AF85-9084142767C0.png",
+      "state": "personal-unavailable-unsubscribe-dialog_0_C658419C-301E-47EB-A609-CD760C561E6F.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-dialogs-screens/C4B78CC9-519F-4F61-BC72-CEEC04307A22.png",
+      "state": "activityHistory-clear-dialog-de_0_184A2B19-18F2-4EE7-B35B-3F543661F0C2.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-dialogs-screens/1746735F-56B3-4B18-A245-EDB33415CC8A.png",
+      "state": "activityHistory-delete-dialog-de_0_FE2FB30A-3176-42B8-9AFC-603CAEDC93EF.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-dialogs-screens/0CF5A044-4665-4364-8B9D-6D36730B207D.png",
+      "state": "recentViews-clear-dialog-de_0_8002A9DE-F4CF-448B-AFC9-23C9AA7D2DD1.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/block04-dialogs-screens/D0F46C21-33C9-4227-98AB-6B8353D73187.png",
+      "state": "recentViews-delete-dialog-de_0_B740D1C1-B2BF-4F80-9A07-0928488DCCD4.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/connected-directory-personal-screens/196AC8F3-5EEF-4C1A-9084-4F8DA574FB0D.png",
+      "state": "sdk-directory-access-revoked-open-editor_0_9C316816-490F-4F6B-9BC6-5CAA7F6BD96F.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/connected-directory-personal-screens/170871BB-4180-4A20-B2DF-0953ECE1138C.png",
+      "state": "sdk-directory-revision-conflict_0_9B500870-C8EC-4D28-A628-0029E4C32B57.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/connected-directory-personal-screens/AE817CDA-51D2-464A-84FC-C269F7CE5A34.png",
+      "state": "sdk-other-account-followedOrganizations_0_6C55592A-2208-4BFE-AAED-D8536F388B8B.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/connected-directory-personal-screens/2BAFE999-9737-4222-85C1-4D7B585B4B21.png",
+      "state": "sdk-other-account-savedContent_0_DBB44071-7E9D-4D8E-B447-07E5D0216DB1.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/connected-directory-personal-screens/4135C766-A094-44C0-BFF5-5E6B0E1F8636.png",
+      "state": "sdk-personal-after-restart-savedContent_0_41FECBC0-E6DF-4BF9-9699-2876364367B7.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/connected-directory-personal-screens/0E73330E-1347-4CFF-92A4-FAC9C488F733.png",
+      "state": "sdk-personal-after-restart-followedOrganizations_0_8B57A0F5-B6FF-43F6-90C9-E66A7AA70521.png",
+      "status": "reviewed",
+      "result": "Readable labels/actions, deliberate line wrapping, no overlapping foreground controls in this captured state"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-hidden-fixed-screens/88AA4661-CD60-410D-9FDC-9234D954C559.png",
+      "state": "sdk-directory-access-revoked-open-editor-de-dark_0_055693D1-7A3C-46F9-80EE-566F35B92F02.png",
+      "status": "reviewed",
+      "result": "Final fix: readable primary action and explicit cancellation; accessible text wraps without clipping"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-hidden-fixed-screens/79ACA8FA-3ACB-4AFE-9537-7236D8B19A01.png",
+      "state": "sdk-hidden-user-unblock-confirm-de-dark-AX_0_61F86546-7CE0-4427-B767-138C08723C22.png",
+      "status": "reviewed",
+      "result": "Final fix: readable primary action and explicit cancellation; accessible text wraps without clipping"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-hidden-fixed-screens/0940FC31-4766-4805-9FA7-B1309C3BB219.png",
+      "state": "sdk-hidden-user-empty-after-unblock-de-dark-AX_0_9DCEB94C-485F-4862-B7A0-37E95CFF6D63.png",
+      "status": "reviewed",
+      "result": "Final fix: readable primary action and explicit cancellation; accessible text wraps without clipping"
+    }
+  ],
+  "personalRoleReuse": {
+    "applicable": [
+      "owner",
+      "admin",
+      "organization owner",
+      "organization admin",
+      "organization moderator",
+      "mixed",
+      "member",
+      "warned"
+    ],
+    "reason": "Personal destination body/empty/error/dialog components have no role-based layout branch; current account UID selects repositories. Retained all-role entry/return assertions plus actual member/other SDK/UI isolation cover the distinct authorization/context concerns. Guest/blocked positive/restricted layouts retain their dedicated tests.",
+    "roleEvidence": "Docs/Verification/PersonalSectionsAudit20261024.json"
+  },
+  "dataEvidence": [
+    "build/audit-closure-20261025/FullFieldsSDKAccepted.xcresult",
+    "build/audit-closure-20261025/ConnectedDirectoryPersonal.xcresult"
+  ],
+  "limitations": [
+    "Fixture empty/error journeys prove presentation/retry, not a production outage. Actual SDK persistence and account isolation have separate evidence.",
+    "This is not a complete visual ledger for every window in blocks 1–9; R01-C remains open."
+  ]
+}

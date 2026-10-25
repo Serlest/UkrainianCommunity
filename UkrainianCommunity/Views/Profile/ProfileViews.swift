@@ -489,6 +489,7 @@ struct ProfileView: View {
                 }
             }
 
+            .accessibilityIdentifier("profile.logout.confirm")
             Button(AppStrings.Common.cancel, role: .cancel) {}
         } message: {
             Text(AppStrings.Profile.signOutConfirmMessage)

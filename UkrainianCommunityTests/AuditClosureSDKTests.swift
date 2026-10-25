@@ -47,6 +47,45 @@ final class AuditClosureSDKTests: XCTestCase {
         try await FirestoreActivityLogRepository().deleteActivity(id: item.id, userID: "closure-member")
     }
 
+    func testOutboxEnqueueForActualNextProcess() async throws {
+        guard ProcessInfo.processInfo.environment["UACAuditOutboxPhase"] == "enqueue" else {
+            throw XCTSkip("Dedicated two-process audit phase")
+        }
+        try await signIn("member")
+        let item = ActivityLogItem(id: "closure-process-outbox", actionType: .savedNews,
+            targetId: "closure-news", targetType: .news, title: "Closure News",
+            subtitle: nil, imageURL: nil, createdAt: .now)
+        await PendingActivityLogStore.shared.enqueue(item, userID: "closure-member")
+        UserDefaults.standard.set(ProcessInfo.processInfo.processIdentifier, forKey: "audit.closure.outbox.writerPID")
+        let queued = await PendingActivityLogStore.shared.items(userID: "closure-member")
+        XCTAssertTrue(queued.contains { $0.id == item.id })
+        try Auth.auth().signOut()
+    }
+
+    func testOutboxDeliversAfterActualProcessRestartAndAccountSwitch() async throws {
+        guard ProcessInfo.processInfo.environment["UACAuditOutboxPhase"] == "deliver" else {
+            throw XCTSkip("Dedicated two-process audit phase")
+        }
+        let previousPID = UserDefaults.standard.integer(forKey: "audit.closure.outbox.writerPID")
+        XCTAssertGreaterThan(previousPID, 0)
+        XCTAssertNotEqual(previousPID, Int(ProcessInfo.processInfo.processIdentifier))
+        let queued = await PendingActivityLogStore.shared.items(userID: "closure-member")
+        XCTAssertTrue(queued.contains { $0.id == "closure-process-outbox" })
+        try await signIn("other")
+        let wrongAccount = await ActivityLogRecorder.reconcilePending(userID: "closure-member")
+        XCTAssertEqual(wrongAccount, .permissionDenied)
+        try await signIn("member")
+        let delivery = await ActivityLogRecorder.reconcilePending(userID: "closure-member")
+        XCTAssertNil(delivery)
+        let stored = try await Firestore.firestore().document("users/closure-member/activityLog/closure-process-outbox").getDocument(source: .server)
+        XCTAssertEqual(stored.get("targetId") as? String, "closure-news")
+        let remaining = await PendingActivityLogStore.shared.items(userID: "closure-member")
+        XCTAssertFalse(remaining.contains { $0.id == "closure-process-outbox" })
+        try await FirestoreActivityLogRepository().deleteActivity(id: "closure-process-outbox", userID: "closure-member")
+        UserDefaults.standard.removeObject(forKey: "audit.closure.outbox.writerPID")
+        try Auth.auth().signOut()
+    }
+
     func testBilingualNewsEditorPersistsFullPayloadThroughActualRepository() async throws {
         try await newsEditorRoundTrip(scheduled: true)
     }
@@ -206,6 +245,64 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertLessThan(elapsed, 15, "Must complete within the current UI request deadline in the local load environment")
         let measurement = XCTAttachment(string: "Local emulator cold session: 1000 attendees, \(elapsed) seconds. This is not internet latency proof.")
         measurement.name = "attendee-load-timing"; measurement.lifetime = .keepAlways; add(measurement)
+    }
+
+    func testOrganizationTeamActualServiceRoleChangesTransferAndTargetNotices() async throws {
+        try await signIn("owner")
+        defer { try? Auth.auth().signOut() }
+        let actor = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-owner")
+        let db = Firestore.firestore()
+        let repository = FirestoreOrganizationRepository(sessionDataCache: SessionDataCache())
+        let service = FirestoreOrganizationRoleManagementService()
+        let base = try await repository.fetchOrganization(id: "closure-org")
+        XCTAssertEqual(base.ownerId, actor.id)
+        let targetInbox = db.collection("users/closure-other/notificationInbox")
+        try await signIn("other")
+        let before = Set(try await targetInbox.getDocuments(source: .server).documents.map(\.documentID))
+        try await signIn("owner")
+        try await service.updateRole(role: .communityAdmin, organization: base, targetUserID: "closure-other", actor: actor, isRemoval: false, reason: "Local audit role assignment")
+        let admin = try await repository.fetchOrganization(id: "closure-org")
+        XCTAssertTrue(admin.adminIds.contains("closure-other")); XCTAssertFalse(admin.moderatorIds.contains("closure-other"))
+        let stored = try await db.document("organizations/closure-org").getDocument(source: .server)
+        XCTAssertTrue((stored.get("adminIds") as? [String] ?? []).contains("closure-other"))
+        do {
+            try await service.updateRole(role: .communityModerator, organization: base, targetUserID: "closure-other", actor: actor, isRemoval: false, reason: "Stale local audit")
+            XCTFail("Stale role review must not overwrite the assignment")
+        } catch { XCTAssertEqual((error as NSError).code, FunctionsErrorCode.aborted.rawValue) }
+        try await signIn("other")
+        let target = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-other")
+        let targetOrg = try await FirestoreOrganizationRepository(sessionDataCache: SessionDataCache()).fetchOrganization(id: "closure-org")
+        XCTAssertTrue(PermissionService.canAccessManagedOrganization(targetOrg, user: target))
+        try await signIn("owner")
+        try await service.updateRole(role: .communityModerator, organization: admin, targetUserID: "closure-other", actor: actor, isRemoval: false, reason: "Local audit role change")
+        let moderator = try await repository.fetchOrganization(id: "closure-org")
+        XCTAssertFalse(moderator.adminIds.contains("closure-other")); XCTAssertTrue(moderator.moderatorIds.contains("closure-other"))
+        try await service.updateRole(role: .member, organization: moderator, targetUserID: "closure-other", actor: actor, isRemoval: true, reason: "Local audit role removal")
+        let removed = try await repository.fetchOrganization(id: "closure-org")
+        XCTAssertFalse(removed.adminIds.contains("closure-other")); XCTAssertFalse(removed.moderatorIds.contains("closure-other"))
+        XCTAssertFalse(PermissionService.canAccessManagedOrganization(removed, user: target))
+        try await service.transferOwner(organization: removed, newOwnerID: "closure-other", actor: actor, reason: "Local audit ownership transfer")
+        let transferred = try await repository.fetchOrganization(id: "closure-org")
+        XCTAssertEqual(transferred.ownerId, "closure-other")
+        XCTAssertTrue(PermissionService.canAccessManagedOrganization(transferred, user: target))
+        let ownerDoc = try await db.document("organizations/closure-org").getDocument(source: .server)
+        XCTAssertEqual(ownerDoc.get("ownerId") as? String, "closure-other")
+        try await signIn("other")
+        let notices = try await targetInbox.getDocuments(source: .server).documents.filter { !before.contains($0.documentID) }
+        XCTAssertEqual(notices.count, 4)
+        for notice in notices {
+            XCTAssertEqual(notice.get("recipientUserId") as? String, "closure-other")
+            XCTAssertEqual(notice.get("actorUserId") as? String, "closure-owner")
+            XCTAssertEqual(notice.get("sourceId") as? String, "closure-org")
+            XCTAssertEqual(notice.get("actionTargetId") as? String, "closure-org")
+        }
+        XCTAssertEqual(notices.filter { $0.get("type") as? String == "organizationRoleAssigned" }.count, 3)
+        XCTAssertEqual(notices.filter { $0.get("type") as? String == "organizationRoleRemoved" }.count, 1)
+        // Restore the isolated reusable organization after observing the new owner.
+        try await signIn("owner")
+        try await service.transferOwner(organization: transferred, newOwnerID: "closure-owner", actor: actor, reason: "Restore local audit fixture")
+        let restored = try await repository.fetchOrganization(id: "closure-org")
+        XCTAssertEqual(restored.ownerId, "closure-owner")
     }
 
     func testDirectorySDKPublicationRevisionConflictRevocationAndTargetNotifications() async throws {
