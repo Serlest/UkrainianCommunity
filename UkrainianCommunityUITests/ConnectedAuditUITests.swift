@@ -8,6 +8,7 @@ final class ConnectedAuditUITests: XCTestCase {
     private var ownedPhotoIDs = Set<String>()
     private var ownedDisposableUserIDs = Set<String>()
     private var ownedDeletionOperationIDs = Set<String>()
+    private var ownedRequestDocumentPaths = Set<String>()
     override func setUpWithError() throws { continueAfterFailure = false }
 
     func testDisposableAccountDeletionConfirmsServerCleanupAndLanding() async throws {
@@ -137,12 +138,14 @@ final class ConnectedAuditUITests: XCTestCase {
         try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-editor"], "adminIds": ["arrayValue": ["values": []]], "moderatorIds": ["arrayValue": ["values": []]]])
         try await patchDemoDocument("likes/organization_follow_closure-org_closure-other", fields: ["userId": ["stringValue": "closure-other"], "subscribedOrganizationId": ["stringValue": "closure-org"], "createdAt": ["timestampValue": ISO8601DateFormatter().string(from: Date())]])
         try await patchDemoDocument("publicProfiles/closure-other", fields: ["id": ["stringValue": "closure-other"], "displayName": ["stringValue": "Closure Other"], "city": ["stringValue": "Innsbruck"], "federalState": ["stringValue": "tirol"]])
-        let app = launchMember(account: "editor")
+        let app = launchMember(large: true, account: "editor")
         app.tabBars.buttons.element(boundBy: 4).tap()
         let management = app.buttons["profile.organizationManagement"].firstMatch
         reveal(management, app); management.tap()
         let manage = app.buttons["organization.manage.closure-org"].firstMatch
         reveal(manage, app); manage.tap()
+        let contacts = app.buttons["organization.contact.edit"].firstMatch
+        reveal(contacts, app); capture(app, "sdk-org-contacts-accessibility-actions")
         let add = app.buttons["organization.management.addTeamMember"].firstMatch
         reveal(add, app); add.tap()
         let candidate = app.buttons["organization.team.candidate.closure-other"].firstMatch
@@ -173,6 +176,34 @@ final class ConnectedAuditUITests: XCTestCase {
         let removedFields = try XCTUnwrap(removed["fields"] as? [String: [String: Any]])
         for key in ["adminIds", "moderatorIds"] { XCTAssertFalse(String(describing: removedFields[key]).contains("closure-other")) }
         capture(app, "sdk-org-team-after-removal")
+        app.terminate()
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-owner"]])
+    }
+
+    func testOrganizationTeamConfirmationRejectsConcurrentRemoval() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-editor"], "adminIds": ["arrayValue": ["values": [["stringValue": "closure-other"]]]], "moderatorIds": ["arrayValue": ["values": []]]])
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        for id in ["profile.organizationManagement", "organization.manage.closure-org"] {
+            let b = app.buttons[id].firstMatch; reveal(b, app); b.tap()
+        }
+        let actions = app.buttons["organization.team.actions.closure-other"].firstMatch
+        reveal(actions, app); actions.tap()
+        app.buttons["organization.team.assign.moderator.closure-other"].firstMatch.tap()
+        let confirm = app.buttons["organization.team.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); capture(app, "sdk-team-concurrent-removal-confirmation")
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        try await patchDemoDocument("organizations/closure-org", fields: ["adminIds": ["arrayValue": ["values": []]], "moderatorIds": ["arrayValue": ["values": []]], "updatedAt": ["timestampValue": stamp]])
+        // Let the actual realtime organization observation receive the new team
+        // while the native confirmation remains open.
+        try await Task.sleep(for: .seconds(1))
+        confirm.tap()
+        let conflict = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "Дані або роль змінилися")).firstMatch
+        reveal(conflict, app); XCTAssertTrue(conflict.waitForExistence(timeout: 10)); capture(app, "sdk-team-concurrent-removal-rejected")
+        let document = try await readDemoDocument("organizations/closure-org")
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        for key in ["adminIds", "moderatorIds"] { XCTAssertFalse(String(describing: fields[key]).contains("closure-other")) }
         app.terminate()
         try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-owner"]])
     }
@@ -313,6 +344,68 @@ final class ConnectedAuditUITests: XCTestCase {
         XCTAssertFalse(String(describing: after).contains(id))
         app.terminate()
         try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-owner"]])
+    }
+
+    func testApplicantOpensActualRevisionNoticeEditsAndResubmitsExactRequest() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1", ProcessInfo.processInfo.environment["UACRequestNotificationUIFixture"] == "1" else { throw XCTSkip("Dedicated linked applicant UI phase") }
+        let collection = try await readDemoDocument("organizations")
+        let documents = try XCTUnwrap(collection["documents"] as? [[String: Any]])
+        let document = try XCTUnwrap(documents.first { doc in
+            guard let f = doc["fields"] as? [String: [String: Any]] else { return false }
+            return (f["name"]?["stringValue"] as? String ?? "").hasPrefix("Closure Notification Request ")
+                && f["submittedByUserId"]?["stringValue"] as? String == "closure-member"
+                && f["moderationStatus"]?["stringValue"] as? String == "needsRevision"
+        })
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        let id = try XCTUnwrap(fields["id"]?["stringValue"] as? String)
+        let inbox = try await readDemoDocument("users/closure-member/notificationInbox")
+        let notices = try XCTUnwrap(inbox["documents"] as? [[String: Any]])
+        let notice = try XCTUnwrap(notices.first { doc in
+            guard let f = doc["fields"] as? [String: [String: Any]] else { return false }
+            return f["sourceId"]?["stringValue"] as? String == id && f["type"]?["stringValue"] as? String == "organizationRequestNeedsRevision"
+                && f["recipientUserId"]?["stringValue"] as? String == "closure-member"
+        })
+        let noticeName = try XCTUnwrap(notice["name"] as? String)
+        let noticeID = try XCTUnwrap(noticeName.split(separator: "/").last.map(String.init))
+        ownedRequestDocumentPaths.formUnion(["organizations/" + id, "users/closure-member/notificationInbox/" + noticeID])
+        let maximumText = ProcessInfo.processInfo.environment["UACApplicantMaximumText"] == "1"
+        let app = launchMember(language: maximumText ? "de" : "uk", appearance: maximumText ? "dark" : "light", maximumText: maximumText)
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let entry = app.buttons["profile.notifications.open"].firstMatch; reveal(entry, app); capture(app, "sdk-applicant-profile-navigation"); entry.tap()
+        let row = app.buttons.matching(NSPredicate(format: "identifier == %@", "notificationInbox.open." + noticeID)).firstMatch
+        reveal(row, app); row.tap()
+        let destination = app.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 10)); capture(app, "sdk-applicant-revision-notice"); destination.tap()
+        let edit = app.buttons["organization.request.preview." + id].firstMatch
+        reveal(edit, app); edit.tap()
+        let name = app.textFields["organization.editor.name"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 10)); XCTAssertEqual(name.value as? String, fields["name"]?["stringValue"] as? String)
+        let description = app.descendants(matching: .any)["organization.editor.description"].firstMatch
+        reveal(description, app); description.tap(); description.tap(withNumberOfTaps: 4, numberOfTouches: 1)
+        let corrected = "Corrected local audit description from the actual recipient notification."
+        description.typeText(corrected); XCTAssertEqual(description.value as? String, corrected)
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.75, dy: 0.12)).tap() }
+        for _ in 0..<3 { let next = app.buttons["organizationEditor.next"].firstMatch; reveal(next, app); XCTAssertTrue(next.isEnabled); next.tap() }
+        let submit = app.buttons["organizationEditor.submit"].firstMatch; reveal(submit, app); capture(app, "sdk-applicant-resubmission-preview"); submit.tap()
+        if !submit.waitForNonExistence(timeout: 35), maximumText {
+            capture(app, "sdk-applicant-resubmission-retry-state")
+            // Exercise the visible retry using the retained draft, never an API
+            // write or a fabricated successful response.
+            XCTAssertTrue(submit.isEnabled, "Submission must finish or expose an enabled retry")
+            XCTAssertTrue(app.staticTexts[corrected].firstMatch.exists)
+            reveal(submit, app); submit.tap()
+        }
+        XCTAssertTrue(submit.waitForNonExistence(timeout: 35))
+        let saved = try await readDemoDocument("organizations/" + id)
+        let updated = try XCTUnwrap(saved["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(updated["moderationStatus"]?["stringValue"] as? String, "pendingReview")
+        XCTAssertEqual(updated["shortDescription"]?["stringValue"] as? String, corrected)
+        XCTAssertNil(updated["reviewMessage"]); XCTAssertNil(updated["rejectionReason"])
+        let resubmitted = app.buttons["organization.request.preview." + id].firstMatch
+        reveal(resubmitted, app)
+        capture(app, "sdk-applicant-resubmitted-exact-request")
+        app.terminate()
+        for path in ownedRequestDocumentPaths { _ = try await demoRequest(path, method: "DELETE", fields: nil) }
     }
 
     func testOrganizationAuthorityRevocationClosesOpenDraftWithoutSaving() async throws {
@@ -1096,7 +1189,9 @@ final class ConnectedAuditUITests: XCTestCase {
                "organizations/closure-org/comments/closure-report", "dsaCases", "serverConfiguration/organizationAccess"].contains(path)
                 || ownedPhotoIDs.contains(where: { path == "organizations/closure-org/photos/" + $0 })
                 || ownedDisposableUserIDs.contains(where: { path == "users/" + $0 })
-                || (method == "GET" && ownedDeletionOperationIDs.contains(where: { path == "accountDeletionOperations/" + $0 })) else {
+                || (method == "GET" && ownedDeletionOperationIDs.contains(where: { path == "accountDeletionOperations/" + $0 }))
+                || ownedRequestDocumentPaths.contains(path)
+                || (method == "GET" && ["organizations", "users/closure-member/notificationInbox"].contains(path)) else {
             throw NSError(domain: "AuditFixture", code: 1)
         }
         if ["directoryCategories", "users/closure-member", "dsaCases", "organizations/closure-org/photos"].contains(path) {
@@ -1115,11 +1210,12 @@ final class ConnectedAuditUITests: XCTestCase {
         return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
-    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false, account: String = "member") -> XCUIApplication {
+    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false, account: String = "member", maximumText: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-sdk-ui-audit", "-selectedAppLanguage", language, "-selectedAppAppearance", appearance,
-                               "-UIPreferredContentSizeCategoryName", large ? "UICTContentSizeCategoryAccessibilityM" : "UICTContentSizeCategoryL"]
+                               "-UIPreferredContentSizeCategoryName", maximumText ? "UICTContentSizeCategoryAccessibilityXXXL" : large ? "UICTContentSizeCategoryAccessibilityM" : "UICTContentSizeCategoryL"]
         app.launchEnvironment = ["UACFirebaseEmulators": "1"]
+        if maximumText { app.launchArguments.append("-FIRDebugEnabled") }
         app.launch()
         let signIn = app.buttons["auth.landing.signIn"]
         if app.tabBars.firstMatch.waitForExistence(timeout: 8) {
@@ -1141,7 +1237,7 @@ final class ConnectedAuditUITests: XCTestCase {
         }
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
         let later = app.buttons["auth.passkeySuggestion.later"]
-        if later.waitForExistence(timeout: 5) { capture(app, "sdk-passkey-suggestion"); later.tap() }
+        if later.waitForExistence(timeout: 5) { reveal(later, app); capture(app, "sdk-passkey-suggestion"); later.tap() }
         return app
     }
 

@@ -369,6 +369,45 @@ final class AuditClosureSDKTests: XCTestCase {
         }
     }
 
+    func testApplicantRequestCanBeRefetchedBeforeResubmission() async throws {
+        guard ProcessInfo.processInfo.environment["UACRequestNotificationUIFixture"] == "1" else { throw XCTSkip("Dedicated linked applicant UI phase") }
+        try await signIn("member")
+        defer { try? Auth.auth().signOut() }
+        let repository = FirestoreOrganizationRepository(sessionDataCache: SessionDataCache())
+        let requests = try await repository.fetchOrganizationRequests(submittedByUserID: "closure-member")
+        let request = try XCTUnwrap(requests.first { $0.name.hasPrefix("Closure Notification Request ") && $0.moderationStatus == .needsRevision })
+        let refreshed = try await RefreshRequest.run { try await repository.fetchOrganization(id: request.id) }
+        XCTAssertEqual(refreshed.id, request.id)
+        XCTAssertEqual(refreshed.submittedByUserId, "closure-member")
+        XCTAssertEqual(refreshed.moderationStatus, .needsRevision)
+    }
+
+    func testPrepareActualOrganizationRevisionNoticeForApplicantUI() async throws {
+        guard ProcessInfo.processInfo.environment["UACRequestNotificationUIFixture"] == "1" else { throw XCTSkip("Dedicated linked applicant UI phase") }
+        try await signIn("member")
+        defer { try? Auth.auth().signOut() }
+        let user = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-member")
+        let repository = FirestoreOrganizationRepository(sessionDataCache: SessionDataCache())
+        let model = OrganizationsViewModel(repository: repository)
+        let editor = OrganizationEditorViewModel()
+        editor.name = "Closure Notification Request " + UUID().uuidString
+        editor.shortDescription = "A synthetic request for an actual notification and resubmission journey."
+        editor.city = "Innsbruck"; editor.selectedFederalState = .tirol
+        let created = await editor.submit(with: model, user: user, organizationRulesVersion: "2026.1")
+        XCTAssertTrue(created, editor.errorMessage ?? "Create failed")
+        let requests = try await repository.fetchOrganizationRequests(submittedByUserID: user.id)
+        let request = try XCTUnwrap(requests.first { $0.name.hasPrefix("Closure Notification Request ") && $0.moderationStatus == .pendingReview })
+        try await signIn("owner")
+        try await repository.requestOrganizationRevision(id: request.id, message: "Please clarify the local audit description.", reviewerID: "closure-owner")
+        try await signIn("member")
+        let stored = try await Firestore.firestore().document("organizations/" + request.id).getDocument(source: .server)
+        XCTAssertEqual(stored.get("moderationStatus") as? String, "needsRevision")
+        let notices = try await Firestore.firestore().collection("users/closure-member/notificationInbox").whereField("sourceId", isEqualTo: request.id).getDocuments(source: .server)
+        XCTAssertTrue(notices.documents.contains { $0.get("type") as? String == "organizationRequestNeedsRevision" && $0.get("recipientUserId") as? String == user.id })
+        // Intentionally retained for the next real SDK/UI test; that test removes
+        // only this uniquely named local request and its exact recipient notice.
+    }
+
     func testOrganizationRequestEditorRevisionResubmitRejectionApprovalHistoryAndTargetInbox() async throws {
         try await signIn("member")
         defer { try? Auth.auth().signOut() }

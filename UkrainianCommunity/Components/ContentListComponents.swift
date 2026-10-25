@@ -355,6 +355,7 @@ struct ContentMetadataPill: View {
 }
 
 struct AppNavigationRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let subtitle: String?
     let systemImage: String
@@ -373,9 +374,11 @@ struct AppNavigationRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        (dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
+            : AnyLayout(HStackLayout(alignment: .top, spacing: 12))) {
             Image(systemName: systemImage)
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: 18, weight: .semibold))
                 .foregroundStyle(tint)
                 .frame(width: 30, height: 30)
                 .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -394,7 +397,7 @@ struct AppNavigationRow: View {
                 }
             }
 
-            Spacer(minLength: 12)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: 12) }
         }
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)

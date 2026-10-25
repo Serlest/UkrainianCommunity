@@ -1,6 +1,6 @@
 {
   "date": "2026-10-25",
-  "scope": "R04-B / R07-A plus initial directory conflict/revocation visuals; R03-A / R09-A connected nested forms",
+  "scope": "Blocks 1–9 incremental manual visual readback; source of truth for reviewed images, separate from data/authorization evidence",
   "reviewedImages": [
     {
       "image": "build/audit-closure-20261025/personal-directory-final/35D86CB4-1C78-4C6F-B753-33E0D14A7961.png",
@@ -193,6 +193,387 @@
       "state": "New bilingual category reopened",
       "status": "reviewed",
       "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-cover-final/12E67105-6208-404C-A51F-AD3A4E433FF4.png",
+      "state": "Actual saved news cover reopened",
+      "status": "reviewed",
+      "result": "Full-width landscape image; readable replace/delete and image metadata form"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-cover-final/C71C3B31-362C-4875-B905-AE26D1F4CB2C.png",
+      "state": "Nested Directory contact German dark accessibility",
+      "status": "reviewed",
+      "result": "Translation label and hint fully wrap; contact fields retained after removing second row"
+    },
+    {
+      "image": "build/audit-closure-20261025/replacement-maps-translation/F9842C10-5427-424A-AF2C-5C5140BE54E3.png",
+      "state": "News translation German dark maximum accessibility text",
+      "status": "reviewed",
+      "result": "Two-line action readable inside rounded rectangular surface; full-width layout, no ellipse clipping"
+    },
+    {
+      "image": "build/audit-closure-20261025/replacement-maps-translation/79E397DD-C4AE-4258-9F83-8F575486EACE.png",
+      "state": "Actual organization photo stale replacement conflict",
+      "status": "reviewed",
+      "result": "Cause/reload draft-preserving action readable; detected truncated native toolbar title and shortened it in subsequent source"
+    },
+    {
+      "image": "build/audit-closure-20261025/replacement-maps-translation/2CE262FF-8386-44D6-A562-3C549F63455B.png",
+      "state": "Actual organization photo replaced after reload",
+      "status": "reviewed",
+      "result": "Correct synthetic image visible in grid, counter 1/30, distinct add/delete controls"
+    },
+    {
+      "image": "build/audit-closure-20261025/replacement-maps-translation/BF1B0336-CE58-401E-9CA6-64AA81110C70.png",
+      "state": "Exact photo delete confirmation",
+      "status": "reviewed",
+      "result": "Popover destructive label clear; surrounding tab bar visibly disabled while popover active"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/111B1C21-3915-4B40-A598-CC5A87D3386B.png",
+      "state": "navigation-restricted-member-positive-root",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/3F3B5FCB-2786-40BB-9071-A473C21216F3.png",
+      "state": "navigation-all-roots-restored",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/723F5407-7254-41BC-98A9-5825A4CD1A0A.png",
+      "state": "navigation-directory-pushed-editor",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/736DA510-FC2A-4C46-BAF7-C7B11305BD18.png",
+      "state": "navigation-admin-profile",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/49F09CC7-2C22-44CB-9B98-F85D6F03FB94.png",
+      "state": "navigation-admin-profile",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/0E81BED9-5FA6-42B3-885A-CA5BFA574F1B.png",
+      "state": "navigation-admin-profile",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/87DC6540-5A21-4368-9C31-0487DEB1F424.png",
+      "state": "navigation-modal-editor",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/607957FA-CB84-4EA3-BA82-E146D556582A.png",
+      "state": "navigation-settings-push",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/nav-external-accepted/CDCE81D1-CC4A-4E6C-941F-59A9A7E0EE5C.png",
+      "state": "navigation-personal-push",
+      "status": "reviewed",
+      "reviewMethod": "build/audit-closure-20261025/nav-external-reviewed-sheet.jpg",
+      "result": "Correct tab policy, readable controls, expected pushed/modal/admin presentation; selected root visible after return"
+    },
+    {
+      "image": "build/audit-closure-20261025/visual-latest/4B068466-7C3D-41AD-95F7-C76780ACB5CD.png",
+      "state": "News final notice and stacked navigation at German dark maximum text",
+      "status": "reviewed",
+      "result": "Info glyph no longer overlays body; back action has full width. Primary action continues below viewport through normal scrolling."
+    },
+    {
+      "image": "build/audit-closure-20261025/visual-latest/042FE1CB-AABC-46D3-9E20-18645ED7488D.png",
+      "state": "Organization community empty / follow at German dark maximum text",
+      "status": "reviewed",
+      "result": "Empty message and follow action readable; decorative icon no longer overlaps scaled text."
+    },
+    {
+      "image": "build/audit-closure-20261025/visual-latest/A37B618A-0A7F-4D49-B8EA-F38FB6917329.png",
+      "state": "Actual event cover saved and reopened",
+      "status": "reviewed",
+      "result": "Landscape cover fills width; clear alt-text field and image details disclosure; actual JPEG URL independently checked."
+    },
+    {
+      "image": "build/audit-closure-20261025/org-form-public-final/7AA7215C-CB99-4E0C-829C-3CFA53FCED84.png",
+      "state": "Community loading",
+      "status": "reviewed",
+      "result": "Light Ukrainian layout: readable status, distinct loading/error/retry/recovered states; bottom navigation does not cover interactive content. Metadata recovery does not imply image download success."
+    },
+    {
+      "image": "build/audit-closure-20261025/org-form-public-final/FB754F22-E71A-4B17-B29A-5920C8282263.png",
+      "state": "Community metadata error and retry",
+      "status": "reviewed",
+      "result": "Light Ukrainian layout: readable status, distinct loading/error/retry/recovered states; bottom navigation does not cover interactive content. Metadata recovery does not imply image download success."
+    },
+    {
+      "image": "build/audit-closure-20261025/org-form-public-final/803F5CFE-CBCA-46DD-94C6-9D897027A95A.png",
+      "state": "Community metadata recovered with explicit missing public profiles",
+      "status": "reviewed",
+      "result": "Light Ukrainian layout: readable status, distinct loading/error/retry/recovered states; bottom navigation does not cover interactive content. Metadata recovery does not imply image download success."
+    },
+    {
+      "image": "build/audit-closure-20261025/org-form-public-final/3B4290E6-DFDF-4231-8D07-7D80A57512D7.png",
+      "state": "Photo metadata loading",
+      "status": "reviewed",
+      "result": "Light Ukrainian layout: readable status, distinct loading/error/retry/recovered states; bottom navigation does not cover interactive content. Metadata recovery does not imply image download success."
+    },
+    {
+      "image": "build/audit-closure-20261025/org-form-public-final/8365C02C-41D4-4DE4-B650-7E04A2DA7E8A.png",
+      "state": "Photo metadata error and retry",
+      "status": "reviewed",
+      "result": "Light Ukrainian layout: readable status, distinct loading/error/retry/recovered states; bottom navigation does not cover interactive content. Metadata recovery does not imply image download success."
+    },
+    {
+      "image": "build/audit-closure-20261025/org-form-public-final/6BABAA44-34DB-42A2-ADF2-B0BCB7BB68F1.png",
+      "state": "Photo metadata recovered; separate image download state",
+      "status": "reviewed",
+      "result": "Light Ukrainian layout: readable status, distinct loading/error/retry/recovered states; bottom navigation does not cover interactive content. Metadata recovery does not imply image download success."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/47DB23C8-FBA3-4C79-B87E-33C5F200BE7A.png",
+      "state": "organization-empty-continuation-photos-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/F604407F-E7CB-4D99-8B01-E21BCC6EB597.png",
+      "state": "organization-empty-photos-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/CAA1FE11-2B67-4498-9810-6AB8A6CE67B9.png",
+      "state": "organization-empty-continuation-team-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/93070A3F-EB03-4C47-AEC5-5B3CEC08E143.png",
+      "state": "organization-empty-team-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/9779B989-9A4C-41FA-824C-65756C736A32.png",
+      "state": "organization-empty-continuation-events-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/19A9666B-0750-4BBE-827B-BF454B46596A.png",
+      "state": "organization-empty-events-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/BE164EC7-0C47-4A0E-8B8E-5B5615EF07F6.png",
+      "state": "organization-empty-continuation-news-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/71E3F1A0-F4B8-493A-AED6-4B8CF7F694BD.png",
+      "state": "organization-empty-news-de-dark-AX",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/5BADD5AA-1ADB-4741-B77B-1673E2369AF7.png",
+      "state": "organization-empty-photos-uk-light",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/F014FBD4-746D-451C-881D-BAEE992A795F.png",
+      "state": "organization-empty-team-uk-light",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/74C484F7-4DDB-4F94-9CFA-EC761C1E567A.png",
+      "state": "organization-empty-events-uk-light",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/form-close-diagnostic/95930766-80FB-4531-A486-E858B44A496D.png",
+      "state": "organization-empty-news-uk-light",
+      "status": "reviewed",
+      "result": "Readable empty-state content and continuation. Full-width section menu at maximum Dynamic Type, fixed decorative empty-state icons, scrollable follow/comments; ordinary layout retained."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/3D9613E6-8386-481C-AC5D-466EE76D48C4.png",
+      "state": "sdk-maps-target-2",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/B183461E-1CB5-4958-9B99-9EB0D13F90FF.png",
+      "state": "sdk-maps-target-1",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/3A30BFF2-1BBF-4C02-B963-89BD3DBB83DB.png",
+      "state": "sdk-event-photo-saved-reopened",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/FFC4079F-B8DF-48EF-8578-3D1509C0B43B.png",
+      "state": "sdk-organization-all-fields-reopened",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/E599008F-2E11-4615-AFDD-7FD23C3D5BEB.png",
+      "state": "sdk-organization-all-fields-preview",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/14EECD74-E0AD-485D-91EF-5DBEF7CA69CF.png",
+      "state": "sdk-organization-directory-bilingual-ready",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/370FC315-44E2-42F3-9AE3-8EB5400AA9FF.png",
+      "state": "sdk-organization-contacts-ready",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/507C0CDC-1E58-4184-8448-429EF4B21805.png",
+      "state": "sdk-organization-basics-bilingual-ready",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/43C5C74E-A09E-4FB7-B26A-74760529FB70.png",
+      "state": "sdk-organization-logo-square-crop",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/6F0FC615-B834-4978-8C8C-BDFD8DDF4B0F.png",
+      "state": "sdk-organization-photo-delete-confirm",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/3EC23BFF-467B-42BE-B4EC-27A3048CA684.png",
+      "state": "sdk-organization-photo-replaced-after-reload",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/1506DD8E-EAAC-4941-A69C-19372F53B4E8.png",
+      "state": "sdk-organization-photo-replacement-conflict",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/7EC04139-9FAC-4B01-B523-70EE300D4205.png",
+      "state": "sdk-organization-photo-fullscreen",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/13534EAB-ADEE-44BB-8DE7-7C013805C2AA.png",
+      "state": "sdk-organization-photo-caption-ready",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/C2E4D0D5-9D14-4CC8-BDF9-453AC2909981.png",
+      "state": "sdk-disposable-delete-confirmed",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/CAF4CC8D-5853-4AFA-A15F-CAC3F23D7AF5.png",
+      "state": "sdk-disposable-delete-unconfirmed",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/BD4F242D-B804-4E81-A3D6-3553BCEEE2E8.png",
+      "state": "sdk-organization-authority-revoked",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/organization-final-acceptance/ACF175C2-31C1-4637-B827-E8AC8C716141.png",
+      "state": "sdk-organization-authority-before-revocation",
+      "status": "reviewed",
+      "result": "Actual connected UI: readable controls/status and expected target, crop, caption, persisted form, confirmation or revoked-access state. Data mutation/readback assertions are separate in the named method."
+    },
+    {
+      "image": "build/audit-closure-20261025/deletion-settled/9EB71032-CC51-4393-8501-0035B5C06B8E.png",
+      "state": "sdk-disposable-delete-landing-settled",
+      "status": "reviewed",
+      "result": "Welcome/authentication screen after deletion; confirmation sheet fully dismissed. The earlier transition capture is not used as proof of settled presentation."
+    },
+    {
+      "image": "build/audit-closure-20261025/team-snapshot-final/AD38E4E3-8A20-4B09-90B8-D4D3C580F21D.png",
+      "state": "ordinary organization team concurrent role change rejected",
+      "status": "reviewed",
+      "result": "Conflict reason and retry readable; contact quick-action wrapping still requires adaptive AX followup."
+    },
+    {
+      "image": "build/audit-closure-20261025/team-snapshot-final/B4F8BAD9-EEFE-4980-B3A7-9D2A0115489A.png",
+      "state": "actual applicant corrected request pending review",
+      "status": "reviewed",
+      "result": "Whole request card visible, status below long title, destination and delete actions readable."
+    },
+    {
+      "image": "build/audit-closure-20261025/maximum-adaptive-final/3258C7DA-5769-45F0-88BA-61960AF08DA5.png",
+      "state": "German dark maximum-text profile navigation",
+      "status": "reviewed",
+      "result": "Title and subtitle use full row width; icon and unread count no longer compress title into many short fragments. Row remains scrollable."
+    },
+    {
+      "image": "build/audit-closure-20261025/maximum-adaptive-final/21ED35DD-2F95-4B83-B7C2-E03D08BAED13.png",
+      "state": "German dark maximum-text request actual network failure",
+      "status": "reviewed",
+      "result": "Visible server-connection error is placed after preview near submission; retained description and enabled retry verified by the test. Long message scrolls at maximum text size."
+    },
+    {
+      "image": "build/audit-closure-20261025/maximum-adaptive-final/F2798239-110C-42C9-B33B-87D70A59D394.png",
+      "state": "German dark maximum-text actual passkey suggestion",
+      "status": "reviewed",
+      "result": "Scrollable large sheet exposes both primary action and Maybe later; actual dismissal passed. This is not proof of passkey creation or authentication."
+    },
+    {
+      "image": "build/audit-closure-20261025/team-adaptive-final/9570B5CB-5AA4-4231-9EF7-FC822DAFC2D7.png",
+      "state": "actual organization contacts quick actions at Accessibility M",
+      "status": "reviewed",
+      "result": "Full-width edit/site actions use separate rows; vertical scrolling exposes Telegram below. Contact rows retain readable URLs and fixed semantic destinations."
+    },
+    {
+      "image": "build/audit-closure-20261025/team-adaptive-final/B7E8680B-F376-4CBF-BB4D-09FA398FFE09.png",
+      "state": "actual organization assigned moderator at Accessibility M",
+      "status": "reviewed",
+      "result": "Names, role badges, action menus and update receipt readable; actual role change and remove readbacks pass."
     }
   ],
   "personalRoleReuse": {
@@ -216,5 +597,14 @@
   "limitations": [
     "Fixture empty/error journeys prove presentation/retry, not a production outage. Actual SDK persistence and account isolation have separate evidence.",
     "This is not a complete visual ledger for every window in blocks 1–9; R01-C remains open."
-  ]
+  ],
+  "changedSharedComponents": {
+    "RemoteImageView": "Opt-in fullscreen retry/updated request identity; fixed HTTP failure/recovery and actual saved-image readback",
+    "ScreenChromeComponents": "Stable explicit close action; supported editor dismissal exercised",
+    "ContentTranslationButton": "Adaptive action axis/rounded rectangle/hint wrapping; Directory and News accessibility screenshots",
+    "Profile root NavigationStack": "Single route policy for tab hiding; nine unique captured route states",
+    "ContentReportSheet": "Success receipt no longer truncates follow-up instruction",
+    "Organization section navigation": "Accessibility-only full-width Menu; all six section routes retained. Normal horizontal chips unchanged.",
+    "OrganizationAccessStore": "Expired grants remain denied for writes. Presentation retains an unsaved draft during revalidation; actual revocation clears it. Actual SDK view models await unresolved capability checks and reuse fresh decisions."
+  }
 }

@@ -1,8 +1,8 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 2,
-  "remainingBlocks": 17,
+  "completedBlocks": 4,
+  "remainingBlocks": 15,
   "nextBlock": null,
   "blocks": [
     {
@@ -13,10 +13,10 @@
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
-        "R01-A",
         "R01-C"
       ],
       "closedChecks": [
+        "R01-A",
         "R01-B"
       ],
       "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
@@ -76,37 +76,35 @@
     {
       "number": 5,
       "name": "Новости",
-      "status": "implemented_verification_incomplete",
+      "status": "verification_closed_pending_device_acceptance",
       "inventory": "Docs/Verification/NewsInventory20261024.md",
       "report": "Docs/Verification/NewsAudit20261024.json",
       "testFlightBuild": 122,
       "deliveryReport": "Docs/Verification/TestFlight122.json",
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-      "openChecks": [
+      "openChecks": [],
+      "closedChecks": [
+        "R05-A",
         "R05-B",
         "R05-C"
-      ],
-      "closedChecks": [
-        "R05-A"
       ],
       "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
     {
       "number": 6,
       "name": "Мероприятия",
-      "status": "implemented_verification_incomplete",
+      "status": "verification_closed_pending_device_acceptance",
       "inventory": "Docs/Verification/EventsInventory20261024.md",
       "report": "Docs/Verification/EventsAudit20261024.json",
       "testFlightBuild": 122,
       "deliveryReport": "Docs/Verification/TestFlight122.json",
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-      "openChecks": [
-        "R06-B"
-      ],
+      "openChecks": [],
       "closedChecks": [
         "R06-A",
+        "R06-B",
         "R06-C"
       ],
       "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
@@ -122,11 +120,11 @@
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
-        "R07-B",
-        "R07-C"
+        "R07-B"
       ],
       "closedChecks": [
-        "R07-A"
+        "R07-A",
+        "R07-C"
       ],
       "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
@@ -140,10 +138,11 @@
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
       "openChecks": [
         "R08-A",
-        "R08-B",
-        "R08-C"
+        "R08-B"
       ],
-      "closedChecks": []
+      "closedChecks": [
+        "R08-C"
+      ]
     },
     {
       "number": 9,
@@ -316,7 +315,7 @@
   },
   "schemaVersion": 2,
   "blocksWithImplementedFixes": 9,
-  "blocksReopenedForCompletion": 7,
+  "blocksReopenedForCompletion": 5,
   "notStartedBlocks": 10,
   "nextNewBlock": 10,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
@@ -324,8 +323,8 @@
   "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
-    "closedScenarioGroups": 14,
-    "remainingScenarioGroups": 13,
-    "fullyClosedBlocks": 2
+    "closedScenarioGroups": 20,
+    "remainingScenarioGroups": 7,
+    "fullyClosedBlocks": 4
   }
 }

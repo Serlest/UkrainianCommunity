@@ -42,6 +42,7 @@ enum ProfileModuleStatus {
 
 
 struct ProfileModuleRow: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let subtitle: String?
     let systemImage: String
@@ -69,7 +70,9 @@ struct ProfileModuleRow: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 10) {
+        (dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 10))) {
             AppNavigationRow(
                 title: title,
                 subtitle: subtitle,

@@ -65,11 +65,11 @@ struct OrganizationEditorView: View {
             closeStyle: .cancel,
             closeAction: requestClose
         ) {
-            statusContent
             editorProgress
             editorStepContent
                 .id(currentStep)
                 .disabled(isSaving)
+            statusContent
             editorNavigation.disabled(isSaving)
         }
         .id(currentStep)
@@ -283,7 +283,9 @@ struct OrganizationEditorView: View {
     private var organizationPreviewCard: some View {
         editorCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                HStack(alignment: .top, spacing: AppTheme.dashboardSpacing) {
+                (typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: AppTheme.dashboardSpacing))
+                    : AnyLayout(HStackLayout(alignment: .top, spacing: AppTheme.dashboardSpacing))) {
                     logoPickerContent
                         .frame(width: 72, height: 72)
                         .allowsHitTesting(false)
@@ -298,7 +300,9 @@ struct OrganizationEditorView: View {
                     }
                 }
 
-                AppHorizontalChipRow {
+                (typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                    : AnyLayout(HStackLayout(spacing: 8))) {
                     AppInfoChip(
                         title: viewModel.profileKind.title,
                         systemImage: viewModel.profileKind.systemImage,

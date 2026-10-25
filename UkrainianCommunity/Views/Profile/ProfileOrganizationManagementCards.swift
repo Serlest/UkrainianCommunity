@@ -157,14 +157,13 @@ struct OrganizationRequestCard: View {
                     )
 
                     VStack(alignment: .leading, spacing: 7) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(organization.localizedName)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(AppTheme.textPrimary)
-                                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                        Text(organization.localizedName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(AppTheme.textPrimary)
+                            .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                            statusBadge
-                        }
+                        statusBadge
 
                         Text(organization.localizedShortDescription)
                             .font(.caption)

@@ -154,61 +154,64 @@ struct PasskeyManagementView: View {
 }
 
 struct PasskeyEnrollmentOfferView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let onFinish: () -> Void
     @State private var isRegistering = false
     @State private var errorMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
-            Image(systemName: "person.badge.key.fill")
-                .font(.largeTitle)
-                .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .accessibilityHidden(true)
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppTheme.sectionSpacing) {
+                Image(systemName: "person.badge.key.fill")
+                    .font(.largeTitle)
+                    .foregroundStyle(AppTheme.accentPrimaryForeground)
+                    .accessibilityHidden(true)
 
-            Text(AppStrings.AccountSecurity.passkeyOfferTitle)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(AppTheme.textPrimary)
+                Text(AppStrings.AccountSecurity.passkeyOfferTitle)
+                    .font(.title2.weight(.bold))
+                    .foregroundStyle(AppTheme.textPrimary)
 
-            Text(AppStrings.AccountSecurity.passkeyOfferSubtitle)
-                .font(.body)
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+                Text(AppStrings.AccountSecurity.passkeyOfferSubtitle)
+                    .font(.body)
+                    .foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
-            if let errorMessage {
-                InlineMessageCard(style: .error, message: errorMessage)
-            }
+                if let errorMessage {
+                    InlineMessageCard(style: .error, message: errorMessage)
+                }
 
-            PrimaryActionButton(
-                title: AppStrings.AccountSecurity.passkeyAdd,
-                loadingTitle: AppStrings.AccountSecurity.passkeyAdding,
-                isEnabled: !isRegistering,
-                isLoading: isRegistering,
-                systemImage: "key.fill"
-            ) {
-                Task {
-                    isRegistering = true
-                    defer { isRegistering = false }
-                    do {
-                        try await PasskeyService.shared.register()
-                        onFinish()
-                    } catch {
-                        let nsError = error as NSError
-                        if nsError.domain == ASAuthorizationError.errorDomain,
-                           nsError.code == ASAuthorizationError.canceled.rawValue { return }
-                        errorMessage = AppStrings.AccountSecurity.passkeyAddFailed
+                PrimaryActionButton(
+                    title: AppStrings.AccountSecurity.passkeyAdd,
+                    loadingTitle: AppStrings.AccountSecurity.passkeyAdding,
+                    isEnabled: !isRegistering,
+                    isLoading: isRegistering,
+                    systemImage: "key.fill"
+                ) {
+                    Task {
+                        isRegistering = true
+                        defer { isRegistering = false }
+                        do {
+                            try await PasskeyService.shared.register()
+                            onFinish()
+                        } catch {
+                            let nsError = error as NSError
+                            if nsError.domain == ASAuthorizationError.errorDomain,
+                               nsError.code == ASAuthorizationError.canceled.rawValue { return }
+                            errorMessage = AppStrings.AccountSecurity.passkeyAddFailed
+                        }
                     }
                 }
-            }
 
-            Button(AppStrings.AccountSecurity.passkeyLater, action: onFinish)
-                .accessibilityIdentifier("auth.passkeySuggestion.later")
-                .font(.subheadline.weight(.semibold))
-                .frame(maxWidth: .infinity)
-                .disabled(isRegistering)
+                Button(AppStrings.AccountSecurity.passkeyLater, action: onFinish)
+                    .accessibilityIdentifier("auth.passkeySuggestion.later")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: AppTheme.minimumInteractiveTarget)
+                    .disabled(isRegistering)
+            }
+            .padding(AppTheme.pageHorizontal)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(AppTheme.pageHorizontal)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .presentationDetents([.medium])
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(isRegistering)
     }

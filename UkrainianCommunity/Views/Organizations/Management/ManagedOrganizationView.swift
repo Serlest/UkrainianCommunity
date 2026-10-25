@@ -34,6 +34,8 @@ struct ManagedOrganizationView: View {
     @State private var isDeletingOrganization = false
     @State private var deleteErrorMessage: String?
     @State private var pendingTeamAction: OrganizationTeamAction?
+    @State private var pendingTeamOrganization: Organization?
+    @State private var pendingTeamIdentity: ProfileAccessIdentity?
     @State private var selectedTeamRole: OrganizationTeamRole = .moderator
     @State private var teamSearchText = ""
     @State private var isChangingOwner = false
@@ -176,7 +178,10 @@ struct ManagedOrganizationView: View {
             else if allowed { reloadAuthorizedTeam() }
         }
         .onChange(of: canManageTeam) { _, allowed in
-            if !allowed && !isRevalidating("manageTeam") { isShowingTeamSearch = false; pendingTeamAction = nil }
+            if !allowed && !isRevalidating("manageTeam") {
+                isShowingTeamSearch = false; pendingTeamAction = nil
+                pendingTeamOrganization = nil; pendingTeamIdentity = nil
+            }
         }
         .onChange(of: canEditOrganization) { _, allowed in
             if !allowed && !isRevalidating("editInfo") { isShowingOrganizationEditor = false }
@@ -219,8 +224,9 @@ struct ManagedOrganizationView: View {
         ) {
             if let pendingTeamAction {
                 Button(pendingTeamAction.confirmTitle, role: destructiveRole(for: pendingTeamAction)) {
+                    guard let reviewedOrganization = pendingTeamOrganization, let reviewedIdentity = pendingTeamIdentity else { return }
                     Task {
-                        await performTeamAction(pendingTeamAction)
+                        await performTeamAction(pendingTeamAction, organization: reviewedOrganization, reviewedIdentity: reviewedIdentity)
                     }
                 }
                 .accessibilityIdentifier("organization.team.confirm")
@@ -228,6 +234,7 @@ struct ManagedOrganizationView: View {
 
             Button(AppStrings.Organizations.cancel, role: .cancel) {
                 pendingTeamAction = nil
+                pendingTeamOrganization = nil; pendingTeamIdentity = nil
             }
         }
     }
@@ -294,6 +301,7 @@ struct ManagedOrganizationView: View {
         isShowingTeamSearch = false
         isShowingDeleteConfirmation = false
         pendingTeamAction = nil
+        pendingTeamOrganization = nil; pendingTeamIdentity = nil
         teamViewModel.reset()
     }
 
@@ -503,10 +511,10 @@ struct ManagedOrganizationView: View {
                                 availableRoles: availableRoles(for: member),
                                 isUpdating: teamViewModel.updatingUserIDs.contains(member.userID),
                                 onAssignRole: { role in
-                                    pendingTeamAction = .assign(member: member, role: role)
+                                    reviewTeamAction(.assign(member: member, role: role))
                                 },
                                 onRemove: {
-                                    pendingTeamAction = .remove(member: member)
+                                    reviewTeamAction(.remove(member: member))
                                 }
                             )
                         }
@@ -604,9 +612,9 @@ struct ManagedOrganizationView: View {
                 } else {
                     ForEach(filteredTeamCandidateMembers) { member in
                         Button {
-                            pendingTeamAction = isChangingOwner
+                            reviewTeamAction(isChangingOwner
                                 ? .changeOwner(member: member)
-                                : .assign(member: member, role: selectedTeamRole)
+                                : .assign(member: member, role: selectedTeamRole))
                             isShowingTeamSearch = false
                         } label: {
                             OrganizationTeamCandidateRow(
@@ -712,17 +720,24 @@ struct ManagedOrganizationView: View {
     }
 
     @MainActor
-    private func performTeamAction(_ action: OrganizationTeamAction) async {
-        guard let actor = authState.user else {
+    private func reviewTeamAction(_ action: OrganizationTeamAction) {
+        pendingTeamOrganization = currentOrganization
+        pendingTeamIdentity = accessIdentity
+        pendingTeamAction = action
+    }
+
+    private func performTeamAction(_ action: OrganizationTeamAction, organization: Organization, reviewedIdentity: ProfileAccessIdentity) async {
+        guard accessIdentity == reviewedIdentity, let actor = authState.user else {
             pendingTeamAction = nil
             return
         }
 
         let identity = accessIdentity
-        let organizationID = currentOrganization.id
-        let didUpdate = await teamViewModel.apply(action, organization: currentOrganization, actor: actor)
+        let organizationID = organization.id
+        let didUpdate = await teamViewModel.apply(action, organization: organization, actor: actor)
         guard accessIdentity == identity else { return }
         pendingTeamAction = nil
+        pendingTeamOrganization = nil; pendingTeamIdentity = nil
 
         guard didUpdate else { return }
         let fresh = await organizationsViewModel.resolveOrganization(id: organizationID, force: true)

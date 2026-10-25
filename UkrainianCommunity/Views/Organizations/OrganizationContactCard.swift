@@ -2,6 +2,7 @@ import MapKit
 import SwiftUI
 
 struct OrganizationContactCard: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
     let organization: Organization
     let allowsEditing: Bool
     let showsManagementActions: Bool
@@ -266,11 +267,15 @@ struct OrganizationContactCard: View {
 
     @ViewBuilder
     private var contactQuickActions: some View {
-        HStack(spacing: 8) {
+        (typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+            : AnyLayout(HStackLayout(spacing: 8))) {
             if allowsEditing, let onEdit {
                 Button(action: onEdit) {
                     Label(AppStrings.Organizations.contactsEdit, systemImage: "square.and.pencil")
+                        .frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : nil, minHeight: AppTheme.minimumInteractiveTarget, alignment: .leading)
                 }
+                .accessibilityIdentifier("organization.contact.edit")
                 .buttonStyle(.bordered)
                 .controlSize(.small)
             }
@@ -278,6 +283,7 @@ struct OrganizationContactCard: View {
             if let websiteURL {
                 Link(destination: websiteURL) {
                     Label(AppStrings.Organizations.contactsOpenWebsite, systemImage: "safari")
+                        .frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : nil, minHeight: AppTheme.minimumInteractiveTarget, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
@@ -287,6 +293,7 @@ struct OrganizationContactCard: View {
             if let telegramURL {
                 Link(destination: telegramURL) {
                     Label(AppStrings.Organizations.contactsOpenTelegram, systemImage: "paperplane")
+                        .frame(maxWidth: typeSize.isAccessibilitySize ? .infinity : nil, minHeight: AppTheme.minimumInteractiveTarget, alignment: .leading)
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)

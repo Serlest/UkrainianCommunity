@@ -1,0 +1,346 @@
+{
+  "date": "2026-10-25",
+  "status": "in_progress",
+  "scope": "Consolidated window families of blocks 1–9; this index preserves actual proof and names unverified system/protected variants. It does not turn a fixture success into a real provider/device success.",
+  "originalCriteria": "AuditCompletenessReconciliation20261025.json",
+  "reviewedImageRegistry": "AuditClosureUIStates20261025.json",
+  "families": [
+    {
+      "id": "chrome",
+      "blocks": [
+        1
+      ],
+      "routes": [
+        "five root tabs",
+        "root searches",
+        "profile pushed destinations",
+        "administrative shells",
+        "modal and pushed editors"
+      ],
+      "evidenceReports": [
+        "GeneralInterfaceRecheck20261024.json"
+      ],
+      "roleBoundary": "Positive owner/member journeys; restricted admin entries absent for member. Route-specific authorization uses each block matrix.",
+      "remaining": [],
+      "reviewedImages": [
+        "build/audit-closure-20261025/nav-external-accepted/111B1C21-3915-4B40-A598-CC5A87D3386B.png",
+        "build/audit-closure-20261025/nav-external-accepted/3F3B5FCB-2786-40BB-9071-A473C21216F3.png",
+        "build/audit-closure-20261025/nav-external-accepted/723F5407-7254-41BC-98A9-5825A4CD1A0A.png",
+        "build/audit-closure-20261025/nav-external-accepted/736DA510-FC2A-4C46-BAF7-C7B11305BD18.png",
+        "build/audit-closure-20261025/nav-external-accepted/49F09CC7-2C22-44CB-9B98-F85D6F03FB94.png",
+        "build/audit-closure-20261025/nav-external-accepted/0E81BED9-5FA6-42B3-885A-CA5BFA574F1B.png",
+        "build/audit-closure-20261025/nav-external-accepted/87DC6540-5A21-4368-9C31-0487DEB1F424.png",
+        "build/audit-closure-20261025/nav-external-accepted/607957FA-CB84-4EA3-BA82-E146D556582A.png",
+        "build/audit-closure-20261025/nav-external-accepted/CDCE81D1-CC4A-4E6C-941F-59A9A7E0EE5C.png"
+      ],
+      "status": "verified_with_linked_evidence"
+    },
+    {
+      "id": "auth",
+      "blocks": [
+        2
+      ],
+      "routes": [
+        "landing",
+        "method selection",
+        "email login",
+        "registration details",
+        "registration legal documents and optional settings",
+        "password reset",
+        "provider loading and cancellation"
+      ],
+      "evidenceReports": [
+        "AuthPresentationImprovements20261024.json",
+        "StartupAuthFixes.json"
+      ],
+      "roleBoundary": "Unauthenticated entry and restored sessions. Privileged verification is separate.",
+      "remaining": [
+        "Actual Apple/Google first and repeat login, cancellation/error and email action-link completion on controlled accounts"
+      ],
+      "reviewedImages": [],
+      "status": "open"
+    },
+    {
+      "id": "security",
+      "blocks": [
+        2,
+        3
+      ],
+      "routes": [
+        "account security",
+        "TOTP requirement/enrollment/sign-in",
+        "passkey list/add/remove/sign-in",
+        "provider link/unlink",
+        "biometric lock",
+        "delete-account confirmation and return"
+      ],
+      "evidenceReports": [
+        "ProfileSettingsFixes.json"
+      ],
+      "roleBoundary": "Member security, owner/admin protected gate; organization-owner and platform-owner deletion restrictions retained.",
+      "remaining": [
+        "Controlled privileged MFA and real provider/passkey/biometric confirmations, background/return and recovery"
+      ],
+      "reviewedImages": [
+        "build/audit-closure-20261025/deletion-settled/9EB71032-CC51-4393-8501-0035B5C06B8E.png"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "profile",
+      "blocks": [
+        3
+      ],
+      "routes": [
+        "edit profile",
+        "avatar picker/crop",
+        "preferences",
+        "language/theme",
+        "analytics consent",
+        "blocked users and organizations"
+      ],
+      "evidenceReports": [
+        "ProfileSettingsFixes.json"
+      ],
+      "roleBoundary": "Account-specific private data and owner/admin/member settings. Personal body reuse does not authorize administrative actions.",
+      "remaining": [],
+      "reviewedImages": [
+        "build/audit-closure-20261025/directory-hidden-fixed-screens/79ACA8FA-3ACB-4AFE-9537-7236D8B19A01.png",
+        "build/audit-closure-20261025/directory-hidden-fixed-screens/0940FC31-4766-4805-9FA7-B1309C3BB219.png",
+        "build/audit-closure-20261025/directory-photo-final/750AF564-A9DB-43C4-926B-8BE55EC76377.png"
+      ],
+      "status": "verified_with_linked_evidence"
+    },
+    {
+      "id": "personal",
+      "blocks": [
+        4
+      ],
+      "routes": [
+        "registrations",
+        "saved content",
+        "subscriptions",
+        "recent views",
+        "activity history",
+        "per-item and clear confirmations"
+      ],
+      "evidenceReports": [
+        "PersonalSectionsAudit20261024.json"
+      ],
+      "roleBoundary": {
+        "applicable": [
+          "owner",
+          "admin",
+          "organization owner",
+          "organization admin",
+          "organization moderator",
+          "mixed",
+          "member",
+          "warned"
+        ],
+        "reason": "Personal destination body/empty/error/dialog components have no role-based layout branch; current account UID selects repositories. Retained all-role entry/return assertions plus actual member/other SDK/UI isolation cover the distinct authorization/context concerns. Guest/blocked positive/restricted layouts retain their dedicated tests.",
+        "roleEvidence": "Docs/Verification/PersonalSectionsAudit20261024.json"
+      },
+      "remaining": [],
+      "reviewedImages": [
+        "build/audit-closure-20261025/personal-directory-final/35D86CB4-1C78-4C6F-B753-33E0D14A7961.png",
+        "build/audit-closure-20261025/personal-directory-final/1CC188D9-83C5-4BD3-B948-8CF73BAF2FC9.png",
+        "build/audit-closure-20261025/personal-directory-final/C625C628-CEFA-4609-8955-68EDDC7D76CC.png",
+        "build/audit-closure-20261025/personal-directory-final/FB9F6685-F8D1-4EC3-B565-5C034F22FACE.png",
+        "build/audit-closure-20261025/personal-directory-final/0BF184FD-8A5E-41B8-8343-A2E017B1A709.png",
+        "build/audit-closure-20261025/personal-directory-final/DECA4808-7C97-42BC-8E25-BB5C14D70E4E.png",
+        "build/block04-last-screens/E4E02B5A-1640-49F1-ABD3-D0BCA748B6B6.png",
+        "build/block04-last-screens/CDCE468A-6D9C-4215-BFB5-9B8ECC8C1463.png",
+        "build/block04-last-screens/6D79737D-D4DF-4E84-8618-A0DABF4B043A.png",
+        "build/block04-last-screens/553DF05A-972D-4F73-A191-DA068A050606.png",
+        "build/block04-dialogs-screens/A89FA1E8-A670-4894-A3C1-4275BF0A29BB.png",
+        "build/block04-dialogs-screens/2D36349D-88F2-4ED2-AF85-9084142767C0.png",
+        "build/block04-dialogs-screens/C4B78CC9-519F-4F61-BC72-CEEC04307A22.png",
+        "build/block04-dialogs-screens/1746735F-56B3-4B18-A245-EDB33415CC8A.png",
+        "build/block04-dialogs-screens/0CF5A044-4665-4364-8B9D-6D36730B207D.png",
+        "build/block04-dialogs-screens/D0F46C21-33C9-4227-98AB-6B8353D73187.png",
+        "build/audit-closure-20261025/connected-directory-personal-screens/AE817CDA-51D2-464A-84FC-C269F7CE5A34.png",
+        "build/audit-closure-20261025/connected-directory-personal-screens/2BAFE999-9737-4222-85C1-4D7B585B4B21.png",
+        "build/audit-closure-20261025/connected-directory-personal-screens/4135C766-A094-44C0-BFF5-5E6B0E1F8636.png",
+        "build/audit-closure-20261025/connected-directory-personal-screens/0E73330E-1347-4CFF-92A4-FAC9C488F733.png",
+        "build/audit-closure-20261025/nav-external-accepted/CDCE81D1-CC4A-4E6C-941F-59A9A7E0EE5C.png"
+      ],
+      "status": "verified_with_linked_evidence"
+    },
+    {
+      "id": "news",
+      "blocks": [
+        5
+      ],
+      "routes": [
+        "feed/filter/search",
+        "detail/comments/report/share/external link",
+        "editor basic/content/publication/preview",
+        "translation review",
+        "PhotosPicker/crop",
+        "discard/recovery/save/reopen"
+      ],
+      "evidenceReports": [
+        "NewsAudit20261024.json"
+      ],
+      "roleBoundary": "Own/foreign content, authoring/moderation rights and guest/blocked controls use the retained role and Rules evidence.",
+      "remaining": [],
+      "reviewedImages": [
+        "build/audit-closure-20261025/nav-cover-final/12E67105-6208-404C-A51F-AD3A4E433FF4.png",
+        "build/audit-closure-20261025/replacement-maps-translation/F9842C10-5427-424A-AF2C-5C5140BE54E3.png",
+        "build/audit-closure-20261025/visual-latest/4B068466-7C3D-41AD-95F7-C76780ACB5CD.png"
+      ],
+      "status": "verified_with_linked_evidence"
+    },
+    {
+      "id": "events",
+      "blocks": [
+        6
+      ],
+      "routes": [
+        "feed/upcoming/past/filters",
+        "detail/occurrences",
+        "registration/cancel",
+        "external tickets",
+        "Calendar allow/deny",
+        "Maps target/return",
+        "editor/PhotosPicker/crop/save/reopen"
+      ],
+      "evidenceReports": [
+        "EventsAudit20261024.json"
+      ],
+      "roleBoundary": "In-app registration vs external tickets; actual SDK tests isolated. Native selected-photo access does not request whole-library permission.",
+      "remaining": [],
+      "reviewedImages": [
+        "build/audit-closure-20261025/visual-latest/A37B618A-0A7F-4D49-B8EA-F38FB6917329.png"
+      ],
+      "status": "verified_with_linked_evidence"
+    },
+    {
+      "id": "public-organizations",
+      "blocks": [
+        7
+      ],
+      "routes": [
+        "catalog/search/filters",
+        "about",
+        "contacts",
+        "news",
+        "events",
+        "community",
+        "gallery/fullscreen",
+        "comment delete/report/block",
+        "subscribe/bookmark/share/Maps/Phone/Mail"
+      ],
+      "evidenceReports": [
+        "PublicOrganizationsAudit20261024.json"
+      ],
+      "roleBoundary": "Public context does not expose gallery management; sanitized public profiles and signed-in subscriber identities retain separate rights.",
+      "remaining": [
+        "Actual iPhone Phone/Mail/Share system destinations; no calls or message sending"
+      ],
+      "reviewedImages": [
+        "build/audit-closure-20261025/visual-latest/042FE1CB-AABC-46D3-9E20-18645ED7488D.png",
+        "build/audit-closure-20261025/org-form-public-final/7AA7215C-CB99-4E0C-829C-3CFA53FCED84.png",
+        "build/audit-closure-20261025/org-form-public-final/FB754F22-E71A-4B17-B29A-5920C8282263.png",
+        "build/audit-closure-20261025/org-form-public-final/803F5CFE-CBCA-46DD-94C6-9D897027A95A.png",
+        "build/audit-closure-20261025/org-form-public-final/3B4290E6-DFDF-4231-8D07-7D80A57512D7.png",
+        "build/audit-closure-20261025/org-form-public-final/8365C02C-41D4-4DE4-B650-7E04A2DA7E8A.png",
+        "build/audit-closure-20261025/org-form-public-final/6BABAA44-34DB-42A2-ADF2-B0BCB7BB68F1.png",
+        "build/audit-closure-20261025/form-close-diagnostic/47DB23C8-FBA3-4C79-B87E-33C5F200BE7A.png",
+        "build/audit-closure-20261025/form-close-diagnostic/F604407F-E7CB-4D99-8B01-E21BCC6EB597.png",
+        "build/audit-closure-20261025/form-close-diagnostic/CAA1FE11-2B67-4498-9810-6AB8A6CE67B9.png",
+        "build/audit-closure-20261025/form-close-diagnostic/93070A3F-EB03-4C47-AEC5-5B3CEC08E143.png",
+        "build/audit-closure-20261025/form-close-diagnostic/9779B989-9A4C-41FA-824C-65756C736A32.png",
+        "build/audit-closure-20261025/form-close-diagnostic/19A9666B-0750-4BBE-827B-BF454B46596A.png",
+        "build/audit-closure-20261025/form-close-diagnostic/BE164EC7-0C47-4A0E-8B8E-5B5615EF07F6.png",
+        "build/audit-closure-20261025/form-close-diagnostic/71E3F1A0-F4B8-493A-AED6-4B8CF7F694BD.png",
+        "build/audit-closure-20261025/form-close-diagnostic/5BADD5AA-1ADB-4741-B77B-1673E2369AF7.png",
+        "build/audit-closure-20261025/form-close-diagnostic/F014FBD4-746D-451C-881D-BAEE992A795F.png",
+        "build/audit-closure-20261025/form-close-diagnostic/74C484F7-4DDB-4F94-9CFA-EC761C1E567A.png",
+        "build/audit-closure-20261025/form-close-diagnostic/95930766-80FB-4531-A486-E858B44A496D.png"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "organization-workspace",
+      "blocks": [
+        8
+      ],
+      "routes": [
+        "management list/search/region/pages",
+        "information editor all four steps",
+        "own requests/revision/resubmit",
+        "content workspace",
+        "subscribers",
+        "team candidates/roles/ownership",
+        "gallery/caption/replacement/conflict/delete",
+        "review queue/reason/history/notification route"
+      ],
+      "evidenceReports": [
+        "OrganizationManagementAudit20261024.json"
+      ],
+      "roleBoundary": "Ordinary organization owner can manage own organization; only platform owner transfers ownership. Current authoritative documents determine roles.",
+      "remaining": [
+        "Protected platform-owner ownership transfer and reviewer UI lifecycle/direct reviewer notification route. Ordinary applicant notice/edit/resubmission and ordinary-owner team concurrent-change path passed actual SDK/UI."
+      ],
+      "reviewedImages": [
+        "build/audit-closure-20261025/replacement-maps-translation/79E397DD-C4AE-4258-9F83-8F575486EACE.png",
+        "build/audit-closure-20261025/replacement-maps-translation/2CE262FF-8386-44D6-A562-3C549F63455B.png",
+        "build/audit-closure-20261025/replacement-maps-translation/BF1B0336-CE58-401E-9CA6-64AA81110C70.png"
+      ],
+      "status": "open"
+    },
+    {
+      "id": "directory",
+      "blocks": [
+        9
+      ],
+      "routes": [
+        "catalog/search/recent",
+        "category/topic/section/region",
+        "contact",
+        "category/group/topic/contact editor",
+        "symbol selection/order/visibility/delete",
+        "translation/source validation",
+        "editor access",
+        "revision conflict and live revocation"
+      ],
+      "evidenceReports": [
+        "DirectoryAudit20261024.json"
+      ],
+      "roleBoundary": "Owner grants access; editor publishes allowed custom categories; revoked/wrong account writes rejected through actual SDK.",
+      "remaining": [],
+      "reviewedImages": [
+        "build/audit-closure-20261025/connected-directory-personal-screens/196AC8F3-5EEF-4C1A-9084-4F8DA574FB0D.png",
+        "build/audit-closure-20261025/connected-directory-personal-screens/170871BB-4180-4A20-B2DF-0953ECE1138C.png",
+        "build/audit-closure-20261025/directory-hidden-fixed-screens/88AA4661-CD60-410D-9FDC-9234D954C559.png",
+        "build/audit-closure-20261025/directory-photo-final/0CA34EE6-4DA3-4DA8-A1C5-705759E56274.png",
+        "build/audit-closure-20261025/directory-photo-final/2C9C79FB-BF13-4046-BFD1-ED69F8ADE1CC.png",
+        "build/audit-closure-20261025/directory-photo-final/05D92886-06A2-47C3-99A7-620C03B3B4AD.png",
+        "build/audit-closure-20261025/directory-photo-final/244B7428-34A9-40E8-AB9C-B75BEB5CE514.png",
+        "build/audit-closure-20261025/directory-forms-accepted/DA3D8672-72A9-4CB4-928F-6E99DC460315.png",
+        "build/audit-closure-20261025/directory-forms-accepted/75164FF8-BE39-4A21-BD7E-E0C74D86C820.png",
+        "build/audit-closure-20261025/nav-cover-final/C71C3B31-362C-4875-B905-AE26D1F4CB2C.png"
+      ],
+      "status": "verified_with_linked_evidence"
+    }
+  ],
+  "sharedComponentFollowups": {
+    "RemoteImageView": "Opt-in fullscreen retry/updated request identity; fixed HTTP failure/recovery and actual saved-image readback",
+    "ScreenChromeComponents": "Stable explicit close action; supported editor dismissal exercised",
+    "ContentTranslationButton": "Adaptive action axis/rounded rectangle/hint wrapping; Directory and News accessibility screenshots",
+    "Profile root NavigationStack": "Single route policy for tab hiding; nine unique captured route states",
+    "ContentReportSheet": "Success receipt no longer truncates follow-up instruction",
+    "Organization section navigation": "Accessibility-only full-width Menu; all six section routes retained. Normal horizontal chips unchanged.",
+    "PasskeyEnrollmentOfferView": "Scrollable offer and large detent for accessibility text; actual maximum German/dark offer reached and dismissed. Final resubmission result is checked separately.",
+    "ProfileModuleRow / AppNavigationRow": "Adaptive vertical layout accepted in actual German/dark maximum Accessibility XXXL profile; title uses full width and count no longer compresses text.",
+    "OrganizationEditorView": "Adaptive full-width accessibility preview; actual network error beside submission and successful retained-draft retry accepted in MaximumAdaptiveNavigationAndApplicant.",
+    "OrganizationContactCard": "Accessibility quick actions use full-width vertical layout; final actual organization/team UI and image review passed in TeamAdaptiveContactFinal."
+  },
+  "rules": [
+    "Only registry entries explicitly marked reviewed are linked as reviewed images. Older retained visual proof stays in its source report.",
+    "Identical layout reuse is explicit; authorization, account isolation and protected transitions have separate evidence.",
+    "Open rows keep R01-C open for unverified controlled system/protected variants. The complete connected ordinary organization form and independent server readback passed."
+  ]
+}

@@ -3,6 +3,7 @@
   "status": "in_progress",
   "sourceBaseline": "4d938f4f",
   "closedChecks": [
+    "R01-A",
     "R01-B",
     "R02-B",
     "R03-A",
@@ -11,9 +12,14 @@
     "R04-B",
     "R04-C",
     "R05-A",
+    "R05-B",
+    "R05-C",
     "R06-A",
+    "R06-B",
     "R06-C",
     "R07-A",
+    "R07-C",
+    "R08-C",
     "R09-A",
     "R09-B",
     "R09-C"
@@ -334,40 +340,445 @@
       ],
       "testFixtureCorrection": "Per-journey UUID prevents collisions with immutable publication versions; emulator restart failures repeated successfully after restoring demo services",
       "visualLedger": "Docs/Verification/AuditClosureUIStates20261025.json"
+    },
+    {
+      "check": "R01-A",
+      "kind": "connected_navigation_families",
+      "bundle": "build/audit-closure-20261025/NavigationExternalTranslationAccepted.xcresult",
+      "acceptedTest": "AuditClosureNavigationUITests/testUniqueNavigationFamiliesRestoreRootsAndKeepTabPolicy",
+      "verified": [
+        "Personal pushed destination/settings retains bar; back restores profile",
+        "Modal profile editor hides bar; dismiss restores it",
+        "User administration, Directory editor access and Publication Control hide bar; back restores it",
+        "Pushed nested Directory editor hides bar; two returns restore catalog",
+        "All five root destinations remain selectable; restricted member cannot see administrative routes"
+      ],
+      "fix": "Root profile route policy had overridden child shell hiding; centralized root policy now covers these two missing routes. Container AX identity no longer hides Publication Control back identifier.",
+      "visualLedger": "Docs/Verification/AuditClosureUIStates20261025.json",
+      "roles": "Owner positive and member restricted family journey; retained full-role route policy/entry checks cover identical family implementations. This does not prove protected real-MFA workflows."
+    },
+    {
+      "check": "R05-B",
+      "kind": "actual_photo_picker_crop_storage_external_browser",
+      "bundles": [
+        "build/audit-closure-20261025/NavigationCoverTranslationFinal.xcresult",
+        "build/audit-closure-20261025/NavigationExternalTranslationAccepted.xcresult"
+      ],
+      "acceptedTests": [
+        "ConnectedAuditUITests/testConnectedNewsPhotoCropSaveAndReopen",
+        "ConnectedAuditUITests/testConnectedNewsAndEventExternalTargetsOpenSafariAndReturn"
+      ],
+      "verified": [
+        "Cancel actual native per-selection PhotosPicker, reopen, select synthetic image, cancel crop, select/apply crop",
+        "Save through actual SDK and Firestore Rules; independent document URL and JPEG download; reopen actual saved cover",
+        "Actual news external action opens Safari with correct oesterreich.gv.at address; return preserves news",
+        "Existing actual Share sheet journey retained in block05-final-ui-20261024.xcresult"
+      ],
+      "permissionScope": "PhotosPicker grants per-selection access and never requests full photo-library authorization. Full-library denial is inapplicable; native picker cancellation is explicitly exercised. Physical iPhone acceptance is a separate gate.",
+      "fix": "Reopened news/event cover uses available container width and 16:9 geometry instead of narrow left-aligned image"
+    },
+    {
+      "check": "R05-C",
+      "kind": "editor_visual_and_crash_followup",
+      "bundle": "build/audit-closure-20261025/OrganizationCompleteFieldsMapsNews.xcresult",
+      "acceptedTest": "NewsAuditUITests/testEditorStepsAndTranslationAtGermanDarkAccessibilitySize",
+      "overallBundle": "Failed unrelated Maps driver/organization month selector; News method passed 51.249s",
+      "baseline": [
+        "UkrainianCommunity-2026-10-25-034441.ips",
+        "UkrainianCommunity-2026-10-25-041207.ips"
+      ],
+      "fixes": [
+        "Debug stack overflow while evaluating/copying large generic editor body; separate step evaluation and type-erased individual card boundaries",
+        "Shared translation action switches axis at accessibility sizes and uses rounded rectangle rather than an ellipse that clipped text; hint wraps",
+        "Stable child German text field IDs; UI scrolling now handles controls above current viewport"
+      ],
+      "visual": "Actual translation and German nested contact screenshot manually reviewed; all three editor steps/close assertions passed. Retained news comment keyboard/post/delete dialog and uk/de appearance images remain in NewsAudit20261024.json; captured states and physical acceptance remain distinct."
+    },
+    {
+      "checks": [
+        "R07-C",
+        "R08-A"
+      ],
+      "kind": "actual_organization_actions_partial",
+      "bundles": [
+        "build/audit-closure-20261025/OrganizationCommentActions.xcresult",
+        "build/audit-closure-20261025/NewsStackTeamRequestFixed.xcresult"
+      ],
+      "acceptedTests": [
+        "ConnectedAuditUITests/testConnectedOrganizationCommentDeleteReportAndHideExactAuthor",
+        "ConnectedAuditUITests/testConnectedOrganizationTeamCandidateCancelAssignChangeAndRemove"
+      ],
+      "verified": [
+        "Delete cancel retains exact comment; confirmed delete independently absent",
+        "Report creates exact organization/comment/author/reporter case; hide blocks exact other author and removes their comments",
+        "Own-organization owner assigns moderator, changes to admin, removes member, cancels candidate selection; independent role-array reads"
+      ],
+      "remaining": "Public-tab rare-state visuals and full privileged ownership-transfer UI remain separately tracked. Receipt text now wraps fully instead of truncating My Requests instruction."
+    },
+    {
+      "check": "R08-B",
+      "kind": "actual_full_request_editor_repository_workflow_partial",
+      "bundle": "build/audit-closure-20261025/OrganizationCalendarDenyAccepted.xcresult",
+      "acceptedTest": "AuditClosureSDKTests/testOrganizationRequestEditorRevisionResubmitRejectionApprovalHistoryAndTargetInbox",
+      "verified": [
+        "Actual OrganizationEditorViewModel → OrganizationsViewModel → production Firestore repository → Rules/callables, full payload and actual organizationRules acceptance",
+        "Member submits; owner returns for revision; member edits/resubmits; reject; edit/resubmit; approve",
+        "Independent full data read/reopened model, exact recipient notices for three decisions and actual history callable",
+        "Deletes only disposable request organization"
+      ],
+      "remaining": "Protected reviewer UI, connected applicant full UI workflow and direct notification navigation still require separate UI evidence; SDK success alone does not close R08-B"
+    },
+    {
+      "checks": [
+        "R06-B",
+        "R08-C"
+      ],
+      "kind": "actual_system_and_photo_followup_partial",
+      "bundles": [
+        "build/audit-closure-20261025/OrganizationCalendarDenyAccepted.xcresult",
+        "build/audit-closure-20261025/CalendarNavigationNewsRetry.xcresult",
+        "build/audit-closure-20261025/CalendarReadbackNavigationNewsAX.xcresult",
+        "build/audit-closure-20261025/PhotoReplacementMapsTranslation.xcresult"
+      ],
+      "acceptedTests": [
+        "ConnectedAuditUITests/testConnectedEventCalendarAuthorizationAndRegistration",
+        "AuditClosureSDKTests/testActualEventCalendarWritesAllOccurrencesAndIndependentReadback",
+        "ConnectedAuditUITests/testConnectedOrganizationGalleryReplacementConflictReloadAndRetry",
+        "PublicOrganizationsAuditUITests/testGalleryDownloadFailureOffersRetryAndKeepsViewer"
+      ],
+      "verified": [
+        "Actual Calendar allow/deny UI; added/already-added statuses; actual registration/cancel with independent read",
+        "Actual EventKit writes two event occurrences; independent exact start/end/location/notes read and cleanup",
+        "Actual gallery PhotosPicker/upload/JPEG/fullscreen/delete",
+        "Replacement stale URL conflict → reload preserving draft → retry → different stored URL, same photo ID → downloaded JPEG → exact deletion",
+        "Actual fixed-loopback HTTP 503 failure → Retry → PNG success with independent HTTP counters"
+      ],
+      "remaining": "Maps target readback, event cover-specific UI and complete organization editor bindings still tracked; simulated server/HTTP faults do not represent a production incident"
+    },
+    {
+      "check": "R07-C",
+      "kind": "connected_comment_actions_and_public_state_review",
+      "resultBundles": [
+        "build/audit-closure-20261025/OrganizationCommentActions.xcresult",
+        "build/audit-closure-20261025/OrgFormPublicVisualFinal.xcresult",
+        "build/audit-closure-20261025/FormCloseDiagnosticDeletionAX.xcresult"
+      ],
+      "acceptedMethods": [
+        "ConnectedAuditUITests/testConnectedOrganizationCommentDeleteReportAndHideExactAuthor",
+        "PublicOrganizationsAuditUITests/testPublicCommunityAndGalleryMetadataErrorsRecover",
+        "PublicOrganizationsAuditUITests/testEmptyPublicSectionsInBothThemesAndLanguages"
+      ],
+      "verified": [
+        "Cancel and delete exact organization comment; independent document removal",
+        "Report exact comment, parent, author and actor; independent DSA case readback",
+        "Block exact author; independent block record and hidden row",
+        "Empty news, events, community and gallery in Ukrainian/light and German/dark maximum text; continuation captures reviewed",
+        "Actual loading, metadata failure, retry and recovered public community/gallery states",
+        "Accessibility section menu retains all six destinations without truncating selected names"
+      ],
+      "manualReview": "Docs/Verification/AuditClosureUIStates20261025.json",
+      "limitations": "The final bundle has two unrelated failed methods (pre-fix access-expiry form; test allow-list omitted newly-created disposable UID). Only the passed public state method is accepted here."
+    },
+    {
+      "check": "R06-B",
+      "kind": "actual_system_integration",
+      "acceptedMethods": [
+        {
+          "bundle": "CalendarNavigationNewsRetry.xcresult",
+          "method": "ConnectedAuditUITests/testConnectedEventCalendarAuthorizationAndRegistration",
+          "scope": "Actual Calendar permission allow, add/already-added state and event registration/cancel readback"
+        },
+        {
+          "bundle": "OrganizationCalendarDenyAccepted.xcresult",
+          "scope": "Actual Calendar permission deny path"
+        },
+        {
+          "bundle": "CalendarReadbackNavigationNewsAX.xcresult",
+          "scope": "Independent EventKit readback of two occurrence dates, location, notes and cleanup"
+        },
+        {
+          "bundle": "NavigationExternalTranslationAccepted.xcresult",
+          "method": "ConnectedAuditUITests/testConnectedNewsAndEventExternalTargetsOpenSafariAndReturn",
+          "scope": "External ticket Safari destination and return"
+        },
+        {
+          "bundle": "OrganizationFullFormFinalAcceptance.xcresult",
+          "method": "ConnectedAuditUITests/testConnectedEventAndOrganizationMapsTargetsAndReturn",
+          "scope": "Passed 57.731s: actual Maps title and coordinate match for both targets"
+        },
+        {
+          "bundle": "OrganizationFullFormFinalAcceptance.xcresult",
+          "method": "ConnectedAuditUITests/testConnectedEventPhotoCropSaveAndReopen",
+          "scope": "Passed 85.259s: actual PhotosPicker/crop cancel, reopen, apply, save and JPEG readback/reopen"
+        }
+      ],
+      "limitations": "Native PhotosPicker uses per-selection permission; whole-library denial is not applicable. No purchases or foreign calendar entries. Current final bundle still running; accepted method statuses obtained from actual completed method lines, not whole-suite success."
+    },
+    {
+      "check": "R08-C",
+      "kind": "connected_full_form_and_media",
+      "bundle": "build/audit-closure-20261025/OrganizationFullFormFinalAcceptance.xcresult",
+      "acceptedMethods": [
+        {
+          "name": "ConnectedAuditUITests/testConnectedOrganizationAllEditableFieldsLogoSaveAndReopen",
+          "seconds": 352.349
+        },
+        {
+          "name": "ConnectedAuditUITests/testConnectedOrganizationGalleryReplacementConflictReloadAndRetry",
+          "seconds": 96.175
+        }
+      ],
+      "verified": [
+        "Every editable scalar field, contact/social URL, region/city, founder year/month, primary/secondary categories, service modes/area/services/hours, offers/expiration and both localization sections entered through actual UI",
+        "Square logo crop, actual Storage upload/JPEG download, independent Firestore read of all fields and reopening editor",
+        "Actual gallery upload/fullscreen, concurrent version conflict, reload retains draft, successful replacement retains photo ID/count, exact delete and independent readback"
+      ],
+      "limitsAndRoles": "Retained organization Rules/Storage/callable tests and existing role/AX nested-form evidence; no new broad Cartesian retest invented. Ownership transfer/reviewer protected UI remain R08-A/B.",
+      "manualImages": "Docs/Verification/AuditClosureUIStates20261025.json",
+      "bundleBoundary": "The one initially failed SDK location fixture was fixed and its method passed in OrganizationPreparedAuthorityAcceptance.xcresult; the listed full-form and media methods passed in this bundle."
+    },
+    {
+      "checks": [
+        "R03-B",
+        "R08-A",
+        "R08-C"
+      ],
+      "kind": "access_expiry_and_location_followup",
+      "bundles": [
+        "build/audit-closure-20261025/OrganizationLocationAndAccessAccepted.xcresult",
+        "build/audit-closure-20261025/OrganizationPreparedAuthorityAcceptance.xcresult",
+        "build/audit-closure-20261025/LocationAndDeletionFinal.xcresult"
+      ],
+      "defectsFixed": [
+        "Expired 30-second capability cache incorrectly closed an open organization draft/photo caption during revalidation",
+        "An immediate repeated save could report permission denial before the capability refresh completed",
+        "Location editing retained coordinates of the previous address",
+        "Enforced organization callable rejected the released localized directory/services wire format"
+      ],
+      "accepted": [
+        "10 access-policy/contract methods including fresh-decision reuse, invalidation, denial, account change and 1080 compatibility decisions",
+        "Organization write contract cases: preserve coordinates on unchanged/name edit; clear on street/city/region edits, including formerly unset region",
+        "Actual SDK immediate rename then move, retained coordinates after rename and actual field deletion after move; exact server readback",
+        "Actual own-organization team candidate cancel/assign/change/remove (80.353s) and actual role revocation of an open unsaved draft (42.772s)",
+        "Disposable account deletion with cancel/keyword gate, actual server command, absent Auth/profile, completed hashed receipt and fully dismissed confirmation (63.304s)"
+      ],
+      "remaining": "R03-B still requires actual provider/passkey/Face ID confirmations and background return; R08-A still requires protected platform-owner UI transfer and reviewer context. No security bypass introduced."
+    },
+    {
+      "checks": [
+        "R08-A",
+        "R08-B"
+      ],
+      "kind": "actual_team_conflict_and_applicant_notification_UI",
+      "bundle": "build/audit-closure-20261025/TeamSnapshotAndApplicantFinal.xcresult",
+      "passed": 4,
+      "failed": 0,
+      "verified": [
+        "Actual member request -> actual server revision notice for exact recipient -> notification detail -> own editor -> corrected resubmission, pendingReview payload and stale reason removal independently read",
+        "Ordinary organization owner candidate cancel/assign/change/remove",
+        "Concurrent team removal while confirmation is open rejects stale confirmation and does not silently restore the removed role"
+      ],
+      "defectFixed": "Team confirmation now freezes the reviewed organization revision and actor identity; current realtime state is not substituted at confirmation.",
+      "remaining": "Protected platform-owner ownership transfer and reviewer decision UI remain open. German maximum text variant still being checked."
+    },
+    {
+      "checks": [
+        "R01-C",
+        "R02-C",
+        "R08-B"
+      ],
+      "kind": "maximum_text_accessibility_and_actual_network_retry",
+      "bundle": "build/audit-closure-20261025/MaximumAdaptiveNavigationAndApplicant.xcresult",
+      "acceptedMethods": 1,
+      "failed": 0,
+      "seconds": 392.663,
+      "verified": [
+        "German dark maximum Accessibility XXXL actual email login and scrollable passkey-offer dismissal",
+        "Adaptive profile entry navigation and exact recipient revision-notice destination",
+        "Whole applicant edit/resubmit: actual network failure, retained corrected preview, enabled retry, actual UI retry succeeds; independent pendingReview/new description/removal of review reason readback"
+      ],
+      "fixes": [
+        "Scrollable passkey suggestion with large accessibility detent and reachable skip",
+        "Adaptive ProfileModuleRow/AppNavigationRow prevents unread count compressing title",
+        "Organization editor preview switches to vertical layout at accessibility sizes; errors/progress placed beside submission rather than far above preview"
+      ],
+      "fixtureDiagnostic": "ApplicantRefetchDiagnostic.xcresult: actual repository can read the same owned pending request (0.063s). No new broad production network fix inferred from emulator timeout.",
+      "boundary": "Protected provider/MFA/passkey creation remains unverified; this closes only the observed accessibility/retry followup. Only one method was discovered and is counted."
+    },
+    {
+      "check": "R08-A",
+      "kind": "final_team_and_accessibility_contacts_regression",
+      "bundle": "build/audit-closure-20261025/TeamAdaptiveContactFinal.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "methods": [
+        "ConnectedAuditUITests/testConnectedOrganizationTeamCandidateCancelAssignChangeAndRemove",
+        "ConnectedAuditUITests/testOrganizationTeamConfirmationRejectsConcurrentRemoval"
+      ],
+      "verified": "Ordinary organization-owner role actions and exact server readback at Accessibility M; concurrent removal rejection repeated. Contact quick actions adapt to vertical full-width layout and captured image inspected. Protected platform-owner transfer remains open."
     }
   ],
-  "remainingScenarioGroups": 13,
+  "remainingScenarioGroups": 7,
   "deployment": {
     "scope": "firestore:rules only",
     "project": "ukrainiancommunity-dbd5f",
-    "sourceCommit": "d54e51ca",
+    "sourceCommit": "d1bcde05",
     "readback": {
       "release": "projects/ukrainiancommunity-dbd5f/releases/cloud.firestore",
-      "ruleset": "projects/ukrainiancommunity-dbd5f/rulesets/86d7491e-1fa9-4e9d-9a25-4c17dccce0a9",
-      "updatedAt": "2026-10-25T00:37:45.758608Z",
-      "liveHash": "3dd0c4a824a7b35b38a24a65ba451ec14ebf1f6f4895aa9bff3d280a300697de",
-      "localHash": "3dd0c4a824a7b35b38a24a65ba451ec14ebf1f6f4895aa9bff3d280a300697de",
+      "ruleset": "projects/ukrainiancommunity-dbd5f/rulesets/733e2650-efde-4263-afc2-9dda793372a8",
+      "updatedAt": "2026-10-25T03:11:33.790957Z",
+      "liveHash": "5a7a6140754c2f796f9d8dd551a565182f2c43c4d0137f58ecc3de38a517bad9",
+      "localHash": "5a7a6140754c2f796f9d8dd551a565182f2c43c4d0137f58ecc3de38a517bad9",
       "exactMatch": true
     },
-    "compatibilityReadback": [
-      {
-        "collection": "news",
-        "status": 200,
-        "documents": 1
+    "compatibilityReadback": {
+      "checkedAt": "2026-10-25T03:43:30.964Z",
+      "ruleset": "733e2650-efde-4263-afc2-9dda793372a8",
+      "access": "unauthenticated_public_read_only",
+      "results": [
+        {
+          "collection": "news",
+          "status": 200,
+          "documents": 1
+        },
+        {
+          "collection": "events",
+          "status": 200,
+          "documents": 1
+        },
+        {
+          "collection": "organizations",
+          "status": 200,
+          "documents": 1
+        }
+      ]
+    },
+    "securityTests": "build/audit-closure-20261025/organization-rules-accepted.log: 34 passed, 0 failed, 0 skipped",
+    "fix": "Existing server-owned workspaceSearchV1 index is permitted structurally during authorized organization edits/resubmission, but forbidden on client create and protected against client addition/change/deletion.",
+    "limitations": "No production personal/content mutation performed as a test; no Functions deploy; no iOS/TestFlight upload."
+  },
+  "deploymentHistory": [
+    {
+      "scope": "firestore:rules only",
+      "project": "ukrainiancommunity-dbd5f",
+      "sourceCommit": "d54e51ca",
+      "readback": {
+        "release": "projects/ukrainiancommunity-dbd5f/releases/cloud.firestore",
+        "ruleset": "projects/ukrainiancommunity-dbd5f/rulesets/86d7491e-1fa9-4e9d-9a25-4c17dccce0a9",
+        "updatedAt": "2026-10-25T00:37:45.758608Z",
+        "liveHash": "3dd0c4a824a7b35b38a24a65ba451ec14ebf1f6f4895aa9bff3d280a300697de",
+        "localHash": "3dd0c4a824a7b35b38a24a65ba451ec14ebf1f6f4895aa9bff3d280a300697de",
+        "exactMatch": true
       },
-      {
-        "collection": "events",
-        "status": 200,
-        "documents": 1
-      },
-      {
-        "collection": "organizations",
-        "status": 200,
-        "documents": 1
-      }
-    ],
-    "securityTests": "build/audit-closure-20261025/content-security-accepted.log: 59 passed",
-    "limitations": "No production user/content writes performed for verification; privileged mutations were verified against identical Rules in isolated emulators. No iOS binary uploaded.",
-    "previousSourceCommit": "49d35424"
+      "compatibilityReadback": [
+        {
+          "collection": "news",
+          "status": 200,
+          "documents": 1
+        },
+        {
+          "collection": "events",
+          "status": 200,
+          "documents": 1
+        },
+        {
+          "collection": "organizations",
+          "status": 200,
+          "documents": 1
+        }
+      ],
+      "securityTests": "build/audit-closure-20261025/content-security-accepted.log: 59 passed",
+      "limitations": "No production user/content writes performed for verification; privileged mutations were verified against identical Rules in isolated emulators. No iOS binary uploaded.",
+      "previousSourceCommit": "49d35424"
+    }
+  ],
+  "fixtureIntegrity": {
+    "problem": "News-only publishedAt had been copied into the synthetic event; public profiles carried an unknown auditFixture marker; event mandatory registrationState was initially omitted. These caused emulator Rules rejections and were not production code defects.",
+    "correction": "Seeder now uses separate eventCommon, complete required event defaults and schema-valid public profiles. Existing synthetic records corrected with fixed-loopback bounded updates.",
+    "preflight": "AuditClosureSDKTests/testAuditFixturesAcceptActualRepositoryEditsAndPublicProfileSync: actual public-profile upsert, news edit and event edit; passed in FullFormPhotoVisualAcceptance.xcresult after fixture correction.",
+    "remaining": "Preflight, whole organization form and independent persistence now passed. Dedicated location fixture was corrected to obtain actual organization Rules acceptance and refetch the server revision before editing; receipt readback uses the actual hashed deletion-operation ID."
+  },
+  "windowLedger": "Docs/Verification/AuditWindowStateLedger20261025.json",
+  "commandRolloutReadback": {
+    "project": "ukrainiancommunity-dbd5f",
+    "path": "serverConfiguration/organizationAccess",
+    "transport": "Firestore REST with existing operator authentication",
+    "mode": "shadow",
+    "commandsEnabled": false,
+    "scope": "Read-only; rollout settings are not changed by this audit."
+  },
+  "functionDeployment": {
+    "function": "updateOrganizationInfo",
+    "state": "ACTIVE",
+    "updatedAt": "2026-10-25T05:40:20.566247057Z",
+    "revision": "updateorganizationinfo-00004-wam",
+    "onDeployUpdatePolicy": true,
+    "deployedSourceSHA256": "24a45a6357da3ca6e42133f79fbca7764525a1c2a06d07f9f35e47d017fa4ac5",
+    "localSourceSHA256": "24a45a6357da3ca6e42133f79fbca7764525a1c2a06d07f9f35e47d017fa4ac5",
+    "sourceMatches": true,
+    "cloudRun": {
+      "latestReadyRevision": "updateorganizationinfo-00004-wam",
+      "latestCreatedRevision": "updateorganizationinfo-00004-wam",
+      "conditions": [
+        {
+          "lastTransitionTime": "2026-10-25T05:40:20.326276Z",
+          "status": "True",
+          "type": "Ready"
+        },
+        {
+          "lastTransitionTime": "2026-10-25T05:40:11.336073Z",
+          "status": "True",
+          "type": "ConfigurationsReady"
+        },
+        {
+          "lastTransitionTime": "2026-10-25T05:40:20.283103Z",
+          "status": "True",
+          "type": "RoutesReady"
+        }
+      ],
+      "traffic": [
+        {
+          "latestRevision": true,
+          "percent": 100,
+          "revisionName": "updateorganizationinfo-00004-wam"
+        }
+      ]
+    },
+    "actualCallable": {
+      "authentication": "none",
+      "httpStatus": 401,
+      "applicationStatus": "UNAUTHENTICATED",
+      "seconds": 0.278
+    },
+    "limitations": "No production authorized content/user write; complete localized payload and protected-field/replay/revocation behavior verified against isolated actual handler and SDK/UI.",
+    "sourceCommit": "56b92866",
+    "integrationTests": {
+      "baseline": "build/audit-closure-20261025/localized-command-baseline.log: 1 failed (released wire format rejected)",
+      "accepted": "build/audit-closure-20261025/localized-command-accepted.log: 6 passed, 0 failed, 0 skipped",
+      "isolation": "demo-uac-access-validation-20261025, separate from connected UI fixture project"
+    },
+    "compiledSourceMatches": true,
+    "compiledSHA256": "c0ae39eca350f0b5a94e04950ed376a71cff1f35dcfecd9cedf53d47a27bd7c9"
+  },
+  "remainingChecks": {
+    "R01-C": "Complete protected/system variants of window-state ledger; ordinary changed visual families have runtime evidence.",
+    "R02-A": "Real Apple/Google first/repeat/cancel/error and email verification/reset action-link completion with a controlled account.",
+    "R02-C": "Real privileged MFA/passkey sign-in, cancellation, retry and recovery.",
+    "R03-B": "Real provider link/unlink, passkey and Face ID lock/background-return confirmations. Disposable deletion already passed.",
+    "R07-B": "Physical iPhone Phone/Mail/Share destination checks, without dialing or sending.",
+    "R08-A": "Protected platform-owner ownership-transfer UI with controlled accounts/organization. Ordinary team paths and conflict passed.",
+    "R08-B": "Protected reviewer full UI decisions/history and exact reviewer notification destination. Server lifecycle and actual applicant notice/edit/resubmit passed."
+  },
+  "finalLocalRegression": {
+    "mainBundle": "build/audit-closure-20261025/ClosureFullUnitFinal.xcresult",
+    "mainPassed": 815,
+    "mainFailed": 0,
+    "mainSkipped": 28,
+    "isolatedBundle": "build/audit-closure-20261025/ClosureIsolatedUnitFinal.xcresult",
+    "isolatedPassed": 8,
+    "isolatedFailed": 0,
+    "isolatedSkipped": 0,
+    "skipBoundary": "Connected emulator, process-handoff, explicit production/catalog and opt-in system-queue tests do not run in the default unit environment; their separate evidence and remaining boundaries are retained. Eight timeout-sensitive tests use the existing CI isolation list, not newly skipped."
   }
 }
