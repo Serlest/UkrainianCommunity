@@ -1466,7 +1466,15 @@ final class ConnectedAuditUITests: XCTestCase {
             let email = app.textFields["auth.login.email"]
             XCTAssertTrue(email.waitForExistence(timeout: 8)); email.tap(); email.typeText("closure-" + account + "@uac.test")
             let password = app.secureTextFields["auth.login.password"]
-            password.tap(); password.typeText("Emulator-Only-2026!")
+            // The secure native field can move while the email keyboard collapses.
+            // Wait for actual focus before dispatching keystrokes.
+            let focused = NSPredicate(format: "hasKeyboardFocus == true")
+            for _ in 0..<3 {
+                password.coordinate(withNormalizedOffset: .init(dx: 0.2, dy: 0.5)).tap()
+                if XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: focused, object: password)], timeout: 2) == .completed { break }
+            }
+            XCTAssertTrue(focused.evaluate(with: password), app.debugDescription)
+            password.typeText("Emulator-Only-2026!")
             app.swipeUp()
             let submit = app.buttons["auth.login.submit"]
             reveal(submit, app); submit.tap()
