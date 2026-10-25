@@ -795,11 +795,18 @@
   "physicalContinuation": {
     "report": "Docs/Verification/AuditPhysicalProgress20261025.json",
     "prepared": "Release-only physical audit scheme and explicit opt-in controlled-account tests compiled successfully",
-    "deviceBlocker": "UI test runner timed out enabling automation before executing the test body",
+    "deviceBlocker": "After user enabled UI Automation, the physical iPhone visibly displayed the system passcode prompt for XCTest. User handoff requested; test body not yet observed.",
     "openChecksUnchanged": true,
     "dependencies": [
-      "Unlocked iPhone with UI Automation available",
-      "Controlled test email for real verification and password-reset links"
+      "Physical XCTest system passcode confirmation by user; no code in chat"
     ]
-  }
+  },
+  "userScopeAdjustments": [
+    {
+      "date": "2026-10-25",
+      "instruction": "давай без регистрации",
+      "effect": "Do not create a new account or require a separate registration email. New-account registration/first-use and its verification link are excluded from this continuation, not marked as tested.",
+      "boundary": "Does not prove email password-reset links, and does not authorize password changes to existing accounts."
+    }
+  ]
 }

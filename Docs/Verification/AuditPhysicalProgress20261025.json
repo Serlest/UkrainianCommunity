@@ -53,7 +53,11 @@
     "attemptResult": "Runner failed to initialize: Timed out while enabling automation mode",
     "executedApplicationActions": 0,
     "status": "blocked_by_concrete_dependency",
-    "dependency": "Device UI Automation readiness and unlocked iPhone; user asked to check Enable UI Automation. Disabled setting is not established as the cause.",
-    "boundary": "Build success does not prove ownership cancellation, Google cancellation, applicant submission or reviewer notifications. No additional scenario group closed."
-  }
+    "dependency": "User completes system passcode prompt directly on the iPhone. Do not read or enter the code remotely.",
+    "boundary": "Build success does not prove ownership cancellation, Google cancellation, applicant submission or reviewer notifications. No additional scenario group closed.",
+    "nextAttemptBundle": "build/audit-closure-20261025/PhysicalOwnerCancellationEnabled.xcresult",
+    "nextAttemptObservation": "Actual iPhone system prompt: iPhone-Code für XCTest eingeben / Enable UI Automation. User asked to complete device passcode handoff.",
+    "nextAttemptResult": "Timed out while enabling automation mode after 63.584 seconds; no application test body executed. Awaiting user completion of system passcode prompt before retry."
+  },
+  "registrationScope": "User declined new registration. No account creation or separate registration email requested further; registration is excluded, not verified."
 }
