@@ -1,0 +1,1456 @@
+{
+  "block": 11,
+  "totalBlocks": 19,
+  "name": "Керування користувачами",
+  "status": "verification_complete_pending_hosted_validation",
+  "sourceBaseline": "d4601a77",
+  "method": "Docs/AppAuditMethod.md",
+  "boundaries": [
+    "No production account sanctions, permissions or ownership changes. Mutations use isolated demo data and actual SDK/handlers.",
+    "Organization request decisions are block 8; directory editor content is block 9; moderation of publications is block 10.",
+    "Notification delivery/route affected by user administration is in scope; unrelated campaigns are block 13.",
+    "No TestFlight or App Store upload requested."
+  ],
+  "scenarioChecks": [
+    {
+      "id": "U11-01",
+      "family": "entry",
+      "route": "Profile and direct user-management routes",
+      "action": "Owner/admin entry; organizational roles/member/blocked/guest hidden and direct access denied",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "ProfileAccessPolicy -> PermissionService -> UserManagementView",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "serverFinalMatrix",
+        "guideRolesFinal"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-02",
+      "family": "entry",
+      "route": "Profile and direct user-management routes",
+      "action": "Account switch, revoked rights and late responses",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "ProfileAccessPolicy -> PermissionService -> UserManagementView",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-03",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "First loading, confirmed empty, error and retry; no false empty flash",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "loadingFinal",
+        "finalDirectoryAndDeletedState"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-04",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "Refresh preserves confirmed rows/count/cursor after failure; coalesces duplicate requests",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "directoryState",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-05",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "137+ profiles, stable order/ties, no duplicates, retry exact failed page",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "serverAllSorts",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-06",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "UID/name/email/Telegram, Unicode/diacritics, clear/keyboard, debounce, old request fence",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "serverSearch1500",
+        "serverUnits",
+        "loadingFinal"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-07",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "All federal states, unknown region, each account/organization role filter, combination and reset",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "serverFinalMatrix",
+        "serverAllSorts",
+        "serverUnits",
+        "sourceReview"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-08",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "All four sorts across pages, no first-page-only sorting",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "serverAllSorts"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-09",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "Open card, back/reopen/background preserves list search and loaded pages",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "guideRolesFinal",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-10",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "Registered vs filtered vs loaded counts; legacy profiles without createdAt; no silent undercount",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "serverBaseline",
+        "serverFinalMatrix",
+        "physicalFinal"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-11",
+      "family": "directory",
+      "route": "Registered count, list, search, region/status/organization filters, sorting",
+      "action": "Indexed reads, projections, aggregate/membership costs; no per-row presence calls",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementViewModel -> UserDirectoryAPI -> manageUserDirectory -> users/search index/organizations",
+      "status": "verified",
+      "evidence": [
+        "serverSearch1500",
+        "sourceReview",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-12",
+      "family": "detail",
+      "route": "User card and refresh",
+      "action": "Long names/email/UID/Telegram/region/date; current account restrictions",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementReads.user/securityMetadata/memberships -> independent server reads",
+      "status": "verified",
+      "evidence": [
+        "bilingualCard",
+        "guideRolesFinal",
+        "physicalFinal"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-13",
+      "family": "detail",
+      "route": "User card and refresh",
+      "action": "Open reloads selected profile; deleted/missing target no usable mutation controls",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementReads.user/securityMetadata/memberships -> independent server reads",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "sourceReview",
+        "finalDirectoryAndDeletedState"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-14",
+      "family": "detail",
+      "route": "User card and refresh",
+      "action": "Failure, retained confirmed data, targeted retry; no stale account result",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementReads.user/securityMetadata/memberships -> independent server reads",
+      "status": "verified",
+      "evidence": [
+        "loadingFinal",
+        "finalUnits",
+        "finalDirectoryAndDeletedState"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-15",
+      "family": "detail",
+      "route": "User card and refresh",
+      "action": "Verified email/Auth disabled/providers/last sign-in distinction; permission and network errors",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserManagementReads.user/securityMetadata/memberships -> independent server reads",
+      "status": "verified",
+      "evidence": [
+        "physicalFinal",
+        "finalUnits",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-16",
+      "family": "presence",
+      "route": "Online and last seen",
+      "action": "Foreground/background, 90s heartbeat/180s lease, clock skew, delayed sequence",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserPresenceService -> updateUserPresence/privatePresence -> getManagedUserPresence -> ManagedUserPresenceViewModel",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-17",
+      "family": "presence",
+      "route": "Online and last seen",
+      "action": "Multiple sessions; one device leaving does not hide another; banned/deleted target offline",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserPresenceService -> updateUserPresence/privatePresence -> getManagedUserPresence -> ManagedUserPresenceViewModel",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-18",
+      "family": "presence",
+      "route": "Online and last seen",
+      "action": "Visible-card-only polling, background cancel, request coalescing, backoff and retry",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserPresenceService -> updateUserPresence/privatePresence -> getManagedUserPresence -> ManagedUserPresenceViewModel",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "sourceReview"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-19",
+      "family": "presence",
+      "route": "Online and last seen",
+      "action": "Online -> expired -> last-seen/unknown; stale read badge; no invented last sign-in",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserPresenceService -> updateUserPresence/privatePresence -> getManagedUserPresence -> ManagedUserPresenceViewModel",
+      "status": "verified",
+      "evidence": [
+        "physicalFinal",
+        "guideRolesFinal",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-20",
+      "family": "sanctions",
+      "route": "Warning/suspension/permanent block/deactivation/restore",
+      "action": "Owner/admin target hierarchy; self and owner protection; role revoked during request",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "AccountActionConfirmationSheet -> reviewed client request -> accountStatusManagement/adminMutationTransaction",
+      "status": "verified",
+      "evidence": [
+        "serverFinalMatrix",
+        "guideRolesFinal",
+        "physicalFinal",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-21",
+      "family": "sanctions",
+      "route": "Warning/suspension/permanent block/deactivation/restore",
+      "action": "Each action effect, required reason, 2000 UTF16 boundary, 1/7/14/30 days, keyboard/cancel",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "AccountActionConfirmationSheet -> reviewed client request -> accountStatusManagement/adminMutationTransaction",
+      "status": "verified",
+      "evidence": [
+        "retryAndMaximum",
+        "connectedSanctions",
+        "connectedRestrictions",
+        "serverUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-22",
+      "family": "sanctions",
+      "route": "Warning/suspension/permanent block/deactivation/restore",
+      "action": "Immutable actor/target/revision/action; current displayed user must not silently change confirmation",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "AccountActionConfirmationSheet -> reviewed client request -> accountStatusManagement/adminMutationTransaction",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "serverFinalMatrix",
+        "ownershipMaximum"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-23",
+      "family": "sanctions",
+      "route": "Warning/suspension/permanent block/deactivation/restore",
+      "action": "Each mutation -> exact stored fields -> readback -> reopen; expiry restore",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "AccountActionConfirmationSheet -> reviewed client request -> accountStatusManagement/adminMutationTransaction",
+      "status": "verified",
+      "evidence": [
+        "connectedSanctions",
+        "connectedRestrictions",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-24",
+      "family": "sanctions",
+      "route": "Warning/suspension/permanent block/deactivation/restore",
+      "action": "Duplicate click/network lost response/idempotent receipt; stale revision",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "AccountActionConfirmationSheet -> reviewed client request -> accountStatusManagement/adminMutationTransaction",
+      "status": "verified",
+      "evidence": [
+        "serverFinalMatrix",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-25",
+      "family": "sanctions",
+      "route": "Warning/suspension/permanent block/deactivation/restore",
+      "action": "Committed restriction with failed token revocation: clear partial success and safe retry",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "AccountActionConfirmationSheet -> reviewed client request -> accountStatusManagement/adminMutationTransaction",
+      "status": "verified",
+      "evidence": [
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-26",
+      "family": "sanctions",
+      "route": "Warning/suspension/permanent block/deactivation/restore",
+      "action": "Fresh correct recipient, localized reason once, inbox route and restricted-account access",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "AccountActionConfirmationSheet -> reviewed client request -> accountStatusManagement/adminMutationTransaction",
+      "status": "verified",
+      "evidence": [
+        "restrictedRecipient",
+        "connectedSanctions",
+        "connectedRestrictions",
+        "serverFinalMatrix",
+        "noticeDestination"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-27",
+      "family": "platformRoles",
+      "route": "Assign/remove application admin",
+      "action": "Only application owner, no self/owner, verified usable target, role revoked",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "PlatformRoleConfirmationSheet -> platformRoleManagement -> user/auth claims/audit/inbox",
+      "status": "verified",
+      "evidence": [
+        "guideRolesFinal",
+        "finalUnits",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-28",
+      "family": "platformRoles",
+      "route": "Assign/remove application admin",
+      "action": "Reason/cancel/confirm/save/readback/reopen; stale revision/lost response",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "PlatformRoleConfirmationSheet -> platformRoleManagement -> user/auth claims/audit/inbox",
+      "status": "verified",
+      "evidence": [
+        "connectedPlatformRoles",
+        "finalUnits",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-29",
+      "family": "platformRoles",
+      "route": "Assign/remove application admin",
+      "action": "Fresh notice only target, correct role and linked audit",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "PlatformRoleConfirmationSheet -> platformRoleManagement -> user/auth claims/audit/inbox",
+      "status": "verified",
+      "evidence": [
+        "connectedPlatformRoles",
+        "serverFinalMatrix"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-30",
+      "family": "organizationRoles",
+      "route": "Memberships, organization choices, assignment/removal and transfer",
+      "action": "Own/foreign, current role precedence, draft/archived memberships, load/error/refresh",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserDetailView -> manageUserDirectory memberships/organizations -> OrganizationRoleManagementService",
+      "status": "verified",
+      "evidence": [
+        "serverFinalMatrix",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-31",
+      "family": "organizationRoles",
+      "route": "Memberships, organization choices, assignment/removal and transfer",
+      "action": "On-demand search, paging, empty/retry, preserved selection while refresh",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserDetailView -> manageUserDirectory memberships/organizations -> OrganizationRoleManagementService",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "guideRolesFinal",
+        "sourceReview"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-32",
+      "family": "organizationRoles",
+      "route": "Memberships, organization choices, assignment/removal and transfer",
+      "action": "Admin/editor assignment, required reason, cancel and independent readback",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserDetailView -> manageUserDirectory memberships/organizations -> OrganizationRoleManagementService",
+      "status": "verified",
+      "evidence": [
+        "organizationAdminSDK",
+        "connectedOrganizationRoles"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-33",
+      "family": "organizationRoles",
+      "route": "Memberships, organization choices, assignment/removal and transfer",
+      "action": "Removal confirmation, frozen target/revision, owner cannot be simply removed",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserDetailView -> manageUserDirectory memberships/organizations -> OrganizationRoleManagementService",
+      "status": "verified",
+      "evidence": [
+        "maximumRoleForms",
+        "connectedOrganizationRoles",
+        "organizationAdminSDK",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-34",
+      "family": "organizationRoles",
+      "route": "Memberships, organization choices, assignment/removal and transfer",
+      "action": "Explicit target+organization confirmation, cancel/transfer/readback, concurrent owner change",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserDetailView -> manageUserDirectory memberships/organizations -> OrganizationRoleManagementService",
+      "status": "verified",
+      "evidence": [
+        "connectedOwnership",
+        "ownershipMaximum",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-35",
+      "family": "organizationRoles",
+      "route": "Memberships, organization choices, assignment/removal and transfer",
+      "action": "Application owner global control; application admin policy; organization owner only own workspace",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserDetailView -> manageUserDirectory memberships/organizations -> OrganizationRoleManagementService",
+      "status": "verified",
+      "evidence": [
+        "guideRolesFinal",
+        "serverOrganizationPolicy",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-36",
+      "family": "organizationRoles",
+      "route": "Memberships, organization choices, assignment/removal and transfer",
+      "action": "Fresh correct owner/staff/target recipients; no outsider delivery",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserDetailView -> manageUserDirectory memberships/organizations -> OrganizationRoleManagementService",
+      "status": "verified",
+      "evidence": [
+        "connectedOwnership",
+        "connectedOrganizationRoles",
+        "organizationAdminSDK",
+        "serverOrganizationPolicy"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report."
+    },
+    {
+      "id": "U11-37",
+      "family": "history",
+      "route": "Per-user audit history",
+      "action": "Initial loading/empty/error/retry/refresh with retained data",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserAuditHistoryCard -> auditLogs targetUserId indexed page",
+      "status": "verified",
+      "evidence": [
+        "historyFinal",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-38",
+      "family": "history",
+      "route": "Per-user audit history",
+      "action": "20-row pages, deduplication, failed-page retry preserves loaded history",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserAuditHistoryCard -> auditLogs targetUserId indexed page",
+      "status": "verified",
+      "evidence": [
+        "historyFinal",
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-39",
+      "family": "history",
+      "route": "Per-user audit history",
+      "action": "Target/actor/refresh change while request pending; no stale results or lost reload",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserAuditHistoryCard -> auditLogs targetUserId indexed page",
+      "status": "verified",
+      "evidence": [
+        "finalUnits"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-40",
+      "family": "history",
+      "route": "Per-user audit history",
+      "action": "Localized actions, actor, date, reason, before/after and expiry; unknown action honest",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "UserAuditHistoryCard -> auditLogs targetUserId indexed page",
+      "status": "verified",
+      "evidence": [
+        "finalUnits",
+        "historyFinal"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-41",
+      "family": "visual",
+      "route": "Unique screens and role guide",
+      "action": "Role explanations accurate to server hierarchy, close and reopen",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Shared components and all presentations",
+      "status": "verified",
+      "evidence": [
+        "guideRolesFinal",
+        "sourceReview"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-42",
+      "family": "visual",
+      "route": "Unique screens and role guide",
+      "action": "uk/de light/dark, normal and maximum text, compact width and long values",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Shared components and all presentations",
+      "status": "verified",
+      "evidence": [
+        "bilingualCard",
+        "maximumRoleForms",
+        "ownershipMaximum",
+        "retryAndMaximum",
+        "guideRolesFinal",
+        "physicalFinal"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-43",
+      "family": "visual",
+      "route": "Unique screens and role guide",
+      "action": "Search/menu/pickers, selected/disabled/busy/error, full-row hit area",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Shared components and all presentations",
+      "status": "verified",
+      "evidence": [
+        "loadingFinal",
+        "guideRolesFinal",
+        "retryAndMaximum",
+        "maximumRoleForms",
+        "finalDirectoryAndDeletedState"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    },
+    {
+      "id": "U11-44",
+      "family": "visual",
+      "route": "Unique screens and role guide",
+      "action": "Each unique action form and confirmation, keyboard/safe areas/background/return",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Shared components and all presentations",
+      "status": "verified",
+      "evidence": [
+        "retryAndMaximum",
+        "maximumRoleForms",
+        "ownershipMaximum",
+        "connectedRestrictions",
+        "connectedPlatformRoles",
+        "connectedOwnership"
+      ],
+      "verificationMode": "Risk-appropriate source/contract/state checks plus the linked actual-handler, SDK and observed-UI evidence; shared-layout equivalence is explicit in the report.",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "otherRoleBoundary": "No global management entry; authorization denial is verified by U11-01. Shared ordinary layout has no role-specific branch."
+    }
+  ],
+  "evidenceRegistry": {
+    "baseline": {
+      "artifact": "build/audit-users-20261025/DirectoryBaseline.xcresult",
+      "passed": 5,
+      "failed": 5,
+      "scope": "Reproduced duplicate first-page requests, discarded cursor/page during failed refresh/preparation, stale deleted-user cache and skipped membership replacement."
+    },
+    "directoryState": {
+      "artifact": "build/audit-users-20261025/DirectoryStateFixed.xcresult",
+      "passed": 33,
+      "failed": 0
+    },
+    "reviewState": {
+      "artifact": "build/audit-users-20261025/ReviewedUserContextFixed.xcresult",
+      "passed": 35,
+      "failed": 0
+    },
+    "historyState": {
+      "artifact": "build/audit-users-20261025/ReviewedSheetsAndHistoryBuild.xcresult",
+      "passed": 39,
+      "failed": 0,
+      "scope": "Before later explicit audit cursor and UI-fixture changes; rerun required for final source."
+    },
+    "serverBaseline": {
+      "artifact": "build/audit-users-20261025/server-baseline.log",
+      "passed": 10,
+      "failed": 1,
+      "scope": "Legacy regional profile omitted: aggregate 69 vs directory 68."
+    },
+    "server": {
+      "artifact": "build/audit-users-20261025/server-matrix-final.log",
+      "passed": 12,
+      "failed": 0,
+      "scope": "Actual handler + Auth/Firestore emulators: 137+ profiles, legacy-date coverage/paging, role matrix, reviewed CAS/idempotency/session revocation, sanctions/restore/expiry/target notifications, mocked push recipient token isolation, presence."
+    },
+    "bilingualCard": {
+      "artifact": "build/audit-users-20261025/DirectoryBilingualOpen.xcresult",
+      "passed": 1,
+      "failed": 0
+    },
+    "existingActionWindows": {
+      "artifact": "build/audit-users-20261025/ActionSheetsBaseline.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "scope": "Normal-size existing owner-protected detail and opening/cancelling four account-action forms; before new transfer-sheet fixture."
+    },
+    "productionRead": {
+      "artifact": "build/audit-users-20261025/production-counts-readback.json",
+      "readOnly": true,
+      "accountCount": 66,
+      "accountsWithCreationField": 66,
+      "searchIndexReady": true,
+      "scope": "IAM aggregate/readback, not an owner-authenticated callable UI proof."
+    },
+    "fullUnitRegression": {
+      "artifact": "build/audit-users-20261025/FullUnitRegression.xcresult",
+      "passed": 851,
+      "failed": 0,
+      "scope": "851 passed, 30 opt-in SDK/live tests skipped; linked SDK checks are separate below."
+    },
+    "connectedSanctions": {
+      "artifact": "build/audit-users-20261025/ConnectedAccountWarning.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI + SDK -> callable -> independent Firestore readback; warning/suspension/restore and fresh exact-recipient notices."
+    },
+    "connectedRestrictions": {
+      "artifact": "build/audit-users-20261025/ConnectedAccountRestrictions.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI ban/deactivation/restore; exact stored state and fresh recipient notices."
+    },
+    "connectedPlatformRoles": {
+      "artifact": "build/audit-users-20261025/ConnectedPlatformRoles.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI administrator assign/remove, stored role+MFA flag, fresh recipient notices."
+    },
+    "connectedOrganizationRoles": {
+      "artifact": "build/audit-users-20261025/ConnectedOrganizationRolesReadbackFixed.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI moderator assignment/removal + independent organization fields and target notices."
+    },
+    "connectedOwnership": {
+      "artifact": "build/audit-users-20261025/ConnectedOwnership.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI cancel preserves owner, confirm changes exact owner, both target and previous owner receive notices."
+    },
+    "maximumRoleForms": {
+      "artifact": "build/audit-users-20261025/MaximumRoleFormsFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "German dark maximum Dynamic Type: reach reason/action, empty disabled, input enabled, cancel, for platform and organization removal forms."
+    },
+    "detailAndHistoryCoalescing": {
+      "artifact": "build/audit-users-20261025/DetailAndHistoryCoalescingFixed.xcresult",
+      "passed": 42,
+      "failed": 0
+    },
+    "serverSearch1500": {
+      "artifact": "build/audit-users-20261025/server-search1500-confirmed.log",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual Firestore emulator, 1500 accounts, indexed/fallback equivalence, bounded return, selective candidate read, legacy callable permissions and event maintenance."
+    },
+    "serverOrganizationPolicy": {
+      "artifact": "build/audit-users-20261025/server-org-policy-clean.log",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual handlers, 1080 released-client capability decisions, stale edit/revoked role/replay."
+    },
+    "serverFinalMatrix": {
+      "artifact": "build/audit-users-20261025/server-matrix-final-expanded.log",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Fresh namespace, actual organizational memberships in authorization matrix."
+    },
+    "serverUnits": {
+      "artifact": "build/audit-users-20261025/server-unit-final.log",
+      "passed": 22,
+      "failed": 0
+    },
+    "deployment": {
+      "artifact": "build/audit-users-20261025/manageUserDirectory-deployed-readback.json",
+      "revision": "manageuserdirectory-00004-vuq",
+      "sourceCommit": "55d0c614",
+      "sourceMatches": true,
+      "ready": true,
+      "trafficPercent": 100,
+      "scope": "Exact deployed source, onDeployUpdatePolicy, cold unauthenticated rejection; owner-authorized device call still pending."
+    },
+    "physicalRead": {
+      "artifact": "build/audit-users-20261025/PhysicalProductionUsersRetry.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Signed Release, real Serlest production session; initial directory, Serlest search, own protected card, presence/security; no mutation. Count badge discrepancy found in reviewed capture and fixed locally; final reinstall/readback pending."
+    },
+    "finalUnits": {
+      "artifact": "build/audit-users-20261025/FinalLinkedSourceRegression.xcresult",
+      "passed": 855,
+      "failed": 0,
+      "skipped": 31,
+      "scope": "Complete Swift unit regression, including three linked-organization cache/interaction cases. Opt-in live/SDK cases are explicitly skipped and tracked separately."
+    },
+    "historyFinal": {
+      "artifact": "build/audit-users-20261025/HistoryPagingFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "45 records across 20-row pages, failed next page retains records and retries exact cursor."
+    },
+    "guideRolesFinal": {
+      "artifact": "build/audit-users-20261025/GuideLoadingAndRolesFinal.xcresult",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Maximum German/dark role guide and app-admin controls; five organizational/member/warned profile visibility variants; slow load and retained search on return."
+    },
+    "ownershipMaximum": {
+      "artifact": "build/audit-users-20261025/OwnershipMaximumGutterScroll.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Maximum text, full target/reason confirmation, reachable action, cancel retains reason. No fixture mutation."
+    },
+    "retryAndMaximum": {
+      "artifact": "build/audit-users-20261025/FailureRetryAndMaximumSanctions.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Initial directory and detail failure/retry; stale detail actions disabled; one error banner; maximum warning reason and suspension duration forms."
+    },
+    "loadingFinal": {
+      "artifact": "build/audit-users-20261025/StableLoadingAndRetryFinal.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Stable navigation frame, loading and retained search; error does not continue claiming an active search; successful retry enables reviewed actions."
+    },
+    "restrictedRecipient": {
+      "artifact": "build/audit-users-20261025/RestrictedAccountReasonAndRestore.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual isolated client sign-in sees exact owner restriction reason; no global user management; actual UI restoration independently read back."
+    },
+    "organizationAdminSDK": {
+      "artifact": "build/audit-users-20261025/ConnectedOrganizationAdministratorFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual client/SDK administrator assignment and removal, exact organization array and fresh target notices."
+    },
+    "noticeDestination": {
+      "artifact": "build/audit-users-20261025/ConnectedNoticeTargetAndTranslationFixed.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual target sign-in -> matching inbox record -> details -> exact related organization. Separate translated fixture fields synchronized before repeat."
+    },
+    "linkedRepositorySDK": {
+      "artifact": "build/audit-users-20261025/NoticeTargetActualRepository.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual member Auth + repository reads exact owned organization within 10 seconds. Initial raw-name assertion; localized-name verification is supplied by noticeDestination."
+    },
+    "linkedBaseline": {
+      "artifact": "build/audit-users-20261025/LinkedOrganizationFeedBaseline.xcresult",
+      "passed": 47,
+      "failed": 1,
+      "skipped": 0,
+      "scope": "Expected failing baseline: one failed test with two assertions reproduced detail eviction and feed pollution."
+    },
+    "linkedFixed": {
+      "artifact": "build/audit-users-20261025/LinkedOrganizationIndependentCache.xcresult",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Original race regression fixed, before two extra cache/interaction tests in finalUnits."
+    },
+    "physicalFinal": {
+      "artifact": "build/audit-users-20261025/PhysicalFinalUsersAndPresence.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Signed Release, real Serlest production session; counts 67/40, scoped search 2/2, exact independent count 9 organizations, actual online response, protected self, security metadata. No mutation. Final wording-only copy is rebuilt separately."
+    },
+    "serverAllSorts": {
+      "artifact": "build/audit-users-20261025/server-all-sorts-final.log",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "137 profiles across all four complete paged sorts; 41 equal-name/equal-timestamp records maintain identity order; legacy dates, role memberships and authorization, stale actor, retry receipts."
+    },
+    "sourceReview": {
+      "method": "Docs/AppAuditMethod.md",
+      "scope": "Bounded paging/projections and no per-row presence reads; nine-region enum and server contract; shared form/busy/keyboard semantics; immutable reviews and exact organization revisions; global vs organizational authorization routes."
+    },
+    "deployedOwnerRead": {
+      "artifacts": [
+        "build/audit-users-20261025/manageUserDirectory-deployed-readback.json",
+        "build/audit-users-20261025/PhysicalFinalUsersAndPresence.xcresult"
+      ],
+      "scope": "Exact deployed TS and JS, onDeployUpdatePolicy, Cloud Run Ready and 100% traffic on manageuserdirectory-00004-vuq; actual owner-authorized list/search on physical Release."
+    },
+    "finalDirectoryAndDeletedState": {
+      "artifact": "build/audit-users-20261025/FinalDirectoryAndDeletedState.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "scope": "Final a921224d: plain directory error/retry and deleted user card without mutation controls."
+    }
+  },
+  "implementationStatus": "implemented",
+  "verifiedScenarioChecks": 44,
+  "finalGates": {
+    "requiredHostedValidation": "pending for final source",
+    "physicalRead": "passed; final wording-only reinstall bookkeeping pending",
+    "manualAcceptance": "pending",
+    "testFlightDelivery": "not requested"
+  }
+}

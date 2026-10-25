@@ -1,0 +1,460 @@
+{
+  "block": 11,
+  "totalBlocks": 19,
+  "name": "Керування користувачами",
+  "status": "verification_complete_pending_hosted_validation",
+  "method": "Docs/AppAuditMethod.md",
+  "inventory": "Docs/Verification/UserManagementInventory20261025.json",
+  "sourceBaseline": "d4601a77",
+  "clientCommits": [
+    "5035916c",
+    "aa9b96cd",
+    "0c14a0b1",
+    "c5c6de13",
+    "3784b2c3",
+    "98698899",
+    "78fa9676",
+    "a921224d"
+  ],
+  "serverCommit": "55d0c614",
+  "evidence": {
+    "baseline": {
+      "artifact": "build/audit-users-20261025/DirectoryBaseline.xcresult",
+      "passed": 5,
+      "failed": 5,
+      "scope": "Reproduced duplicate first-page requests, discarded cursor/page during failed refresh/preparation, stale deleted-user cache and skipped membership replacement."
+    },
+    "directoryState": {
+      "artifact": "build/audit-users-20261025/DirectoryStateFixed.xcresult",
+      "passed": 33,
+      "failed": 0
+    },
+    "reviewState": {
+      "artifact": "build/audit-users-20261025/ReviewedUserContextFixed.xcresult",
+      "passed": 35,
+      "failed": 0
+    },
+    "historyState": {
+      "artifact": "build/audit-users-20261025/ReviewedSheetsAndHistoryBuild.xcresult",
+      "passed": 39,
+      "failed": 0,
+      "scope": "Before later explicit audit cursor and UI-fixture changes; rerun required for final source."
+    },
+    "serverBaseline": {
+      "artifact": "build/audit-users-20261025/server-baseline.log",
+      "passed": 10,
+      "failed": 1,
+      "scope": "Legacy regional profile omitted: aggregate 69 vs directory 68."
+    },
+    "server": {
+      "artifact": "build/audit-users-20261025/server-matrix-final.log",
+      "passed": 12,
+      "failed": 0,
+      "scope": "Actual handler + Auth/Firestore emulators: 137+ profiles, legacy-date coverage/paging, role matrix, reviewed CAS/idempotency/session revocation, sanctions/restore/expiry/target notifications, mocked push recipient token isolation, presence."
+    },
+    "bilingualCard": {
+      "artifact": "build/audit-users-20261025/DirectoryBilingualOpen.xcresult",
+      "passed": 1,
+      "failed": 0
+    },
+    "existingActionWindows": {
+      "artifact": "build/audit-users-20261025/ActionSheetsBaseline.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "scope": "Normal-size existing owner-protected detail and opening/cancelling four account-action forms; before new transfer-sheet fixture."
+    },
+    "productionRead": {
+      "artifact": "build/audit-users-20261025/production-counts-readback.json",
+      "readOnly": true,
+      "accountCount": 66,
+      "accountsWithCreationField": 66,
+      "searchIndexReady": true,
+      "scope": "IAM aggregate/readback, not an owner-authenticated callable UI proof."
+    },
+    "fullUnitRegression": {
+      "artifact": "build/audit-users-20261025/FullUnitRegression.xcresult",
+      "passed": 851,
+      "failed": 0,
+      "scope": "851 passed, 30 opt-in SDK/live tests skipped; linked SDK checks are separate below."
+    },
+    "connectedSanctions": {
+      "artifact": "build/audit-users-20261025/ConnectedAccountWarning.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI + SDK -> callable -> independent Firestore readback; warning/suspension/restore and fresh exact-recipient notices."
+    },
+    "connectedRestrictions": {
+      "artifact": "build/audit-users-20261025/ConnectedAccountRestrictions.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI ban/deactivation/restore; exact stored state and fresh recipient notices."
+    },
+    "connectedPlatformRoles": {
+      "artifact": "build/audit-users-20261025/ConnectedPlatformRoles.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI administrator assign/remove, stored role+MFA flag, fresh recipient notices."
+    },
+    "connectedOrganizationRoles": {
+      "artifact": "build/audit-users-20261025/ConnectedOrganizationRolesReadbackFixed.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI moderator assignment/removal + independent organization fields and target notices."
+    },
+    "connectedOwnership": {
+      "artifact": "build/audit-users-20261025/ConnectedOwnership.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual client UI cancel preserves owner, confirm changes exact owner, both target and previous owner receive notices."
+    },
+    "maximumRoleForms": {
+      "artifact": "build/audit-users-20261025/MaximumRoleFormsFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "German dark maximum Dynamic Type: reach reason/action, empty disabled, input enabled, cancel, for platform and organization removal forms."
+    },
+    "detailAndHistoryCoalescing": {
+      "artifact": "build/audit-users-20261025/DetailAndHistoryCoalescingFixed.xcresult",
+      "passed": 42,
+      "failed": 0
+    },
+    "serverSearch1500": {
+      "artifact": "build/audit-users-20261025/server-search1500-confirmed.log",
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual Firestore emulator, 1500 accounts, indexed/fallback equivalence, bounded return, selective candidate read, legacy callable permissions and event maintenance."
+    },
+    "serverOrganizationPolicy": {
+      "artifact": "build/audit-users-20261025/server-org-policy-clean.log",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual handlers, 1080 released-client capability decisions, stale edit/revoked role/replay."
+    },
+    "serverFinalMatrix": {
+      "artifact": "build/audit-users-20261025/server-matrix-final-expanded.log",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Fresh namespace, actual organizational memberships in authorization matrix."
+    },
+    "serverUnits": {
+      "artifact": "build/audit-users-20261025/server-unit-final.log",
+      "passed": 22,
+      "failed": 0
+    },
+    "deployment": {
+      "artifact": "build/audit-users-20261025/manageUserDirectory-deployed-readback.json",
+      "revision": "manageuserdirectory-00004-vuq",
+      "sourceCommit": "55d0c614",
+      "sourceMatches": true,
+      "ready": true,
+      "trafficPercent": 100,
+      "scope": "Exact deployed source, onDeployUpdatePolicy, cold unauthenticated rejection; owner-authorized device call still pending."
+    },
+    "physicalRead": {
+      "artifact": "build/audit-users-20261025/PhysicalProductionUsersRetry.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Signed Release, real Serlest production session; initial directory, Serlest search, own protected card, presence/security; no mutation. Count badge discrepancy found in reviewed capture and fixed locally; final reinstall/readback pending."
+    },
+    "finalUnits": {
+      "artifact": "build/audit-users-20261025/FinalLinkedSourceRegression.xcresult",
+      "passed": 855,
+      "failed": 0,
+      "skipped": 31,
+      "scope": "Complete Swift unit regression, including three linked-organization cache/interaction cases. Opt-in live/SDK cases are explicitly skipped and tracked separately."
+    },
+    "historyFinal": {
+      "artifact": "build/audit-users-20261025/HistoryPagingFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "45 records across 20-row pages, failed next page retains records and retries exact cursor."
+    },
+    "guideRolesFinal": {
+      "artifact": "build/audit-users-20261025/GuideLoadingAndRolesFinal.xcresult",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Maximum German/dark role guide and app-admin controls; five organizational/member/warned profile visibility variants; slow load and retained search on return."
+    },
+    "ownershipMaximum": {
+      "artifact": "build/audit-users-20261025/OwnershipMaximumGutterScroll.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Maximum text, full target/reason confirmation, reachable action, cancel retains reason. No fixture mutation."
+    },
+    "retryAndMaximum": {
+      "artifact": "build/audit-users-20261025/FailureRetryAndMaximumSanctions.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Initial directory and detail failure/retry; stale detail actions disabled; one error banner; maximum warning reason and suspension duration forms."
+    },
+    "loadingFinal": {
+      "artifact": "build/audit-users-20261025/StableLoadingAndRetryFinal.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Stable navigation frame, loading and retained search; error does not continue claiming an active search; successful retry enables reviewed actions."
+    },
+    "restrictedRecipient": {
+      "artifact": "build/audit-users-20261025/RestrictedAccountReasonAndRestore.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual isolated client sign-in sees exact owner restriction reason; no global user management; actual UI restoration independently read back."
+    },
+    "organizationAdminSDK": {
+      "artifact": "build/audit-users-20261025/ConnectedOrganizationAdministratorFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual client/SDK administrator assignment and removal, exact organization array and fresh target notices."
+    },
+    "noticeDestination": {
+      "artifact": "build/audit-users-20261025/ConnectedNoticeTargetAndTranslationFixed.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual target sign-in -> matching inbox record -> details -> exact related organization. Separate translated fixture fields synchronized before repeat."
+    },
+    "linkedRepositorySDK": {
+      "artifact": "build/audit-users-20261025/NoticeTargetActualRepository.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Actual member Auth + repository reads exact owned organization within 10 seconds. Initial raw-name assertion; localized-name verification is supplied by noticeDestination."
+    },
+    "linkedBaseline": {
+      "artifact": "build/audit-users-20261025/LinkedOrganizationFeedBaseline.xcresult",
+      "passed": 47,
+      "failed": 1,
+      "skipped": 0,
+      "scope": "Expected failing baseline: one failed test with two assertions reproduced detail eviction and feed pollution."
+    },
+    "linkedFixed": {
+      "artifact": "build/audit-users-20261025/LinkedOrganizationIndependentCache.xcresult",
+      "passed": 48,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Original race regression fixed, before two extra cache/interaction tests in finalUnits."
+    },
+    "physicalFinal": {
+      "artifact": "build/audit-users-20261025/PhysicalFinalUsersAndPresence.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "Signed Release, real Serlest production session; counts 67/40, scoped search 2/2, exact independent count 9 organizations, actual online response, protected self, security metadata. No mutation. Final wording-only copy is rebuilt separately."
+    },
+    "serverAllSorts": {
+      "artifact": "build/audit-users-20261025/server-all-sorts-final.log",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "137 profiles across all four complete paged sorts; 41 equal-name/equal-timestamp records maintain identity order; legacy dates, role memberships and authorization, stale actor, retry receipts."
+    },
+    "sourceReview": {
+      "method": "Docs/AppAuditMethod.md",
+      "scope": "Bounded paging/projections and no per-row presence reads; nine-region enum and server contract; shared form/busy/keyboard semantics; immutable reviews and exact organization revisions; global vs organizational authorization routes."
+    },
+    "deployedOwnerRead": {
+      "artifacts": [
+        "build/audit-users-20261025/manageUserDirectory-deployed-readback.json",
+        "build/audit-users-20261025/PhysicalFinalUsersAndPresence.xcresult"
+      ],
+      "scope": "Exact deployed TS and JS, onDeployUpdatePolicy, Cloud Run Ready and 100% traffic on manageuserdirectory-00004-vuq; actual owner-authorized list/search on physical Release."
+    },
+    "finalDirectoryAndDeletedState": {
+      "artifact": "build/audit-users-20261025/FinalDirectoryAndDeletedState.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "scope": "Final a921224d: plain directory error/retry and deleted user card without mutation controls."
+    },
+    "finalReleaseBuild": {
+      "artifact": "build/audit-users-20261025/final-generic-release-build.log",
+      "sourceCommit": "a921224d",
+      "result": "BUILD SUCCEEDED",
+      "scope": "Signed generic iOS Release build; installation pending unavailable physical iPhone."
+    }
+  },
+  "findings": [
+    {
+      "problem": "Confirmed directory pages/cursor erased during preparation or failed refresh; duplicate reads.",
+      "fix": "Scoped preparation, shared pending first page, preserve confirmed cursor on failure and preserve pages after read-only return.",
+      "evidence": [
+        "baseline",
+        "directoryState"
+      ]
+    },
+    {
+      "problem": "Fresh memberships could skip replacement of an already-known organization.",
+      "fix": "Replace organizations by refreshed IDs as well as previous memberships.",
+      "evidence": [
+        "baseline",
+        "directoryState"
+      ]
+    },
+    {
+      "problem": "Deleted profile remained cached/actionable; opening detail did not refresh the profile.",
+      "fix": "Fresh selected-profile read, explicit unavailable state, no action controls for removed accounts.",
+      "evidence": [
+        "baseline",
+        "reviewState"
+      ]
+    },
+    {
+      "problem": "Action sheet target/actor was derived again while presented.",
+      "fix": "Freeze target/actor snapshot, gate confirmation by current revision/permissions; scrollable frozen ownership confirmation.",
+      "evidence": [
+        "reviewState"
+      ]
+    },
+    {
+      "problem": "Audit-history refresh could be lost behind an older isLoading request; paging retry restarted from page one.",
+      "fix": "Scoped store, replacement request for changed refresh token, retained confirmed data and exact failed-page retry.",
+      "evidence": [
+        "historyState"
+      ]
+    },
+    {
+      "problem": "Chronological orderBy excludes legacy users without createdAt.",
+      "fix": "First-page coverage check; opaque cursor retains legacy fallback; no invented creation dates. Normal indexed pages projected to createdAt.",
+      "evidence": [
+        "serverBaseline",
+        "server"
+      ]
+    },
+    {
+      "problem": "Duplicate detail/security reads; a caller could finish before shared metadata arrived.",
+      "fix": "Coalesce reads and await shared result, fence changed sessions and post-mutation profiles.",
+      "evidence": [
+        "detailAndHistoryCoalescing",
+        "fullUnitRegression"
+      ]
+    },
+    {
+      "problem": "Membership failure looked like confirmed no memberships; failed organization-choice refresh cleared choices.",
+      "fix": "Per-user loading/confirmed/error state, coalesced memberships, explicit retry, retain confirmed choices/cursor.",
+      "evidence": [
+        "fullUnitRegression"
+      ]
+    },
+    {
+      "problem": "Maximum-text role forms had nested combined controls and inaccessible picker identifiers.",
+      "fix": "Independent assignment card, adaptive menu layout, full-height form, stable nonlocalized IDs, busy state through readback.",
+      "evidence": [
+        "maximumRoleForms",
+        "connectedOrganizationRoles",
+        "connectedPlatformRoles"
+      ]
+    },
+    {
+      "problem": "List organization badge subtracted the primary role but label read as a total (8 for 9 organizations).",
+      "fix": "Show the full membership count, including a single organization.",
+      "evidence": [
+        "physicalRead"
+      ]
+    },
+    {
+      "problem": "Whole audit-card accessibility identifier hid descendant paging/retry identifiers.",
+      "fix": "Independent action identifiers; static history records combined into coherent accessibility elements.",
+      "evidence": []
+    },
+    {
+      "problem": "A linked organization could be evicted by a later feed replacement and the detail remained in loading state.",
+      "fix": "Actor-scoped bounded detail cache independent of public feed; interactions update cache without leaking out-of-page entries; clear on logout, visibility denial and deletion.",
+      "evidence": [
+        "linkedBaseline",
+        "linkedFixed",
+        "finalUnits",
+        "noticeDestination"
+      ]
+    },
+    {
+      "problem": "Server audit values include ISO strings and nulls; expiry, warning count and ownership changes were not presented completely.",
+      "fix": "Localized expiry values, honest empty values, before/after warning counts and owner identifiers.",
+      "evidence": [
+        "finalUnits"
+      ]
+    },
+    {
+      "problem": "Initial profile failure displayed the same message twice; directory summary continued to say it was searching after failure.",
+      "fix": "One profile failure with targeted retry; no ongoing-search copy after a completed failed request; plain list-error wording in uk/de/en.",
+      "evidence": [
+        "loadingFinal",
+        "retryAndMaximum"
+      ]
+    }
+  ],
+  "visualReview": {
+    "actuallyViewed": [
+      "build/audit-users-20261025/directory-bilingual-images/930A3B60-51DE-46BC-93CB-6913DE040767.png",
+      "build/audit-users-20261025/directory-bilingual-images/74A7117F-DF63-4C0D-BF0D-52B9578EEC35.png",
+      "build/audit-users-20261025/action-images/101F7482-A151-4648-9332-5C803A735359.png",
+      "build/audit-users-20261025/action-images/7582B64D-424B-48B7-8A43-045AF319E60E.png",
+      "build/audit-users-20261025/physical-users-images/1F51D7D4-A8B7-4F6E-B3CE-42E92D803726.png",
+      "build/audit-users-20261025/physical-users-images/F25CCF88-354D-4257-9D35-BA04BCCA7699.png",
+      "build/audit-users-20261025/physical-users-images/D831369E-1DB8-4D4A-A2EA-6DCA386B9C38.png",
+      "build/audit-users-20261025/final-error-and-deleted-images/6B052851-8D3E-479F-A17B-BF41071A62E2.png",
+      "build/audit-users-20261025/final-error-and-deleted-images/BA2056DE-7078-4028-9A15-2B7B93BC937C.png",
+      "build/audit-users-20261025/ownership-maximum-final-images/F49353F8-DE13-4AC4-AB99-C278938E727C.png",
+      "build/audit-users-20261025/restriction-form-images/36B3378B-9180-464A-927E-CBDABDCEE99B.png",
+      "build/audit-users-20261025/restriction-form-images/B6CCAD44-36D1-43DB-924D-5DA8A90E49C4.png",
+      "build/audit-users-20261025/restriction-form-images/14F17636-4A64-4328-97FA-6F7F0F7BBF4F.png",
+      "build/audit-users-20261025/restricted-recipient-review-images/2099CC78-2DDE-4335-BB3A-41AFBD9A0247.png",
+      "build/audit-users-20261025/physical-final-images/BF3075EB-048E-43C3-92BC-9CEAE9B05CC6.png",
+      "build/audit-users-20261025/physical-final-images/0865E433-862D-440C-865F-CE949BEC06F0.png",
+      "build/audit-users-20261025/maximum-role-forms-final-images/054FA960-7FEA-446F-85E4-06946CF5C042.png",
+      "build/audit-users-20261025/maximum-role-forms-final-images/EFA783B7-E599-4884-94C4-2EFBA19BF798.png",
+      "build/audit-users-20261025/connected-warning-all-images/037F587A-7DD5-4E2F-B8F1-3E11FA3010D0.png",
+      "build/audit-users-20261025/connected-warning-all-images/804583D1-5349-4CAB-B945-7FAD062E3D5B.png",
+      "build/audit-users-20261025/connected-warning-all-images/692D9C99-3C4C-4433-94E8-27606F84F93F.png",
+      "build/audit-users-20261025/guide-loading-role-images/7AC98847-BF7F-4F62-BB90-AE2112809CFD.png",
+      "build/audit-users-20261025/guide-loading-role-images/91D29C51-06FB-4BDD-92F3-8E792048015C.png",
+      "build/audit-users-20261025/guide-loading-role-images/D61F5F0F-674E-4EF1-B8FA-9FA4A1C3DD24.png",
+      "build/audit-users-20261025/guide-loading-role-images/B1AE9EA0-BDB0-4A1F-9661-ACBB206D6398.png",
+      "build/audit-users-20261025/failure-and-maximum-images/5259F686-32C2-46CC-B643-C95A6FE93079.png",
+      "build/audit-users-20261025/failure-and-maximum-images/67C712DD-65E1-44FC-9BF3-4E08A64D1CA2.png",
+      "build/audit-users-20261025/connected-notice-final-images/0A93EC89-F814-442F-BF4C-522D64235AAF.png",
+      "build/audit-users-20261025/history-final-images/31ECE245-81AD-4240-988E-163E2933F5B4.png"
+    ],
+    "remaining": "Final wording-only physical copy readback pending device availability; relevant functional physical and simulator visuals reviewed."
+  },
+  "fixtureLessons": [
+    "The old owner fixture had requiresMultiFactorAuth absent. The missing-factor test must use an explicitly protected admin, preserving the existing migration/bootstrap policy rather than changing auth policy in this audit.",
+    "Fixtures must use Timestamp for createdAt and the requested user ID, matching live readers.",
+    "A zero-case Swift Testing selection is not a pass; explicit full suites executed.",
+    "Shared emulator namespaces can contaminate unfiltered totals. Separate projects; scope owned-role fixtures by prefix. Search benchmark rerun on fresh fixed namespace.",
+    "Legal evidence search intentionally returns totalMatches=null with bounded accounts. Update legacy test expectation and assert exact returned IDs; do not restore a full scan.",
+    "Readback allowlist must explicitly include only GET of the owned organization before running a connected mutation.",
+    "An organization cloned from the earlier fixture must synchronize localizations as well as raw name. A raw-name repository assertion cannot substitute for the displayed localized heading.",
+    "Scroll through a free gutter when a large multiline native input occupies the drag origin. Do not change production deadlines or expected business data to hide driver errors.",
+    "Parent accessibility identifiers can replace descendant identifiers. Keep independent paging/actions and combine static history records only."
+  ],
+  "delivery": {
+    "testFlightChanged": false,
+    "publicAppStoreChanged": false,
+    "finalPhysicalBinary": "Functional signed Release installed/read successfully; final wording-only a921224d Release built, device unavailable for final installation/readback.",
+    "manualAcceptance": "pending user review"
+  },
+  "nextBlock": 12,
+  "advanceWithoutUserAcceptance": false,
+  "verificationPending": [
+    "Final source GitHub run 40239264159 is running; static and Firebase checks passed, iOS validation running.",
+    "Physical iPhone unavailable; final wording-only a921224d Release installation/readback pending. Earlier functional physical read passed."
+  ],
+  "sourceCommit": "a921224d",
+  "verificationBoundaries": [
+    "All applicable authorization branches are covered by source/contract/unit/actual-handler checks; representative UI is reused for the same shared layout. This is not a claim of a physical-device session for each role and each cross-product.",
+    "Physical production reads use only Serlest; account sanctions, role and ownership mutations use fixed isolated demo data. No real account sanctions/role/ownership changes.",
+    "Auth Emulator lacks real TOTP; the connected privileged-review fixture supplies a fixed demo-only factor assertion. Production MFA/provider behavior was not changed.",
+    "Push routing/recipient isolation and duplicate suppression are tested with mocked transport. New APNs delivery to a physical recipient is not claimed; APNs sender unchanged.",
+    "Status/name sorts and organization-role filters may stream compact server candidates. The common chronological list and ready indexed search are bounded/indexed; do not describe every filter as constant-cost.",
+    "No registration, credential creation/deletion, TestFlight upload or public release in this block."
+  ],
+  "implementationStatus": "implemented"
+}

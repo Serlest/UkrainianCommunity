@@ -179,8 +179,18 @@
     {
       "number": 11,
       "name": "Управление пользователями",
-      "status": "pending",
-      "openChecks": []
+      "status": "verification_complete_pending_hosted_validation",
+      "openChecks": [
+        "U11-FINAL-SOURCE-CI",
+        "U11-FINAL-INSTALLED-COPY"
+      ],
+      "inventory": "Docs/Verification/UserManagementInventory20261025.json",
+      "authorizedByUser": "2026-10-25: приступай к 11",
+      "report": "Docs/Verification/UserManagementAudit20261025.json",
+      "sourceCommit": "a921224d",
+      "serverCommit": "55d0c614",
+      "closedScenarioChecks": 44,
+      "testFlightChanged": false
     },
     {
       "number": 12,
@@ -310,8 +320,7 @@
       6,
       7,
       8,
-      9,
-      10
+      9
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
@@ -323,22 +332,26 @@
     "block8AuthorizedByUser": "2026-10-24: Приступай к следующему пункту",
     "block9AuthorizedByUser": "2026-10-24: Приступай",
     "reconciliationAuthorizedByUser": "2026-10-25: Сверяй",
-    "block10AuthorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10"
+    "block10AuthorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10",
+    "block11AuthorizedByUser": "2026-10-25: приступай к 11"
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 10,
+  "blocksWithImplementedFixes": 11,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 9,
-  "nextNewBlock": 11,
+  "notStartedBlocks": 8,
+  "nextNewBlock": 12,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Await user acceptance of block 10, then start block 11 only on authorization. TestFlight delivery remains separately requested.",
+  "nextAction": "Finish the two explicit final gates of block 11; do not start block 12 before acceptance.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
     "remainingScenarioGroups": 0,
     "fullyClosedBlocks": 10,
     "block10Report": "Docs/Verification/ModerationAudit20261025.json",
-    "block10ScenarioChecks": 32
+    "block10ScenarioChecks": 32,
+    "block11Report": "Docs/Verification/UserManagementAudit20261025.json",
+    "block11ScenarioChecks": 44,
+    "block11VerifiedScenarios": 44
   }
 }
