@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-25",
+  "status": "hosted_revalidation_pending",
+  "categoryValidator": {
+    "failedRun": 40150246391,
+    "reason": "Rules cached additionalCategories locally; static extractor assumed the second data.additionalCategories.hasOnly occurrence",
+    "fixCommit": "24a5aaa4",
+    "fix": "Scope extraction to named news/event validators; accept only aliases explicitly bound to the same document field; fail on missing/ambiguous allowlists",
+    "local": "Five extractor regressions passed; exact 14 news / 17 event category contract passed",
+    "security": "No category allowlist or authorization changed for this validator correction"
+  },
+  "detailRefresh": {
+    "failedRun": 40144859433,
+    "downloadedArtifact": "build/audit-closure-20261025/hosted-49d-artifact",
+    "failedMethod": "PullToRefreshTests/detailRefreshRetainsListAndPaginationAndAwaitsNewUser()",
+    "hostedDurationSeconds": 268,
+    "reason": "Deliberately suspended fixture read raced the real 20-second deadline under concurrent CI execution",
+    "fix": "Inject the existing deadline function for detail refresh; gated tests use controlled time while production retains continuous time and the same 20-second timeout",
+    "additionalRegression": "Controlled expiry preserves old user/pagination and exposes network failure; retry accepts new data",
+    "localBundle": "build/audit-closure-20261025/DirectoryContactAndRefreshFixed.xcresult",
+    "localMethodsPassed": 23,
+    "limitation": "The separate contact UI method in that bundle failed its keyboard/scroll harness and is not counted as passed. Full hosted confirmation still pending."
+  }
+}

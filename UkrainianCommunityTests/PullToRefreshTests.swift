@@ -191,7 +191,9 @@ struct PullToRefreshTests {
 
     @Test func detailRefreshRetainsListAndPaginationAndAwaitsNewUser() async {
         let fixture = ManagementReadFixture()
-        let model = UserManagementViewModel(reads: fixture.reads)
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
+        let model = UserManagementViewModel(reads: fixture.reads, detailReadDeadline: deadline.sleep)
         let actor = MockContentBuilder.ownerUser()
         await model.load(actor: actor)
         let original = model.users
@@ -209,6 +211,33 @@ struct PullToRefreshTests {
         #expect(model.user(withID: updated.id)?.displayName == "Updated remotely")
         #expect(model.canLoadMore)
         #expect(fixture.pageReads == 1)
+        #expect(model.error == nil)
+    }
+
+    @Test func detailRefreshTimeoutKeepsThePreviousUserAndRetryAcceptsNewData() async {
+        let fixture = ManagementReadFixture()
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
+        let model = UserManagementViewModel(reads: fixture.reads, detailReadDeadline: deadline.sleep)
+        let actor = MockContentBuilder.ownerUser()
+        await model.load(actor: actor)
+        let original = model.users[0]
+        let gate = ReadGate<AppUser?>(); fixture.userGate = gate
+        let refresh = Task { await model.refreshDetail(userID: original.id, actor: actor) }
+        await gate.waitUntilStarted(); await deadline.waitUntilScheduled()
+        #expect(deadline.durations == [.seconds(20)])
+        deadline.expire(); await refresh.value
+        #expect(model.user(withID: original.id)?.displayName == original.displayName)
+        #expect(model.error == .network)
+        #expect(model.canLoadMore)
+        gate.complete(fixture.member)
+        let retryGate = ReadGate<AppUser?>(); fixture.userGate = retryGate
+        let updated = AppUser(id: original.id, fullName: original.fullName, displayName: "Retried server value",
+            city: original.city, email: original.email, bio: "", role: .user, blockState: .active,
+            createdAt: original.createdAt, updatedAt: .now)
+        retryGate.complete(updated)
+        await model.refreshDetail(userID: original.id, actor: actor)
+        #expect(model.user(withID: original.id)?.displayName == "Retried server value")
         #expect(model.error == nil)
     }
 
@@ -231,7 +260,9 @@ struct PullToRefreshTests {
 
     @Test func pendingDetailCannotRestoreDataAfterPermissionLoss() async {
         let fixture = ManagementReadFixture()
-        let model = UserManagementViewModel(reads: fixture.reads)
+        let deadline = ManualRefreshDeadline()
+        defer { deadline.cancel() }
+        let model = UserManagementViewModel(reads: fixture.reads, detailReadDeadline: deadline.sleep)
         let actor = MockContentBuilder.ownerUser()
         await model.load(actor: actor)
         fixture.userGate = ReadGate<AppUser?>()

@@ -216,6 +216,7 @@ final class UserManagementViewModel: ObservableObject {
     private lazy var roleManagementService: OrganizationRoleManagementService = suppliedRoleManagementService ?? FirestoreOrganizationRoleManagementService()
     private let suppliedRoleManagementService: OrganizationRoleManagementService?
     private let reads: UserManagementReads
+    private let detailReadDeadline: RefreshRequest.Deadline
     private var refreshRevision = 0
     private var sessionRevision = 0
     private var detailRevisions: [String: Int] = [:]
@@ -230,9 +231,11 @@ final class UserManagementViewModel: ObservableObject {
     private var usersCollection: CollectionReference { db.collection("users") }
     private var organizationsCollection: CollectionReference { db.collection("organizations") }
 
-    init(roleManagementService: OrganizationRoleManagementService? = nil, reads: UserManagementReads? = nil) {
+    init(roleManagementService: OrganizationRoleManagementService? = nil, reads: UserManagementReads? = nil,
+         detailReadDeadline: @escaping RefreshRequest.Deadline = RefreshRequest.continuousDeadline) {
         self.suppliedRoleManagementService = roleManagementService
         self.reads = reads ?? .live
+        self.detailReadDeadline = detailReadDeadline
     }
 
     var usesDirectory: Bool { reads.directory != nil }
@@ -776,7 +779,7 @@ final class UserManagementViewModel: ObservableObject {
         detailRevisions[id, default: 0] &+= 1
         let revision = detailRevisions[id]
         do {
-            let refreshedUser = try await RefreshRequest.run { [reads] in try await reads.user(id) }
+            let refreshedUser = try await RefreshRequest.run(deadline: detailReadDeadline) { [reads] in try await reads.user(id) }
             guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
             guard let refreshedUser else {
                 self.error = .notFound
