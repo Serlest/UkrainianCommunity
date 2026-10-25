@@ -1210,13 +1210,237 @@ final class ConnectedAuditUITests: XCTestCase {
         return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
-    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false, account: String = "member", maximumText: Bool = false) -> XCUIApplication {
+    func testConnectedModerationNoticeOpensTheExactReturnedMaterial() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let noticeID = try await moderationNoticeID(source: "news:mod-audit-news", status: "needsRevision")
+        let app = launchMember(account: "member")
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let inbox = app.buttons["profile.notifications.open"].firstMatch
+        revealModeration(inbox, app); inbox.tap()
+        let notice = app.buttons["notificationInbox.open." + noticeID].firstMatch
+        revealModeration(notice, app); notice.tap()
+        let destination = app.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 10)); capture(app, "sdk-moderation-notice-sheet-before-navigation"); destination.tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "content.review.language").firstMatch.waitForExistence(timeout: 20), app.debugDescription)
+        let edit = app.buttons["content.review.edit"].firstMatch
+        revealModeration(edit, app); capture(app, "sdk-moderation-notice-exact-author-material")
+        XCTAssertFalse(app.buttons["content.review.confirm"].exists)
+    }
+
+    func testConnectedModerationReturnNotificationCorrectionAndPublication() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let path = "news/mod-audit-news"
+        ownedRequestDocumentPaths.insert(path)
+        let before = try await readDemoDocument(path)
+        let beforeFields = try XCTUnwrap(before["fields"] as? [String: [String: Any]])
+        let app = launchMember(account: "owner", moderationReviewer: true)
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let moderation = app.buttons["profile.moderation"].firstMatch
+        revealModeration(moderation, app); moderation.tap()
+        let row = app.buttons["content.moderation.open.mod-audit-news"].firstMatch
+        revealModeration(row, app); row.tap()
+        let revise = app.buttons["content.review.choice.needsRevision"].firstMatch
+        revealModeration(revise, app); revise.tap()
+        let reason = app.textFields["content.review.reason"].firstMatch
+        revealModeration(reason, app); reason.tap(); reason.typeText("Уточніть заголовок перед публікацією. Контрольована перевірка.")
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let confirm = app.buttons["content.review.confirm"].firstMatch
+        XCTAssertTrue(confirm.isEnabled); confirm.tap()
+        let execute = app.alerts.buttons["content.review.execute"].firstMatch
+        XCTAssertTrue(execute.waitForExistence(timeout: 5)); capture(app, "sdk-moderation-revision-confirmation"); execute.tap()
+        XCTAssertTrue(row.waitForNonExistence(timeout: 20))
+        let returned = try await readDemoDocument(path)
+        XCTAssertEqual((returned["fields"] as? [String: [String: Any]])?["moderationStatus"]?["stringValue"] as? String, "needsRevision")
+        app.terminate()
+
+        let noticeID = try await moderationNoticeID(source: "news:mod-audit-news", status: "needsRevision")
+        let author = launchMember(account: "member")
+        author.tabBars.buttons.element(boundBy: 4).tap()
+        let inbox = author.buttons["profile.notifications.open"].firstMatch
+        revealModeration(inbox, author); inbox.tap()
+        let notice = author.buttons.matching(NSPredicate(format: "identifier == %@", "notificationInbox.open." + noticeID)).firstMatch
+        revealModeration(notice, author); notice.tap()
+        let destination = author.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 10)); capture(author, "sdk-moderation-exact-recipient-notice"); destination.tap()
+        let edit = author.buttons["content.review.edit"].firstMatch
+        revealModeration(edit, author); capture(author, "sdk-moderation-author-returned-material"); edit.tap()
+        let title = author.textFields["editor.news.title"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 15)); title.tap(); title.typeText(" виправлено")
+        let correctedTitle = try XCTUnwrap(title.value as? String)
+        if author.keyboards.firstMatch.exists { author.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let next = author.buttons["editor.news.next"].firstMatch
+        revealModeration(next, author); next.tap(); revealModeration(next, author); next.tap()
+        let save = author.buttons["editor.news.submit"].firstMatch
+        revealModeration(save, author); XCTAssertTrue(save.isEnabled); capture(author, "sdk-moderation-corrected-publication-preview"); save.tap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 25))
+        let corrected = try await readDemoDocument(path)
+        let fields = try XCTUnwrap(corrected["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(fields["title"]?["stringValue"] as? String, correctedTitle)
+        XCTAssertEqual(fields["moderationStatus"]?["stringValue"] as? String, "pendingReview")
+        XCTAssertEqual(fields["moderationReason"]?["stringValue"] as? String, "")
+        for key in ["imageURL", "category", "body", "summary", "subtitle", "organizationId", "organizationName", "authorId", "authorName", "sourceName", "sourceURL", "federalState", "regionScope", "sourceType", "additionalCategories", "tags", "externalAction", "mediaMetadata", "likeCount", "viewCount"] {
+            XCTAssertEqual(fields[key] as NSDictionary?, beforeFields[key] as NSDictionary?, "Unedited field must survive correction: " + key)
+        }
+        let oldLanguages = ((beforeFields["localizations"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]]) ?? [:]
+        let newLanguages = ((fields["localizations"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]]) ?? [:]
+        XCTAssertEqual(newLanguages["de"] as NSDictionary?, oldLanguages["de"] as NSDictionary?, "Unedited German translation must survive")
+        let oldUkrainian = (oldLanguages["uk"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]]
+        let newUkrainian = (newLanguages["uk"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]]
+        for key in ["subtitle", "body"] { XCTAssertEqual(newUkrainian?[key] as NSDictionary?, oldUkrainian?[key] as NSDictionary?) }
+        capture(author, "sdk-moderation-author-resubmitted"); author.terminate()
+
+        let reviewer = launchMember(account: "owner", moderationReviewer: true)
+        reviewer.tabBars.buttons.element(boundBy: 4).tap()
+        let entry = reviewer.buttons["profile.moderation"].firstMatch
+        revealModeration(entry, reviewer); entry.tap()
+        let pending = reviewer.buttons["content.moderation.open.mod-audit-news"].firstMatch
+        revealModeration(pending, reviewer); pending.tap()
+        let approve = reviewer.buttons["content.review.choice.approved"].firstMatch
+        revealModeration(approve, reviewer); approve.tap()
+        reviewer.buttons["content.review.confirm"].firstMatch.tap()
+        let final = reviewer.alerts.buttons["content.review.execute"].firstMatch
+        XCTAssertTrue(final.waitForExistence(timeout: 5)); capture(reviewer, "sdk-moderation-corrected-approval"); final.tap()
+        XCTAssertTrue(pending.waitForNonExistence(timeout: 20))
+        let approved = try await readDemoDocument(path)
+        let approvedFields = try XCTUnwrap(approved["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(approvedFields["moderationStatus"]?["stringValue"] as? String, "approved")
+        XCTAssertEqual(approvedFields["publishedAt"] as NSDictionary?, approvedFields["moderatedAt"] as NSDictionary?)
+        reviewer.tabBars.buttons.element(boundBy: 0).tap()
+        let published = reviewer.buttons["home.card.news-mod-audit-news"].firstMatch
+        revealModeration(published, reviewer); capture(reviewer, "sdk-moderation-approved-news-in-live-feed")
+    }
+
+    func testConnectedEventModerationCorrectionResubmissionAndRejection() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let path = "events/mod-audit-event"
+        ownedRequestDocumentPaths.insert(path)
+        let before = try await readDemoDocument(path)
+        let original = try XCTUnwrap(before["fields"] as? [String: [String: Any]])
+        let app = launchMember(account: "owner", moderationReviewer: true)
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let moderation = app.buttons["profile.moderation"].firstMatch
+        revealModeration(moderation, app); moderation.tap()
+        let type = app.segmentedControls["content.moderation.type"].firstMatch
+        XCTAssertTrue(type.waitForExistence(timeout: 10)); type.buttons.element(boundBy: 1).tap()
+        let row = app.buttons["content.moderation.open.mod-audit-event"].firstMatch
+        revealModeration(row, app); row.tap()
+        let revise = app.buttons["content.review.choice.needsRevision"].firstMatch
+        revealModeration(revise, app); revise.tap()
+        let reason = app.textFields["content.review.reason"].firstMatch
+        revealModeration(reason, app); reason.tap(); reason.typeText("Уточніть назву події. Контрольована перевірка.")
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        app.buttons["content.review.confirm"].firstMatch.tap()
+        let execute = app.alerts.buttons["content.review.execute"].firstMatch
+        XCTAssertTrue(execute.waitForExistence(timeout: 5)); execute.tap()
+        XCTAssertTrue(row.waitForNonExistence(timeout: 20)); app.terminate()
+        let noticeID = try await moderationNoticeID(source: "event:mod-audit-event", status: "needsRevision")
+        let author = launchMember(account: "member")
+        author.tabBars.buttons.element(boundBy: 4).tap()
+        let inbox = author.buttons["profile.notifications.open"].firstMatch
+        revealModeration(inbox, author); inbox.tap()
+        let notice = author.buttons["notificationInbox.open." + noticeID].firstMatch
+        revealModeration(notice, author); notice.tap()
+        let destination = author.buttons["notificationDetail.openDestination"].firstMatch
+        XCTAssertTrue(destination.waitForExistence(timeout: 10)); destination.tap()
+        let edit = author.buttons["content.review.edit"].firstMatch
+        revealModeration(edit, author); capture(author, "sdk-event-moderation-exact-returned-material"); edit.tap()
+        let title = author.textFields["editor.event.title"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 15)); title.tap(); title.typeText(" виправлено")
+        let correctedTitle = try XCTUnwrap(title.value as? String)
+        if author.keyboards.firstMatch.exists { author.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let next = author.buttons["editor.event.next"].firstMatch
+        for _ in 0..<3 { revealModeration(next, author); XCTAssertTrue(next.isEnabled); next.tap() }
+        let save = author.buttons["editor.event.submit"].firstMatch
+        revealModeration(save, author); XCTAssertTrue(save.isEnabled); capture(author, "sdk-event-correction-preview"); save.tap()
+        XCTAssertTrue(title.waitForNonExistence(timeout: 25))
+        let corrected = try await readDemoDocument(path)
+        let fields = try XCTUnwrap(corrected["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(fields["title"]?["stringValue"] as? String, correctedTitle)
+        XCTAssertEqual(fields["moderationStatus"]?["stringValue"] as? String, "pendingReview")
+        XCTAssertEqual(fields["moderationReason"]?["stringValue"] as? String, "")
+        for key in ["summary", "details", "imageURL", "category", "organizationId", "organizationName", "authorId", "authorName", "federalState", "regionScope", "sourceType", "city", "venue", "address", "startDate", "endDate", "occurrences", "pricing", "participationMode", "capacity", "registeredCount", "externalAction", "mediaMetadata"] {
+            XCTAssertEqual(fields[key] as NSDictionary?, original[key] as NSDictionary?, "Unedited event field must survive: " + key)
+        }
+        XCTAssertNil(fields["publishedAt"])
+        capture(author, "sdk-event-resubmitted-readback"); author.terminate()
+        let reviewer = launchMember(account: "owner", moderationReviewer: true)
+        reviewer.tabBars.buttons.element(boundBy: 4).tap()
+        let entry = reviewer.buttons["profile.moderation"].firstMatch
+        revealModeration(entry, reviewer); entry.tap()
+        let eventType = reviewer.segmentedControls["content.moderation.type"].firstMatch
+        XCTAssertTrue(eventType.waitForExistence(timeout: 10)); eventType.buttons.element(boundBy: 1).tap()
+        let pending = reviewer.buttons["content.moderation.open.mod-audit-event"].firstMatch
+        revealModeration(pending, reviewer); pending.tap()
+        let reject = reviewer.buttons["content.review.choice.rejected"].firstMatch
+        revealModeration(reject, reviewer); reject.tap()
+        let rejection = reviewer.textFields["content.review.reason"].firstMatch
+        revealModeration(rejection, reviewer); rejection.tap(); rejection.typeText("Контрольовану перевірку завершено. Не публікувати.")
+        if reviewer.keyboards.firstMatch.exists { reviewer.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        reviewer.buttons["content.review.confirm"].firstMatch.tap()
+        let final = reviewer.alerts.buttons["content.review.execute"].firstMatch
+        XCTAssertTrue(final.waitForExistence(timeout: 5)); capture(reviewer, "sdk-event-rejection-confirmation"); final.tap()
+        XCTAssertTrue(pending.waitForNonExistence(timeout: 20))
+        let rejected = try await readDemoDocument(path)
+        XCTAssertEqual((rejected["fields"] as? [String: [String: Any]])?["moderationStatus"]?["stringValue"] as? String, "rejected")
+        _ = try await moderationNoticeID(source: "event:mod-audit-event", status: "rejected")
+    }
+
+    private func revealModeration(_ target: XCUIElement, _ app: XCUIApplication) {
+        _ = target.waitForExistence(timeout: 5)
+        for _ in 0..<24 {
+            let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
+            let top = max(scroll?.frame.minY ?? 80, app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : 80) + 12
+            var bottom = min(scroll?.frame.maxY ?? app.frame.height, app.frame.height - 35)
+            let footer = app.buttons["content.review.confirm"].firstMatch
+            if footer.exists, footer.isHittable, (!target.exists || target.identifier != "content.review.confirm"),
+               footer.frame.minY > app.frame.height * 0.6 { bottom = min(bottom, footer.frame.minY - 18) }
+            let bar = app.tabBars.firstMatch
+            if bar.exists && bar.isHittable { bottom = min(bottom, bar.frame.minY - 12) }
+            if target.exists && target.isHittable && target.frame.midY > top && target.frame.midY < bottom { return }
+            let upward = target.exists && target.frame.midY < top
+            let upper = min(max((top + 35) / app.frame.height, 0.2), 0.55)
+            let lower = max(min((bottom - 20) / app.frame.height, 0.8), upper + 0.15)
+            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? upper : lower))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? lower : upper)))
+        }
+        XCTFail("Moderation control not visible in its scroll viewport: \(target)")
+    }
+
+    private func moderationNoticeID(source: String, status: String) async throws -> String {
+        for _ in 0..<30 {
+            var request = URLRequest(url: URL(string: "http://127.0.0.1:28080/v1/projects/demo-uac-release-audit/databases/(default)/documents/users/closure-member:runQuery")!)
+            request.httpMethod = "POST"; request.setValue("Bearer owner", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try JSONSerialization.data(withJSONObject: ["structuredQuery": ["from": [["collectionId": "notificationInbox"]],
+                "where": ["fieldFilter": ["field": ["fieldPath": "sourceId"], "op": "EQUAL", "value": ["stringValue": source]]], "limit": 20]])
+            let (data, response) = try await URLSession.shared.data(for: request)
+            XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+            let result = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [[String: Any]])
+            for row in result {
+                guard let document = row["document"] as? [String: Any], let fields = document["fields"] as? [String: [String: Any]],
+                      let metadata = fields["metadata"]?["mapValue"] as? [String: Any], let values = metadata["fields"] as? [String: [String: Any]],
+                      values["moderationStatus"]?["stringValue"] as? String == status,
+                      fields["recipientUserId"]?["stringValue"] as? String == "closure-member",
+                      let name = document["name"] as? String, let id = name.split(separator: "/").last else { continue }
+                return String(id)
+            }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        throw NSError(domain: "ModerationNotificationNotDelivered", code: 1)
+    }
+
+    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false, account: String = "member", maximumText: Bool = false, moderationReviewer: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-sdk-ui-audit", "-selectedAppLanguage", language, "-selectedAppAppearance", appearance,
                                "-UIPreferredContentSizeCategoryName", maximumText ? "UICTContentSizeCategoryAccessibilityXXXL" : large ? "UICTContentSizeCategoryAccessibilityM" : "UICTContentSizeCategoryL"]
         app.launchEnvironment = ["UACFirebaseEmulators": "1"]
+        if moderationReviewer { app.launchEnvironment["UACEmulatorModerationReviewer"] = "1" }
         if maximumText { app.launchArguments.append("-FIRDebugEnabled") }
         app.launch()
+        if moderationReviewer {
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
+            return app
+        }
         let signIn = app.buttons["auth.landing.signIn"]
         if app.tabBars.firstMatch.waitForExistence(timeout: 8) {
             app.tabBars.buttons.element(boundBy: 4).tap()

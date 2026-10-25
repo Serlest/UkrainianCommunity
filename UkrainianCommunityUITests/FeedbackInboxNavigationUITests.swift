@@ -549,27 +549,25 @@ final class OwnerProfileAuditUITests: XCTestCase {
         for language in ["uk", "de"] {
             let app = launch(language: language, darkLarge: language == "de")
             let entry = app.buttons["profile.moderation"]
-            reveal(entry, in: app); entry.tap()
+            revealModeration(entry, app); entry.tap()
             let first = app.buttons["content.moderation.open.moderation-news-0"]
-            reveal(first, in: app); first.tap()
-            let languagePicker = app.segmentedControls["content.review.language"]
-            XCTAssertTrue(languagePicker.waitForExistence(timeout: 8))
-            languagePicker.buttons["Deutsch"].tap()
+            revealModeration(first, app); first.tap()
+            selectModerationOption("content.review.language", index: 1, title: "Deutsch", app: app)
             XCTAssertTrue(app.staticTexts["Nachricht der Gemeinschaft 0"].firstMatch.waitForExistence(timeout: 5))
             capture(app, "content-moderation-preview-" + language)
             let revise = app.buttons["content.review.choice.needsRevision"]
-            reveal(revise, in: app); revise.tap()
+            revealModeration(revise, app); revise.tap()
             let reason = app.textFields["content.review.reason"]
-            reveal(reason, in: app); reason.tap(); reason.typeText("Please verify the official source")
+            XCTAssertTrue(reason.waitForExistence(timeout: 5))
+            revealModeration(reason, app); reason.tap(); reason.typeText("Please verify the official source")
             let confirm = app.buttons["content.review.confirm"]
-            XCTAssertTrue(confirm.isEnabled); confirm.tap()
-            let execute = app.alerts.buttons["content.review.execute"].firstMatch
+            revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled); confirm.tap()
+            let execute = app.buttons["content.review.execute"].firstMatch
             XCTAssertTrue(execute.waitForExistence(timeout: 5), app.debugDescription)
             capture(app, "content-moderation-confirm-" + language)
-            execute.tap()
+            revealModeration(execute, app); execute.tap()
             XCTAssertTrue(first.waitForNonExistence(timeout: 8))
-            let mode = app.segmentedControls["content.moderation.mode"]
-            mode.buttons.element(boundBy: 1).tap()
+            selectModerationOption("content.moderation.mode", index: 1, title: language == "de" ? "Entscheidungsverlauf" : "Історія рішень", app: app)
             XCTAssertTrue(app.staticTexts["Please verify the official source"].firstMatch.waitForExistence(timeout: 8))
             capture(app, "content-moderation-history-" + language)
             app.terminate()
@@ -580,19 +578,20 @@ final class OwnerProfileAuditUITests: XCTestCase {
     func testContentModerationApproveAndRejectRequireConfirmation() {
         let app = launch()
         let entry = app.buttons["profile.moderation"]
-        reveal(entry, in: app); entry.tap()
+        revealModeration(entry, app); entry.tap()
         for (index, status) in [(0, "approved"), (1, "rejected")] {
             let row = app.buttons["content.moderation.open.moderation-news-\(index)"]
-            reveal(row, in: app); row.tap()
+            revealModeration(row, app); row.tap()
             let choice = app.buttons["content.review.choice.\(status)"]
-            reveal(choice, in: app); choice.tap()
+            revealModeration(choice, app); choice.tap()
             let confirm = app.buttons["content.review.confirm"]
             if status == "rejected" {
                 XCTAssertFalse(confirm.isEnabled)
                 let reason = app.textFields["content.review.reason"]
-                reveal(reason, in: app); reason.tap(); reason.typeText("Source does not support the claim")
+                XCTAssertTrue(reason.waitForExistence(timeout: 5))
+                revealModeration(reason, app); reason.tap(); reason.typeText("Source does not support the claim")
             }
-            XCTAssertTrue(confirm.isEnabled); confirm.tap()
+            revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled); confirm.tap()
             let execute = app.alerts.buttons["content.review.execute"].firstMatch
             XCTAssertTrue(execute.waitForExistence(timeout: 5))
             capture(app, "content-moderation-" + status)
@@ -601,6 +600,38 @@ final class OwnerProfileAuditUITests: XCTestCase {
         }
         app.segmentedControls["content.moderation.mode"].buttons.element(boundBy: 1).tap()
         XCTAssertTrue(app.staticTexts["Source does not support the claim"].firstMatch.waitForExistence(timeout: 8))
+    }
+
+    @MainActor
+    private func revealModeration(_ target: XCUIElement, _ app: XCUIApplication) {
+        _ = target.waitForExistence(timeout: 5)
+        for _ in 0..<24 {
+            let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
+            let top = max(scroll?.frame.minY ?? 80, app.navigationBars.firstMatch.exists ? app.navigationBars.firstMatch.frame.maxY : 80) + 12
+            var bottom = min(scroll?.frame.maxY ?? app.frame.height, app.frame.height - 35)
+            let footer = app.buttons["content.review.confirm"].firstMatch
+            if footer.exists, footer.isHittable, (!target.exists || target.identifier != "content.review.confirm"),
+               footer.frame.minY > app.frame.height * 0.6 { bottom = min(bottom, footer.frame.minY - 18) }
+            let bar = app.tabBars.firstMatch
+            if bar.exists && bar.isHittable { bottom = min(bottom, bar.frame.minY - 12) }
+            if target.exists && target.isHittable && target.frame.midY > top && target.frame.midY < bottom { return }
+            let upward = target.exists && target.frame.midY < top
+            let upper = min(max((top + 35) / app.frame.height, 0.2), 0.55)
+            let lower = max(min((bottom - 20) / app.frame.height, 0.8), upper + 0.15)
+            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? upper : lower))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: upward ? lower : upper)))
+        }
+        XCTFail("Moderation control not visible in its scroll viewport: \(target)")
+    }
+
+    @MainActor
+    private func selectModerationOption(_ id: String, index: Int, title: String, app: XCUIApplication) {
+        let segmented = app.segmentedControls[id].firstMatch
+        if segmented.waitForExistence(timeout: 2) { segmented.buttons.element(boundBy: index).tap(); return }
+        let menu = app.buttons[id].firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 8)); reveal(menu, in: app); menu.tap()
+        let option = app.buttons.matching(NSPredicate(format: "label == %@ AND identifier != %@", title, id)).firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 5)); option.tap()
     }
 
     @MainActor

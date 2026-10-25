@@ -198,6 +198,9 @@ struct UkrainianCommunityApp: App {
         }
 
         Task { @MainActor in
+#if DEBUG && targetEnvironment(simulator)
+            await LocalFirebaseEmulatorConfiguration.prepareModerationReviewerFixtureIfRequested()
+#endif
             if isUITesting, environment["UITestColdStartConnectionFailure"] == "1" {
                 await AuthService.shared.restoreSession()
             } else if let fixture = MockContentBuilder.profileRoleFixture() {

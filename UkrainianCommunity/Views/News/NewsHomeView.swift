@@ -121,11 +121,15 @@ struct NewsHomeView: View {
             await featuredBannerViewModel.refreshIfStale(for: .home, federalState: selectedFederalState)
         }
         .onReceive(NotificationCenter.default.publisher(for: .newsChanged)) { _ in
-            guard isActive else { return }
+            // Invalidate while another tab is open too. The task still waits
+            // for isActive, so a background tab sends no new page request.
+            referenceDate = Date()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .moderationStatusDidChange)) { _ in
             referenceDate = Date()
         }
         .onReceive(NotificationCenter.default.publisher(for: .organizationsChanged)) { _ in
-            if isActive && filter.scope == .subscribed { referenceDate = Date() }
+            if filter.scope == .subscribed { referenceDate = Date() }
         }
         .onChange(of: newsViewModel.visibilityPolicy) { _, _ in
             // Unlike a like/bookmark, a visibility change can reveal rows that

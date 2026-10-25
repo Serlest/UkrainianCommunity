@@ -36,6 +36,29 @@ enum LocalFirebaseEmulatorConfiguration {
         return true
     }
 
+    /// Auth Emulator supports phone MFA, not TOTP. Supply only this fixed demo
+    /// reviewer session for connected moderation journeys; production MFA and
+    /// passkey verification are tested separately on the physical device.
+    /// This keeps real Auth SDK, Rules and callable authority checks in the path.
+    static func prepareModerationReviewerFixtureIfRequested() async {
+        guard ProcessInfo.processInfo.arguments.contains("-sdk-ui-audit"),
+              ProcessInfo.processInfo.environment["UACEmulatorModerationReviewer"] == "1",
+              FirebaseApp.app()?.options.projectID == projectID else { return }
+        let now = Int(Date().timeIntervalSince1970)
+        let payload: [String: Any] = ["aud": "https://identitytoolkit.googleapis.com/google.identity.identitytoolkit.v1.IdentityToolkit",
+            "iss": "audit@demo-uac-release-audit.iam.gserviceaccount.com", "sub": "audit@demo-uac-release-audit.iam.gserviceaccount.com",
+            "iat": now, "exp": now + 3600, "uid": "closure-owner",
+            "claims": ["uac_passkey_verified": true, "uac_passkey_epoch": "moderation-demo-epoch"]]
+        func encode(_ value: [String: Any]) -> String {
+            guard let data = try? JSONSerialization.data(withJSONObject: value) else { preconditionFailure("Fixed emulator session encoding failed") }
+            return data.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
+        }
+        let token = encode(["alg": "none", "typ": "JWT"]) + "." + encode(payload) + "."
+        try? Auth.auth().signOut()
+        do { _ = try await Auth.auth().signIn(withCustomToken: token) }
+        catch { assertionFailure("Fixed local reviewer sign-in failed: \(error.localizedDescription)") }
+    }
+
     nonisolated static func canonicalStorageURL(_ url: URL) -> URL {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1",
               var components = URLComponents(url: url, resolvingAgainstBaseURL: false),

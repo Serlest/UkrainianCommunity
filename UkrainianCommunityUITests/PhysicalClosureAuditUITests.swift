@@ -14,6 +14,38 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         #endif
     }
 
+    func testModerationProductionQueueReadOnlyWithRealSession() {
+        let app = XCUIApplication()
+        openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true)
+        XCTAssertTrue(owner.exists, "Use the controlled platform owner")
+        let entry = app.buttons["profile.moderation"].firstMatch
+        reveal(entry, app); entry.tap()
+        let type = app.segmentedControls["content.moderation.type"].firstMatch
+        XCTAssertTrue(type.waitForExistence(timeout: 15))
+        for index in 0...1 {
+            type.buttons.element(boundBy: index).tap()
+            let loading = app.descendants(matching: .any).matching(identifier: "content.moderation.loading").firstMatch
+            XCTAssertTrue(loading.waitForNonExistence(timeout: 30))
+            XCTAssertFalse(app.buttons["content.moderation.retry"].exists)
+            XCTAssertFalse(type.buttons.element(boundBy: index).label.contains("—"), "A real server count is required")
+            let empty = app.descendants(matching: .any).matching(identifier: "content.moderation.empty").firstMatch
+            let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "content.moderation.open.")).firstMatch
+            XCTAssertTrue(empty.exists || row.exists, "A confirmed loaded result is required")
+            capture(app, "physical-production-moderation-type-" + String(index))
+        }
+        app.segmentedControls["content.moderation.mode"].buttons.element(boundBy: 1).tap()
+        let loading = app.descendants(matching: .any).matching(identifier: "content.moderation.loading").firstMatch
+        XCTAssertTrue(loading.waitForNonExistence(timeout: 30))
+        XCTAssertFalse(app.buttons["content.moderation.retry"].exists)
+        let empty = app.staticTexts["Рішень щодо матеріалів поки немає."].firstMatch
+        let row = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "content.moderation.history.open.")).firstMatch
+        XCTAssertTrue(empty.exists || row.exists)
+        capture(app, "physical-production-moderation-history")
+        // Read only: no material/decision button is ever selected.
+    }
+
     func testControlledOwnershipConfirmationCancelRetainsServerOwner() async throws {
         let before = try await authority()
         let app = XCUIApplication()
