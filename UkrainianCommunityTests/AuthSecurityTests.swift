@@ -6,6 +6,15 @@ import Testing
 @Suite("Auth security")
 struct AuthSecurityTests {
     @Test
+    func passkeyCreationDatesDecodeActualServerMillisecondsAndLegacySeconds() throws {
+        let date = try #require(PasskeyRecord.creationDate(from: "2026-10-25T14:03:51.912Z"))
+        let whole = try #require(PasskeyRecord.creationDate(from: "2026-10-25T14:03:51Z"))
+        #expect(abs(date.timeIntervalSince(whole) - 0.912) < 0.00001)
+        #expect(PasskeyRecord.creationDate(from: nil) == nil)
+        #expect(PasskeyRecord.creationDate(from: "invalid") == nil)
+    }
+
+    @Test
     func recoveryContactMatchesPublishedBundledPolicyWithoutAccountData() throws {
         let url = try #require(AccountRecoverySupport.composeURL)
         #expect(url.scheme == "mailto")

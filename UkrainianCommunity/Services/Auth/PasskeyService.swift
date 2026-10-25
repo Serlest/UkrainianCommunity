@@ -12,6 +12,13 @@ enum PasskeyError: Error {
 struct PasskeyRecord: Identifiable, Equatable {
     let id: String
     let createdAt: Date?
+
+    static func creationDate(from value: String?) -> Date? {
+        guard let value else { return nil }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
+    }
 }
 
 @MainActor
@@ -114,7 +121,7 @@ final class PasskeyService {
         }
         return try raw.map { entry in
             let id = try required(entry, "id")
-            let date = (entry["createdAt"] as? String).flatMap(ISO8601DateFormatter().date(from:))
+            let date = PasskeyRecord.creationDate(from: entry["createdAt"] as? String)
             return PasskeyRecord(id: id, createdAt: date)
         }
     }
