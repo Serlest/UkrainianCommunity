@@ -22,7 +22,8 @@
     "R08-C",
     "R09-A",
     "R09-B",
-    "R09-C"
+    "R09-C",
+    "R07-B"
   ],
   "evidence": [
     {
@@ -617,9 +618,20 @@
         "ConnectedAuditUITests/testOrganizationTeamConfirmationRejectsConcurrentRemoval"
       ],
       "verified": "Ordinary organization-owner role actions and exact server readback at Accessibility M; concurrent removal rejection repeated. Contact quick actions adapt to vertical full-width layout and captured image inspected. Protected platform-owner transfer remains open."
+    },
+    {
+      "kind": "physical_system_destinations",
+      "check": "R07-B",
+      "report": "Docs/Verification/AuditPhysicalProgress20261025.json",
+      "environment": "Physical iPhone 16 Pro Max, iOS 27.0.1; production account/data",
+      "observed": [
+        "Native iOS share menu opened and dismissed",
+        "Phone SIM selector displayed exact public organization number; cancelled without dialing",
+        "Mail composer displayed exact public organization recipient; closed without sending"
+      ]
     }
   ],
-  "remainingScenarioGroups": 7,
+  "remainingScenarioGroups": 6,
   "deployment": {
     "scope": "firestore:rules only",
     "project": "ukrainiancommunity-dbd5f",
@@ -766,7 +778,6 @@
     "R02-A": "Real Apple/Google first/repeat/cancel/error and email verification/reset action-link completion with a controlled account.",
     "R02-C": "Real privileged MFA/passkey sign-in, cancellation, retry and recovery.",
     "R03-B": "Real provider link/unlink, passkey and Face ID lock/background-return confirmations. Disposable deletion already passed.",
-    "R07-B": "Physical iPhone Phone/Mail/Share destination checks, without dialing or sending.",
     "R08-A": "Protected platform-owner ownership-transfer UI with controlled accounts/organization. Ordinary team paths and conflict passed.",
     "R08-B": "Protected reviewer full UI decisions/history and exact reviewer notification destination. Server lifecycle and actual applicant notice/edit/resubmit passed."
   },

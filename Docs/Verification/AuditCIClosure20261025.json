@@ -1,6 +1,6 @@
 {
   "date": "2026-10-25",
-  "status": "latest_pushed_head_failed_protection_deadline_fixed_locally_pending_new_hosted_run",
+  "status": "hosted_verified_for_ce5e910f",
   "categoryValidator": {
     "failedRun": 40150246391,
     "reason": "Rules cached additionalCategories locally; static extractor assumed the second data.additionalCategories.hasOnly occurrence",
@@ -22,11 +22,37 @@
     "limitation": "Separate earlier contact UI harness failure repeated successfully in DirectoryFormsAvatarRestored and DirectoryPhotoFinalUI; hosted c3cf3c6f passed."
   },
   "hostedReadback": {
-    "run": 40157281971,
-    "headSha": "d1bcde05da1d2a38d9347fdd6c7c8f07dbb1dcb1",
+    "run": 40171404290,
+    "headSha": "ce5e910f1fa815e1907f52fffe1d1b9d40aa980f",
     "status": "completed",
     "conclusion": "success",
-    "limitation": "Subsequent uncommitted UI/test fixes require their own hosted check."
+    "jobs": [
+      {
+        "name": "Change classification and static checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "iOS build and unit checks",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase and rules",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Firebase affected checks",
+        "status": "completed",
+        "conclusion": "skipped"
+      },
+      {
+        "name": "iOS build and unit tests",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
   },
   "protectedSession": {
     "failedRun": 40165567213,
@@ -36,18 +62,11 @@
     "fix": "Keep privileged access closed and show retryable recovery on unknown claim state; use injected manual deadline for deliberately suspended tests, retaining production 15/20 second deadlines.",
     "localBundle": "build/audit-closure-20261025/ProtectedRecoveryAndApplicantMaximum.xcresult",
     "accepted": "All 52 AuthSessionConsistencyTests passed; unrelated maximum-text applicant UI failed and is not counted as success.",
-    "hosted": "Not verified for the new source yet."
-  },
-  "pendingHostedReadback": {
-    "run": 40170267041,
-    "headSha": "77f79037dd4d04c0f5175fcf3133664bbdd1964d",
-    "status": "in_progress",
-    "conclusion": null,
-    "boundary": "Includes the committed access/location/localized-command/news and protected-claim fixes; later working-tree UI followups are not part of this head."
+    "hosted": "Verified in successful run 40171404290 for ce5e910f."
   },
   "finalLocalRegression": {
     "main": "ClosureFullUnitFinal.xcresult: 815 passed, 0 failed, 28 explicit opt-in skipped",
     "isolated": "ClosureIsolatedUnitFinal.xcresult: 8 passed, 0 failed, 0 skipped",
-    "scope": "Latest working-tree source including Auth and adaptive UI. Required hosted run for the final source has not completed."
+    "scope": "Local regression for ce5e910f; required hosted run 40171404290 completed successfully for that revision. Later working-tree changes require their own checks."
   }
 }

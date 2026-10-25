@@ -1,8 +1,8 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 4,
-  "remainingBlocks": 15,
+  "completedBlocks": 5,
+  "remainingBlocks": 14,
   "nextBlock": null,
   "blocks": [
     {
@@ -112,21 +112,21 @@
     {
       "number": 7,
       "name": "Публичные организации",
-      "status": "implemented_verification_incomplete",
+      "status": "verification_closed_pending_device_acceptance",
       "inventory": "Docs/Verification/PublicOrganizationsInventory20261024.md",
       "report": "Docs/Verification/PublicOrganizationsAudit20261024.json",
       "testFlightBuild": 122,
       "deliveryReport": "Docs/Verification/TestFlight122.json",
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-      "openChecks": [
-        "R07-B"
-      ],
+      "openChecks": [],
       "closedChecks": [
         "R07-A",
-        "R07-C"
+        "R07-C",
+        "R07-B"
       ],
-      "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
+      "closureEvidence": "Docs/Verification/AuditClosure20261025.json",
+      "physicalEvidence": "Docs/Verification/AuditPhysicalProgress20261025.json"
     },
     {
       "number": 8,
@@ -315,7 +315,7 @@
   },
   "schemaVersion": 2,
   "blocksWithImplementedFixes": 9,
-  "blocksReopenedForCompletion": 5,
+  "blocksReopenedForCompletion": 4,
   "notStartedBlocks": 10,
   "nextNewBlock": 10,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
@@ -323,8 +323,8 @@
   "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
-    "closedScenarioGroups": 20,
-    "remainingScenarioGroups": 7,
-    "fullyClosedBlocks": 4
+    "closedScenarioGroups": 21,
+    "remainingScenarioGroups": 6,
+    "fullyClosedBlocks": 5
   }
 }
