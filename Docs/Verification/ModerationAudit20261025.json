@@ -1,0 +1,341 @@
+{
+  "block": 10,
+  "totalBlocks": 19,
+  "name": "Модерація",
+  "status": "local_verification_complete_final_device_and_qa_ci_pending",
+  "method": "Docs/AppAuditMethod.md",
+  "sourceBaseline": "c0eee2f1",
+  "serverCommit": "5574c1ed",
+  "clientCommit": "4f00a4df",
+  "inventory": "Docs/Verification/ModerationInventory20261025.json",
+  "evidence": {
+    "units": {
+      "artifact": "build/audit-moderation-20261025/ModerationFinalUnitsAndDeleted.xcresult",
+      "passed": 835,
+      "failed": 0,
+      "skipped": 30,
+      "scope": "834 unit cases plus deleted-material UI; opt-in external/emulator cases intentionally excluded and accounted separately"
+    },
+    "server": {
+      "artifact": "build/audit-moderation-20261025/server-final-11.log",
+      "passed": 11,
+      "failed": 0,
+      "scope": "Actual handlers, Firestore/Auth emulators, all role variants, CAS, legacy compatibility, receipt/replay/history, recipient isolation and revoked reviewer"
+    },
+    "states": {
+      "artifact": "build/audit-moderation-20261025/ModerationRolesStatesAndReturn.xcresult",
+      "passed": 5,
+      "failed": 0,
+      "scope": "7 role variants; initial/read errors and retry, true empty, two pages/search/return, slow type switch"
+    },
+    "large": {
+      "artifact": "build/audit-moderation-20261025/ModerationAccessibleConfirmationFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "German dark Accessibility XXXL; complete event fields, image retry, required reason, cancel/retain draft, scrollable confirmation, history and current material"
+    },
+    "news": {
+      "artifact": "build/audit-moderation-20261025/ModerationFreshNewsFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual SDK, Rules and callable HTTP in fixed demo; return -> exact author inbox -> editor -> save/readback -> resubmit -> approve -> fresh home feed; new-notice creation time is strictly after this run began"
+    },
+    "event": {
+      "artifact": "build/audit-moderation-20261025/ModerationFreshEventFocusFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Actual SDK, Rules and callable HTTP in fixed demo; return -> author inbox -> event editor -> save/readback -> resubmit -> reject -> recipient notice; requires the exact notice to have been created after this test started"
+    },
+    "fresh": {
+      "artifact": "build/audit-moderation-20261025/fresh-notification-readback.json",
+      "scope": "Independent readback after the exact accepted test start time; one outcome notice per contributor, staff-only own resubmission, no reviewer/outsider delivery"
+    },
+    "device": {
+      "artifact": "build/audit-moderation-20261025/ModerationPhysicalProductionRead.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "Explicitly installed signed Release, Serlest account, actual production news/event queues and history; no content writes"
+    },
+    "deployment": {
+      "artifacts": [
+        "build/audit-moderation-20261025/manageContentModeration-deployed-readback.json",
+        "build/audit-moderation-20261025/reviewContentModeration-deployed-readback.json"
+      ],
+      "scope": "ACTIVE, exact TS/compiled JS archive match, onDeploy runtime policy, Cloud Run Ready with 100 percent traffic; anonymous JSON401 only proves startup, device case proves authorized read"
+    },
+    "keyboard": {
+      "artifact": "Docs/Verification/GeneralInterfaceRecheck20261024.json",
+      "scope": "Unmodified AppSearchField/keyboard dismissal implementation; baseline reproduced keyboard loss, fixed tests retain focus across clear, same control used here"
+    },
+    "bilingual": {
+      "artifact": "build/audit-moderation-20261025/ModerationBilingualKeyboardFinal.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "scope": "uk light normal and de dark Accessibility M, translated news preview, background/return, reason, native/accessibility confirmation and decision history"
+    },
+    "frames": {
+      "artifact": "build/audit-moderation-20261025/moderation-loading-transitions.mp4",
+      "reviewedFrames": [
+        "build/audit-moderation-20261025/loading-frames/frame-00012-124.00.png",
+        "build/audit-moderation-20261025/loading-frames/frame-00016-125.00.png",
+        "build/audit-moderation-20261025/loading-frames/frame-00020-126.00.png",
+        "build/audit-moderation-20261025/loading-frames/frame-00024-127.00.png",
+        "build/audit-moderation-20261025/loading-frames/frame-00028-128.00.png",
+        "build/audit-moderation-20261025/loading-frames/frame-00032-129.00.png",
+        "build/audit-moderation-20261025/loading-frames/frame-00036-130.00.png",
+        "build/audit-moderation-20261025/loading-frames/frame-00040-131.00.png"
+      ],
+      "scope": "Representative 4fps extraction: unknown counts/loading -> confirmed news -> event loading with no old rows -> confirmed empty. Not a claim of inspecting every video frame."
+    }
+  },
+  "findings": [
+    {
+      "problem": "Refresh failure erased confirmed queue; duplicate and late reads could replace current state.",
+      "fix": "Scope/generation fence, retained confirmed data, coalesced first pages, exact retry cursor, deduplication.",
+      "proof": [
+        "ModerationStateBaseline.xcresult: 3 reproduced failures",
+        "units",
+        "states"
+      ]
+    },
+    {
+      "problem": "Unknown counts could look like zero; initial failure and empty data were not clearly separated.",
+      "fix": "Unknown counts shown as dash; explicit loaded/error/loading/empty states and semantic read error copy.",
+      "proof": [
+        "states",
+        "frames"
+      ]
+    },
+    {
+      "problem": "Read-only preview close reset loaded pages.",
+      "fix": "Refresh only after actual material changes, decision or observed revision change.",
+      "proof": [
+        "states"
+      ]
+    },
+    {
+      "problem": "Moderation preview omitted material terms needed for an informed event decision.",
+      "fix": "Add compatible optional full publication DTO and localized conditions, dates, contacts and image metadata; preserve lightweight list projection.",
+      "proof": [
+        "server",
+        "large",
+        "event"
+      ]
+    },
+    {
+      "problem": "A confirmation could follow changed UI context and maximum-size native alerts were cramped.",
+      "fix": "Freeze principal/target/revision/outcome/reason; use scrollable confirmation and inline action at accessibility sizes.",
+      "proof": [
+        "units",
+        "server",
+        "large"
+      ]
+    },
+    {
+      "problem": "History did not open the reviewed material.",
+      "fix": "Typed history link opens current read-only material; deleted material gives a precise explanation and no misleading retry.",
+      "proof": [
+        "large",
+        "server",
+        "units"
+      ]
+    },
+    {
+      "problem": "Notification navigation instantiated an inner NavigationStack in a pushed destination and returned to the profile root.",
+      "fix": "Use one stack for pushed material, retain standalone stack for modal queue preview, key both by material identity.",
+      "proof": [
+        "ModerationConnectedNewsAwaitedSession.xcresult",
+        "ModerationConnectedNoticeTrace.xcresult",
+        "news",
+        "event"
+      ]
+    },
+    {
+      "problem": "The author could see the same moderation reason twice in notification details.",
+      "fix": "Keep metadata-only reasons but omit a second copy already present in the localized message.",
+      "proof": [
+        "units",
+        "news"
+      ]
+    },
+    {
+      "problem": "Newly approved news retained its old publication timestamp.",
+      "fix": "Approval stamps publishedAt and moderatedAt together; event documents do not receive a news-only field.",
+      "proof": [
+        "server",
+        "news"
+      ]
+    },
+    {
+      "problem": "The independent home browse cache could miss an approved item while another tab was active.",
+      "fix": "Invalidate its query on news/moderation changes even while inactive; fetch only on return to the active tab.",
+      "proof": [
+        "ModerationConnectedNewsAccepted.xcresult: baseline failed final feed assertion",
+        "news"
+      ]
+    }
+  ],
+  "deployment": {
+    "functions": [
+      "manageContentModeration",
+      "reviewContentModeration"
+    ],
+    "sourceSHA256": "31b42e3f1d18635d287e22549d642f118593d264c8d2f367ae022b737a8915c5",
+    "runtime": "nodejs22",
+    "onDeployUpdatePolicyPreserved": true,
+    "rulesChanged": false,
+    "indexesChanged": false,
+    "productionContentWrites": false
+  },
+  "testEnvironment": {
+    "project": "demo-uac-release-audit",
+    "actualSDKAndRules": true,
+    "reviewerAuthentication": "Fixed emulator-only custom-token assertion because Auth Emulator lacks TOTP; compile-time excluded from Release/device. This is not proof of a real passkey/MFA provider. Production MFA policy was not weakened.",
+    "productionDevice": "iPhone 16 Pro Max, iOS 27.0.1, signed Release and current Serlest session",
+    "fixtureCorrections": [
+      "Keep news summary/subtitle and uk localization consistent.",
+      "National news has no federal-state restriction; an event still retains the actual venue federal state.",
+      "Do not treat a repeated emulator namespace/duplicate auth UID as an application failure.",
+      "Native alert action buttons belong to the alert viewport, not its message ScrollView.",
+      "Dismiss the keyboard before scrolling to an inline action; an automation gesture starting over the keyboard does not scroll the content."
+    ]
+  },
+  "existingWarnings": [
+    {
+      "file": "UkrainianCommunity/Features/SystemLogs/Services/SystemLogDeliveryQueue.swift:52",
+      "warning": "Captured self concurrency warning in unchanged source; present in first and final Release build."
+    },
+    {
+      "file": "UkrainianCommunity/Views/Profile/DirectoryEditorAccessStore.swift:50",
+      "warning": "Generic Decodable isolation warning in unchanged source; present in first and final Release build."
+    }
+  ],
+  "limits": [
+    "No new production content approval/rejection was performed.",
+    "APNs sender unchanged; new moderation APNs delivery is not claimed.",
+    "Search is intentionally described as covering loaded queue pages.",
+    "Physical owner read, isolated mutations, source commits, hosted CI, manual acceptance and TestFlight delivery are tracked separately."
+  ],
+  "delivery": {
+    "testFlightChanged": false,
+    "publicAppStoreChanged": false,
+    "manualAcceptance": "pending user review",
+    "lastInstalledFinalSource": "4f00a4df signed Release installation succeeded; repeated production read currently waiting for device reconnection",
+    "physicalFinalReadDependency": "devicectl reports Serlest Mobile unavailable; user asked to reconnect. Prior production read passed before last local display/navigation refinements."
+  },
+  "ci": {
+    "serverRun": 40213586050,
+    "serverResult": "success",
+    "clientRun": 40216661564,
+    "clientResult": "success",
+    "qaRun": 40218413558,
+    "qaResult": "success",
+    "qaFocusRun": 40219225423,
+    "qaFocusResult": "in_progress"
+  },
+  "nextBlock": 11,
+  "advanceToNextBlockWithoutUserAcceptance": false,
+  "qaCommit": "68f03e0fab03d05e8bbe86f18db8582d3b755011",
+  "visualReview": {
+    "bilingual-final-images": [
+      {
+        "path": "build/audit-moderation-20261025/bilingual-final-images/87D19F53-7E7D-4F46-89F5-0573835E598A.png",
+        "state": "content-moderation-history-de"
+      },
+      {
+        "path": "build/audit-moderation-20261025/bilingual-final-images/26FE24D5-C4FF-4244-A570-F0956C02AE91.png",
+        "state": "content-moderation-confirm-de"
+      },
+      {
+        "path": "build/audit-moderation-20261025/bilingual-final-images/B7DF7384-CCEF-4131-AC88-E4B408CA5CE6.png",
+        "state": "content-moderation-preview-after-background-de"
+      },
+      {
+        "path": "build/audit-moderation-20261025/bilingual-final-images/9AE1AFC6-08B8-452A-9844-0BABE9DB5204.png",
+        "state": "content-moderation-history-uk"
+      },
+      {
+        "path": "build/audit-moderation-20261025/bilingual-final-images/D90E8A79-F162-4B4C-8B49-4C082B60C943.png",
+        "state": "content-moderation-confirm-uk"
+      },
+      {
+        "path": "build/audit-moderation-20261025/bilingual-final-images/44D54DF5-49E2-49D5-B08A-4CDD40A0EBE8.png",
+        "state": "content-moderation-preview-after-background-uk"
+      }
+    ],
+    "accessible-final-images": [
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/A9A9231D-5CEE-49FE-B7A4-BFDAFE55A763.png",
+        "state": "moderation-history-current-material-readonly"
+      },
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/865661C2-22F5-4FBD-81FB-72CEF121D431.png",
+        "state": "moderation-history-event-de-maximum"
+      },
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/34C20EFD-2100-485D-8D77-5DE34790D882.png",
+        "state": "moderation-accessible-confirmation-complete-reason-and-execute"
+      },
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/448A6A04-76E0-4CF1-BFEA-D94F00B0EAAF.png",
+        "state": "moderation-event-confirmation-full-title-reason-maximum"
+      },
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/AEEFBE16-DE46-4A23-8998-0A4D13EC902E.png",
+        "state": "moderation-event-dates-and-image-metadata"
+      },
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/45E6C102-CACD-4FA3-BD9F-813A9712E581.png",
+        "state": "moderation-event-complete-contacts-and-fields"
+      },
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/B892481D-2AE0-4132-990E-BB7CC486B1C2.png",
+        "state": "moderation-event-image-error-and-retry"
+      },
+      {
+        "path": "build/audit-moderation-20261025/accessible-final-images/C7B3A6AB-5FA7-4057-A55E-1AEE7DE4F49E.png",
+        "state": "moderation-event-de-dark-maximum-header"
+      }
+    ],
+    "states-images": [
+      {
+        "path": "build/audit-moderation-20261025/states-images/ED2CE107-9A57-41E3-850F-AFE11C2C25B2.png",
+        "state": "moderation-role-org-owner"
+      },
+      {
+        "path": "build/audit-moderation-20261025/states-images/0E075A7B-A3D3-43AA-A071-00A606860DDE.png",
+        "state": "moderation-role-admin"
+      },
+      {
+        "path": "build/audit-moderation-20261025/states-images/E0CC3A55-08D4-4B7E-89F2-32D904D06EF4.png",
+        "state": "moderation-role-owner"
+      },
+      {
+        "path": "build/audit-moderation-20261025/states-images/C419265A-0D6F-4993-8424-4D08AA60D038.png",
+        "state": "moderation-slow-type-switch-loading-no-old-news"
+      }
+    ],
+    "deleted-final-images": [
+      {
+        "path": "build/audit-moderation-20261025/deleted-final-images/C34BAFA7-C5F8-41DF-AB37-7C75A7D73AF1.png",
+        "state": "moderation-deleted-material-explanation"
+      }
+    ],
+    "equivalence": "Owner/admin share the reviewed queue layout. Organization roles, member and warned use the existing profile layout; all seven visibility variants asserted in states. No claim that each negative role has a separate moderation screen."
+  },
+  "qaCommits": [
+    "68f03e0fab03d05e8bbe86f18db8582d3b755011",
+    "b2233d9d2ca112237fe43862720ea99e32135abf"
+  ],
+  "localVerification": "passed",
+  "serverVerification": "deployed and verified; authorized production read passed",
+  "openChecks": [
+    "M10-FINAL-DEVICE: reconnect the physical iPhone for a repeated read from the exact final installed binary",
+    "M10-QA-CI: hosted verification of the QA-only follow-up commits remains pending"
+  ],
+  "cleanup": {
+    "localEmulatorsStopped": true,
+    "export": "build/audit-moderation-20261025/connected-emulator-export/firebase-export-metadata.json",
+    "productionTestContentCreated": false
+  }
+}

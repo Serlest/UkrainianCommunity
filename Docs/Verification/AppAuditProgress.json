@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "completedBlocks": 9,
   "remainingBlocks": 10,
-  "nextBlock": null,
+  "nextBlock": 10,
   "blocks": [
     {
       "number": 1,
@@ -161,8 +161,17 @@
     {
       "number": 10,
       "name": "Модерация",
-      "status": "pending",
-      "openChecks": []
+      "status": "local_verification_complete_final_device_and_qa_ci_pending",
+      "openChecks": [
+        "M10-FINAL-DEVICE",
+        "M10-QA-CI"
+      ],
+      "inventory": "Docs/Verification/ModerationInventory20261025.json",
+      "authorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10",
+      "report": "Docs/Verification/ModerationAudit20261025.json",
+      "sourceCommit": "4f00a4df",
+      "serverCommit": "5574c1ed",
+      "testFlightChanged": false
     },
     {
       "number": 11,
@@ -309,7 +318,8 @@
     "block7AuthorizedByUser": "2026-10-24: Переходи к 7 му пункту",
     "block8AuthorizedByUser": "2026-10-24: Приступай к следующему пункту",
     "block9AuthorizedByUser": "2026-10-24: Приступай",
-    "reconciliationAuthorizedByUser": "2026-10-25: Сверяй"
+    "reconciliationAuthorizedByUser": "2026-10-25: Сверяй",
+    "block10AuthorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10"
   },
   "schemaVersion": 2,
   "blocksWithImplementedFixes": 9,
@@ -318,7 +328,7 @@
   "nextNewBlock": 10,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Recorded 1–9 reconciliation backlog closed. Await latest hosted validation and user acceptance before starting block 10.",
+  "nextAction": "Audit block 10 moderation against complete scenario/role/window ledger; blocks 11–19 remain pending.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,

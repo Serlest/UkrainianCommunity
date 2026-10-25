@@ -1,0 +1,1028 @@
+{
+  "block": 10,
+  "totalBlocks": 19,
+  "name": "Модерація",
+  "status": "local_verification_complete_final_device_and_qa_ci_pending",
+  "method": "Docs/AppAuditMethod.md",
+  "sourceBaseline": "c0eee2f1",
+  "boundaries": [
+    "Organization applications are block 8; the legacy ModerationToolsView organization-only route is a regression dependency.",
+    "User sanctions belong to block 11; feedback/comment reports to block 12.",
+    "All decisions and publication tests use isolated demo data; no real organization content will be approved, rejected or published.",
+    "Native confirmation and real production queue readback are separate from isolated mutation evidence."
+  ],
+  "rows": [
+    {
+      "id": "entry",
+      "route": "Profile moderation entry and direct route",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "states": [
+        "allowed entry",
+        "hidden entry",
+        "direct-route rejection",
+        "role/account change"
+      ],
+      "status": "verified",
+      "evidence": [
+        "keyboard",
+        "server",
+        "states",
+        "units"
+      ]
+    },
+    {
+      "id": "queue",
+      "route": "Pending news/events queue",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "initial loading",
+        "success",
+        "empty",
+        "error/retry",
+        "refresh with data",
+        "pagination/retry",
+        "rapid switch",
+        "late response",
+        "deduplication",
+        "full counts"
+      ],
+      "status": "verified",
+      "evidence": [
+        "frames",
+        "server",
+        "states",
+        "units"
+      ]
+    },
+    {
+      "id": "search",
+      "route": "Queue search and clear",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "loaded-page scope explained",
+        "no results",
+        "clear retains keyboard",
+        "long text",
+        "type switch"
+      ],
+      "status": "verified",
+      "evidence": [
+        "keyboard",
+        "states"
+      ]
+    },
+    {
+      "id": "preview",
+      "route": "News and event material previews",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author",
+        "outsider",
+        "restricted"
+      ],
+      "states": [
+        "uk/de",
+        "complete material fields",
+        "image loading/failure/retry",
+        "source link",
+        "date/location",
+        "missing/deleted",
+        "permission denied",
+        "late response",
+        "background/return"
+      ],
+      "status": "verified",
+      "evidence": [
+        "bilingual",
+        "event",
+        "large",
+        "news",
+        "server",
+        "states",
+        "units"
+      ]
+    },
+    {
+      "id": "decision",
+      "route": "Approve / return / reject",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "reason validation",
+        "2000 UTF16 boundary",
+        "immutable actor/target/revision/decision",
+        "confirm/cancel",
+        "processing duplicate tap",
+        "lost response/idempotency",
+        "concurrent edit/decision",
+        "role revocation",
+        "publication status",
+        "audit receipt"
+      ],
+      "status": "verified",
+      "evidence": [
+        "event",
+        "large",
+        "news",
+        "server",
+        "units"
+      ]
+    },
+    {
+      "id": "history",
+      "route": "Decision history",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "title/type/reason/actor/date",
+        "pagination",
+        "empty/error/retry",
+        "repeated cycles",
+        "current material link / deleted material"
+      ],
+      "status": "verified",
+      "evidence": [
+        "bilingual",
+        "large",
+        "server",
+        "units"
+      ]
+    },
+    {
+      "id": "correction",
+      "route": "Contributor notification -> exact material -> editor -> resubmission",
+      "roles": [
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author",
+        "outsider"
+      ],
+      "states": [
+        "own vs foreign organization",
+        "both news/events",
+        "edit/save/readback",
+        "invalid input/cancel",
+        "old reason cleared",
+        "new pending revision",
+        "recipient isolation",
+        "repeat delivery"
+      ],
+      "status": "verified",
+      "evidence": [
+        "event",
+        "fresh",
+        "news",
+        "server"
+      ]
+    },
+    {
+      "id": "visual",
+      "route": "Unique layouts and shared controls",
+      "roles": [
+        "all applicable role variants"
+      ],
+      "states": [
+        "uk light normal",
+        "de dark maximum text",
+        "small width",
+        "keyboard",
+        "sheet/alert/safe area",
+        "active/inactive/disabled",
+        "loading transition frames"
+      ],
+      "status": "verified",
+      "evidence": [
+        "bilingual",
+        "device",
+        "event",
+        "frames",
+        "large",
+        "news",
+        "states"
+      ]
+    },
+    {
+      "id": "optimization",
+      "route": "Request paths and bounds",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "30/50 bounded pages",
+        "projection",
+        "count queries",
+        "same request coalescing",
+        "dismiss reload policy",
+        "image bounds",
+        "no per-row fetch"
+      ],
+      "status": "verified",
+      "evidence": [
+        "deployment",
+        "device",
+        "server",
+        "states",
+        "units"
+      ]
+    }
+  ],
+  "scenarioChecks": [
+    {
+      "id": "M10-01",
+      "family": "entry",
+      "action": "Menu visibility and positive queue open",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "member",
+        "warned"
+      ],
+      "states": [
+        "visible with role",
+        "hidden without role",
+        "loaded result"
+      ],
+      "dataPath": "ProfileAccessPolicy -> PermissionService -> ContentModerationView",
+      "evidence": [
+        "states"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-02",
+      "family": "entry",
+      "action": "Reject unauthorized list/history/decision and foreign preview",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author",
+        "outsider",
+        "restricted",
+        "guest"
+      ],
+      "states": [
+        "guest",
+        "blocked owner",
+        "legacy role",
+        "organization membership",
+        "foreign material"
+      ],
+      "dataPath": "manage/reviewContentModeration -> current Firestore permissions transaction",
+      "evidence": [
+        "server",
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-03",
+      "family": "entry",
+      "action": "Fence late results after account/role/context changes",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author",
+        "outsider",
+        "restricted",
+        "guest"
+      ],
+      "states": [
+        "reset",
+        "late success",
+        "immutable principal",
+        "new target"
+      ],
+      "dataPath": "ProfileAccessIdentity -> task scope/generation -> model reset",
+      "evidence": [
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-04",
+      "family": "queue",
+      "action": "Initial load and content type switch",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "loading",
+        "unknown counts",
+        "no old rows",
+        "confirmed empty"
+      ],
+      "dataPath": "task scope -> one list callable -> projected bounded query -> response",
+      "evidence": [
+        "states",
+        "frames"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-05",
+      "family": "queue",
+      "action": "First failure and retry without false empty",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "network failure",
+        "retry",
+        "success",
+        "true empty"
+      ],
+      "dataPath": "read client -> model error/hasLoaded -> error card",
+      "evidence": [
+        "states"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-06",
+      "family": "queue",
+      "action": "Refresh failure retains known records; simultaneous refresh coalesces",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "loaded data",
+        "failed refresh",
+        "duplicate refresh"
+      ],
+      "dataPath": "ContentModerationModel -> client.read -> generation guard",
+      "evidence": [
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-07",
+      "family": "queue",
+      "action": "Pagination, counts and same-page retry",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "30 plus 7",
+        "duplicate page IDs",
+        "exact cursor",
+        "failed next page"
+      ],
+      "dataPath": "list -> Firestore createdAt+documentId cursor -> append/deduplicate",
+      "evidence": [
+        "server",
+        "units",
+        "states"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-08",
+      "family": "search",
+      "action": "Filter loaded rows and preserve query/pages on close",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "loaded-page scope",
+        "no matches",
+        "load next filtered page",
+        "close/reopen"
+      ],
+      "dataPath": "AppSearchField -> LocalSearchMatcher -> existing loaded items",
+      "evidence": [
+        "states",
+        "keyboard"
+      ],
+      "status": "verified",
+      "note": "Search is explicitly limited to loaded pages, with a continue action. It is not advertised as a remote full-text index. Shared clear/focus behavior is reused unchanged."
+    },
+    {
+      "id": "M10-09",
+      "family": "preview",
+      "action": "Complete localized news preview",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "uk/de",
+        "full text",
+        "source",
+        "organization/author",
+        "publication scope"
+      ],
+      "dataPath": "preview callable -> ContentReviewItem -> selected language",
+      "evidence": [
+        "news",
+        "bilingual",
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-10",
+      "family": "preview",
+      "action": "Complete event publication conditions",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "price/range",
+        "capacity",
+        "audience/ages",
+        "contacts",
+        "venue/address with empty city",
+        "repeated and cancelled sessions",
+        "image credit/alt"
+      ],
+      "dataPath": "single selected material -> publicationDetails wire DTO -> semantic rows",
+      "evidence": [
+        "server",
+        "large",
+        "event",
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-11",
+      "family": "preview",
+      "action": "Image loading, failure and retry",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "successful actual SDK image",
+        "controlled image failure",
+        "retry"
+      ],
+      "dataPath": "RemoteImageView -> existing cached/downsampled image pipeline",
+      "evidence": [
+        "news",
+        "large"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-12",
+      "family": "preview",
+      "action": "Missing/deleted target closes safely",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "not found",
+        "clear localized explanation",
+        "no edit/review/retry action",
+        "close"
+      ],
+      "dataPath": "callable not-found/AppError -> explicit unavailable state",
+      "evidence": [
+        "server",
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-13",
+      "family": "preview",
+      "action": "Read errors cannot enable review; retry restores the material",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "error",
+        "no decision button",
+        "retry success"
+      ],
+      "dataPath": "read error mapping -> detail model -> preview retry",
+      "evidence": [
+        "states",
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-14",
+      "family": "preview",
+      "action": "External URL display and safety",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "source and external action URL visible",
+        "HTTPS Link",
+        "invalid URL remains inert text"
+      ],
+      "dataPath": "wire URL -> direct SwiftUI Link -> OS browser",
+      "evidence": [
+        "large",
+        "news",
+        "units"
+      ],
+      "status": "verified",
+      "note": "Uses the unchanged platform Link, not a custom browser/router. External website uptime and editorial correctness are outside moderation UI verification; no external form is submitted."
+    },
+    {
+      "id": "M10-15",
+      "family": "decision",
+      "action": "Approve / return / reject and reason boundaries",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "empty/whitespace reason",
+        "2001 UTF16 rejection",
+        "approval clears previous reason",
+        "processing"
+      ],
+      "dataPath": "validated form -> compatible callable request -> transaction",
+      "evidence": [
+        "server",
+        "units",
+        "news",
+        "event",
+        "large"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-16",
+      "family": "decision",
+      "action": "Confirmation captures actor, material, exact revision, outcome and reason",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "native confirmation",
+        "cancel",
+        "changed target/principal",
+        "role change"
+      ],
+      "dataPath": "immutable confirmation snapshot -> client principal -> strict CAS and transaction role read",
+      "evidence": [
+        "units",
+        "server",
+        "news",
+        "event",
+        "large"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-17",
+      "family": "decision",
+      "action": "Maximum-text confirmation remains readable and cancel keeps reason",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "AXXXL inline action",
+        "scrollable sheet",
+        "cancel",
+        "execute"
+      ],
+      "dataPath": "dynamic type layout -> confirmation snapshot -> same decision client",
+      "evidence": [
+        "large"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-18",
+      "family": "decision",
+      "action": "Lost response and operation replay",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "first response lost",
+        "stable operation id",
+        "same outcome replay",
+        "no duplicate history/notice"
+      ],
+      "dataPath": "model operation cache -> hashed receipt -> idempotent response",
+      "evidence": [
+        "units",
+        "server"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-19",
+      "family": "decision",
+      "action": "Concurrent edits and legacy Date compatibility",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "stale revision",
+        "strict new nanoseconds",
+        "bounded legacy precision"
+      ],
+      "dataPath": "expectedRevision -> exact CAS / legacy half-microsecond compatibility",
+      "evidence": [
+        "server",
+        "units"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-20",
+      "family": "decision",
+      "action": "Revoked reviewer cannot commit after preview",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "role removed in database",
+        "permission rejection",
+        "no content update"
+      ],
+      "dataPath": "preview -> Firestore role removal -> actual review transaction readback",
+      "evidence": [
+        "server"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-21",
+      "family": "history",
+      "action": "Human-readable receipt, repeated cycles and cursor pages",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "title/type",
+        "actor",
+        "reason",
+        "date",
+        "multiple cycles",
+        "pagination"
+      ],
+      "dataPath": "transaction receipt -> history callable -> bounded history cards",
+      "evidence": [
+        "server",
+        "large",
+        "bilingual"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-22",
+      "family": "history",
+      "action": "Open current material from history, including deleted target behavior",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "current read-only status",
+        "deleted target",
+        "no stale decision"
+      ],
+      "dataPath": "receipt contentType/id -> same detail preview",
+      "evidence": [
+        "large",
+        "server",
+        "units"
+      ],
+      "status": "verified",
+      "note": "The missing-target component is the same one tested by the deleted-material UI; history does not silently load a public substitute."
+    },
+    {
+      "id": "M10-23",
+      "family": "correction",
+      "action": "News return, author correction, resubmission and publication",
+      "roles": [
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "exact private target",
+        "edit/save",
+        "all unedited fields and German translation",
+        "old reason cleared",
+        "pending -> approved",
+        "fresh feed row"
+      ],
+      "dataPath": "real SDK -> Rules -> repository -> resubmit callable -> reviewer callable -> public browse reload",
+      "evidence": [
+        "news",
+        "fresh"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-24",
+      "family": "correction",
+      "action": "Event return, correction, resubmission and rejection",
+      "roles": [
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "correct event editor",
+        "schedule/pricing/capacity preserved",
+        "save/readback",
+        "pending -> rejected",
+        "new target notice"
+      ],
+      "dataPath": "real SDK -> Rules -> EventRepository -> resubmit -> review -> write trigger",
+      "evidence": [
+        "event",
+        "fresh"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-25",
+      "family": "correction",
+      "action": "Notification deep link retains the exact material and authority",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "news/event typed source",
+        "one navigation stack",
+        "no wrong organization fallback",
+        "read-only without review rights"
+      ],
+      "dataPath": "inbox sourceId -> profile moderationMaterial -> detail without nested NavigationStack",
+      "evidence": [
+        "news",
+        "event"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-26",
+      "family": "correction",
+      "action": "Fresh notifications and recipient isolation",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author",
+        "outsider",
+        "restricted",
+        "guest"
+      ],
+      "states": [
+        "one outcome per author/staff",
+        "own resubmit excludes author",
+        "reviewer excluded",
+        "outsider excluded"
+      ],
+      "dataPath": "actual Firestore write trigger -> notificationInbox -> independent createdAt window checks",
+      "evidence": [
+        "fresh",
+        "server"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-27",
+      "family": "visual",
+      "action": "Background/return retains the selected preview",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "uk light",
+        "de dark large",
+        "home and reactivate",
+        "same translated material"
+      ],
+      "dataPath": "app lifecycle -> existing auth/security policy -> current detail state",
+      "evidence": [
+        "bilingual"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-28",
+      "family": "visual",
+      "action": "Unique layouts, themes, text sizes and overlays",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author"
+      ],
+      "states": [
+        "390pt simulator width",
+        "uk light normal",
+        "de dark maximum",
+        "keyboard",
+        "sheet",
+        "alert",
+        "safe area",
+        "active/disabled"
+      ],
+      "dataPath": "shared theme/control components + adaptive moderation layout",
+      "evidence": [
+        "states",
+        "large",
+        "news",
+        "event",
+        "device",
+        "frames"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-29",
+      "family": "optimization",
+      "action": "Bound requests and eliminate unnecessary repeat work",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "30/50 maximum",
+        "query projection",
+        "no per-row preview reads",
+        "one shared refresh",
+        "no counts on later pages",
+        "unchanged close retains pages",
+        "cached bounded image"
+      ],
+      "dataPath": "view models -> read/query contracts and shared image pipeline",
+      "evidence": [
+        "units",
+        "server",
+        "states"
+      ],
+      "status": "verified",
+      "note": "Measured request-count regression: duplicate first-page reads 2 -> 1. Later pages avoid both count aggregations. No percentage speedup or load-time benchmark is claimed."
+    },
+    {
+      "id": "M10-30",
+      "family": "optimization",
+      "action": "Production compatibility and signed-device business read",
+      "roles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "states": [
+        "legacy request",
+        "optional additive publication payload",
+        "onDeploy runtime policy",
+        "actual authorized queue/history read"
+      ],
+      "dataPath": "installed Release -> production App Check/Auth -> deployed callables and indexes",
+      "evidence": [
+        "server",
+        "deployment",
+        "device"
+      ],
+      "status": "verified"
+    },
+    {
+      "id": "M10-31",
+      "family": "entry",
+      "action": "Regression dependency: organization applications and earlier blocks",
+      "roles": [
+        "all applicable roles"
+      ],
+      "states": [
+        "unchanged application-only legacy route",
+        "full local unit suite",
+        "shared search contract"
+      ],
+      "dataPath": "legacy organization-request caller remains scoped to organizationRequests; common model/policy tests",
+      "evidence": [
+        "units",
+        "keyboard"
+      ],
+      "status": "verified",
+      "note": "Organization application UI is block 8, sanctions block 11, complaints block 12; no new entry is added or duplicated here."
+    },
+    {
+      "id": "M10-32",
+      "family": "correction",
+      "action": "New production APNs moderation delivery",
+      "roles": [
+        "platformOwner",
+        "appAdmin",
+        "orgOwner",
+        "orgAdmin",
+        "orgEditor",
+        "author",
+        "outsider",
+        "restricted",
+        "guest"
+      ],
+      "states": [
+        "no production moderation write"
+      ],
+      "dataPath": "Unchanged workflow push sender -> existing APNs delivery pipeline",
+      "evidence": [
+        "server",
+        "fresh"
+      ],
+      "status": "not_applicable_with_reason",
+      "note": "No push sender/payload contract changed in block 10. Fresh inbox delivery and exact routing were tested on isolated data; no new real APNs moderation delivery is claimed and no real organization content is changed to manufacture one."
+    }
+  ],
+  "evidenceRegistry": "Docs/Verification/ModerationAudit20261025.json",
+  "implementationStatus": "implemented",
+  "finalGates": {
+    "sourceCI": "4f00a4df success, 40216661564",
+    "finalDeviceRepeat": "pending reconnection; earlier production read passed, final signed binary installation succeeded",
+    "qaOnlyCI": "68f03e0f success, 40218413558; b2233d9d in_progress, 40219225423",
+    "manualAcceptance": "pending",
+    "testFlight": "not requested"
+  }
+}
