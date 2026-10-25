@@ -648,7 +648,7 @@ struct ProfileView: View {
             ContentModerationDetail(contentType: contentType, contentID: id, embedsInNavigationStack: false)
                 .id(contentType + ":" + id)
         case .userManagement:
-            UserManagementView(reads: MockContentBuilder.userManagementRefreshFixture() ?? .live)
+            UserManagementView(reads: UserAdministrationAuditFixture.makeIfRequested() ?? MockContentBuilder.userManagementRefreshFixture() ?? .live)
         case .directoryEditors:
             if PermissionService.isAppOwner(user: permissionUser) {
                 if let fixture = MockContentBuilder.directoryAccessFixture() {

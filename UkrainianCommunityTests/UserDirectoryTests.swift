@@ -160,6 +160,87 @@ import Testing
         #expect(requested == ["active", "banned"])
         #expect(model.users.map(\.id) == ["banned"])
     }
+    @Test func duplicateSecurityReadWaitsForSharedMetadataInsteadOfFinishingEarly() async {
+        var reader = reads(); let owner = MockContentBuilder.ownerUser()
+        let gate = UserAuditValueGate<ManagedUserSecurityMetadata>()
+        var calls = 0, secondFinished = false
+        reader.directory = { _, _, _ in .init(users: [self.user("member")], organizations: [], total: 1, cursor: nil) }
+        reader.securityMetadata = { _ in calls += 1; return await gate.wait() }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        let first = Task { await model.loadSecurityMetadata(userID: "member", actor: owner) }
+        while calls < 1 { await Task.yield() }
+        let second = Task { await model.loadSecurityMetadata(userID: "member", actor: owner); secondFinished = true }
+        for _ in 0..<20 { await Task.yield() }
+        #expect(calls == 1); #expect(!secondFinished)
+        gate.finish(.init(response: .init(targetUserId: "member", emailVerified: true, authDisabled: false, creationTime: nil, lastSignInTime: nil, providerIds: [])))
+        await first.value; await second.value
+        #expect(model.securityMetadata(for: "member")?.emailVerified == true)
+    }
+    @Test func duplicateDetailRefreshesShareTheActualProfileRead() async {
+        var reader = reads(); let owner = MockContentBuilder.ownerUser()
+        let gate = UserAuditValueGate<AppUser?>(); var calls = 0
+        reader.directory = { _, _, _ in .init(users: [self.user("member")], organizations: [], total: 1, cursor: nil) }
+        reader.memberships = { _, _ in [] }
+        reader.user = { _ in calls += 1; return await gate.wait() }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        let first = Task { await model.refreshDetail(userID: "member", actor: owner) }
+        while calls < 1 { await Task.yield() }
+        let second = Task { await model.refreshDetail(userID: "member", actor: owner) }
+        for _ in 0..<20 { await Task.yield() }
+        #expect(calls == 1)
+        gate.finish(user("member"))
+        await first.value; await second.value
+        #expect(model.confirmedDetailUserIDs.contains("member"))
+    }
+    @Test func membershipFailurePreservesKnownRolesAndRetryConfirmsEmptyOnlyAfterSuccess() async {
+        let owner = MockContentBuilder.ownerUser(); var reader = reads(); var fail = true
+        let org = ManagedOrganization(id: "org", name: "Known", city: "", logoURL: nil, ownerId: owner.id, adminIds: ["member"], moderatorIds: [])
+        reader.directory = { _, _, _ in .init(users: [self.user("member")], organizations: [org], total: 1, cursor: nil) }
+        reader.memberships = { _, _ in if fail { throw AppError.network }; return [] }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        #expect(!model.confirmedMembershipUserIDs.contains("member"))
+        await model.loadMemberships(userID: "member", actor: owner)
+        #expect(model.failedMembershipUserIDs.contains("member"))
+        #expect(model.organizationRoles(for: user("member")).count == 1)
+        fail = false; await model.loadMemberships(userID: "member", actor: owner)
+        #expect(model.confirmedMembershipUserIDs.contains("member"))
+        #expect(!model.failedMembershipUserIDs.contains("member"))
+        #expect(model.organizationRoles(for: user("member")).isEmpty)
+    }
+    @Test func organizationRefreshFailureKeepsChoicesAndExactNextPage() async {
+        let owner = MockContentBuilder.ownerUser(); var reader = reads(); var fail = false
+        reader.directory = { _, _, _ in .init(users: [], organizations: [], total: 0, cursor: nil) }
+        reader.organizationPage = { _, _, cursor in
+            if fail { throw AppError.network }
+            return .init(organizations: [.init(id: cursor ?? "first", name: "Org", city: "", logoURL: nil, ownerId: owner.id, adminIds: [], moderatorIds: [])], cursor: cursor == nil ? "second" : nil)
+        }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        await model.loadOrganizationChoices(actor: owner)
+        fail = true; await model.loadOrganizationChoices(actor: owner)
+        #expect(model.organizationChoicesFailed); #expect(model.organizationChoices.map(\.id) == ["first"])
+        #expect(model.organizationCursor == "second")
+        fail = false; await model.loadOrganizationChoices(actor: owner, more: true)
+        #expect(model.organizationChoices.map(\.id) == ["first", "second"])
+        #expect(!model.organizationChoicesFailed)
+    }
+    @Test func organizationReviewRejectsConflictingChoiceAndFreshMembership() async {
+        let owner = MockContentBuilder.ownerUser(); var reader = reads()
+        let reviewed = ManagedOrganization(id: "org", name: "Known", city: "", logoURL: nil, ownerId: owner.id, adminIds: ["member"], moderatorIds: [], accessRevision: "1:0")
+        var current = reviewed
+        reader.directory = { _, _, _ in .init(users: [], organizations: [reviewed], total: 0, cursor: nil) }
+        reader.memberships = { _, _ in [current] }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        #expect(model.isOrganizationReviewCurrent(reviewed))
+        current = ManagedOrganization(id: "org", name: "Known", city: "", logoURL: nil, ownerId: "other", adminIds: [], moderatorIds: [], accessRevision: "2:0")
+        await model.loadMemberships(userID: "member", actor: owner)
+        #expect(!model.isOrganizationReviewCurrent(reviewed))
+        #expect(model.isOrganizationReviewCurrent(current))
+    }
     @Test func organizationChoicesAreOnDemandAndPaginated() async {
         let owner=MockContentBuilder.ownerUser();var reader=reads();var calls=0
         reader.directory={_,_,_ in .init(users:[self.user("member")],organizations:[],total:1,cursor:nil)}
@@ -174,4 +255,10 @@ import Testing
     private var continuation:CheckedContinuation<UserDirectoryPage,Never>?
     func wait() async -> UserDirectoryPage { started=true;return await withCheckedContinuation { continuation=$0 } }
     func finish(_ value:UserDirectoryPage) { continuation?.resume(returning:value);continuation=nil }
+}
+
+@MainActor private final class UserAuditValueGate<Value> {
+    private var releases: [CheckedContinuation<Value, Never>] = []
+    func wait() async -> Value { await withCheckedContinuation { releases.append($0) } }
+    func finish(_ value: Value) { for release in releases { release.resume(returning: value) }; releases = [] }
 }

@@ -11,7 +11,7 @@ private enum UserManagementFilter: String, CaseIterable, Identifiable {
     case organizationAdmins
     case organizationModerators
 
-    var id: String { title }
+    var id: String { rawValue }
     var isOrganizationFilter: Bool {
         switch self {
         case .organizationOwners, .organizationAdmins, .organizationModerators: true
@@ -249,10 +249,15 @@ struct UserManagementView: View {
                     }
                 }
 
+                if viewModel.usesDirectory && (!viewModel.isDirectoryCurrent(actor: actor, query: directoryQuery) || !viewModel.directoryHasLoaded) {
+                    Text(AppStrings.UserManagement.searching).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                } else {
                 Text(AppStrings.UserManagement.loadedCount(viewModel.usesDirectory ? viewModel.users.count : selectedRegion == nil ? viewModel.users.count : viewModel.searchResults.count, total: viewModel.usesDirectory ? viewModel.directoryTotal : selectedRegion == nil ? viewModel.totalRegisteredUsers : viewModel.searchTotalMatches))
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
                     .accessibilityIdentifier("userManagement.loadedCount")
+
+                }
 
                 Button {
                     isShowingRoleGuide = true
@@ -263,7 +268,7 @@ struct UserManagementView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
-
+                .accessibilityIdentifier("userManagement.roleGuide")
 
             }
         }
@@ -313,6 +318,7 @@ struct UserManagementView: View {
 
     private var sortMenu: some View {
         AppSortMenu(selection: $sortOption, options: [.newest, .oldest, .nameAscending, .nameDescending])
+            .accessibilityIdentifier("userManagement.sort")
     }
 
     private func userSort(_ lhs: AppUser, _ rhs: AppUser) -> Bool {

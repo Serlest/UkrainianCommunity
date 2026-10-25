@@ -1191,7 +1191,7 @@ final class ConnectedAuditUITests: XCTestCase {
                 || ownedDisposableUserIDs.contains(where: { path == "users/" + $0 })
                 || (method == "GET" && ownedDeletionOperationIDs.contains(where: { path == "accountDeletionOperations/" + $0 }))
                 || ownedRequestDocumentPaths.contains(path)
-                || (method == "GET" && ["organizations", "users/closure-member/notificationInbox"].contains(path)) else {
+                || (method == "GET" && ["organizations", "organizations/users-audit-org", "users/closure-owner/notificationInbox", "users/closure-member/notificationInbox"].contains(path)) else {
             throw NSError(domain: "AuditFixture", code: 1)
         }
         if ["directoryCategories", "users/closure-member", "dsaCases", "organizations/closure-org/photos"].contains(path) {
@@ -1225,6 +1225,211 @@ final class ConnectedAuditUITests: XCTestCase {
         let edit = app.buttons["content.review.edit"].firstMatch
         revealModeration(edit, app); capture(app, "sdk-moderation-notice-exact-author-material")
         XCTAssertFalse(app.buttons["content.review.confirm"].exists)
+    }
+
+    func testConnectedUserWarningSuspensionRestoreAndFreshNotices() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let started = Date()
+        let app = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(app)
+        for (action, expected, reason) in [
+            ("warningIssued", "warned", "Audit warning: checked the reported content."),
+            ("suspended", "suspendedUntil", "Audit temporary restriction: seven days."),
+            ("unblocked", "active", "Audit access restored after review.")
+        ] {
+            performConnectedUserAction(app, action: action, reason: reason)
+            let data = try await readDemoDocument("users/closure-member")
+            let fields = try XCTUnwrap(data["fields"] as? [String: [String: Any]])
+            XCTAssertEqual(fields["accountStatus"]?["stringValue"] as? String, expected)
+            XCTAssertEqual(fields["blockState"]?["stringValue"] as? String, expected)
+            XCTAssertEqual(fields["statusReason"]?["stringValue"] as? String, reason)
+            XCTAssertEqual(fields["statusUpdatedBy"]?["stringValue"] as? String, "closure-owner")
+            _ = try await freshConnectedUserNotice(key: "newAccountStatus", value: expected, reason: reason, after: started)
+        }
+        capture(app, "sdk-user-warning-suspension-and-restore-readback")
+        app.terminate()
+    }
+
+    func testConnectedUserBanDeactivationAndRestoreReadback() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let started = Date()
+        let app = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(app)
+        for (action, expected, reason) in [
+            ("banned", "bannedPermanent", "Audit permanent restriction."),
+            ("unblocked", "active", "Audit permanent restriction lifted."),
+            ("deactivated", "deactivated", "Audit account deactivation."),
+            ("unblocked", "active", "Audit account reactivated.")
+        ] {
+            performConnectedUserAction(app, action: action, reason: reason)
+            let document = try await readDemoDocument("users/closure-member")
+            let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+            XCTAssertEqual(fields["accountStatus"]?["stringValue"] as? String, expected)
+            XCTAssertEqual(fields["isBlocked"]?["booleanValue"] as? Bool, expected != "active")
+            _ = try await freshConnectedUserNotice(key: "newAccountStatus", value: expected, reason: reason, after: started)
+        }
+        capture(app, "sdk-user-ban-deactivation-and-restoration-readback")
+        app.terminate()
+    }
+
+    func testConnectedPlatformRoleAssignmentRemovalAndRecipient() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let started = Date(); let app = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(app)
+        for (action, expected, reason) in [
+            ("assignAppAdmin", "admin", "Audit platform administrator assignment."),
+            ("removeAppAdmin", "user", "Audit platform administrator removal.")
+        ] {
+            let choice = app.buttons["user.detail.platformRole." + action].firstMatch
+            revealModeration(choice, app); XCTAssertTrue(choice.isEnabled); choice.tap()
+            let reasonField = app.textFields["user.action.reason"].firstMatch
+            revealModeration(reasonField, app); reasonField.tap(); reasonField.typeText(reason)
+            if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+            let confirm = app.buttons["user.action.confirm"].firstMatch
+            revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled); capture(app, "sdk-platform-" + action)
+            confirm.tap(); XCTAssertTrue(app.buttons["user.action.cancel"].firstMatch.waitForNonExistence(timeout: 30), app.debugDescription)
+            let document = try await readDemoDocument("users/closure-member")
+            let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+            XCTAssertEqual(fields["globalRole"]?["stringValue"] as? String, expected)
+            XCTAssertEqual(fields["requiresMultiFactorAuth"]?["booleanValue"] as? Bool, true)
+            _ = try await freshConnectedUserNotice(key: "newGlobalRole", value: expected, reason: reason, after: started)
+        }
+        app.terminate()
+    }
+
+    func testConnectedOrganizationRoleChangeAndRemoval() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let started = Date(); let app = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(app)
+        let assignment = app.buttons["user.detail.organizationAssignment"].firstMatch
+        revealModeration(assignment, app); assignment.tap()
+        let search = app.textFields["user.detail.organizationSearch"].firstMatch
+        revealModeration(search, app); search.tap(); search.typeText("User Administration Audit")
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let organization = app.buttons["user.detail.organizationPicker"].firstMatch
+        revealModeration(organization, app)
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", "User Administration Audit Organization"), object: organization)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
+        let role = app.segmentedControls["user.detail.rolePicker"].firstMatch
+        revealModeration(role, app); role.buttons["Модератор"].tap()
+        let reason = "Audit organization moderator assignment."
+        let field = app.textFields["user.detail.roleReason"].firstMatch
+        revealModeration(field, app); field.tap(); field.typeText(reason)
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let assign = app.buttons["user.detail.assignRole"].firstMatch
+        revealModeration(assign, app); XCTAssertTrue(assign.isEnabled); assign.tap()
+        _ = try await freshConnectedUserNotice(key: "newRole", value: "communityModerator", reason: reason, after: started)
+        let assigned = try await readDemoDocument("organizations/users-audit-org")
+        let assignedFields = try XCTUnwrap(assigned["fields"] as? [String: [String: Any]])
+        let moderators = (assignedFields["moderatorIds"]?["arrayValue"] as? [String: Any])?["values"] as? [[String: String]] ?? []
+        XCTAssertTrue(moderators.contains { $0["stringValue"] == "closure-member" })
+        let remove = app.buttons["user.detail.organizationRole.remove.users-audit-org"].firstMatch
+        revealModeration(remove, app); remove.tap()
+        let removalReason = "Audit organization moderator removal."
+        let reasonField = app.textFields["user.action.reason"].firstMatch
+        revealModeration(reasonField, app); reasonField.tap(); reasonField.typeText(removalReason)
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let confirm = app.buttons["user.action.confirm"].firstMatch
+        revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled); confirm.tap()
+        XCTAssertTrue(app.buttons["user.action.cancel"].firstMatch.waitForNonExistence(timeout: 30))
+        _ = try await freshConnectedUserNotice(key: "newRole", value: "none", reason: removalReason, after: started)
+        capture(app, "sdk-organization-role-assignment-and-removal")
+        app.terminate()
+    }
+
+    func testConnectedOwnershipConfirmationTransferAndBothRecipients() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let started = Date(); let app = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(app)
+        let assignment = app.buttons["user.detail.organizationAssignment"].firstMatch
+        revealModeration(assignment, app); assignment.tap()
+        let search = app.textFields["user.detail.organizationSearch"].firstMatch
+        revealModeration(search, app); search.tap(); search.typeText("User Administration Audit")
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let organization = app.buttons["user.detail.organizationPicker"].firstMatch
+        revealModeration(organization, app)
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", "User Administration Audit Organization"), object: organization)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
+        let role = app.segmentedControls["user.detail.rolePicker"].firstMatch
+        revealModeration(role, app); role.buttons["Власник"].tap()
+        let reason = "Audit organization ownership transfer."
+        let field = app.textFields["user.detail.roleReason"].firstMatch
+        revealModeration(field, app); field.tap(); field.typeText(reason)
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let assign = app.buttons["user.detail.assignRole"].firstMatch
+        revealModeration(assign, app); XCTAssertTrue(assign.isEnabled); assign.tap()
+        let confirm = app.buttons["user.ownership.confirm"].firstMatch
+        revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled); capture(app, "sdk-user-ownership-exact-target-before-confirm")
+        app.buttons["user.ownership.cancel"].tap()
+        let before = try await readDemoDocument("organizations/users-audit-org")
+        XCTAssertEqual((before["fields"] as? [String: [String: Any]])?["ownerId"]?["stringValue"] as? String, "closure-owner")
+        revealModeration(assign, app); assign.tap(); revealModeration(confirm, app); confirm.tap()
+        XCTAssertTrue(app.buttons["user.ownership.cancel"].firstMatch.waitForNonExistence(timeout: 30))
+        let after = try await readDemoDocument("organizations/users-audit-org")
+        XCTAssertEqual((after["fields"] as? [String: [String: Any]])?["ownerId"]?["stringValue"] as? String, "closure-member")
+        _ = try await freshConnectedUserNotice(key: "newRole", value: "communityOwner", reason: reason, after: started)
+        let oldInbox = try await readDemoDocument("users/closure-owner/notificationInbox")
+        let oldNotices = oldInbox["documents"] as? [[String: Any]] ?? []
+        XCTAssertTrue(oldNotices.contains { document in
+            let fields = document["fields"] as? [String: [String: Any]]
+            let meta = fields?["metadata"]?["mapValue"] as? [String: Any]
+            let values = meta?["fields"] as? [String: [String: Any]]
+            return values?["reason"]?["stringValue"] as? String == reason
+                && values?["previousOwnerId"]?["stringValue"] as? String == "closure-owner"
+                && values?["newOwnerId"]?["stringValue"] as? String == "closure-member"
+                && fields?["recipientUserId"]?["stringValue"] as? String == "closure-owner"
+        })
+        app.terminate()
+    }
+
+    private func openConnectedManagedUser(_ app: XCUIApplication) {
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let entry = app.buttons["profile.userManagement"].firstMatch
+        revealModeration(entry, app); entry.tap()
+        let search = app.textFields["userManagement.search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10)); revealModeration(search, app)
+        search.tap(); search.typeText("closure-member")
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let row = app.descendants(matching: .any).matching(identifier: "userManagement.user.closure-member").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15)); revealModeration(row, app); row.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["user.presence.section"].firstMatch.waitForExistence(timeout: 10))
+    }
+
+    private func performConnectedUserAction(_ app: XCUIApplication, action: String, reason: String) {
+        let choice = app.buttons["user.detail.accountAction." + action].firstMatch
+        XCTAssertTrue(choice.waitForExistence(timeout: 15)); revealModeration(choice, app)
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: choice)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 20), .completed)
+        choice.tap()
+        let field = app.textFields["user.action.reason"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 8)); revealModeration(field, app); field.tap(); field.typeText(reason)
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let confirm = app.buttons["user.action.confirm"].firstMatch
+        revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled)
+        capture(app, "sdk-user-action-reviewed-" + action)
+        confirm.tap()
+        XCTAssertTrue(app.buttons["user.action.cancel"].firstMatch.waitForNonExistence(timeout: 30), app.debugDescription)
+    }
+
+    private func freshConnectedUserNotice(key: String, value: String, reason: String, after: Date) async throws -> String {
+        for _ in 0..<30 {
+            let raw = try await readDemoDocument("users/closure-member/notificationInbox")
+            let documents = raw["documents"] as? [[String: Any]] ?? []
+            for document in documents {
+                guard let fields = document["fields"] as? [String: [String: Any]],
+                      fields["recipientUserId"]?["stringValue"] as? String == "closure-member",
+                      let rawDate = fields["createdAt"]?["timestampValue"] as? String,
+                      let metadata = fields["metadata"]?["mapValue"] as? [String: Any],
+                      let values = metadata["fields"] as? [String: [String: Any]],
+                      values[key]?["stringValue"] as? String == value,
+                      values["reason"]?["stringValue"] as? String == reason else { continue }
+                let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                guard let created = formatter.date(from: rawDate), created >= after else { continue }
+                return try XCTUnwrap((document["name"] as? String)?.split(separator: "/").last.map(String.init))
+            }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        throw NSError(domain: "UserAdministrationNoticeNotDelivered", code: 1)
     }
 
     func testConnectedModerationReturnNotificationCorrectionAndPublication() async throws {

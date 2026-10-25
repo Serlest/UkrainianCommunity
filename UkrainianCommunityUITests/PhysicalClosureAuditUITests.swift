@@ -14,6 +14,28 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         #endif
     }
 
+    func testUserManagementProductionReadOnlyWithRealSession() {
+        let app = XCUIApplication(); openProfile(app)
+        let owner = app.staticTexts["Serlest"].firstMatch
+        reveal(owner, app, towardTop: true); XCTAssertTrue(owner.exists)
+        let entry = app.buttons["profile.userManagement"].firstMatch
+        reveal(entry, app); entry.tap()
+        let search = app.textFields["userManagement.search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 15))
+        let row = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH %@", "userManagement.user.")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 30)); capture(app, "physical-users-confirmed-directory")
+        search.tap(); search.typeText("Serlest")
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let exact = app.descendants(matching: .any).matching(identifier: "userManagement.user.4jk3piOYIWMNsBf5gUAaOMpaQc83").firstMatch
+        XCTAssertTrue(exact.waitForExistence(timeout: 30)); reveal(exact, app); capture(app, "physical-users-server-search"); exact.tap()
+        let presence = app.descendants(matching: .any)["user.presence.section"].firstMatch
+        XCTAssertTrue(presence.waitForExistence(timeout: 20)); capture(app, "physical-users-presence-and-protected-self")
+        XCTAssertFalse(app.buttons["user.detail.accountAction.banned"].exists)
+        let security = app.staticTexts["Вхід і безпека"].firstMatch
+        reveal(security, app); capture(app, "physical-users-security")
+        // Read only: no account/role confirmation is opened or executed.
+    }
+
     func testModerationProductionQueueReadOnlyWithRealSession() {
         let app = XCUIApplication()
         openProfile(app)

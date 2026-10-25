@@ -162,11 +162,11 @@ struct UserRolePermissionsSheet: View {
                         subtitle: AppStrings.UserManagement.roleGuideSubtitle
                     )
 
-                    ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
                         AppEditorSectionCard {
                             HStack(alignment: .top, spacing: 12) {
                                 Image(systemName: row.2)
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.system(size: 18, weight: .semibold))
                                     .foregroundStyle(AppTheme.accentPrimaryForeground)
                                     .frame(width: 36, height: 36)
                                     .background(AppTheme.accentPrimarySoft, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -181,7 +181,7 @@ struct UserRolePermissionsSheet: View {
                                         .fixedSize(horizontal: false, vertical: true)
                                 }
                             }
-                        }
+                        }.accessibilityIdentifier("user.guide.row.\(index)")
                     }
                 }
                 .padding(AppTheme.pageHorizontal)
@@ -191,7 +191,7 @@ struct UserRolePermissionsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(AppStrings.Common.done) { dismiss() }
+                    Button(AppStrings.Common.done) { dismiss() }.accessibilityIdentifier("user.guide.done")
                 }
             }
         }

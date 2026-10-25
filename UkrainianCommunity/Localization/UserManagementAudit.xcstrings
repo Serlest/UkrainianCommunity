@@ -66,6 +66,28 @@
           }
         }
       }
+    },
+    "users_audit.audit_notice": {
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Успішну зміну буде збережено в історії. Відповідні користувачі отримають сповіщення."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die erfolgreiche Änderung wird im Verlauf gespeichert. Die betroffenen Personen werden benachrichtigt."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A successful change is saved in the history. The affected people will be notified."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

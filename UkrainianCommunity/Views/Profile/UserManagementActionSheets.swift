@@ -11,13 +11,14 @@ struct AccountActionConfirmationSheet: View {
     @ObservedObject var viewModel: UserManagementViewModel
 
     @State private var reason = ""
+    @State private var submitting = false
     @State private var suspensionDays = 7
 
     private let suspensionOptions = [1, 7, 14, 30]
 
     private var canSubmit: Bool {
         reviewIsCurrent
-            && !viewModel.updatingUserIDs.contains(target.id)
+            && !submitting && !viewModel.updatingUserIDs.contains(target.id)
             && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && reason.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 2000
     }
@@ -44,6 +45,8 @@ struct AccountActionConfirmationSheet: View {
                             }
                         }
                         .modifier(UserActionDurationPickerStyle())
+                        .accessibilityIdentifier("user.action.duration")
+                        .disabled(submitting || viewModel.updatingUserIDs.contains(target.id))
                     }
 
                     Label(action.effectDescription, systemImage: "info.circle.fill")
@@ -54,15 +57,16 @@ struct AccountActionConfirmationSheet: View {
                     TextField(AppStrings.UserManagement.reasonPlaceholder, text: $reason, axis: .vertical)
                         .lineLimit(3...6)
                         .accessibilityIdentifier("user.action.reason")
+                        .disabled(submitting || viewModel.updatingUserIDs.contains(target.id))
                         .padding(AppTheme.inputHorizontalPadding)
                         .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
 
                     Text(UserAdministrationCopy.reasonLimit)
                         .font(.caption).foregroundStyle(AppTheme.textSecondary)
-                    if !reviewIsCurrent {
+                    if !reviewIsCurrent && !submitting && viewModel.statusMessage != AppStrings.UserManagement.changesSaved && viewModel.statusMessage != AppStrings.UserManagement.changesSavedRefreshFailed {
                         InlineMessageCard(style: .info, message: UserAdministrationCopy.reviewChanged)
                     }
-                    Text(AppStrings.UserManagement.actionAuditNotice)
+                    Text(UserAdministrationCopy.auditNotice)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
 
@@ -73,7 +77,7 @@ struct AccountActionConfirmationSheet: View {
                     PrimaryActionButton(
                         title: action.title,
                         isEnabled: canSubmit,
-                        isLoading: viewModel.updatingUserIDs.contains(target.id),
+                        isLoading: submitting || viewModel.updatingUserIDs.contains(target.id),
                         systemImage: action.systemImage,
                         action: performAction
                     ).accessibilityIdentifier("user.action.confirm")
@@ -87,20 +91,23 @@ struct AccountActionConfirmationSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Common.cancel) { dismiss() }
-                        .disabled(viewModel.updatingUserIDs.contains(target.id))
+                        .disabled(submitting || viewModel.updatingUserIDs.contains(target.id))
                         .accessibilityIdentifier("user.action.cancel")
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .interactiveDismissDisabled(viewModel.updatingUserIDs.contains(target.id))
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+        .interactiveDismissDisabled(submitting || viewModel.updatingUserIDs.contains(target.id))
         .onAppear { viewModel.statusMessage = nil }
     }
 
     private func performAction() {
-        guard let actor, reviewIsCurrent else { return }
+        guard let actor, canSubmit else { return }
+        let submittedReason = reason, submittedDays = suspensionDays
+        submitting = true
         Task {
-            await viewModel.perform(action, target: target, actor: actor, reason: reason, suspensionDays: suspensionDays)
+            defer { submitting = false }
+            await viewModel.perform(action, target: target, actor: actor, reason: submittedReason, suspensionDays: submittedDays)
             if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { dismiss() }
         }
     }
@@ -116,6 +123,7 @@ struct PlatformRoleConfirmationSheet: View {
     let actor: AppUser?
     @ObservedObject var viewModel: UserManagementViewModel
     @State private var reason = ""
+    @State private var submitting = false
 
     private var reviewIsCurrent: Bool {
         guard let actor else { return false }
@@ -127,14 +135,14 @@ struct PlatformRoleConfirmationSheet: View {
         AdminReasonSheetLayout(
             title: action.title,
             subtitle: AppStrings.UserManagement.actionTarget(target.preferredDisplayName),
-            notice: AppStrings.UserManagement.platformRoleAuditNotice,
+            notice: UserAdministrationCopy.auditNotice,
             effect: action.effectDescription,
             reason: $reason,
             actionTitle: action.title,
             actionImage: action.systemImage,
             isEnabled: canSubmit,
-            isLoading: viewModel.updatingUserIDs.contains(target.id),
-            message: reviewIsCurrent ? viewModel.statusMessage : UserAdministrationCopy.reviewChanged,
+            isLoading: submitting || viewModel.updatingUserIDs.contains(target.id),
+            message: userAdministrationFeedback(current: reviewIsCurrent, submitting: submitting, message: viewModel.statusMessage),
             onCancel: { dismiss() },
             onConfirm: performAction
         )
@@ -142,15 +150,18 @@ struct PlatformRoleConfirmationSheet: View {
     }
 
     private var canSubmit: Bool {
-        reviewIsCurrent && !viewModel.updatingUserIDs.contains(target.id)
+        reviewIsCurrent && !submitting && !viewModel.updatingUserIDs.contains(target.id)
             && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && reason.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 2000
     }
 
     private func performAction() {
-        guard let actor, reviewIsCurrent else { return }
+        guard let actor, canSubmit else { return }
+        let submittedReason = reason
+        submitting = true
         Task {
-            await viewModel.performPlatformRoleAction(action, target: target, actor: actor, reason: reason)
+            defer { submitting = false }
+            await viewModel.performPlatformRoleAction(action, target: target, actor: actor, reason: submittedReason)
             if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { dismiss() }
         }
     }
@@ -166,10 +177,12 @@ struct OrganizationRoleRemovalSheet: View {
     let actor: AppUser?
     @ObservedObject var viewModel: UserManagementViewModel
     @State private var reason = ""
+    @State private var submitting = false
 
     private var reviewIsCurrent: Bool {
         guard let actor else { return false }
         return viewModel.isReviewCurrent(target: target, actor: actor, currentActor: authState.user)
+            && viewModel.isOrganizationReviewCurrent(organization)
             && viewModel.canManageOrganizationRoles(in: organization, actor: actor) && organization.ownerId != target.id
     }
 
@@ -183,8 +196,8 @@ struct OrganizationRoleRemovalSheet: View {
             actionTitle: AppStrings.UserManagement.removeOrganizationRoleButton,
             actionImage: "minus.circle",
             isEnabled: canSubmit,
-            isLoading: viewModel.updatingUserIDs.contains(target.id),
-            message: reviewIsCurrent ? viewModel.statusMessage : UserAdministrationCopy.reviewChanged,
+            isLoading: submitting || viewModel.updatingUserIDs.contains(target.id),
+            message: userAdministrationFeedback(current: reviewIsCurrent, submitting: submitting, message: viewModel.statusMessage),
             onCancel: { dismiss() },
             onConfirm: performAction
         )
@@ -192,21 +205,25 @@ struct OrganizationRoleRemovalSheet: View {
     }
 
     private var canSubmit: Bool {
-        reviewIsCurrent && !viewModel.updatingUserIDs.contains(target.id)
+        reviewIsCurrent && !submitting && !viewModel.updatingUserIDs.contains(target.id)
             && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && reason.trimmingCharacters(in: .whitespacesAndNewlines).utf16.count <= 2000
     }
 
     private func performAction() {
-        guard let actor, reviewIsCurrent else { return }
+        guard let actor, canSubmit else { return }
+        let submittedReason = reason
+        submitting = true
         Task {
-            await viewModel.removeRole(in: organization, from: target, actor: actor, reason: reason)
+            defer { submitting = false }
+            await viewModel.removeRole(in: organization, from: target, actor: actor, reason: submittedReason)
             if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { dismiss() }
         }
     }
 }
 
 private struct AdminReasonSheetLayout: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let title: String
     let subtitle: String
     let notice: String
@@ -233,7 +250,7 @@ private struct AdminReasonSheetLayout: View {
                     }
                     TextField(AppStrings.UserManagement.reasonPlaceholder, text: $reason, axis: .vertical)
                         .lineLimit(3...6)
-                        .accessibilityIdentifier("user.action.reason")
+                        .accessibilityIdentifier("user.action.reason").disabled(isLoading)
                         .padding(AppTheme.inputHorizontalPadding)
                         .background(AppTheme.surfaceControl.opacity(0.45), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
                     Text(UserAdministrationCopy.reasonLimit).font(.caption).foregroundStyle(AppTheme.textSecondary)
@@ -265,7 +282,7 @@ private struct AdminReasonSheetLayout: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents(dynamicTypeSize.isAccessibilitySize ? [.large] : [.medium, .large])
         .interactiveDismissDisabled(isLoading)
     }
 }
@@ -301,14 +318,13 @@ struct UserOwnershipTransferReviewSheet: View {
     @ObservedObject var viewModel: UserManagementViewModel
     let onSuccess: () -> Void
 
-    private var busy: Bool { viewModel.updatingUserIDs.contains(target.id) }
+    @State private var submitting = false
+    private var busy: Bool { submitting || viewModel.updatingUserIDs.contains(target.id) }
     private var canConfirm: Bool {
         guard viewModel.isReviewCurrent(target: target, actor: actor, currentActor: authState.user),
               PermissionService.canInitiateOwnershipTransferWorkflow(user: authState.user),
-              let current = (viewModel.organizationChoices + viewModel.organizations).first(where: { $0.id == organization.id }) else { return false }
-        return current.accessRevision == organization.accessRevision && current.ownerId == organization.ownerId
-            && current.adminIds == organization.adminIds && current.moderatorIds == organization.moderatorIds
-            && !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && reason.utf16.count <= 2000
+              viewModel.isOrganizationReviewCurrent(organization) else { return false }
+        return !reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && reason.utf16.count <= 2000
     }
     var body: some View {
         NavigationStack {
@@ -317,13 +333,15 @@ struct UserOwnershipTransferReviewSheet: View {
                     SectionHeaderBlock(title: AppStrings.UserManagement.ownerTransferConfirmationTitle,
                         subtitle: AppStrings.UserManagement.ownerTransferConfirmationMessage(target.preferredDisplayName, organization.name))
                     Text(reason).font(.body).foregroundStyle(AppTheme.textPrimary).textSelection(.enabled)
-                    Text(AppStrings.UserManagement.platformRoleAuditNotice).font(.caption).foregroundStyle(AppTheme.textSecondary)
-                    if !canConfirm { InlineMessageCard(style: .info, message: UserAdministrationCopy.reviewChanged) }
+                    Text(UserAdministrationCopy.auditNotice).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    if !canConfirm && !submitting && viewModel.statusMessage != AppStrings.UserManagement.changesSaved && viewModel.statusMessage != AppStrings.UserManagement.changesSavedRefreshFailed { InlineMessageCard(style: .info, message: UserAdministrationCopy.reviewChanged) }
                     if let message = viewModel.statusMessage { UserManagementOperationMessage(message: message) }
                     PrimaryActionButton(title: AppStrings.UserManagement.changeOwnerButton,
                         isEnabled: canConfirm && !busy, isLoading: busy, systemImage: "person.crop.circle.badge.checkmark") {
-                        guard canConfirm else { return }
+                        guard canConfirm, !busy else { return }
+                        submitting = true
                         Task {
+                            defer { submitting = false }
                             await viewModel.changeOwner(in: organization, to: target, actor: actor, reason: reason)
                             if viewModel.statusMessage == AppStrings.UserManagement.changesSaved { onSuccess(); dismiss() }
                         }
@@ -338,4 +356,9 @@ struct UserOwnershipTransferReviewSheet: View {
             } }
         }.interactiveDismissDisabled(busy).onAppear { viewModel.statusMessage = nil }
     }
+}
+
+private func userAdministrationFeedback(current: Bool, submitting: Bool, message: String?) -> String? {
+    if current || submitting || message == AppStrings.UserManagement.changesSaved || message == AppStrings.UserManagement.changesSavedRefreshFailed { return message }
+    return UserAdministrationCopy.reviewChanged
 }

@@ -63,7 +63,7 @@ enum PlatformRoleAction: String, Identifiable {
     case assignAppAdmin
     case removeAppAdmin
 
-    var id: String { title }
+    var id: String { rawValue }
 
     var title: String {
         switch self {
@@ -221,6 +221,8 @@ final class UserManagementViewModel: ObservableObject {
     private var sessionRevision = 0
     private var detailRevisions: [String: Int] = [:]
     private var metadataRevisions: [String: Int] = [:]
+    private var metadataRequests: [String: Task<Void, Never>] = [:]
+    private var profileRequests: [String: Task<Void, Never>] = [:]
     private var organizationsRevision = 0
     private let pageSize = 40
     private var loadedActorKey: String?
@@ -336,33 +338,70 @@ final class UserManagementViewModel: ObservableObject {
         await task.value
     }
 
+    func isOrganizationReviewCurrent(_ reviewed: ManagedOrganization) -> Bool {
+        let known = (organizationChoices + organizations).filter { $0.id == reviewed.id }
+        return !known.isEmpty && known.allSatisfy {
+            $0.accessRevision == reviewed.accessRevision && $0.ownerId == reviewed.ownerId
+                && $0.adminIds == reviewed.adminIds && $0.moderatorIds == reviewed.moderatorIds
+                && $0.moderationStatus == reviewed.moderationStatus
+        }
+    }
+
     func loadOrganizationChoices(actor: AppUser?, search: String = "", more: Bool = false) async {
         guard let actor, managementActorKey(for: actor) == loadedActorKey, let fetch = reads.organizationPage else { return }
         if more { guard !isLoadingOrganizations, organizationCursor != nil, search == organizationQuery else { return } }
-        else { organizationGeneration = UUID(); organizationCursor = nil; organizationQuery = search; organizationChoices = [] }
+        else {
+            organizationGeneration = UUID()
+            if search != organizationQuery { organizationCursor = nil; organizationChoices = []; organizationChoicesLoaded = false }
+            organizationQuery = search
+        }
         let generation = organizationGeneration, session = sessionRevision
-        isLoadingOrganizations = true
+        let cursor = more ? organizationCursor : nil
+        isLoadingOrganizations = true; organizationChoicesFailed = false
         defer { if generation == organizationGeneration { isLoadingOrganizations = false } }
         do {
-            let page = try await RefreshRequest.run { try await fetch(actor.id, search, more ? self.organizationCursor : nil) }
+            let page = try await RefreshRequest.run { try await fetch(actor.id, search, cursor) }
             guard generation == organizationGeneration, session == sessionRevision, !Task.isCancelled else { return }
-            let ids = Set(organizationChoices.map(\.id)); organizationChoices += page.organizations.filter { !ids.contains($0.id) }
-            organizationCursor = page.cursor; organizationsLoaded = true
-        } catch { guard generation == organizationGeneration, session == sessionRevision else { return }; statusMessage = AppStrings.UserManagement.refreshFailed }
+            var ids = Set(more ? organizationChoices.map(\.id) : [])
+            let unique = page.organizations.filter { ids.insert($0.id).inserted }
+            organizationChoices = more ? organizationChoices + unique : unique
+            organizationCursor = page.cursor; organizationChoicesLoaded = true
+        } catch {
+            guard generation == organizationGeneration, session == sessionRevision, !Task.isCancelled else { return }
+            organizationChoicesFailed = true
+        }
     }
     @Published private(set) var organizationChoices: [ManagedOrganization] = []
+    @Published private(set) var organizationChoicesLoaded = false
+    @Published private(set) var organizationChoicesFailed = false
+    @Published private(set) var loadingMembershipUserIDs = Set<String>()
+    @Published private(set) var confirmedMembershipUserIDs = Set<String>()
+    @Published private(set) var failedMembershipUserIDs = Set<String>()
+    private var membershipRequests: [String: Task<Void, Never>] = [:]
 
     func loadMemberships(userID: String, actor: AppUser?) async {
         guard let actor, managementActorKey(for: actor) == loadedActorKey, let fetch = reads.memberships else { return }
+        if let request = membershipRequests[userID] { await request.value; return }
         let session = sessionRevision
-        do {
-            let items = try await RefreshRequest.run { try await fetch(actor.id, userID) }
-            guard session == sessionRevision, !Task.isCancelled else { return }
-            let refreshedIDs = Set(items.map(\.id))
-            organizations.removeAll { $0.role(for: userID) != nil || refreshedIDs.contains($0.id) }
-            organizations += items
-            organizationsLoaded = true
-        } catch { guard session == sessionRevision else { return }; self.error = .network }
+        loadingMembershipUserIDs.insert(userID); failedMembershipUserIDs.remove(userID)
+        let task = Task { [self] in
+            defer {
+                if session == sessionRevision { membershipRequests.removeValue(forKey: userID); loadingMembershipUserIDs.remove(userID) }
+            }
+            do {
+                let items = try await RefreshRequest.run { try await fetch(actor.id, userID) }
+                guard session == sessionRevision, !Task.isCancelled else { return }
+                let refreshedIDs = Set(items.map(\.id))
+                organizations.removeAll { $0.role(for: userID) != nil || refreshedIDs.contains($0.id) }
+                organizations += items
+                confirmedMembershipUserIDs.insert(userID)
+            } catch {
+                guard session == sessionRevision, !Task.isCancelled else { return }
+                failedMembershipUserIDs.insert(userID)
+            }
+        }
+        membershipRequests[userID] = task
+        await task.value
     }
 
     func load(actor: AppUser?) async {
@@ -531,13 +570,18 @@ final class UserManagementViewModel: ObservableObject {
 
     func loadSecurityMetadata(userID: String, actor: AppUser?) async {
         guard PermissionService.canManageUsers(user: actor), managementActorKey(for: actor) == loadedActorKey else { return }
-        guard !loadingSecurityUserIDs.contains(userID) else { return }
+        if let request = metadataRequests[userID] { await request.value; return }
         loadingSecurityUserIDs.insert(userID)
         failedSecurityUserIDs.remove(userID)
         let session = sessionRevision
-        defer { if session == sessionRevision { loadingSecurityUserIDs.remove(userID) } }
         metadataRevisions[userID, default: 0] &+= 1
         let revision = metadataRevisions[userID]
+        let task = Task { [self] in
+            defer {
+                if session == sessionRevision && revision == metadataRevisions[userID] {
+                    metadataRequests.removeValue(forKey: userID); loadingSecurityUserIDs.remove(userID)
+                }
+            }
         do {
             let metadata = try await RefreshRequest.run { [reads] in try await reads.securityMetadata(userID) }
             guard session == sessionRevision, revision == metadataRevisions[userID], !Task.isCancelled else { return }
@@ -547,9 +591,12 @@ final class UserManagementViewModel: ObservableObject {
             failedSecurityUserIDs.insert(userID)
             self.error = .network
         }
+        }
+        metadataRequests[userID] = task
+        await task.value
     }
 
-    func loadAuditHistory(userID: String, cursor: QueryDocumentSnapshot?) async throws -> ManagedUserAuditPage {
+    func loadAuditHistory(userID: String, cursor: ManagedUserAuditCursor?) async throws -> ManagedUserAuditPage {
         try await reads.auditHistory(userID, cursor)
     }
 
@@ -854,11 +901,18 @@ final class UserManagementViewModel: ObservableObject {
 
     private func reloadUser(id: String, actor: AppUser, afterMutation: Bool = true) async {
         guard managementActorKey(for: actor) == loadedActorKey else { return }
+        if let request = profileRequests[id], !afterMutation { await request.value; return }
+        if afterMutation { profileRequests[id]?.cancel(); profileRequests.removeValue(forKey: id) }
         let session = sessionRevision
         detailRevisions[id, default: 0] &+= 1
         let revision = detailRevisions[id]
         loadingDetailUserIDs.insert(id); failedDetailUserIDs.remove(id)
-        defer { if session == sessionRevision && revision == detailRevisions[id] { loadingDetailUserIDs.remove(id) } }
+        let task = Task { [self] in
+            defer {
+                if session == sessionRevision && revision == detailRevisions[id] {
+                    profileRequests.removeValue(forKey: id); loadingDetailUserIDs.remove(id)
+                }
+            }
         do {
             let refreshedUser = try await RefreshRequest.run(deadline: detailReadDeadline) { [reads] in try await reads.user(id) }
             guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
@@ -881,6 +935,9 @@ final class UserManagementViewModel: ObservableObject {
             self.error = .network
             if afterMutation { statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed }
         }
+        }
+        profileRequests[id] = task
+        await task.value
     }
 
     private func reloadOrganizationAfterSuccessfulMutation(id: String) async {
@@ -1104,10 +1161,16 @@ final class UserManagementViewModel: ObservableObject {
         directoryHasLoaded = false; unavailableUserIDs = []
         loadingDetailUserIDs = []; confirmedDetailUserIDs = []; failedDetailUserIDs = []
         organizationGeneration = UUID(); organizationChoices = []; organizationCursor = nil; isLoadingOrganizations = false
+        organizationChoicesLoaded = false; organizationChoicesFailed = false
+        for request in membershipRequests.values { request.cancel() }
+        membershipRequests = [:]; loadingMembershipUserIDs = []; confirmedMembershipUserIDs = []; failedMembershipUserIDs = []
         sessionRevision &+= 1
         refreshRevision &+= 1
         isLoading = false
         isLoadingMore = false
+        for request in metadataRequests.values { request.cancel() }
+        for request in profileRequests.values { request.cancel() }
+        metadataRequests = [:]; profileRequests = [:]
         detailRevisions = [:]
         metadataRevisions = [:]
         statusMessage = nil

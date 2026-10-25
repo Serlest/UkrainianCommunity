@@ -130,7 +130,7 @@ struct UserDetailView: View {
     }
 
     private var roleAssignmentBlockingMessage: String? {
-        guard viewModel.organizationsLoaded else {
+        guard viewModel.usesDirectory ? viewModel.organizationChoicesLoaded && !viewModel.organizationChoicesFailed : viewModel.organizationsLoaded else {
             return AppStrings.UserManagement.organizationsNotLoaded
         }
         guard !assignmentOrganizations.isEmpty else {
@@ -256,10 +256,18 @@ struct UserDetailView: View {
                     organizationRolesCard
                     if viewModel.usesDirectory {
                         AppEditorSectionCard {
-                            DisclosureGroup(AppStrings.UserManagement.assignRoleSectionTitle, isExpanded: $isChoosingOrganization) { roleAssignmentCard }
-                                .tint(AppTheme.accentPrimaryForeground)
+                            Button { isChoosingOrganization.toggle() } label: {
+                                HStack(alignment: .center, spacing: 12) {
+                                    Text(AppStrings.UserManagement.assignRoleSectionTitle)
+                                        .font(.headline).fixedSize(horizontal: false, vertical: true)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Image(systemName: isChoosingOrganization ? "chevron.up" : "chevron.down")
+                                        .font(.system(size: 18, weight: .semibold)).accessibilityHidden(true)
+                                }.frame(minHeight: AppTheme.minimumInteractiveTarget).contentShape(Rectangle())
+                            }.buttonStyle(.plain).foregroundStyle(AppTheme.accentPrimaryForeground)
                                 .accessibilityIdentifier("user.detail.organizationAssignment")
                         }
+                        if isChoosingOrganization { roleAssignmentCard }
                     } else { roleAssignmentCard }
                     securityCard
                     UserAuditHistoryCard(userID: user.id, actor: authState.user,
@@ -432,7 +440,16 @@ struct UserDetailView: View {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 SectionHeaderBlock(title: AppStrings.UserManagement.organizationRolesTitle, subtitle: AppStrings.UserManagement.organizationRolesSubtitle)
 
-                if !viewModel.organizationsLoaded {
+                if viewModel.usesDirectory && viewModel.failedMembershipUserIDs.contains(userID) {
+                    Text(AppStrings.UserManagement.refreshFailed).foregroundStyle(AppTheme.textSecondary)
+                    Button(AppStrings.UserManagement.retry) { Task { await viewModel.loadMemberships(userID: userID, actor: actor) } }
+                        .accessibilityIdentifier("user.detail.memberships.retry")
+                }
+                if viewModel.usesDirectory && !viewModel.confirmedMembershipUserIDs.contains(userID) {
+                    if viewModel.loadingMembershipUserIDs.contains(userID) { ProgressView() }
+                    Text(AppStrings.UserManagement.organizationsNotLoaded)
+                        .font(.subheadline).foregroundStyle(AppTheme.textSecondary)
+                } else if !viewModel.usesDirectory && !viewModel.organizationsLoaded {
                     Text(AppStrings.UserManagement.organizationsNotLoaded)
                         .font(.subheadline)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -443,9 +460,9 @@ struct UserDetailView: View {
                 } else {
                     ForEach(organizationRoles) { item in
                         let organization = item.organization
-                        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                        profileIdentityLayout {
                             Image(systemName: roleIcon(item.role))
-                                .font(.caption.weight(.semibold))
+                                .font(.system(size: 18, weight: .semibold))
                                 .foregroundStyle(AppTheme.accentPrimaryForeground)
                                 .frame(width: 20)
 
@@ -469,6 +486,7 @@ struct UserDetailView: View {
                                     .accessibilityLabel(AppStrings.UserManagement.ownerTransferOnly)
                             } else if let actor, viewModel.canManageOrganizationRoles(in: organization, actor: actor) {
                                 Button {
+                                    viewModel.statusMessage = nil
                                     pendingRoleRemoval = .init(action: organization, target: user, actor: actor)
                                 } label: {
                                     Image(systemName: "minus.circle")
@@ -548,41 +566,59 @@ struct UserDetailView: View {
                 )
 
                 AppSearchField(placeholder: AppStrings.UserManagement.organizationSearchPlaceholder,
-                               text: $organizationSearchText, focus: $organizationSearchFocused)
+                               text: $organizationSearchText, focus: $organizationSearchFocused, fieldID: "user.detail.organizationSearch")
 
-                Picker(AppStrings.UserManagement.organizationPicker, selection: Binding(
-                    get: { selectedOrganizationID ?? assignmentOrganizations.first?.id ?? "" },
-                    set: { selectedOrganizationID = $0 }
-                )) {
+                Menu {
                     ForEach(filteredOrganizations) { organization in
-                        Text(organization.name).tag(organization.id)
+                        Button { selectedOrganizationID = organization.id } label: {
+                            if selectedOrganizationID == organization.id { Label(organization.name, systemImage: "checkmark") }
+                            else { Text(organization.name) }
+                        }
                     }
+                } label: {
+                    selectionLabel(title: AppStrings.UserManagement.organizationPicker,
+                        value: selectedOrganization?.name ?? AppStrings.UserManagement.organizationsNotFound)
                 }
-                .pickerStyle(.menu)
-                .tint(AppTheme.accentPrimaryForeground)
-                .disabled(filteredOrganizations.isEmpty)
+                .tint(AppTheme.accentPrimaryForeground).disabled(filteredOrganizations.isEmpty)
+                .accessibilityIdentifier("user.detail.organizationPicker")
 
                 if viewModel.isLoadingOrganizations { ProgressView() }
+                if viewModel.organizationChoicesFailed {
+                    Text(AppStrings.UserManagement.refreshFailed).foregroundStyle(AppTheme.textSecondary)
+                    Button(AppStrings.UserManagement.retry) { Task { await viewModel.loadOrganizationChoices(actor: actor, search: organizationSearchText) } }
+                        .accessibilityIdentifier("user.detail.organizations.retry")
+                }
                 if viewModel.usesDirectory, viewModel.organizationCursor != nil {
                     Button(AppStrings.UserManagement.loadMore) { Task { await viewModel.loadOrganizationChoices(actor: actor, search: organizationSearchText, more: true) } }
                         .disabled(viewModel.isLoadingOrganizations)
                 }
-                if assignmentOrganizations.isEmpty {
+                if !viewModel.isLoadingOrganizations && (!viewModel.usesDirectory || viewModel.organizationChoicesLoaded) && assignmentOrganizations.isEmpty {
                     Text(AppStrings.UserManagement.roleAssignmentUnavailable)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
-                } else if filteredOrganizations.isEmpty {
+                } else if !viewModel.isLoadingOrganizations && (!viewModel.usesDirectory || viewModel.organizationChoicesLoaded) && filteredOrganizations.isEmpty {
                     Text(AppStrings.UserManagement.organizationsNotFound)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
                 }
 
-                Picker(AppStrings.UserManagement.rolePicker, selection: $selectedRole) {
-                    ForEach(assignableRoles, id: \.self) { role in
-                        Text(roleTitle(role)).tag(role)
+                Group {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Menu {
+                            ForEach(assignableRoles, id: \.self) { role in
+                                Button { selectedRole = role } label: {
+                                    if selectedRole == role { Label(roleTitle(role), systemImage: "checkmark") }
+                                    else { Text(roleTitle(role)) }
+                                }
+                            }
+                        } label: { selectionLabel(title: AppStrings.UserManagement.rolePicker, value: roleTitle(selectedRole)) }
+                    } else {
+                        Picker(AppStrings.UserManagement.rolePicker, selection: $selectedRole) {
+                            ForEach(assignableRoles, id: \.self) { role in Text(roleTitle(role)).tag(role) }
+                        }.pickerStyle(.segmented)
                     }
                 }
-                .pickerStyle(.segmented)
+                .accessibilityIdentifier("user.detail.rolePicker")
                 .disabled(!canManageSelectedOrganizationRoles || selectedOrganization?.ownerId == user.id)
 
                 if selectedOrganization?.ownerId == user.id {
@@ -596,6 +632,7 @@ struct UserDetailView: View {
                     .font(.subheadline)
                     .padding(AppTheme.inputHorizontalPadding)
                     .background(AppTheme.surfaceControl.opacity(0.36), in: RoundedRectangle(cornerRadius: AppTheme.chipRadius, style: .continuous))
+                    .accessibilityIdentifier("user.detail.roleReason")
                     .focused($focusedField, equals: .roleReason)
                     .submitLabel(.done)
                     .onSubmit { focusedField = nil }
@@ -621,6 +658,7 @@ struct UserDetailView: View {
                     let submittedReason = roleReason
                     let submittedRole = selectedRole
                     if submittedRole == .communityOwner {
+                        viewModel.statusMessage = nil
                         pendingOwnershipTransfer = PendingOwnershipTransfer(
                             organization: selectedOrganization,
                             target: currentUser,
@@ -635,9 +673,21 @@ struct UserDetailView: View {
                             }
                         }
                     }
-                }
+                }.accessibilityIdentifier("user.detail.assignRole")
             }
         }
+    }
+
+    private func selectionLabel(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption).foregroundStyle(AppTheme.textSecondary)
+            HStack(alignment: .center, spacing: 12) {
+                Text(value).font(.body).fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 16, weight: .semibold)).accessibilityHidden(true)
+            }
+        }.padding(12).background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: AppTheme.inputRadius))
+            .contentShape(Rectangle())
     }
 
     private var accountActionsCard: some View {
@@ -650,7 +700,7 @@ struct UserDetailView: View {
 
                 if canManage {
                     ForEach(availableAccountActions) { action in
-                        Button { if let actor { pendingAction = .init(action: action, target: user, actor: actor) } } label: {
+                        Button { if let actor { viewModel.statusMessage = nil; pendingAction = .init(action: action, target: user, actor: actor) } } label: {
                             actionLabel(action, tint: accountActionTint(action))
                         }
                         .accessibilityIdentifier("user.detail.accountAction.\(action.rawValue)")
@@ -789,7 +839,7 @@ struct UserDetailView: View {
 
     private func roleActionButton(_ action: PlatformRoleAction, isEnabled: Bool) -> some View {
         Button {
-            if let actor { pendingPlatformRoleAction = .init(action: action, target: user, actor: actor) }
+            if let actor { viewModel.statusMessage = nil; pendingPlatformRoleAction = .init(action: action, target: user, actor: actor) }
         } label: {
             Label(action.title, systemImage: action.systemImage)
                 .font(.subheadline.weight(.semibold))
@@ -820,7 +870,7 @@ struct UserDetailView: View {
         value: String,
         tint: Color
     ) -> some View {
-        HStack(spacing: AppTheme.eventsMetadataSpacing) {
+        profileIdentityLayout {
             Image(systemName: systemImage)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(tint)
