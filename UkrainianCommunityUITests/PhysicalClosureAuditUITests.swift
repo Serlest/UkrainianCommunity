@@ -27,9 +27,17 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         search.tap(); search.typeText("Serlest")
         if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
         let exact = app.descendants(matching: .any).matching(identifier: "userManagement.user.4jk3piOYIWMNsBf5gUAaOMpaQc83").firstMatch
-        XCTAssertTrue(exact.waitForExistence(timeout: 30)); reveal(exact, app); capture(app, "physical-users-server-search"); exact.tap()
+        XCTAssertTrue(exact.waitForExistence(timeout: 30)); reveal(exact, app)
+        if let count = ProcessInfo.processInfo.environment["UACPhysicalExpectedOrganizationCount"] {
+            XCTAssertTrue(exact.label.contains(count + " орг."), exact.label)
+        }
+        capture(app, "physical-users-server-search"); exact.tap()
         let presence = app.descendants(matching: .any)["user.presence.section"].firstMatch
-        XCTAssertTrue(presence.waitForExistence(timeout: 20)); capture(app, "physical-users-presence-and-protected-self")
+        XCTAssertTrue(presence.waitForExistence(timeout: 20))
+        let presenceResult = app.descendants(matching: .any).matching(NSPredicate(format: "identifier IN %@",
+            ["user.presence.online", "user.presence.lastSeen", "user.presence.unknown"])).firstMatch
+        XCTAssertTrue(presenceResult.waitForExistence(timeout: 30), "Wait for actual presence response, not its container")
+        capture(app, "physical-users-presence-and-protected-self")
         XCTAssertFalse(app.buttons["user.detail.accountAction.banned"].exists)
         let security = app.staticTexts["Вхід і безпека"].firstMatch
         reveal(security, app); capture(app, "physical-users-security")

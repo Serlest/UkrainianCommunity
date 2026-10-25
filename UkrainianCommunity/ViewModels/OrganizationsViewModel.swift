@@ -3,7 +3,15 @@ import Foundation
 
 @MainActor
 final class OrganizationsViewModel: ObservableObject {
-    @Published var organizations: [Organization]
+    @Published var organizations: [Organization] {
+        didSet {
+            for value in organizations where resolvedOrganizations[value.id] != nil {
+                resolvedOrganizations[value.id] = value
+            }
+        }
+    }
+    @Published private var resolvedOrganizations: [String: Organization] = [:]
+    private var resolvedOrganizationOrder: [String] = []
     @Published private(set) var isLoading: Bool
     @Published private(set) var error: AppError?
     @Published private(set) var interactionError: AppError?
@@ -125,6 +133,7 @@ final class OrganizationsViewModel: ObservableObject {
 
     func resetForAuthChange() {
         authGeneration &+= 1
+        resolvedOrganizations = [:]; resolvedOrganizationOrder = []
         feedRevision &+= 1
         loadTask?.cancel()
         nextPageTask?.cancel()
@@ -159,11 +168,11 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func toggleLike(for organizationID: String) {
-        guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+        guard var organization = self.organization(for: organizationID) else { return }
         guard !pendingOrganizationLikeIDs.contains(organizationID) else { return }
-        let shouldLike = organizations[index].likeState == .notLiked
-        let previousLikeState = organizations[index].likeState
-        let previousLikeCount = organizations[index].likeCount
+        let shouldLike = organization.likeState == .notLiked
+        let previousLikeState = organization.likeState
+        let previousLikeCount = organization.likeCount
         let optimisticLikeState: LikeState = shouldLike ? .liked : .notLiked
         let optimisticLikeCount = max(0, previousLikeCount + (shouldLike ? 1 : -1))
         let generation = authGeneration
@@ -172,8 +181,9 @@ final class OrganizationsViewModel: ObservableObject {
 
         pendingOrganizationLikeIDs.insert(organizationID)
         interactionError = nil
-        organizations[index].likeState = optimisticLikeState
-        organizations[index].likeCount = optimisticLikeCount
+        organization.likeState = optimisticLikeState
+        organization.likeCount = optimisticLikeCount
+        replaceOrganization(organization)
         contentVersion &+= 1
 
         let task = Task { [weak self] in
@@ -193,13 +203,14 @@ final class OrganizationsViewModel: ObservableObject {
                 }
 
                 guard isCurrentAuthGeneration(generation),
-                      let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
-                if organizations[currentIndex].likeState == previousLikeState {
-                    organizations[currentIndex].likeState = optimisticLikeState
-                    organizations[currentIndex].likeCount = max(
+                      var currentOrganization = self.organization(for: organizationID) else { return }
+                if currentOrganization.likeState == previousLikeState {
+                    currentOrganization.likeState = optimisticLikeState
+                    currentOrganization.likeCount = max(
                         0,
-                        organizations[currentIndex].likeCount + (shouldLike ? 1 : -1)
+                        currentOrganization.likeCount + (shouldLike ? 1 : -1)
                     )
+                    replaceOrganization(currentOrganization)
                     contentVersion &+= 1
                 }
                 interactionError = nil
@@ -231,13 +242,12 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func toggleSubscription(for organizationID: String) {
-        guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+        guard var organization = self.organization(for: organizationID) else { return }
         guard !pendingOrganizationSubscriptionIDs.contains(organizationID) else { return }
-        let shouldSubscribe = !organizations[index].isSubscribed
-        let previousSubscriptionState = organizations[index].isSubscribed
-        let previousSubscriberCount = organizations[index].subscriberCount
+        let shouldSubscribe = !organization.isSubscribed
+        let previousSubscriptionState = organization.isSubscribed
+        let previousSubscriberCount = organization.subscriberCount
         let optimisticSubscriberCount = max(0, previousSubscriberCount + (shouldSubscribe ? 1 : -1))
-        let organization = organizations[index]
         let actionEvent = shouldSubscribe
             ? AppAnalyticsEvent.organizationFollow(organization: organization)
             : AppAnalyticsEvent.organizationUnfollow(organization: organization)
@@ -248,8 +258,9 @@ final class OrganizationsViewModel: ObservableObject {
 
         pendingOrganizationSubscriptionIDs.insert(organizationID)
         interactionError = nil
-        organizations[index].isSubscribed = shouldSubscribe
-        organizations[index].subscriberCount = optimisticSubscriberCount
+        organization.isSubscribed = shouldSubscribe
+        organization.subscriberCount = optimisticSubscriberCount
+        replaceOrganization(organization)
         contentVersion &+= 1
 
         let task = Task { [weak self] in
@@ -269,16 +280,16 @@ final class OrganizationsViewModel: ObservableObject {
                 }
 
                 guard isCurrentAuthGeneration(generation),
-                      let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
-                if organizations[currentIndex].isSubscribed == previousSubscriptionState {
-                    organizations[currentIndex].isSubscribed = shouldSubscribe
-                    organizations[currentIndex].subscriberCount = max(
+                      var currentOrganization = self.organization(for: organizationID) else { return }
+                if currentOrganization.isSubscribed == previousSubscriptionState {
+                    currentOrganization.isSubscribed = shouldSubscribe
+                    currentOrganization.subscriberCount = max(
                         0,
-                        organizations[currentIndex].subscriberCount + (shouldSubscribe ? 1 : -1)
+                        currentOrganization.subscriberCount + (shouldSubscribe ? 1 : -1)
                     )
+                    replaceOrganization(currentOrganization)
                     contentVersion &+= 1
                 }
-                let currentOrganization = organizations[currentIndex]
                 ActivityLogRecorder.recordOrganization(currentOrganization, actionType: shouldSubscribe ? .followedOrganization : .unfollowedOrganization)
                 analyticsService.track(actionEvent, actionCapture: actionCapture)
                 interactionError = nil
@@ -310,20 +321,20 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func toggleBookmark(for organizationID: String) {
-        guard let index = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
+        guard var organization = self.organization(for: organizationID) else { return }
         guard !pendingOrganizationBookmarkIDs.contains(organizationID) else { return }
-        let shouldBookmark = !organizations[index].isBookmarked
-        let organization = organizations[index]
+        let shouldBookmark = !organization.isBookmarked
         let actionEvent = AppAnalyticsEvent.organizationBookmark(organization: organization)
         let actionCapture = shouldBookmark ? analyticsService.actionCapture(for: actionEvent) : nil
-        let previousBookmarkState = organizations[index].isBookmarked
+        let previousBookmarkState = organization.isBookmarked
         let generation = authGeneration
         let requestFeedRevision = feedRevision
         let taskKey = "bookmark:\(organizationID)"
 
         pendingOrganizationBookmarkIDs.insert(organizationID)
         interactionError = nil
-        organizations[index].isBookmarked = shouldBookmark
+        organization.isBookmarked = shouldBookmark
+        replaceOrganization(organization)
         contentVersion &+= 1
 
         let task = Task { [weak self] in
@@ -343,12 +354,12 @@ final class OrganizationsViewModel: ObservableObject {
                 }
 
                 guard isCurrentAuthGeneration(generation),
-                      let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }) else { return }
-                if organizations[currentIndex].isBookmarked == previousBookmarkState {
-                    organizations[currentIndex].isBookmarked = shouldBookmark
+                      var currentOrganization = self.organization(for: organizationID) else { return }
+                if currentOrganization.isBookmarked == previousBookmarkState {
+                    currentOrganization.isBookmarked = shouldBookmark
+                    replaceOrganization(currentOrganization)
                     contentVersion &+= 1
                 }
-                let currentOrganization = organizations[currentIndex]
                 ActivityLogRecorder.recordOrganization(currentOrganization, actionType: shouldBookmark ? .savedOrganization : .unsavedOrganization)
                 if shouldBookmark {
                     analyticsService.track(actionEvent, actionCapture: actionCapture)
@@ -382,11 +393,13 @@ final class OrganizationsViewModel: ObservableObject {
     }
 
     func organization(for organizationID: String) -> Organization? {
-        return organizations.first(where: { $0.id == organizationID })
+        return organizations.first(where: { $0.id == organizationID }) ?? resolvedOrganizations[organizationID]
     }
 
     func applyContentVisibility(_ policy: ContentVisibilityPolicy) {
         visibilityPolicy = policy
+        resolvedOrganizations = Dictionary(uniqueKeysWithValues: policy.visibleOrganizations(Array(resolvedOrganizations.values)).map { ($0.id, $0) })
+        resolvedOrganizationOrder.removeAll { resolvedOrganizations[$0] == nil }
         organizations = policy.visibleOrganizations(organizations)
         organizationCommentsByID = organizationCommentsByID.mapValues(policy.visibleComments)
         contentVersion &+= 1
@@ -437,7 +450,8 @@ final class OrganizationsViewModel: ObservableObject {
             guard visibilityPolicy.visibleOrganizations([organization]).isEmpty == false else {
                 return nil
             }
-            organizations.upsertOrganizationByID(organization)
+            rememberResolvedOrganization(organization)
+            replaceOrganization(organization)
             contentVersion &+= 1
             error = nil
             return organization
@@ -446,6 +460,8 @@ final class OrganizationsViewModel: ObservableObject {
         } catch let appError as AppError {
             guard isCurrentAuthGeneration(generation) else { return nil }
             if appError == .notFound || appError == .permissionDenied {
+                resolvedOrganizations.removeValue(forKey: trimmedID)
+                resolvedOrganizationOrder.removeAll { $0 == trimmedID }
                 organizations.removeAll { $0.id == trimmedID }
             }
             error = appError
@@ -726,6 +742,8 @@ final class OrganizationsViewModel: ObservableObject {
 
     func removeDeletedOrganization(id: String) {
         guard id != Organization.systemOrganizationID else { return }
+        resolvedOrganizations.removeValue(forKey: id)
+        resolvedOrganizationOrder.removeAll { $0 == id }
         organizations.removeAll { $0.id == id }
         contentVersion &+= 1
     }
@@ -1103,9 +1121,18 @@ final class OrganizationsViewModel: ObservableObject {
         }
     }
 
+    private func rememberResolvedOrganization(_ organization: Organization) {
+        resolvedOrganizations[organization.id] = organization
+        resolvedOrganizationOrder.removeAll { $0 == organization.id }
+        resolvedOrganizationOrder.append(organization.id)
+        while resolvedOrganizationOrder.count > 40 {
+            resolvedOrganizations.removeValue(forKey: resolvedOrganizationOrder.removeFirst())
+        }
+    }
+
     private func replaceOrganization(_ organization: Organization) {
-        guard let index = organizations.firstIndex(where: { $0.id == organization.id }) else { return }
-        organizations[index] = organization
+        if resolvedOrganizations[organization.id] != nil { resolvedOrganizations[organization.id] = organization }
+        if let index = organizations.firstIndex(where: { $0.id == organization.id }) { organizations[index] = organization }
     }
 
     private func replaceOrganizationRequest(_ organization: Organization) {
@@ -1149,11 +1176,12 @@ final class OrganizationsViewModel: ObservableObject {
         requestFeedRevision: UInt
     ) {
         guard feedRevision == requestFeedRevision,
-              let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }),
-              organizations[currentIndex].likeState == optimisticState,
-              organizations[currentIndex].likeCount == optimisticCount else { return }
-        organizations[currentIndex].likeState = previousState
-        organizations[currentIndex].likeCount = max(0, previousCount)
+              var current = self.organization(for: organizationID),
+              current.likeState == optimisticState,
+              current.likeCount == optimisticCount else { return }
+        current.likeState = previousState
+        current.likeCount = max(0, previousCount)
+        replaceOrganization(current)
         contentVersion &+= 1
     }
 
@@ -1166,11 +1194,12 @@ final class OrganizationsViewModel: ObservableObject {
         requestFeedRevision: UInt
     ) {
         guard feedRevision == requestFeedRevision,
-              let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }),
-              organizations[currentIndex].isSubscribed == optimisticState,
-              organizations[currentIndex].subscriberCount == optimisticCount else { return }
-        organizations[currentIndex].isSubscribed = previousState
-        organizations[currentIndex].subscriberCount = max(0, previousCount)
+              var current = self.organization(for: organizationID),
+              current.isSubscribed == optimisticState,
+              current.subscriberCount == optimisticCount else { return }
+        current.isSubscribed = previousState
+        current.subscriberCount = max(0, previousCount)
+        replaceOrganization(current)
         contentVersion &+= 1
     }
 
@@ -1181,9 +1210,10 @@ final class OrganizationsViewModel: ObservableObject {
         requestFeedRevision: UInt
     ) {
         guard feedRevision == requestFeedRevision,
-              let currentIndex = organizations.firstIndex(where: { $0.id == organizationID }),
-              organizations[currentIndex].isBookmarked == optimisticState else { return }
-        organizations[currentIndex].isBookmarked = previousState
+              var current = self.organization(for: organizationID),
+              current.isBookmarked == optimisticState else { return }
+        current.isBookmarked = previousState
+        replaceOrganization(current)
         contentVersion &+= 1
     }
 

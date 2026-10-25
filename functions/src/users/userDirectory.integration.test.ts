@@ -27,6 +27,14 @@ test("directory searches, filters and sorts the entire dataset with stable pages
  assert.equal(new Set(seen).size,137);assert.equal(seen[0],`${prefix}-136`);
  assert.equal((await list({sort:"oldest"})).userIds![0],`${prefix}-000`);
  assert.equal((await list({sort:"nameAscending"})).userIds![0],`${prefix}-000`);
+ for (const sort of ["newest", "oldest", "nameAscending", "nameDescending"]) {
+   const all:string[]=[];let next:string|null|undefined;
+   do { const page=await list({sort,cursor:next});all.push(...page.userIds!);next=page.cursor; } while(next);
+   const ascending=sort === "oldest" || sort === "nameAscending";
+   const expected=Array.from({length:137},(_,i)=>`${prefix}-${String(ascending ? i : 136-i).padStart(3,"0")}`);
+   assert.deepEqual(all,expected,sort);
+ }
+
  assert.equal((await list({filter:"banned"})).totalMatches,1);
  assert.equal((await list({region:"tirol"})).totalMatches,68);
  assert.equal((await list({query:"",region:"wien",sort:"oldest"})).userIds![0],`${prefix}-000`);
@@ -35,6 +43,22 @@ test("directory searches, filters and sorts the entire dataset with stable pages
  const page=await list();await assert.rejects(list({cursor:page.cursor,region:"wien"}),{code:"invalid-argument"});
  await assert.rejects(manageUserDirectory.run(request({action:"list",principalId:"other"})),{code:"permission-denied"});
  await assert.rejects(manageUserDirectory.run({data:{action:"list"}} as never),{code:"unauthenticated"});
+});
+test("equal timestamps and names keep stable identity order across all four paged sorts",{skip:!enabled},async()=>{
+ const batch=db.batch();const expected:string[]=[];
+ for(let i=0;i<41;i++) {
+   const uid=`${prefix}-tie-${String(i).padStart(3,"0")}`;expected.push(uid);refs.push(`users/${uid}`);
+   batch.set(db.doc(`users/${uid}`),{displayName:"Equal name",fullName:"tiefixture",createdAt:new Timestamp(20,123),accountStatus:"active"});
+ }
+ await batch.commit();
+ for(const sort of ["newest","oldest","nameAscending","nameDescending"]) {
+   const found:string[]=[];let cursor:string|null|undefined;
+   do {
+     const page=await manageUserDirectory.run(request({action:"list",principalId:actor,query:"tiefixture",sort,cursor}));
+     assert.equal(page.totalMatches,41);found.push(...page.userIds!);cursor=page.cursor;
+   } while(cursor);
+   assert.deepEqual(found,expected,sort);
+ }
 });
 test("organization roles include archived/draft memberships; choice picker returns only allowed actionable organizations",{skip:!enabled},async()=>{
  const uid=`${prefix}-member`;

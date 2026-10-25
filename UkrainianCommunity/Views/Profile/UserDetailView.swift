@@ -247,7 +247,7 @@ struct UserDetailView: View {
                     if let message = viewModel.statusMessage {
                         UserManagementOperationMessage(message: message)
                     }
-                    if viewModel.error != nil {
+                    if viewModel.error != nil && !viewModel.failedDetailUserIDs.contains(userID) {
                         InlineMessageCard(style: .error, message: AppStrings.UserManagement.refreshFailed)
                             .accessibilityIdentifier("user.detail.refreshError")
                     }

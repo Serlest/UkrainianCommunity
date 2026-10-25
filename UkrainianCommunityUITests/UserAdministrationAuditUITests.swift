@@ -76,7 +76,7 @@ import XCTest
         XCTAssertTrue(retry.waitForExistence(timeout: 8))
         XCTAssertTrue(app.descendants(matching: .any)["user.audit.item.audit-0"].exists)
         capture(app, "user-audit-failed-next-page-retains-records")
-        reveal(retry, app); retry.tap()
+        reveal(retry, app); capture(app, "user-audit-retry-error-visible"); retry.tap()
         XCTAssertTrue(app.descendants(matching: .any)["user.audit.item.audit-39"].waitForExistence(timeout: 8))
         reveal(more, app); more.tap()
         let last = app.descendants(matching: .any)["user.audit.item.audit-44"].firstMatch
@@ -120,6 +120,9 @@ import XCTest
 
     func testSlowLoadAndReturnKeepDirectoryQuery() {
         let app = launch(language: "uk", mode: "slow")
+        let back = app.buttons["navigation.back"].firstMatch
+        let settled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "frame.origin.x < 30"), object: back)
+        XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 4), .completed)
         capture(app, "user-directory-initial-loading")
         let search = app.textFields["userManagement.search"].firstMatch
         reveal(search, app); search.tap(); search.typeText("audit-member")
@@ -143,6 +146,25 @@ import XCTest
             capture(app, "user-management-hidden-for-" + role)
             app.terminate()
         }
+    }
+
+    func testInitialDirectoryAndDetailFailuresCanRetryWithoutActionableStaleData() {
+        let directory = launch(language: "uk", mode: "directory-error")
+        let retry = directory.buttons["Спробувати ще раз"].firstMatch
+        XCTAssertTrue(retry.waitForExistence(timeout: 10)); capture(directory, "user-directory-initial-error")
+        retry.tap()
+        let row = directory.descendants(matching: .any)["userManagement.user.audit-member"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10)); directory.terminate()
+        let detail = launch(language: "uk", mode: "detail-error")
+        openUser("audit-member", detail)
+        let detailRetry = detail.buttons["user.detail.retry"].firstMatch
+        XCTAssertTrue(detailRetry.waitForExistence(timeout: 10))
+        XCTAssertFalse(detail.descendants(matching: .any)["user.detail.refreshError"].exists, "The same profile error must not appear twice")
+        let warning = detail.buttons["user.detail.accountAction.warningIssued"].firstMatch
+        XCTAssertFalse(warning.isEnabled); capture(detail, "user-detail-error-disables-actions")
+        reveal(detailRetry, detail); detailRetry.tap()
+        XCTAssertTrue(detailRetry.waitForNonExistence(timeout: 10))
+        reveal(warning, detail); XCTAssertTrue(warning.isEnabled); capture(detail, "user-detail-retry-confirms-current-target")
     }
 
     private func launch(language: String, maximum: Bool = false, mode: String = "normal", role: String = "owner", openManagement: Bool = true) -> XCUIApplication {

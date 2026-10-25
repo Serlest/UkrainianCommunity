@@ -26,6 +26,19 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertEqual(result.user.uid, "closure-\(role)")
     }
 
+    func testManagedUserOrganizationNoticeTargetLoadsWithCurrentMembership() async throws {
+        try await signIn("member")
+        defer { try? Auth.auth().signOut() }
+        let repository = FirestoreOrganizationRepository(sessionDataCache: SessionDataCache())
+        let value = try await RefreshRequest.run(timeout: .seconds(10)) {
+            try await repository.fetchOrganization(id: "users-audit-org")
+        }
+        XCTAssertEqual(value.id, "users-audit-org")
+        XCTAssertEqual(value.name, "User Administration Audit Organization")
+        XCTAssertEqual(value.localizedName, "User Administration Audit Organization")
+        XCTAssertEqual(value.ownerId, "closure-member")
+    }
+
     func testActualProviderLinkRetainsIdentityRejectsDuplicateAndOtherAccountThenRestoresFixture() async throws {
         try await signIn("member")
         defer { try? Auth.auth().signOut() }

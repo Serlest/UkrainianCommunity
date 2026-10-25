@@ -170,6 +170,56 @@ struct ContentInteractionRaceTests {
         #expect(model.post(for: post.id)?.id == post.id)
     }
 
+    @Test func organizationOpenedOutsideFeedSurvivesFeedReplacementWithoutPollutingIt() async {
+        let repository = ControlledOrganizationRepository()
+        let model = OrganizationsViewModel(repository: repository)
+        let linked = makeOrganization(id: "linked-not-in-page")
+        repository.organizations = [linked]
+        #expect(await model.resolveOrganization(id: linked.id)?.id == linked.id)
+        #expect(model.organizations.isEmpty)
+        model.organizations = [makeOrganization(id: "current-feed")]
+        #expect(model.organization(for: linked.id)?.id == linked.id)
+        model.resetForAuthChange()
+        #expect(model.organization(for: linked.id) == nil)
+    }
+
+    @Test func interactionsForLinkedOrganizationUpdateOnlyItsDetailCacheAndRespectFailure() async {
+        let repository = ControlledOrganizationRepository()
+        let model = OrganizationsViewModel(repository: repository)
+        let linked = makeOrganization(id: "linked-interactions")
+        repository.organizations = [linked]
+        _ = await model.resolveOrganization(id: linked.id)
+        model.toggleLike(for: linked.id)
+        #expect(await eventually { repository.likeRequestCount == 1 })
+        #expect(model.organization(for: linked.id)?.likeState == .liked)
+        #expect(model.organizations.isEmpty)
+        repository.completeLikeRequest(1, error: .network)
+        #expect(await eventually { model.pendingOrganizationLikeIDs.isEmpty })
+        #expect(model.organization(for: linked.id)?.likeState == .notLiked)
+        model.toggleSubscription(for: linked.id)
+        #expect(await eventually { model.pendingOrganizationSubscriptionIDs.isEmpty })
+        #expect(model.organization(for: linked.id)?.isSubscribed == true)
+        model.toggleBookmark(for: linked.id)
+        #expect(await eventually { model.pendingOrganizationBookmarkIDs.isEmpty })
+        #expect(model.organization(for: linked.id)?.isBookmarked == true)
+        #expect(model.organizations.isEmpty)
+        model.removeDeletedOrganization(id: linked.id)
+        #expect(model.organization(for: linked.id) == nil)
+    }
+
+    @Test func linkedOrganizationCacheIsBoundedAndDeniedReadsRemoveResolvedData() async {
+        let repository = ControlledOrganizationRepository()
+        let model = OrganizationsViewModel(repository: repository)
+        repository.organizations = (0..<41).map { makeOrganization(id: "linked-cache-\($0)") }
+        for value in repository.organizations { _ = await model.resolveOrganization(id: value.id) }
+        #expect(model.organizations.isEmpty)
+        #expect(model.organization(for: "linked-cache-0") == nil)
+        #expect(model.organization(for: "linked-cache-40") != nil)
+        repository.detailFailure = .permissionDenied
+        #expect(await model.resolveOrganization(id: "linked-cache-40", force: true) == nil)
+        #expect(model.organization(for: "linked-cache-40") == nil)
+    }
+
     @Test func forcedOrganizationDetailRefreshBypassesCacheWithoutReplacingFeed() async {
         let repository = ControlledOrganizationRepository()
         let model = OrganizationsViewModel(repository: repository)
