@@ -168,10 +168,10 @@ struct UserManagementView: View {
         }
         .task(id: "\(actorLoadKey)|\(normalizedSearch)|\(selectedRegion ?? "all")|\(selectedFilter.rawValue)|\(sortOption.rawValue)") {
             if viewModel.usesDirectory {
-                viewModel.prepareDirectory()
+                viewModel.prepareDirectory(actor: actor, query: directoryQuery)
                 try? await Task.sleep(for: .milliseconds(searchText.isEmpty ? 0 : 350))
                 guard !Task.isCancelled else { return }
-                await viewModel.loadDirectory(actor: actor, query: directoryQuery)
+                await viewModel.ensureDirectory(actor: actor, query: directoryQuery)
                 return
             }
             guard normalizedSearch.count >= 2 || selectedRegion != nil else {
@@ -338,7 +338,10 @@ struct UserManagementView: View {
 
     @ViewBuilder
     private var contentList: some View {
-        if viewModel.isSearching {
+        if viewModel.usesDirectory && (!viewModel.isDirectoryCurrent(actor: actor, query: directoryQuery) || !viewModel.directoryHasLoaded && viewModel.error == nil) {
+            LoadingStateCard(title: AppStrings.UserManagement.title)
+                .accessibilityIdentifier("userManagement.loading")
+        } else if viewModel.isSearching {
             LoadingStateCard(title: AppStrings.UserManagement.searching)
         } else if (normalizedSearch.count >= 2 || selectedRegion != nil) && viewModel.searchFailed {
             UnifiedEmptyStateCard(systemImage: "exclamationmark.triangle", title: AppStrings.UserManagement.title,

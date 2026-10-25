@@ -248,34 +248,88 @@ final class UserManagementViewModel: ObservableObject {
     private var organizationQuery = ""
     private var organizationGeneration = UUID()
 
-    func prepareDirectory() { directoryGeneration = UUID(); users = []; directoryCursor = nil; isLoading = true; isLoadingMore = false; error = nil }
+    @Published private(set) var directoryHasLoaded = false
+    @Published private(set) var unavailableUserIDs = Set<String>()
+    private var directoryRequest: Task<Void, Never>?
+    private var directoryRequestKey: String?
+
+    func isDirectoryCurrent(actor: AppUser?, query: UserDirectoryQuery) -> Bool {
+        managementActorKey(for: actor) == loadedActorKey && directoryQuery == query
+    }
+
+    /// Preserve confirmed pages until a different actor/query is actually selected.
+    func prepareDirectory() {
+        isLoading = !directoryHasLoaded
+    }
+
+    func prepareDirectory(actor: AppUser?, query: UserDirectoryQuery) {
+        let key = managementActorKey(for: actor)
+        if key != loadedActorKey { reset(for: key) }
+        guard key != nil else { return }
+        if directoryQuery != query {
+            directoryGeneration = UUID()
+            directoryRequest?.cancel(); directoryRequest = nil; directoryRequestKey = nil
+            directoryQuery = query; users = []; directoryCursor = nil; directoryTotal = 0
+            directoryHasLoaded = false; error = nil; isLoadingMore = false
+        }
+        prepareDirectory()
+    }
+
+    func ensureDirectory(actor: AppUser?, query: UserDirectoryQuery) async {
+        prepareDirectory(actor: actor, query: query)
+        guard !directoryHasLoaded else { return }
+        await loadDirectory(actor: actor, query: query)
+    }
 
     func loadDirectory(actor: AppUser?, query: UserDirectoryQuery, more: Bool = false) async {
+        prepareDirectory(actor: actor, query: query)
         let actorKey = managementActorKey(for: actor)
-        if actorKey != loadedActorKey { reset(for: actorKey) }
         guard let actor, actorKey != nil, let fetch = reads.directory else { return }
-        if more { guard query == directoryQuery, directoryCursor != nil, !isLoading, !isLoadingMore else { return } }
-        else { directoryGeneration = UUID(); directoryCursor = nil; if query != directoryQuery { users = [] }; directoryQuery = query }
-        let generation = directoryGeneration
         let after = more ? directoryCursor : nil
-        if more { isLoadingMore = true } else { isLoading = true }
-        error = nil
-        defer { if generation == directoryGeneration { isLoading = false; isLoadingMore = false } }
-        do {
-            let page = try await RefreshRequest.run { try await fetch(actor.id, query, after) }
-            guard generation == directoryGeneration, actorKey == loadedActorKey, !Task.isCancelled else { return }
-            let ids = Set(users.map(\.id))
-            users = more ? users + page.users.filter { !ids.contains($0.id) } : page.users
-            for user in page.users { detailUsersByID.removeValue(forKey: user.id) }
-            for org in page.organizations { if let i = organizations.firstIndex(where: { $0.id == org.id }) { organizations[i] = org } else { organizations.append(org) } }
-            organizationsLoaded = true
-            directoryTotal = page.total; directoryCursor = page.cursor
-            if query.search.isEmpty && query.region == nil && query.filter == "all" { totalRegisteredUsers = page.total }
-            else if totalRegisteredUsers == nil { await refreshTotalCount(session: sessionRevision, revision: refreshRevision) }
-        } catch {
-            guard generation == directoryGeneration, actorKey == loadedActorKey, !Task.isCancelled else { return }
-            self.error = .network
+        if more, after == nil { return }
+        let requestKey = [actorKey!, query.search, query.region ?? "", query.filter, query.sort, after ?? "first"].joined(separator: "\u{0}")
+        if let directoryRequest, requestKey == directoryRequestKey {
+            await directoryRequest.value
+            return
         }
+        if more, directoryRequest != nil { return }
+        directoryRequest?.cancel()
+        directoryGeneration = UUID()
+        let generation = directoryGeneration
+        directoryRequestKey = requestKey
+        if more { isLoadingMore = true } else { isLoading = true; isLoadingMore = false }
+        error = nil
+        let task = Task { [self] in
+            defer {
+                if generation == directoryGeneration {
+                    isLoading = false; isLoadingMore = false
+                    directoryRequest = nil; directoryRequestKey = nil
+                }
+            }
+            do {
+                let page = try await RefreshRequest.run { try await fetch(actor.id, query, after) }
+                guard generation == directoryGeneration, actorKey == loadedActorKey, !Task.isCancelled else { return }
+                var ids = Set(more ? users.map(\.id) : [])
+                let newUsers = page.users.filter { ids.insert($0.id).inserted }
+                users = more ? users + newUsers : newUsers
+                for user in page.users { detailUsersByID.removeValue(forKey: user.id); unavailableUserIDs.remove(user.id) }
+                for org in page.organizations {
+                    if let i = organizations.firstIndex(where: { $0.id == org.id }) { organizations[i] = org }
+                    else { organizations.append(org) }
+                }
+                organizationsLoaded = true; directoryHasLoaded = true
+                directoryTotal = page.total; directoryCursor = page.cursor
+                if query.search.isEmpty && query.region == nil && query.filter == "all" { totalRegisteredUsers = page.total }
+                else if totalRegisteredUsers == nil { await refreshTotalCount(session: sessionRevision, revision: refreshRevision) }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard generation == directoryGeneration, actorKey == loadedActorKey, !Task.isCancelled else { return }
+                self.error = .network
+            }
+        }
+        directoryRequest = task
+        await task.value
     }
 
     func loadOrganizationChoices(actor: AppUser?, search: String = "", more: Bool = false) async {
@@ -300,8 +354,9 @@ final class UserManagementViewModel: ObservableObject {
         do {
             let items = try await RefreshRequest.run { try await fetch(actor.id, userID) }
             guard session == sessionRevision, !Task.isCancelled else { return }
-            organizations.removeAll { $0.role(for: userID) != nil }
-            organizations += items.filter { item in !organizations.contains { $0.id == item.id } }
+            let refreshedIDs = Set(items.map(\.id))
+            organizations.removeAll { $0.role(for: userID) != nil || refreshedIDs.contains($0.id) }
+            organizations += items
             organizationsLoaded = true
         } catch { guard session == sessionRevision else { return }; self.error = .network }
     }
@@ -782,10 +837,14 @@ final class UserManagementViewModel: ObservableObject {
             let refreshedUser = try await RefreshRequest.run(deadline: detailReadDeadline) { [reads] in try await reads.user(id) }
             guard session == sessionRevision, revision == detailRevisions[id], !Task.isCancelled else { return }
             guard let refreshedUser else {
+                unavailableUserIDs.insert(id)
+                detailUsersByID.removeValue(forKey: id)
+                users.removeAll { $0.id == id }; searchResults.removeAll { $0.id == id }
                 self.error = .notFound
                 if afterMutation { statusMessage = AppStrings.UserManagement.changesSavedRefreshFailed }
                 return
             }
+            unavailableUserIDs.remove(id)
             if let index = users.firstIndex(where: { $0.id == id }) { users[index] = refreshedUser }
             detailUsersByID[id] = refreshedUser
             if let index = searchResults.firstIndex(where: { $0.id == id }) { searchResults[index] = refreshedUser }
@@ -1013,6 +1072,8 @@ final class UserManagementViewModel: ObservableObject {
     private func reset(for actorKey: String?) {
         loadedActorKey = actorKey
         directoryGeneration = UUID(); directoryQuery = nil; directoryCursor = nil; directoryTotal = 0
+        directoryRequest?.cancel(); directoryRequest = nil; directoryRequestKey = nil
+        directoryHasLoaded = false; unavailableUserIDs = []
         organizationGeneration = UUID(); organizationChoices = []; organizationCursor = nil; isLoadingOrganizations = false
         sessionRevision &+= 1
         refreshRevision &+= 1

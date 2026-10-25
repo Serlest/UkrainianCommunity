@@ -59,6 +59,75 @@ import Testing
         #expect(model.users.map(\.id) == ["new"]);#expect(model.directoryCursor == nil)
         await model.loadDirectory(actor:nil,query:.init());#expect(model.users.isEmpty)
     }
+    @Test func failedRefreshKeepsConfirmedRowsAndNextPageCursor() async {
+        let owner = MockContentBuilder.ownerUser()
+        var reader = reads(); var fails = false; var requested: [String?] = []
+        reader.directory = { _, _, cursor in
+            requested.append(cursor)
+            if fails { throw AppError.network }
+            return .init(users: [self.user(cursor == nil ? "first" : "second")], organizations: [], total: 2, cursor: cursor == nil ? "next-page" : nil)
+        }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        fails = true
+        await model.loadDirectory(actor: owner, query: .init())
+        #expect(model.users.map(\.id) == ["first"])
+        #expect(model.directoryCursor == "next-page")
+        fails = false
+        await model.loadDirectory(actor: owner, query: .init(), more: true)
+        #expect(requested.last! == "next-page")
+        #expect(model.users.map(\.id) == ["first", "second"])
+    }
+    @Test func preparingSameDirectoryDoesNotEraseConfirmedPage() async {
+        var reader = reads()
+        reader.directory = { _, _, _ in .init(users: [self.user("confirmed")], organizations: [], total: 2, cursor: "next") }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: MockContentBuilder.ownerUser(), query: .init())
+        model.prepareDirectory()
+        #expect(model.users.map(\.id) == ["confirmed"])
+        #expect(model.directoryCursor == "next")
+    }
+    @Test func duplicateDirectoryRefreshesShareOneRequestAndBothAwaitIt() async {
+        var reader = reads(); var calls = 0
+        var releases: [CheckedContinuation<UserDirectoryPage, Never>] = []
+        reader.directory = { _, _, _ in
+            calls += 1
+            return await withCheckedContinuation { releases.append($0) }
+        }
+        let model = UserManagementViewModel(reads: reader); let owner = MockContentBuilder.ownerUser()
+        let first = Task { await model.loadDirectory(actor: owner, query: .init()) }
+        while calls < 1 { await Task.yield() }
+        let second = Task { await model.loadDirectory(actor: owner, query: .init()) }
+        for _ in 0..<30 { await Task.yield() }
+        #expect(calls == 1)
+        let page = UserDirectoryPage(users: [user("shared")], organizations: [], total: 1, cursor: nil)
+        for release in releases { release.resume(returning: page) }
+        await first.value; await second.value
+        #expect(model.users.map(\.id) == ["shared"])
+    }
+    @Test func deletedDetailIsRemovedFromConfirmedCachedUsers() async {
+        var reader = reads()
+        reader.directory = { _, _, _ in .init(users: [self.user("deleted")], organizations: [], total: 1, cursor: nil) }
+        reader.memberships = { _, _ in [] }
+        reader.user = { _ in nil }
+        let model = UserManagementViewModel(reads: reader); let owner = MockContentBuilder.ownerUser()
+        await model.loadDirectory(actor: owner, query: .init())
+        await model.refreshDetail(userID: "deleted", actor: owner)
+        #expect(model.user(withID: "deleted") == nil)
+        #expect(model.error == .notFound)
+    }
+    @Test func freshMembershipReplacesAlreadyKnownOrganizationInsteadOfDroppingUpdate() async {
+        let owner = MockContentBuilder.ownerUser(); var reader = reads()
+        let old = ManagedOrganization(id: "shared", name: "Before", city: "", logoURL: nil, ownerId: owner.id, adminIds: [], moderatorIds: [])
+        let updated = ManagedOrganization(id: "shared", name: "After", city: "", logoURL: nil, ownerId: owner.id, adminIds: ["member"], moderatorIds: [])
+        reader.directory = { _, _, _ in .init(users: [self.user("member")], organizations: [old], total: 1, cursor: nil) }
+        reader.memberships = { _, _ in [updated] }
+        let model = UserManagementViewModel(reads: reader)
+        await model.loadDirectory(actor: owner, query: .init())
+        await model.loadMemberships(userID: "member", actor: owner)
+        #expect(model.organizationRoles(for: user("member")).map(\.organization.name) == ["After"])
+        #expect(model.organizations.count == 1)
+    }
     @Test func organizationChoicesAreOnDemandAndPaginated() async {
         let owner=MockContentBuilder.ownerUser();var reader=reads();var calls=0
         reader.directory={_,_,_ in .init(users:[self.user("member")],organizations:[],total:1,cursor:nil)}
