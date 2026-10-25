@@ -4,6 +4,8 @@ import FirebaseCore
 import FirebaseFirestore
 import FirebaseFunctions
 import CryptoKit
+import FirebaseStorage
+import UIKit
 @testable import UkrainianCommunity
 
 /// Connected repository/Functions checks, never run against a production project.
@@ -84,6 +86,44 @@ final class AuditClosureSDKTests: XCTestCase {
         try await FirestoreActivityLogRepository().deleteActivity(id: "closure-process-outbox", userID: "closure-member")
         UserDefaults.standard.removeObject(forKey: "audit.closure.outbox.writerPID")
         try Auth.auth().signOut()
+    }
+
+    func testProfileAvatarUploadAssociationReopenAndCrossAccountDenial() async throws {
+        try await signIn("member")
+        defer { try? Auth.auth().signOut() }
+        let original = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-member")
+        let image = UIGraphicsImageRenderer(size: .init(width: 640, height: 640)).image { context in
+            UIColor.systemBlue.setFill(); context.fill(.init(x: 0, y: 0, width: 640, height: 640))
+            UIColor.systemYellow.setFill(); context.fill(.init(x: 0, y: 320, width: 640, height: 320))
+        }
+        let bytes = try XCTUnwrap(image.jpegData(compressionQuality: 0.8))
+        let url = try await ImageUploadService.shared.uploadProfileAvatarImage(data: bytes, userID: "closure-member")
+        XCTAssertEqual(url.host, "firebasestorage.googleapis.com")
+        XCTAssertTrue(url.absoluteString.contains("ukrainiancommunity-dbd5f.firebasestorage.app"))
+        XCTAssertTrue(url.absoluteString.contains("profileImages%2Fclosure-member%2Favatar.jpg"))
+        func draft(avatar: URL?) -> EditableUserProfileDraft {
+            .init(fullName: original.fullName, displayName: original.displayName,
+                  telegramUsername: original.telegramUsername, city: original.city, bio: original.bio,
+                  selectedFederalState: original.selectedFederalState ?? .tirol, avatarURL: avatar)
+        }
+        _ = try await FirestoreUserRepository().updateProfile(draft(avatar: url))
+        let stored = try await Firestore.firestore().document("users/closure-member").getDocument(source: .server)
+        XCTAssertEqual(stored.get("avatarURL") as? String, url.absoluteString)
+        let reference = Storage.storage().reference().child("profileImages/closure-member/avatar.jpg")
+        let metadata = try await reference.getMetadata()
+        XCTAssertEqual(metadata.contentType, "image/jpeg")
+        let downloaded = try await reference.data(maxSize: 3_000_000)
+        XCTAssertNotNil(UIImage(data: downloaded))
+        try await signIn("other")
+        do {
+            _ = try await ImageUploadService.shared.uploadProfileAvatarImage(data: bytes, userID: "closure-member")
+            XCTFail("Another member must not replace a profile avatar")
+        } catch { XCTAssertEqual((error as NSError).code, StorageErrorCode.unauthorized.rawValue) }
+        try await signIn("member")
+        let reopened = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-member")
+        XCTAssertEqual(reopened.avatarURL, url)
+        _ = try await FirestoreUserRepository().updateProfile(draft(avatar: original.avatarURL))
+        try await reference.delete()
     }
 
     func testBilingualNewsEditorPersistsFullPayloadThroughActualRepository() async throws {

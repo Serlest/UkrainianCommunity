@@ -90,5 +90,6 @@ struct DirectorySymbolPicker: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("directory.symbol." + symbol)
     }
 }

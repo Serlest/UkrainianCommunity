@@ -81,7 +81,10 @@ struct ContentTranslationButton: View {
             }.appActionButtonStyle(.secondary)
                 .disabled(busy || !hasAccessContext || fields.allSatisfy { $0.source.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
                 .accessibilityIdentifier("translation.\(kind)")
-            Text(EditorTranslationStrings.hint).font(.caption).foregroundStyle(AppTheme.textSecondary)
+            Text(EditorTranslationStrings.hint)
+                .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
             if let error { InlineMessageCard(style: .error, message: error) }
         }
         .sheet(item: $preview) { draft in

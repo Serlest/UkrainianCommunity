@@ -3,11 +3,15 @@ import SwiftUI
 struct DirectorySectionEditorView: View {
     @AppStorage("selectedAppLanguage") private var languageCode = AppLanguage.stored.rawValue
     @Binding var section: DirectoryManagedSection
-    @State private var contactRowIDs: [UUID]
+    private struct ContactDraft: Identifiable {
+        let id = UUID()
+        var content: DirectoryManagedContact
+    }
+    @State private var contactDrafts: [ContactDraft]
 
     init(section: Binding<DirectoryManagedSection>) {
         _section = section
-        _contactRowIDs = State(initialValue: section.wrappedValue.contacts.map { _ in UUID() })
+        _contactDrafts = State(initialValue: section.wrappedValue.contacts.map { ContactDraft(content: $0) })
     }
 
     var body: some View {
@@ -54,51 +58,74 @@ struct DirectorySectionEditorView: View {
                     .keyboardType(.phonePad)
             }
             Section(DirectoryEditorText.value("Екстрені контакти", "Notrufkontakte")) {
-                ForEach(Array(contactRowIDs.enumerated()), id: \.element) { index, _ in
+                ForEach(Array(contactDrafts.enumerated()), id: \.element.id) { index, draft in
+                    let contact = contactBinding(for: draft)
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(DirectoryEditorText.value("Контакт", "Kontakt"))
                                 .font(.subheadline.weight(.semibold))
                             Spacer()
                             Button(role: .destructive) {
-                                section.contacts.remove(at: index)
-                                contactRowIDs.remove(at: index)
+                                contactDrafts.removeAll { $0.id == draft.id }
+                                synchronizeContacts()
                             } label: {
                                 Image(systemName: "trash")
                             }
                             .accessibilityLabel(DirectoryEditorText.value("Видалити контакт", "Kontakt löschen"))
+                            .accessibilityIdentifier("directory.contact.remove." + String(index))
                             .buttonStyle(.borderless)
                         }
                         TextField(DirectoryEditorText.value("Номер", "Nummer"),
-                                  text: $section.contacts[index].number)
+                                  text: contact.number)
+                            .accessibilityIdentifier("directory.contact.number." + String(index))
                             .keyboardType(.phonePad)
                         DirectoryTranslationControls(inputs: [
-                            .init(.contactTitle, $section.contacts[index].title),
-                            .init(.contactDetail, $section.contacts[index].detail)
+                            .init(.contactTitle, contact.title),
+                            .init(.contactDetail, contact.detail)
                         ])
                         DirectoryBilingualFields(
                             field: .contactTitle,
-                            text: $section.contacts[index].title
+                            text: contact.title
                         )
                         DirectoryBilingualFields(
                             field: .contactDetail,
-                            text: $section.contacts[index].detail
+                            text: contact.detail
                         )
                     }
                 }
                 Button {
-                    section.contacts.append(.init(
+                    contactDrafts.append(ContactDraft(content: .init(
                         number: "", title: .init(ukrainian: "", german: ""),
                         detail: .init(ukrainian: "", german: "")
-                    ))
-                    contactRowIDs.append(UUID())
+                    )))
+                    synchronizeContacts()
                 } label: {
                     Label(DirectoryEditorText.value("Додати контакт", "Kontakt hinzufügen"),
                           systemImage: "plus")
                 }
+                .accessibilityIdentifier("directory.contact.add")
             }
         }
         .directoryEditorChrome()
         .navigationTitle(DirectoryEditorText.value("Блок інформації", "Informationsabschnitt"))
     }
+
+    // Keep row identity and edited value in the same state. Two separate arrays
+    // can be observed between their updates; stale index bindings can also
+    // outlive a removed row during SwiftUI's Form diff.
+    private func contactBinding(for draft: ContactDraft) -> Binding<DirectoryManagedContact> {
+        Binding(
+            get: { contactDrafts.first { $0.id == draft.id }?.content ?? draft.content },
+            set: { value in
+                guard let index = contactDrafts.firstIndex(where: { $0.id == draft.id }) else { return }
+                contactDrafts[index].content = value
+                synchronizeContacts()
+            }
+        )
+    }
+
+    private func synchronizeContacts() {
+        section.contacts = contactDrafts.map(\.content)
+    }
+
 }

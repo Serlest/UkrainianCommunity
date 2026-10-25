@@ -3,6 +3,7 @@ import XCTest
 /// Real UI and actual SDK graph against the fixed demo emulators; no fixture roles/repositories.
 @MainActor
 final class ConnectedAuditUITests: XCTestCase {
+    private let directoryUIFixtureID = "custom-" + UUID().uuidString.lowercased()
     override func setUpWithError() throws { continueAfterFailure = false }
 
     func testMemberBookmarkThroughUIAndReopenAfterProcessRestart() throws {
@@ -28,15 +29,19 @@ final class ConnectedAuditUITests: XCTestCase {
         XCTAssertTrue(bookmark.waitForExistence(timeout: 10))
     }
 
-    func testActualPhotoPickerCropCancelAndApplyPreserveEditor() throws {
-        try photoJourney(language: "uk", appearance: "light", large: false)
+    func testActualPhotoPickerCropCancelAndApplyPreserveEditor() async throws {
+        try await photoJourney(language: "uk", appearance: "light", large: false)
     }
 
-    func testActualPhotoPickerGermanDarkAtAccessibilitySize() throws {
-        try photoJourney(language: "de", appearance: "dark", large: true)
+    func testActualPhotoPickerGermanDarkAtAccessibilitySize() async throws {
+        try await photoJourney(language: "de", appearance: "dark", large: true)
     }
 
-    private func photoJourney(language: String, appearance: String, large: Bool) throws {
+    func testConnectedPhotoSelectionUploadSaveAndProcessReopen() async throws {
+        try await photoJourney(language: "uk", appearance: "light", large: false, save: true)
+    }
+
+    private func photoJourney(language: String, appearance: String, large: Bool, save: Bool = false) async throws {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
             throw XCTSkip("Requires local audit emulator and simulator photo fixture")
         }
@@ -70,8 +75,26 @@ final class ConnectedAuditUITests: XCTestCase {
         XCTAssertTrue(apply.waitForNonExistence(timeout: 15))
         XCTAssertTrue(app.buttons["profile.edit.save"].isEnabled)
         capture(app, "sdk-profile-cropped-preview-" + language + "-" + appearance)
-        // Upload/persistence is a separate SDK journey; terminating discards the
-        // unsaved crop here and never changes a production profile.
+        if save {
+            app.buttons["profile.edit.save"].tap()
+            XCTAssertTrue(picker.waitForNonExistence(timeout: 30))
+            let document = try await readDemoDocument("users/closure-member")
+            let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+            let url = try XCTUnwrap(fields["avatarURL"]?["stringValue"] as? String)
+            var local = try XCTUnwrap(URLComponents(string: url))
+            XCTAssertEqual(local.host, "firebasestorage.googleapis.com")
+            XCTAssertTrue(local.percentEncodedPath.contains("profileImages%2Fclosure-member%2Favatar.jpg"))
+            local.scheme = "http"; local.host = "127.0.0.1"; local.port = 29199
+            let (data, response) = try await URLSession.shared.data(from: try XCTUnwrap(local.url))
+            XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+            XCTAssertEqual(data.prefix(2), Data([0xff, 0xd8]))
+            app.terminate(); app.launch()
+            XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
+            app.tabBars.buttons.element(boundBy: 4).tap()
+            XCTAssertTrue(app.buttons["profile.edit.open"].waitForExistence(timeout: 10))
+            capture(app, "sdk-profile-photo-after-process-restart")
+        }
+        // Both branches are pinned to the isolated demo environment.
         app.terminate()
     }
 
@@ -254,6 +277,261 @@ final class ConnectedAuditUITests: XCTestCase {
         app.terminate()
     }
 
+    func testConnectedDirectoryOutlineSymbolGroupVisibilityOrderingAndDeletion() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires isolated emulator fixtures")
+        }
+        try await prepareDirectoryUIFixture()
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 3).tap()
+        let manage = app.buttons["directory.manage"].firstMatch
+        reveal(manage, app); manage.tap()
+        let category = app.buttons["directory.category.manage." + directoryUIFixtureID].firstMatch
+        XCTAssertTrue(category.waitForExistence(timeout: 10)); reveal(category, app); category.tap()
+        let symbol = app.buttons["directory.category.symbol"].firstMatch
+        reveal(symbol, app); symbol.tap()
+        let search = app.textFields["directory.symbol.search"].firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5)); search.tap(); search.typeText("Інформація\n")
+        let selected = app.buttons["directory.symbol.info.circle.fill"].firstMatch
+        XCTAssertTrue(selected.waitForExistence(timeout: 5)); selected.tap()
+        let move = app.buttons["directory.group.move.group-one"].firstMatch
+        reveal(move, app); move.tap()
+        let down = app.buttons["Опустити нижче"].firstMatch
+        XCTAssertTrue(down.waitForExistence(timeout: 5)); down.tap()
+        let group = app.buttons["directory.group.edit.group-one"].firstMatch
+        reveal(group, app); group.tap()
+        let hidden = app.switches["directory.group.hidden"].firstMatch
+        reveal(hidden, app); XCTAssertTrue(hidden.isHittable)
+        hidden.coordinate(withNormalizedOffset: .init(dx: 0.94, dy: 0.5)).tap()
+        capture(app, "sdk-directory-group-hidden")
+        app.navigationBars.buttons.firstMatch.tap()
+        let add = app.buttons["Додати підкатегорію"].firstMatch
+        reveal(add, app); add.tap()
+        for locale in ["uk", "de"] {
+            let field = app.textFields["directory.field.groupTitle." + locale].firstMatch
+            reveal(field, app); XCTAssertTrue(field.exists); field.tap(); field.typeText(locale == "uk" ? "Нова група\n" : "Neue Gruppe\n")
+        }
+        capture(app, "sdk-directory-new-group-ready")
+        let confirmAdd = app.buttons["Додати"].firstMatch
+        XCTAssertTrue(confirmAdd.isEnabled); confirmAdd.tap()
+        let placement = app.buttons["directory.category.placement"].firstMatch
+        reveal(placement, app, preferUpwardScroll: true); placement.tap()
+        let support = app.buttons["Підтримка та участь"].firstMatch
+        XCTAssertTrue(support.waitForExistence(timeout: 5)); support.tap()
+        let publish = app.buttons["directory.category.publish"].firstMatch
+        XCTAssertTrue(publish.isEnabled); publish.tap()
+        let confirm = app.buttons["directory.category.confirmPublish"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(publish.waitForNonExistence(timeout: 15))
+        let data = try await directoryPayload()
+        XCTAssertEqual(data["symbol"] as? String, "info.circle.fill")
+        XCTAssertEqual(data["placement"] as? String, "support")
+        let groups = try XCTUnwrap(data["groups"] as? [[String: Any]])
+        XCTAssertEqual(groups.count, 3)
+        let one = try XCTUnwrap(groups.first { $0["id"] as? String == "group-one" })
+        let two = try XCTUnwrap(groups.first { $0["id"] as? String == "group-two" })
+        XCTAssertEqual(one["isHidden"] as? Bool, true)
+        XCTAssertGreaterThan(try XCTUnwrap(one["order"] as? Int), try XCTUnwrap(two["order"] as? Int))
+        XCTAssertTrue(groups.contains { ($0["title"] as? [String: String])?["german"] == "Neue Gruppe" })
+        // Reopen the actual draft from the server, then delete the disposable category through UI.
+        reveal(category, app); category.tap()
+        let deletion = app.buttons["directory.category.delete"].firstMatch
+        reveal(deletion, app); deletion.tap()
+        let confirmDelete = app.buttons["directory.category.confirmDelete"].firstMatch
+        XCTAssertTrue(confirmDelete.waitForExistence(timeout: 5)); capture(app, "sdk-directory-delete-category-dialog"); confirmDelete.tap()
+        XCTAssertTrue(deletion.waitForNonExistence(timeout: 15))
+        let document = try await readDemoDocument("directoryCategories/" + directoryUIFixtureID)
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(fields["isDeleted"]?["booleanValue"] as? Bool, true)
+        XCTAssertEqual(fields["revision"]?["integerValue"] as? String, "3")
+        app.terminate()
+    }
+
+    func testConnectedDirectoryContactArticleMoveAndPublicRead() async throws {
+        try await directoryContactJourney(language: "uk", appearance: "light", large: false)
+    }
+
+    func testConnectedDirectoryContactGermanDarkAccessibility() async throws {
+        try await directoryContactJourney(language: "de", appearance: "dark", large: true)
+    }
+
+    private func directoryContactJourney(language: String, appearance: String, large: Bool) async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires isolated emulator fixtures")
+        }
+        try await prepareDirectoryUIFixture()
+        let app = launchMember(language: language, appearance: appearance, large: large, account: "editor")
+        app.tabBars.buttons.element(boundBy: 3).tap()
+        let manage = app.buttons["directory.manage"].firstMatch
+        reveal(manage, app); manage.tap()
+        let category = app.buttons["directory.category.manage." + directoryUIFixtureID].firstMatch
+        reveal(category, app); category.tap()
+        let article = app.buttons["directory.topic.edit.audit-topic-one"].firstMatch
+        reveal(article, app); article.tap()
+        let group = app.buttons["directory.topic.group"].firstMatch
+        reveal(group, app); group.tap()
+        let second = app.buttons[language == "uk" ? "Група two" : "Gruppe two"].firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 5)); second.tap()
+        let section = app.buttons["directory.section.edit.audit-section"].firstMatch
+        reveal(section, app); section.tap()
+        let add = app.buttons["directory.contact.add"].firstMatch
+        reveal(add, app); add.tap()
+        let number = app.textFields["directory.contact.number.0"].firstMatch
+        reveal(number, app); number.tap(); number.typeText("+431000000000")
+        for (field, value) in [("contactTitle.uk", "Тестовий контакт"), ("contactTitle.de", "Testkontakt"),
+                               ("contactDetail.uk", "Опис контакту"), ("contactDetail.de", "Kontaktbeschreibung")] {
+            let input = app.textFields["directory.field." + field].firstMatch
+            reveal(input, app); input.tap(); input.typeText(value + "\n")
+        }
+        // Delete a second row while retaining the populated one. Cached bindings
+        // for the removed index must not crash or overwrite the surviving row.
+        reveal(add, app); add.tap()
+        let removeSecond = app.buttons["directory.contact.remove.1"].firstMatch
+        reveal(removeSecond, app); removeSecond.tap()
+        let remainingNumber = app.textFields["directory.contact.number.0"].firstMatch
+        reveal(remainingNumber, app); XCTAssertEqual(remainingNumber.value as? String, "+431000000000")
+        capture(app, "sdk-directory-contact-ready-after-second-row-removal-" + language + "-" + appearance)
+        app.navigationBars.buttons.firstMatch.tap()
+        app.navigationBars.buttons.firstMatch.tap()
+        let publish = app.buttons["directory.category.publish"].firstMatch
+        XCTAssertTrue(publish.isEnabled); publish.tap()
+        let confirm = app.buttons["directory.category.confirmPublish"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(category.waitForExistence(timeout: 15))
+        let payload = try await directoryPayload()
+        let topics = try XCTUnwrap(payload["topics"] as? [[String: Any]])
+        let topic = try XCTUnwrap(topics.first { $0["id"] as? String == "audit-topic-one" })
+        XCTAssertEqual(topic["groupID"] as? String, "group-two")
+        let sections = try XCTUnwrap(topic["sections"] as? [[String: Any]])
+        let contacts = try XCTUnwrap(sections.first?["contacts"] as? [[String: Any]])
+        XCTAssertEqual(contacts.count, 1)
+        XCTAssertEqual(contacts.first?["number"] as? String, "+431000000000")
+        XCTAssertEqual((contacts.first?["title"] as? [String: String])?["german"], "Testkontakt")
+        app.terminate()
+        let member = launchMember()
+        member.tabBars.buttons.element(boundBy: 3).tap()
+        let publicCategory = member.buttons["directory.category." + directoryUIFixtureID].firstMatch
+        reveal(publicCategory, member); publicCategory.tap()
+        let publicArticle = member.buttons["directory.topic.audit-topic-one"].firstMatch
+        reveal(publicArticle, member); publicArticle.tap()
+        let contact = member.staticTexts["Тестовий контакт"].firstMatch
+        reveal(contact, member); XCTAssertTrue(contact.exists)
+        capture(member, "sdk-directory-public-contact-member")
+        XCTAssertFalse(member.buttons["directory.category.publish"].exists)
+        // Observe the destination data and control without placing a real call.
+        member.terminate()
+    }
+
+    func testConnectedDirectoryCreatesBilingualCategoryFromFormAndDeletesIt() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
+            throw XCTSkip("Requires isolated emulator fixtures")
+        }
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 3).tap()
+        let manage = app.buttons["directory.manage"].firstMatch
+        reveal(manage, app); manage.tap()
+        let create = app.buttons["directory.category.add.support"].firstMatch
+        reveal(create, app); create.tap()
+        let unique = String(UUID().uuidString.prefix(6))
+        let ukrainianTitle = "Перевірка " + unique
+        for locale in ["uk", "de"] {
+            if locale == "de" {
+                let language = app.buttons["Deutsch"].firstMatch
+                reveal(language, app, preferUpwardScroll: true); language.tap()
+            }
+            for (field, text, multiline) in [
+                ("categoryTitle", locale == "uk" ? ukrainianTitle : "Prüfung " + unique, false),
+                ("categorySummary", locale == "uk" ? "Локальний тест" : "Lokaler Test", false),
+                ("articleTitle", locale == "uk" ? "Тестова стаття" : "Testbeitrag", false),
+                ("articleSummary", locale == "uk" ? "Вступ статті" : "Einleitung", true),
+                ("sectionTitle", locale == "uk" ? "Тестовий блок" : "Testabschnitt", false),
+                ("sectionBody", locale == "uk" ? "Тестові кроки для перевірки" : "Testschritte für die Prüfung", true)] {
+                let id = "directory.field." + field + "." + locale
+                let input = multiline ? app.textViews[id].firstMatch : app.textFields[id].firstMatch
+                reveal(input, app); input.tap(); input.typeText(text)
+                if !multiline { input.typeText("\n") }
+            }
+        }
+        let sourceName = app.textFields["directory.source.name"].firstMatch
+        reveal(sourceName, app); sourceName.tap(); sourceName.typeText("Audit source\n")
+        let sourceURL = app.textFields["directory.source.url"].firstMatch
+        reveal(sourceURL, app); sourceURL.tap(); sourceURL.typeText("https://www.oesterreich.gv.at/\n")
+        capture(app, "sdk-directory-new-bilingual-category-ready")
+        let publish = app.buttons["directory.category.publish"].firstMatch
+        XCTAssertTrue(publish.isEnabled); publish.tap()
+        let confirm = app.buttons["directory.category.confirmPublish"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(sourceURL.waitForNonExistence(timeout: 20))
+        let collection = try await readDemoDocument("directoryCategories")
+        let documents = try XCTUnwrap(collection["documents"] as? [[String: Any]])
+        let created = try XCTUnwrap(documents.first { doc in
+            let fields = doc["fields"] as? [String: [String: Any]]
+            return (fields?["payload"]?["stringValue"] as? String)?.contains(ukrainianTitle) == true
+        })
+        let fields = try XCTUnwrap(created["fields"] as? [String: [String: Any]])
+        let id = try XCTUnwrap(fields["id"]?["stringValue"] as? String)
+        XCTAssertTrue(id.hasPrefix("custom-")); XCTAssertEqual(fields["revision"]?["integerValue"] as? String, "1")
+        let payload = try XCTUnwrap(fields["payload"]?["stringValue"] as? String)
+        let categoryData = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any])
+        XCTAssertEqual((categoryData["title"] as? [String: String])?["german"], "Prüfung " + unique)
+        XCTAssertEqual(categoryData["placement"] as? String, "support")
+        let category = app.buttons["directory.category.manage." + id].firstMatch
+        reveal(category, app); category.tap()
+        let title = app.textFields["directory.field.categoryTitle.uk"].firstMatch
+        reveal(title, app); XCTAssertEqual(title.value as? String, ukrainianTitle)
+        capture(app, "sdk-directory-new-category-reopened")
+        let deletion = app.buttons["directory.category.delete"].firstMatch
+        reveal(deletion, app); deletion.tap()
+        let remove = app.buttons["directory.category.confirmDelete"].firstMatch
+        XCTAssertTrue(remove.waitForExistence(timeout: 5)); remove.tap()
+        XCTAssertTrue(deletion.waitForNonExistence(timeout: 15))
+        let afterDelete = try await readDemoDocument("directoryCategories")
+        let tombstones = try XCTUnwrap(afterDelete["documents"] as? [[String: Any]])
+        let deleted = try XCTUnwrap(tombstones.first { doc in
+            let fields = doc["fields"] as? [String: [String: Any]]
+            return fields?["id"]?["stringValue"] as? String == id
+        })
+        let deletedFields = try XCTUnwrap(deleted["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(deletedFields["isDeleted"]?["booleanValue"] as? Bool, true)
+        XCTAssertEqual(deletedFields["revision"]?["integerValue"] as? String, "2")
+        app.terminate()
+    }
+
+    private func directoryPayload() async throws -> [String: Any] {
+        let document = try await readDemoDocument("directoryCategories/" + directoryUIFixtureID)
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        let payload = try XCTUnwrap(fields["payload"]?["stringValue"] as? String)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any])
+    }
+
+    private func prepareDirectoryUIFixture() async throws {
+        let document = try await readDemoDocument("directoryCategories/first-steps")
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        let payload = try XCTUnwrap(fields["payload"]?["stringValue"] as? String)
+        var category = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(payload.utf8)) as? [String: Any])
+        category["id"] = directoryUIFixtureID; category["order"] = 0; category["placement"] = "start"; category["isHidden"] = false
+        category["title"] = ["ukrainian": "Локальна перевірка", "german": "Lokale Prüfung"]
+        category["groups"] = ["one", "two"].enumerated().map { rank, id in
+            ["id": "group-" + id, "order": rank, "isHidden": false,
+             "title": ["ukrainian": "Група " + id, "german": "Gruppe " + id]] as [String: Any]
+        }
+        let base = try XCTUnwrap((category["topics"] as? [[String: Any]])?.first)
+        category["topics"] = try ["one", "two"].enumerated().map { rank, id in
+            var topic = base
+            topic["id"] = "audit-topic-" + id; topic["groupID"] = "group-" + id
+            topic["order"] = rank; topic["isHidden"] = false
+            topic["title"] = ["ukrainian": "Стаття " + id, "german": "Beitrag " + id]
+            var section = try XCTUnwrap((base["sections"] as? [[String: Any]])?.first)
+            section["id"] = "audit-section"; section["contacts"] = []
+            topic["sections"] = [section]; topic["regionalSections"] = [String: Any]()
+            return topic
+        }
+        let data = try JSONSerialization.data(withJSONObject: category, options: [.sortedKeys])
+        try await patchDemoDocument("directoryCategories/" + directoryUIFixtureID, fields: ["id": ["stringValue": directoryUIFixtureID],
+            "payload": ["stringValue": String(decoding: data, as: UTF8.self)], "revision": ["integerValue": "1"],
+            "isDeleted": ["booleanValue": false], "updatedAt": ["timestampValue": ISO8601DateFormatter().string(from: .now)]])
+    }
+
     private func readDemoDocument(_ path: String) async throws -> [String: Any] {
         try await demoRequest(path, method: "GET", fields: nil)
     }
@@ -262,11 +540,14 @@ final class ConnectedAuditUITests: XCTestCase {
     }
     private func demoRequest(_ path: String, method: String, fields: [String: [String: Any]]?, expectedStatus: Int = 200) async throws -> [String: Any] {
         // Fixed loopback + demo project. This helper cannot address production.
-        guard ["directoryEditors/closure-editor", "directoryCategories/first-steps",
+        guard ["users/closure-member", "directoryCategories", "directoryEditors/closure-editor", "directoryCategories/first-steps", "directoryCategories/" + directoryUIFixtureID,
                "users/closure-member/organizationBookmarks/closure-org",
                "likes/organization_follow_closure-org_closure-member",
                "users/closure-member/blockedUsers/closure-other"].contains(path) else {
             throw NSError(domain: "AuditFixture", code: 1)
+        }
+        if ["directoryCategories", "users/closure-member"].contains(path) {
+            guard method == "GET", fields == nil else { throw NSError(domain: "AuditFixture", code: 2) }
         }
         var components = URLComponents(string: "http://127.0.0.1:28080/v1/projects/demo-uac-release-audit/databases/(default)/documents/" + path)!
         if let fields { components.queryItems = fields.keys.sorted().map { URLQueryItem(name: "updateMask.fieldPaths", value: $0) } }
@@ -311,11 +592,19 @@ final class ConnectedAuditUITests: XCTestCase {
         return app
     }
 
-    private func reveal(_ element: XCUIElement, _ app: XCUIApplication) {
-        for _ in 0..<12 {
-            if element.exists && element.isHittable { return }
-            app.swipeUp()
+    private func reveal(_ element: XCUIElement, _ app: XCUIApplication, preferUpwardScroll: Bool = false) {
+        _ = element.waitForExistence(timeout: 8)
+        for _ in 0..<32 {
+            let bottomInset: CGFloat = app.tabBars.firstMatch.exists ? 100 : 30
+            if element.exists && element.isHittable && element.frame.midY > 100 && element.frame.midY < app.frame.height - bottomInset { return }
+            let towardTop = element.exists ? element.frame.midY < 100 : preferUpwardScroll
+            let keyboardVisible = app.keyboards.firstMatch.exists
+            let lower: CGFloat = keyboardVisible ? 0.43 : 0.65
+            let upper: CGFloat = keyboardVisible ? 0.25 : 0.35
+            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? upper : lower))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? lower : upper)))
         }
+        XCTAssertTrue(element.isHittable)
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())

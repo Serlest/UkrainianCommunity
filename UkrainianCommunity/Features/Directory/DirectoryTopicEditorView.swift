@@ -32,6 +32,7 @@ struct DirectoryTopicEditorView: View {
                         Text(group.title.value(for: language)).tag(group.id)
                     }
                 }
+                .accessibilityIdentifier("directory.topic.group")
                 Toggle(DirectoryEditorText.value("Тимчасово приховати статтю", "Beitrag vorübergehend ausblenden"),
                        isOn: $topic.isHidden)
             }

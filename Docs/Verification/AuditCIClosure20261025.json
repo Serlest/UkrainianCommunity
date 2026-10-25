@@ -1,6 +1,6 @@
 {
   "date": "2026-10-25",
-  "status": "hosted_revalidation_pending",
+  "status": "hosted_verified_for_c3cf3c6f",
   "categoryValidator": {
     "failedRun": 40150246391,
     "reason": "Rules cached additionalCategories locally; static extractor assumed the second data.additionalCategories.hasOnly occurrence",
@@ -19,6 +19,13 @@
     "additionalRegression": "Controlled expiry preserves old user/pagination and exposes network failure; retry accepts new data",
     "localBundle": "build/audit-closure-20261025/DirectoryContactAndRefreshFixed.xcresult",
     "localMethodsPassed": 23,
-    "limitation": "The separate contact UI method in that bundle failed its keyboard/scroll harness and is not counted as passed. Full hosted confirmation still pending."
+    "limitation": "Separate earlier contact UI harness failure repeated successfully in DirectoryFormsAvatarRestored and DirectoryPhotoFinalUI; hosted c3cf3c6f passed."
+  },
+  "hostedReadback": {
+    "run": 40152190378,
+    "headSha": "c3cf3c6f632b2abc2c86750510878cfb2ef824ef",
+    "status": "completed",
+    "conclusion": "success",
+    "limitation": "Later source commits require their own hosted result"
   }
 }

@@ -58,8 +58,13 @@ private actor RemoteImageDataLoader {
         if let task = inFlight[url] { return try await task.value }
 
         let session = session
+        #if DEBUG && targetEnvironment(simulator)
+        let requestURL = LocalFirebaseEmulatorConfiguration.localStorageURL(url)
+        #else
+        let requestURL = url
+        #endif
         let task = Task<Data, Error> {
-            let (data, response) = try await session.data(from: url)
+            let (data, response) = try await session.data(from: requestURL)
             if let response = response as? HTTPURLResponse,
                !(200...299).contains(response.statusCode) {
                 throw URLError(.badServerResponse)

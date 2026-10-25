@@ -1,6 +1,6 @@
 {
   "date": "2026-10-25",
-  "scope": "R04-B / R07-A plus initial directory conflict/revocation visuals",
+  "scope": "R04-B / R07-A plus initial directory conflict/revocation visuals; R03-A / R09-A connected nested forms",
   "reviewedImages": [
     {
       "image": "build/audit-closure-20261025/personal-directory-final/35D86CB4-1C78-4C6F-B753-33E0D14A7961.png",
@@ -151,6 +151,48 @@
       "state": "sdk-hidden-user-empty-after-unblock-de-dark-AX_0_9DCEB94C-485F-4862-B7A0-37E95CFF6D63.png",
       "status": "reviewed",
       "result": "Final fix: readable primary action and explicit cancellation; accessible text wraps without clipping"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-photo-final/750AF564-A9DB-43C4-926B-8BE55EC76377.png",
+      "state": "Actual uploaded profile avatar after process restart",
+      "status": "reviewed",
+      "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-photo-final/0CA34EE6-4DA3-4DA8-A1C5-705759E56274.png",
+      "state": "German dark accessibility contact form with fully wrapped translation hint",
+      "status": "reviewed",
+      "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-photo-final/2C9C79FB-BF13-4046-BFD1-ED69F8ADE1CC.png",
+      "state": "Custom category delete confirmation",
+      "status": "reviewed",
+      "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-photo-final/05D92886-06A2-47C3-99A7-620C03B3B4AD.png",
+      "state": "Bilingual new group form",
+      "status": "reviewed",
+      "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-photo-final/244B7428-34A9-40E8-AB9C-B75BEB5CE514.png",
+      "state": "Hidden group edit state",
+      "status": "reviewed",
+      "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-forms-accepted/DA3D8672-72A9-4CB4-928F-6E99DC460315.png",
+      "state": "Ordinary member public contact",
+      "status": "reviewed",
+      "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
+    },
+    {
+      "image": "build/audit-closure-20261025/directory-forms-accepted/75164FF8-BE39-4A21-BD7E-E0C74D86C820.png",
+      "state": "New bilingual category reopened",
+      "status": "reviewed",
+      "result": "Readable content and actions in captured state; independent persistence assertions in linked test bundles"
     }
   ],
   "personalRoleReuse": {

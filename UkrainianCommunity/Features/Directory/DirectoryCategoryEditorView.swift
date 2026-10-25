@@ -107,6 +107,7 @@ struct DirectoryCategoryEditorView: View {
                     confirmation = nil
                     Task { await deleteCategory() }
                 }
+                .accessibilityIdentifier("directory.category.confirmDelete")
             case let .deleteGroup(id):
                 Button(DirectoryEditorText.value("Видалити підкатегорію зі статтями", "Unterbereich mit Beiträgen löschen"),
                        role: .destructive) {

@@ -67,6 +67,7 @@ struct DirectoryCategoryFormView: View {
                         Text(placementTitle(placement)).tag(placement)
                     }
                 }
+                .accessibilityIdentifier("directory.category.placement")
                 .onChange(of: draft.placement) { _, newValue in
                     draft.order = DirectoryEditorOrdering.nextOrder(
                         in: newValue, categories: contentStore.allManagedCategories)
@@ -77,6 +78,7 @@ struct DirectoryCategoryFormView: View {
                     Label(DirectoryEditorText.value("Іконка категорії", "Symbol des Bereichs"),
                           systemImage: draft.symbol)
                 }
+                .accessibilityIdentifier("directory.category.symbol")
             } header: {
                 Text(DirectoryEditorText.value("На головному екрані", "Auf der Startseite"))
             }
@@ -98,6 +100,7 @@ struct DirectoryCategoryFormView: View {
                                     moveUp: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: groupID, by: -1) },
                                     moveDown: { DirectoryEditorOrdering.moveGroup(&draft.groups, id: groupID, by: 1) }
                                 )
+                                .accessibilityIdentifier("directory.group.move." + groupID)
                             }
                             Button(role: .destructive) {
                                 if DirectoryEditorDeletion.canDeleteGroup(groupID, from: draft) {
@@ -229,6 +232,7 @@ private struct DirectoryGroupEditorView: View {
             Section {
                 Toggle(DirectoryEditorText.value("Тимчасово приховати підкатегорію", "Unterbereich vorübergehend ausblenden"),
                        isOn: $group.isHidden)
+                .accessibilityIdentifier("directory.group.hidden")
             }
         }
         .directoryEditorChrome()

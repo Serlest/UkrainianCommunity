@@ -5,6 +5,7 @@
   "closedChecks": [
     "R01-B",
     "R02-B",
+    "R03-A",
     "R03-C",
     "R04-A",
     "R04-B",
@@ -13,6 +14,7 @@
     "R06-A",
     "R06-C",
     "R07-A",
+    "R09-A",
     "R09-B",
     "R09-C"
   ],
@@ -297,9 +299,44 @@
         "Four new notices read while authenticated as exact target: recipient, actor, organization source/action target and type"
       ],
       "remaining": "Actual nested team UI candidate/list update, cancel and error states still need connected proof"
+    },
+    {
+      "check": "R03-A",
+      "kind": "actual_photo_UI_SDK_storage_and_restart",
+      "bundles": [
+        "build/audit-closure-20261025/DirectoryPhotoFinalUI.xcresult",
+        "build/audit-closure-20261025/DirectoryFormsAvatarRestored.xcresult"
+      ],
+      "verified": [
+        "Actual PhotosPicker synthetic image, crop cancel/reset/zoom/apply, SDK upload and profile save",
+        "Independent Firestore avatar URL and Storage JPEG read; other account overwrite denied",
+        "App process restart renders exact uploaded blue/yellow avatar; uk/light and de/dark accessibility crop controls reviewed"
+      ],
+      "transport": "Debug Simulator opt-in fixed loopback only; canonical URL adapter exercises unchanged avatar Rules; device/Release behavior unchanged",
+      "remaining": "Provider/biometric/delete scenarios remain R03-B"
+    },
+    {
+      "check": "R09-A",
+      "kind": "connected_nested_directory_forms",
+      "bundles": [
+        "build/audit-closure-20261025/DirectoryPhotoFinalUI.xcresult",
+        "build/audit-closure-20261025/DirectoryFormsAvatarRestored.xcresult"
+      ],
+      "verified": [
+        "Create bilingual category/article/section/source through real form, publish, independent exact payload read, reopen and delete with revision tombstone",
+        "Choose icon, reorder/hide groups, add bilingual group and change category placement; exact independent payload read",
+        "Move article, add populated contact, add/remove second blank row retaining first values, publish and view as ordinary member",
+        "German dark accessibility contact editor and public contact reviewed; no actual external phone call"
+      ],
+      "fixes": [
+        "Contact editor single identified draft array and safe ID binding prevent reproduced index-out-of-range crash during add/remove",
+        "Shared translation hint wraps instead of truncating in nested card"
+      ],
+      "testFixtureCorrection": "Per-journey UUID prevents collisions with immutable publication versions; emulator restart failures repeated successfully after restoring demo services",
+      "visualLedger": "Docs/Verification/AuditClosureUIStates20261025.json"
     }
   ],
-  "remainingScenarioGroups": 15,
+  "remainingScenarioGroups": 13,
   "deployment": {
     "scope": "firestore:rules only",
     "project": "ukrainiancommunity-dbd5f",

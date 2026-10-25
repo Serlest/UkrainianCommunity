@@ -178,7 +178,12 @@ final class ImageUploadService {
 
         do {
             _ = try await reference.putDataAsync(data, metadata: metadata)
-            return try await reference.downloadURL()
+            let url = try await reference.downloadURL()
+            #if DEBUG && targetEnvironment(simulator)
+            return LocalFirebaseEmulatorConfiguration.canonicalStorageURL(url)
+            #else
+            return url
+            #endif
         } catch {
             await SystemTechnicalErrorLoggingService.shared.logFailure(
                 error,

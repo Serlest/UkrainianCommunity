@@ -10,7 +10,10 @@ import Foundation
 /// Opt-in SDK integration tests. The project and endpoints are fixed to local
 /// emulators; this configuration is absent from device and Release builds.
 enum LocalFirebaseEmulatorConfiguration {
-    static let projectID = "demo-uac-release-audit"
+    nonisolated static let projectID = "demo-uac-release-audit"
+    // Namespace label inside the Storage emulator, not a production connection.
+    // Keep the real URL contract so the unmodified profile Rules validate it.
+    nonisolated static let storageBucket = "ukrainiancommunity-dbd5f.firebasestorage.app"
 
     static func configureIfRequested() -> Bool {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { return false }
@@ -18,7 +21,7 @@ enum LocalFirebaseEmulatorConfiguration {
         options.projectID = projectID
         // Firebase Installations validates syntax even for a local demo project.
         options.apiKey = "AIza" + String(repeating: "0", count: 35)
-        options.storageBucket = projectID + ".appspot.com"
+        options.storageBucket = storageBucket
         AppCheck.setAppCheckProviderFactory(LocalEmulatorAppCheckFactory())
         FirebaseApp.configure(options: options)
         Auth.auth().useEmulator(withHost: "127.0.0.1", port: 19099)
@@ -32,6 +35,31 @@ enum LocalFirebaseEmulatorConfiguration {
         Storage.storage().useEmulator(withHost: "127.0.0.1", port: 29199)
         return true
     }
+
+    nonisolated static func canonicalStorageURL(_ url: URL) -> URL {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1",
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme == "http", components.host == "127.0.0.1", components.port == 29199,
+              components.percentEncodedPath.hasPrefix("/v0/b/" + storageBucket + "/o/") else { return url }
+        components.scheme = "https"
+        components.host = "firebasestorage.googleapis.com"
+        components.port = nil
+        return components.url ?? url
+    }
+
+    nonisolated static func localStorageURL(_ url: URL) -> URL {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1",
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme == "https", components.host == "firebasestorage.googleapis.com",
+              [storageBucket, projectID + ".appspot.com"].contains(where: {
+                  components.percentEncodedPath.hasPrefix("/v0/b/" + $0 + "/o/")
+              }) else { return url }
+        components.scheme = "http"
+        components.host = "127.0.0.1"
+        components.port = 29199
+        return components.url ?? url
+    }
+
 }
 
 private final class LocalEmulatorAppCheckFactory: NSObject, AppCheckProviderFactory {
