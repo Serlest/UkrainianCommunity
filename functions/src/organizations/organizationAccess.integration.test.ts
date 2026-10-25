@@ -34,6 +34,18 @@ test("action matrix preserves platform and organization role distinctions", () =
   assert.ok(parsed.directoryProfile.currentOfferValidUntil.isEqual(new Timestamp(1788440797, 184433000)));
 });
 
+test("localized directory fields accept the released iOS wire contract and reject invalid nested fields", () => {
+  const de = {name: "Lokale Organisation", shortDescription: "Lokale Beschreibung", fullDescription: "Details",
+    missionStatement: "Auftrag", serviceArea: "Wien", services: ["Beratung", "Treffen"], specialHoursNote: "Montag",
+    currentOfferTitle: "Angebot", currentOfferDetails: "Angebotsdetails"};
+  assert.deepEqual(parseOrganizationFields({localizations: {de}}).localizations, {de});
+  for (const invalid of [{...de, ownerId: "outsider"}, {...de, services: "Beratung"}, {...de, services: [42]},
+    {...de, services: Array(9).fill("Beratung")}, {...de, currentOfferDetails: {unexpected: true}}]) {
+    assert.throws(() => parseOrganizationFields({localizations: {de: invalid}}));
+  }
+  assert.throws(() => parseOrganizationFields({localizations: {en: de}}));
+});
+
 test("commands preserve protected fields, reject stale edits and revoked roles, and replay once", {skip: !enabled}, async () => {
   assert.match(process.env.GCLOUD_PROJECT ?? "", /^demo-/);
   const prefix = "access-" + randomUUID();
@@ -54,7 +66,9 @@ test("commands preserve protected fields, reject stale edits and revoked roles, 
     await config.set({mode: "enforced", commandsEnabled: true});
     const capabilities = await getOrganizationAccess.run(request(uid, {organizationIds: [org.id]}));
     assert.equal(capabilities.records[0].actions.includes("editInfo"), true);
-    const input = {principalId: uid, organizationId: org.id, operationId: randomUUID(), fields: {website: "https://example.org"},
+    const input = {principalId: uid, organizationId: org.id, operationId: randomUUID(), fields: {website: "https://example.org", localizations: {de: {name: "Lokale Organisation", shortDescription: "Beschreibung",
+        fullDescription: "Details", missionStatement: "Auftrag", serviceArea: "Wien", services: ["Beratung"],
+        specialHoursNote: "Montag", currentOfferTitle: "Angebot", currentOfferDetails: "Angebotsdetails"}}},
       expectedRevision: organizationRevision(base), targetStatus: "approved"};
     await assert.rejects(updateOrganizationInfo.run(request(outsider, input)), {code: "permission-denied"});
     const first = await updateOrganizationInfo.run(request(uid, input));
@@ -62,6 +76,7 @@ test("commands preserve protected fields, reject stale edits and revoked roles, 
     assert.equal(first.didChange, true); assert.equal(repeated.didChange, false);
     assert.equal(first.revision, repeated.revision);
     const saved = (await org.get()).data()!;
+    assert.deepEqual(saved.localizations, input.fields.localizations);
     assert.equal(saved.submittedAt.isEqual(now), true); assert.equal(saved.photoCount, 5); assert.equal(saved.ownerId, uid);
     await assert.rejects(updateOrganizationInfo.run(request(uid, {...input, operationId: randomUUID(), fields: {name: "Stale"}})), {code: "aborted"});
     const revision = organizationRevision(saved);

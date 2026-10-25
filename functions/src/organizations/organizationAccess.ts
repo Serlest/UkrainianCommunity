@@ -106,8 +106,17 @@ function validateNested(key: string, value: DocumentData): void {
   if (key === "localizations") {
     if (Object.keys(value).some(k => !["uk", "de"].includes(k))) invalidFields();
     for (const v of Object.values(value)) {
-      if (!record(v) || Object.keys(v).some(k => !["name", "shortDescription", "fullDescription", "description", "missionStatement"].includes(k))
-        || Object.values(v).some(x => typeof x !== "string" || x.length > 20_000)) invalidFields();
+      const stringFields = ["name", "shortDescription", "fullDescription", "description", "missionStatement",
+        "serviceArea", "specialHoursNote", "currentOfferTitle", "currentOfferDetails"];
+      // The released iOS encoder includes services even when that list is empty.
+      // Keep the callable contract aligned with the complete localized form.
+      if (!record(v) || Object.keys(v).some(k => ![...stringFields, "services"].includes(k))) invalidFields();
+      for (const [field, localized] of Object.entries(v)) {
+        if (field === "services") {
+          if (!Array.isArray(localized) || localized.length > 8
+            || localized.some(x => typeof x !== "string" || x.length > 20_000)) invalidFields();
+        } else if (typeof localized !== "string" || localized.length > 20_000) invalidFields();
+      }
     }
   }
   if (key === "directoryProfile") {
