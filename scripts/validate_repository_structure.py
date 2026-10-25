@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
@@ -49,10 +50,32 @@ def retired_feature_sources() -> list[Path]:
     )
 
 
+def shared_scheme_errors(root: Path = REPOSITORY_ROOT) -> list[str]:
+    path = root / "UkrainianCommunity.xcodeproj/xcshareddata/xcschemes/UkrainianCommunity.xcscheme"
+    if not path.is_file():
+        return ["Missing shared UkrainianCommunity scheme required by CI and release commands."]
+    try:
+        scheme = ET.parse(path).getroot()
+    except ET.ParseError as error:
+        return [f"Invalid shared UkrainianCommunity scheme: {error}"]
+    errors = []
+    if scheme.find("./BuildAction/BuildActionEntries/BuildActionEntry/BuildableReference[@BlueprintName='UkrainianCommunity']") is None:
+        errors.append("Shared scheme must build the UkrainianCommunity app.")
+    tests = scheme.findall("./TestAction/Testables/TestableReference")
+    enabled = {reference.get("BlueprintName") for test in tests if test.get("skipped") == "NO"
+               for reference in test.findall("BuildableReference")}
+    if not {"UkrainianCommunityTests", "UkrainianCommunityUITests"}.issubset(enabled):
+        errors.append("Shared scheme must expose both test targets without skipping them.")
+    if any(test.find("SelectedTests") is not None for test in tests):
+        errors.append("Main scheme must not silently restrict test discovery.")
+    return errors
+
+
 def main() -> int:
     placeholders = [path for path in swift_sources() if is_placeholder_swift_file(path)]
     retired_sources = retired_feature_sources()
-    if not placeholders and not retired_sources:
+    scheme_errors = shared_scheme_errors()
+    if not placeholders and not retired_sources and not scheme_errors:
         print("Repository structure validation passed.")
         return 0
 
@@ -65,6 +88,9 @@ def main() -> int:
         print("Swift sources remain in retired feature directories:", file=sys.stderr)
         for path in retired_sources:
             print(f"- {path.relative_to(REPOSITORY_ROOT)}", file=sys.stderr)
+
+    for error in scheme_errors:
+        print(error, file=sys.stderr)
 
     return 1
 
