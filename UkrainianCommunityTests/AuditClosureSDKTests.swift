@@ -5,6 +5,7 @@ import FirebaseFirestore
 import FirebaseFunctions
 import CryptoKit
 import FirebaseStorage
+import EventKit
 import UIKit
 @testable import UkrainianCommunity
 
@@ -23,6 +24,60 @@ final class AuditClosureSDKTests: XCTestCase {
         try? Auth.auth().signOut()
         let result = try await Auth.auth().signIn(withEmail: "closure-\(role)@uac.test", password: "Emulator-Only-2026!")
         XCTAssertEqual(result.user.uid, "closure-\(role)")
+    }
+
+    func testAuditFixturesAcceptActualRepositoryEditsAndPublicProfileSync() async throws {
+        try await signIn("editor")
+        defer { try? Auth.auth().signOut() }
+        let user = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-editor")
+        try await UserProfileService.shared.upsertPublicProfile(for: user)
+        let profile = try await Firestore.firestore().document("publicProfiles/closure-editor").getDocument(source: .server)
+        XCTAssertEqual(profile.get("id") as? String, user.id)
+        let news = FirestoreNewsRepository(sessionDataCache: SessionDataCache())
+        let newsValue = try await news.fetchNews(id: "closure-news")
+        try await news.updateNews(try XCTUnwrap(newsValue))
+        let events = FirestoreEventRepository(sessionDataCache: SessionDataCache())
+        let eventValue = try await events.fetchEvent(id: "closure-event")
+        try await events.updateEvent(try XCTUnwrap(eventValue))
+    }
+
+    func testOrganizationLocationEditClearsOldCoordinatesThroughActualCommand() async throws {
+        try await signIn("owner")
+        defer { try? Auth.auth().signOut() }
+        let repository = FirestoreOrganizationRepository(sessionDataCache: SessionDataCache())
+        let id = "closure-location-" + UUID().uuidString.lowercased()
+        let original = Organization(id: id, name: "Local location audit", description: "Isolated map pin persistence verification.",
+            regionScope: .federalState, federalState: .tirol, city: "Innsbruck", address: "Maria-Theresien-Straße 18", latitude: 47.2682, longitude: 11.3923,
+            organizationType: "education", ownerId: "closure-member", adminIds: [], moderatorIds: [],
+            createdAt: .now, updatedAt: .now, moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
+        _ = try await CloudFunctionsClient.shared.acceptOrganizationRules(organizationId: id, organizationName: original.name,
+            version: "2026.1", appVersion: "1.2.1", locale: "uk")
+        try await repository.createOrganization(original)
+        try await signIn("member")
+        let user = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-member")
+        let model = OrganizationsViewModel(repository: repository)
+        let created = try await repository.fetchOrganization(id: id)
+        let rename = OrganizationEditorViewModel(mode: .edit(existing: created))
+        rename.name = "Renamed local audit"
+        let renamed = await rename.submit(with: model, user: user)
+        XCTAssertTrue(renamed, rename.errorMessage ?? "Name edit must persist")
+        let reference = Firestore.firestore().document("organizations/" + id)
+        let retained = try await reference.getDocument(source: .server)
+        XCTAssertEqual(retained.get("latitude") as? Double, 47.2682)
+        XCTAssertEqual(retained.get("longitude") as? Double, 11.3923)
+        let loaded = try await repository.fetchOrganization(id: id)
+        let moved = OrganizationEditorViewModel(mode: .edit(existing: loaded))
+        moved.city = "Wien"; moved.address = "A different street 2"; moved.selectedFederalState = .wien
+        let saved = await moved.submit(with: model, user: user)
+        XCTAssertTrue(saved, moved.errorMessage ?? "Address edit must persist")
+        let cleared = try await reference.getDocument(source: .server)
+        XCTAssertEqual(cleared.get("city") as? String, "Wien")
+        XCTAssertEqual(cleared.get("address") as? String, "A different street 2")
+        XCTAssertNil(cleared.get("latitude")); XCTAssertNil(cleared.get("longitude"))
+        try await signIn("owner")
+        try await repository.deleteOrganization(id: id)
+        let removed = try await reference.getDocument(source: .server)
+        XCTAssertFalse(removed.exists)
     }
 
     func testPendingActivitySurvivesStoreRecreationAndDeliversOnlyForItsAccount() async throws {
@@ -285,6 +340,137 @@ final class AuditClosureSDKTests: XCTestCase {
         XCTAssertLessThan(elapsed, 15, "Must complete within the current UI request deadline in the local load environment")
         let measurement = XCTAttachment(string: "Local emulator cold session: 1000 attendees, \(elapsed) seconds. This is not internet latency proof.")
         measurement.name = "attendee-load-timing"; measurement.lifetime = .keepAlways; add(measurement)
+    }
+
+    func testActualEventCalendarWritesAllOccurrencesAndIndependentReadback() async throws {
+        guard ProcessInfo.processInfo.environment["UACAuditCalendar"] == "1" else { throw XCTSkip("Dedicated simulator calendar permission phase") }
+        try await signIn("member")
+        defer { try? Auth.auth().signOut() }
+        XCTAssertEqual(EKEventStore.authorizationStatus(for: .event), .fullAccess)
+        let now = Date(), start = Date().addingTimeInterval(7 * 86400)
+        let title = "UAC isolated calendar " + UUID().uuidString
+        let occurrences = [EventOccurrence(id: "one", startDate: start, endDate: start.addingTimeInterval(3600)),
+            EventOccurrence(id: "two", startDate: start.addingTimeInterval(86400), endDate: start.addingTimeInterval(90000))]
+        let event = Event(id: "closure-calendar", title: title, summary: "Calendar audit summary", details: "Calendar audit details",
+            city: "Innsbruck", venue: "Local test", address: "Test 1", startDate: start, endDate: start.addingTimeInterval(3600), occurrences: occurrences,
+            createdAt: now, updatedAt: now, capacity: nil, registeredCount: 0, comments: [], moderationStatus: .approved,
+            registrationState: .notRegistered, likeCount: 0, likeState: .notLiked)
+        try await EventCalendarWriter().add(event)
+        let readback = EKEventStore()
+        let query = readback.predicateForEvents(withStart: start.addingTimeInterval(-60), end: start.addingTimeInterval(2 * 86400), calendars: nil)
+        let saved = readback.events(matching: query).filter { $0.title == title }.sorted { $0.startDate < $1.startDate }
+        defer { for item in saved { try? readback.remove(item, span: .thisEvent, commit: false) }; try? readback.commit() }
+        XCTAssertEqual(saved.count, 2)
+        for (item, occurrence) in zip(saved, occurrences) {
+            XCTAssertEqual(item.startDate.timeIntervalSince1970, occurrence.startDate.timeIntervalSince1970, accuracy: 1)
+            XCTAssertEqual(item.endDate.timeIntervalSince1970, occurrence.endDate.timeIntervalSince1970, accuracy: 1)
+            XCTAssertEqual(item.location, "Local test, Test 1, Innsbruck")
+            XCTAssertTrue(item.notes?.contains("Calendar audit details") == true)
+        }
+    }
+
+    func testOrganizationRequestEditorRevisionResubmitRejectionApprovalHistoryAndTargetInbox() async throws {
+        try await signIn("member")
+        defer { try? Auth.auth().signOut() }
+        let member = try await UserProfileService.shared.fetchExistingUserProfile(uid: "closure-member")
+        let repository = FirestoreOrganizationRepository(sessionDataCache: SessionDataCache())
+        let model = OrganizationsViewModel(repository: repository)
+        let create = OrganizationEditorViewModel()
+        let name = "Audit Request " + UUID().uuidString
+        create.name = name; create.shortDescription = "Isolated organization request workflow verification."
+        create.fullDescription = "Full local audit description with independently verified persistence."
+        create.germanName = "Lokale Testorganisation"; create.germanShortDescription = "Lokale Prüfung des vollständigen Freigabeablaufs."
+        create.selectedFederalState = .tirol; create.city = "Innsbruck"
+        create.email = "audit@example.org"; create.phone = "+43000000000"; create.website = "https://example.org"
+        create.address = "Test 1"; create.foundedYear = "2020"; create.foundedMonth = 3
+        create.languages = "uk, de"; create.contactPerson = "Audit Contact"; create.missionStatement = "Local audit mission"
+        create.profileKind = .business; create.secondaryCategories = ["culture", "integration"]
+        create.serviceModes = [.online, .onSite]; create.serviceArea = "Tirol"
+        create.regularHours = ["monday": "09:00-17:00", "sunday": "closed"]
+        create.specialHoursNote = "Local audit hours"; create.services = "Advice, Meetings"
+        create.orderURL = "https://example.org/order"; create.bookingURL = "https://example.org/book"
+        create.currentOfferTitle = "Audit offer"; create.currentOfferDetails = "Local audit offer details"
+        create.currentOfferURL = "https://example.org/offer"; create.currentOfferValidUntil = Date().addingTimeInterval(86400)
+        create.telegramURL = "https://t.me/uac_test_fixture"; create.donationURL = "https://example.org/support"
+        create.facebookURL = "https://facebook.com/uac_test_fixture"; create.instagramURL = "https://instagram.com/uac_test_fixture"
+        create.whatsappURL = "https://wa.me/43000000000"; create.youtubeURL = "https://youtube.com/@uac_test_fixture"
+        create.linkedinURL = "https://linkedin.com/company/uac_test_fixture"
+        create.germanMissionStatement = "Lokaler Testauftrag"; create.germanServiceArea = "Tirol DE"
+        create.germanSpecialHoursNote = "Lokale Testzeiten"; create.germanServices = "Beratung, Treffen"
+        create.germanCurrentOfferTitle = "Testangebot"; create.germanCurrentOfferDetails = "Lokale Angebotsdetails"
+        let saved = await create.submit(with: model, user: member, organizationRulesVersion: "2026.1")
+        XCTAssertTrue(saved, create.errorMessage ?? "Create must persist")
+        guard saved else { return }
+        let requests = try await repository.fetchOrganizationRequests(submittedByUserID: member.id)
+        let original = try XCTUnwrap(requests.first { $0.name == name })
+        XCTAssertEqual(original.moderationStatus, .pendingReview)
+        XCTAssertEqual(original.foundedYear, 2020); XCTAssertEqual(original.foundedMonth, 3)
+        XCTAssertEqual(original.languages, ["uk", "de"]); XCTAssertEqual(original.contactPerson, "Audit Contact")
+        let profile = try XCTUnwrap(original.directoryProfile)
+        XCTAssertEqual(profile.profileKind, .business)
+        XCTAssertEqual(Set(profile.secondaryCategories), ["culture", "integration"])
+        XCTAssertEqual(Set(profile.serviceModes), [.online, .onSite])
+        XCTAssertEqual(profile.regularHours, ["monday": "09:00-17:00", "sunday": "closed"])
+        XCTAssertEqual(profile.services, ["Advice", "Meetings"])
+        XCTAssertEqual(profile.bookingURL, "https://example.org/book")
+        XCTAssertEqual(profile.orderURL, "https://example.org/order")
+        XCTAssertEqual(profile.currentOfferTitle, "Audit offer")
+        XCTAssertEqual(original.localizations["de"]?.services, ["Beratung", "Treffen"])
+        XCTAssertEqual(original.localizations["de"]?.currentOfferDetails, "Lokale Angebotsdetails")
+        let reopened = OrganizationEditorViewModel(mode: .edit(existing: original))
+        XCTAssertEqual(reopened.telegramURL, "https://t.me/uac_test_fixture")
+        XCTAssertEqual(reopened.donationURL, "https://example.org/support")
+        XCTAssertEqual(reopened.facebookURL, "https://facebook.com/uac_test_fixture")
+        XCTAssertEqual(reopened.instagramURL, "https://instagram.com/uac_test_fixture")
+        XCTAssertEqual(reopened.whatsappURL, "https://wa.me/43000000000")
+        XCTAssertEqual(reopened.youtubeURL, "https://youtube.com/@uac_test_fixture")
+        XCTAssertEqual(reopened.linkedinURL, "https://linkedin.com/company/uac_test_fixture")
+        XCTAssertEqual(reopened.germanMissionStatement, "Lokaler Testauftrag")
+        XCTAssertEqual(reopened.germanServiceArea, "Tirol DE")
+        XCTAssertEqual(reopened.germanSpecialHoursNote, "Lokale Testzeiten")
+        let reference = Firestore.firestore().document("organizations/" + original.id)
+        let initial = try await reference.getDocument(source: .server)
+        XCTAssertEqual(initial.get("submittedByUserId") as? String, member.id)
+        XCTAssertEqual(initial.get("email") as? String, "audit@example.org")
+        try await signIn("owner")
+        try await repository.requestOrganizationRevision(id: original.id, message: "Local audit: clarify opening hours", reviewerID: "closure-owner")
+        let revision = try await reference.getDocument(source: .server)
+        XCTAssertEqual(revision.get("moderationStatus") as? String, "needsRevision")
+        try await signIn("member")
+        for cycle in 0..<2 {
+            let current = try await repository.fetchOrganization(id: original.id)
+            let edit = OrganizationEditorViewModel(mode: .edit(existing: current))
+            edit.fullDescription += " Correction \(cycle)."
+            let updated = await edit.submit(with: model, user: member)
+            XCTAssertTrue(updated, edit.errorMessage ?? "Resubmission must persist")
+            guard updated else { return }
+            let pending = try await reference.getDocument(source: .server)
+            XCTAssertEqual(pending.get("moderationStatus") as? String, "pendingReview")
+            XCTAssertEqual(pending.get("fullDescription") as? String, edit.fullDescription)
+            try await signIn("owner")
+            if cycle == 0 { try await repository.rejectOrganizationRequest(id: original.id, reason: "Local audit rejection with correction allowed", reviewerID: "closure-owner") }
+            else { try await repository.approveOrganizationRequest(id: original.id, reviewerID: "closure-owner") }
+            try await signIn("member")
+        }
+        let approved = try await reference.getDocument(source: .server)
+        XCTAssertEqual(approved.get("moderationStatus") as? String, "approved")
+        XCTAssertEqual(approved.get("ownerId") as? String, "closure-member")
+        let notices = try await Firestore.firestore().collection("users/closure-member/notificationInbox").whereField("sourceId", isEqualTo: original.id).getDocuments(source: .server)
+        for type in ["organizationRequestNeedsRevision", "organizationRequestRejected", "organizationRequestApproved"] {
+            let notice = try XCTUnwrap(notices.documents.first { $0.get("type") as? String == type })
+            XCTAssertEqual(notice.get("recipientUserId") as? String, "closure-member")
+            XCTAssertEqual(notice.get("actionTargetId") as? String, original.id)
+        }
+        try await signIn("owner")
+        let history = try await Functions.functions(region: "europe-west3").httpsCallable("listOrganizationReviewHistory").call(["limit": 30])
+        let payload = try XCTUnwrap(history.data as? [String: Any])
+        let rows = try XCTUnwrap(payload["items"] as? [[String: Any]]).filter { $0["organizationId"] as? String == original.id }
+        XCTAssertEqual(Set(rows.compactMap { $0["status"] as? String }), ["needsRevision", "rejected", "approved"])
+        XCTAssertTrue(rows.allSatisfy { ($0["organizationName"] as? String) == name })
+        // Delete only the newly created isolated record through the actual server command.
+        try await repository.deleteOrganization(id: original.id)
+        let deleted = try await reference.getDocument(source: .server)
+        XCTAssertFalse(deleted.exists)
     }
 
     func testOrganizationTeamActualServiceRoleChangesTransferAndTargetNotices() async throws {

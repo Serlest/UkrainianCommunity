@@ -26,24 +26,7 @@ extension OrganizationDetailView {
     }
 
     func highlightPhotoTile(_ photo: OrganizationPhoto) -> some View {
-        AsyncImage(url: URL(string: photo.imageURL)) { phase in
-            switch phase {
-            case let .success(image):
-                image
-                    .resizable()
-                    .scaledToFill()
-            case .failure:
-                AppTheme.surfaceControl.opacity(0.65)
-                    .overlay(
-                        Image(systemName: "photo")
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(AppTheme.textSecondary)
-                    )
-            default:
-                AppTheme.surfaceControl.opacity(0.65)
-                    .overlay(ProgressView().controlSize(.small))
-            }
-        }
+        OrganizationGalleryImage(photo: photo, height: 86, fit: false)
         .frame(width: 86, height: 86)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(

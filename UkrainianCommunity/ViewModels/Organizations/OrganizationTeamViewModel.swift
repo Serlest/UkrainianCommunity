@@ -34,6 +34,13 @@ final class OrganizationTeamViewModel: ObservableObject {
         self.workspaceRead = workspaceRead ?? { try await CloudFunctionsClient.shared.call(.manageOrganizationWorkspace, request: $0) }
     }
 
+    private func prepareAuthority(_ organization: Organization, actor: AppUser?) async throws {
+        guard let actor, PermissionService.isUsableAccount(user: actor) else { return }
+        if let authority = organizationRepository as? OrganizationAccessPreparingRepository {
+            try await authority.prepareOrganizationAccess(organizationID: organization.id, userID: actor.id)
+        }
+    }
+
     func reset() {
         generation &+= 1; loadGeneration = UUID(); candidateGeneration = UUID(); candidateCursor = nil; hasMoreCandidates = false
         members = []; candidateMembers = []; updatingUserIDs = []
@@ -43,6 +50,9 @@ final class OrganizationTeamViewModel: ObservableObject {
 
     func load(organization: Organization, actor: AppUser?) async {
         let expected = generation
+        do { try await prepareAuthority(organization, actor: actor) }
+        catch { if generation == expected { errorMessage = AppStrings.Profile.organizationTeamLoadFailed }; return }
+        guard generation == expected, !Task.isCancelled else { return }
         loadGeneration = UUID(); let expectedLoad = loadGeneration
         guard PermissionService.canAccessManagedOrganization(organization, user: actor) else { reset(); return }
         isLoading = true
@@ -69,6 +79,10 @@ final class OrganizationTeamViewModel: ObservableObject {
 
     func loadCandidateUsers(excluding organization: Organization, actor: AppUser?, allowsExistingTeamMembers: Bool = false,
                             search: String = "", more: Bool = false) async {
+        let accessGeneration = generation
+        do { try await prepareAuthority(organization, actor: actor) }
+        catch { if generation == accessGeneration { candidateErrorMessage = AppStrings.Profile.organizationTeamUserSearchFailed }; return }
+        guard generation == accessGeneration, !Task.isCancelled else { return }
         guard let actor, PermissionService.canManageOrganizationRoles(organization, user: actor) else {
             candidateMembers = []; candidateErrorMessage = AppStrings.Profile.organizationTeamPermissionDenied; return
         }
@@ -108,6 +122,10 @@ final class OrganizationTeamViewModel: ObservableObject {
         organization: Organization,
         actor: AppUser
     ) async -> Bool {
+        let accessGeneration = generation
+        do { try await prepareAuthority(organization, actor: actor) }
+        catch { if generation == accessGeneration { errorMessage = AppStrings.Profile.organizationTeamSaveFailed }; return false }
+        guard generation == accessGeneration, !Task.isCancelled else { return false }
         guard PermissionService.canManageOrganizationRoles(organization, user: actor) else {
             errorMessage = AppStrings.Profile.organizationTeamPermissionDenied
             return false

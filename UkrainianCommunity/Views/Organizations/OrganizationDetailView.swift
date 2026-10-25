@@ -402,7 +402,10 @@ struct OrganizationDetailView: View {
                         .onTapGesture { isCommentFieldFocused = false }
                     organizationSectionTabs
                         .onTapGesture { isCommentFieldFocused = false }
-                    selectedSectionContent(for: organization)
+                    VStack(spacing: 0) {
+                        selectedSectionContent(for: organization)
+                    }
+                        .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("organization.content.\(selectedSection)")
                         .onTapGesture { isCommentFieldFocused = false }
                     actionButtons(for: organization)

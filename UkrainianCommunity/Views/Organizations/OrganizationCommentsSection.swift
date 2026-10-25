@@ -69,6 +69,7 @@ extension OrganizationDetailView {
         .menuStyle(.button)
         .buttonStyle(.plain)
         .accessibilityLabel(AppStrings.Safety.moreActions)
+        .accessibilityIdentifier("organization.comment.actions.\(comment.id)")
     }
 
     func canReportComment(_ comment: Comment) -> Bool {

@@ -79,6 +79,7 @@ extension OrganizationEditorView {
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("organization.editor.kind.\(kind.rawValue)")
                 }
             }
         }
@@ -104,6 +105,7 @@ extension OrganizationEditorView {
                         !viewModel.secondaryCategories.contains(category.rawValue)
                             && viewModel.secondaryCategories.count >= OrganizationDirectoryProfile.maximumSecondaryCategoryCount
                     )
+                    .accessibilityIdentifier("organization.editor.secondary.\(category.rawValue)")
                 }
             }
         }
@@ -115,6 +117,7 @@ extension OrganizationEditorView {
                 editorSectionTitle(AppStrings.Organizations.aboutSectionTitle)
 
                 TextField(AppStrings.Organizations.fieldMissionStatementPlaceholder, text: $viewModel.missionStatement, axis: .vertical)
+                    .accessibilityIdentifier("organization.editor.mission")
                     .lineLimit(2...4)
                     .font(.subheadline)
                     .textInputAutocapitalization(.sentences)
@@ -136,6 +139,7 @@ extension OrganizationEditorView {
                     }
 
                     TextField(AppStrings.Organizations.fieldFullDescriptionPlaceholder, text: $viewModel.fullDescription, axis: .vertical)
+                        .accessibilityIdentifier("organization.editor.fullDescription")
                         .lineLimit(6...12)
                         .font(.subheadline)
                         .textInputAutocapitalization(.sentences)
@@ -187,6 +191,7 @@ extension OrganizationEditorView {
 
                     editorField(title: AppStrings.Organizations.fieldDescription, counterText: "\(viewModel.germanShortDescription.count)/\(OrganizationEditorViewModel.shortDescriptionLimit)") {
                         TextField(AppStrings.Organizations.fieldDescriptionPlaceholder, text: $viewModel.germanShortDescription, axis: .vertical)
+                            .accessibilityIdentifier("organization.editor.german.description")
                             .lineLimit(3...6)
                             .textInputAutocapitalization(.sentences)
                             .organizationEditorCompactInputStyle(minHeight: summaryInputHeight)
@@ -194,6 +199,7 @@ extension OrganizationEditorView {
 
                     editorField(title: AppStrings.Organizations.fieldMissionStatement, counterText: "") {
                         TextField(AppStrings.Organizations.fieldMissionStatementPlaceholder, text: $viewModel.germanMissionStatement, axis: .vertical)
+                            .accessibilityIdentifier("organization.editor.german.mission")
                             .lineLimit(2...4)
                             .textInputAutocapitalization(.sentences)
                             .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
@@ -201,6 +207,7 @@ extension OrganizationEditorView {
 
                     editorField(title: AppStrings.Organizations.fieldFullDescription, counterText: "\(viewModel.germanFullDescription.count)/\(OrganizationEditorViewModel.fullDescriptionLimit)") {
                         TextField(AppStrings.Organizations.fieldFullDescriptionPlaceholder, text: $viewModel.germanFullDescription, axis: .vertical)
+                            .accessibilityIdentifier("organization.editor.german.fullDescription")
                             .lineLimit(6...12)
                             .textInputAutocapitalization(.sentences)
                             .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
@@ -212,6 +219,7 @@ extension OrganizationEditorView {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("organization.editor.localization.german")
         }
     }

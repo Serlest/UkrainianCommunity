@@ -849,7 +849,17 @@ actor MockRepositoryStore {
         organizations[index].subscriberCount = max(0, organizations[index].subscriberCount + (isSubscribed ? 1 : -1))
     }
 
-    func organizationSubscriberPage(organizationID: String, limit: Int, after cursor: OrganizationSubscriberCursor?) throws -> OrganizationSubscriberPage {
+    func organizationSubscriberPage(organizationID: String, limit: Int, after cursor: OrganizationSubscriberCursor?) async throws -> OrganizationSubscriberPage {
+        #if DEBUG && targetEnvironment(simulator)
+        if MockContentBuilder.usesPublicOrganizationsAudit,
+           ProcessInfo.processInfo.environment["UITestOrganizationTeamFailure"] == "1" {
+            organizationActivityReadCounts["team", default: 0] += 1
+            if organizationActivityReadCounts["team"] == 1 {
+                try await Task.sleep(for: .seconds(3))
+                throw AppError.network
+            }
+        }
+        #endif
         guard organizations.contains(where: { $0.id == organizationID }) else { throw AppError.notFound }
         return OrganizationSubscriberPage(items: [], nextCursor: nil, hasMore: false)
     }

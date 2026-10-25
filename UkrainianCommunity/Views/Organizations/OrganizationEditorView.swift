@@ -433,7 +433,8 @@ struct OrganizationEditorView: View {
         systemImage: String,
         placeholder: String,
         text: Binding<String>,
-        isDisabled: Bool = false
+        isDisabled: Bool = false,
+        identifier: String? = nil
     ) -> some View {
         HStack(spacing: AppTheme.eventsMetadataSpacing) {
             Image(systemName: systemImage)
@@ -442,6 +443,7 @@ struct OrganizationEditorView: View {
                 .frame(width: AppTheme.metadataIconSize, height: AppTheme.metadataIconSize)
 
             TextField(placeholder, text: text)
+                .accessibilityIdentifier(identifier ?? "organization.editor.field.\(systemImage)")
                 .font(.subheadline)
                 .foregroundStyle(AppTheme.textPrimary)
                 .disabled(isDisabled)

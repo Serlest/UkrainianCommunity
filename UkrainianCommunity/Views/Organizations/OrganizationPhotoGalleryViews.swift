@@ -161,6 +161,7 @@ final class OrganizationPhotoGalleryViewModel: ObservableObject {
 }
 
 struct OrganizationPhotoGallerySection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let organizationId: String
     let canManage: Bool
     let currentUser: AppUser?
@@ -218,7 +219,9 @@ struct OrganizationPhotoGallerySection: View {
             if canManage { await viewModel.refreshReplacementAvailability() }
         }
         .onChange(of: canManage) { _, allowed in
-            if !allowed { revokePhotoEditor() }
+            let awaitingGrant = PermissionService.isUsableAccount(user: currentUser)
+                && OrganizationAccessStore.shared.isRevalidatingPreviousGrant("managePhotos", organizationID: organizationId, userID: currentUser?.id)
+            if !allowed && !awaitingGrant { revokePhotoEditor() }
         }
         .onChange(of: currentUser?.id) { _, _ in revokePhotoEditor() }
         .onChange(of: selectedPickerItem) { _, item in
@@ -283,6 +286,7 @@ struct OrganizationPhotoGallerySection: View {
     private var content: some View {
         if viewModel.photos.isEmpty && (viewModel.isLoading || (!viewModel.hasLoaded && viewModel.errorMessage == nil)) {
             ProgressView()
+                .accessibilityIdentifier("organization.gallery.loading")
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.vertical, AppTheme.dashboardSpacing)
         } else if viewModel.photos.isEmpty && viewModel.errorMessage != nil {
@@ -316,6 +320,7 @@ struct OrganizationPhotoGallerySection: View {
                 .buttonStyle(.plain)
                 .disabled(!isPhotoPickingAllowed)
                 .accessibilityLabel(AppStrings.Organizations.photosAdd)
+                .accessibilityIdentifier("organization.photo.add")
             }
 
             ForEach(viewModel.photos) { photo in
@@ -369,15 +374,24 @@ struct OrganizationPhotoGallerySection: View {
                     .foregroundStyle(AppTheme.accentDestructiveForeground)
                 Button(AppStrings.Organizations.retry) { Task { await viewModel.refresh() } }
                     .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("organization.gallery.retry")
             }
         }
     }
 
     private var compactEmptyState: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label(AppStrings.Organizations.photosEmptyTitle, systemImage: "photo.on.rectangle")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(AppTheme.textPrimary)
+            (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(spacing: 8))) {
+                Image(systemName: "photo.on.rectangle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .accessibilityHidden(true)
+                Text(AppStrings.Organizations.photosEmptyTitle)
+                    .accessibilityIdentifier("organization.gallery.empty")
+                    .font(.subheadline.weight(.semibold))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .foregroundStyle(AppTheme.textPrimary)
 
             Text(AppStrings.Organizations.photosEmptyMessage)
                 .font(.footnote)
@@ -410,6 +424,7 @@ struct OrganizationPhotoGallerySection: View {
             }
             Section {
                 TextField(AppStrings.Organizations.photosCaptionPlaceholder, text: $pendingCaption, axis: .vertical)
+                    .accessibilityIdentifier("organization.photo.caption")
                     .lineLimit(2...4)
                     .onChange(of: pendingCaption) { _, value in
                         if value.count > maximumCaptionLength {
@@ -423,13 +438,14 @@ struct OrganizationPhotoGallerySection: View {
                     .monospacedDigit()
             }
         }
-        .navigationTitle(replacementTarget == nil ? AppStrings.Organizations.photosAdd : AppStrings.Organizations.photosReplace)
+        .navigationTitle(AppStrings.Organizations.tabPhoto)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(AppStrings.Organizations.cancel) {
                     resetPendingPhoto()
                 }
+                .accessibilityIdentifier("organization.photo.cancel")
             }
 
             ToolbarItem(placement: .confirmationAction) {
@@ -437,6 +453,7 @@ struct OrganizationPhotoGallerySection: View {
                     uploadPendingPhoto()
                 }
                 .disabled(pendingPhotoData == nil || viewModel.isUploading || viewModel.isLoading)
+                .accessibilityIdentifier("organization.photo.upload")
             }
         }
     }
@@ -548,6 +565,7 @@ private struct OrganizationPhotoTile: View {
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .accessibilityLabel(photo.caption ?? AppStrings.Organizations.tabPhoto)
+        .accessibilityIdentifier("organization.photo.open.\(photo.id)")
         .overlay(alignment: .topTrailing) {
             deleteButton
         }
@@ -555,6 +573,7 @@ private struct OrganizationPhotoTile: View {
             if let onReplace {
                 Button(AppStrings.Organizations.photosReplace, systemImage: "arrow.triangle.2.circlepath", action: onReplace)
                     .disabled(isDeleting)
+                    .accessibilityIdentifier("organization.photo.replace.\(photo.id)")
             }
         }
     }
@@ -578,23 +597,12 @@ private struct OrganizationPhotoTile: View {
             )
             .contentShape(Rectangle())
             .accessibilityLabel(AppStrings.Organizations.photosDelete)
+            .accessibilityIdentifier("organization.photo.delete.\(photo.id)")
         }
     }
 
     private var photoImage: some View {
-        AsyncImage(url: URL(string: photo.imageURL)) { phase in
-            switch phase {
-            case let .success(image):
-                image
-                    .resizable()
-                    .scaledToFill()
-            case .failure:
-                fallbackImage
-            default:
-                AppTheme.surfaceControl.opacity(0.65)
-                    .overlay(ProgressView().controlSize(.small))
-            }
-        }
+        OrganizationGalleryImage(photo: photo, height: cellSize, fit: false)
         .frame(width: cellSize, height: cellSize)
         .clipped()
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -650,6 +658,21 @@ private struct OrganizationAddPhotoTile: View {
     }
 }
 
+struct OrganizationGalleryImage: View {
+    let photo: OrganizationPhoto
+    let height: CGFloat
+    let fit: Bool
+    @State private var isLoaded = false
+
+    var body: some View {
+        RemoteImageView(imageURL: photo.imageURL, height: height, cornerRadius: fit ? 0 : 8,
+            source: "OrganizationGallery", presentationStyle: fit ? .fit : .fill,
+            onImageLoadStateChanged: { isLoaded = $0 }, showsRetryOnFailure: fit)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("organization.photo.image." + (isLoaded ? "loaded." : "pending.") + photo.id)
+    }
+}
+
 private struct OrganizationPhotoPreviewView: View {
     @Environment(\.dismiss) private var dismiss
     let photos: [OrganizationPhoto]
@@ -668,19 +691,8 @@ private struct OrganizationPhotoPreviewView: View {
                 ForEach(photos) { photo in
                     VStack(spacing: AppTheme.dashboardSpacing) {
                         Spacer(minLength: 0)
-                        AsyncImage(url: URL(string: photo.imageURL)) { phase in
-                            switch phase {
-                            case let .success(image):
-                                image
-                                    .resizable()
-                                    .scaledToFit()
-                            case .failure:
-                                Image(systemName: "photo")
-                                    .font(.largeTitle)
-                                    .foregroundStyle(AppTheme.textSecondary)
-                            default:
-                                ProgressView()
-                            }
+                        GeometryReader { geometry in
+                            OrganizationGalleryImage(photo: photo, height: geometry.size.height, fit: true)
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
 

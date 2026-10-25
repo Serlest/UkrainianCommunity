@@ -68,6 +68,7 @@ extension OrganizationEditorView {
                 Button(localizedMonthName(for: month)) {
                     viewModel.foundedMonth = month
                 }
+                .accessibilityIdentifier("organization.editor.month.\(month)")
             }
         } label: {
             HStack(spacing: AppTheme.eventsMetadataSpacing) {
@@ -101,6 +102,7 @@ extension OrganizationEditorView {
         .buttonStyle(.plain)
         .disabled(!viewModel.canSelectFoundedMonth)
         .accessibilityLabel(AppStrings.Organizations.fieldFoundedMonth)
+        .accessibilityIdentifier("organization.editor.foundedMonth")
     }
 
     var selectedFoundedMonthTitle: String {

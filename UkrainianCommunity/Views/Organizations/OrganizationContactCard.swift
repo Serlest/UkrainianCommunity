@@ -319,6 +319,7 @@ private struct OrganizationContactRow: View {
             if let destination = item.destination {
                 Link(destination: destination) { rowContent }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("organization.contact.\(item.systemImage)")
             } else {
                 rowContent
                     .textSelection(.enabled)

@@ -9,6 +9,58 @@ struct OrganizationAccessRolloutTests {
         Organization(id: "org", name: "Fixture", description: "Fixture", city: "Wien", ownerId: "a", adminIds: [], moderatorIds: [], createdAt: .now, updatedAt: .now, moderationStatus: .approved, likeCount: 0, likeState: .notLiked)
     }
 
+    @Test func expiredGrantPreservesPresentationButNeverAuthorizesAWrite() async throws {
+        var clock = Date(timeIntervalSince1970: 1000)
+        var grants = ["managePhotos", "editInfo"]
+        let store = OrganizationAccessStore(now: { clock }, currentUID: { "a" }, call: { _, _ in
+            ["principalId": "a", "schemaVersion": 1, "mode": "enforced", "commandsEnabled": true,
+             "records": [["organizationId": "org", "actions": grants]],
+             "commands": ["saveOrganizationPhoto": true]]
+        })
+        _ = try await store.preparePhotoCommand(organizationID: "org")
+        #expect(!store.isRevalidatingPreviousGrant("editInfo", organizationID: "org", userID: "a"))
+        clock = clock.addingTimeInterval(31)
+        #expect(!store.allows("editInfo", organizationID: "org", userID: "a", legacy: true))
+        #expect(store.isRevalidatingPreviousGrant("editInfo", organizationID: "org", userID: "a"))
+        #expect(!store.isRevalidatingPreviousGrant("manageTeam", organizationID: "org", userID: "a"))
+        #expect(!store.isRevalidatingPreviousGrant("editInfo", organizationID: "org", userID: "b"))
+        grants = ["managePhotos"]
+        _ = try await store.preparePhotoCommand(organizationID: "org")
+        #expect(!store.allows("editInfo", organizationID: "org", userID: "a", legacy: true))
+        #expect(!store.isRevalidatingPreviousGrant("editInfo", organizationID: "org", userID: "a"))
+        store.invalidateAuthority(for: "a")
+        #expect(!store.isRevalidatingPreviousGrant("managePhotos", organizationID: "org", userID: "a"))
+        store.transition(to: nil)
+    }
+
+    @Test func accessPreparationReusesFreshDecisionsAndAwaitsInvalidatedAuthority() async throws {
+        var uid: String? = "a"
+        var actions = ["editInfo"]
+        var calls = 0
+        let store = OrganizationAccessStore(currentUID: { uid }, call: { _, _ in
+            calls += 1
+            return ["principalId": "a", "schemaVersion": 1, "mode": "enforced",
+                    "records": [["organizationId": "org", "actions": actions]]]
+        })
+        try await store.prepareDecision(organizationID: "org", userID: "a")
+        try await store.prepareDecision(organizationID: "org", userID: "a")
+        #expect(calls == 1)
+        store.invalidateAuthority(for: "a")
+        try await store.prepareDecision(organizationID: "org", userID: "a")
+        #expect(calls == 2)
+        #expect(store.allows("editInfo", organizationID: "org", userID: "a", legacy: false))
+        actions = []
+        store.invalidateAuthority(for: "a")
+        try await store.prepareDecision(organizationID: "org", userID: "a")
+        #expect(calls == 3)
+        #expect(!store.allows("editInfo", organizationID: "org", userID: "a", legacy: true))
+        uid = "b"
+        do { try await store.prepareDecision(organizationID: "org", userID: "a"); Issue.record("Old principal must be rejected") }
+        catch { #expect(error as? AppError == .permissionDenied) }
+        #expect(calls == 3)
+        store.transition(to: nil)
+    }
+
     @Test func sameAccountRevocationDiscardsCachedGrantWithoutFailingOpen() async throws {
         let store = OrganizationAccessStore(currentUID: { "a" }, call: { _, _ in
             ["principalId": "a", "schemaVersion": 1, "mode": "enforced", "commandsEnabled": true,

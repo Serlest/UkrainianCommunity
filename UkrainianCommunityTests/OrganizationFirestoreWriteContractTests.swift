@@ -99,13 +99,45 @@ struct OrganizationFirestoreWriteContractTests {
         #expect(data["reviewedByUserId"] == nil)
     }
 
-    private func fixture(status: ModerationStatus, hasSubmission: Bool = true) -> Organization {
+    @Test(arguments: ["unchanged", "name", "address", "city", "region", "previously-unset-region"])
+    func locationEditsCannotKeepAnOldMapPin(change: String) async throws {
+        let repository = MockOrganizationRepository()
+        let original = fixture(status: .approved, federalState: change == "previously-unset-region" ? nil : .tirol)
+        try await repository.createOrganization(original)
+        let viewModel = OrganizationsViewModel(repository: repository)
+        let editor = OrganizationEditorViewModel(mode: .edit(existing: original))
+        switch change {
+        case "name": editor.name = "Renamed community"
+        case "address": editor.address = "A different street 2"
+        case "city": editor.city = "Wien"
+        case "region": editor.selectedFederalState = .wien
+        case "previously-unset-region": editor.selectedFederalState = .tirol
+        default: break
+        }
+        #expect(await editor.submit(with: viewModel, user: MockContentBuilder.currentUser()))
+        let saved = try await repository.fetchOrganization(id: original.id)
+        let keepsPin = change == "unchanged" || change == "name"
+        #expect(saved.latitude == (keepsPin ? original.latitude : nil))
+        #expect(saved.longitude == (keepsPin ? original.longitude : nil))
+        if !keepsPin {
+            let wire = FirestoreOrganizationRepository.makeSafeOrganizationInfoUpdateData(from: saved)
+            #expect((wire["latitude"] as? FieldValue)?.isEqual(FieldValue.delete()) == true)
+            #expect((wire["longitude"] as? FieldValue)?.isEqual(FieldValue.delete()) == true)
+        }
+        try await repository.deleteOrganization(id: original.id)
+    }
+
+    private func fixture(status: ModerationStatus, hasSubmission: Bool = true, federalState: AustrianFederalState? = .tirol) -> Organization {
         let date = originalSubmission.dateValue()
         return Organization(
             id: "org-write-contract-\(UUID().uuidString)",
             name: "Community institution",
             description: "A sufficiently detailed description of this community institution.",
+            federalState: federalState,
             city: "Innsbruck",
+            address: "Maria-Theresien-Straße 18",
+            latitude: 47.2682,
+            longitude: 11.3923,
             organizationType: "support",
             directoryProfile: OrganizationDirectoryProfile(profileKind: .institution, serviceArea: "Tirol"),
             ownerId: status == .approved ? MockContentBuilder.currentUser().id : nil,

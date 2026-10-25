@@ -90,6 +90,10 @@ struct ManagedOrganizationView: View {
                     }
                 }
                 photoSectionCard
+            } else if isRevalidating("manageContent") {
+                ProgressView(AppStrings.Startup.loading)
+                    .frame(maxWidth: .infinity, minHeight: 64)
+                    .accessibilityIdentifier("organization.management.authorityLoading")
             } else {
                 InlineMessageCard(style: .error, message: AppStrings.Errors.permissionDenied)
             }
@@ -168,20 +172,20 @@ struct ManagedOrganizationView: View {
         .onDisappear { stopAuthorityObservation() }
         .onChange(of: accessIdentity) { _, _ in closeManagementSheets() }
         .onChange(of: canAccessManagement) { _, allowed in
-            if !allowed { closeManagementSheets() }
-            else { reloadAuthorizedTeam() }
+            if !allowed && !isRevalidating("manageContent") { closeManagementSheets() }
+            else if allowed { reloadAuthorizedTeam() }
         }
         .onChange(of: canManageTeam) { _, allowed in
-            if !allowed { isShowingTeamSearch = false; pendingTeamAction = nil }
+            if !allowed && !isRevalidating("manageTeam") { isShowingTeamSearch = false; pendingTeamAction = nil }
         }
         .onChange(of: canEditOrganization) { _, allowed in
-            if !allowed { isShowingOrganizationEditor = false }
+            if !allowed && !isRevalidating("editInfo") { isShowingOrganizationEditor = false }
         }
         .onChange(of: canCreateNews) { _, allowed in
-            if !allowed { isShowingNewsEditor = false }
+            if !allowed && !isRevalidating("createNews") { isShowingNewsEditor = false }
         }
         .onChange(of: canCreateEvent) { _, allowed in
-            if !allowed { isShowingEventEditor = false }
+            if !allowed && !isRevalidating("createEvent") { isShowingEventEditor = false }
         }
         .onChange(of: canDeleteOrganization) { _, allowed in
             if !allowed { isShowingDeleteConfirmation = false }
@@ -196,6 +200,7 @@ struct ManagedOrganizationView: View {
                             Button(AppStrings.Organizations.cancel) {
                                 isShowingTeamSearch = false
                             }
+                            .accessibilityIdentifier("organization.team.cancelSearch")
                         }
                     }
             }
@@ -218,6 +223,7 @@ struct ManagedOrganizationView: View {
                         await performTeamAction(pendingTeamAction)
                     }
                 }
+                .accessibilityIdentifier("organization.team.confirm")
             }
 
             Button(AppStrings.Organizations.cancel, role: .cancel) {
@@ -273,6 +279,11 @@ struct ManagedOrganizationView: View {
             guard accessIdentity == identity, authorityObservationID == observationID, canAccessManagement else { return }
             await teamViewModel.load(organization: currentOrganization, actor: authState.user)
         }
+    }
+
+    private func isRevalidating(_ action: String) -> Bool {
+        PermissionService.isUsableAccount(user: authState.user)
+            && accessStore.isRevalidatingPreviousGrant(action, organizationID: currentOrganization.id, userID: authState.user?.id)
     }
 
     private func closeManagementSheets() {
@@ -564,6 +575,7 @@ struct ManagedOrganizationView: View {
                             Text(role.title).tag(role)
                         }
                     }
+                    .accessibilityIdentifier("organization.team.role")
                 }
             }
 
@@ -604,6 +616,7 @@ struct ManagedOrganizationView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("organization.team.candidate.\(member.userID)")
                     }
                 }
                 if teamViewModel.hasMoreCandidates {

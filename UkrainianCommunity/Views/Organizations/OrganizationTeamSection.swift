@@ -24,6 +24,7 @@ extension OrganizationDetailView {
                     }
                     if (isLoadingCommunityPage || loadedCommunityOrganizationID != organizationID), visibleCommunityMembers.isEmpty {
                         ProgressView()
+                            .accessibilityIdentifier("organization.community.loading")
                             .frame(maxWidth: .infinity, minHeight: 64)
                             .accessibilityLabel(AppStrings.Startup.loading)
                     } else if visibleCommunityMembers.isEmpty && communityLoadErrorMessage == nil {
@@ -52,14 +53,17 @@ extension OrganizationDetailView {
     }
 
     var communityEmptyState: some View {
-        HStack(spacing: 10) {
+        (dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(spacing: 10))) {
             Image(systemName: "person.3")
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: 22, weight: .semibold))
                 .foregroundStyle(AppTheme.textSecondary)
                 .frame(width: 36, height: 36)
                 .background(AppTheme.glassControlSurface(for: colorScheme), in: Circle())
+                .accessibilityHidden(true)
 
             Text(AppStrings.Organizations.communityEmpty)
+                .accessibilityIdentifier("organization.community.empty")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(AppTheme.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -82,6 +86,7 @@ extension OrganizationDetailView {
             }
             .font(.footnote.weight(.semibold))
             .buttonStyle(.bordered)
+            .accessibilityIdentifier("organization.community.retry")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -126,13 +131,14 @@ extension OrganizationDetailView {
                 Text(member.profile.preferredDisplayName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(member.isPlaceholder ? AppTheme.textSecondary : AppTheme.textPrimary)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                 if member.isPlaceholder {
                     Text(AppStrings.Organizations.communityPlaceholderProfileMessage)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                        .fixedSize(horizontal: false, vertical: true)
                 } else if let location = communityLocationText(for: member.profile) {
                     Text(location)
                         .font(.caption.weight(.medium))

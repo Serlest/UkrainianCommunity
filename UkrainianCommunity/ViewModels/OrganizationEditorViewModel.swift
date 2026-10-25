@@ -555,6 +555,12 @@ final class OrganizationEditorViewModel: ObservableObject {
         try? await draftRecoveryService.deleteOrganizationCreateDraft(key: createDraftStorageKey)
     }
 
+    private func locationUnchanged(from existing: Organization) -> Bool {
+        trimmedCity == existing.city.trimmingCharacters(in: .whitespacesAndNewlines)
+            && trimmedAddress == (existing.address ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            && selectedFederalState == existing.federalState
+    }
+
     func submit(
         with organizationsViewModel: OrganizationsViewModel,
         user: AppUser?,
@@ -638,8 +644,8 @@ final class OrganizationEditorViewModel: ObservableObject {
                 phone: trimmedPhone.nilIfEmpty,
                 website: normalizedWebsite.nilIfEmpty,
                 address: trimmedAddress.nilIfEmpty,
-                latitude: existing.latitude,
-                longitude: existing.longitude,
+                latitude: locationUnchanged(from: existing) ? existing.latitude : nil,
+                longitude: locationUnchanged(from: existing) ? existing.longitude : nil,
                 organizationType: trimmedOrganizationType.nilIfEmpty,
                 directoryProfile: directoryProfileForWrite,
                 foundedYear: parsedFoundedYear,

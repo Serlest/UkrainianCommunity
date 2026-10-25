@@ -18,6 +18,7 @@ extension OrganizationEditorView {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("organization.editor.mode.\(mode.rawValue)")
                     }
                 }
 
@@ -33,6 +34,7 @@ extension OrganizationEditorView {
                     axis: .vertical
                 )
                 .lineLimit(2...4)
+                .accessibilityIdentifier("organization.editor.services")
                 .font(.subheadline)
                 .textInputAutocapitalization(.sentences)
                 .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
@@ -51,6 +53,7 @@ extension OrganizationEditorView {
             ForEach(OrganizationWeekday.allCases) { day in
                 VStack(alignment: .leading, spacing: 8) {
                     Toggle(day.title, isOn: isWorkingDayBinding(day))
+                        .accessibilityIdentifier("organization.editor.hours.\(day.rawValue)")
                         .font(.footnote.weight(.semibold))
 
                     if hasOpeningHours(for: day) {
@@ -131,6 +134,7 @@ extension OrganizationEditorView {
                     axis: .vertical
                 )
                 .lineLimit(2...4)
+                .accessibilityIdentifier("organization.editor.offerDetails")
                 .font(.subheadline)
                 .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
 
@@ -151,6 +155,7 @@ extension OrganizationEditorView {
                     )
                 )
                 .font(.subheadline.weight(.semibold))
+                .accessibilityIdentifier("organization.editor.offerExpiration")
 
                 if let validUntil = Binding($viewModel.currentOfferValidUntil) {
                     DatePicker(
@@ -185,10 +190,11 @@ extension OrganizationEditorView {
                     iconTextField(
                         systemImage: "map",
                         placeholder: AppStrings.Organizations.serviceAreaPlaceholder,
-                        text: $viewModel.germanServiceArea
+                        text: $viewModel.germanServiceArea, identifier: "organization.editor.german.area"
                     )
 
                     TextField(AppStrings.Organizations.servicesPlaceholder, text: $viewModel.germanServices, axis: .vertical)
+                        .accessibilityIdentifier("organization.editor.german.services")
                         .lineLimit(2...4)
                         .textInputAutocapitalization(.sentences)
                         .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
@@ -198,16 +204,17 @@ extension OrganizationEditorView {
                     iconTextField(
                         systemImage: "calendar.badge.exclamationmark",
                         placeholder: AppStrings.Organizations.specialHoursPlaceholder,
-                        text: $viewModel.germanSpecialHoursNote
+                        text: $viewModel.germanSpecialHoursNote, identifier: "organization.editor.german.hours"
                     )
 
                     iconTextField(
                         systemImage: "tag",
                         placeholder: AppStrings.Organizations.offerTitlePlaceholder,
-                        text: $viewModel.germanCurrentOfferTitle
+                        text: $viewModel.germanCurrentOfferTitle, identifier: "organization.editor.german.offerTitle"
                     )
 
                     TextField(AppStrings.Organizations.offerDetailsPlaceholder, text: $viewModel.germanCurrentOfferDetails, axis: .vertical)
+                        .accessibilityIdentifier("organization.editor.german.offerDetails")
                         .lineLimit(2...4)
                         .textInputAutocapitalization(.sentences)
                         .organizationEditorCompactInputStyle(minHeight: summaryTextHeight)
@@ -218,6 +225,7 @@ extension OrganizationEditorView {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("organization.editor.directory.localization.german")
         }
     }

@@ -4,6 +4,56 @@ import XCTest
 final class PublicOrganizationsAuditUITests: XCTestCase {
     override func setUpWithError() throws { continueAfterFailure = false }
 
+    func testEmptyPublicSectionsInBothThemesAndLanguages() {
+        for large in [false, true] {
+            let app = launch("member", germanDark: large, sectionState: "empty")
+            open("role-fixture", app)
+            for section in ["news", "events", "team", "photos"] {
+                select(section, app)
+                let id = section == "team" ? "organization.community.empty" : section == "photos" ? "organization.gallery.empty" : "organization.content." + section
+                let state = ["team", "photos"].contains(section) ? app.staticTexts[id].firstMatch : app.descendants(matching: .any)[id].firstMatch
+                reveal(state, app); XCTAssertTrue(state.exists)
+                alignTop(state, app)
+                capture(app, "organization-empty-" + section + (large ? "-de-dark-AX" : "-uk-light"))
+                if large { app.swipeUp(); capture(app, "organization-empty-continuation-" + section + "-de-dark-AX") }
+            }
+            app.terminate()
+        }
+    }
+
+    func testPublicCommunityAndGalleryMetadataErrorsRecover() {
+        let app = launch("member", sectionState: "error"); open("role-fixture", app)
+        for (section, id) in [("team", "organization.community.retry"), ("photos", "organization.gallery.retry")] {
+            select(section, app)
+            let loadingID = section == "team" ? "organization.community.loading" : "organization.gallery.loading"
+            let loading = app.descendants(matching: .any)[loadingID].firstMatch
+            if loading.exists { capture(app, "organization-metadata-loading-" + section) }
+            let retry = app.buttons[id].firstMatch
+            reveal(retry, app); XCTAssertTrue(retry.isEnabled); capture(app, "organization-metadata-error-" + section)
+            retry.tap(); XCTAssertTrue(retry.waitForNonExistence(timeout: 10))
+            capture(app, "organization-metadata-recovered-" + section)
+        }
+        app.terminate()
+    }
+
+    func testGalleryDownloadFailureOffersRetryAndKeepsViewer() async throws {
+        guard ProcessInfo.processInfo.environment["UACGalleryHTTPFixture"] == "1" else { throw XCTSkip("Start isolated scripts/serve-audit-photo-fixture.py") }
+        _ = try await galleryFixture("reset", method: "POST")
+        let app = launch("member", galleryFailure: true); open("role-fixture", app); select("photos", app)
+        let photo = app.buttons["organization.photo.open.photo-fixture"].firstMatch
+        reveal(photo, app); photo.tap()
+        let retry = app.buttons["remoteImage.retry"].firstMatch
+        XCTAssertTrue(retry.waitForExistence(timeout: 15)); capture(app, "organization-gallery-download-failure")
+        _ = try await galleryFixture("enable", method: "POST")
+        retry.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["organization.photo.image.loaded.photo-fixture"].firstMatch.waitForExistence(timeout: 15))
+        let status = try await galleryFixture("status", method: "GET")
+        XCTAssertGreaterThanOrEqual(status["failed"] as? Int ?? 0, 1)
+        XCTAssertGreaterThanOrEqual(status["succeeded"] as? Int ?? 0, 1)
+        XCTAssertTrue(app.buttons["Готово"].exists); capture(app, "organization-gallery-retry-recovered")
+        app.buttons["Готово"].tap(); XCTAssertTrue(photo.waitForExistence(timeout: 8))
+    }
+
     func testAllPublicTabsPaginationAndContentDestinations() {
         let app = launch("member"); open("role-fixture", app)
         select("contacts", app)
@@ -98,7 +148,29 @@ final class PublicOrganizationsAuditUITests: XCTestCase {
             app.terminate()
         }
     }
-    private func launch(_ role: String, germanDark: Bool = false, failure: String? = nil, language: String? = nil, appearance: String? = nil) -> XCUIApplication {
+    private func alignTop(_ element: XCUIElement, _ app: XCUIApplication) {
+        for _ in 0..<24 {
+            let bottom = app.tabBars.firstMatch.frame.minY - 12
+            // A tall accessibility state can span several viewports. Keep its
+            // top readable and capture the continuation separately.
+            if element.frame.minY >= 90 && element.frame.minY < bottom - 44 { return }
+            let towardTop = element.frame.minY < 90
+            app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? 0.4 : 0.55))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? 0.55 : 0.4)))
+        }
+        XCTFail("Cannot align empty-state content")
+    }
+
+    private func galleryFixture(_ path: String, method: String) async throws -> [String: Any] {
+        guard ["reset", "enable", "status"].contains(path) else { throw NSError(domain: "AuditFixture", code: 1) }
+        var request = URLRequest(url: URL(string: "http://127.0.0.1:29555/" + path)!)
+        request.httpMethod = method
+        let (data, response) = try await URLSession.shared.data(for: request)
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
+    private func launch(_ role: String, germanDark: Bool = false, failure: String? = nil, language: String? = nil, appearance: String? = nil, galleryFailure: Bool = false, sectionState: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         let appLanguage = language ?? (germanDark ? "de" : "uk")
         let appAppearance = appearance ?? (germanDark ? "dark" : "light")
@@ -106,6 +178,12 @@ final class PublicOrganizationsAuditUITests: XCTestCase {
         app.launchEnvironment = ["UITestResetUserSettings":"1", "UITestResetAppLock":"1", "UITestResetContentDrafts":"1",
             "UITestAppLanguage":appLanguage, "UITestAppAppearance":appAppearance,
             "UITestPublicOrganizationsAudit":"1", "UITestGallery":"1"]
+        if galleryFailure { app.launchEnvironment["UITestGalleryDeterministicFailure"] = "1" }
+        if let sectionState {
+            app.launchEnvironment["UITestGalleryState"] = sectionState
+            if sectionState == "empty" { app.launchEnvironment["UITestPublicOrganizationEmptySections"] = "1" }
+            if sectionState == "error" { app.launchEnvironment["UITestOrganizationTeamFailure"] = "1" }
+        }
         if let failure { app.launchEnvironment["UITestOrganizationActivityFailure"] = failure }
         if role == "owner" { app.launchEnvironment["UITestForceOwnerSession"] = "1" }
         else if role == "guest" { app.launchEnvironment["UITestForceGuestSession"] = "1" }
@@ -128,6 +206,13 @@ final class PublicOrganizationsAuditUITests: XCTestCase {
             let down = row.exists && row.frame.midY < 140
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.35 : 0.70)).press(forDuration: 0.05,
                 thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.55 : 0.50)))
+        }
+        let selector = app.buttons["organization.sections"].firstMatch
+        if selector.exists {
+            selector.tap()
+            XCTAssertTrue(chip.waitForExistence(timeout: 5)); chip.tap()
+            XCTAssertTrue(app.descendants(matching: .any)["organization.content." + section].firstMatch.waitForExistence(timeout: 8))
+            return
         }
         for _ in 0..<8 {
             if chip.exists && chip.frame.midX > 20 && chip.frame.midX < app.frame.width - 20 && chip.isHittable {

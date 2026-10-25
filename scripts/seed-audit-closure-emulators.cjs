@@ -26,20 +26,25 @@ const auth=getAuth();
   }
   await db.doc('users/'+uid).set({id:uid,email,fullName:uid,displayName:uid,globalRole:role==='owner'?'owner':'user',accountStatus:'active',blockState:'active',requiresMultiFactorAuth:false,selectedFederalState:'tirol',acceptedTermsVersion:'2026.1',acceptedPrivacyVersion:'2026.1',createdAt:now,updatedAt:now,auditFixture:'closure-20261025'});
  }
+ for(const role of ['owner','member','other','editor']) {
+  const uid='closure-'+role;
+  await db.doc('publicProfiles/'+uid).set({id:uid,displayName:uid,city:'Innsbruck',federalState:'tirol',updatedAt:now});
+ }
  await db.doc('directoryEditors/closure-editor').set({enabled:true,revision:1,updatedAt:now});
  const {createHash}=require('node:crypto');
  const hash=s=>createHash('sha256').update(s).digest('hex');
- for(const type of ['terms','privacy']) {
+ for(const type of ['terms','privacy','organizationRules']) {
   const locales=Object.fromEntries(['de','uk'].map(locale=>{const title='Audit '+type+' '+locale,contentMarkdown='Local test document. Not production legal terms.';return [locale,{title,contentMarkdown,contentHash:hash(contentMarkdown)}];}));
   const contentHash=hash(Object.keys(locales).sort().map(locale=>[locale,locales[locale].title,locales[locale].contentMarkdown,locales[locale].contentHash].join('\n')).join('\n---\n'));
   const metadata={documentType:type,version:'2026.1',versionNumber:202601,status:'published',requiresAcceptance:true,defaultLocale:'de',canonicalLocale:'de'};
   await db.doc('legalDocuments/'+type).set({...metadata,activeVersion:'2026.1'});
   await db.doc('legalDocuments/'+type+'/versions/2026.1').set({...metadata,locales,contentHash,updatedAt:now,publishedAt:now});
  }
- const common={auditFixture:'closure-20261025',moderationStatus:'approved',regionScope:'federalState',federalState:'tirol',authorId:'closure-owner',authorName:'Closure Owner',sourceType:'organization',organizationId:'closure-org',organizationName:'Closure Organization',createdAt:now,updatedAt:now,publishedAt:now};
- await db.doc('organizations/closure-org').set({...common,id:'closure-org',name:'Closure Organization',shortDescription:'Isolated test organization',fullDescription:'Isolated test organization details',ownerId:'closure-owner',city:'Innsbruck',teamMembers:[],likeCount:0,commentCount:0});
- await db.doc('news/closure-news').set({...common,id:'closure-news',title:'Closure News',subtitle:'SDK fixture',summary:'SDK fixture',body:'SDK fixture details',likeCount:0,commentCount:0,viewCount:0});
- await db.doc('events/closure-event').set({...common,id:'closure-event',title:'Closure Event',summary:'SDK fixture',details:'SDK fixture details',city:'Innsbruck',venue:'Test hall',startDate:future,endDate:Timestamp.fromMillis(future.toMillis()+3600000),requiresRegistration:true,capacity:10000,registeredCount:0,pricing:{kind:'free'},likeCount:0,commentCount:0,viewCount:0});
+ const common={moderationStatus:'approved',regionScope:'federalState',federalState:'tirol',authorId:'closure-owner',authorName:'Closure Owner',sourceType:'organization',organizationId:'closure-org',organizationName:'Closure Organization',createdAt:now,updatedAt:now,publishedAt:now};
+ await db.doc('organizations/closure-org').set({id:'closure-org',name:'Closure Organization',description:'Isolated test organization',shortDescription:'Isolated test organization',fullDescription:'Isolated test organization details',regionScope:'federalState',federalState:'tirol',ownerId:'closure-owner',adminIds:[],moderatorIds:[],city:'Innsbruck',moderationStatus:'approved',createdAt:now,updatedAt:now,likeState:'notLiked',likeCount:0,subscriberCount:0,eventsHeldCount:0,volunteersCount:0,helpedPeopleCount:0,languages:[],socialLinks:{}});
+ await db.doc('news/closure-news').set({...common,id:'closure-news',title:'Closure News',subtitle:'SDK fixture',summary:'SDK fixture',body:'SDK fixture details',likeState:'notLiked',likeCount:0,commentCount:0,viewCount:0});
+ const {publishedAt: _newsPublishedAt, ...eventCommon}=common;
+ await db.doc('events/closure-event').set({...eventCommon,id:'closure-event',title:'Closure Event',summary:'SDK fixture',details:'SDK fixture details',city:'Innsbruck',venue:'Test hall',startDate:future,endDate:Timestamp.fromMillis(future.toMillis()+3600000),requiresRegistration:true,capacity:10000,registeredCount:0,registrationState:'notRegistered',price:0,pricing:{kind:'free'},category:'meetups',additionalCategories:[],audience:'everyone',tags:[],visibility:'public',isAllDay:false,likeState:'notLiked',likeCount:0,commentCount:0,viewCount:0});
  if(process.argv.includes('--load')) {
   const source=(await db.doc('events/closure-event').get()).data();
   await db.doc('events/closure-large-event').set({...source,id:'closure-large-event',registeredCount:1000});

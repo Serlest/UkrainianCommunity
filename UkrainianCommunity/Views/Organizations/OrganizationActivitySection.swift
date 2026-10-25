@@ -4,23 +4,53 @@ import PhotosUI
 import SwiftUI
 
 extension OrganizationDetailView {
+    @ViewBuilder
     var organizationSectionTabs: some View {
-        AppHorizontalFilterRow {
-            ForEach(OrganizationDetailSection.allCases) { section in
-                Button {
-                    switchToSection(section)
-                } label: {
-                    AppFilterChip(
-                        title: section.title,
-                        systemImage: section.systemImage,
-                        isSelected: selectedSection == section
-                    )
+        if dynamicTypeSize.isAccessibilitySize {
+            // A single full-width selector keeps long section names readable
+            // at accessibility sizes without a partially visible selected chip.
+            Menu {
+                ForEach(OrganizationDetailSection.allCases) { section in
+                    Button { switchToSection(section) } label: {
+                        Label(section.title, systemImage: section.systemImage)
+                    }
+                    .accessibilityIdentifier("organization.section.\(section)")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("organization.section.\(section)")
+            } label: {
+                HStack(spacing: AppTheme.dashboardSpacing) {
+                    Image(systemName: selectedSection.systemImage)
+                        .font(.system(size: 20, weight: .semibold))
+                        .accessibilityHidden(true)
+                    Text(selectedSection.title)
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .accessibilityHidden(true)
+                }
+                .foregroundStyle(AppTheme.textPrimary)
+                .padding(AppTheme.dashboardSpacing)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppTheme.surfaceControl, in: RoundedRectangle(cornerRadius: 16))
             }
+            .accessibilityIdentifier("organization.sections")
+        } else {
+            AppHorizontalFilterRow {
+                ForEach(OrganizationDetailSection.allCases) { section in
+                    Button { switchToSection(section) } label: {
+                        AppFilterChip(
+                            title: section.title,
+                            systemImage: section.systemImage,
+                            isSelected: selectedSection == section
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("organization.section.\(section)")
+                }
+            }
+            .accessibilityIdentifier("organization.sections")
         }
-        .accessibilityIdentifier("organization.sections")
     }
 
     @ViewBuilder

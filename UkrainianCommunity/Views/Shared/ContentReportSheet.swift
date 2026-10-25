@@ -53,6 +53,7 @@ struct ContentReportSheet: View {
                         dismissReport()
                     }
                     .disabled(isSubmitting)
+                    .accessibilityIdentifier("contentReport.cancel")
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -111,6 +112,7 @@ struct ContentReportSheet: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .accessibilityIdentifier("contentReport.reason")
                     .tint(AppTheme.accentPrimary)
                 }
             }
@@ -137,6 +139,7 @@ struct ContentReportSheet: View {
                         }
 
                         TextEditor(text: $details)
+                            .accessibilityIdentifier("contentReport.details")
                             .scrollContentBackground(.hidden)
                             .frame(minHeight: 120)
                             .padding(8)
@@ -195,6 +198,7 @@ struct ContentReportSheet: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityValue(goodFaithConfirmed ? AppStrings.Safety.goodFaithConfirmed : AppStrings.Safety.goodFaithNotConfirmed)
+                .accessibilityIdentifier("contentReport.goodFaith")
             }
 
             AppEditorSectionCard {
@@ -230,8 +234,10 @@ struct ContentReportSheet: View {
         UnifiedEmptyStateCard(
             systemImage: "checkmark.shield.fill",
             title: AppStrings.Safety.submittedTitle,
-            message: AppStrings.Safety.submittedCase(receipt.caseNumber)
+            message: AppStrings.Safety.submittedCase(receipt.caseNumber),
+            messageLineLimit: nil
         )
+        .accessibilityIdentifier("contentReport.success")
     }
 
     private var submitBar: some View {
@@ -245,6 +251,7 @@ struct ContentReportSheet: View {
             ) {
                 submit()
             }
+            .accessibilityIdentifier("contentReport.submit")
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.vertical, 12)
             .appCenteredContent()
@@ -258,6 +265,7 @@ struct ContentReportSheet: View {
             PrimaryActionButton(title: AppStrings.Common.done, systemImage: "checkmark") {
                 dismissReport()
             }
+            .accessibilityIdentifier("contentReport.done")
             .padding(.horizontal, AppTheme.pageHorizontal)
             .padding(.vertical, 12)
             .appCenteredContent()

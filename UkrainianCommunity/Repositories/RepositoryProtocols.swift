@@ -764,6 +764,13 @@ struct OrganizationReviewHistoryRequest: Encodable {
     let cursor: OrganizationReviewHistoryCursor?
 }
 
+/// An SDK repository can resolve an expired access decision before a view model
+/// classifies it as a denial. This is separate from server command authorization.
+@MainActor
+protocol OrganizationAccessPreparingRepository {
+    func prepareOrganizationAccess(organizationID: String, userID: String) async throws
+}
+
 protocol OrganizationRepository {
     func fetchManagedOrganizationPage(query: ManagedOrganizationQuery, after: String?) async throws -> ManagedOrganizationPage
     func fetchOrganizationReviewPage(limit: Int, after: OrganizationPageCursor?) async throws -> OrganizationReviewPage

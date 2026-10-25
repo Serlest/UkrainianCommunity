@@ -20,15 +20,17 @@ final class OrganizationAccessStore: ObservableObject {
     private var actionModes: [String: String] = [:]
     private var commands: [String: Bool] = [:]
     private var legacyDecisions: [String: [String: Bool]] = [:]
+    private let now: () -> Date
     private let currentUID: () -> String?
     private let call: (String, [String: Any]) async throws -> [String: Any]
 
-    init(currentUID: @escaping () -> String? = { Auth.auth().currentUser?.uid },
+    init(now: @escaping () -> Date = Date.init, currentUID: @escaping () -> String? = { Auth.auth().currentUser?.uid },
          call: @escaping (String, [String: Any]) async throws -> [String: Any] = { name, payload in
              let result = try await Functions.functions(region: "europe-west3").httpsCallable(name).call(payload)
              guard let data = result.data as? [String: Any] else { throw AppError.unknown }
              return data
          }) {
+        self.now = now
         self.currentUID = currentUID
         self.call = call
     }
@@ -62,15 +64,33 @@ final class OrganizationAccessStore: ObservableObject {
     func allows(_ action: String, organizationID: String, userID: String?, legacy: Bool) -> Bool {
         guard let userID, userID == principalID else { return legacy }
         legacyDecisions[organizationID, default: [:]][action] = legacy
-        if let entry = records[organizationID], entry.expires > Date() {
+        if let entry = records[organizationID], entry.expires > now() {
             return isEnforced(action) ? entry.actions.contains(action) : legacy
         }
         requestRefresh(organizationID)
         return isEnforced(action) ? false : legacy
     }
 
+    /// Presentation only: keep an existing unsaved draft while a previous
+    /// grant is being revalidated. This never authorizes an action; allows()
+    /// still fails closed on expiry and every command performs a fresh check.
+    /// A confirmed denial, explicit invalidation or account change ends this.
+    func isRevalidatingPreviousGrant(_ action: String, organizationID: String, userID: String?) -> Bool {
+        guard let userID, userID == principalID, currentUID() == userID,
+              isEnforced(action), let entry = records[organizationID],
+              entry.actions.contains(action) else { return false }
+        return entry.expires <= now()
+    }
+
+    func prepareDecision(organizationID: String, userID: String) async throws {
+        guard currentUID() == userID else { throw AppError.permissionDenied }
+        if principalID != userID { transition(to: userID) }
+        if let entry = records[organizationID], entry.expires > now() { return }
+        try await refresh([organizationID])
+    }
+
     private func requestRefresh(_ organizationID: String) {
-        guard unavailableUntil.map({ $0 > Date() }) != true else { return }
+        guard unavailableUntil.map({ $0 > now() }) != true else { return }
         pending.insert(organizationID)
         guard refreshTask == nil else { return }
         let expected = generation
@@ -104,7 +124,7 @@ final class OrganizationAccessStore: ObservableObject {
             commands = response["commands"] as? [String: Bool] ?? [:]
             for entry in entries {
                 guard let id = entry["organizationId"] as? String, ids.contains(id), let actions = entry["actions"] as? [String] else { throw AppError.unknown }
-                records[id] = (Set(actions), Date().addingTimeInterval(30))
+                records[id] = (Set(actions), now().addingTimeInterval(30))
             }
             revision &+= 1
         } catch {
@@ -113,12 +133,12 @@ final class OrganizationAccessStore: ObservableObject {
             // A permission denial is never a reason to retry a write via v1.
             if (error as NSError).domain == FunctionsErrorDomain,
                FunctionsErrorCode(rawValue: (error as NSError).code) == .notFound {
-                unavailableUntil = Date().addingTimeInterval(60)
+                unavailableUntil = now().addingTimeInterval(60)
                 enforced = false; commandsEnabled = false
                 actionModes.removeAll(); commands.removeAll()
                 return
             }
-            unavailableUntil = Date().addingTimeInterval(5)
+            unavailableUntil = now().addingTimeInterval(5)
             throw OrganizationAccessFailure(error)
         }
     }

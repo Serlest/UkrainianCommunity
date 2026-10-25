@@ -36,6 +36,11 @@ private struct RemoteImageLoadKey: Hashable {
     let maximumPixelSize: Int
 }
 
+private struct RemoteImageRequestKey: Hashable {
+    let image: RemoteImageLoadKey
+    let retry: Int
+}
+
 private actor RemoteImageDataLoader {
     static let shared = RemoteImageDataLoader()
 
@@ -154,11 +159,13 @@ struct RemoteImageView: View {
     let placeholderStyle: RemoteImagePlaceholderStyle
     let presentationStyle: RemoteImagePresentationStyle
     let onImageLoadStateChanged: ((Bool) -> Void)?
+    let showsRetryOnFailure: Bool
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.displayScale) private var displayScale
     @State private var loadedImage: UIImage?
     @State private var loadFailed = false
+    @State private var retryCount = 0
 
     init(
         imageURL: String?,
@@ -167,7 +174,8 @@ struct RemoteImageView: View {
         source: String = "unknown",
         placeholderStyle: RemoteImagePlaceholderStyle = .icon,
         presentationStyle: RemoteImagePresentationStyle = .fill,
-        onImageLoadStateChanged: ((Bool) -> Void)? = nil
+        onImageLoadStateChanged: ((Bool) -> Void)? = nil,
+        showsRetryOnFailure: Bool = false
     ) {
         self.imageURL = imageURL
         self.height = height
@@ -176,6 +184,7 @@ struct RemoteImageView: View {
         self.placeholderStyle = placeholderStyle
         self.presentationStyle = presentationStyle
         self.onImageLoadStateChanged = onImageLoadStateChanged
+        self.showsRetryOnFailure = showsRetryOnFailure
     }
 
     var body: some View {
@@ -193,7 +202,7 @@ struct RemoteImageView: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
             .clipped()
-            .task(id: loadKey) {
+            .task(id: RemoteImageRequestKey(image: loadKey, retry: retryCount)) {
                 await loadImage(maximumPixelSize: CGFloat(loadKey.maximumPixelSize))
             }
         }
@@ -296,6 +305,14 @@ struct RemoteImageView: View {
 
     private var unavailablePlaceholder: some View {
         placeholder(systemImage: "photo.badge.exclamationmark")
+            .overlay(alignment: .bottom) {
+                if showsRetryOnFailure {
+                    Button(AppStrings.Action.retry) { retryCount &+= 1 }
+                        .buttonStyle(.borderedProminent)
+                        .padding(12)
+                        .accessibilityIdentifier("remoteImage.retry")
+                }
+            }
     }
 
     @MainActor

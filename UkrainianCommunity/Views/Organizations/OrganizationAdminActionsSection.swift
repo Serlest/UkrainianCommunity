@@ -182,7 +182,12 @@ extension OrganizationDetailView {
             : (isPrimary ? .prominent : .regular)
 
         return Button(action: action) {
-            Label(title, systemImage: systemImage)
+            HStack(spacing: 10) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .semibold))
+                    .accessibilityHidden(true)
+                Text(title).fixedSize(horizontal: false, vertical: true)
+            }
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, AppTheme.dashboardSpacing)
                 .padding(.vertical, 10)

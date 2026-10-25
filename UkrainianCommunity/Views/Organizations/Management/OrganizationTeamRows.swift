@@ -18,13 +18,13 @@ struct OrganizationTeamMemberRow: View {
                 Text(member.displayName)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(AppTheme.textPrimary)
-                    .lineLimit(1)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
 
                 if let locationText = member.locationText {
                     Text(locationText)
                         .font(.caption)
                         .foregroundStyle(AppTheme.textSecondary)
-                        .lineLimit(1)
+                        .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 } else if member.profile == nil {
                     Text(member.userID)
                         .font(.caption)
@@ -47,6 +47,7 @@ struct OrganizationTeamMemberRow: View {
                             Button(AppStrings.profileOrganizationTeamMakeRole(role.title.lowercased())) {
                                 onAssignRole(role)
                             }
+                            .accessibilityIdentifier("organization.team.assign.\(role.rawValue).\(member.userID)")
                         }
 
                         if member.role != .member {
@@ -69,6 +70,7 @@ struct OrganizationTeamMemberRow: View {
                 }
                 .disabled(!canChangeRole)
                 .accessibilityLabel(AppStrings.Profile.organizationTeamRoleActions)
+                .accessibilityIdentifier("organization.team.actions.\(member.userID)")
             }
         }
         .padding(.horizontal, 12)

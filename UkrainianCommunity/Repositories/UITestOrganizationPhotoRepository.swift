@@ -5,10 +5,18 @@ import Foundation
 final class UITestOrganizationPhotoRepository: OrganizationPhotoRepository {
     private var items: [OrganizationPhoto] = []
     private var didSimulateConflict = false
+    private var didSimulateMetadataFailure = false
     func fetchPhotos(organizationId: String) async throws -> [OrganizationPhoto] {
+        let state = ProcessInfo.processInfo.environment["UITestGalleryState"]
+        if state == "empty" { return [] }
+        if state == "error", !didSimulateMetadataFailure {
+            didSimulateMetadataFailure = true
+            try await Task.sleep(for: .seconds(3))
+            throw AppError.network
+        }
         if items.isEmpty {
             items = [OrganizationPhoto(id: "photo-fixture", organizationId: organizationId,
-                imageURL: "https://example.invalid/fixture.jpg", caption: "Audit photo", uploadedBy: "fixture", createdAt: .now)]
+                imageURL: ProcessInfo.processInfo.environment["UITestGalleryDeterministicFailure"] == "1" ? "http://127.0.0.1:29555/audit-organization-photo.png" : "https://example.invalid/fixture.jpg", caption: "Audit photo", uploadedBy: "fixture", createdAt: .now)]
         }
         return items
     }

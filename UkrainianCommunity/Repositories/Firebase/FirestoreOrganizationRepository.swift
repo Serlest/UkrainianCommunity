@@ -1825,3 +1825,10 @@ private extension String {
         return trimmed.isEmpty ? nil : trimmed
     }
 }
+
+@MainActor
+extension FirestoreOrganizationRepository: OrganizationAccessPreparingRepository {
+    func prepareOrganizationAccess(organizationID: String, userID: String) async throws {
+        try await OrganizationAccessStore.shared.prepareDecision(organizationID: organizationID, userID: userID)
+    }
+}

@@ -669,6 +669,11 @@ final class OrganizationsViewModel: ObservableObject {
         imageData: Data?,
         user: AppUser?
     ) async throws {
+        validationErrorMessage = nil
+        if let user, PermissionService.isUsableAccount(user: user),
+           let authority = repository as? OrganizationAccessPreparingRepository {
+            try await authority.prepareOrganizationAccess(organizationID: organization.id, userID: user.id)
+        }
         guard PermissionService.canEditOrganizationInfo(organization, user: user) else {
             validationErrorMessage = AppStrings.Organizations.actionPermissionError
             throw AppError.permissionDenied

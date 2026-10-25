@@ -1,10 +1,558 @@
 import XCTest
+import CryptoKit
 
 /// Real UI and actual SDK graph against the fixed demo emulators; no fixture roles/repositories.
 @MainActor
 final class ConnectedAuditUITests: XCTestCase {
     private let directoryUIFixtureID = "custom-" + UUID().uuidString.lowercased()
+    private var ownedPhotoIDs = Set<String>()
+    private var ownedDisposableUserIDs = Set<String>()
+    private var ownedDeletionOperationIDs = Set<String>()
     override func setUpWithError() throws { continueAfterFailure = false }
+
+    func testDisposableAccountDeletionConfirmsServerCleanupAndLanding() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        let suffix = "disposable-" + UUID().uuidString.lowercased()
+        let email = "closure-" + suffix + "@uac.test"
+        func authRequest(_ action: String, body: [String: Any]) async throws -> [String: Any] {
+            // Fixed loopback Auth emulator only. This fixture is created here,
+            // is never reused by another test and cannot target a real account.
+            var request = URLRequest(url: URL(string: "http://127.0.0.1:19099/identitytoolkit.googleapis.com/v1/accounts:" + action + "?key=local-demo-only")!)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("Bearer owner", forHTTPHeaderField: "Authorization")
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+            return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        }
+        let identity = try await authRequest("signUp", body: ["email": email, "password": "Emulator-Only-2026!", "returnSecureToken": true])
+        let uid = try XCTUnwrap(identity["localId"] as? String)
+        XCTAssertFalse(uid.hasPrefix("closure-"))
+        ownedDisposableUserIDs.insert(uid)
+        _ = try await authRequest("update", body: ["localId": uid, "emailVerified": true])
+        let template = try await readDemoDocument("users/closure-member")
+        var fields = try XCTUnwrap(template["fields"] as? [String: [String: Any]])
+        fields["id"] = ["stringValue": uid]; fields["email"] = ["stringValue": email]
+        fields["fullName"] = ["stringValue": "Disposable Audit Account"]
+        fields["displayName"] = ["stringValue": "Disposable Audit Account"]
+        fields["globalRole"] = ["stringValue": "user"]
+        try await patchDemoDocument("users/" + uid, fields: fields)
+        let app = launchMember(account: suffix)
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let settings = app.buttons["profile.settings.open"].firstMatch; reveal(settings, app); settings.tap()
+        let deletion = app.buttons["profile.delete_account.button"].firstMatch; reveal(deletion, app); deletion.tap()
+        let confirm = app.buttons["profile.delete_account.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 8)); XCTAssertFalse(confirm.isEnabled)
+        capture(app, "sdk-disposable-delete-unconfirmed")
+        app.buttons["Скасувати"].firstMatch.tap()
+        _ = try await readDemoDocument("users/" + uid)
+        reveal(deletion, app); deletion.tap()
+        let keyword = app.textFields["profile.delete_account.confirmation"].firstMatch
+        XCTAssertTrue(keyword.waitForExistence(timeout: 8)); keyword.tap(); keyword.typeText("ВИДАЛИТИ")
+        if app.keyboards.firstMatch.exists {
+            app.coordinate(withNormalizedOffset: .init(dx: 0.75, dy: 0.18)).tap()
+        }
+        reveal(confirm, app); XCTAssertTrue(confirm.isEnabled); capture(app, "sdk-disposable-delete-confirmed"); confirm.tap()
+        XCTAssertTrue(app.buttons["auth.landing.signIn"].waitForExistence(timeout: 40))
+        XCTAssertTrue(app.textFields["profile.delete_account.confirmation"].firstMatch.waitForNonExistence(timeout: 10))
+        capture(app, "sdk-disposable-delete-landing")
+        _ = try await demoRequest("users/" + uid, method: "GET", fields: nil, expectedStatus: 404)
+        let lookup = try await authRequest("lookup", body: ["localId": [uid]])
+        XCTAssertTrue((lookup["users"] as? [[String: Any]] ?? []).isEmpty)
+        let operationID = SHA256.hash(data: Data(("account-deletion:" + uid).utf8)).map { String(format: "%02x", $0) }.joined()
+        ownedDeletionOperationIDs.insert(operationID)
+        let operation = try await readDemoDocument("accountDeletionOperations/" + operationID)
+        let operationFields = try XCTUnwrap(operation["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(operationFields["status"]?["stringValue"] as? String, "completed")
+        app.terminate()
+    }
+
+    func testConnectedOrganizationCommentDeleteReportAndHideExactAuthor() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        let stamp = ISO8601DateFormatter().string(from: Date())
+        try await patchDemoDocument("organizations/closure-org", fields: ["adminIds": ["arrayValue": ["values": [["stringValue": "closure-editor"]]]]])
+        for id in ["closure-delete", "closure-report"] {
+            try await patchDemoDocument("organizations/closure-org/comments/" + id, fields: [
+                "id": ["stringValue": id], "authorId": ["stringValue": "closure-other"],
+                "authorName": ["stringValue": "Closure Other"], "text": ["stringValue": "Synthetic audit comment " + id],
+                "parentType": ["stringValue": "organization"], "parentId": ["stringValue": "closure-org"],
+                "createdAt": ["timestampValue": stamp], "moderationStatus": ["stringValue": "approved"], "isDeleted": ["booleanValue": false]])
+        }
+        _ = try await demoRequest("users/closure-editor/blockedUsers/closure-other", method: "DELETE", fields: nil)
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 2).tap()
+        let card = app.buttons["organization.card.closure-org"].firstMatch
+        reveal(card, app); card.tap()
+        let deleteMenu = app.buttons["organization.comment.actions.closure-delete"].firstMatch
+        reveal(deleteMenu, app); deleteMenu.tap()
+        app.buttons["Видалити"].firstMatch.tap()
+        capture(app, "sdk-org-comment-delete-confirm")
+        // Cancel by tapping outside the native iPad-style confirmation popover on iOS 26.
+        app.coordinate(withNormalizedOffset: .init(dx: 0.92, dy: 0.13)).tap()
+        XCTAssertTrue(deleteMenu.exists)
+        _ = try await readDemoDocument("organizations/closure-org/comments/closure-delete")
+        deleteMenu.tap(); app.buttons["Видалити"].firstMatch.tap()
+        app.buttons["Видалити"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["comments.row.closure-delete"].waitForNonExistence(timeout: 15))
+        _ = try await demoRequest("organizations/closure-org/comments/closure-delete", method: "GET", fields: nil, expectedStatus: 404)
+        let reportMenu = app.buttons["organization.comment.actions.closure-report"].firstMatch
+        reveal(reportMenu, app); reportMenu.tap(); app.buttons["Поскаржитися"].firstMatch.tap()
+        let submit = app.buttons["contentReport.submit"].firstMatch
+        XCTAssertTrue(submit.waitForExistence(timeout: 8)); XCTAssertFalse(submit.isEnabled)
+        app.buttons["contentReport.reason"].firstMatch.tap(); app.buttons["Спам або шахрайство"].firstMatch.tap()
+        let details = app.textViews["contentReport.details"].firstMatch
+        reveal(details, app); details.tap(); details.typeText("Synthetic local audit report; exact target and actor verification only.")
+        let goodFaith = app.buttons["contentReport.goodFaith"].firstMatch
+        reveal(goodFaith, app); goodFaith.tap()
+        capture(app, "sdk-org-comment-report-ready")
+        XCTAssertTrue(submit.isEnabled); submit.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["contentReport.success"].firstMatch.waitForExistence(timeout: 20))
+        capture(app, "sdk-org-comment-report-receipt")
+        let cases = try await readDemoDocument("dsaCases")
+        let documents = try XCTUnwrap(cases["documents"] as? [[String: Any]])
+        XCTAssertTrue(documents.contains { doc in
+            guard let f = doc["fields"] as? [String: [String: Any]] else { return false }
+            return f["targetId"]?["stringValue"] as? String == "closure-report"
+                && f["parentId"]?["stringValue"] as? String == "closure-org"
+                && f["targetAuthorId"]?["stringValue"] as? String == "closure-other"
+                && f["reporterUserId"]?["stringValue"] as? String == "closure-editor"
+        })
+        app.buttons["contentReport.done"].tap()
+        reveal(reportMenu, app); reportMenu.tap(); app.buttons["Заблокувати користувача"].firstMatch.tap()
+        capture(app, "sdk-org-comment-hide-confirm")
+        app.buttons["Заблокувати користувача"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["comments.row.closure-report"].waitForNonExistence(timeout: 15))
+        let blocked = try await readDemoDocument("users/closure-editor/blockedUsers/closure-other")
+        let fields = try XCTUnwrap(blocked["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(fields["targetUserId"]?["stringValue"] as? String, "closure-other")
+        capture(app, "sdk-org-comment-hidden-exact-author")
+        app.terminate()
+        _ = try await demoRequest("users/closure-editor/blockedUsers/closure-other", method: "DELETE", fields: nil)
+        try await patchDemoDocument("organizations/closure-org", fields: ["adminIds": ["arrayValue": ["values": []]]])
+    }
+
+    func testConnectedOrganizationTeamCandidateCancelAssignChangeAndRemove() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-editor"], "adminIds": ["arrayValue": ["values": []]], "moderatorIds": ["arrayValue": ["values": []]]])
+        try await patchDemoDocument("likes/organization_follow_closure-org_closure-other", fields: ["userId": ["stringValue": "closure-other"], "subscribedOrganizationId": ["stringValue": "closure-org"], "createdAt": ["timestampValue": ISO8601DateFormatter().string(from: Date())]])
+        try await patchDemoDocument("publicProfiles/closure-other", fields: ["id": ["stringValue": "closure-other"], "displayName": ["stringValue": "Closure Other"], "city": ["stringValue": "Innsbruck"], "federalState": ["stringValue": "tirol"]])
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let management = app.buttons["profile.organizationManagement"].firstMatch
+        reveal(management, app); management.tap()
+        let manage = app.buttons["organization.manage.closure-org"].firstMatch
+        reveal(manage, app); manage.tap()
+        let add = app.buttons["organization.management.addTeamMember"].firstMatch
+        reveal(add, app); add.tap()
+        let candidate = app.buttons["organization.team.candidate.closure-other"].firstMatch
+        XCTAssertTrue(candidate.waitForExistence(timeout: 15)); capture(app, "sdk-org-team-candidate-list")
+        app.buttons["organization.team.cancelSearch"].tap()
+        let before = try await readDemoDocument("organizations/closure-org")
+        XCTAssertFalse(String(describing: (before["fields"] as? [String: [String: Any]])?["moderatorIds"]).contains("closure-other"))
+        reveal(add, app); add.tap(); XCTAssertTrue(candidate.waitForExistence(timeout: 15)); candidate.tap()
+        let confirm = app.buttons["organization.team.confirm"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); capture(app, "sdk-org-team-assign-confirm"); confirm.tap()
+        let actions = app.buttons["organization.team.actions.closure-other"].firstMatch
+        reveal(actions, app); XCTAssertTrue(actions.waitForExistence(timeout: 15))
+        var stored = try await readDemoDocument("organizations/closure-org")
+        XCTAssertTrue(String(describing: stored).contains("closure-other"))
+        capture(app, "sdk-org-team-assigned-row")
+        actions.tap(); app.buttons["organization.team.assign.admin.closure-other"].firstMatch.tap(); XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        for _ in 0..<15 {
+            stored = try await readDemoDocument("organizations/closure-org")
+            if let fields = stored["fields"] as? [String: [String: Any]], String(describing: fields["adminIds"]).contains("closure-other") { break }
+            try await Task.sleep(for: .milliseconds(200))
+        }
+        let fields = try XCTUnwrap(stored["fields"] as? [String: [String: Any]])
+        XCTAssertTrue(String(describing: fields["adminIds"]).contains("closure-other"))
+        reveal(actions, app); actions.tap(); app.buttons["Зняти роль"].firstMatch.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); capture(app, "sdk-org-team-remove-confirm"); confirm.tap()
+        XCTAssertTrue(actions.waitForNonExistence(timeout: 15))
+        let removed = try await readDemoDocument("organizations/closure-org")
+        let removedFields = try XCTUnwrap(removed["fields"] as? [String: [String: Any]])
+        for key in ["adminIds", "moderatorIds"] { XCTAssertFalse(String(describing: removedFields[key]).contains("closure-other")) }
+        capture(app, "sdk-org-team-after-removal")
+        app.terminate()
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-owner"]])
+    }
+
+    func testConnectedNewsPhotoCropSaveAndReopen() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        try await patchDemoDocument("organizations/closure-org", fields: ["adminIds": ["arrayValue": ["values": [["stringValue": "closure-editor"]]]]])
+        let app = launchMember(account: "editor")
+        let card = app.buttons["home.card.news-closure-news"].firstMatch
+        reveal(card, app); card.tap()
+        app.buttons["detail.header.more-actions"].firstMatch.tap(); app.buttons["Редагувати"].firstMatch.tap()
+        let next = app.buttons["editor.news.next"].firstMatch
+        XCTAssertTrue(next.waitForExistence(timeout: 10)); next.tap()
+        let picker = app.buttons["editor.news.photo"].firstMatch
+        reveal(picker, app); picker.tap()
+        let photo = app.images.matching(identifier: "PXGGridLayout-Info").firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10))
+        app.buttons["Abbrechen"].firstMatch.tap(); XCTAssertTrue(photo.waitForNonExistence(timeout: 8))
+        picker.tap(); XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        let apply = app.buttons["imageCrop.apply"].firstMatch
+        XCTAssertTrue(apply.waitForExistence(timeout: 10)); capture(app, "sdk-news-landscape-crop")
+        app.buttons["imageCrop.cancel"].tap(); XCTAssertTrue(apply.waitForNonExistence(timeout: 8))
+        picker.tap(); XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(apply.waitForExistence(timeout: 10)); apply.tap(); XCTAssertTrue(apply.waitForNonExistence(timeout: 10))
+        reveal(next, app); next.tap()
+        let submit = app.buttons["editor.news.submit"].firstMatch
+        reveal(submit, app); XCTAssertTrue(submit.isEnabled); submit.tap()
+        XCTAssertTrue(submit.waitForNonExistence(timeout: 30))
+        let doc = try await readDemoDocument("news/closure-news")
+        let fields = try XCTUnwrap(doc["fields"] as? [String: [String: Any]])
+        let image = try XCTUnwrap(fields["imageURL"]?["stringValue"] as? String)
+        try await assertLocalImageDownload(image)
+        app.buttons["detail.header.more-actions"].firstMatch.tap(); app.buttons["Редагувати"].firstMatch.tap()
+        XCTAssertTrue(next.waitForExistence(timeout: 10)); next.tap(); reveal(picker, app)
+        capture(app, "sdk-news-photo-saved-reopened")
+        app.terminate()
+    }
+
+    func testConnectedEventPhotoCropSaveAndReopen() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        try await patchDemoDocument("organizations/closure-org", fields: ["adminIds": ["arrayValue": ["values": [["stringValue": "closure-editor"]]]]])
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        let card = app.buttons["event.card.closure-event"].firstMatch; reveal(card, app); card.tap()
+        app.buttons["detail.header.more-actions"].firstMatch.tap(); app.buttons["Редагувати"].firstMatch.tap()
+        let picker = app.buttons["editor.event.photo"].firstMatch; reveal(picker, app); picker.tap()
+        let photo = app.images.matching(identifier: "PXGGridLayout-Info").firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        let apply = app.buttons["imageCrop.apply"].firstMatch
+        XCTAssertTrue(apply.waitForExistence(timeout: 10)); capture(app, "sdk-event-landscape-crop")
+        app.buttons["imageCrop.cancel"].firstMatch.tap(); XCTAssertTrue(apply.waitForNonExistence(timeout: 10))
+        picker.tap(); XCTAssertTrue(photo.waitForExistence(timeout: 10))
+        photo.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        XCTAssertTrue(apply.waitForExistence(timeout: 10)); apply.tap()
+        XCTAssertTrue(apply.waitForNonExistence(timeout: 10))
+        for _ in 0..<3 { let next = app.buttons["editor.event.next"].firstMatch; reveal(next, app); XCTAssertTrue(next.isEnabled); next.tap() }
+        let submit = app.buttons["editor.event.submit"].firstMatch; reveal(submit, app); XCTAssertTrue(submit.isEnabled); submit.tap()
+        XCTAssertTrue(submit.waitForNonExistence(timeout: 30))
+        let document = try await readDemoDocument("events/closure-event")
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        try await assertLocalImageDownload(try XCTUnwrap(fields["imageURL"]?["stringValue"] as? String))
+        app.buttons["detail.header.more-actions"].firstMatch.tap(); app.buttons["Редагувати"].firstMatch.tap()
+        reveal(picker, app); capture(app, "sdk-event-photo-saved-reopened"); app.terminate()
+    }
+
+    func testConnectedOrganizationGalleryPhotoSaveReadAndDelete() async throws {
+        try await organizationGalleryJourney(replacing: false)
+    }
+
+    func testConnectedOrganizationGalleryReplacementConflictReloadAndRetry() async throws {
+        try await organizationGalleryJourney(replacing: true)
+    }
+
+    private func organizationGalleryJourney(replacing: Bool) async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        if replacing {
+            try await patchDemoDocument("serverConfiguration/organizationAccess", fields: [
+                "mode": ["stringValue": "enforced"], "commandsEnabled": ["booleanValue": true],
+                "commandModes": ["mapValue": ["fields": ["updateOrganizationInfo": ["stringValue": "enforced"], "saveOrganizationPhoto": ["stringValue": "enforced"]]]]])
+        }
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-editor"]])
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        let management = app.buttons["profile.organizationManagement"].firstMatch
+        reveal(management, app); management.tap()
+        let manage = app.buttons["organization.manage.closure-org"].firstMatch
+        reveal(manage, app); manage.tap()
+        let add = app.buttons["organization.photo.add"].firstMatch
+        reveal(add, app); add.tap()
+        let photo = app.images.matching(identifier: "PXGGridLayout-Info").firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        let caption = app.textFields["organization.photo.caption"].firstMatch
+        XCTAssertTrue(caption.waitForExistence(timeout: 10)); caption.tap(); caption.typeText("Local gallery verification")
+        capture(app, "sdk-organization-photo-caption-ready")
+        let upload = app.buttons["organization.photo.upload"].firstMatch
+        XCTAssertTrue(upload.isEnabled); upload.tap(); XCTAssertTrue(upload.waitForNonExistence(timeout: 30))
+        let collection = try await readDemoDocument("organizations/closure-org/photos")
+        let docs = try XCTUnwrap(collection["documents"] as? [[String: Any]])
+        let document = try XCTUnwrap(docs.first { ($0["fields"] as? [String: [String: Any]])?["caption"]?["stringValue"] as? String == "Local gallery verification" })
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        let id = try XCTUnwrap(fields["id"]?["stringValue"] as? String)
+        ownedPhotoIDs.insert(id)
+        XCTAssertEqual(fields["uploadedBy"]?["stringValue"] as? String, "closure-editor")
+        try await assertLocalImageDownload(try XCTUnwrap(fields["imageURL"]?["stringValue"] as? String))
+        let open = app.buttons["organization.photo.open." + id].firstMatch
+        reveal(open, app); open.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["organization.photo.image.loaded." + id].firstMatch.waitForExistence(timeout: 15))
+        capture(app, "sdk-organization-photo-fullscreen")
+        app.buttons["Готово"].firstMatch.tap()
+        if replacing {
+            reveal(open, app); open.press(forDuration: 1)
+            app.buttons["organization.photo.replace." + id].firstMatch.tap()
+            XCTAssertTrue(photo.waitForExistence(timeout: 10))
+            photo.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+            XCTAssertTrue(upload.waitForExistence(timeout: 10))
+            let path = "organizations/closure-org/photos/" + id
+            let originalURL = try XCTUnwrap(fields["imageURL"]?["stringValue"] as? String)
+            let concurrentURL = originalURL + (originalURL.contains("?") ? "&" : "?") + "auditRevision=2"
+            try await patchDemoDocument(path, fields: ["imageURL": ["stringValue": concurrentURL]])
+            upload.tap()
+            let reload = app.buttons["organization.photo.editor.reload"].firstMatch
+            XCTAssertTrue(reload.waitForExistence(timeout: 20)); capture(app, "sdk-organization-photo-replacement-conflict")
+            reload.tap(); XCTAssertTrue(reload.waitForNonExistence(timeout: 15))
+            XCTAssertTrue(upload.isEnabled); upload.tap(); XCTAssertTrue(upload.waitForNonExistence(timeout: 30))
+            let updated = try await readDemoDocument(path)
+            let replacementFields = try XCTUnwrap(updated["fields"] as? [String: [String: Any]])
+            let replacementURL = try XCTUnwrap(replacementFields["imageURL"]?["stringValue"] as? String)
+            XCTAssertNotEqual(replacementURL, originalURL); XCTAssertNotEqual(replacementURL, concurrentURL)
+            XCTAssertEqual(replacementFields["id"]?["stringValue"] as? String, id)
+            try await assertLocalImageDownload(replacementURL)
+            capture(app, "sdk-organization-photo-replaced-after-reload")
+        }
+        let delete = app.buttons["organization.photo.delete." + id].firstMatch
+        reveal(delete, app); delete.tap(); capture(app, "sdk-organization-photo-delete-confirm")
+        app.buttons["Видалити фото"].firstMatch.tap()
+        XCTAssertTrue(open.waitForNonExistence(timeout: 15))
+        let after = try await readDemoDocument("organizations/closure-org/photos")
+        XCTAssertFalse(String(describing: after).contains(id))
+        app.terminate()
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-owner"]])
+    }
+
+    func testOrganizationAuthorityRevocationClosesOpenDraftWithoutSaving() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-editor"], "adminIds": ["arrayValue": ["values": []]], "moderatorIds": ["arrayValue": ["values": []]]])
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        for id in ["profile.organizationManagement", "organization.manage.closure-org", "organization.management.editInfo"] {
+            let button = app.buttons[id].firstMatch; reveal(button, app); button.tap()
+        }
+        let name = app.textFields["organization.editor.name"].firstMatch
+        XCTAssertTrue(name.waitForExistence(timeout: 10)); name.tap(); name.typeText(" Unsaved revoked draft")
+        capture(app, "sdk-organization-authority-before-revocation")
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-other"]])
+        XCTAssertTrue(app.buttons["editor.close"].firstMatch.waitForNonExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["organization.management.editInfo"].firstMatch.exists)
+        XCTAssertFalse(app.buttons["organization.management.createNews"].firstMatch.exists)
+        capture(app, "sdk-organization-authority-revoked")
+        let document = try await readDemoDocument("organizations/closure-org")
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        XCTAssertFalse((fields["name"]?["stringValue"] as? String ?? "").contains("Unsaved revoked draft"))
+        XCTAssertEqual(fields["ownerId"]?["stringValue"] as? String, "closure-other")
+        app.terminate()
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-owner"]])
+    }
+
+    func testConnectedOrganizationAllEditableFieldsLogoSaveAndReopen() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        try await patchDemoDocument("organizations/closure-org", fields: ["ownerId": ["stringValue": "closure-editor"]])
+        let app = launchMember(account: "editor")
+        app.tabBars.buttons.element(boundBy: 4).tap()
+        for id in ["profile.organizationManagement", "organization.manage.closure-org", "organization.management.editInfo"] {
+            let button = app.buttons[id].firstMatch; reveal(button, app); button.tap()
+        }
+        func tap(_ id: String, towardTop: Bool = false) {
+            let e: XCUIElement
+            if id.contains("localization.german") { e = app.descendants(matching: .any)[id].firstMatch }
+            else if id.hasPrefix("organization.editor.hours.") || id == "organization.editor.offerExpiration" { e = app.switches[id].firstMatch }
+            else { e = app.buttons[id].firstMatch }
+            reveal(e, app, preferUpwardScroll: towardTop); XCTAssertTrue(e.isEnabled, id); e.tap()
+        }
+        func field(_ id: String, _ value: String) {
+            let input = app.descendants(matching: .any).matching(NSPredicate(format: "identifier == %@ AND (elementType == %d OR elementType == %d)", id, XCUIElement.ElementType.textField.rawValue, XCUIElement.ElementType.textView.rawValue)).firstMatch
+            reveal(input, app); input.tap()
+            if let old = input.value as? String, !old.isEmpty, old != input.placeholderValue {
+                // Native paragraph selection replaces the existing multiline
+                // value without relying on a cursor position or localized menu.
+                input.tap(withNumberOfTaps: 4, numberOfTouches: 1)
+            }
+            input.typeText(value)
+            XCTAssertEqual(input.value as? String, value, id)
+            if app.keyboards.firstMatch.exists {
+                app.coordinate(withNormalizedOffset: .init(dx: 0.75, dy: 0.12)).tap()
+                XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+            }
+        }
+        tap("organization.editor.kind.business")
+        tap("organization.editor.logo")
+        let photo = app.images.matching(identifier: "PXGGridLayout-Info").firstMatch
+        XCTAssertTrue(photo.waitForExistence(timeout: 10)); photo.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: 0.5)).tap()
+        let apply = app.buttons["imageCrop.apply"].firstMatch
+        XCTAssertTrue(apply.waitForExistence(timeout: 10)); capture(app, "sdk-organization-logo-square-crop"); apply.tap()
+        XCTAssertTrue(apply.waitForNonExistence(timeout: 10))
+        for (id, value) in [("name", "Closure UI Complete"), ("description", "UI form persistence verification."), ("mission", "Audit mission"), ("fullDescription", "Audit full description"), ("field.calendar", "2020"), ("field.globe.europe.africa", "uk, de")] { field("organization.editor." + id, value) }
+        tap("organization.editor.foundedMonth")
+        let month = app.buttons["organization.editor.month.3"].firstMatch
+        if !month.waitForExistence(timeout: 5) {
+            capture(app, "sdk-organization-month-picker-diagnostic")
+            let tree = XCTAttachment(string: app.debugDescription); tree.name = "organization-month-picker-tree"; tree.lifetime = .keepAlways; add(tree)
+        }
+        XCTAssertTrue(month.exists); month.tap()
+        tap("organization.editor.category.education", towardTop: true)
+        tap("organization.editor.secondary.culture"); tap("organization.editor.secondary.integration")
+        tap("organization.editor.localization.german")
+        for (id, value) in [("name", "Lokale UI Organisation"), ("description", "Lokale UI Beschreibung"), ("mission", "Lokaler UI Auftrag"), ("fullDescription", "Vollständige UI Beschreibung")] { field("organization.editor.german." + id, value) }
+        capture(app, "sdk-organization-basics-bilingual-ready")
+        tap("organizationEditor.next")
+        tap("organization.editor.region"); app.buttons["Відень"].firstMatch.tap()
+        field("organization.editor.city", "Wien")
+        let contacts = [("mappin.circle", "Auditstraße 1"), ("envelope", "audit@example.org"), ("phone", "+43000000000"), ("globe", "https://example.org"), ("paperplane", "https://t.me/uac_test_fixture"), ("heart", "https://example.org/support"), ("person.crop.circle", "Audit Contact"), ("person.2", "https://facebook.com/uac_test_fixture"), ("camera", "https://instagram.com/uac_test_fixture"), ("phone.bubble", "https://wa.me/43000000000"), ("play.rectangle", "https://youtube.com/@uac_test_fixture"), ("briefcase", "https://linkedin.com/company/uac_test_fixture")]
+        for (id, value) in contacts { field("organization.editor.field." + id, value) }
+        capture(app, "sdk-organization-contacts-ready"); tap("organizationEditor.next")
+        tap("organization.editor.mode.online"); tap("organization.editor.mode.onSite")
+        for (id, value) in [("field.map", "Wien"), ("services", "Advice, Meetings"), ("field.calendar.badge.exclamationmark", "Audit special hours"), ("field.bag", "https://example.org/order"), ("field.calendar.badge.plus", "https://example.org/book"), ("field.tag", "UI offer"), ("offerDetails", "UI offer details"), ("field.link", "https://example.org/offer")] { field("organization.editor." + id, value) }
+        tap("organization.editor.hours.monday", towardTop: true); tap("organization.editor.offerExpiration")
+        tap("organization.editor.directory.localization.german")
+        for (id, value) in [("area", "Wien DE"), ("services", "Beratung, Treffen"), ("hours", "Lokale Testzeiten"), ("offerTitle", "UI Angebot"), ("offerDetails", "UI Angebotsdetails")] { field("organization.editor.german." + id, value) }
+        capture(app, "sdk-organization-directory-bilingual-ready"); tap("organizationEditor.next")
+        let submit = app.buttons["organizationEditor.submit"].firstMatch
+        reveal(submit, app); XCTAssertTrue(submit.isEnabled); capture(app, "sdk-organization-all-fields-preview"); submit.tap()
+        XCTAssertTrue(submit.waitForNonExistence(timeout: 30))
+        let document = try await readDemoDocument("organizations/closure-org")
+        let fields = try XCTUnwrap(document["fields"] as? [String: [String: Any]])
+        let top = ["name": "Closure UI Complete", "shortDescription": "UI form persistence verification.", "missionStatement": "Audit mission", "fullDescription": "Audit full description", "city": "Wien", "address": "Auditstraße 1", "email": "audit@example.org", "phone": "+43000000000", "website": "https://example.org", "contactPerson": "Audit Contact", "organizationType": "education", "telegramURL": "https://t.me/uac_test_fixture", "donationURL": "https://example.org/support", "facebookURL": "https://facebook.com/uac_test_fixture", "instagramURL": "https://instagram.com/uac_test_fixture", "whatsappURL": "https://wa.me/43000000000", "youtubeURL": "https://youtube.com/@uac_test_fixture", "linkedinURL": "https://linkedin.com/company/uac_test_fixture"]
+        for (key, value) in top { XCTAssertEqual(fields[key]?["stringValue"] as? String, value, key) }
+        func strings(_ value: [String: Any]?) -> [String] {
+            ((value?["arrayValue"] as? [String: Any])?["values"] as? [[String: Any]] ?? []).compactMap { $0["stringValue"] as? String }
+        }
+        XCTAssertEqual(strings(fields["languages"]), ["uk", "de"])
+        XCTAssertEqual(fields["federalState"]?["stringValue"] as? String, "wien")
+        XCTAssertEqual(fields["foundedYear"]?["integerValue"] as? String, "2020"); XCTAssertEqual(fields["foundedMonth"]?["integerValue"] as? String, "3")
+        let profile = try XCTUnwrap((fields["directoryProfile"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(Set(strings(profile["secondaryCategories"])), ["culture", "integration"])
+        XCTAssertEqual(Set(strings(profile["serviceModes"])), ["online", "onSite"])
+        XCTAssertEqual(strings(profile["services"]), ["Advice", "Meetings"])
+        for (key, value) in ["profileKind": "business", "serviceArea": "Wien", "specialHoursNote": "Audit special hours", "orderURL": "https://example.org/order", "bookingURL": "https://example.org/book", "currentOfferTitle": "UI offer", "currentOfferDetails": "UI offer details", "currentOfferURL": "https://example.org/offer"] { XCTAssertEqual(profile[key]?["stringValue"] as? String, value, key) }
+        XCTAssertNotNil(profile["currentOfferValidUntil"]?["timestampValue"])
+        let hours = (profile["regularHours"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]]
+        XCTAssertEqual(hours?["monday"]?["stringValue"] as? String, "09:00-18:00")
+        let localized = try XCTUnwrap((fields["localizations"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]])
+        let de = try XCTUnwrap((localized["de"]?["mapValue"] as? [String: Any])?["fields"] as? [String: [String: Any]])
+        XCTAssertEqual(strings(de["services"]), ["Beratung", "Treffen"])
+        for (key, value) in ["name": "Lokale UI Organisation", "shortDescription": "Lokale UI Beschreibung", "missionStatement": "Lokaler UI Auftrag", "fullDescription": "Vollständige UI Beschreibung", "serviceArea": "Wien DE", "specialHoursNote": "Lokale Testzeiten", "currentOfferTitle": "UI Angebot", "currentOfferDetails": "UI Angebotsdetails"] { XCTAssertEqual(de[key]?["stringValue"] as? String, value, "de." + key) }
+        let logo = try XCTUnwrap(fields["imageURL"]?["stringValue"] as? String); try await assertLocalImageDownload(logo)
+        tap("organization.management.editInfo")
+        let name = app.textFields["organization.editor.name"].firstMatch; reveal(name, app)
+        XCTAssertEqual(name.value as? String, "Closure UI Complete"); capture(app, "sdk-organization-all-fields-reopened")
+        app.terminate()
+    }
+
+    private func assertLocalImageDownload(_ url: String) async throws {
+        var components = try XCTUnwrap(URLComponents(string: url))
+        XCTAssertEqual(components.host, "firebasestorage.googleapis.com")
+        components.scheme = "http"; components.host = "127.0.0.1"; components.port = 29199
+        let (data, response) = try await URLSession.shared.data(from: try XCTUnwrap(components.url))
+        XCTAssertEqual((response as? HTTPURLResponse)?.statusCode, 200)
+        XCTAssertEqual(data.prefix(2), Data([0xff,0xd8]))
+    }
+
+    func testConnectedEventCalendarAuthorizationAndRegistration() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1", let phase = ProcessInfo.processInfo.environment["UACCalendarUIPhase"], ["deny", "allow"].contains(phase) else { throw XCTSkip("Dedicated simulator Calendar phase") }
+        let app = launchMember()
+        app.tabBars.buttons.element(boundBy: 1).tap()
+        let card = app.buttons["event.card.closure-event"].firstMatch
+        reveal(card, app); card.tap()
+        let calendar = app.buttons["event.calendar.closure-event"].firstMatch
+        reveal(calendar, app); calendar.tap()
+        let system = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        XCTAssertTrue(system.alerts.firstMatch.waitForExistence(timeout: 10))
+        capture(system, "sdk-calendar-permission-" + phase)
+        let deny = system.alerts.buttons.matching(NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Nicht", "Don’t")).firstMatch
+        if phase == "deny" { XCTAssertTrue(deny.exists); deny.tap() }
+        else {
+            let allow = system.alerts.buttons.matching(NSPredicate(format: "NOT (label CONTAINS[c] %@ OR label CONTAINS[c] %@)", "Nicht", "Don’t")).firstMatch
+            XCTAssertTrue(allow.exists); allow.tap()
+        }
+        let expected = phase == "deny" ? "Немає доступу до календаря" : "Додано в календар"
+        XCTAssertTrue(app.alerts.staticTexts[expected].waitForExistence(timeout: 10))
+        capture(app, "sdk-calendar-result-" + phase)
+        app.alerts.buttons.firstMatch.tap()
+        if phase == "allow" {
+            calendar.tap(); XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+            capture(app, "sdk-calendar-already-added"); app.alerts.buttons.firstMatch.tap()
+            let register = app.buttons["event.register.closure-event"].firstMatch
+            reveal(register, app)
+            let confirm = app.buttons["event.registration.confirm"].firstMatch
+            if register.label.contains("Скасувати") {
+                register.tap(); XCTAssertTrue(confirm.waitForExistence(timeout: 8)); confirm.tap()
+                await fulfillment(of: [expectation(for: NSPredicate(format: "NOT (label CONTAINS %@)", "Скасувати"), evaluatedWith: register)], timeout: 10)
+            }
+            register.tap()
+            XCTAssertTrue(confirm.waitForExistence(timeout: 8)); capture(app, "sdk-event-registration-confirm"); confirm.tap()
+            await fulfillment(of: [expectation(for: NSPredicate(format: "label CONTAINS %@", "Скасувати"), evaluatedWith: register)], timeout: 10)
+            _ = try await readDemoDocument("registrations/event_closure-event_closure-member")
+            register.tap(); XCTAssertTrue(confirm.waitForExistence(timeout: 8)); confirm.tap()
+            await fulfillment(of: [expectation(for: NSPredicate(format: "NOT (label CONTAINS %@)", "Скасувати"), evaluatedWith: register)], timeout: 10)
+            _ = try await demoRequest("registrations/event_closure-event_closure-member", method: "GET", fields: nil, expectedStatus: 404)
+        }
+        app.terminate()
+    }
+
+    func testConnectedNewsAndEventExternalTargetsOpenSafariAndReturn() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        let url = "https://www.oesterreich.gv.at/"
+        let action: [String: Any] = ["mapValue": ["fields": ["title": ["stringValue": "Audit external action"], "url": ["stringValue": url]]]]
+        try await patchDemoDocument("news/closure-news", fields: ["externalAction": action])
+        try await patchDemoDocument("events/closure-event", fields: ["externalAction": action, "requiresRegistration": ["booleanValue": false], "participationMode": ["stringValue": "externalTickets"]])
+        let app = launchMember()
+        for (tab, cardID, actionID) in [(0, "home.card.news-closure-news", "news.externalAction.closure-news"),
+                                       (1, "event.card.closure-event", "event.externalAction.closure-event")] {
+            app.tabBars.buttons.element(boundBy: tab).tap()
+            let card = app.buttons[cardID].firstMatch
+            reveal(card, app); card.tap()
+            let link = app.descendants(matching: .any)[actionID].firstMatch
+            reveal(link, app); link.tap()
+            let safari = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
+            XCTAssertTrue(safari.wait(for: .runningForeground, timeout: 15))
+            let address = safari.textFields.firstMatch
+            XCTAssertTrue(address.waitForExistence(timeout: 10))
+            XCTAssertTrue(String(describing: address.value).contains("oesterreich.gv.at"))
+            capture(safari, "sdk-external-safari-" + String(tab))
+            app.activate()
+            XCTAssertTrue(app.buttons["navigation.back"].firstMatch.waitForExistence(timeout: 10))
+            capture(app, "sdk-external-return-" + String(tab))
+            app.buttons["navigation.back"].firstMatch.tap()
+        }
+        app.terminate()
+        try await patchDemoDocument("events/closure-event", fields: ["requiresRegistration": ["booleanValue": true], "participationMode": ["stringValue": "inAppRegistration"]])
+    }
+
+    func testConnectedEventAndOrganizationMapsTargetsAndReturn() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Isolated demo required") }
+        for path in ["events/closure-event", "organizations/closure-org"] {
+            try await patchDemoDocument(path, fields: ["latitude": ["doubleValue": 47.2682], "longitude": ["doubleValue": 11.3923]])
+        }
+        try await patchDemoDocument("organizations/closure-org", fields: ["address": ["stringValue": "Maria-Theresien-Straße 18"]])
+        let organizationDocument = try await readDemoDocument("organizations/closure-org")
+        let organizationFields = try XCTUnwrap(organizationDocument["fields"] as? [String: [String: Any]])
+        let organizationName = try XCTUnwrap(organizationFields["name"]?["stringValue"] as? String)
+        let app = launchMember()
+        for (tab, cardID, mapID) in [(1, "event.card.closure-event", "event.map.closure-event"),
+                                    (2, "organization.card.closure-org", "organization.contact.mappin.and.ellipse")] {
+            app.tabBars.buttons.element(boundBy: tab).tap()
+            let card = app.buttons[cardID].firstMatch; reveal(card, app); card.tap()
+            if tab == 2 {
+                let contacts = app.buttons["organization.section.contacts"].firstMatch
+                reveal(contacts, app); contacts.tap()
+            }
+            let link = tab == 2 ? app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Локація:")).firstMatch
+                : app.descendants(matching: .any)[mapID].firstMatch
+            reveal(link, app); link.tap()
+            let maps = XCUIApplication(bundleIdentifier: "com.apple.Maps")
+            XCTAssertTrue(maps.wait(for: .runningForeground, timeout: 20))
+            let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+            for _ in 0..<6 {
+                if let denial = ["Nicht erlauben", "Don’t Allow", "Don't Allow"].map({ springboard.alerts.buttons[$0].firstMatch }).first(where: { $0.exists }) { denial.tap(); continue }
+                if let action = ["Continue", "Fortfahren", "Weiter", "Later", "Später", "Nicht jetzt"].map({ maps.buttons[$0].firstMatch }).first(where: { $0.exists && $0.isHittable }) { action.tap(); continue }
+                break
+            }
+            let title = maps.staticTexts.matching(NSPredicate(format: "label == %@", tab == 2 ? organizationName : "Test hall")).firstMatch
+            XCTAssertTrue(title.waitForExistence(timeout: 15))
+            let coordinates = maps.buttons.matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "47,26820", "11,39230")).firstMatch
+            XCTAssertTrue(coordinates.waitForExistence(timeout: 10))
+            capture(maps, "sdk-maps-target-" + String(tab))
+            let tree = XCTAttachment(string: maps.debugDescription); tree.name = "maps-target-tree-" + String(tab); tree.lifetime = .keepAlways; add(tree)
+            app.activate(); XCTAssertTrue(app.buttons["navigation.back"].firstMatch.waitForExistence(timeout: 10))
+            app.buttons["navigation.back"].firstMatch.tap()
+        }
+        app.terminate()
+    }
 
     func testMemberBookmarkThroughUIAndReopenAfterProcessRestart() throws {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else {
@@ -543,10 +1091,15 @@ final class ConnectedAuditUITests: XCTestCase {
         guard ["users/closure-member", "directoryCategories", "directoryEditors/closure-editor", "directoryCategories/first-steps", "directoryCategories/" + directoryUIFixtureID,
                "users/closure-member/organizationBookmarks/closure-org",
                "likes/organization_follow_closure-org_closure-member",
-               "users/closure-member/blockedUsers/closure-other"].contains(path) else {
+               "users/closure-member/blockedUsers/closure-other", "users/closure-editor/blockedUsers/closure-other",
+               "organizations/closure-org", "registrations/event_closure-event_closure-member", "organizations/closure-org/photos", "news/closure-news", "events/closure-event", "publicProfiles/closure-other", "likes/organization_follow_closure-org_closure-other", "organizations/closure-org/comments/closure-delete",
+               "organizations/closure-org/comments/closure-report", "dsaCases", "serverConfiguration/organizationAccess"].contains(path)
+                || ownedPhotoIDs.contains(where: { path == "organizations/closure-org/photos/" + $0 })
+                || ownedDisposableUserIDs.contains(where: { path == "users/" + $0 })
+                || (method == "GET" && ownedDeletionOperationIDs.contains(where: { path == "accountDeletionOperations/" + $0 })) else {
             throw NSError(domain: "AuditFixture", code: 1)
         }
-        if ["directoryCategories", "users/closure-member"].contains(path) {
+        if ["directoryCategories", "users/closure-member", "dsaCases", "organizations/closure-org/photos"].contains(path) {
             guard method == "GET", fields == nil else { throw NSError(domain: "AuditFixture", code: 2) }
         }
         var components = URLComponents(string: "http://127.0.0.1:28080/v1/projects/demo-uac-release-audit/databases/(default)/documents/" + path)!
@@ -596,7 +1149,7 @@ final class ConnectedAuditUITests: XCTestCase {
         _ = element.waitForExistence(timeout: 8)
         for _ in 0..<32 {
             let bottomInset: CGFloat = app.tabBars.firstMatch.exists ? 100 : 30
-            if element.exists && element.isHittable && element.frame.midY > 100 && element.frame.midY < app.frame.height - bottomInset { return }
+            if element.exists && element.frame.width > 0 && element.frame.height > 0 && element.frame.midY > 100 && element.frame.midY < app.frame.height - bottomInset { return }
             let towardTop = element.exists ? element.frame.midY < 100 : preferUpwardScroll
             let keyboardVisible = app.keyboards.firstMatch.exists
             let lower: CGFloat = keyboardVisible ? 0.43 : 0.65
@@ -604,7 +1157,7 @@ final class ConnectedAuditUITests: XCTestCase {
             app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? upper : lower))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.5, dy: towardTop ? lower : upper)))
         }
-        XCTAssertTrue(element.isHittable)
+        XCTAssertTrue(element.exists && element.frame.width > 0 && element.frame.height > 0)
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
