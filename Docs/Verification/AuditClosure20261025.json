@@ -1022,5 +1022,27 @@
     "runId": 40201134977,
     "lastObservedStatus": "pending",
     "boundary": "Not a passing result. Previous source 128fd1d8 run 40200435036 still in progress at observation."
+  },
+  "passkeyRemovalConfirmationRegression": {
+    "status": "presentation_and_cancel_verified_cleanup_pending",
+    "reportedByUser": "Trash button does not present confirmation",
+    "baselineBundle": "build/audit-closure-20261025/PhysicalPasskeyRemovalConfirmationBaseline.xcresult",
+    "baselineResult": "Actual physical tap did not present alert; assertion failed before any removal",
+    "serverReadback": "build/audit-closure-20261025/physical/secondary-key-removal-failure-readback.json",
+    "serverRequestReadback": "build/audit-closure-20261025/physical/passkey-removal-server-logs.json",
+    "finding": "Nested legacy item-based alerts in AccountSecurityView and PasskeyManagementView; parent factor alert suppresses child key-removal presentation. No callable request recorded.",
+    "fix": "Use modern presenting alerts in both view levels; keep immutable selected credential in confirmation action; enlarge trash hit target.",
+    "boundary": "No automated credential removal; fresh Google sign-in and user deletion confirmation still required. Do not close R01-C/R03-B until accepted presentation/cancel and independent cleanup proof.",
+    "acceptedBundle": "build/audit-closure-20261025/PhysicalPasskeyRemovalConfirmationSequential.xcresult",
+    "acceptedPassed": 1,
+    "acceptedFailed": 0,
+    "reviewedImage": "build/audit-closure-20261025/physical-passkey-dialog-accepted-images/3144E10A-C593-46B4-B3F0-A9957C12874F.png",
+    "retainedAfterCancelReadback": "build/audit-closure-20261025/physical/secondary-key-retained-after-cancel.json",
+    "retainedAfterCancelCount": 1,
+    "installedRelease": "build/audit-closure-20261025/physical/passkey-dialog-fixed-release-install.log",
+    "harnessFollowups": [
+      "First fixed attempt started from home instead of retained security view; no trash tap occurred. Self-contained route now verifies Serlest Gmail before opening security.",
+      "One routed run overlapped human repeat login and stopped before trash. Sequential rerun after user readiness passed; failed harness attempts are not deletion proof."
+    ]
   }
 }

@@ -351,8 +351,33 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         // Leave real authentication to the human on the physical device.
     }
 
+    func testPasskeyRemovalConfirmationCanOpenAndCancelWithoutDeleting() {
+        let app = XCUIApplication()
+        XCUIDevice.shared.orientation = .portrait
+        openSecondaryPasskeySettings(app)
+        let remove = app.buttons["Видалити ключ доступу"].firstMatch
+        XCTAssertTrue(remove.waitForExistence(timeout: 15)); reveal(remove, app)
+        remove.tap()
+        let dialog = app.alerts.firstMatch
+        let appeared = dialog.waitForExistence(timeout: 5)
+        capture(app, "physical-passkey-removal-confirmation-open-or-failure")
+        XCTAssertTrue(appeared, "Trash button must present a confirmation before any server mutation")
+        let cancel = dialog.buttons["Скасувати"].firstMatch
+        XCTAssertTrue(cancel.isHittable); cancel.tap()
+        XCTAssertTrue(dialog.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(remove.exists)
+        capture(app, "physical-passkey-removal-cancel-retains-key")
+        // Never confirm credential removal from automation.
+    }
+
     func testPrepareSecondaryPasskeySettingsWithoutCredentialChanges() {
         let app = XCUIApplication()
+        openSecondaryPasskeySettings(app)
+        capture(app, "physical-secondary-resolved-passkey-settings-before-user-action")
+        // Credential creation/removal are user handoffs, never performed by this test.
+    }
+
+    private func openSecondaryPasskeySettings(_ app: XCUIApplication) {
         openProfile(app)
         let member = app.staticTexts["Serlest Gmail"].firstMatch
         reveal(member, app, towardTop: true); XCTAssertTrue(member.exists)
@@ -364,8 +389,6 @@ final class PhysicalClosureAuditUITests: XCTestCase {
         XCTAssertTrue(add.waitForExistence(timeout: 15)); reveal(add, app)
         let loaded = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: add)
         XCTAssertEqual(XCTWaiter.wait(for: [loaded], timeout: 20), .completed)
-        capture(app, "physical-secondary-resolved-passkey-settings-before-user-action")
-        // Credential creation/removal are user handoffs, never performed by this test.
     }
 
     func testPrepareOwnerSignInForRecoveryHelp() {

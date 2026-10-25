@@ -444,15 +444,20 @@ struct AccountSecurityView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
-        .alert(item: $factorPendingRemoval) { factor in
-            Alert(
-                title: Text(AppStrings.AccountSecurity.removeTitle),
-                message: Text(AppStrings.AccountSecurity.removeMessage),
-                primaryButton: .destructive(Text(AppStrings.AccountSecurity.removeMultiFactor)) {
-                    Task { await viewModel.removeFactor(factor, for: authState.user) }
-                },
-                secondaryButton: .cancel(Text(AppStrings.Common.cancel))
-            )
+        .alert(
+            AppStrings.AccountSecurity.removeTitle,
+            isPresented: Binding(
+                get: { factorPendingRemoval != nil },
+                set: { if !$0 { factorPendingRemoval = nil } }
+            ),
+            presenting: factorPendingRemoval
+        ) { factor in
+            Button(AppStrings.AccountSecurity.removeMultiFactor, role: .destructive) {
+                Task { await viewModel.removeFactor(factor, for: authState.user) }
+            }
+            Button(AppStrings.Common.cancel, role: .cancel) { factorPendingRemoval = nil }
+        } message: { _ in
+            Text(AppStrings.AccountSecurity.removeMessage)
         }
         .accessibilityIdentifier("screen.accountSecurity")
     }

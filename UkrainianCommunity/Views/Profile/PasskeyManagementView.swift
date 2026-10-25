@@ -51,9 +51,13 @@ struct PasskeyManagementView: View {
                                 passkeyPendingRemoval = passkey
                             } label: {
                                 Image(systemName: "trash")
+                                    .frame(minWidth: AppTheme.minimumInteractiveTarget,
+                                           minHeight: AppTheme.minimumInteractiveTarget)
+                                    .contentShape(Rectangle())
                             }
                             .disabled(isRemoving || isRegistering || isLoading || loadFailed)
                             .accessibilityLabel(AppStrings.AccountSecurity.passkeyRemove)
+                            .accessibilityIdentifier("accountSecurity.passkey.remove.\(passkey.id)")
                         }
                     }
                     .padding(AppTheme.cardPadding)
@@ -86,15 +90,22 @@ struct PasskeyManagementView: View {
             }
         }
         .task(id: userID) { await reload() }
-        .alert(item: $passkeyPendingRemoval) { passkey in
-            Alert(
-                title: Text(AppStrings.AccountSecurity.passkeyRemove),
-                message: Text(AppStrings.AccountSecurity.passkeyRemoveConfirm),
-                primaryButton: .destructive(Text(AppStrings.AccountSecurity.passkeyRemove)) {
-                    Task { await remove(passkey) }
-                },
-                secondaryButton: .cancel(Text(AppStrings.Common.cancel))
-            )
+        .alert(
+            AppStrings.AccountSecurity.passkeyRemove,
+            isPresented: Binding(
+                get: { passkeyPendingRemoval != nil },
+                set: { if !$0 { passkeyPendingRemoval = nil } }
+            ),
+            presenting: passkeyPendingRemoval
+        ) { passkey in
+            Button(AppStrings.AccountSecurity.passkeyRemove, role: .destructive) {
+                Task { await remove(passkey) }
+            }
+            .accessibilityIdentifier("accountSecurity.passkey.remove.confirm")
+            Button(AppStrings.Common.cancel, role: .cancel) { passkeyPendingRemoval = nil }
+                .accessibilityIdentifier("accountSecurity.passkey.remove.cancel")
+        } message: { _ in
+            Text(AppStrings.AccountSecurity.passkeyRemoveConfirm)
         }
     }
 
