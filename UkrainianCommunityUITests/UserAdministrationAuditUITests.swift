@@ -121,7 +121,7 @@ import XCTest
     func testSlowLoadAndReturnKeepDirectoryQuery() {
         let app = launch(language: "uk", mode: "slow")
         let back = app.buttons["navigation.back"].firstMatch
-        let settled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "frame.origin.x < 30"), object: back)
+        let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in back.frame.minX < 30 }, object: back)
         XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 4), .completed)
         capture(app, "user-directory-initial-loading")
         let search = app.textFields["userManagement.search"].firstMatch
@@ -151,7 +151,9 @@ import XCTest
     func testInitialDirectoryAndDetailFailuresCanRetryWithoutActionableStaleData() {
         let directory = launch(language: "uk", mode: "directory-error")
         let retry = directory.buttons["Спробувати ще раз"].firstMatch
-        XCTAssertTrue(retry.waitForExistence(timeout: 10)); capture(directory, "user-directory-initial-error")
+        XCTAssertTrue(retry.waitForExistence(timeout: 10))
+        XCTAssertFalse(directory.staticTexts["Пошук у всіх користувачах…"].exists)
+        capture(directory, "user-directory-initial-error")
         retry.tap()
         let row = directory.descendants(matching: .any)["userManagement.user.audit-member"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10)); directory.terminate()

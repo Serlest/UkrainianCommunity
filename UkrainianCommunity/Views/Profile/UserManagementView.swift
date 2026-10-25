@@ -250,7 +250,9 @@ struct UserManagementView: View {
                 }
 
                 if viewModel.usesDirectory && (!viewModel.isDirectoryCurrent(actor: actor, query: directoryQuery) || !viewModel.directoryHasLoaded) {
-                    Text(AppStrings.UserManagement.searching).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    if viewModel.error == nil {
+                        Text(AppStrings.UserManagement.searching).font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    }
                 } else {
                 Text(AppStrings.UserManagement.loadedCount(viewModel.usesDirectory ? viewModel.users.count : selectedRegion == nil ? viewModel.users.count : viewModel.searchResults.count, total: viewModel.usesDirectory ? viewModel.directoryTotal : selectedRegion == nil ? viewModel.totalRegisteredUsers : viewModel.searchTotalMatches))
                     .font(.caption)

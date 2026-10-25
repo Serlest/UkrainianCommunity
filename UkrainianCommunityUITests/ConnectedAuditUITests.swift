@@ -1337,6 +1337,46 @@ final class ConnectedAuditUITests: XCTestCase {
         app.terminate()
     }
 
+    func testConnectedOrganizationAdministratorAssignmentAndRemoval() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let started = Date(); let app = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(app)
+        let assignment = app.buttons["user.detail.organizationAssignment"].firstMatch
+        revealModeration(assignment, app); assignment.tap()
+        let search = app.textFields["user.detail.organizationSearch"].firstMatch
+        revealModeration(search, app); search.tap(); search.typeText("User Administration Audit")
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let organization = app.buttons["user.detail.organizationPicker"].firstMatch
+        revealModeration(organization, app)
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", "User Administration Audit Organization"), object: organization)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 15), .completed)
+        let role = app.segmentedControls["user.detail.rolePicker"].firstMatch
+        revealModeration(role, app); role.buttons["Адмін"].tap()
+        let reason = "Audit organization administrator assignment."
+        let field = app.textFields["user.detail.roleReason"].firstMatch
+        revealModeration(field, app); field.tap(); field.typeText(reason)
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let assign = app.buttons["user.detail.assignRole"].firstMatch
+        revealModeration(assign, app); XCTAssertTrue(assign.isEnabled); assign.tap()
+        _ = try await freshConnectedUserNotice(key: "newRole", value: "communityAdmin", reason: reason, after: started)
+        let assigned = try await readDemoDocument("organizations/users-audit-org")
+        let assignedFields = try XCTUnwrap(assigned["fields"] as? [String: [String: Any]])
+        let admins = (assignedFields["adminIds"]?["arrayValue"] as? [String: Any])?["values"] as? [[String: String]] ?? []
+        XCTAssertTrue(admins.contains { $0["stringValue"] == "closure-member" })
+        let remove = app.buttons["user.detail.organizationRole.remove.users-audit-org"].firstMatch
+        revealModeration(remove, app); remove.tap()
+        let removalReason = "Audit organization administrator removal."
+        let reasonField = app.textFields["user.action.reason"].firstMatch
+        revealModeration(reasonField, app); reasonField.tap(); reasonField.typeText(removalReason)
+        if app.keyboards.firstMatch.exists { app.coordinate(withNormalizedOffset: .init(dx: 0.96, dy: 0.12)).tap() }
+        let confirm = app.buttons["user.action.confirm"].firstMatch
+        revealModeration(confirm, app); XCTAssertTrue(confirm.isEnabled); confirm.tap()
+        XCTAssertTrue(app.buttons["user.action.cancel"].firstMatch.waitForNonExistence(timeout: 30))
+        _ = try await freshConnectedUserNotice(key: "newRole", value: "none", reason: removalReason, after: started)
+        capture(app, "sdk-organization-admin-assignment-and-removal")
+        app.terminate()
+    }
+
     func testConnectedOwnershipConfirmationTransferAndBothRecipients() async throws {
         guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
         let started = Date(); let app = launchMember(moderationReviewer: true)
@@ -1405,6 +1445,23 @@ final class ConnectedAuditUITests: XCTestCase {
         let name = app.staticTexts["User Administration Audit Organization"].firstMatch
         XCTAssertTrue(name.waitForExistence(timeout: 20)); capture(app, "sdk-user-role-notice-exact-organization")
         app.terminate()
+    }
+
+    func testConnectedRestrictedAccountSeesExactReasonThenCanBeRestored() async throws {
+        guard ProcessInfo.processInfo.environment["UACFirebaseEmulators"] == "1" else { throw XCTSkip("Fixed isolated demo required") }
+        let reason = "Audit restriction reason visible to the selected account."
+        let owner = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(owner); performConnectedUserAction(owner, action: "banned", reason: reason)
+        owner.terminate()
+        let member = launchMember(account: "member", restrictedReason: reason)
+        XCTAssertFalse(member.buttons["profile.userManagement"].exists)
+        capture(member, "sdk-restricted-account-sees-exact-owner-reason"); member.terminate()
+        let reviewer = launchMember(moderationReviewer: true)
+        openConnectedManagedUser(reviewer)
+        performConnectedUserAction(reviewer, action: "unblocked", reason: "Audit restricted-account check completed.")
+        let document = try await readDemoDocument("users/closure-member")
+        XCTAssertEqual((document["fields"] as? [String: [String: Any]])?["accountStatus"]?["stringValue"] as? String, "active")
+        reviewer.terminate()
     }
 
     private func openConnectedManagedUser(_ app: XCUIApplication) {
@@ -1671,7 +1728,7 @@ final class ConnectedAuditUITests: XCTestCase {
         throw NSError(domain: "ModerationNotificationNotDelivered", code: 1)
     }
 
-    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false, account: String = "member", maximumText: Bool = false, moderationReviewer: Bool = false) -> XCUIApplication {
+    private func launchMember(language: String = "uk", appearance: String = "light", large: Bool = false, account: String = "member", maximumText: Bool = false, moderationReviewer: Bool = false, restrictedReason: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-sdk-ui-audit", "-selectedAppLanguage", language, "-selectedAppAppearance", appearance,
                                "-UIPreferredContentSizeCategoryName", maximumText ? "UICTContentSizeCategoryAccessibilityXXXL" : large ? "UICTContentSizeCategoryAccessibilityM" : "UICTContentSizeCategoryL"]
@@ -1708,6 +1765,11 @@ final class ConnectedAuditUITests: XCTestCase {
             app.swipeUp()
             let submit = app.buttons["auth.login.submit"]
             reveal(submit, app); submit.tap()
+        }
+        if let restrictedReason {
+            let reason = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", restrictedReason)).firstMatch
+            XCTAssertTrue(reason.waitForExistence(timeout: 30), app.debugDescription)
+            return app
         }
         XCTAssertTrue(app.tabBars.firstMatch.waitForExistence(timeout: 30))
         let later = app.buttons["auth.passkeySuggestion.later"]
