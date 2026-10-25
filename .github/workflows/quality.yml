@@ -87,7 +87,9 @@ jobs:
           python3 scripts/validate_localizations.py
 
       - name: Validate shared content category contract
-        run: python3 scripts/validate_content_category_contract.py
+        run: |
+          python3 -m unittest discover -s scripts -p 'test_validate_content_category_contract.py'
+          python3 scripts/validate_content_category_contract.py
 
       - name: Validate Firestore index uniqueness
         run: python3 scripts/validate_firestore_indexes.py

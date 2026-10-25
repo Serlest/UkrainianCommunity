@@ -33,17 +33,29 @@ def javascript_set(source: str, name: str) -> set[str]:
     return set(re.findall(r'"([A-Za-z][A-Za-z0-9]*)"', match.group(1)))
 
 
-def rules_categories(source: str, field: str, occurrence: int) -> set[str]:
-    matches = list(
-        re.finditer(
-            rf"data\.{field}\.hasOnly\(\[(.*?)\]\)",
-            source,
-            re.DOTALL,
-        )
+def rules_categories(source: str, function_name: str, field: str) -> set[str]:
+    # Scope by validator identity, never by incidental file order. A Rules
+    # expression-budget optimization may bind a field to a local variable.
+    function = re.search(
+        rf"function {re.escape(function_name)}\([^)]*\)\s*\{{(.*?)^    \}}",
+        source, re.DOTALL | re.MULTILINE,
     )
-    if len(matches) <= occurrence:
-        raise ValueError(f"Could not locate Rules allowlist {field}[{occurrence}].")
-    return set(re.findall(r"'([A-Za-z][A-Za-z0-9]*)'", matches[occurrence].group(1)))
+    if not function:
+        raise ValueError(f"Could not locate Rules validator {function_name}.")
+    body = function.group(1)
+    references = [rf"data\.{re.escape(field)}"]
+    aliases = re.findall(
+        rf"let\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*data\.get\(\s*'{re.escape(field)}'\s*,\s*\[\s*\]\s*\)\s*;",
+        body,
+    )
+    references.extend(re.escape(alias) for alias in aliases)
+    matches = list(re.finditer(
+        rf"(?<![\w.])(?:{'|'.join(references)})\.hasOnly\(\[(.*?)\]\)",
+        body, re.DOTALL,
+    ))
+    if len(matches) != 1:
+        raise ValueError(f"Expected exactly one Rules allowlist for {function_name}.{field}; found {len(matches)}.")
+    return set(re.findall(r"'([A-Za-z][A-Za-z0-9]*)'", matches[0].group(1)))
 
 
 def report_mismatch(label: str, expected: set[str], actual: set[str]) -> bool:
@@ -72,8 +84,8 @@ def main() -> int:
             report_mismatch("Functions event categories", events, javascript_set(function_source, "eventCategories")),
             report_mismatch("local bridge news categories", news, javascript_set(bridge_source, "newsCategories")),
             report_mismatch("local bridge event categories", events, javascript_set(bridge_source, "eventCategories")),
-            report_mismatch("Firestore news additional categories", news, rules_categories(rules_source, "additionalCategories", 0)),
-            report_mismatch("Firestore event additional categories", events, rules_categories(rules_source, "additionalCategories", 1)),
+            report_mismatch("Firestore news additional categories", news, rules_categories(rules_source, "validNewsDocument", "additionalCategories")),
+            report_mismatch("Firestore event additional categories", events, rules_categories(rules_source, "validEventDocument", "additionalCategories")),
         ]
     )
     if mismatched:
