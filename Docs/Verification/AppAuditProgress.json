@@ -1,23 +1,22 @@
 {
   "auditDate": "2026-10-23",
   "totalBlocks": 19,
-  "completedBlocks": 7,
-  "remainingBlocks": 12,
+  "completedBlocks": 9,
+  "remainingBlocks": 10,
   "nextBlock": null,
   "blocks": [
     {
       "number": 1,
       "name": "Общий интерфейс и навигация",
-      "status": "implemented_verification_incomplete",
+      "status": "verification_closed_pending_device_acceptance",
       "recheckReport": "Docs/Verification/GeneralInterfaceRecheck20261024.json",
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-      "openChecks": [
-        "R01-C"
-      ],
+      "openChecks": [],
       "closedChecks": [
         "R01-A",
-        "R01-B"
+        "R01-B",
+        "R01-C"
       ],
       "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
@@ -41,17 +40,16 @@
     {
       "number": 3,
       "name": "Профиль, настройки и безопасность",
-      "status": "implemented_verification_incomplete",
+      "status": "verification_closed_pending_device_acceptance",
       "report": "Docs/Verification/ProfileSettingsAudit.json",
       "resolutionReport": "Docs/Verification/ProfileSettingsFixes.json",
       "previousStatus": "implemented_verified_in_scope",
       "completionReview": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-      "openChecks": [
-        "R03-B"
-      ],
+      "openChecks": [],
       "closedChecks": [
         "R03-A",
-        "R03-C"
+        "R03-C",
+        "R03-B"
       ],
       "closureEvidence": "Docs/Verification/AuditClosure20261025.json"
     },
@@ -304,7 +302,7 @@
     ],
     "nextBlockRequiresUserAcceptance": true,
     "method": "Docs/AppAuditMethod.md",
-    "meaning": "Nine blocks have implemented fixes, but completeness review is reopened in all nine. Physical acceptance and delivery are separate. New block 10 is held until the documented backlog is closed.",
+    "meaning": "All 27 recorded reconciliation groups for blocks 1–9 have terminal evidence or explicit approved boundaries. Final user acceptance, hosted checks and TestFlight delivery remain separately tracked.",
     "block4AuthorizedByUser": "2026-10-24: Приступай к 4 пункту по нашей схеме",
     "block5AuthorizedByUser": "2026-10-24: Преступай с 5 пунктом",
     "block6AuthorizedByUser": "2026-10-24: Преступай (после отчета пункта 5)",
@@ -315,16 +313,16 @@
   },
   "schemaVersion": 2,
   "blocksWithImplementedFixes": 9,
-  "blocksReopenedForCompletion": 2,
+  "blocksReopenedForCompletion": 0,
   "notStartedBlocks": 10,
   "nextNewBlock": 10,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Close reconciliation checks for blocks 1–9 before starting block 10.",
+  "nextAction": "Recorded 1–9 reconciliation backlog closed. Await latest hosted validation and user acceptance before starting block 10.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
-    "closedScenarioGroups": 25,
-    "remainingScenarioGroups": 2,
-    "fullyClosedBlocks": 7
+    "closedScenarioGroups": 27,
+    "remainingScenarioGroups": 0,
+    "fullyClosedBlocks": 9
   }
 }

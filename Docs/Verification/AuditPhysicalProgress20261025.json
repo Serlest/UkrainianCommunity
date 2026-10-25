@@ -1,7 +1,7 @@
 {
   "date": "2026-10-25",
-  "status": "in_progress_not_full_acceptance",
-  "sourceOnDevice": "e82f2ef8",
+  "status": "controlled_physical_scenarios_verified_final_delivery_separate",
+  "sourceOnDevice": "abc0c9a3",
   "device": "iPhone 16 Pro Max, iOS 27.0.1",
   "verified": {
     "appleCancel": "Native Apple sheet cancellation returned usable provider buttons",
@@ -23,13 +23,11 @@
     "biometricGate": "PhysicalBiometricProtectedGate.xcresult: Home/background -> lock, protected controls not hittable. User confirmed Face ID unlock/off restoration; live off state observed afterward.",
     "mfaRecoveryHelp": "PhysicalMFARecoveryHelp.xcresult: 1 passed; real pending challenge preserved after help sheet closes; no code read or mail sent.",
     "biometricRestoration": "User confirmed real Face ID unlock and returning lock to off. PhysicalLocalizedSecurityRelease.xcresult separately confirms off and background return.",
-    "passkeyCreation": "User personally created key on secondary Serlest Gmail; independent production metadata count 0 -> 1. PhysicalSecondaryKeyDateFixed.xcresult passed; actual date matches server and Ukrainian app locale. Removal handoff pending."
+    "passkeyCreation": "Human creation on Serlest Gmail; server 0 -> 1; fractional date defect fixed and physically reviewed.",
+    "passkeyRemoval": "Legacy nested-alert defect reproduced. Fixed native confirmation and cancellation passed on signed Release; human deletion independently read back 1 -> 0. Reopen UI shows no key; original owner key ID unchanged."
   },
   "correction": "Initial missing-confirmation suspicion is not a confirmed failure: user acknowledged manually confirming while remote observation missed the dialog. No automatic or unconfirmed transfer established.",
-  "pending": [
-    "Remaining authentication and device UI scenarios require continued device interaction",
-    "Remaining scenarios retained in AuditClosure20261025.json; these observations do not close all blocks 1-9"
-  ],
+  "pending": [],
   "productionSafety": "No credentials recorded. No mail sent or call dialed. Ownership final confirmation was performed by user.",
   "deviceBuild": "Signed Release build of ce5e910f succeeded, strict signature verified, installed and launched on physical iPhone. No TestFlight upload.",
   "passkeyIncident": {
@@ -75,12 +73,28 @@
     "executedApplicationActions": 0,
     "status": "available_user_system_confirmation_completed",
     "dependency": null,
-    "boundary": "Only ownership confirmation cancellation closes here; Google, reviewer notifications and security scenarios retain their own pending evidence.",
+    "boundary": "Historical ownership-cancel preparation stage. Later actual authentication, request workflow and key lifecycle evidence is recorded in verified and AuditClosure20261025.json.",
     "nextAttemptBundle": "build/audit-closure-20261025/PhysicalOwnerCancellationEnabled.xcresult",
     "nextAttemptObservation": "Actual iPhone system prompt: iPhone-Code für XCTest eingeben / Enable UI Automation. User asked to complete device passcode handoff.",
     "nextAttemptResult": "Timed out while enabling automation mode after 63.584 seconds; no application test body executed. Awaiting user completion of system passcode prompt before retry.",
     "acceptedBundle": "build/audit-closure-20261025/PhysicalOwnerCancellationInstalledFixed.xcresult",
     "acceptedResult": "1 passed; actual production iPhone; baseline center-row tap failure corrected by full row hit shape."
   },
-  "registrationScope": "User declined new registration. No account creation or separate registration email requested further; registration is excluded, not verified."
+  "registrationScope": "User declined new registration. No account creation or separate registration email requested further; registration is excluded, not verified.",
+  "cleanup": {
+    "secondaryTestKeyRemaining": 0,
+    "primaryOriginalKeyIDsUnchanged": true,
+    "iCloudTestCredential": "User confirmed removing residual test entry if present, without touching primary key.",
+    "primaryAccountReturn": "User confirmed; optional extra owner-read run stopped before execution because device locked.",
+    "testRequest": "Authorized disposable request independently HTTP404; no published test organization."
+  },
+  "remainingGates": [
+    "Latest hosted source validation and final user acceptance; no TestFlight delivery requested in this continuation."
+  ],
+  "latestDeviceBuild": {
+    "source": "abc0c9a3",
+    "configuration": "signed Release",
+    "buildLog": "build/audit-closure-20261025/physical-passkey-dialog-fixed-release-build.log",
+    "installLog": "build/audit-closure-20261025/physical/passkey-dialog-fixed-release-install.log"
+  }
 }

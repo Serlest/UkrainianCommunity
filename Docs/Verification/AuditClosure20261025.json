@@ -1,12 +1,16 @@
 {
   "date": "2026-10-25",
-  "status": "in_progress",
+  "status": "scenario_verification_closed_hosted_validation_pending",
   "sourceBaseline": "4d938f4f",
   "closedChecks": [
     "R01-A",
     "R01-B",
+    "R01-C",
+    "R02-A",
     "R02-B",
+    "R02-C",
     "R03-A",
+    "R03-B",
     "R03-C",
     "R04-A",
     "R04-B",
@@ -18,16 +22,14 @@
     "R06-B",
     "R06-C",
     "R07-A",
+    "R07-B",
     "R07-C",
+    "R08-A",
+    "R08-B",
     "R08-C",
     "R09-A",
     "R09-B",
-    "R09-C",
-    "R07-B",
-    "R08-A",
-    "R08-B",
-    "R02-A",
-    "R02-C"
+    "R09-C"
   ],
   "evidence": [
     {
@@ -790,7 +792,7 @@
       "boundary": "Original-setting test ran before UI restoration settled and did not pass; off-state restoration is live visual observation plus user confirmation, not that failed test. No security preference changed by automation."
     }
   ],
-  "remainingScenarioGroups": 2,
+  "remainingScenarioGroups": 0,
   "deployment": {
     "scope": "firestore:rules only",
     "project": "ukrainiancommunity-dbd5f",
@@ -932,10 +934,7 @@
     "compiledSourceMatches": true,
     "compiledSHA256": "c0ae39eca350f0b5a94e04950ed376a71cff1f35dcfecd9cedf53d47a27bd7c9"
   },
-  "remainingChecks": {
-    "R01-C": "Complete protected/system variants of window-state ledger; ordinary changed visual families have runtime evidence.",
-    "R03-B": "Controlled native passkey creation/removal remains pending. Owner real Face ID gate/unlock/restoration, existing key list, localized dates and recovery-help presentation/return/repeated Apple+TOTP login have actual physical evidence; sensitive provider mutations have isolated actual SDK evidence."
-  },
+  "remainingChecks": {},
   "finalLocalRegression": {
     "mainBundle": "build/audit-closure-20261025/ClosureFullUnitFinal.xcresult",
     "mainPassed": 815,
@@ -951,7 +950,7 @@
     "report": "Docs/Verification/AuditPhysicalProgress20261025.json",
     "prepared": "Release-only physical audit scheme and explicit opt-in controlled-account tests compiled successfully",
     "deviceBlocker": null,
-    "openChecksUnchanged": true,
+    "openChecksUnchanged": false,
     "dependencies": []
   },
   "userScopeAdjustments": [
@@ -997,7 +996,7 @@
       "build/audit-closure-20261025/physical-resolved-keys-images/81B40921-8EA5-4247-A4BD-3D93DDF20AC3.png"
     ],
     "harnessCorrection": "Initial key-list capture occurred while loading. It does not prove resolved key dates; wait for enabled add button before capture.",
-    "boundary": "Controlled native credential removal remains pending. Fractional timestamp defect corrected and physically reviewed in passkeyDateFollowup. No email sent; new key created personally by user only on controlled secondary account.",
+    "boundary": "Credential creation/removal completed by human handoff with independent production metadata and physical reopen proof. No mail sent. Original key preserved.",
     "resolvedKeysBundle": "build/audit-closure-20261025/PhysicalResolvedKeysAndRecoveryLogin.xcresult",
     "closedCheck": "R02-C"
   },
@@ -1015,16 +1014,19 @@
     "exactDisplayedDate": "25 жовт. 2026 р., 15:03",
     "metadataReadback": "build/audit-closure-20261025/physical/secondary-key-created-metadata.json",
     "controlledCreation": "User personally created one key on Serlest Gmail; independent server count 0 -> 1. Original owner key was not modified.",
-    "remaining": "User credential-removal handoff requested; cleanup and final closed ledger pending."
+    "remaining": null
   },
   "latestHostedValidation": {
-    "sourceCommit": "e82f2ef8",
-    "runId": 40201134977,
-    "lastObservedStatus": "pending",
-    "boundary": "Not a passing result. Previous source 128fd1d8 run 40200435036 still in progress at observation."
+    "sourceCommit": "abc0c9a3",
+    "runId": 40202467675,
+    "lastObservedStatus": "in_progress",
+    "boundary": "Not a passing result; final documentation-only revision will have its own check.",
+    "previousAcceptedRun": 40200435036,
+    "previousAcceptedSource": "128fd1d8",
+    "previousAcceptedConclusion": "success"
   },
   "passkeyRemovalConfirmationRegression": {
-    "status": "presentation_and_cancel_verified_cleanup_pending",
+    "status": "verified",
     "reportedByUser": "Trash button does not present confirmation",
     "baselineBundle": "build/audit-closure-20261025/PhysicalPasskeyRemovalConfirmationBaseline.xcresult",
     "baselineResult": "Actual physical tap did not present alert; assertion failed before any removal",
@@ -1032,7 +1034,7 @@
     "serverRequestReadback": "build/audit-closure-20261025/physical/passkey-removal-server-logs.json",
     "finding": "Nested legacy item-based alerts in AccountSecurityView and PasskeyManagementView; parent factor alert suppresses child key-removal presentation. No callable request recorded.",
     "fix": "Use modern presenting alerts in both view levels; keep immutable selected credential in confirmation action; enlarge trash hit target.",
-    "boundary": "No automated credential removal; fresh Google sign-in and user deletion confirmation still required. Do not close R01-C/R03-B until accepted presentation/cancel and independent cleanup proof.",
+    "boundary": "Credential creation/removal were human handoffs. Original owner key preserved; no private key material accessed. Optional extra owner-read run did not execute because device locked; return to original account is user confirmation, not that run.",
     "acceptedBundle": "build/audit-closure-20261025/PhysicalPasskeyRemovalConfirmationSequential.xcresult",
     "acceptedPassed": 1,
     "acceptedFailed": 0,
@@ -1043,6 +1045,23 @@
     "harnessFollowups": [
       "First fixed attempt started from home instead of retained security view; no trash tap occurred. Self-contained route now verifies Serlest Gmail before opening security.",
       "One routed run overlapped human repeat login and stopped before trash. Sequential rerun after user readiness passed; failed harness attempts are not deletion proof."
-    ]
+    ],
+    "actualRemoval": "User confirmed deletion in the fixed native alert; independent production key count 1 -> 0",
+    "cleanupReadback": "build/audit-closure-20261025/physical/secondary-key-cleanup-final-metadata.json",
+    "ownerKeyReadback": "build/audit-closure-20261025/physical/owner-key-cleanup-final-metadata.json",
+    "ownerOriginalKeyIDsUnchanged": true,
+    "reopenBundle": "build/audit-closure-20261025/PhysicalSecondaryRemovedKeyReopen.xcresult",
+    "reopenPassed": 1,
+    "reopenReviewedImage": "build/audit-closure-20261025/physical-secondary-removed-key-images/5A33359C-6134-43BB-8660-9FAFA3010016.png",
+    "userCleanupConfirmation": "User confirmed cleanup of residual test credential in iPhone Passwords if present, and return to primary Serlest account."
+  },
+  "finalVerificationBoundary": {
+    "closedScenarioGroups": 27,
+    "remainingScenarioGroups": 0,
+    "scope": "Recorded reconciliation backlog for blocks 1–9, preserving original tests, role matrices and explicit user exclusions. This is not a claim that software has no possible defects.",
+    "registration": "No new production registration per user request; existing-fixture email action-code lifecycle uses actual isolated Firebase SDK, not real SMTP.",
+    "sensitiveChanges": "Human-confirmed device credentials plus isolated real SDK/handler mutations; no broad production changes.",
+    "delivery": "Physical signed Release installed; no new TestFlight or App Store release.",
+    "nextBlock": "10 not started; final user acceptance and latest hosted check remain separate gates."
   }
 }

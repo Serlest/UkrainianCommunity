@@ -1,6 +1,6 @@
 {
   "date": "2026-10-25",
-  "status": "in_progress",
+  "status": "verified_with_linked_evidence",
   "scope": "Consolidated window families of blocks 1–9; this index preserves actual proof and names unverified system/protected variants. It does not turn a fixture success into a real provider/device success.",
   "originalCriteria": "AuditCompletenessReconciliation20261025.json",
   "reviewedImageRegistry": "AuditClosureUIStates20261025.json",
@@ -74,19 +74,23 @@
         "delete-account confirmation and return"
       ],
       "evidenceReports": [
-        "ProfileSettingsFixes.json"
+        "ProfileSettingsFixes.json",
+        "AuditPhysicalProgress20261025.json"
       ],
       "roleBoundary": "Member security, owner/admin protected gate; organization-owner and platform-owner deletion restrictions retained.",
-      "remaining": [
-        "Controlled native passkey creation/removal. Recovery-help sheet and localized resolved security visuals passed on signed physical Release."
-      ],
+      "remaining": [],
       "reviewedImages": [
         "build/audit-closure-20261025/deletion-settled/9EB71032-CC51-4393-8501-0035B5C06B8E.png",
         "build/audit-closure-20261025/physical-mfa-recovery-help-images/304FCB9E-790B-43D1-AF6B-BB733F2606B9.png",
         "build/audit-closure-20261025/physical-resolved-keys-images/81B40921-8EA5-4247-A4BD-3D93DDF20AC3.png",
-        "build/audit-closure-20261025/physical-localized-security-images/490ECE34-3BBD-4801-9A92-37E7E1DB7F82.png"
+        "build/audit-closure-20261025/physical-localized-security-images/490ECE34-3BBD-4801-9A92-37E7E1DB7F82.png",
+        "build/audit-closure-20261025/physical-passkey-cancel-images/7F3B8AE0-18B4-4AFA-8D0B-5CA9452B76F5.png",
+        "build/audit-closure-20261025/physical-secondary-key-date-fixed-images/62CDE970-C021-4821-A788-78336468606A.png",
+        "build/audit-closure-20261025/physical-passkey-dialog-accepted-images/3144E10A-C593-46B4-B3F0-A9957C12874F.png",
+        "build/audit-closure-20261025/physical-secondary-removed-key-images/5A33359C-6134-43BB-8660-9FAFA3010016.png"
       ],
-      "status": "open"
+      "status": "verified_with_linked_evidence",
+      "boundary": "Native credential creation/authentication confirmations performed by user. Key list, removal confirmation/cancel, actual removal and reopen have independent physical/server proof. No new production registration."
     },
     {
       "id": "profile",
@@ -343,6 +347,6 @@
   "rules": [
     "Only registry entries explicitly marked reviewed are linked as reviewed images. Older retained visual proof stays in its source report.",
     "Identical layout reuse is explicit; authorization, account isolation and protected transitions have separate evidence.",
-    "Open rows keep R01-C open for unverified controlled system/protected variants. The complete connected ordinary organization form and independent server readback passed."
+    "No recorded window families remain open; native authentication handoffs and isolated sensitive mutations retain explicit boundaries in the closure report. Final delivery and user acceptance are separate."
   ]
 }
