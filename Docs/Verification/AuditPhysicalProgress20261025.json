@@ -29,6 +29,14 @@
     "evidence": "build/audit-closure-20261025/physical/passkey-begin-logs.json",
     "releaseInstall": "build/audit-closure-20261025/device-release-auth-install.json",
     "outcome": "Replaced Debug copy with signed Release; original key retained; user successfully signed in.",
-    "successLogs": "build/audit-closure-20261025/physical/passkey-release-success-logs.json"
+    "successLogs": "build/audit-closure-20261025/physical/passkey-release-success-logs.json",
+    "relatedLogoutLog": {
+      "uiTime": "2026-10-25 10:27:19 GMT+1",
+      "action": "deleteNotificationPushRegistration",
+      "serverTime": "2026-10-25T09:27:19Z",
+      "verifiedCause": "App Check token rejected for Debug copy; not proof of an invalid user session",
+      "evidence": "build/audit-closure-20261025/physical/logout-push-rejection-logs.json",
+      "boundary": "Old error retained in journal; current Release passkey begin and finish returned HTTP 200 at 11:57 local."
+    }
   }
 }
