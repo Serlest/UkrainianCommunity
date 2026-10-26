@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "completedBlocks": 10,
   "remainingBlocks": 9,
-  "nextBlock": 11,
+  "nextBlock": 12,
   "blocks": [
     {
       "number": 1,
@@ -198,8 +198,21 @@
     {
       "number": 12,
       "name": "Отзывы, жалобы и поддержка",
-      "status": "pending",
-      "openChecks": []
+      "status": "implemented_local_review_complete_pending_CI_and_device",
+      "openChecks": [
+        "F12-FINAL-SOURCE-CI",
+        "F12-45"
+      ],
+      "inventory": "Docs/Verification/FeedbackSupportInventory20261026.json",
+      "authorizedByUser": "2026-10-26: Ок, тогде переходи к следующему пункту",
+      "physicalAcceptance": "deferred by user until return home",
+      "report": "Docs/Verification/FeedbackSupportAudit20261026.json",
+      "sourceCommit": "c8b6cc1c",
+      "reviewedScenarioGroups": 44,
+      "deferredScenarioGroups": 1,
+      "testFlightChanged": false,
+      "serverRulesChanged": true,
+      "serverFunctionsChanged": false
     },
     {
       "number": 13,
@@ -336,16 +349,17 @@
     "block9AuthorizedByUser": "2026-10-24: Приступай",
     "reconciliationAuthorizedByUser": "2026-10-25: Сверяй",
     "block10AuthorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10",
-    "block11AuthorizedByUser": "2026-10-25: приступай к 11"
+    "block11AuthorizedByUser": "2026-10-25: приступай к 11",
+    "block12AuthorizedByUser": "2026-10-26: Ок, тогде переходи к следующему пункту; simulator/server work while away, physical acceptance deferred"
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 11,
+  "blocksWithImplementedFixes": 12,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 8,
+  "notStartedBlocks": 7,
   "nextNewBlock": 12,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Finish final installed-copy readback of block 11 when the physical iPhone is available; hosted source validation passed. Do not start block 12 before acceptance.",
+  "nextAction": "Finish block 12 final source CI and physical iPhone/APNs readback when user returns. Do not start block 13 without acceptance; preserve block 11 final exact-copy physical readback.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -375,5 +389,6 @@
     ],
     "userAcceptance": "pending",
     "block11PhysicalReadback": "pending; delivery is not acceptance"
-  }
+  },
+  "currentBlock": 12
 }

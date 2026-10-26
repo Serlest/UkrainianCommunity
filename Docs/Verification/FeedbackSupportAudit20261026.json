@@ -1,0 +1,222 @@
+{
+  "block": 12,
+  "totalBlocks": 19,
+  "name": "Відгуки, скарги та підтримка",
+  "date": "2026-10-26",
+  "inventory": "Docs/Verification/FeedbackSupportInventory20261026.json",
+  "status": "implemented_locally_verified_pending_final_CI_and_physical_acceptance",
+  "baselineCommit": "86c55af4",
+  "productSourceCommit": "c8b6cc1cedcd7dd4c3380ac2de90c003ced99b6b",
+  "scope": {
+    "reviewedScenarioGroups": 44,
+    "deferredPhysicalScenarioGroups": 1,
+    "roles": [
+      "platform owner",
+      "app admin",
+      "organization owner/admin/editor",
+      "member",
+      "restricted",
+      "guest"
+    ],
+    "runtimeRoles": "Owner/admin/member; other roles verified through shared access matrix and identical restricted/nonprivileged routing. This is not a claim of physical execution for each role.",
+    "languagesAndAppearance": "Ukrainian light normal; German dark normal and maximum accessibility text; iPhone 17e simulator 390pt width."
+  },
+  "fixes": [
+    "Coalesced first-page reads and fenced old account/query/page callbacks, including A-B-A transitions.",
+    "Retained loaded manager pages across realtime refresh; failed next-page retry stays at failed action.",
+    "Fresh server detail check before exposing conversation actions; explicit missing/error/retry states.",
+    "Transactional stable submission identity and stable message operation ID after lost response/readback; retry does not reset replies or timestamps.",
+    "Reply drafts survive failure; busy forms freeze reviewed payload and dismissal; empty/oversized replies cannot be sent.",
+    "Complete conversation pagination verified with 205 identical-timestamp stored messages; legacy summary dedup retained.",
+    "Subject-aware personal search with explicit loaded-history scope; manager search remains global and indexed.",
+    "Manager status menu available to app admins; deletion remains owner-only; DSA generic status changes disabled.",
+    "DSA archive bypass removed from Rules; missing-document get permits legitimate transactional create without granting foreign existing reads.",
+    "Readable full-width cards, shared glass menu icons, compact filter names, nonduplicated error messages and support-specific network text.",
+    "Scrollable forms at maximum text, short Save label, collapsed case context, wrapping outcome menu and server-matched UTF16 validation.",
+    "Specific appeal prompt and localized case statuses; correct support-team wording; duplicate composer explanation removed."
+  ],
+  "verification": [
+    {
+      "artifact": "build/audit-feedback-20261026/FullUnitRegression.xcresult",
+      "passed": 868,
+      "failed": 0,
+      "skipped": 34,
+      "boundary": "Opt-in SDK/live tests skipped in ordinary full-unit run; relevant feedback SDK tests ran separately."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "State, reliability, access matrix, validation and initial 3 actual SDK cases."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "Actual Auth SDK, client repositories, Rules and Functions: submission/replay, exact-recipient notices, full DSA decision/appeal/statement, 205-message paging, repeated/own/missing reports."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/ConnectedComposerUniqueControls.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "coverage": "UI submit -> independent stored fields -> own history -> follow-up -> independent stored message."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+      "passed": 4,
+      "failed": 0,
+      "coverage": "Owner/admin actions, status, deletion confirmation/cancel/commit, error draft, normal UI in both languages."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+      "passed": 4,
+      "failed": 0,
+      "coverage": "Slow frozen maximum-text composer, confirmed empty history, protected clear/cancel, normal owner conversations. Initially requested target case had wrong suite name and was not discovered; correct suite reran separately."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/ActualReportTargetUI.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "coverage": "Complaint opens exact reported news; report form cancellation returns to opened news."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+      "passed": 6,
+      "failed": 1,
+      "boundary": "Passing maximum-text DSA forms/fill/cancel, list/page/message retries, missing/error detail, personal subject search and owner conversations. Failed deletion test expected a Cancel control; native popover omits it and uses outside-tap cancellation. Superseded by successful explicit popover cancel/confirm in FinalLayoutAndActionsUI."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/FinalRolesAndSubmissionUI.xcresult",
+      "passed": 3,
+      "failed": 1,
+      "boundary": "Admin menu, personal initial retry, composer failure/draft passed. Same popover test-driver mismatch superseded by FinalLayoutAndActionsUI."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/server-feedback-final.log",
+      "passed": 16,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "Actual isolated backend: indexed filters/counts/paging, CAS, complete DSA/appeal/notices, protected cleanup and permission denials."
+    },
+    {
+      "artifact": "build/audit-feedback-20261026/rules-full-isolated.log",
+      "passed": 237,
+      "failed": 0,
+      "skipped": 1,
+      "boundary": "Whole Rules suite in correctly isolated namespace; unrelated opt-in analytics SDK skipped."
+    }
+  ],
+  "baselineFailuresRetained": [
+    "StateBaseline and RealtimeRangeBaseline expose duplicate reads, session races, reply retry identity and page collapse before fixes.",
+    "Initial transactional SDK create failed because missing-ID read was denied; Rules fix verified by actual SDK and complete Rules suite.",
+    "Initial whole Rules attempt used mismatched Storage project namespace and a contaminated subscription fixture; deterministic isolated rerun passed.",
+    "One SDK run failed when owned emulator process exited; emulators restored, reseeded and final four SDK cases passed.",
+    "Earlier connected UI driver confused guest tab bar with authenticated state and inherited duplicate parent identifiers; final positive-profile login and distinct control IDs passed.",
+    "One whole UI tool request timed out at 300s while xcodebuild continued. Waited for same process and read final xcresult; did not overlap XCTest runtimes."
+  ],
+  "production": {
+    "mutations": "Only verified Firestore Rules publication. No live complaint decisions/messages/sanctions/deletions; runtime Functions unchanged.",
+    "rules": {
+      "published": true,
+      "sourceReadbackMatches": true,
+      "sha256": "f01491921dc1d95c8a6ce7caf124fdb79c6fa549383b59637e0a923284cd2065",
+      "evidence": "build/audit-feedback-20261026/rules-production-published.json",
+      "compatibility": "Installed TestFlight submission path retained; existing foreign-record access remains denied."
+    },
+    "handlerSources": "build/audit-feedback-20261026/runtime-source-readback.json",
+    "sourceComparison": "Four complete handler source files match. Notification entrypoint differs only by unrelated later legalPublicationDelivery export; feedback handlers/helpers identical.",
+    "searchIndex": {
+      "ready": true,
+      "version": 1,
+      "evidence": "build/audit-feedback-20261026/production-index-state.json"
+    },
+    "inboxService": {
+      "ready": true,
+      "trafficPercent": 100,
+      "revision": "listfeedbackinbox-00002-tux",
+      "evidence": "build/audit-feedback-20261026/inbox-run-readiness.json"
+    },
+    "boundary": "Read-only source/readiness/index checks; production authenticated mutation journeys intentionally not performed. Notification inbox generation was observed with isolated real handlers; actual physical APNs receipt remains deferred."
+  },
+  "performance": {
+    "pageLimits": {
+      "manager": 30,
+      "personal": 50,
+      "messages": 100
+    },
+    "testedScale": "137 manager requests and 205 tied-timestamp messages; not a production load test at thousands of simultaneous users.",
+    "verifiedChanges": [
+      "No redundant identical first reads",
+      "Retain confirmed loaded range on realtime refresh",
+      "No whole-history message fetch on initial open",
+      "Global indexed manager query; explicit limited scope for personal search"
+    ],
+    "billingChanges": "None"
+  },
+  "delivery": {
+    "testFlight123": "Already available; includes blocks 1-11, not block12",
+    "newUpload": false,
+    "publicRelease": false
+  },
+  "openGates": [
+    "Final required source CI terminal result",
+    "Signed final iPhone readback and actual push receipt when user returns",
+    "User acceptance before block13"
+  ],
+  "recommendations": [
+    "Keep ordinary support workflow and protected DSA decisions distinct within the current inbox.",
+    "Keep personal loaded-history search scope visible; consider indexed global personal search only if real request histories justify it.",
+    "Do not add a second overlapping support dashboard. Campaign notifications remain block13."
+  ],
+  "preservedDirtyWork": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj ordering",
+    "UkrainianCommunity/Localization/Localizable.xcstrings extraction metadata; effective translated values unchanged"
+  ],
+  "visualProofViewed": [
+    "build/audit-feedback-20261026/connected-final-images/CE0AA83A-1C61-436F-B993-E599063E14C2.png",
+    "build/audit-feedback-20261026/connected-final-images/8895D267-B41C-499A-9740-9C250392A882.png",
+    "build/audit-feedback-20261026/final-support-images/9E4B7F82-F242-4711-B1AD-B4E479BB07D2.png",
+    "build/audit-feedback-20261026/final-support-images/570C0130-D315-456A-95B3-58F83B8F1508.png",
+    "build/audit-feedback-20261026/final-support-images/9B39581F-E142-4EE1-8D82-B427C2A39937.png",
+    "build/audit-feedback-20261026/final-support-images/E84C2D8E-503B-4F1D-811B-7F4E1433F68A.png",
+    "build/audit-feedback-20261026/final-support-images/7BBFADDB-41AF-4DF8-AA82-64254DBB8466.png",
+    "build/audit-feedback-20261026/final-support-images/976DCFB2-B15F-4DEF-979C-5DCB1C053976.png",
+    "build/audit-feedback-20261026/final-layout-images/2DBCE99C-F756-4312-BB16-7C89A832B9B6.png",
+    "build/audit-feedback-20261026/final-layout-images/8C03AB27-330A-4525-8FA1-D5C2B8CA077A.png",
+    "build/audit-feedback-20261026/final-layout-images/98A50E32-60A1-4557-B789-45A3F255CA05.png",
+    "build/audit-feedback-20261026/final-states-images/963B357F-880C-41E6-8EFC-E65929DA84B7.png",
+    "build/audit-feedback-20261026/final-states-images/523713FB-3140-4097-B61C-54AA27571D07.png",
+    "build/audit-feedback-20261026/final-states-images/E2D3BC2E-35DE-4E54-953A-98568256A6E2.png",
+    "build/audit-feedback-20261026/final-report-target-images/6717946F-5BF9-4D35-8B57-6D99083313DE.png",
+    "build/audit-feedback-20261026/final-report-target-images/C139EFF7-1519-4ACA-A55C-88846BC72F38.png"
+  ],
+  "sourceCI": {
+    "productRunId": 40312356414,
+    "productCommit": "c8b6cc1cedcd7dd4c3380ac2de90c003ced99b6b",
+    "status": "in_progress",
+    "previousSourceRun": {
+      "id": 40310076184,
+      "conclusion": "success"
+    },
+    "failedLocalizationRun": {
+      "id": 40306407974,
+      "cause": "New table sourceLanguage en instead of repository de; corrected, validator and subsequent hosted source run passed."
+    }
+  },
+  "releaseSimulatorBuild": {
+    "status": "SUCCEEDED",
+    "artifact": "build/audit-feedback-20261026/ReleaseSimulator.xcresult",
+    "boundary": "Compile-only unsigned simulator Release; not physical signed binary acceptance or TestFlight upload.",
+    "warnings": [
+      "Existing unrelated Swift concurrency warning in SystemLogDeliveryQueue.swift:52",
+      "Existing unrelated isolated Decodable conformance warning in DirectoryEditorAccessStore.swift:50"
+    ]
+  },
+  "isolatedEmulators": {
+    "stopped": true,
+    "exportComplete": true,
+    "export": "build/audit-feedback-20261026/emulator-export/firebase-export-metadata.json"
+  }
+}

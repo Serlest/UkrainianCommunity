@@ -1,0 +1,973 @@
+{
+  "block": 12,
+  "totalBlocks": 19,
+  "name": "Відгуки, скарги та підтримка",
+  "status": "local_review_complete_device_and_CI_gates_separate",
+  "sourceBaseline": "86c55af4",
+  "authorizedByUser": "2026-10-26: Ок, тогде переходи к следующему пункту",
+  "method": "Docs/AppAuditMethod.md",
+  "boundaries": [
+    "User authorized simulator/server work while away. Physical acceptance explicitly deferred until iPhone available.",
+    "No production sanctions, complaint decisions, deletion or messages to real people. Connected mutations use isolated demo projects.",
+    "Project donation configuration belongs to a later block; notification campaigns belong to block 13. Feedback-related notification routing is in scope.",
+    "iOS audit plus shared backend; no Android binary delivery."
+  ],
+  "scenarioChecks": [
+    {
+      "id": "F12-01",
+      "family": "access",
+      "route": "Profile, directory prompts, content menus, direct routes",
+      "action": "Expected positive view for each role, own-history scope, owner self-support hidden",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "ProfileAccessPolicy / PermissionService / Firestore Rules / callable authorization",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "UkrainianCommunity/Views/Profile/ProfileAccessPolicy.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-02",
+      "family": "access",
+      "route": "Profile, directory prompts, content menus, direct routes",
+      "action": "Direct route denied and server rejects unauthorized foreign reads/actions",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "ProfileAccessPolicy / PermissionService / Firestore Rules / callable authorization",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "build/audit-feedback-20261026/rules-full-isolated.log",
+        "UkrainianCommunity/Views/Profile/ProfileAccessPolicy.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-03",
+      "family": "access",
+      "route": "Profile, directory prompts, content menus, direct routes",
+      "action": "Rights/session change dismisses stale sensitive windows and fences old callbacks",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "ProfileAccessPolicy / PermissionService / Firestore Rules / callable authorization",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "UkrainianCommunity/Views/Profile/ProfileAccessPolicy.swift",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-04",
+      "family": "composition",
+      "route": "Profile / announcement / directory question and correction",
+      "action": "Types, subject/context and input limits; keyboard and cancellation",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ProfileViewModel / DirectoryFeedbackComposer -> FirestoreFeedbackRepository -> feedback",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/ConnectedComposerUniqueControls.xcresult",
+        "UkrainianCommunity/Features/Directory/DirectoryFeedbackView.swift",
+        "UkrainianCommunity/Views/Shared/ContentReportSheet.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-05",
+      "family": "composition",
+      "route": "Profile / announcement / directory question and correction",
+      "action": "Submission -> independent stored fields -> reopen in own history",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ProfileViewModel / DirectoryFeedbackComposer -> FirestoreFeedbackRepository -> feedback",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/ConnectedComposerUniqueControls.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-06",
+      "family": "composition",
+      "route": "Profile / announcement / directory question and correction",
+      "action": "Slow send locks inputs; prevents double send and dismissal",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ProfileViewModel / DirectoryFeedbackComposer -> FirestoreFeedbackRepository -> feedback",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-07",
+      "family": "composition",
+      "route": "Profile / announcement / directory question and correction",
+      "action": "Lost response retries same operation without duplicate",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ProfileViewModel / DirectoryFeedbackComposer -> FirestoreFeedbackRepository -> feedback",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-08",
+      "family": "composition",
+      "route": "Profile / announcement / directory question and correction",
+      "action": "Account switch prevents old success/error from leaking",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ProfileViewModel / DirectoryFeedbackComposer -> FirestoreFeedbackRepository -> feedback",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "UkrainianCommunity/Features/Directory/DirectoryFeedbackView.swift",
+        "UkrainianCommunity/Views/Shared/ContentReportSheet.swift",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-09",
+      "family": "my-history",
+      "route": "My requests, detail, incoming notification",
+      "action": "Loading, confirmed empty, failure/retry and retained rows",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "MyFeedbackViewModel -> feedback query / notificationInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "build/audit-feedback-20261026/FinalRolesAndSubmissionUI.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-10",
+      "family": "my-history",
+      "route": "My requests, detail, incoming notification",
+      "action": "All pages, stable cursor, no duplicates, failed-page retry",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "MyFeedbackViewModel -> feedback query / notificationInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-11",
+      "family": "my-history",
+      "route": "My requests, detail, incoming notification",
+      "action": "Search includes subject/context; filter and sort scope clear",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "MyFeedbackViewModel -> feedback query / notificationInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-12",
+      "family": "my-history",
+      "route": "My requests, detail, incoming notification",
+      "action": "Concurrent refresh/page, A-B-A account changes and late callbacks",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "MyFeedbackViewModel -> feedback query / notificationInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-13",
+      "family": "my-history",
+      "route": "My requests, detail, incoming notification",
+      "action": "Own detail deep link, missing/deleted/foreign record",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "MyFeedbackViewModel -> feedback query / notificationInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-14",
+      "family": "my-history",
+      "route": "My requests, detail, incoming notification",
+      "action": "Read acknowledgement and badge readback",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "MyFeedbackViewModel -> feedback query / notificationInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-15",
+      "family": "manager-inbox",
+      "route": "Feedback inbox, filter/search/sort, detail",
+      "action": "Loading/empty/error/retry; unknown counts are not zero",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "FeedbackInboxViewModel -> listFeedbackInbox / index -> Firestore IDs+records",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-16",
+      "family": "manager-inbox",
+      "route": "Feedback inbox, filter/search/sort, detail",
+      "action": "Server query covers global filters and search; stable paging >100",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "FeedbackInboxViewModel -> listFeedbackInbox / index -> Firestore IDs+records",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-17",
+      "family": "manager-inbox",
+      "route": "Feedback inbox, filter/search/sort, detail",
+      "action": "No duplicate reads; retain loaded pages after returning/realtime",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "FeedbackInboxViewModel -> listFeedbackInbox / index -> Firestore IDs+records",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-18",
+      "family": "manager-inbox",
+      "route": "Feedback inbox, filter/search/sort, detail",
+      "action": "Detail independent of current filter; stale/deleted target",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "FeedbackInboxViewModel -> listFeedbackInbox / index -> Firestore IDs+records",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-19",
+      "family": "manager-inbox",
+      "route": "Feedback inbox, filter/search/sort, detail",
+      "action": "Read acknowledgement and current unread count",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "FeedbackInboxViewModel -> listFeedbackInbox / index -> Firestore IDs+records",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-20",
+      "family": "manager-inbox",
+      "route": "Feedback inbox, filter/search/sort, detail",
+      "action": "Refresh/new query/page concurrency and session boundaries",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "FeedbackInboxViewModel -> listFeedbackInbox / index -> Firestore IDs+records",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-21",
+      "family": "conversation",
+      "route": "Sender and manager conversation",
+      "action": "Full message history + legacy dedup + older pages",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "platformOwner"
+      ],
+      "dataPath": "Feedback conversation -> transaction / messages / trigger -> inbox / target",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-22",
+      "family": "conversation",
+      "route": "Sender and manager conversation",
+      "action": "Reply -> atomic message/summary -> independent readback and reopen",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "platformOwner"
+      ],
+      "dataPath": "Feedback conversation -> transaction / messages / trigger -> inbox / target",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "build/audit-feedback-20261026/ConnectedComposerUniqueControls.xcresult",
+        "UkrainianCommunity/Services/Auth/UserProfileService.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-23",
+      "family": "conversation",
+      "route": "Sender and manager conversation",
+      "action": "Lost command/readback response retry idempotency",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "platformOwner"
+      ],
+      "dataPath": "Feedback conversation -> transaction / messages / trigger -> inbox / target",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-24",
+      "family": "conversation",
+      "route": "Sender and manager conversation",
+      "action": "Sending locks draft; failure preserves draft; cancellation/back",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "platformOwner"
+      ],
+      "dataPath": "Feedback conversation -> transaction / messages / trigger -> inbox / target",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-25",
+      "family": "conversation",
+      "route": "Sender and manager conversation",
+      "action": "Closed/restricted/deleted case disables unavailable actions",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "platformOwner"
+      ],
+      "dataPath": "Feedback conversation -> transaction / messages / trigger -> inbox / target",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "build/audit-feedback-20261026/rules-full-isolated.log",
+        "UkrainianCommunity/Views/Profile/ProfileAccessPolicy.swift",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-26",
+      "family": "conversation",
+      "route": "Sender and manager conversation",
+      "action": "Read/reply notification exact recipient, dedup and destination",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "platformOwner"
+      ],
+      "dataPath": "Feedback conversation -> transaction / messages / trigger -> inbox / target",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "UkrainianCommunity/Models/NotificationModels.swift",
+        "UkrainianCommunity/Views/Profile/ProfileViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-27",
+      "family": "management",
+      "route": "Status menu, close, delete, clear",
+      "action": "Reviewed/in-progress/done statuses and authoritative readback",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "Feedback operations / Firestore Rules / deleteFeedback / clearFeedbackInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-28",
+      "family": "management",
+      "route": "Status menu, close, delete, clear",
+      "action": "Close/cancel; valid target frozen across role/account changes",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "Feedback operations / Firestore Rules / deleteFeedback / clearFeedbackInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "UkrainianCommunity/Views/Profile/ProfileAccessPolicy.swift",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-29",
+      "family": "management",
+      "route": "Status menu, close, delete, clear",
+      "action": "Delete one/cancel; messages and notices cleanup readback",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "Feedback operations / Firestore Rules / deleteFeedback / clearFeedbackInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-30",
+      "family": "management",
+      "route": "Status menu, close, delete, clear",
+      "action": "Clear/cancel; protected cases retained; failure and retry",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin"
+      ],
+      "dataPath": "Feedback operations / Firestore Rules / deleteFeedback / clearFeedbackInbox",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-31",
+      "family": "safety-report",
+      "route": "News/event/org/comment report sheet",
+      "action": "Target/reason/details/evidence/good-faith validation",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ContentReportCoordinator -> submitContentReport -> feedback + dsaCases",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-32",
+      "family": "safety-report",
+      "route": "News/event/org/comment report sheet",
+      "action": "Submit -> case receipt -> linked history and acknowledgement",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ContentReportCoordinator -> submitContentReport -> feedback + dsaCases",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-33",
+      "family": "safety-report",
+      "route": "News/event/org/comment report sheet",
+      "action": "Duplicate/own/missing target, network/retry, late principal change",
+      "applicableRoles": [
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "ContentReportCoordinator -> submitContentReport -> feedback + dsaCases",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-34",
+      "family": "dsa",
+      "route": "Case context, statement, decision, appeal",
+      "action": "Context/target/statement route, missing/inaccessible statement",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "DSA case/statement/submission/decision handlers and Firestore Rules",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/ActualReportTargetUI.xcresult",
+        "UkrainianCommunity/Models/NotificationModels.swift",
+        "UkrainianCommunity/Views/Profile/ProfileViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-35",
+      "family": "dsa",
+      "route": "Case context, statement, decision, appeal",
+      "action": "Decision required fields and limits; cancel/slow/error/retry",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "DSA case/statement/submission/decision handlers and Firestore Rules",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-36",
+      "family": "dsa",
+      "route": "Case context, statement, decision, appeal",
+      "action": "Reviewed revision+principal+operation id protects concurrent decision",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "DSA case/statement/submission/decision handlers and Firestore Rules",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-37",
+      "family": "dsa",
+      "route": "Case context, statement, decision, appeal",
+      "action": "Sender appeal eligibility/limits/window + independent readback",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "DSA case/statement/submission/decision handlers and Firestore Rules",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-38",
+      "family": "dsa",
+      "route": "Case context, statement, decision, appeal",
+      "action": "Appeal review owner-only + notification/statement target",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "DSA case/statement/submission/decision handlers and Firestore Rules",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-39",
+      "family": "dsa",
+      "route": "Case context, statement, decision, appeal",
+      "action": "Protected DSA cannot be closed/deleted through ordinary controls",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member"
+      ],
+      "dataPath": "DSA case/statement/submission/decision handlers and Firestore Rules",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalReportNegativeSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "build/audit-feedback-20261026/rules-full-isolated.log"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-40",
+      "family": "visual",
+      "route": "All unique list/detail/forms/confirmations",
+      "action": "Ukrainian/light/normal and German/dark/max text, compact width",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Observed simulator UI frames and route assertions",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-41",
+      "family": "visual",
+      "route": "All unique list/detail/forms/confirmations",
+      "action": "Loading/error/disabled states, glass icons, readable counts and controls",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Observed simulator UI frames and route assertions",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-42",
+      "family": "visual",
+      "route": "All unique list/detail/forms/confirmations",
+      "action": "Keyboard, scroll, forward/back/reopen, draft retention and lifecycle",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Observed simulator UI frames and route assertions",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalLayoutAndActionsUI.xcresult",
+        "build/audit-feedback-20261026/FinalStatesAndTargetUI.xcresult",
+        "build/audit-feedback-20261026/FinalSupportUI.xcresult",
+        "build/audit-feedback-20261026/ConnectedComposerUniqueControls.xcresult",
+        "UkrainianCommunity/Views/Profile/FeedbackViews.swift"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-43",
+      "family": "delivery",
+      "route": "Final verification",
+      "action": "Targeted client/server regression, complete applicable role contract",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Test artifacts / deployed readback / physical iPhone",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/FinalClientAndSDK.xcresult",
+        "build/audit-feedback-20261026/server-feedback-final.log",
+        "build/audit-feedback-20261026/rules-full-isolated.log",
+        "build/audit-feedback-20261026/FullUnitRegression.xcresult"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-44",
+      "family": "delivery",
+      "route": "Final verification",
+      "action": "Production read-only handler/index/source health; no production test decisions",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Test artifacts / deployed readback / physical iPhone",
+      "status": "reviewed_with_targeted_evidence",
+      "evidence": [
+        "build/audit-feedback-20261026/runtime-source-readback.json",
+        "build/audit-feedback-20261026/production-index-state.json",
+        "build/audit-feedback-20261026/inbox-run-readiness.json",
+        "build/audit-feedback-20261026/rules-production-published.json"
+      ],
+      "coverageBasis": "Source path and role contract reviewed with representative runtime evidence. Listed result bundles contain individual cases, not all role/theme/error combinations; see audit report for exact passing and superseded cases."
+    },
+    {
+      "id": "F12-45",
+      "family": "delivery",
+      "route": "Final verification",
+      "action": "Physical signed Release read and actual remote push receipt",
+      "applicableRoles": [
+        "platformOwner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "restricted",
+        "guest"
+      ],
+      "dataPath": "Test artifacts / deployed readback / physical iPhone",
+      "status": "deferred_user_device_unavailable",
+      "evidence": [],
+      "remaining": [
+        "Signed final Release readback on physical iPhone",
+        "Actual APNs receipt and tap on that iPhone"
+      ]
+    }
+  ],
+  "evidenceRegistry": {},
+  "physicalDeviceStatus": "Deferred by user while away",
+  "testFlightStatus": "Not delivered; available build 123 contains blocks 1-11 only",
+  "reviewedScenarioGroups": 44,
+  "deferredScenarioGroups": 1
+}

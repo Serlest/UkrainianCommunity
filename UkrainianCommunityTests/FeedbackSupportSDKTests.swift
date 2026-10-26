@@ -59,7 +59,8 @@ import FirebaseFirestore
         try await signIn("other")
         let otherNotices = try await Firestore.firestore().collection("users/feedback-audit-other/notificationInbox").whereField("sourceId", isEqualTo: id).getDocuments(source: .server)
         XCTAssertTrue(otherNotices.isEmpty)
-        do { _ = try await repository.fetchFeedback(id: id); XCTFail("Foreign case read must be denied") } catch {}
+        do { _ = try await repository.fetchFeedback(id: id); XCTFail("Foreign case read must be denied") }
+        catch let error as AppError { XCTAssertEqual(error, .permissionDenied) }
     }
 
     func testMessagePaginationReadsAll205TiedTimestampsWithoutDuplicates() async throws {
@@ -144,6 +145,27 @@ import FirebaseFirestore
         XCTAssertEqual(final.dsaCase?.status, "appealDecided")
         XCTAssertEqual(final.status, .closed)
         do { try await repository.deleteFeedback(id: current.id); XCTFail("Protected DSA retention must prevent deletion") } catch {}
+    }
+
+    func testReportReplayOwnAndMissingTargetHaveSpecificResults() async throws {
+        try await signIn("reporter")
+        defer { try? Auth.auth().signOut() }
+        let id = try await prepareReportTarget()
+        let target = ContentReportTarget(targetType: .news, targetId: id, parentType: nil, parentId: nil,
+                                         title: "Disposable report checks", authorId: "feedback-audit-other")
+        let submission = ContentReportSubmission(illegalExplanation: "Specific facts for an isolated report eligibility check.", legalBasis: nil,
+            evidence: "Synthetic evidence", goodFaithConfirmed: true)
+        let repository = CloudContentSafetyRepository()
+        let first = try await repository.submitReport(target: target, reason: .privacy, submission: submission)
+        let replay = try await repository.submitReport(target: target, reason: .privacy, submission: submission)
+        XCTAssertEqual(replay.reportId, first.reportId)
+        try await signIn("other")
+        do { _ = try await repository.submitReport(target: target, reason: .privacy, submission: submission); XCTFail("Self report must be rejected") }
+        catch let error as ContentReportSubmissionError { XCTAssertEqual(error, .ownContent) }
+        let absent = ContentReportTarget(targetType: .news, targetId: "feedback-audit-missing-" + UUID().uuidString,
+            parentType: nil, parentId: nil, title: "Missing fixture", authorId: nil)
+        do { _ = try await repository.submitReport(target: absent, reason: .privacy, submission: submission); XCTFail("Missing target must be rejected") }
+        catch let error as ContentReportSubmissionError { XCTAssertEqual(error, .targetUnavailable) }
     }
 
     private func prepareReportTarget() async throws -> String {
