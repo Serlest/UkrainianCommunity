@@ -26,7 +26,9 @@ struct BannerAuditHarness14: View {
         ]
         let countdown: FeaturedBannerCountdown?
         if number == 1 {
-            let remainingSeconds: TimeInterval = 2 * 86_400 + 8 * 3_600 + 32 * 60
+            // Two days, eight hours and 32 minutes. A literal also avoids an
+            // expensive numeric-overload search in the pinned CI compiler.
+            let remainingSeconds: TimeInterval = 203_520
             countdown = FeaturedBannerCountdown(
                 targetDate: now.addingTimeInterval(remainingSeconds),
                 label: "До зустрічі громади",
