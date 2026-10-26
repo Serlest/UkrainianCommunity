@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "date": "2026-10-26",
   "name": "Банери та статистика",
-  "status": "implemented_verified_pending_final_ci_and_user_signed_build_acceptance",
+  "status": "implemented_verified_pending_user_signed_build_acceptance",
   "inventory": "Docs/Verification/BannersInventory20261026.json",
   "scenarioChecks": 79,
   "clientSourceCommit": "03eb652d",
@@ -132,10 +132,65 @@
       "git diff --check"
     ],
     "ci": {
-      "status": "pending_final_head_push_readback",
-      "boundary": "Local success is not GitHub success"
+      "status": "completed",
+      "runId": 40375126735,
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40375126735",
+      "head": "ff4e0a4f1c10ee6b412e4968d61e8035845f793a",
+      "previousRun": {
+        "id": 40371154683,
+        "conclusion": "failure",
+        "cause": "Xcode26.3 Swift type checker exceeded its expression complexity budget in DEBUG simulator-only BannerAuditHarness14.fixtures(). Local Xcode27.1 compiled it; CI compilation failed before unit tests. Firebase affected checks passed.",
+        "fix": "Split fixture generation into typed local values and one explicitly typed helper. Keep assertions and pinned CI compiler unchanged."
+      },
+      "boundary": "Hosted Xcode26.3 Debug compilation, main unit suite, all8isolated tests, discovery checks and required summaries passed on ff4e0a4f. Release step skipped for this DEBUG-only fixture follow-up; prior local Release success recorded separately. Firebase affected tests passed on original457073fa; this fixture-only follow-up correctly skips them.",
+      "intermediateFailedRun": {
+        "id": 40373505226,
+        "head": "bdd205d2",
+        "cause": "Extracting the helper exposed the actual over-budget expression at line29: a chain of integer-literal multiplications/additions inferred as TimeInterval under Xcode26.3.",
+        "fix": "Replace arithmetic with equivalent explicitly typed203520second literal. Keep actual app countdown arithmetic and assertions unchanged."
+      },
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "Change classification and static checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "iOS build and unit checks",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase and rules",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Firebase affected checks",
+          "status": "completed",
+          "conclusion": "skipped"
+        },
+        {
+          "name": "iOS build and unit tests",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ],
+      "evidence": "ci-typed-deadline-result.json; ci-typed-deadline-ios.log",
+      "finalFix": "Equivalent TimeInterval203520literal removes the numeric overload search. No test assertions, compiler pins, workflow gates, production functions or release configuration changed."
     },
-    "emulators": "Owned fixed demo-uac-release-audit Auth/Firestore/Functions/Storage stack stopped with SIGINT after final SDK pass, export-on-exit completed. No production test records or metrics created."
+    "emulators": "Owned fixed demo-uac-release-audit Auth/Firestore/Functions/Storage stack stopped with SIGINT after final SDK pass, export-on-exit completed. No production test records or metrics created.",
+    "compilerCompatibilityUI": {
+      "artifact": "CompilerCompatibleFixturesUI.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": [
+        "Separated carousel/countdown/selected-card measurements",
+        "Countdown editor and explicit discard in uk/de"
+      ]
+    }
   },
   "visualReview": {
     "environment": "iPhone17e simulator iOS26.5, uk/light and de/dark, normal/largest accessibility type; native calendar, photo picker, completion menu, keyboard/search, discard/delete/export.",
@@ -427,5 +482,6 @@
     "Choose/replace photo, duplicate, delete original and confirm copy artwork remains; cancel unsaved edits and deletion.",
     "Check target search/loadmore, destination/back, fourplacements and region targeting.",
     "Check uk/de, light/dark, large text and actual iPhone widths/orientations."
-  ]
+  ],
+  "clientCompatibilityFixCommit": "ff4e0a4f"
 }

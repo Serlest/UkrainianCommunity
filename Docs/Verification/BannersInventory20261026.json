@@ -1007,10 +1007,11 @@
       "id": "B14-78",
       "family": "Delivery",
       "scenario": "local/CI/test binary separate",
-      "status": "verified_delivery_boundary_ci_pending",
+      "status": "verified_delivery_boundary_and_CI",
       "evidence": [
         "Docs/Verification/BannersAudit20261026.json",
-        "deployment-proof.json"
+        "deployment-proof.json",
+        "https://github.com/Serlest/UkrainianCommunity/actions/runs/40375126735"
       ],
       "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
     },
