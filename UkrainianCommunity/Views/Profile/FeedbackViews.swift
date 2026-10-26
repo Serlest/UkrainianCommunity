@@ -462,7 +462,7 @@ struct MyFeedbackView: View {
         case .permissionDenied:
             return AppStrings.Moderation.loadPermissionError
         case .network:
-            return AppStrings.Moderation.loadNetworkError
+            return FeedbackSupportCopy.loadNetworkError
         case .validationFailed, .notFound, .unknown:
             return AppStrings.Feedback.loadFailed
         }
@@ -842,7 +842,7 @@ struct FeedbackInboxView: View {
                 }
 
                 ForEach(filteredItems) { item in
-                    HStack(alignment: .center, spacing: AppTheme.eventsMetadataSpacing) {
+                    VStack(alignment: .trailing, spacing: AppTheme.eventsMetadataSpacing) {
                         Button {
                             guard let actorID = authState.user?.id else { return }
                             open(item, actorID: actorID)
@@ -854,6 +854,8 @@ struct FeedbackInboxView: View {
                         .accessibilityIdentifier("feedbackInbox.open.\(item.id)")
 
                         if PermissionService.canManageFeedback(user: authState.user) {
+                            HStack(spacing: AppTheme.eventsMetadataSpacing) {
+                            Spacer(minLength: 0)
                             Menu {
                                 Button(AppStrings.Feedback.markReviewed, systemImage: "eye") {
                                     Task { await viewModel.setStatus(.reviewed, for: item) }
@@ -865,11 +867,10 @@ struct FeedbackInboxView: View {
                                     Task { await viewModel.setStatus(.done, for: item) }
                                 }
                             } label: {
-                                Image(systemName: "ellipsis")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
+                                AppGlassIconLabel(systemImage: "ellipsis")
                             }
                             .appGlassIconControl()
+                            .fixedSize()
                             .accessibilityLabel(AppStrings.Common.status)
                             .accessibilityIdentifier("feedbackInbox.status.\(item.id)")
                             .disabled(viewModel.isClearingInbox || viewModel.updatingFeedbackIDs.contains(item.id) || item.dsaCase != nil)
@@ -892,6 +893,7 @@ struct FeedbackInboxView: View {
                                 }
                                 .accessibilityIdentifier("feedbackInbox.delete.\(item.id)")
                                 .disabled(viewModel.isClearingInbox || viewModel.updatingFeedbackIDs.contains(item.id))
+                            }
                             }
                             }
                         }
@@ -926,7 +928,7 @@ struct FeedbackInboxView: View {
         case .permissionDenied:
             return AppStrings.Moderation.loadPermissionError
         case .network:
-            return AppStrings.Moderation.loadNetworkError
+            return FeedbackSupportCopy.loadNetworkError
         case .validationFailed, .notFound, .unknown:
             return AppStrings.Feedback.loadFailed
         }
@@ -1320,11 +1322,10 @@ private struct FeedbackConversationView: View {
                                 .stroke(AppTheme.borderSubtle)
                         )
 
-                        HStack {
+                        VStack(alignment: .leading, spacing: 6) {
                             Text("\(replyText.count)/2000")
                                 .foregroundStyle(AppTheme.textSecondary)
-                            Spacer(minLength: 0)
-                            if let validationMessage {
+                            if let validationMessage, actionErrorMessage == nil {
                                 Text(validationMessage)
                                     .foregroundStyle(AppTheme.accentDestructiveForeground)
                             }
@@ -1462,7 +1463,7 @@ private struct FeedbackConversationView: View {
     private var replyActions: some View {
         PrimaryActionButton(
             title: isSending ? AppStrings.Feedback.sending : AppStrings.Feedback.send,
-            isEnabled: !isSending,
+            isEnabled: !isSending && !replyText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && replyText.trimmingCharacters(in: .whitespacesAndNewlines).count <= 2000,
             isLoading: isSending,
             systemImage: "paperplane"
         ) {

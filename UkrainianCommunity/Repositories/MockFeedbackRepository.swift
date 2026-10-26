@@ -23,7 +23,8 @@ struct MockFeedbackRepository: FeedbackRepository {
         let matching = try await fetchFeedback().filter { LocalSearchMatcher.matches(query: query.search,
             values: [$0.id, $0.userId, $0.userDisplayName, $0.subject, $0.message, $0.lastMessageText]) }
         func bucket(_ item: FeedbackItem) -> String { item.status.isClosed ? "closed" : item.status.isAnswered ? "answered" : "open" }
-        let counts = Dictionary(grouping: matching, by: bucket).mapValues(\.count)
+        var counts = ["open": 0, "answered": 0, "closed": 0]
+        for item in matching { counts[bucket(item), default: 0] += 1 }
         let rows = matching.filter { bucket($0) == query.filter }.sorted {
             let l = $0.lastMessageAt ?? $0.updatedAt, r = $1.lastMessageAt ?? $1.updatedAt
             return l == r ? (query.oldest ? $0.id < $1.id : $0.id > $1.id) : (query.oldest ? l < r : l > r)
@@ -112,6 +113,7 @@ struct MockFeedbackRepository: FeedbackRepository {
     var isDeleted: Bool { mode == "deleted" }
     func check(_ kind: String) async throws {
         if mode == "slow" { try await Task.sleep(for: .seconds(2)) }
+        if mode == "slow-submit", kind == "submit" { try await Task.sleep(for: .seconds(6)) }
         if mode == kind + "-error", used.insert(kind).inserted { throw AppError.network }
     }
 }

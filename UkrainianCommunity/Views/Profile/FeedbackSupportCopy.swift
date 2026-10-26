@@ -1,6 +1,8 @@
 import Foundation
 
 nonisolated enum FeedbackSupportCopy {
+    static var answeredFilter: String { text("answered_filter", "Answered") }
+    static var loadNetworkError: String { text("load_network_error", "Requests could not be loaded. Check your connection and try again.") }
     private static func text(_ key: String, _ fallback: String) -> String {
         LocalizationStore.localizedString("feedback_audit." + key, defaultValue: fallback, table: "FeedbackSupportAudit")
     }

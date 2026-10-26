@@ -2077,7 +2077,7 @@ enum AppStrings {
         static var inboxFilter: String { text("feedback.inbox.filter", "Фільтр") }
         static var inboxFilterEmpty: String { text("feedback.inbox.filter_empty", "У цьому фільтрі звернень немає.") }
         static var filterOpen: String { text("feedback.filter.open", "Відкриті") }
-        static var filterAnswered: String { text("feedback.filter.answered", "Відповіді надано") }
+        static var filterAnswered: String { FeedbackSupportCopy.answeredFilter }
         static var filterClosed: String { text("feedback.filter.closed", "Закриті") }
         static var markReviewed: String { text("feedback.action.mark_reviewed", "Позначити переглянутим") }
         static var archive: String { text("feedback.action.archive", "Архівувати") }

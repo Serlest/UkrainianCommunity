@@ -121,12 +121,21 @@ import XCTest
         capture(app, "feedback-status-menu")
         app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "переглянут")).firstMatch.tap()
         let trash = app.buttons["feedbackInbox.delete.feedback-audit-ordinary"]
-        reveal(trash, app); trash.tap()
+        reveal(trash, app)
+        XCTAssertEqual(XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: trash)], timeout: 8), .completed)
+        trash.tap()
+        capture(app, "feedback-after-delete-tap")
         let cancel = app.buttons["Скасувати"].firstMatch
-        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.popovers.firstMatch.waitForExistence(timeout: 5) || cancel.exists)
         capture(app, "feedback-delete-confirmation")
-        cancel.tap()
+        if cancel.exists { cancel.tap() }
+        else { app.coordinate(withNormalizedOffset: .init(dx: 0.03, dy: 0.35)).tap() }
         XCTAssertTrue(app.buttons["feedbackInbox.open.feedback-audit-ordinary"].exists)
+        reveal(trash, app); trash.tap()
+        let confirm = app.popovers.buttons["Видалити звернення"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(app.buttons["feedbackInbox.open.feedback-audit-ordinary"].waitForNonExistence(timeout: 8))
+        capture(app, "feedback-delete-confirmed")
     }
 
     func testAppAdministratorCanChangeStatusButCannotDeleteInbox() {
@@ -140,6 +149,85 @@ import XCTest
         capture(app, "feedback-admin-status-no-delete")
         reveal(status, app); status.tap()
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "переглянут")).firstMatch.waitForExistence(timeout: 5))
+    }
+
+    func testSubmissionErrorRetainsEditableDraftAndRetrySucceeds() {
+        let app = launch(language: "uk", owner: false, mode: "submit-error")
+        let tab = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+        let compose = app.buttons["profile.feedback.compose"]
+        reveal(compose, app); compose.tap()
+        let text = app.textViews["feedback.compose.text"]
+        XCTAssertTrue(text.waitForExistence(timeout: 8)); text.tap(); text.typeText("Retry the complete request")
+        dismissKeyboard(app)
+        let submit = app.buttons["feedback.compose.submit"]
+        reveal(submit, app); submit.tap()
+        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: text)
+        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 8), .completed)
+        XCTAssertEqual(text.value as? String, "Retry the complete request")
+        capture(app, "feedback-compose-failed-draft-retained")
+        reveal(submit, app); submit.tap()
+        let cleared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value != %@", "Retry the complete request"), object: text)
+        XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 8), .completed)
+        capture(app, "feedback-compose-retry-confirmed")
+    }
+
+    func testPersonalInitialFailureRetriesOwnHistory() {
+        let app = launch(language: "uk", owner: false, mode: "mine-error")
+        let tab = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+        let mine = app.buttons["profile.feedback.history"]
+        reveal(mine, app); mine.tap()
+        let retry = app.buttons["feedback.mine.retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 8)); capture(app, "feedback-personal-error"); retry.tap()
+        XCTAssertTrue(app.buttons["feedback.mine.open.feedback-audit-ordinary"].waitForExistence(timeout: 8))
+        capture(app, "feedback-personal-retry-confirmed")
+    }
+
+    func testSlowSubmissionFreezesPayloadAtMaximumGermanText() {
+        let app = launch(language: "de", owner: false, maximum: true, mode: "slow-submit")
+        let tab = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+        let compose = app.buttons["profile.feedback.compose"]
+        reveal(compose, app); compose.tap()
+        let text = app.textViews["feedback.compose.text"]
+        XCTAssertTrue(text.waitForExistence(timeout: 8)); reveal(text, app); text.tap(); text.typeText("A complete request with slow transport")
+        dismissKeyboard(app)
+        let submit = app.buttons["feedback.compose.submit"]
+        reveal(submit, app); submit.tap()
+        XCTAssertFalse(text.isEnabled); XCTAssertFalse(submit.isEnabled)
+        capture(app, "feedback-compose-slow-frozen-de-maximum")
+        let ready = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: text)
+        XCTAssertEqual(XCTWaiter.wait(for: [ready], timeout: 12), .completed)
+        XCTAssertNotEqual(text.value as? String, "A complete request with slow transport")
+        capture(app, "feedback-compose-slow-completed-de-maximum")
+    }
+
+    func testPersonalEmptyHistoryIsConfirmedWithoutError() {
+        let app = launch(language: "uk", owner: false, mode: "empty")
+        let tab = app.tabBars.buttons.element(boundBy: 4)
+        XCTAssertTrue(tab.waitForExistence(timeout: 20)); tab.tap()
+        let mine = app.buttons["profile.feedback.history"]
+        reveal(mine, app); mine.tap()
+        XCTAssertTrue(app.staticTexts["У вас поки немає звернень."].waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["feedback.mine.retry"].exists)
+        capture(app, "feedback-personal-confirmed-empty")
+    }
+
+    func testClearInboxConfirmationRetainsProtectedCases() {
+        let app = launch(language: "uk")
+        openInbox(app)
+        let clear = app.buttons["feedbackInbox.clearAll"]
+        XCTAssertTrue(clear.waitForExistence(timeout: 8)); clear.tap()
+        let confirm = app.popovers.buttons["Видалити всі відгуки та скарги"].firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        capture(app, "feedback-clear-confirmation")
+        app.coordinate(withNormalizedOffset: .init(dx: 0.03, dy: 0.35)).tap()
+        XCTAssertTrue(app.buttons["feedbackInbox.open.feedback-audit-ordinary"].exists)
+        clear.tap(); XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
+        XCTAssertTrue(app.buttons["feedbackInbox.open.feedback-audit-ordinary"].waitForNonExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["feedbackInbox.open.feedback-audit-dsa"].waitForExistence(timeout: 8))
+        capture(app, "feedback-clear-retained-protected-case")
     }
 
     func testInboxFailureAndFailedNextPageRetry() {
