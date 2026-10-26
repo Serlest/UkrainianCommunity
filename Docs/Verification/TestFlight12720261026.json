@@ -1,0 +1,116 @@
+{
+  "version": "1.2.1",
+  "build": "127",
+  "requestedByUser": "Сделай билд сейчас что бы проверить что получилось",
+  "sourceCommit": "4c4bb91062a198dc13555e052478cd981c4cbd7b",
+  "productSourceCommit": "26332afb",
+  "verificationSourceCommit": "cab0e43f",
+  "audience": "internal TestFlight",
+  "publicRelease": false,
+  "archive": "build/UAC-127.xcarchive",
+  "archiveResult": "ARCHIVE SUCCEEDED",
+  "exportResult": "EXPORT SUCCEEDED; Upload succeeded",
+  "uploadMethod": "existing signed-in Xcode account",
+  "exportOptions": "build/ExportOptions-TestFlight-Internal.plist",
+  "serverCompatibility": "validate_release_configuration.py --verify-deployed-analytics passed for127 before archive",
+  "archiveInfo": {
+    "CFBundleIdentifier": "at.serlest.UkrainianCommunity",
+    "CFBundleShortVersionString": "1.2.1",
+    "CFBundleVersion": "127",
+    "ITSAppUsesNonExemptEncryption": false
+  },
+  "testFlightAvailable": true,
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "assignedGroups": [
+    {
+      "name": "Beta Tester",
+      "internal": true,
+      "containsBuild": true
+    }
+  ],
+  "appleUploadState": [
+    {
+      "errors": [],
+      "warnings": [],
+      "infos": [],
+      "state": "COMPLETE"
+    }
+  ],
+  "testNotes": {
+    "published": true,
+    "readBackExactly": true,
+    "locales": [
+      "uk",
+      "de-DE",
+      "en-US"
+    ],
+    "source": "build/testflight-127/notes.json"
+  },
+  "readback": "build/testflight-127/asc-final.json",
+  "implementedBlocksIncluded": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "additionalFixes": [
+    "Full available banner width and16:9 artwork frame without countdown-dependent240point minimum.",
+    "Large type no longer reduces artwork to120points.",
+    "Countdown without panel/border/timer icon; text shadows over artwork; primary theme text outside artwork."
+  ],
+  "localVerification": {
+    "fullUnits": {
+      "passed": 901,
+      "failed": 0,
+      "skipped": 40
+    },
+    "focusedFinalPixelAndUI": {
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0
+    },
+    "releaseBuild": "succeeded; see BannerArtworkCorrection20261026.json"
+  },
+  "sourceCI": {
+    "runId": 40387983027,
+    "status": "in_progress",
+    "conclusion": "pending",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40387983027",
+    "boundary": "Hosted validation still running at delivery; not reported as passed."
+  },
+  "buildNumberCI": {
+    "runId": 40389652270,
+    "status": "pending",
+    "conclusion": "pending",
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40389652270"
+  },
+  "symbols": {
+    "appSymbolsMatch": true,
+    "uuid": "AA8D89EB-F073-3D9B-82C4-EC3F428C095C",
+    "externalSDKMissingSymbols": [
+      "FirebaseFirestoreInternal.framework",
+      "absl.framework",
+      "grpc.framework",
+      "grpcpp.framework",
+      "openssl_grpc.framework"
+    ]
+  },
+  "warningBoundary": "Same5vendor dSYM warnings as125/126; app dSYM matches archive binary. Apple upload COMPLETE with no package errors/warnings.",
+  "physicalVerification": "Pending user acceptance of127 on actual iPhone. Simulator coverage does not close physical width/orientation matrix.",
+  "boundaries": [
+    "Internal TestFlight only; no public App Store submission/release.",
+    "No seasonal theme or production test campaigns added.",
+    "Pre-existing project order and localization extraction-only work preserved and excluded from commits."
+  ]
+}

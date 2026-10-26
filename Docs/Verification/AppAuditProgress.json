@@ -267,11 +267,11 @@
       ],
       "compatibilityFixCommit": "ff4e0a4f",
       "sourceCI": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40375126735",
-      "testFlightBuild": "1.2.1 (126)",
-      "deliveryReport": "Docs/Verification/TestFlight12620261026.json",
+      "testFlightBuild": "1.2.1 (127)",
+      "deliveryReport": "Docs/Verification/TestFlight12720261026.json",
       "followUpSourceCommit": "26332afb",
       "followUpReport": "Docs/Verification/BannerArtworkCorrection20261026.json",
-      "followUpDelivery": "not included in126; new build not uploaded in this follow-up"
+      "followUpDelivery": "included in TestFlight127; pending user acceptance"
     },
     {
       "number": 15,
@@ -407,7 +407,7 @@
   "nextNewBlock": 15,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "TestFlight126 available internally with blocks1–14; build-number CI passed. Subsequent banner artwork-size/text-only-counter correction is source-only pending new signed build. User physical acceptance remains open.",
+  "nextAction": "TestFlight127 available internally with blocks1–14 and subsequent artwork-size/text-only-countdown corrections. User acceptance and physical matrix pending; hosted source/build-number CI still running. Block15 requires user instruction.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -420,8 +420,8 @@
     "block11VerifiedScenarios": 44
   },
   "latestTestFlightDelivery": {
-    "build": "1.2.1 (126)",
-    "report": "Docs/Verification/TestFlight12620261026.json",
+    "build": "1.2.1 (127)",
+    "report": "Docs/Verification/TestFlight12720261026.json",
     "includedImplementedBlocks": [
       1,
       2,
@@ -442,8 +442,8 @@
     "block11PhysicalReadback": "pending user acceptance",
     "block12PhysicalReadback": "pending user acceptance",
     "block13PhysicalReadback": "pending user acceptance and actual APNs delivery",
-    "block14PhysicalReadback": "pending user acceptance and physical width/orientation matrix",
-    "buildNumberCI": "40379810314 completed successfully"
+    "block14PhysicalReadback": "pending user acceptance of127 including restored artwork sizing and text-only countdown",
+    "buildNumberCI": "40389652270 pending; product source40387983027 in progress"
   },
   "currentBlock": 14
 }

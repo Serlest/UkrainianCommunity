@@ -6,7 +6,7 @@
     "Check why banner artwork is shorter, especially with countdown",
     "Make countdown numbers without background"
   ],
-  "status": "verified_local_pending_hosted_CI_and_signed_delivery",
+  "status": "verified_local_delivered_pending_hosted_CI_and_user_acceptance",
   "artifactBase": "build/audit-banners-20261026",
   "cause": [
     "A24point width deduction for the next-card peek shrank fitted16:9 artwork by13.5points vertically.",
@@ -79,7 +79,13 @@
       "uk/de localization3397entries",
       "git diff --check"
     ],
-    "hostedCI": "pending push/readback; source success is not implied by local tests"
+    "hostedCI": {
+      "runId": 40387983027,
+      "status": "in_progress",
+      "conclusion": "pending",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40387983027",
+      "boundary": "Hosted validation still running at delivery; not reported as passed."
+    }
   },
   "visualReview": {
     "viewedBaseline": [
@@ -95,11 +101,13 @@
     "boundary": "Simulator iPhone17e iOS26.5. Physical iPhone and exhaustive device/orientation matrix not claimed."
   },
   "delivery": {
-    "currentTestFlight": "1.2.1(126)",
-    "thisCorrectionIncluded": false,
-    "newBuildUploaded": false,
+    "currentTestFlight": "1.2.1(127)",
+    "thisCorrectionIncluded": true,
+    "newBuildUploaded": true,
     "serverChanged": false,
     "seasonalThemeChanged": false,
-    "publicRelease": false
+    "publicRelease": false,
+    "report": "Docs/Verification/TestFlight12720261026.json",
+    "physicalAcceptance": "pending user acceptance"
   }
 }

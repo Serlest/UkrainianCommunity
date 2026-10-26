@@ -467,19 +467,18 @@
   },
   "delivery": {
     "testFlightChanged": true,
-    "currentTestFlight": "1.2.1(126)",
+    "currentTestFlight": "1.2.1(127)",
     "includedBlocks": "1–14",
     "publicRelease": false,
-    "physicalAcceptance": "TestFlight126 available; user physical acceptance and width/orientation matrix pending",
+    "physicalAcceptance": "TestFlight127 available; user physical acceptance pending",
     "nextBlock": 15,
     "nextBlockStarted": false,
-    "deliveryReport": "Docs/Verification/TestFlight12620261026.json",
+    "deliveryReport": "Docs/Verification/TestFlight12720261026.json",
     "buildNumberCI": {
-      "runId": 40379810314,
-      "status": "completed",
-      "conclusion": "success",
-      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40379810314",
-      "boundary": "Separate full validation for version-number-only change; source implementation run already passed. Main workflow preserves active validation when this delivery report is pushed."
+      "runId": 40389652270,
+      "status": "pending",
+      "conclusion": "pending",
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40389652270"
     }
   },
   "acceptanceChecklist": [
@@ -495,6 +494,6 @@
   "followUp": {
     "report": "Docs/Verification/BannerArtworkCorrection20261026.json",
     "sourceCommit": "26332afb",
-    "delivery": "Not included in TestFlight126; source-only follow-up."
+    "delivery": "Included in TestFlight127; hosted validation and physical user acceptance remain separate."
   }
 }
