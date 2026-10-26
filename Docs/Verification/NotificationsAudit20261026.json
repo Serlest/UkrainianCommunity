@@ -1,0 +1,404 @@
+{
+  "schemaVersion": 1,
+  "block": 13,
+  "totalBlocks": 19,
+  "date": "2026-10-26",
+  "name": "Уведомления и оповещения",
+  "status": "verified_in_available_environment_pending_final_ci_and_user_signed_build_acceptance",
+  "inventory": "Docs/Verification/NotificationsInventory20261026.json",
+  "sourceBaseline": "c44f357d",
+  "serverSourceCommit": "ace22c40",
+  "clientSourceCommit": "a9e6c17a",
+  "scope": [
+    "Private inbox, badge, all/unread/archive, detail and destinations",
+    "Critical inbox popup and local event reminders",
+    "Announcement recipient popup/history and receipt persistence",
+    "Owner campaign editor, language versions, audience, search, review, cancellation and statistics",
+    "Preferences, device/session ownership, writer/delivery/retention contracts and Rules"
+  ],
+  "fixes": [
+    {
+      "area": "Inbox history",
+      "problem": "Refresh shortened an already loaded history range; retry of an older page restarted at the beginning.",
+      "result": "Retain the confirmed range, resume the failed cursor, and coalesce the same refresh without discarding readable records."
+    },
+    {
+      "area": "Notification details",
+      "problem": "A cached row could still offer actions after its server record disappeared.",
+      "result": "A single targeted authoritative read gates actions, with readable cached content during verification, separate network retry, and an unavailable state for deleted/inaccessible records. Mutation errors belong to the exact detail."
+    },
+    {
+      "area": "Identity mapping",
+      "problem": "A copied data.id could disagree with the authoritative Firestore document path.",
+      "result": "Use the document ID and parent inbox account; verified with deliberately wrong copied identifiers through the actual SDK."
+    },
+    {
+      "area": "Owner commands",
+      "problem": "Lost save response could advance revisions again or leave a successful operation reported as failed. Cancellation did not check the reviewed revision.",
+      "result": "Stable operation identity plus normalized fingerprint, authoritative get/readback, exact reviewed content and cancellation revision; legacy clients remain supported."
+    },
+    {
+      "area": "Account changes",
+      "problem": "In-flight commands/receipts and deferred feedback could continue after a session change.",
+      "result": "Principal binding on client and server, view/task invalidation, session fences before follow-up actions and reset of pending feedback."
+    },
+    {
+      "area": "Announcement history",
+      "problem": "An older history response could undo a newer cancellation from the active feed.",
+      "result": "Check the active snapshot revision, reread the affected page once, preserve history on failed-page retry, and await the same active refresh before routing."
+    },
+    {
+      "area": "Incoming push",
+      "problem": "Ordinary delivery set the same forced-open intent as an explicit tap.",
+      "result": "Delivery refreshes the feed and respects once/acknowledge policy; only an explicit tap queues an account-bound open intent. Refresh after access becomes ready."
+    },
+    {
+      "area": "Critical popup",
+      "problem": "A late receipt from a previous session could close a new popup after returning to the same account.",
+      "result": "Generation fences, exact recipient eligibility, in-flight duplicate protection and visible busy state."
+    },
+    {
+      "area": "Local event reminders",
+      "problem": "The local reminder had no route to its event; an obsolete lead time could leave a previous pending reminder behind.",
+      "result": "Exact event/account route with no invented inbox receipt; reschedule replaces the same request, an invalid/passed lead time removes it, and cancellation/session cleanup is serialized."
+    },
+    {
+      "area": "Presentation",
+      "problem": "Recipient search differed from common controls; unresolved technical IDs appeared in recipient lists; some review/statistics values used weak default secondary styling.",
+      "result": "Shared search field, readable recipient fallback, theme-aware labels and vertical value layout at accessibility sizes; explicit notification-specific unavailable copy."
+    },
+    {
+      "area": "Accessible confirmations",
+      "problem": "At maximum Dynamic Type, system popovers omitted Cancel and native alerts clipped the warning even when their actions were hittable.",
+      "result": "Shared large scrollable confirmation with full warning, explicit cancel/close and reachable actions for clear-all, cancel, unsaved changes and saved-version reload. Final clear and complete owner journey passed; full top/bottom frames at maximum text were viewed."
+    },
+    {
+      "area": "Role-consistent feedback",
+      "problem": "Owner could see campaign feedback controls even though the shared profile policy correctly rejects self-addressed support.",
+      "result": "The shared access policy governs popup/history buttons and final route; owner has no self-feedback action while admin/member retain it. Dedicated three-role UI test passed and all three frames were viewed."
+    }
+  ],
+  "baselineEvidence": [
+    {
+      "artifact": "build/audit-notifications-20261026/ClientBaseline.xcresult",
+      "passed": 48,
+      "failed": 2,
+      "meaning": "Loaded range lost on refresh and duplicate same-context refresh read."
+    },
+    {
+      "artifact": "build/audit-notifications-20261026/HistoryRaceBaseline.xcresult",
+      "passed": 48,
+      "failed": 1,
+      "meaning": "Stale history response replaced a newer cancellation."
+    },
+    {
+      "artifact": "build/audit-notifications-20261026/server-reliability-baseline.log",
+      "passed": 1,
+      "failed": 3,
+      "meaning": "Save replay, missing targeted owner read and stale cancel were reproduced before the server repair."
+    }
+  ],
+  "automatedVerification": [
+    {
+      "kind": "Full client unit regression",
+      "artifact": "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult",
+      "passed": 887,
+      "failed": 0,
+      "skipped": 39,
+      "note": "Full unit suite passed; 39 opt-in SDK/device/OS checks are separately accounted for."
+    },
+    {
+      "kind": "Real Auth/Firestore/Functions SDK",
+      "artifacts": [
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult",
+        "build/audit-notifications-20261026/ReviewedCommandSDK.xcresult",
+        "build/audit-notifications-20261026/NotificationPreferencesSDKReadback.xcresult"
+      ],
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0,
+      "note": "461-record private inbox, stable cursors, exact canonical identifiers, receipts/archive/delete and bulk cutoff; legacy/new callable command replay/revision; preference persistence and foreign write denial through real SDK."
+    },
+    {
+      "kind": "Actual simulator OS queue",
+      "artifact": "build/audit-notifications-20261026/RealOSReminderQueue.xcresult",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "note": "Provisional authorization, exact route, lead-time replacement, stale lead-time removal, cancellation and account-transition cleanup. This is not physical APNs."
+    },
+    {
+      "kind": "Server handlers and Firestore emulator",
+      "artifact": "build/audit-notifications-20261026/server-final-tests.log",
+      "passed": 75,
+      "failed": 0,
+      "skipped": 0,
+      "note": "No real people, FCM or APNs were messaged; provider delivery is controlled in these tests."
+    },
+    {
+      "kind": "Firestore Rules",
+      "artifact": "build/audit-notifications-20261026/notification-rules.log",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "kind": "Release device compilation",
+      "artifact": "build/audit-notifications-20261026/complete-block13-release-build.log",
+      "status": "BUILD SUCCEEDED",
+      "note": "Final product source including role policy and scrollable confirmations compiled for generic iOS Release without signing. Two existing concurrency warnings remain separately recorded."
+    }
+  ],
+  "performance": {
+    "inboxPageSize": 50,
+    "ownerCampaignPageSize": 30,
+    "bulkWritePageSize": 450,
+    "recipientResultPageSize": 50,
+    "recipientCandidateScanCapPerCallable": 250,
+    "detailRead": "One exact server document, no full inbox download.",
+    "aggregation": "Whole-inbox unread server count remains independent of the loaded page.",
+    "archiveScope": "Archive uses the bounded chronological history with an explicit older-history action; it does not claim the loaded window is the complete archive.",
+    "loadEvidence": "461-record real SDK traversal and two bulk pages plus indexed recipient continuation; not a production load/latency benchmark."
+  },
+  "production": {
+    "functions": [
+      {
+        "name": "manageAnnouncements",
+        "sourceMatches": true,
+        "compiledRuntimeMatches": true,
+        "sourceSHA256": "2416b2cf8e3a8fb4d30ff941792be13f187fb392bd48b4bc9a064be89926c716",
+        "revision": "manageannouncements-00006-sul",
+        "ready": true,
+        "traffic100": true,
+        "readyCondition": {
+          "lastTransitionTime": "2026-10-26T13:06:18.816023Z",
+          "status": "True",
+          "type": "Ready"
+        },
+        "coldUnauthenticatedResponse": {
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        "authenticatedProductionMutationsTested": false
+      },
+      {
+        "name": "getAnnouncements",
+        "sourceMatches": true,
+        "compiledRuntimeMatches": true,
+        "sourceSHA256": "2416b2cf8e3a8fb4d30ff941792be13f187fb392bd48b4bc9a064be89926c716",
+        "revision": "getannouncements-00005-pef",
+        "ready": true,
+        "traffic100": true,
+        "readyCondition": {
+          "lastTransitionTime": "2026-10-26T13:06:20.766545Z",
+          "status": "True",
+          "type": "Ready"
+        },
+        "coldUnauthenticatedResponse": {
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        "authenticatedProductionMutationsTested": false
+      },
+      {
+        "name": "acknowledgeAnnouncement",
+        "sourceMatches": true,
+        "compiledRuntimeMatches": true,
+        "sourceSHA256": "2416b2cf8e3a8fb4d30ff941792be13f187fb392bd48b4bc9a064be89926c716",
+        "revision": "acknowledgeannouncement-00005-gev",
+        "ready": true,
+        "traffic100": true,
+        "readyCondition": {
+          "lastTransitionTime": "2026-10-26T13:06:21.421377Z",
+          "status": "True",
+          "type": "Ready"
+        },
+        "coldUnauthenticatedResponse": {
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        "authenticatedProductionMutationsTested": false
+      },
+      {
+        "name": "registerAnnouncementDevice",
+        "sourceMatches": true,
+        "compiledRuntimeMatches": true,
+        "sourceSHA256": "2416b2cf8e3a8fb4d30ff941792be13f187fb392bd48b4bc9a064be89926c716",
+        "revision": "registerannouncementdevice-00006-mey",
+        "ready": true,
+        "traffic100": true,
+        "readyCondition": {
+          "lastTransitionTime": "2026-10-26T13:06:20.732871Z",
+          "status": "True",
+          "type": "Ready"
+        },
+        "coldUnauthenticatedResponse": {
+          "status": 401,
+          "body": "{\"error\":{\"message\":\"Unauthenticated\",\"status\":\"UNAUTHENTICATED\"}}"
+        },
+        "authenticatedProductionMutationsTested": false
+      }
+    ],
+    "rollout": {
+      "iosEnabled": {
+        "booleanValue": true
+      },
+      "pushEnabled": {
+        "booleanValue": true
+      },
+      "enabled": {
+        "booleanValue": true
+      }
+    },
+    "indexes": {
+      "artifact": "build/audit-notifications-20261026/production-indexes.json",
+      "relevantIndexes": 6,
+      "allRelevantReady": true
+    },
+    "beforeSource": "Exact deployed service.ts matched ace22c40 parent before deployment.",
+    "afterSource": "Source and compiled service.js matched all four deployed archives; Ready plus 100% traffic to each intended revision.",
+    "appCheck": "Unauthenticated cold callable probes returned 401; this proves rejection only, not an authenticated production journey.",
+    "productionMessagesSent": 0,
+    "productionCampaignsPublished": 0,
+    "rulesChanged": false,
+    "indexesChanged": false,
+    "eventarc": "The four changed endpoints are callables, not Eventarc triggers."
+  },
+  "delivery": {
+    "currentTestFlight": "1.2.1 (124)",
+    "containsBlock13ClientChanges": false,
+    "newTestFlightUploadedThisTurn": false,
+    "publicReleaseChanged": false
+  },
+  "userAcceptance": {
+    "status": "deferred_by_user",
+    "scenario": "N13-57",
+    "requires": "A subsequent signed build containing block13 and two controlled accounts/devices for real push delivery.",
+    "checklist": [
+      "Own inbox: open from bell/profile, full message, read status and badge, destination then back, unread/archive/restore/delete/clear and reopen.",
+      "Owner announcement: both languages, selected people/region, preview, recipient count and exact final review, schedule/cancel and per-campaign results.",
+      "Recipient on the other device: real push with app foreground/background/closed, tap opens the intended active message, once/acknowledge and history behave consistently.",
+      "Change accounts and verify no previous account inbox, badge, receipt or delayed feedback window appears.",
+      "Disable notification permission in iOS and return; check explanation/settings route. Re-enable, test an event reminder and its exact event destination.",
+      "Check light/dark themes and the largest text size, including all confirmations and long message bodies."
+    ]
+  },
+  "knownBoundaries": [
+    "Actual APNs transport and the final signed iPhone binary remain user acceptance; emulator/provider tests do not prove Apple delivery.",
+    "Android server-envelope compatibility is covered by server tests; no Android binary was built or delivered in this iOS block.",
+    "Two pre-existing Release concurrency warnings remain outside this block: SystemLogDeliveryQueue.swift:52 and DirectoryEditorAccessStore.swift:50.",
+    "Pre-existing project ordering and main localization extraction metadata are preserved and excluded from this change."
+  ],
+  "ci": {
+    "serverCommit": "ace22c40",
+    "run": 40324435583,
+    "status": "success",
+    "finalClientCommitStatus": "success",
+    "finalClientCommit": "a9e6c17a",
+    "finalClientRun": 40336217745,
+    "finalFollowupSourceCommit": "fae67146",
+    "finalFollowupStatus": "pending after final source/test/report push; earlier client and server runs are confirmed successful"
+  },
+  "nextBlock": 14,
+  "nextBlockName": "Баннеры",
+  "advanceAutomatically": false,
+  "confirmationSourceCommit": "fae67146",
+  "uiVerification": {
+    "environment": "iPhone 17e / iOS 26.5 simulator; isolated DEBUG fixtures, not production APNs",
+    "coverage": [
+      "Own inbox all/unread/archive and detail/route/mutations",
+      "Missing record, network retry and receipt failure",
+      "Owner pagination retry and retained history",
+      "Bilingual owner create, translation, lost-save recovery, preview, reviewed send, statistics and cancellation",
+      "Saved-version conflict and explicit reload",
+      "Recipient search/keyboard/discard in both languages",
+      "Long critical popup acknowledgement",
+      "Shared notification settings persistence/reopen",
+      "Six usable roles and campaign owner access",
+      "Owner/admin/member feedback visibility"
+    ],
+    "finalPassingArtifacts": [
+      {
+        "artifact": "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult",
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "artifact": "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult",
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "artifact": "build/audit-notifications-20261026/ScrollableClearAndReloadConfirmations.xcresult",
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "artifact": "build/audit-notifications-20261026/FinalScrollableConfirmationsAndOwner.xcresult",
+        "passed": 2,
+        "failed": 0
+      },
+      {
+        "artifact": "build/audit-notifications-20261026/FinalAnnouncementRecipientRoleVisibility.xcresult",
+        "passed": 1,
+        "failed": 0
+      }
+    ],
+    "additionalPassedMethods": [
+      "build/audit-notifications-20261026/FinalNestedNotificationWindowsFixed.xcresult::testCriticalPopupLongMessageClosesAndDoesNotRepeat",
+      "build/audit-notifications-20261026/ScrollableOwnerAndDiscardMaximumText.xcresult::testAnnouncementRecipientSearchAndUnsavedChangesInBothLanguages",
+      "build/audit-notifications-20261026/NotificationFailureRoleAndSettingsWindows.xcresult::notification settings ordinary and owner nested methods"
+    ],
+    "historicalFailures": "Earlier failed selectors/fixture assumptions and clipped native confirmation designs are retained as diagnostic evidence, not counted as final passes. Corrected drivers kept business assertions; final custom confirmation frames were viewed."
+  },
+  "visualReview": {
+    "languages": [
+      "uk",
+      "de"
+    ],
+    "appearances": [
+      "light",
+      "dark"
+    ],
+    "textSizes": [
+      "standard",
+      "accessibility including maximum"
+    ],
+    "meaning": "Actually viewed frames, not merely exported attachments; representative unique windows and failure/confirmation states. Physical iPhone validation remains deferred.",
+    "viewedFrames": [
+      "build/audit-notifications-20261026/window-captures/2A8DEE0D-73CD-4908-83D2-8C5D7EC7F398.png",
+      "build/audit-notifications-20261026/window-captures/B8E58945-781E-4BA0-B98E-426D59312B77.png",
+      "build/audit-notifications-20261026/window-captures/41828C76-ABBB-49BD-B5AE-C0D93A250EBA.png",
+      "build/audit-notifications-20261026/window-captures/FC8FEFA8-A9C1-4115-9D41-9121A3D71E3A.png",
+      "build/audit-notifications-20261026/window-captures/BE575910-F3FB-4F66-9B00-41047D753ED2.png",
+      "build/audit-notifications-20261026/window-captures/F2952810-7018-4040-9DB4-64109FB14F04.png",
+      "build/audit-notifications-20261026/window-captures/C884850F-7B81-4B62-BE6E-149DB4F40381.png",
+      "build/audit-notifications-20261026/window-captures/C900A924-5476-4CDA-ADF1-8BD46F00E682.png",
+      "build/audit-notifications-20261026/final-readability-captures/61E41970-F3CF-454C-9489-730F0B18E824.png",
+      "build/audit-notifications-20261026/final-readability-captures/20D8E2B8-FBDC-44DC-B85A-F85AC000C64D.png",
+      "build/audit-notifications-20261026/final-readability-captures/ED536B1E-54DC-48CB-AD2A-6D91733F2FD4.png",
+      "build/audit-notifications-20261026/final-readability-captures/1D1F3E00-2AA8-4FCE-AC7A-F2D75715DEAC.png",
+      "build/audit-notifications-20261026/final-scrollable-captures/683406F9-C524-4136-B163-8BDD6A610B86.png",
+      "build/audit-notifications-20261026/final-scrollable-captures/D4958C28-DDF6-4261-A2EC-B55B4DFBF29C.png",
+      "build/audit-notifications-20261026/final-scrollable-captures/9985392B-980E-4106-9540-4A05EB793A40.png",
+      "build/audit-notifications-20261026/final-scrollable-captures/0C944F45-8902-4A7A-99E7-5AE40AE8C0A0.png",
+      "build/audit-notifications-20261026/final-role-visibility-captures/5B0F3D1C-CCF9-4063-BCEC-13A8E8A56468.png",
+      "build/audit-notifications-20261026/final-role-visibility-captures/E60319B5-1A6C-47ED-BA2C-F4821D74C045.png",
+      "build/audit-notifications-20261026/final-role-visibility-captures/859F3721-18EF-4E38-8EEB-E2E1A89989B1.png"
+    ],
+    "beforeEvidence": "Native popover/alert at maximum text omitted cancellation or clipped the warning; final shared sheet replaces it, with separate viewed top/bottom and explicit actions."
+  },
+  "cleanup": {
+    "emulators": "Owned fixed-demo Firebase emulators shut down gracefully after export; Auth/Firestore/Functions/Storage stopped.",
+    "export": "build/audit-notifications-20261026/emulator-export/firebase-export-metadata.json",
+    "realPeopleMessaged": false
+  },
+  "staticVerification": {
+    "repository": "passed",
+    "localizations": "passed de/uk, 3367 catalog entries and Swift references",
+    "firestoreIndexes": "passed 118 unique composite indexes",
+    "releaseConfiguration": "passed build124 offline configuration; no new upload",
+    "diffCheck": "passed"
+  },
+  "recommendation": "Keep personal notification inbox distinct from owner campaigns and recipient message history; no additional duplicate notification hub is needed."
+}

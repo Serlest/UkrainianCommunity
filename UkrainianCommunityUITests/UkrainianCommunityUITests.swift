@@ -191,6 +191,11 @@ final class UkrainianCommunityUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing"]
         app.launchEnvironment["UITestForceOwnerSession"] = "1"
+        app.launchEnvironment["UITestAnnouncementSaveResponseLoss"] = "1"
+        if ProcessInfo.processInfo.environment["UACNotificationOwnerMaximumText"] == "1" {
+            app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+            app.launchEnvironment["UITestAppAppearance"] = "dark"
+        }
         app.launchEnvironment["UITestResetUserSettings"] = "1"
         app.launchEnvironment["UITestAppLanguage"] = "de"
         app.launch()
@@ -201,8 +206,10 @@ final class UkrainianCommunityUITests: XCTestCase {
         let create = app.buttons["announcements.create"].firstMatch
         XCTAssertTrue(create.waitForExistence(timeout: 10)); create.tap()
         let title = app.textFields.firstMatch
+        scrollToElement(title, in: app, maxSwipes: 12)
         XCTAssertTrue(title.waitForExistence(timeout: 10)); title.tap(); title.typeText("Test UK")
         let body = app.textViews.firstMatch
+        scrollToElement(body, in: app, maxSwipes: 12)
         XCTAssertTrue(body.waitForExistence(timeout: 5)); body.tap(); body.typeText("Nachricht UK")
         app.segmentedControls.buttons["Deutsch"].tap()
         title.tap(); title.typeText("Test DE")
@@ -217,8 +224,10 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertFalse(applyReverse.isEnabled)
         let confirmReverse = app.switches["translation.confirm"].firstMatch
         XCTAssertTrue(confirmReverse.waitForExistence(timeout: 5))
-        confirmReverse.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
-        XCTAssertTrue(applyReverse.isEnabled); applyReverse.tap()
+        confirmReverse.tap()
+        let translationReviewed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: applyReverse)
+        XCTAssertEqual(XCTWaiter.wait(for: [translationReviewed], timeout: 5), .completed)
+        applyReverse.tap()
         XCTAssertTrue(applyReverse.waitForNonExistence(timeout: 5))
         app.segmentedControls.buttons["Українська"].tap()
         XCTAssertEqual(title.value as? String, "UK: Test DE")
@@ -234,18 +243,43 @@ final class UkrainianCommunityUITests: XCTestCase {
         scrollToElement(preview, in: app, maxSwipes: 16); preview.tap()
         XCTAssertTrue(app.staticTexts["UK: Nachricht DE"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Nachricht DE"].exists)
-        app.buttons["Abbrechen"].firstMatch.tap()
+        attachScreenshot(named: "announcements-owner-preview", from: app)
+        for _ in 0..<24 {
+            if app.buttons.matching(identifier: "editor.close").allElementsBoundByIndex.contains(where: \.isHittable) { break }
+            app.swipeDown()
+        }
+        let previewClose = app.buttons.matching(identifier: "editor.close").allElementsBoundByIndex.first(where: \.isHittable)
+        XCTAssertNotNil(previewClose); previewClose?.tap()
         let review = app.switches["announcements.review"].firstMatch
         scrollToElement(review, in: app, maxSwipes: 16)
-        review.coordinate(withNormalizedOffset: CGVector(dx: 0.93, dy: 0.5)).tap()
-        XCTAssertEqual(review.value as? String, "1")
+        attachScreenshot(named: "announcements-before-review-toggle", from: app)
+        review.tap()
+        let checked = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", "1"), object: review)
+        XCTAssertEqual(XCTWaiter.wait(for: [checked], timeout: 5), .completed)
         attachScreenshot(named: "announcements-owner-reviewed", from: app)
         let send = app.buttons["announcements.send"].firstMatch
         scrollToElement(send, in: app); XCTAssertTrue(send.isEnabled); send.tap()
         let confirm = app.buttons["announcements.confirmSend"].firstMatch
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5)); scrollToElement(confirm, in: app, maxSwipes: 14); confirm.tap()
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        attachScreenshot(named: "announcements-owner-review-top", from: app)
+        scrollToElement(confirm, in: app, maxSwipes: 14)
+        attachScreenshot(named: "announcements-owner-review-confirm", from: app); confirm.tap()
         XCTAssertTrue(app.buttons["announcements.stats"].waitForExistence(timeout: 10))
         attachScreenshot(named: "announcements-owner-published", from: app)
+        app.buttons["announcements.stats"].tap()
+        let statistics = app.descendants(matching: .any).matching(identifier: "announcements.statistics").firstMatch
+        scrollToElement(statistics, in: app, maxSwipes: 14)
+        attachScreenshot(named: "announcements-owner-statistics", from: app)
+        let cancel = app.buttons["announcements.cancel"]
+        for _ in 0..<16 { if cancel.isHittable { break }; app.swipeDown() }
+        XCTAssertTrue(cancel.isHittable); cancel.tap()
+        let stop = app.buttons["announcements.confirmCancel"].firstMatch
+        attachScreenshot(named: "announcements-owner-cancel-warning-top", from: app)
+        scrollToElement(stop, in: app, maxSwipes: 24)
+        XCTAssertTrue(stop.waitForExistence(timeout: 5))
+        attachScreenshot(named: "announcements-owner-cancel-confirmation", from: app); stop.tap()
+        XCTAssertTrue(cancel.waitForNonExistence(timeout: 10))
+        attachScreenshot(named: "announcements-owner-cancelled", from: app)
     }
 
     @MainActor
@@ -262,6 +296,7 @@ final class UkrainianCommunityUITests: XCTestCase {
             scrollToElement(people, in: app, maxSwipes: 30); XCTAssertTrue(people.isHittable); people.tap()
             let query = app.textFields["announcements.recipientSearch"].firstMatch
             XCTAssertTrue(query.waitForExistence(timeout: 10)); query.tap(); query.typeText("olena@example")
+            attachScreenshot(named: "announcements-recipient-search-keyboard-" + language, from: app)
             let selectedCount = app.staticTexts["announcements.selectionCount"].firstMatch
             scrollToElement(selectedCount, in: app, maxSwipes: 5); selectedCount.tap()
             XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
@@ -747,7 +782,8 @@ final class UkrainianCommunityUITests: XCTestCase {
         bell.tap()
         let info = element("notificationInbox.open.detail-info", in: app)
         XCTAssertTrue(info.waitForExistence(timeout: 10))
-        app.segmentedControls.buttons["Ungelesen"].tap()
+        app.buttons["notificationInbox.filter"].tap()
+        app.buttons["Ungelesen"].firstMatch.tap()
         info.tap()
         let body = app.staticTexts["notificationDetail.body"]
         XCTAssertTrue(body.waitForExistence(timeout: 10))
@@ -757,7 +793,8 @@ final class UkrainianCommunityUITests: XCTestCase {
         app.buttons["notificationDetail.close"].tap()
         XCTAssertTrue(body.waitForNonExistence(timeout: 5))
         XCTAssertFalse(info.exists, "Read notification must leave the unread filter")
-        app.segmentedControls.buttons["Alle"].tap()
+        app.buttons["notificationInbox.filter"].tap()
+        app.buttons["Alle"].firstMatch.tap()
         XCTAssertTrue(info.waitForExistence(timeout: 5), "Closing must retain the notification")
         info.tap()
         let delete = app.buttons["notificationDetail.delete"]

@@ -1,0 +1,766 @@
+{
+  "block": 13,
+  "totalBlocks": 19,
+  "name": "Уведомления и оповещения",
+  "status": "verified_in_available_environment_pending_signed_build_and_device_acceptance",
+  "sourceBaseline": "c44f357d",
+  "authorizedByUser": "Вперед. Думаю что после этого я проверю детально оповещения и уведомления.",
+  "boundaries": [
+    "User will perform physical iPhone acceptance after blocks12–13.",
+    "No production campaign publication, push self-tests or messages to real people; mutations use fixed isolated emulators.",
+    "Production source/config/index inspection is read-only unless a verified backward-compatible repair needs deployment.",
+    "No new TestFlight upload in this turn without request.",
+    "Preserve block12 acceptance and pre-existing project/catalog metadata changes."
+  ],
+  "scenarioChecks": [
+    {
+      "id": "N13-01",
+      "family": "access",
+      "route": "Profile/bells/direct routes",
+      "action": "Owner, admin, organization roles, member, restricted and guest entry matrix",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult::testAllRolesHaveOwnInboxAndOnlyOwnerHasCampaignControls",
+        "UkrainianCommunity/Views/Profile/ProfileAccessPolicy.swift",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::profileRoutesRespectPlatformAuthorityAndPersonalOwnership",
+        "build/audit-notifications-20261026/FinalAnnouncementRecipientRoleVisibility.xcresult::testAnnouncementFeedbackIsAvailableToRecipientsButNotTheAppOwner"
+      ]
+    },
+    {
+      "id": "N13-02",
+      "family": "access",
+      "route": "Profile/bells/direct routes",
+      "action": "Owner-only campaign mutations enforced on server; no client-only protection",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::owner authorization, draft lifecycle, audience privacy and receipt idempotency",
+        "build/audit-notifications-20261026/ReviewedCommandSDK.xcresult"
+      ]
+    },
+    {
+      "id": "N13-03",
+      "family": "access",
+      "route": "Profile/bells/direct routes",
+      "action": "Account/role changes dismiss sensitive windows and fence old work",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::oldReceiptCannotAuthorizeFeedbackNavigationForAnotherAccount",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::pendingTapWaitsForProfileButNeverCrossesAccountsOrSignOut",
+        "build/audit-notifications-20261026/server-final-tests.log::captured principal",
+        "build/audit-notifications-20261026/FinalAnnouncementRecipientRoleVisibility.xcresult::testAnnouncementFeedbackIsAvailableToRecipientsButNotTheAppOwner"
+      ]
+    },
+    {
+      "id": "N13-04",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Initial loading, confirmed empty, load error and retry",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::listenerSnapshotDoesNotClearMutationFailure",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::successfulFallbackReadDoesNotPretendListenerRecovered",
+        "UkrainianCommunity/Views/Profile/NotificationInboxView.swift"
+      ]
+    },
+    {
+      "id": "N13-05",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Global unread count and OS badge independent of first page",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::iconBadgeUsesWholeInboxAndTracksReadArchiveDeleteAndClear",
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult",
+        "build/audit-notifications-20261026/server-final-tests.log"
+      ]
+    },
+    {
+      "id": "N13-06",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "All/unread/archive filters reach old records with bounded reads",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::unreadQueryFindsOldRecordBeyondReadHead",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::archiveCanBeRestoredOrMarkedUnreadConsistently",
+        "build/audit-notifications-20261026/NotificationAndAnnouncementWindows.xcresult::testNotificationArchiveRestoreUnreadAndDeleteBothLanguages"
+      ],
+      "scopeNote": "Archive traverses bounded chronological history; an explicit older-history action remains visible until the cursor reaches the end."
+    },
+    {
+      "id": "N13-07",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Stable cursor and ties across >100 records; no gaps or duplicates",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult::testPrivateInboxExactIDsCursorReceiptsArchiveAndBulkCutoffThroughRealSDK",
+        "build/audit-notifications-20261026/notification-rules.log"
+      ]
+    },
+    {
+      "id": "N13-08",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Refresh preserves loaded context and confirmed rows on failure",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::refreshPreservesTheConfirmedLoadedHistoryRange",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::identicalConcurrentRefreshesDoNotDuplicateThePageRead"
+      ]
+    },
+    {
+      "id": "N13-09",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Failed next-page retry stays at the failed action and cursor",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::failedPageCanRetrySameCursorAndDoesNotRestartListener"
+      ]
+    },
+    {
+      "id": "N13-10",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Read/unread and mark-all-read persist after reopen",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult",
+        "build/audit-notifications-20261026/NotificationAndAnnouncementWindows.xcresult",
+        "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult::testNotificationDetailsReadCloseDeleteAndNavigate"
+      ]
+    },
+    {
+      "id": "N13-11",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Archive/restore persists; archived rows excluded from unread",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult",
+        "build/audit-notifications-20261026/NotificationAndAnnouncementWindows.xcresult::testNotificationArchiveRestoreUnreadAndDeleteBothLanguages"
+      ]
+    },
+    {
+      "id": "N13-12",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Delete/cancel and clear/cancel; arrivals during bulk work preserved",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::clearPreservesNotificationsArrivingDuringTheWrite",
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult",
+        "build/audit-notifications-20261026/FinalScrollableConfirmationsAndOwner.xcresult::testClearAllCancelAndCommitInBothThemes"
+      ]
+    },
+    {
+      "id": "N13-13",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Listener loss/recovery, live changes and remote deletion",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::aCompleteHeadReplacementReopensPaginationToAvoidAGap",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::badgePreservesCountOnFailureAndRejectsOldAccountCallbacks",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::tombstoneDuringDetailReadCannotBeResurrectedByTheOlderResponse"
+      ]
+    },
+    {
+      "id": "N13-14",
+      "family": "inbox",
+      "route": "Сповіщення → list and filters",
+      "action": "Rapid filter/refresh/session races cannot publish stale state",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::oldListenerCannotRestorePreviousAccountDataEvenAfterReturningToSameUser",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::liveHeadDoesNotUnlockOrOverwritePendingHistoricalPage"
+      ]
+    },
+    {
+      "id": "N13-15",
+      "family": "details",
+      "route": "Сповіщення → detail",
+      "action": "Full content, sender, date, status and localized action",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/NotificationAndAnnouncementWindows.xcresult::testNotificationDetailsFromProfileSupportUkrainianDarkLargeText",
+        "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult::testNotificationDetailsReadCloseDeleteAndNavigate"
+      ]
+    },
+    {
+      "id": "N13-16",
+      "family": "details",
+      "route": "Сповіщення → detail",
+      "action": "Unread detail is readable while receipt fails; exact error/retry",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testFreshDetailFailureMissingAndReceiptRecovery",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::failedReceiptBelongsToItsNotificationNotAnotherDetail"
+      ]
+    },
+    {
+      "id": "N13-17",
+      "family": "details",
+      "route": "Сповіщення → detail",
+      "action": "Deleted/missing/inaccessible record has correct state and no stale actions",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testFreshDetailFailureMissingAndReceiptRecovery",
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult"
+      ]
+    },
+    {
+      "id": "N13-18",
+      "family": "details",
+      "route": "Сповіщення → detail",
+      "action": "Destination opens only after detail dismissal; back/reopen stable",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult::testNotificationDetailsReadCloseDeleteAndNavigate",
+        "UkrainianCommunity/Views/Profile/NotificationInboxView.swift::openPendingDestination"
+      ]
+    },
+    {
+      "id": "N13-19",
+      "family": "routes",
+      "route": "Push/internal notification → destination",
+      "action": "All type/action/source mappings and unknown/malformed payloads",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::notificationDestinationsRejectInvalidOrExpiredActions",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::retiredGuideNotificationValuesDecodeToSafeFallbacks",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::SystemLogNotificationRoutingTests",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::LegalNotificationRoutingTests",
+        "UkrainianCommunity/Models/NotificationModels.swift"
+      ]
+    },
+    {
+      "id": "N13-20",
+      "family": "routes",
+      "route": "Push/internal notification → destination",
+      "action": "Cold launch, background/foreground and pending authenticated route",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::AuthUIIntegrationTests",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::pendingTapWaitsForProfileButNeverCrossesAccountsOrSignOut",
+        "UkrainianCommunity/Features/Announcements/AnnouncementLifecycle.swift",
+        "UkrainianCommunity/Views/ContentView.swift::handlePendingRemoteNotificationRouteIfReady"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-21",
+      "family": "routes",
+      "route": "Push/internal notification → destination",
+      "action": "News/event/organization/request/feedback/legal/profile/draft/log exact target and removed target",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult::testNotificationDetailsReadCloseDeleteAndNavigate",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::notificationDestinationsRejectInvalidOrExpiredActions",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::OrganizationSafetyRoutingTests",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::SystemLogNotificationRoutingTests",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::LegalNotificationRoutingTests"
+      ]
+    },
+    {
+      "id": "N13-22",
+      "family": "routes",
+      "route": "Push/internal notification → destination",
+      "action": "No cross-account receipt, navigation or badge leakage",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::oldListenerCannotRestorePreviousAccountDataEvenAfterReturningToSameUser",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::lateDetailCannotCrossAnAccountSwitch",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::oldReceiptCannotAuthorizeFeedbackNavigationForAnotherAccount",
+        "build/audit-notifications-20261026/ReviewedCommandSDK.xcresult",
+        "build/audit-notifications-20261026/notification-rules.log"
+      ]
+    },
+    {
+      "id": "N13-23",
+      "family": "popup",
+      "route": "Critical in-app popup",
+      "action": "Eligibility, ordering, one-shot presentation and read/ack state",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::criticalPopupRejectsForeignArchivedExpiredAndExcludedTypes",
+        "build/audit-notifications-20261026/FinalNestedNotificationWindowsFixed.xcresult::testCriticalPopupLongMessageClosesAndDoesNotRepeat",
+        "UkrainianCommunity/Services/Notifications/NotificationPopupCoordinatorService.swift"
+      ]
+    },
+    {
+      "id": "N13-24",
+      "family": "popup",
+      "route": "Critical in-app popup",
+      "action": "Defer/dismiss/background/resume and conflicting presentations",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::criticalPopupOldReceiptCannotCloseTheSameAccountsNewSession",
+        "build/audit-notifications-20261026/FinalNestedNotificationWindowsFixed.xcresult::testCriticalPopupLongMessageClosesAndDoesNotRepeat",
+        "UkrainianCommunity/Views/ContentView.swift"
+      ]
+    },
+    {
+      "id": "N13-25",
+      "family": "popup",
+      "route": "Critical in-app popup",
+      "action": "Full long content and actions at maximum text",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalNestedNotificationWindowsFixed.xcresult::testCriticalPopupLongMessageClosesAndDoesNotRepeat"
+      ]
+    },
+    {
+      "id": "N13-26",
+      "family": "preferences",
+      "route": "Settings → notifications",
+      "action": "Preference loading/error/retry and authoritative save/readback",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/NotificationPreferencesSDKReadback.xcresult",
+        "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult::testSettingsPrivacyRetryChoicesAndDevicePreferencesSurviveReopening",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::SettingsPrivacyReliabilityTests"
+      ]
+    },
+    {
+      "id": "N13-27",
+      "family": "preferences",
+      "route": "Settings → notifications",
+      "action": "OS authorization granted/denied/provisional; settings return and badges",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/RealOSReminderQueue.xcresult",
+        "UkrainianCommunity/Views/Profile/NotificationSettingsSectionView.swift",
+        "UkrainianCommunity/Services/Notifications/NotificationPermissionService.swift"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-28",
+      "family": "preferences",
+      "route": "Settings → notifications",
+      "action": "Master switch, event reminders, lead time and owner local test",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalRoleRecoveryAndOwnerWindows.xcresult::testSettingsPrivacyRetryChoicesAndDevicePreferencesSurviveReopening",
+        "build/audit-notifications-20261026/RealOSReminderQueue.xcresult",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::SettingsPrivacyReliabilityTests",
+        "UkrainianCommunity/Views/Profile/NotificationSettingsSectionView.swift"
+      ]
+    },
+    {
+      "id": "N13-29",
+      "family": "preferences",
+      "route": "Settings → notifications",
+      "action": "Old account load/save completion cannot change current account",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::SettingsPrivacyReliabilityTests",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::NotificationPushTokenOwnershipTests"
+      ]
+    },
+    {
+      "id": "N13-30",
+      "family": "registration",
+      "route": "Device registration/logout",
+      "action": "APNs/FCM/FID registration and token rotation ownership",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::NotificationPushTokenOwnershipTests",
+        "build/audit-notifications-20261026/server-final-tests.log::push registrations",
+        "UkrainianCommunity/Services/Notifications/RemoteNotificationRegistrationService.swift"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-31",
+      "family": "registration",
+      "route": "Device registration/logout",
+      "action": "Sign-out/deactivation race; retries and stale registration cleanup",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::NotificationPushTokenOwnershipTests",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::AuthSessionConsistencyTests",
+        "build/audit-notifications-20261026/server-final-tests.log::FID cleanup paginates and preserves another installation"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-32",
+      "family": "registration",
+      "route": "Device registration/logout",
+      "action": "Disabled preference/blocked/deleted user cannot receive unintended push",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::regular notifications require an active or warned recipient",
+        "build/audit-notifications-20261026/server-final-tests.log::account restriction push reaches a restricted existing user when enabled",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::disabledNotificationsRemoveRegistrationAndRejectLaterUploads"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-33",
+      "family": "registration",
+      "route": "Device registration/logout",
+      "action": "Announcement device challenge and owner-to-user transitions",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::installation challenge is required and bound to its current account",
+        "build/audit-notifications-20261026/server-final-tests.log::concurrent initial registrations issue one challenge and preserve account binding",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::NotificationPushTokenOwnershipTests"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-34",
+      "family": "reminders",
+      "route": "Local event notifications",
+      "action": "Schedule/reschedule/cancel/restart; exact event and lead time",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/RealOSReminderQueue.xcresult::realReminderQueueKeepsExactTargetAndReschedulesThenCancels",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::reminderPayloadOpensExactEventOnlyForItsAccountWithoutForgingInboxReceipt"
+      ]
+    },
+    {
+      "id": "N13-35",
+      "family": "reminders",
+      "route": "Local event notifications",
+      "action": "Account switch, event cancellation/time change and OS queue cleanup",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/RealOSReminderQueue.xcresult::confirmedAccountTransitionsCleanTheRealSimulatorNotificationQueue",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::AccessReliabilityTests",
+        "UkrainianCommunity/Services/Notifications/LocalEventReminderService.swift"
+      ]
+    },
+    {
+      "id": "N13-36",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "List phases, counts/sort/pages, errors and refresh preservation",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testOwnerFailedPageRetryAndRefreshRetainTheLoadedRange",
+        "build/audit-notifications-20261026/server-final-tests.log::active feed avoids retained history"
+      ]
+    },
+    {
+      "id": "N13-37",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Create/edit/save/reopen and both languages",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testAnnouncementOwnerCanCreateBilingualDraft",
+        "build/audit-notifications-20261026/ReviewedCommandSDK.xcresult"
+      ]
+    },
+    {
+      "id": "N13-38",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Validation, date boundaries, timezone, targets and content translation",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::editorChecksServerUTF16LimitsAndNinetyDayPeriodBeforeSending",
+        "build/audit-notifications-20261026/server-final-tests.log::expiration, scheduling and cancellation use exact server boundaries",
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testAnnouncementOwnerCanCreateBilingualDraft"
+      ]
+    },
+    {
+      "id": "N13-39",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Audience groups/region/platform/explicit people union and exclusions",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::roles and personal recipients are unioned; region still applies",
+        "build/audit-notifications-20261026/server-final-tests.log::old and Android clients are excluded independently of audience",
+        "build/audit-notifications-20261026/server-final-tests.log::batched organization roles and preview count each matching active account once"
+      ]
+    },
+    {
+      "id": "N13-40",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Recipient search beyond first page, clear/retry and selected-user resolution",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::indexed recipient search reaches past page one, searches email, excludes blocked and binds cursors",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::failedRecipientPageRetryKeepsTheLoadedPeopleAndExactCursor",
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testAnnouncementRecipientSearchAndUnsavedChangesInBothLanguages"
+      ]
+    },
+    {
+      "id": "N13-41",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Audience preview counts exact scope and no stale result after edits",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::reviewSnapshotIgnoresDeliveryMetadataButDetectsEveryBusinessChange",
+        "build/audit-notifications-20261026/server-final-tests.log::batched organization roles and preview count each matching active account once",
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testAnnouncementOwnerCanCreateBilingualDraft"
+      ]
+    },
+    {
+      "id": "N13-42",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Preview/window/keyboard/cancel/discard at normal/max text",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/FinalScrollableConfirmationsAndOwner.xcresult::testAnnouncementOwnerCanCreateBilingualDraft",
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testAnnouncementRecipientSearchAndUnsavedChangesInBothLanguages",
+        "build/audit-notifications-20261026/ScrollableOwnerAndDiscardMaximumText.xcresult::testAnnouncementRecipientSearchAndUnsavedChangesInBothLanguages (this method passed; bundle also includes an earlier failed driver attempt for the owner method, superseded by FinalScrollableConfirmationsAndOwner)"
+      ]
+    },
+    {
+      "id": "N13-43",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Save lost response retry does not create duplicates or lose revision",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/ReviewedCommandSDK.xcresult",
+        "build/audit-notifications-20261026/FinalReadabilityAndRecoveryWindows.xcresult::testAnnouncementOwnerCanCreateBilingualDraft",
+        "build/audit-notifications-20261026/ScrollableClearAndReloadConfirmations.xcresult::testSavedVersionConflictKeepsEditsUntilExplicitReload"
+      ]
+    },
+    {
+      "id": "N13-44",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Reviewed publication frozen to exact draft; lost response recovery",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::reviewSnapshotIgnoresDeliveryMetadataButDetectsEveryBusinessChange",
+        "build/audit-notifications-20261026/ReviewedCommandSDK.xcresult",
+        "UkrainianCommunity/Features/Announcements/AnnouncementOwnerView.swift::reviewSheet"
+      ]
+    },
+    {
+      "id": "N13-45",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Scheduled/active/expired/cancelled transitions and stale-cancel protection",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::expiration, scheduling and cancellation use exact server boundaries",
+        "build/audit-notifications-20261026/server-final-tests.log::cancellation uses the reviewed revision and replay is harmless",
+        "build/audit-notifications-20261026/FinalScrollableConfirmationsAndOwner.xcresult::testAnnouncementOwnerCanCreateBilingualDraft"
+      ]
+    },
+    {
+      "id": "N13-46",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Owner-only self-test and device targeting without sending to other real users",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "functions/src/announcements/service.ts::test",
+        "build/audit-notifications-20261026/server-final-tests.log::owner authorization, draft lifecycle, audience privacy and receipt idempotency",
+        "UkrainianCommunity/Features/Announcements/AnnouncementOwnerView.swift::publicationSection"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-47",
+      "family": "campaigns",
+      "route": "Оповіщення користувачів → owner editor",
+      "action": "Statistics labels distinguish accounts/devices/presentation/ack/action; retry",
+      "applicableRoles": "Owner only; server rejects every other role",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::statistics distinguish unique accounts from multiple push devices and retries",
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult::testOwnerPublishGuestReceiptAndCancellationThroughRealSDK",
+        "build/audit-notifications-20261026/FinalScrollableConfirmationsAndOwner.xcresult::testAnnouncementOwnerCanCreateBilingualDraft"
+      ]
+    },
+    {
+      "id": "N13-48",
+      "family": "recipient",
+      "route": "Повідомлення UAC → history/popup",
+      "action": "Active/history paging, errors/retry and missing/cancelled record",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::failedHistoryPageRetryKeepsTheReviewedHistoryAndCursor",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::staleHistoryCannotUndoTheNewerActiveFeedCancellation",
+        "build/audit-notifications-20261026/FinalMaximumTextAndClearFixed.xcresult::testAnnouncementAccountPopupAndHistory"
+      ]
+    },
+    {
+      "id": "N13-49",
+      "family": "recipient",
+      "route": "Повідомлення UAC → history/popup",
+      "action": "Once versus acknowledge; receipt survives restart and remains account-scoped",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::confirmationSurvivesRestartButIsNotTransferredToAnotherAccount",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::onceAndAcknowledgementHaveDifferentRepeatSemantics",
+        "build/audit-notifications-20261026/NotificationSDKJourneys.xcresult"
+      ]
+    },
+    {
+      "id": "N13-50",
+      "family": "recipient",
+      "route": "Повідомлення UAC → history/popup",
+      "action": "Acknowledgement/feedback double tap, busy/failed/offline retry",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::oldReceiptCannotAuthorizeFeedbackNavigationForAnotherAccount",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::confirmationSurvivesRestartButIsNotTransferredToAnotherAccount",
+        "UkrainianCommunity/Features/Announcements/AnnouncementRecipientViews.swift",
+        "build/audit-notifications-20261026/FinalAnnouncementRecipientRoleVisibility.xcresult::testAnnouncementFeedbackIsAvailableToRecipientsButNotTheAppOwner"
+      ]
+    },
+    {
+      "id": "N13-51",
+      "family": "recipient",
+      "route": "Повідомлення UAC → history/popup",
+      "action": "Push target ordering, stale/expired target and no unexpected modal",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::deliveryDoesNotReopenAcknowledgedMessageButExplicitTapDoes",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::pendingTapWaitsForProfileButNeverCrossesAccountsOrSignOut",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::identicalFeedRefreshWaitsForTheSameFreshSnapshotBeforeRouting"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-52",
+      "family": "backend",
+      "route": "Writers → durable delivery",
+      "action": "Recipient matrix across all notification families; exact recipient/event/route",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::submission creates deduplicated owner/admin inbox entries independent of push opt-in",
+        "build/audit-notifications-20261026/server-final-tests.log",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::OrganizationSafetyRoutingTests",
+        "build/audit-notifications-20261026/CompleteBlock13UnitRegression.xcresult::SystemLogNotificationRoutingTests"
+      ]
+    },
+    {
+      "id": "N13-53",
+      "family": "backend",
+      "route": "Writers → durable delivery",
+      "action": "Transactional dedup, retries, concurrent delivery, expiry and cleanup",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::push dispatch resumes a failed page without duplicating successful deliveries or reaching unsupported clients",
+        "build/audit-notifications-20261026/server-final-tests.log::deleted inbox retention removes only timestamped records at least 30 days old"
+      ]
+    },
+    {
+      "id": "N13-54",
+      "family": "backend",
+      "route": "Writers → durable delivery",
+      "action": "Push preferences, platform payload, delivery results and badge contract",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::mixed iOS/Android registrations split envelopes without mutating APNs or target order semantics",
+        "build/audit-notifications-20261026/server-final-tests.log::read/delete badge sync is data-only",
+        "build/audit-notifications-20261026/notification-rules.log"
+      ],
+      "deviceBoundary": "Contract/source/emulator evidence is recorded here; actual APNs and physical permission prompts remain N13-57."
+    },
+    {
+      "id": "N13-55",
+      "family": "backend",
+      "route": "Writers → durable delivery",
+      "action": "Campaign scheduler/leases/resume/deletion and unsupported client exclusions",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/server-final-tests.log::push dispatch resumes a failed page without duplicating successful deliveries or reaching unsupported clients",
+        "build/audit-notifications-20261026/server-final-tests.log::retention removes only expired announcement data"
+      ]
+    },
+    {
+      "id": "N13-56",
+      "family": "backend",
+      "route": "Writers → durable delivery",
+      "action": "Deployed source/readiness/index/rollout verified read-only; changes only after isolated tests",
+      "applicableRoles": "Usable signed-in owner/admin/organization roles/member/warned; guest and restricted entry follows the shared access policy",
+      "status": "verified_contract_in_available_environment",
+      "evidence": [
+        "build/audit-notifications-20261026/manageAnnouncements-deployed-proof.json",
+        "build/audit-notifications-20261026/getAnnouncements-deployed-proof.json",
+        "build/audit-notifications-20261026/acknowledgeAnnouncement-deployed-proof.json",
+        "build/audit-notifications-20261026/registerAnnouncementDevice-deployed-proof.json",
+        "build/audit-notifications-20261026/production-indexes.json",
+        "build/audit-notifications-20261026/production-rollout.json"
+      ]
+    },
+    {
+      "id": "N13-57",
+      "family": "acceptance",
+      "route": "Physical iPhone/TestFlight",
+      "action": "User physical acceptance: actual APNs receipt/tap, permission prompts, signed final binary",
+      "applicableRoles": "User-controlled owner and second recipient account on signed iPhone build",
+      "status": "deferred_user_device_acceptance",
+      "evidence": [
+        "User explicitly deferred physical iPhone acceptance until after block13.",
+        "Current TestFlight 124 does not yet contain block13 client changes."
+      ]
+    }
+  ],
+  "sourceCommit": "fae67146",
+  "reviewedScenarioGroups": 56,
+  "deferredScenarioGroups": 1
+}

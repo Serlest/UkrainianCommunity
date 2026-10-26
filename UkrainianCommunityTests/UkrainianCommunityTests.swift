@@ -218,11 +218,15 @@ struct UkrainianCommunityTests {
         #expect(!ProfileAccessPolicy(user: member).allows(.myFeedback(userID: "other")))
         #expect(!ProfileAccessPolicy(user: owner).allows(.feedbackComposer))
         #expect(ProfileAccessPolicy(user: admin).allows(.feedbackComposer))
+        #expect(!ProfileAccessPolicy(user: owner).allows(.announcementFeedback(UserAnnouncement())))
+        #expect(ProfileAccessPolicy(user: admin).allows(.announcementFeedback(UserAnnouncement())))
+        #expect(ProfileAccessPolicy(user: member).allows(.announcementFeedback(UserAnnouncement())))
         #expect(ProfileAccessIdentity(user: admin) != ProfileAccessIdentity(user: makeUser(id: "admin", globalRole: .user)))
     }
 
     @Test func personalRoutesArePrivateAndIndependentOfAdministrativeRole() {
-        let routes: [ProfileNavigationRoute] = [.registrations, .savedContent, .followedOrganizations, .recentViews, .activityHistory]
+        let routes: [ProfileNavigationRoute] = [.registrations, .savedContent, .followedOrganizations, .recentViews, .activityHistory,
+            .notifications, .announcementHistory]
         for role in [GlobalRole.owner, .admin, .user] {
             let active = makeUser(id: "actor", globalRole: role)
             let warned = makeUser(id: "actor", globalRole: role, blockState: .warned)

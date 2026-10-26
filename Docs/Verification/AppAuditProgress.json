@@ -3,7 +3,7 @@
   "totalBlocks": 19,
   "completedBlocks": 10,
   "remainingBlocks": 9,
-  "nextBlock": 12,
+  "nextBlock": 14,
   "blocks": [
     {
       "number": 1,
@@ -220,8 +220,23 @@
     {
       "number": 13,
       "name": "Уведомления и оповещения",
-      "status": "pending",
-      "openChecks": []
+      "status": "verified_pending_final_ci_and_user_signed_build_acceptance",
+      "openChecks": [
+        "N13-57",
+        "N13-FINAL-SOURCE-CI"
+      ],
+      "inventory": "Docs/Verification/NotificationsInventory20261026.json",
+      "authorizedByUser": "Вперед. Думаю что после этого я проверю детально оповещения и уведомления.",
+      "physicalAcceptance": "User will verify after block13",
+      "report": "Docs/Verification/NotificationsAudit20261026.json",
+      "sourceCommit": "fae67146",
+      "serverCommit": "ace22c40",
+      "reviewedScenarioGroups": 56,
+      "deferredScenarioGroups": 1,
+      "testFlightChanged": false,
+      "serverRulesChanged": false,
+      "serverFunctionsChanged": true,
+      "serverIndexesChanged": false
     },
     {
       "number": 14,
@@ -353,16 +368,17 @@
     "reconciliationAuthorizedByUser": "2026-10-25: Сверяй",
     "block10AuthorizedByUser": "2026-10-25: учти все нюансы и подходи к делу детально и приступай к 10",
     "block11AuthorizedByUser": "2026-10-25: приступай к 11",
-    "block12AuthorizedByUser": "2026-10-26: Ок, тогде переходи к следующему пункту; simulator/server work while away, physical acceptance deferred"
+    "block12AuthorizedByUser": "2026-10-26: Ок, тогде переходи к следующему пункту; simulator/server work while away, physical acceptance deferred",
+    "block13AuthorizedByUser": "2026-10-26: Вперед. Думаю что после этого я проверю детально оповещения и уведомления."
   },
   "schemaVersion": 2,
-  "blocksWithImplementedFixes": 12,
+  "blocksWithImplementedFixes": 13,
   "blocksReopenedForCompletion": 0,
-  "notStartedBlocks": 7,
-  "nextNewBlock": 12,
+  "notStartedBlocks": 6,
+  "nextNewBlock": 14,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Await user physical TestFlight 124 acceptance for block12; preserve block11 final exact-copy device gate. Do not start block13 without acceptance.",
+  "nextAction": "Finish block13 final CI and user acceptance in a subsequent signed build; current TestFlight124 lacks block13. Block14 requires user approval.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -395,5 +411,5 @@
     "block11PhysicalReadback": "pending; delivery is not acceptance",
     "block12PhysicalReadback": "pending user acceptance; actual push receipt not yet verified"
   },
-  "currentBlock": 12
+  "currentBlock": 13
 }
