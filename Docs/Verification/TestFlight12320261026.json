@@ -1,0 +1,54 @@
+{
+  "version": "1.2.1",
+  "build": "123",
+  "sourceCommit": "a7c2d6a484cc69888990fab6c9338905010f331f",
+  "productSourceCommit": "a921224d072e7d019c37fee43d033dc89af7476c",
+  "requestedByUser": "Заливай юилд",
+  "audience": "internal TestFlight",
+  "publicRelease": false,
+  "archive": "build/UAC-123.xcarchive",
+  "archiveResult": "ARCHIVE SUCCEEDED",
+  "exportResult": "EXPORT SUCCEEDED; Upload succeeded; Uploaded package is processing",
+  "uploadMethod": "signed-in Xcode account fallback after API key cloud-signing denial",
+  "exportOptions": "build/ExportOptions-TestFlight-Internal.plist",
+  "serverCompatibility": "scripts/validate_release_configuration.py --verify-deployed-analytics passed",
+  "productSourceCI": {
+    "runId": 40239264159,
+    "conclusion": "success"
+  },
+  "buildNumberCI": {
+    "runId": 40285554232,
+    "conclusion": "in_progress"
+  },
+  "appleUploadState": {
+    "state": "COMPLETE",
+    "errors": [],
+    "warnings": []
+  },
+  "testNotes": {
+    "source": "build/testflight-123/notes.json",
+    "published": true,
+    "locales": [
+      "uk",
+      "de-DE",
+      "en-US"
+    ]
+  },
+  "physicalVerification": "Earlier functional signed Release read passed. Final wording-only exact-copy readback pending unavailable iPhone; TestFlight delivery does not close that gate.",
+  "boundaries": [
+    "Pre-existing project ordering and catalog extraction metadata retained; catalog translation values independently equal committed values.",
+    "Third-party Firebase/gRPC binary dSYM warnings reported during export; upload accepted. App dSYM retained in archive.",
+    "No sanctions, permissions, ownership or credentials changed in production."
+  ],
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "assignedGroups": [
+    {
+      "name": "Beta Tester",
+      "internal": true,
+      "containsBuild": true
+    }
+  ],
+  "readback": "build/testflight-123/asc-final.json",
+  "testFlightAvailable": true
+}

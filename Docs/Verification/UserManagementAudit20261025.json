@@ -443,10 +443,13 @@
     "Parent accessibility identifiers can replace descendant identifiers. Keep independent paging/actions and combine static history records only."
   ],
   "delivery": {
-    "testFlightChanged": false,
+    "testFlightChanged": true,
     "publicAppStoreChanged": false,
     "finalPhysicalBinary": "Functional signed Release installed/read successfully; final wording-only a921224d Release built, device unavailable for final installation/readback.",
-    "manualAcceptance": "pending user review"
+    "manualAcceptance": "pending user review",
+    "testFlightBuild": "1.2.1 (123)",
+    "testFlightState": "VALID / IN_BETA_TESTING, internal Beta Tester",
+    "releaseReport": "Docs/Verification/TestFlight12320261026.json"
   },
   "nextBlock": 12,
   "advanceWithoutUserAcceptance": false,

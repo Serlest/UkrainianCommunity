@@ -189,10 +189,11 @@
       "sourceCommit": "a921224d",
       "serverCommit": "55d0c614",
       "closedScenarioChecks": 44,
-      "testFlightChanged": false,
+      "testFlightChanged": true,
       "closedChecks": [
         "U11-FINAL-SOURCE-CI"
-      ]
+      ],
+      "testFlightBuild": "1.2.1 (123)"
     },
     {
       "number": 12,
@@ -355,5 +356,24 @@
     "block11Report": "Docs/Verification/UserManagementAudit20261025.json",
     "block11ScenarioChecks": 44,
     "block11VerifiedScenarios": 44
+  },
+  "latestTestFlightDelivery": {
+    "build": "1.2.1 (123)",
+    "report": "Docs/Verification/TestFlight12320261026.json",
+    "includedImplementedBlocks": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11
+    ],
+    "userAcceptance": "pending",
+    "block11PhysicalReadback": "pending; delivery is not acceptance"
   }
 }

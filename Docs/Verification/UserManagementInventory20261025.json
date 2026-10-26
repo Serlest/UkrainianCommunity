@@ -1451,6 +1451,6 @@
     "requiredHostedValidation": "passed: run 40239264159, a921224d, completed 2026-10-25T22:44:52Z",
     "physicalRead": "passed; final wording-only reinstall bookkeeping pending",
     "manualAcceptance": "pending",
-    "testFlightDelivery": "not requested"
+    "testFlightDelivery": "Delivered per subsequent user request: 1.2.1 (123), internal Beta Tester; does not close physical readback gate."
   }
 }
