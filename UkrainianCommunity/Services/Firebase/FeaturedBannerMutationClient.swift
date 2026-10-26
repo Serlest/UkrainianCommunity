@@ -32,11 +32,12 @@ struct FeaturedBannerMutationPayload: Codable, Equatable {
     let isActive: Bool
     let startsAt: String?
     let endsAt: String?
-    var presentationVersion = 1
+    var presentationVersion = 2
     let countdown: FeaturedBannerCountdownPayload?
+    let textAppearance: FeaturedBannerTextAppearance
 
     init(banner: FeaturedBanner) throws {
-        guard let imageURL = Self.nonEmpty(banner.imageURL) else {
+        guard let imageURL = Self.nonEmpty(banner.imageURL), banner.textAppearance.isValid else {
             throw AppError.validationFailed
         }
 
@@ -58,6 +59,7 @@ struct FeaturedBannerMutationPayload: Codable, Equatable {
         startsAt = banner.startsAt.map(Self.dateFormatter.string(from:))
         endsAt = banner.endsAt.map(Self.dateFormatter.string(from:))
         countdown = banner.countdown.map { FeaturedBannerCountdownPayload(targetDate: Self.dateFormatter.string(from: $0.targetDate), label: $0.label, germanLabel: $0.germanLabel, completion: $0.completion.rawValue) }
+        textAppearance = FeaturedBannerTextAppearance(titleColorHex: banner.textAppearance.titleColorHex.flatMap(FeaturedBannerTextAppearance.normalizedHex), subtitleColorHex: banner.textAppearance.subtitleColorHex.flatMap(FeaturedBannerTextAppearance.normalizedHex))
     }
 
     private static func nonEmpty(_ value: String?) -> String? {

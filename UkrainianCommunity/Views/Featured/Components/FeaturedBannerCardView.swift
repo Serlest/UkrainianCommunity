@@ -13,6 +13,7 @@ struct FeaturedBannerCardView: View {
     let previewImage: UIImage?
     let artworkHeight: CGFloat?
     let forceStackedContent: Bool
+    let countdownIsActive: Bool
     let onArtworkLoadStateChanged: ((Bool) -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -22,11 +23,13 @@ struct FeaturedBannerCardView: View {
 
     init(banner: FeaturedBanner, previewImage: UIImage? = nil, artworkHeight: CGFloat? = nil,
          forceStackedContent: Bool = false,
+         countdownIsActive: Bool = true,
          onArtworkLoadStateChanged: ((Bool) -> Void)? = nil) {
         self.banner = banner
         self.previewImage = previewImage
         self.artworkHeight = artworkHeight
         self.forceStackedContent = forceStackedContent
+        self.countdownIsActive = countdownIsActive
         self.onArtworkLoadStateChanged = onArtworkLoadStateChanged
     }
 
@@ -34,7 +37,7 @@ struct FeaturedBannerCardView: View {
         Group {
             if usesStackedContent {
                 VStack(alignment: .trailing, spacing: 12) {
-                    if let countdown = banner.countdown { FeaturedBannerCountdownView(countdown: countdown, overArtwork: false) }
+                    if let countdown = banner.countdown { FeaturedBannerCountdownView(countdown: countdown, overArtwork: false, isRunning: countdownIsActive) }
                     imageLayout { background }.clipShape(cardShape).accessibilityHidden(true)
                     if hasTextContent { textContent }
                 }
@@ -60,14 +63,13 @@ struct FeaturedBannerCardView: View {
     private var card: some View {
         ZStack(alignment: .bottomLeading) {
             background.accessibilityHidden(true)
-            visualTreatment.accessibilityHidden(true)
             if hasTextContent {
                 textContent
             }
         }
         .overlay(alignment: .topTrailing) {
             if !usesStackedContent, let countdown = banner.countdown {
-                FeaturedBannerCountdownView(countdown: countdown)
+                FeaturedBannerCountdownView(countdown: countdown, isRunning: countdownIsActive)
                     .frame(maxWidth: 230, alignment: .trailing).padding(8)
             }
         }
@@ -140,38 +142,15 @@ struct FeaturedBannerCardView: View {
         )
     }
 
-    private var visualTreatment: some View {
-        ZStack {
-            LinearGradient(
-                colors: [
-                    .clear,
-                    .black.opacity(hasTextContent ? 0.08 : 0),
-                    .black.opacity(hasTextContent ? 0.58 : 0)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-
-            RadialGradient(
-                colors: [
-                    AppTheme.accentPrimary.opacity(colorScheme == .dark ? 0.28 : 0.18),
-                    .clear
-                ],
-                center: .topTrailing,
-                startRadius: 4,
-                endRadius: 220
-            )
-        }
-        .allowsHitTesting(false)
-    }
-
     private var textContent: some View {
         HStack(alignment: .bottom, spacing: AppTheme.eventsControlGroupSpacing) {
             VStack(alignment: .leading, spacing: 4) {
                 if let titleText {
                     Text(titleText)
                         .font(AppTheme.featuredBannerTitleFont)
-                        .foregroundStyle(AppTheme.textOnHero)
+                        .foregroundStyle(titleColor)
+                        .shadow(color: titleShadow.opacity(0.85), radius: 1, y: 1)
+                        .shadow(color: titleShadow.opacity(0.55), radius: 2)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -180,7 +159,9 @@ struct FeaturedBannerCardView: View {
                 if let subtitleText {
                     Text(subtitleText)
                         .font(AppTheme.featuredBannerSubtitleFont)
-                        .foregroundStyle(AppTheme.textOnHero.opacity(0.88))
+                        .foregroundStyle(subtitleColor)
+                        .shadow(color: subtitleShadow.opacity(0.85), radius: 1, y: 1)
+                        .shadow(color: subtitleShadow.opacity(0.55), radius: 2)
                         .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
@@ -198,14 +179,25 @@ struct FeaturedBannerCardView: View {
                     .accessibilityHidden(true)
             }
         }
-        .padding(.horizontal, AppTheme.bannerTextScrimHorizontalPadding)
-        .padding(.vertical, AppTheme.bannerTextScrimVerticalPadding)
-        .background(
-            AppTheme.bannerTextScrimBackground(for: colorScheme),
-            in: RoundedRectangle(cornerRadius: AppTheme.bannerTextScrimRadius, style: .continuous)
-        )
         .padding(AppTheme.cardPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var titleColor: Color {
+        FeaturedBannerTextColor.color(hex: banner.textAppearance.titleColorHex,
+                                     fallback: usesStackedContent ? AppTheme.textPrimary : AppTheme.textOnHero)
+    }
+    private var subtitleColor: Color {
+        FeaturedBannerTextColor.color(hex: banner.textAppearance.subtitleColorHex,
+                                     fallback: usesStackedContent ? AppTheme.textSecondary : AppTheme.textOnHero.opacity(0.88))
+    }
+    private var titleShadow: Color {
+        usesStackedContent && banner.textAppearance.titleColorHex == nil ? .clear
+            : FeaturedBannerTextColor.shadow(for: titleColor, scheme: colorScheme)
+    }
+    private var subtitleShadow: Color {
+        usesStackedContent && banner.textAppearance.subtitleColorHex == nil ? .clear
+            : FeaturedBannerTextColor.shadow(for: subtitleColor, scheme: colorScheme)
     }
 
     private var cardShape: RoundedRectangle {

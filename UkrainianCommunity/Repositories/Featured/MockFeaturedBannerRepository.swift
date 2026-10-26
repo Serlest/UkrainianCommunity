@@ -74,6 +74,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             createdBy: existingBanner.createdBy,
             updatedBy: userID,
             countdown: existingBanner.countdown,
+            textAppearance: existingBanner.textAppearance,
             requiresDataRepair: existingBanner.requiresDataRepair
         )
     }

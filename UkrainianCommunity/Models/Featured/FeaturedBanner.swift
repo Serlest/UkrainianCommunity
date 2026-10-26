@@ -103,6 +103,7 @@ struct FeaturedBanner: Identifiable, Equatable {
     let createdBy: String
     let updatedBy: String?
     var countdown: FeaturedBannerCountdown?
+    var textAppearance: FeaturedBannerTextAppearance
     let requiresDataRepair: Bool
 
     var hasUnsupportedLegacyConfiguration: Bool {
@@ -198,6 +199,7 @@ struct FeaturedBanner: Identifiable, Equatable {
         createdBy: String,
         updatedBy: String? = nil,
         countdown: FeaturedBannerCountdown? = nil,
+        textAppearance: FeaturedBannerTextAppearance = .standard,
         requiresDataRepair: Bool = false
     ) {
         self.id = id
@@ -222,6 +224,7 @@ struct FeaturedBanner: Identifiable, Equatable {
         self.createdBy = createdBy
         self.updatedBy = updatedBy
         self.countdown = countdown
+        self.textAppearance = textAppearance
         self.requiresDataRepair = requiresDataRepair
     }
 }

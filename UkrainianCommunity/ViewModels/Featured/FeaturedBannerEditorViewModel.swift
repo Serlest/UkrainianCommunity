@@ -24,6 +24,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         let hasEndDate: Bool
         let endsAt: Date
         let countdown: FeaturedBannerCountdown?
+        let textAppearance: FeaturedBannerTextAppearance
     }
 
     enum Mode {
@@ -66,6 +67,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     @Published var countdownLabel = ""
     @Published var countdownGermanLabel = ""
     @Published var countdownCompletion: FeaturedBannerCountdown.Completion = .hideCountdown
+    @Published var textAppearance: FeaturedBannerTextAppearance = .standard
     @Published var selectedImageData: Data?
     @Published var isProcessingImage = false
     @Published var isSaving = false
@@ -206,6 +208,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             countdownLabel = existing.countdown?.label ?? ""
             countdownGermanLabel = existing.countdown?.germanLabel ?? ""
             countdownCompletion = existing.countdown?.completion ?? .hideCountdown
+            textAppearance = existing.textAppearance
         }
         initialDraftSignature = draftSignature
     }
@@ -255,7 +258,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             createdAt: createdAt,
             updatedAt: Date(),
             createdBy: nonEmpty(createdBy) ?? "preview",
-            countdown: resolvedCountdown
+            countdown: resolvedCountdown,
+            textAppearance: textAppearance
         )
     }
 
@@ -270,6 +274,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     var validationMessage: String? {
+        if !textAppearance.isValid { return BannerCountdownStrings.text("appearance.invalid") }
         if selectedImageData == nil && imageURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return AppStrings.FeaturedEditor.validationImageRequired
         }
@@ -520,7 +525,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 updatedAt: now,
                 createdBy: mode.isEditing ? (nonEmpty(createdBy) ?? userID) : userID,
                 updatedBy: userID,
-                countdown: resolvedCountdown
+                countdown: resolvedCountdown,
+                textAppearance: textAppearance
             )
             try validationService.validate(banner)
 
@@ -579,7 +585,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             startsAt: startsAt,
             hasEndDate: hasEndDate,
             endsAt: endsAt,
-            countdown: resolvedCountdown
+            countdown: resolvedCountdown,
+            textAppearance: textAppearance
         )
     }
 

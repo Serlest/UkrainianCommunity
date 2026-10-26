@@ -16,6 +16,7 @@ struct FeaturedBannerValidationService {
 
     func diagnosticIssue(_ banner: FeaturedBanner, allowsUnsupportedLegacy: Bool = false) -> FeaturedBannerDataIssue? {
         func issue(_ field: String, _ rule: String) -> FeaturedBannerDataIssue { .init(field: field, rule: rule) }
+        if !banner.textAppearance.isValid { return issue("textAppearance", "invalidColor") }
         if let countdown = banner.countdown, !countdown.isValid { return issue("countdown", "invalid") }
         if let countdown = banner.countdown, let start = banner.startsAt, countdown.targetDate <= start { return issue("countdown", "beforeDisplayStart") }
         if trimmed(banner.id).isEmpty { return issue("id", "required") }

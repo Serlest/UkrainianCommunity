@@ -11,6 +11,66 @@ final class BannersAuditUITests: XCTestCase {
     }
     private func capture(_ app:XCUIApplication,_ name:String){let a=XCTAttachment(screenshot:app.screenshot());a.name=name;a.lifetime = .keepAlways;add(a)}
     private func reveal(_ element:XCUIElement,in app:XCUIApplication){for _ in 0..<25 {if element.exists && element.isHittable{return};app.swipeUp()};XCTAssertTrue(element.isHittable,app.debugDescription)}
+    func testCountdownSecondsAdvanceWithoutChangingBannerSize() {
+        let app = launch("carousel", artwork: true)
+        let card = app.buttons["featuredBanner.card.banner14-1"].firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 15))
+        let timer = app.descendants(matching: .any)["featuredBanner.countdown"].firstMatch
+        XCTAssertTrue(timer.exists)
+        let before = timer.label
+        let frame = card.frame
+        XCTAssertTrue(before.contains("с"))
+        XCTAssertTrue(XCTNSPredicateExpectation(predicate: NSPredicate(format: "label != %@", before), object: timer).evaluate(timeout: 4), "Seconds must visibly advance")
+        XCTAssertEqual(card.frame.height, frame.height, accuracy: 1)
+        capture(app, "B14-live-seconds-without-panel")
+        app.terminate()
+    }
+    func testIndependentTextColorsSaveReopenAndResetInBothLanguages() {
+        for language in ["uk", "de"] {
+            let app = launch("management", language: language, maximum: language == "de", artwork: true)
+            let edit = app.buttons["bannerManagement.edit.banner14-1"].firstMatch
+            reveal(edit, in: app); edit.tap()
+            let blue = app.buttons["bannerEditor.titleColor.blue"].firstMatch
+            let yellow = app.buttons["bannerEditor.subtitleColor.yellow"].firstMatch
+            reveal(blue, in: app); blue.tap()
+            reveal(yellow, in: app); yellow.tap()
+            XCTAssertTrue(blue.isSelected); XCTAssertTrue(yellow.isSelected)
+            capture(app, "B14-independent-color-controls-" + language)
+            let preview = app.descendants(matching: .any)["bannerEditor.preview"].firstMatch
+            for _ in 0..<25 { if preview.exists && preview.frame.minY >= 100 { break }; app.swipeDown() }
+            if language == "uk" {
+                XCTAssertEqual(preview.frame.height, preview.frame.width / (16.0 / 9.0), accuracy: 2, "Normal editor preview must show the same overlay layout as the feed")
+            }
+            capture(app, "B14-colored-title-and-description-preview-" + language)
+            let save = app.buttons["bannerEditor.save"].firstMatch
+            reveal(save, in: app); save.tap()
+            reveal(edit, in: app); edit.tap()
+            reveal(blue, in: app); XCTAssertTrue(blue.isSelected)
+            reveal(yellow, in: app); XCTAssertTrue(yellow.isSelected)
+            let resetTitle = app.buttons["bannerEditor.titleColor.reset"].firstMatch
+            reveal(resetTitle, in: app); resetTitle.tap()
+            XCTAssertFalse(blue.isSelected); XCTAssertTrue(yellow.isSelected)
+            let resetBoth = app.buttons["bannerEditor.colors.reset"].firstMatch
+            reveal(resetBoth, in: app); resetBoth.tap()
+            XCTAssertFalse(yellow.isSelected)
+            capture(app, "B14-colors-reset-" + language)
+            app.terminate()
+        }
+    }
+    func testNativeTitleColorPickerCanOpenAndClose() {
+        let app = launch("editor", artwork: true)
+        let picker = app.descendants(matching: .any)["bannerEditor.titleColor"].firstMatch
+        reveal(picker, in: app); picker.tap()
+        capture(app, "B14-native-title-color-picker")
+        let close = app.buttons.matching(NSPredicate(format: "label IN %@", ["Schließen", "Close", "Fertig", "Готово"])).firstMatch
+        XCTAssertTrue(close.waitForExistence(timeout: 5), app.debugDescription)
+        close.tap()
+        XCTAssertTrue(picker.exists)
+        for _ in 0..<25 { if app.buttons["editor.close"].firstMatch.isHittable { break }; app.swipeDown() }
+        app.buttons["editor.close"].firstMatch.tap()
+        XCTAssertFalse(app.buttons["bannerEditor.discardChanges"].exists, "Opening and closing the color picker must not alter default colors")
+        app.terminate()
+    }
     func testActualArtworkWithAndWithoutCountdownAtNormalAndLargestType() {
         for language in ["uk", "de"] {
             let app = launch("carousel", language: language, maximum: language == "de", artwork: true)

@@ -189,6 +189,7 @@ private extension FeaturedBanner {
             createdBy: createdBy,
             updatedBy: userID,
             countdown: countdown,
+            textAppearance: textAppearance,
             requiresDataRepair: requiresDataRepair
         )
     }

@@ -16,7 +16,8 @@ struct BannerCountdownTests {
         #expect(timer.remaining(at:before)?.hours == 1)
         #expect(timer.remaining(at:after) == nil)
         #expect(timer.remaining(at:after.addingTimeInterval(1)) == nil)
-        #expect(timer.remaining(at:after.addingTimeInterval(-1))?.minutes == 1)
+        #expect(timer.remaining(at:after.addingTimeInterval(-1))?.minutes == 0)
+        #expect(timer.remaining(at:after.addingTimeInterval(-1))?.seconds == 1)
         #expect(timer.label(for:.german)=="До події")
         let long = FeaturedBannerCountdown(targetDate:before.addingTimeInterval(86400 * 4000),label:"",germanLabel:"",completion:.showStarted)
         #expect(long.remaining(at:before)?.days == 4000)
@@ -63,7 +64,7 @@ struct BannerCountdownTests {
         let timer=FeaturedBannerCountdown(targetDate:Date(timeIntervalSince1970:1_900_000_000),label:"До події",germanLabel:"Bis zum Ereignis",completion:.hideBanner)
         let payload=try FeaturedBannerMutationPayload(banner:banner(countdown:timer))
         let data=try JSONSerialization.jsonObject(with:JSONEncoder().encode(payload)) as! [String:Any]
-        #expect(data["presentationVersion"] as? Int==1)
+        #expect(data["presentationVersion"] as? Int==2)
         let raw=try #require(data["countdown"] as? [String:Any])
         #expect(FirestoreFeaturedBannerRepository.decodeCountdown(raw)==timer)
         #expect(FirestoreFeaturedBannerRepository.decodeCountdown(raw.merging(["completion":"unknown"]){_,b in b})==nil)

@@ -264,7 +264,8 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func bannerContent(for banner: FeaturedBanner, size: CGSize) -> some View {
-        FeaturedBannerCardView(banner: banner, artworkHeight: size.height, forceStackedContent: usesStackedContent) { isReady in
+        FeaturedBannerCardView(banner: banner, artworkHeight: size.height, forceStackedContent: usesStackedContent,
+                               countdownIsActive: isActive && selectedBannerID == banner.id && visibleFraction > 0) { isReady in
             if isReady {
                 readyArtworkIDs.insert(banner.id)
             } else {

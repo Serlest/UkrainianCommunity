@@ -214,6 +214,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     private func withPresentations(_ banners: [FeaturedBanner], includeInactive: Bool) async throws -> [FeaturedBanner] {
         guard !banners.isEmpty else { return [] }
         var configurations: [String: FeaturedBannerCountdown] = [:]
+        var appearances: [String: FeaturedBannerTextAppearance] = [:]
         var configuredEnds: [String: Date] = [:]
         var restoredEndIDs = Set<String>()
         for start in stride(from: 0, to: banners.count, by: 100) {
@@ -229,6 +230,11 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                     guard let countdown = Self.decodeCountdown(raw) else { throw AppError.validationFailed }
                     configurations[id] = countdown
                 }
+                if let raw = row["textAppearance"] as? [String: Any] {
+                    let appearance = FeaturedBannerTextAppearance(titleColorHex: raw["titleColorHex"] as? String, subtitleColorHex: raw["subtitleColorHex"] as? String)
+                    guard appearance.isValid else { throw AppError.validationFailed }
+                    appearances[id] = appearance
+                }
                 if let value = row["configuredEndsAt"] {
                     restoredEndIDs.insert(id)
                     if let text = value as? String {
@@ -241,6 +247,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
         }
         return banners.map { banner in
             var copy = banner; copy.countdown = configurations[banner.id]
+            copy.textAppearance = appearances[banner.id] ?? .standard
             if restoredEndIDs.contains(banner.id) { copy.endsAt = configuredEnds[banner.id] }
             return copy
         }

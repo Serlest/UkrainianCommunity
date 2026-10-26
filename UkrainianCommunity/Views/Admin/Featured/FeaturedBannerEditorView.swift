@@ -58,6 +58,7 @@ struct FeaturedBannerEditorView: View {
             }
             FeaturedBannerEditorPreviewSection(viewModel: viewModel, previewImage: selectedPreviewImage)
             FeaturedBannerEditorBasicsSection(viewModel: viewModel)
+            FeaturedBannerEditorTextAppearanceSection(viewModel: viewModel)
             FeaturedBannerEditorImageSection(
                 viewModel: viewModel,
                 selectedPhoto: $selectedPhoto,

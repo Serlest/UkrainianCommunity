@@ -15,11 +15,11 @@ struct FeaturedBannerCountdown: Equatable {
         language == .german && !germanLabel.isEmpty ? germanLabel : label
     }
 
-    func remaining(at now: Date) -> (days: Int, hours: Int, minutes: Int)? {
+    func remaining(at now: Date) -> (days: Int, hours: Int, minutes: Int, seconds: Int)? {
         let interval = targetDate.timeIntervalSince(now)
         guard interval.isFinite, interval > 0 else { return nil }
-        let minutes = Int(ceil(min(interval, 1_000_000_000_000) / 60))
-        return (minutes / 1440, minutes % 1440 / 60, minutes % 60)
+        let seconds = Int(ceil(min(interval, 1_000_000_000_000)))
+        return (seconds / 86_400, seconds % 86_400 / 3_600, seconds % 3_600 / 60, seconds % 60)
     }
 
     var isValid: Bool {
@@ -32,8 +32,12 @@ enum BannerCountdownStrings {
     static func text(_ key: String) -> String {
         LocalizationStore.localizedString("banners14." + key, defaultValue: key, table: "BannerAudit")
     }
-    static func remaining(_ value: (days: Int, hours: Int, minutes: Int)) -> String {
-        let pieces = [(value.days, "days"), (value.hours, "hours"), (value.minutes, "minutes")]
-        return pieces.filter { $0.0 > 0 || $0.1 == "minutes" }.map { "\($0.0) \(text($0.1))" }.joined(separator: " · ")
+    static func remaining(_ value: (days: Int, hours: Int, minutes: Int, seconds: Int)) -> String {
+        let pieces = [(value.days, "days"), (value.hours, "hours"), (value.minutes, "minutes"), (value.seconds, "seconds")]
+        let first = value.days > 0 ? 0 : (value.hours > 0 ? 1 : (value.minutes > 0 ? 2 : 3))
+        return pieces.enumerated().dropFirst(first).map { index, piece in
+            let number = index > first ? String(format: "%02d", piece.0) : String(piece.0)
+            return "\(number) \(text(piece.1))"
+        }.joined(separator: " · ")
     }
 }

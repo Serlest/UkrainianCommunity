@@ -12,6 +12,9 @@ struct FeaturedBannerEditorPreviewSection: View {
                 AppEditorSectionTitle(title: AppStrings.FeaturedEditor.previewSection)
                 FeaturedBannerCardView(banner: viewModel.previewBanner, previewImage: previewImage)
                     .fixedSize(horizontal: false, vertical: true)
+                    // Match the feed width: section insets must not switch a normal-size preview to the narrow layout.
+                    .padding(.horizontal, -AppTheme.editorSectionCardPadding)
+                    .accessibilityIdentifier("bannerEditor.preview")
                 Text(AppStrings.FeaturedEditor.previewHelper)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)

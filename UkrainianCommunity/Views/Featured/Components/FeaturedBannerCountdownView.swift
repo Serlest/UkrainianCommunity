@@ -1,14 +1,16 @@
 import SwiftUI
 
-/// Only the visible timer redraws, at minute boundaries and exactly at completion.
+/// Only the timer redraws; entries align to remaining seconds and the exact deadline.
 struct FeaturedBannerCountdownSchedule: TimelineSchedule {
     let target: Date
+    var isPaused: Bool = false
     func entries(from startDate: Date, mode: Mode) -> AnySequence<Date> {
-        AnySequence(sequence(first: startDate) { date in
+        if isPaused { return AnySequence([startDate]) }
+        return AnySequence(sequence(first: startDate) { date in
             guard date < target else { return nil }
             let seconds = target.timeIntervalSince(date)
-            let untilNextMinute = seconds.truncatingRemainder(dividingBy: 60)
-            return min(target, date.addingTimeInterval(untilNextMinute > 0.01 ? untilNextMinute : 60))
+            let untilNextSecond = seconds.truncatingRemainder(dividingBy: 1)
+            return min(target, date.addingTimeInterval(untilNextSecond > 0.000_001 ? untilNextSecond : 1))
         })
     }
 }
@@ -16,15 +18,20 @@ struct FeaturedBannerCountdownSchedule: TimelineSchedule {
 struct FeaturedBannerCountdownView: View {
     let countdown: FeaturedBannerCountdown
     var overArtwork: Bool = true
+    var isRunning: Bool = true
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var isVisible = false
     var body: some View {
-        TimelineView(FeaturedBannerCountdownSchedule(target: countdown.targetDate)) { context in
+        TimelineView(FeaturedBannerCountdownSchedule(target: countdown.targetDate, isPaused: !isRunning || !isVisible || scenePhase != .active)) { context in
             if let value = countdown.remaining(at: context.date) {
                 badge(value: BannerCountdownStrings.remaining(value))
             } else if countdown.completion == .showStarted {
                 badge(value: BannerCountdownStrings.text("started"))
             }
         }
+        .onAppear { isVisible = true }
+        .onDisappear { isVisible = false }
     }
     private func badge(value: String) -> some View {
         VStack(alignment: .trailing, spacing: 3) {

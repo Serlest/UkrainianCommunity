@@ -40,6 +40,34 @@ struct FeaturedBannerArtworkLayoutTests {
         #expect(sample.red > 0.85 && sample.blue > 0.85)
     }
 
+    @Test func titleAndSubtitleHaveIndependentColorsWithoutTextPanel() throws {
+        let white = UIGraphicsImageRenderer(size: CGSize(width: 160, height: 90)).image { context in
+            UIColor.white.setFill(); context.fill(CGRect(x: 0, y: 0, width: 160, height: 90))
+        }
+        let style = FeaturedBannerTextAppearance(titleColorHex: "#0000FF", subtitleColorHex: "#FFFF00")
+        let banner = FeaturedBanner(id: "text-colors", title: "A", subtitle: "B", imageURL: "https://example.com/banner.jpg", visibleSections: [.home], createdAt: .now, updatedAt: .now, createdBy: "fixture", textAppearance: style)
+        let renderer = ImageRenderer(content: FeaturedBannerCardView(banner: banner, previewImage: white)
+            .frame(width: width).environment(\.dynamicTypeSize, .large).environment(\.colorScheme, .light))
+        renderer.scale = 1
+        let image = try #require(renderer.uiImage)
+        let sample = try color(image, x: 180, yFromTop: image.size.height - 35)
+        #expect(sample.red > 0.82 && sample.blue > 0.82)
+        let source = try #require(CIImage(image: image))
+        let bounds = source.extent.integral
+        let rowBytes = Int(bounds.width) * 4
+        var pixels = [UInt8](repeating: 0, count: rowBytes * Int(bounds.height))
+        pixels.withUnsafeMutableBytes { buffer in
+            CIContext().render(source, toBitmap: buffer.baseAddress!, rowBytes: rowBytes,
+                               bounds: bounds, format: .RGBA8, colorSpace: CGColorSpace(name: CGColorSpace.sRGB))
+        }
+        var blue = 0, yellow = 0
+        for index in stride(from: 0, to: pixels.count, by: 4) {
+            if pixels[index] < 80 && pixels[index + 1] < 80 && pixels[index + 2] > 200 { blue += 1 }
+            if pixels[index] > 200 && pixels[index + 1] > 200 && pixels[index + 2] < 80 { yellow += 1 }
+        }
+        #expect(blue > 5 && yellow > 5)
+    }
+
     private func render(countdown: FeaturedBannerCountdown?, typeSize: DynamicTypeSize, artwork: UIImage? = nil) throws -> UIImage {
         let defaultImage = UIGraphicsImageRenderer(size: CGSize(width: 160, height: 90)).image { context in
             UIColor.red.setFill(); context.fill(CGRect(x: 0, y: 0, width: 160, height: 30))
