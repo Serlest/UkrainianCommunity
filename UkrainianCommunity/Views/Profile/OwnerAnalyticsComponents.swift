@@ -63,15 +63,16 @@ struct OwnerAnalyticsMetricTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            OwnerAnalyticsIconBadge(systemImage: systemImage, baseSize: 30)
-
-            VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center, spacing: 10) {
+                OwnerAnalyticsIconBadge(systemImage: systemImage, baseSize: 30)
                 Text(formattedValue ?? OwnerAnalyticsFormatting.integer(value, locale: locale))
                     .font(.title2.weight(.bold))
                     .foregroundStyle(AppTheme.textPrimary)
                     .monospacedDigit()
                     .fixedSize(horizontal: false, vertical: true)
+            }
 
+            VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(AppTheme.textSecondary)
@@ -84,12 +85,7 @@ struct OwnerAnalyticsMetricTile: View {
                         .foregroundStyle(deltaPresentation.color)
                         .lineLimit(nil)
                         .fixedSize(horizontal: false, vertical: true)
-                    if deltaPresentation.valueText != nil {
-                        Text(AppStrings.OwnerAnalytics.deltaComparisonCaption)
-                            .font(.caption)
-                            .foregroundStyle(AppTheme.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+
                 }
             }
         }
@@ -156,6 +152,7 @@ struct OwnerAnalyticsTrendChart: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
                 .monospacedDigit()
+                .accessibilityIdentifier("ownerAnalytics.trendSelection")
             }
 
             Chart(points) { point in
@@ -177,11 +174,16 @@ struct OwnerAnalyticsTrendChart: View {
                 }
             }
             .chartXSelection(value: $selectedDate)
+            .chartGesture { proxy in
+                SpatialTapGesture().onEnded { event in
+                    proxy.selectXValue(at: event.location.x)
+                }
+            }
             .chartYAxis {
                 AxisMarks(position: .leading)
             }
             .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: min(points.count, 6))) { value in
+                AxisMarks(values: .automatic(desiredCount: dynamicTypeSize.isAccessibilitySize ? 2 : min(points.count, 4))) { value in
                     AxisGridLine().foregroundStyle(AppTheme.borderSubtle)
                     AxisValueLabel {
                         if let date = value.as(Date.self) {
@@ -236,6 +238,7 @@ struct OwnerAnalyticsTrendChart: View {
             }
         }
         .pickerStyle(.menu)
+        .accessibilityIdentifier("ownerAnalytics.trendMetricPicker")
     }
 
     private var chartAccessibilityValue: String {
@@ -353,6 +356,7 @@ struct OwnerAnalyticsStaleDataBanner: View {
             .frame(minHeight: AppTheme.minimumInteractiveTarget)
             .disabled(isRetrying)
         }
+        .accessibilityIdentifier("ownerAnalytics.staleData")
     }
 }
 

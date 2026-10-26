@@ -259,17 +259,28 @@ struct BannerAnalyticsOverviewSection: View {
 struct RegisteredUserCountCard: View {
     var refreshID = 0
     var load: () async throws -> Int = RegisteredUserCountReader.fetch
+    var dataUpdatedAt: () -> Date? = { nil }
     @State private var count: Int?
     @State private var updatedAt: Date?
     @State private var failed = false
     @State private var isLoading = false
     @State private var loadID: UUID?
     var body: some View {
-        OwnerAnalyticsSectionCard(title: AppStrings.BannerReport.currentAccounts) {
-            if let count { OwnerAnalyticsMetricTile(title: AppStrings.OwnerAnalytics.totalUsers, value: count, systemImage: "person.3") }
+        OwnerAnalyticsSectionCard(title: AnalyticsPresentationText.currentTitle) {
+            if let count {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Image(systemName: "person.3").foregroundStyle(AppTheme.accentPrimaryForeground)
+                    Text(count, format: .number).font(.largeTitle.bold()).monospacedDigit()
+                        .foregroundStyle(AppTheme.textPrimary)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(AppStrings.OwnerAnalytics.totalUsers)
+                .accessibilityValue(String(count))
+                .accessibilityIdentifier("ownerAnalytics.metric.person.3")
+            }
             else { Text("—").font(.title2).foregroundStyle(AppTheme.textPrimary) }
             if let updatedAt { OwnerAnalyticsFreshnessLabel(updatedAt: updatedAt) }
-            Text(failed ? AppStrings.OwnerAnalytics.loadFailedTitle : AppStrings.BannerReport.currentAccountsNote)
+            Text(failed ? AppStrings.OwnerAnalytics.loadFailedTitle : AnalyticsPresentationText.currentNote)
                 .font(.footnote).foregroundStyle(AppTheme.textSecondary)
             if failed { Button(AppStrings.Action.retry) { Task { await reload() } } }
         }.task(id: refreshID) { await reload() }
@@ -286,7 +297,7 @@ struct RegisteredUserCountCard: View {
         do {
             let value = try await RefreshRequest.run { try await load() }
             guard !Task.isCancelled, loadID == id else { return }
-            count = value; updatedAt = Date(); failed = false
+            count = value; updatedAt = dataUpdatedAt() ?? Date(); failed = false
         } catch { guard !Task.isCancelled, loadID == id else { return }; failed = true }
     }
 }

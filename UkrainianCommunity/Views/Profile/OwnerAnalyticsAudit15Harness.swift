@@ -20,6 +20,7 @@ struct OwnerAnalyticsAudit15Harness: View {
 }
 private final class OwnerAnalyticsAudit15Repository: OwnerAnalyticsRepository {
     private let source = MockOwnerAnalyticsRepository()
+    private var snapshotAttempts = 0
     private var mode: String { ProcessInfo.processInfo.environment["UITestAnalytics15State"] ?? "full" }
     private func delayOrFail() async throws {
         if mode == "loading" { try await Task.sleep(for: .seconds(8)) }
@@ -32,6 +33,8 @@ private final class OwnerAnalyticsAudit15Repository: OwnerAnalyticsRepository {
     }
     func fetchSnapshot(period: AnalyticsPeriod) async throws -> OwnerAnalyticsSnapshot {
         try await delayOrFail()
+        snapshotAttempts += 1
+        if (mode == "retry" && snapshotAttempts == 1) || (mode == "stale" && snapshotAttempts == 2) { throw AppError.network }
         if mode == "empty" { return .empty(period: period) }
         let s = try await source.fetchSnapshot(period: period)
         if mode == "partial" {

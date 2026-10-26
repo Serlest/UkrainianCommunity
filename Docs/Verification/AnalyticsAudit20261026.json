@@ -646,5 +646,6 @@
       "same cold process-relaunch artwork test passed again"
     ],
     "hostedRecheck": "pending after push"
-  }
+  },
+  "resolutionReport": "Docs/Verification/AnalyticsFixes20261027.json"
 }

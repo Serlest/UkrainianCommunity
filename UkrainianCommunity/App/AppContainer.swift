@@ -28,7 +28,7 @@ struct AppContainer {
 
     /// Actual SDK graph. Fixture UI tests use `uiTesting`; opt-in connected
     /// Debug Simulator journeys pin Firebase to the local demo before using this graph.
-    static var live: AppContainer {
+    static func live(authState: AuthState) -> AppContainer {
         AppContainer(
             announcementRepository: CloudAnnouncementRepository(),
             userRepository: FirestoreUserRepository(),
@@ -48,7 +48,9 @@ struct AppContainer {
             featuredBannerRepository: FirestoreFeaturedBannerRepository(),
             featuredBannerCache: FeaturedBannerCache.persistent(),
             legalDocumentRepository: FirestoreLegalDocumentRepository(),
-            ownerAnalyticsRepository: FirestoreOwnerAnalyticsRepository(),
+            ownerAnalyticsRepository: SessionOwnerAnalyticsRepository(underlying: FirestoreOwnerAnalyticsRepository(), access: { [weak authState] in
+                (authState?.user, authState?.sessionState ?? .guest)
+            }),
             analyticsService: FirstPartyAnalyticsService(),
             bannerMeasurementService: BannerMeasurementService()
         )

@@ -2393,6 +2393,11 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertTrue(element("screen.ownerAnalytics.contentDetail", in: app).waitForExistence(timeout: 10))
         XCTAssertTrue(element("ownerAnalytics.detail.periodPicker", in: app).waitForExistence(timeout: 5))
         attachScreenshot(named: "Owner Analytics Detail", from: app)
+        app.buttons["Zurück"].firstMatch.tap()
+        XCTAssertTrue(element("screen.ownerAnalytics", in: app).waitForExistence(timeout: 5))
+        let restoredPeriod = app.buttons["7 Tage"].firstMatch
+        XCTAssertTrue(restoredPeriod.isSelected)
+        attachScreenshot(named: "Analytics return retains selected period", from: app)
     }
 
     @MainActor

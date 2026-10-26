@@ -1,6 +1,9 @@
 import Foundation
 
 protocol OwnerAnalyticsRepository {
+    var currentAccountCountLoadedAt: Date? { get }
+    func updateAccess(user: AppUser?, state: AuthSessionState)
+    func invalidateCachedReads()
     func fetchCurrentAccountCount() async throws -> Int
     func fetchBannerOverview(period: AnalyticsPeriod) async throws -> BannerMeasurementReport
     func fetchSnapshot(period: AnalyticsPeriod) async throws -> OwnerAnalyticsSnapshot
@@ -16,6 +19,9 @@ protocol OwnerAnalyticsRepository {
 }
 
 extension OwnerAnalyticsRepository {
+    var currentAccountCountLoadedAt: Date? { nil }
+    func updateAccess(user: AppUser?, state: AuthSessionState) {}
+    func invalidateCachedReads() {}
     func fetchCurrentAccountCount() async throws -> Int {
         try await RegisteredUserCountReader.fetch()
     }

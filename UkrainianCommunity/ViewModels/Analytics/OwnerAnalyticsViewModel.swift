@@ -419,16 +419,18 @@ final class OwnerAnalyticsViewModel: ObservableObject {
             snapshot = cacheEntry.value
             errorMessage = errorByPeriod[period]
             guard !isCacheExpired(cacheEntry) else {
-                await load()
+                await load(forceRefresh: false)
                 return
             }
             return
         }
 
-        await load()
+        await load(forceRefresh: false)
     }
 
-    func load() async {
+    func load(forceRefresh: Bool = true) async {
+        guard !isLoading else { return }
+        if forceRefresh { repository.invalidateCachedReads() }
         loadGeneration &+= 1
         let generation = loadGeneration
         let period = selectedPeriod

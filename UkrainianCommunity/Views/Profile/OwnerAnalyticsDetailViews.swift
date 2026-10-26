@@ -27,9 +27,10 @@ struct AnalyticsContentDetailView: View {
                 content
             }
         }
-        .task(id: viewModel.selectedPeriod) { await viewModel.loadIfNeeded() }
-        .analyticsRefreshLifecycle { await viewModel.loadIfNeeded() }
-        .appRefreshable { await viewModel.load() }
+        .analyticsRefreshLifecycle(id: viewModel.selectedPeriod.rawValue) { await viewModel.loadIfNeeded() }
+        .appRefreshable {
+            await viewModel.load()
+        }
         .accessibilityIdentifier("screen.ownerAnalytics.contentDetail")
     }
 
@@ -76,10 +77,11 @@ struct AnalyticsContentDetailView: View {
             }
 
             if !viewModel.hasContent {
-                EmptyStateCard(
+                UnifiedEmptyStateCard(
                     systemImage: "chart.bar.doc.horizontal",
                     title: AppStrings.OwnerAnalytics.noDetailAnalyticsTitle,
-                    message: AppStrings.OwnerAnalytics.noDetailAnalyticsMessage
+                    message: AppStrings.OwnerAnalytics.noDetailAnalyticsMessage,
+                    messageLineLimit: nil
                 )
             } else {
                 loadedContent(staleErrorMessage: viewModel.errorMessage)
@@ -144,9 +146,10 @@ struct AnalyticsOrganizationDetailView: View {
                 content
             }
         }
-        .task(id: viewModel.selectedPeriod) { await viewModel.loadIfNeeded() }
-        .analyticsRefreshLifecycle { await viewModel.loadIfNeeded() }
-        .appRefreshable { await viewModel.load() }
+        .analyticsRefreshLifecycle(id: viewModel.selectedPeriod.rawValue) { await viewModel.loadIfNeeded() }
+        .appRefreshable {
+            await viewModel.load()
+        }
         .accessibilityIdentifier("screen.ownerAnalytics.organizationDetail")
     }
 
@@ -197,10 +200,11 @@ struct AnalyticsOrganizationDetailView: View {
             }
 
             if !viewModel.hasContent {
-                EmptyStateCard(
+                UnifiedEmptyStateCard(
                     systemImage: "chart.bar.doc.horizontal",
                     title: AppStrings.OwnerAnalytics.noDetailAnalyticsTitle,
-                    message: AppStrings.OwnerAnalytics.noDetailAnalyticsMessage
+                    message: AppStrings.OwnerAnalytics.noDetailAnalyticsMessage,
+                    messageLineLimit: nil
                 )
             } else {
                 loadedContent(staleErrorMessage: viewModel.errorMessage)
@@ -222,7 +226,7 @@ struct AnalyticsOrganizationDetailView: View {
         AnalyticsDetailFreshnessRow(updatedAt: viewModel.snapshot.updatedAt)
 
         if viewModel.hasActiveSearch && !viewModel.hasSearchResults {
-            EmptyStateCard(
+            UnifiedEmptyStateCard(
                 systemImage: "magnifyingglass",
                 title: AppStrings.OwnerAnalytics.searchEmptyTitle,
                 message: AppStrings.OwnerAnalytics.searchEmptyMessage
@@ -289,28 +293,9 @@ private struct AnalyticsDetailContainer<Content: View>: View {
 
 private struct AnalyticsDetailPeriodPicker: View {
     @Binding var selectedPeriod: AnalyticsPeriod
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
     var body: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                picker
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                picker
-                    .pickerStyle(.segmented)
-            }
-        }
-    }
-
-    private var picker: some View {
-        Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $selectedPeriod) {
-            ForEach(AnalyticsPeriod.allCases) { period in
-                Text(period.analyticsDetailTitle).tag(period)
-            }
-        }
-        .accessibilityIdentifier("ownerAnalytics.detail.periodPicker")
+        AnalyticsPeriodControl(selection: $selectedPeriod,
+                               identifier: "ownerAnalytics.detail.periodPicker")
     }
 }
 

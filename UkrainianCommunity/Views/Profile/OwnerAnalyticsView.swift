@@ -22,8 +22,12 @@ struct OwnerAnalyticsView: View {
             periodPicker
             Text(AnalyticsPresentationText.viennaTime).font(.caption).foregroundStyle(AppTheme.textSecondary)
             searchField
+            Text(AnalyticsPresentationText.searchScope)
+                .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
             if viewModel.showsCurrentAccounts {
-                RegisteredUserCountCard(refreshID: supplementalRefreshID, load: { try await repository.fetchCurrentAccountCount() })
+                RegisteredUserCountCard(refreshID: supplementalRefreshID, load: { try await repository.fetchCurrentAccountCount() },
+                                        dataUpdatedAt: { repository.currentAccountCountLoadedAt })
             }
             content
             if viewModel.showsBannerAnalytics {
@@ -31,10 +35,7 @@ struct OwnerAnalyticsView: View {
                     repository: OwnerAnalyticsBannerOverviewRepository(ownerRepository: repository), refreshID: supplementalRefreshID)
             }
         }
-        .task(id: viewModel.selectedPeriod) {
-            await viewModel.loadIfNeeded()
-        }
-        .analyticsRefreshLifecycle {
+        .analyticsRefreshLifecycle(id: viewModel.selectedPeriod.rawValue) {
             await viewModel.loadIfNeeded()
         }
         .appRefreshable {
@@ -45,30 +46,14 @@ struct OwnerAnalyticsView: View {
     }
 
     private var periodPicker: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                periodPickerControl
-                    .pickerStyle(.menu)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                periodPickerControl
-                    .pickerStyle(.segmented)
-            }
-        }
-    }
-
-    private var periodPickerControl: some View {
-        Picker(AppStrings.OwnerAnalytics.periodPicker, selection: Binding(
+        AnalyticsPeriodControl(selection: Binding(
             get: { viewModel.selectedPeriod },
             set: { period in
+                isSearchFocused = false
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                 viewModel.preparePeriodSelection(period)
             }
-        )) {
-            ForEach(AnalyticsPeriod.allCases) { period in
-                Text(period.analyticsTitle).tag(period)
-            }
-        }
-        .accessibilityIdentifier("ownerAnalytics.periodPicker")
+        ), identifier: "ownerAnalytics.periodPicker")
     }
 
     private var searchField: some View {
@@ -94,10 +79,11 @@ struct OwnerAnalyticsView: View {
                 OwnerAnalyticsPartialDataBanner(message: partialDataMessage)
             }
 
-            EmptyStateCard(
+            UnifiedEmptyStateCard(
                 systemImage: "chart.bar.doc.horizontal",
                 title: AppStrings.OwnerAnalytics.emptyTitle,
-                message: emptyMessage
+                message: emptyMessage,
+                messageLineLimit: nil
             )
         } else {
             loadedContent(staleErrorMessage: viewModel.errorMessage)
@@ -153,6 +139,12 @@ struct OwnerAnalyticsView: View {
 
             if !viewModel.hasActiveSearch {
                 OwnerAnalyticsSectionCard(title: AppStrings.OwnerAnalytics.methodologyTitle) {
+                    Text(AnalyticsPresentationText.refreshCadence)
+                        .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(AnalyticsPresentationText.periodNote)
+                        .font(.footnote).foregroundStyle(AppTheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(AppStrings.OwnerAnalytics.methodologyMessage)
                         .font(.footnote)
                         .foregroundStyle(AppTheme.textSecondary)
@@ -175,14 +167,12 @@ struct OwnerAnalyticsView: View {
 
                 if !viewModel.contentViewMetricItems.isEmpty {
                     VStack(alignment: .leading, spacing: AppTheme.eventsMetadataSpacing) {
-                        Text(AppStrings.OwnerAnalytics.activityOverviewTitle)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(AppTheme.textPrimary)
-                            .accessibilityAddTraits(.isHeader)
-
                         metricGrid(viewModel.contentViewMetricItems)
                     }
                 }
+                Text(viewModel.selectedPeriod == .today ? AnalyticsPresentationText.todayComparison : AppStrings.OwnerAnalytics.deltaComparisonCaption)
+                    .font(.caption).foregroundStyle(AppTheme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -353,7 +343,7 @@ struct OwnerAnalyticsView: View {
         case .today:
             return AppStrings.OwnerAnalytics.emptyTodayMessage
         case .sevenDays, .thirtyDays:
-            return AppStrings.OwnerAnalytics.emptyRollupMessage
+            return AnalyticsPresentationText.emptyPeriod
         }
     }
 

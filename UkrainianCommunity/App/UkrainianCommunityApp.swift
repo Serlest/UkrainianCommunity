@@ -184,7 +184,7 @@ struct UkrainianCommunityApp: App {
         if isUITesting {
             container = .uiTesting
         } else {
-            container = .live
+            container = .live(authState: AuthService.shared.authState)
         }
 
         let shouldForceGuestSession = environment["UITestForceGuestSession"] == "1"
@@ -281,6 +281,12 @@ struct UkrainianCommunityApp: App {
                         AccessibilityAuditProbe()
                     }
 #endif
+                }
+                .onChange(of: ProfileAccessIdentity(user: authState.user), initial: true) { _, _ in
+                    container.ownerAnalyticsRepository.updateAccess(user: authState.user, state: authState.sessionState)
+                }
+                .onChange(of: authState.sessionState, initial: true) { _, state in
+                    container.ownerAnalyticsRepository.updateAccess(user: authState.user, state: state)
                 }
                 .onChange(of: presenceUserID, initial: true) { _, userID in
                     presence.update(userID: userID, isActive: scenePhase == .active)

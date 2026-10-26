@@ -1,0 +1,142 @@
+{
+  "sourceLanguage": "de",
+  "strings": {
+    "cadence": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Банери: UTC, оновлення кожні 5 хв. Загальні зведення за 7 і 30 днів та зведення користувачів: час Відня, оновлення щогодини. Час останніх даних указано біля звіту."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Banner: UTC, Aktualisierung alle 5 Min. Gesamtberichte für 7 und 30 Tage sowie Nutzerberichte: Wiener Zeit, stündliche Aktualisierung. Der Datenstand steht beim jeweiligen Bericht."
+          }
+        }
+      }
+    },
+    "periodNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Час Відня. Сьогодні — неповний день; порівняння з усім учорашнім днем. 7 і 30 днів включають сьогодні та порівнюються з попереднім таким самим періодом."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wiener Zeit. Heute ist noch unvollständig; der Vergleich bezieht sich auf den gesamten gestrigen Tag. 7 und 30 Tage schließen heute ein und vergleichen den vorherigen gleich langen Zeitraum."
+          }
+        }
+      }
+    },
+    "searchScope": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук у завантаженому звіті. За 7 і 30 днів у рейтингу показано до 20 матеріалів кожного типу; це не пошук у всьому архіві."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suche im geladenen Bericht. Für 7 und 30 Tage enthält die Rangliste bis zu 20 Beiträge je Typ; sie durchsucht nicht das gesamte Archiv."
+          }
+        }
+      }
+    },
+    "emptyPeriod": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "За цей період даних ще немає. Якщо активність була нещодавно, оновіть звіт після наступного погодинного оновлення."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Für diesen Zeitraum liegen noch keine Daten vor. Neue Aktivität erscheint nach der nächsten stündlichen Aktualisierung."
+          }
+        }
+      }
+    },
+    "currentNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Облікові записи зараз, незалежно від обраного періоду."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelle Konten, unabhängig vom gewählten Zeitraum."
+          }
+        }
+      }
+    },
+    "currentTitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Облікові записи зараз"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aktuelle Konten"
+          }
+        }
+      }
+    },
+    "todayComparison": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сьогодні ще триває. Порівняння — з усім учорашнім днем."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Heute läuft noch. Vergleich mit dem gesamten gestrigen Tag."
+          }
+        }
+      }
+    },
+    "bannerCadence": {
+      "extractionState": "manual",
+      "localizations": {
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Банери — за UTC. Зведення оновлюються кожні 5 хвилин."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Banner: UTC. Die Berichte werden alle 5 Minuten aktualisiert."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

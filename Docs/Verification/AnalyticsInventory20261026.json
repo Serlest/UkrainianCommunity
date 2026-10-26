@@ -2,7 +2,7 @@
   "block": 15,
   "totalBlocks": 19,
   "name": "Аналітика",
-  "status": "initial_audit_findings_ready_for_implementation_validation_not_closed",
+  "status": "implemented_locally_verified_pending_device_acceptance",
   "baselineCommit": "27d2a9e9",
   "roles": {
     "owner": "visible; direct route allowed with active verified account, current legal acceptance and required MFA",
@@ -522,11 +522,10 @@
     "New TestFlight build"
   ],
   "remainingValidation": [
-    "Reproduce and fix search->period interaction, then pass the same full journey",
-    "Organization->news/event child navigation and return with preserved period",
-    "Actual main graph metric menu/day selection, expanded ranking/user-region lists, refresh/retry and session-switch visual paths after changes",
-    "Physical signed build including both languages/themes, large text and real protected Firestore reads",
-    "Narrow/landscape/reduced transparency device matrix",
-    "Active deployed Rules digest could not be read (403); emulator Rules policy is verified separately"
-  ]
+    "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
+    "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
+    "Hosted quality result for this implementation; no new TestFlight upload was requested.",
+    "Live deployed Rules digest API returned403; repository Rules emulator verification is separate."
+  ],
+  "resolutionReport": "Docs/Verification/AnalyticsFixes20261027.json"
 }

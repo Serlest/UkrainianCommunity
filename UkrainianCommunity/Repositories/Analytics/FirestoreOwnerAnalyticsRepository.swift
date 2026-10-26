@@ -405,25 +405,7 @@ enum AnalyticsFirestorePayloadResolver {
     }
 
     nonisolated private static func isNonNegativeInteger(_ value: Any?) -> Bool {
-        if isBoolean(value) {
-            return false
-        }
-
-        switch value {
-        case let value as Int:
-            return value >= 0
-        case let value as Int64:
-            return value >= 0
-        case let value as Double:
-            return value.isFinite && value >= 0 && value.rounded(.towardZero) == value
-        case let value as NSNumber:
-            let doubleValue = value.doubleValue
-            return doubleValue.isFinite
-                && doubleValue >= 0
-                && doubleValue.rounded(.towardZero) == doubleValue
-        default:
-            return false
-        }
+        AnalyticsCountDecoder.decode(value) != nil
     }
 
     nonisolated private static func isBoolean(_ value: Any?) -> Bool {
@@ -554,6 +536,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
                 )
             }
 
+            guard AnalyticsCountDecoder.validates(data) else { throw AppError.validationFailed }
             return makeContentDetailSnapshot(
                 period: period,
                 fallbackContentID: contentID,
@@ -602,6 +585,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
                 )
             }
 
+            guard AnalyticsCountDecoder.validates(data) else { throw AppError.validationFailed }
             return makeOrganizationDetailSnapshot(
                 period: period,
                 fallbackOrganizationID: organizationID,
@@ -792,6 +776,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             return AnalyticsTimestampedValue(value: [], updatedAt: nil, isAvailable: false)
         }
 
+        guard AnalyticsCountDecoder.validates(data) else { throw AppError.validationFailed }
         guard period == .today || AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(
             data, dayCount: period.dayCount, anchor: anchor, calendar: calendar
         ) else { throw OwnerAnalyticsRepositoryReadError.rollupRefreshing }
@@ -867,6 +852,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             return AnalyticsTimestampedValue(value: [], updatedAt: nil, isAvailable: false)
         }
 
+        guard AnalyticsCountDecoder.validates(data) else { throw AppError.validationFailed }
         guard period == .today || AnalyticsFirestorePayloadResolver.hasExpectedSourceDays(
             data, dayCount: period.dayCount, anchor: anchor, calendar: calendar
         ) else { throw OwnerAnalyticsRepositoryReadError.rollupRefreshing }
@@ -937,7 +923,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
             generatedAt: generatedAt,
             expectedSourceCount: period.dayCount
         )
-        guard isAvailable, let lifecycleCoverage else {
+        guard isAvailable, AnalyticsCountDecoder.validates(data), let lifecycleCoverage else {
             return AnalyticsTimestampedValue(value: .empty, updatedAt: nil, isAvailable: false)
         }
         return AnalyticsTimestampedValue(
@@ -970,6 +956,7 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
     }
 
     private func makeDailyStats(defaultDate: Date, data: [String: Any]) -> AnalyticsDailyStats? {
+        guard AnalyticsCountDecoder.validates(data) else { return nil }
         var metrics = metricValues(from: data[AnalyticsFirestoreSchema.DailyStatsField.metrics] as? [String: Any] ?? data)
         let activeRegionKeysPayload = data[AnalyticsFirestoreSchema.DailyStatsField.activeRegionKeys]
         let activeRegionKeys = AnalyticsFirestorePayloadResolver.activeRegionKeys(
@@ -1354,18 +1341,9 @@ struct FirestoreOwnerAnalyticsRepository: OwnerAnalyticsRepository {
     }
 
     private func intValue(_ value: Any?) -> Int {
-        switch value {
-        case let value as Int:
-            value
-        case let value as Int64:
-            Int(value)
-        case let value as Double:
-            Int(value)
-        case let value as NSNumber:
-            value.intValue
-        default:
-            0
-        }
+        // All read boundaries validate present counters before constructing models.
+        // Optional legacy fields that are absent are still legitimately zero.
+        AnalyticsCountDecoder.decode(value) ?? 0
     }
 
     private func timestampDate(_ value: Any?) -> Date? {

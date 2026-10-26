@@ -1,0 +1,140 @@
+{
+  "block": 15,
+  "totalBlocks": 19,
+  "date": "2026-10-27",
+  "name": "Аналітика",
+  "status": "implemented_locally_verified_pending_device_acceptance_and_hosted_ci",
+  "auditBaseline": "bae2f018",
+  "sourceReport": "Docs/Verification/AnalyticsAudit20261026.json",
+  "productionChanges": false,
+  "testFlightChanged": false,
+  "fixes": {
+    "A15-F01": "Shared SwiftUI period buttons with explicit selected state and keyboard dismissal; same full search/clear/search/clear/period/detail journey passed, with return preserving period.",
+    "A15-F02": "Analytics empty cards use unrestricted description wrapping; nontechnical localized period-empty copy in a named uk/de catalog.",
+    "A15-F03": "Current account card no longer nests a full metric tile; shorter heading, side-by-side icon/value, compact overview tiles, one comparison caption for the group.",
+    "A15-F04": "Separate current account vs period semantics; actual cache data time preserved; explicit incomplete-Today versus complete-yesterday comparison, Vienna and UTC boundaries and correct hourly/five-minute cadence.",
+    "A15-F05": "Bounded 48-entry, 60-second memory cache shared across destinations; identical reads coalesce; manual refresh invalidates; midnight invalidates correct clock; principal/role/session generation fences and direct current-access readback; no private disk cache. Removed duplicate initial .task plus lifecycle load from root/details.",
+    "A15-F06": "Checked counter decoder rejects booleans, fractions, NaN/infinity, negatives, unrepresentable JS integers and aggregate overflow. Invalid present data fails its source instead of authoritative zero; absent legacy optional counters remain zero.",
+    "A15-F07": "Explains loaded-report search and top20 per type for 7/30 days; no claim that ranking sums equal all activity.",
+    "A15-F08": "Persistent tap-to-select chart day, metric selection and fewer x-axis labels to avoid collisions."
+  },
+  "checks": [
+    {
+      "name": "Full current unit suite plus five core UI journeys",
+      "result": "passed",
+      "passed": 922,
+      "unitPassed": 917,
+      "uiPassed": 5,
+      "skipped": 40,
+      "evidence": "FinalCodeAndVisuals.xcresult",
+      "scope": "Fixture simulator, not production or device"
+    },
+    {
+      "name": "Rules role matrix",
+      "result": "passed",
+      "passed": 12,
+      "failed": 0,
+      "evidence": "ImplementationRoles.log",
+      "scope": "Isolated demo emulator using repository Rules; not live deployed Rules bytes"
+    },
+    {
+      "name": "Release iPhone architecture build",
+      "result": "passed",
+      "evidence": "FinalScopedRelease.log",
+      "scope": "Unsigned generic iOS compile, not installed device or TestFlight"
+    },
+    {
+      "name": "Localization de/uk",
+      "result": "passed",
+      "catalogEntries": 3418
+    },
+    {
+      "name": "Release configuration",
+      "result": "passed",
+      "build": 128
+    },
+    {
+      "name": "Property lists",
+      "result": "passed",
+      "files": 3
+    },
+    {
+      "name": "Repository structure and diff whitespace",
+      "result": "passed"
+    },
+    {
+      "name": "Owner session cache numeric and cancellation cases",
+      "result": "passed",
+      "passed": 6,
+      "includedIn": "Full current unit suite"
+    },
+    {
+      "name": "Final nested root/detail states and six non-owner profile roles",
+      "result": "passed",
+      "passedCases": [
+        "testRootLoadingEmptyErrorAndPartialPresentation",
+        "testNewsEventAndOrganizationDetailAllSectionsAndEmptyErrorStates",
+        "testNonOwnerProfileRolesHideGlobalAnalyticsWithUsableProfile"
+      ],
+      "evidence": "FinalNestedStatesAndRoles.xcresult",
+      "note": "Three named cases passed; fourth disclosure-driver case failed and was corrected/retested in the separate final bundle."
+    },
+    {
+      "name": "Actual retry/pull refresh, organization children/return and both region/day disclosures",
+      "result": "passed",
+      "passed": 3,
+      "failed": 0,
+      "evidence": "FinalControlsAndRecovery2.xcresult",
+      "note": "Includes a loaded news child metric, retained30day period, both collapsed/expanded region rows and native banner day-row show/hide assertions."
+    }
+  ],
+  "boundaries": [
+    "All UI automation uses isolated fixture data; production aggregate readback and exact deployed sources are in the baseline report.",
+    "No production data, Functions or Rules changed. Active Rules API remains403; source Rules emulator proof is separate.",
+    "No current physical iPhone review or new TestFlight delivery is claimed."
+  ],
+  "artifactBase": "build/audit-analytics15-20261026",
+  "evidenceNotes": [
+    "Earlier compile/test failures are retained in result bundles; they are not counted as passed.",
+    "Transient gesture testing was replaced by an explicit persistent tap behavior, tested from a fully visible chart.",
+    "Retry UI uncovered duplicate initial reads; fixed with one lifecycle task per period."
+  ],
+  "visualEvidenceViewed": [
+    "FinalVisualCaptures/7BDB7892-FCC5-46E7-B4BA-BA6AEA10E777.png (uk light overview)",
+    "FinalVisualCaptures/C0073F89-41A7-4644-BB5F-4028A8AAED4C.png (uk dark maximum AX)",
+    "FinalVisualCaptures/0D73088D-E4DB-4040-A641-84D58DCB1C08.png (de organization30)",
+    "ChartAndLinkedCaptures/4A2BDE0B-25A3-4416-A051-4752A2F8D2D8.png (de dark selected-day chart)",
+    "FinalNestedCaptures/325AA555-DF60-4F93-A209-D00963332182.png (complete empty explanation without ellipsis)",
+    "FinalControlsCaptures/33D1B75A-4C0D-4C90-9A51-72F0FAFE5FCF.png (five user regions expanded)",
+    "FinalControlsCaptures/A5F6F127-8E04-4ECD-B673-A856CEF5897C.png (actual expanded daily banner row)"
+  ],
+  "lastVerifiedDeliveredBuild": 128,
+  "hostedCI": {
+    "status": "pending_for_containing_implementation_commit",
+    "baselineRun": 40414735877,
+    "baselineHead": "bae2f018",
+    "baselineConclusion": "success",
+    "note": "Baseline CI does not certify the new implementation. Read back the run for the new pushed commit."
+  },
+  "localSummary": {
+    "unitPassed": 917,
+    "uiScenarioFamiliesPassed": 11,
+    "rulesRolesPassed": 12,
+    "sdkOptInSkipped": 40,
+    "releaseBuild": "passed",
+    "scope": "Local simulator fixtures, isolated Rules emulator and unsigned generic iOS build; not physical-device proof."
+  },
+  "remainingAcceptance": [
+    "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
+    "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
+    "Hosted quality result for this implementation; no new TestFlight upload was requested."
+  ],
+  "preservedBuildWarnings": [
+    "Existing SystemLogDeliveryQueue captured-self concurrency warning",
+    "Existing DirectoryEditorAccessStore generic Decodable isolation warning"
+  ],
+  "preservedUncommittedFiles": [
+    "UkrainianCommunity.xcodeproj/project.pbxproj (pre-existing ordering changes)",
+    "UkrainianCommunity/Localization/Localizable.xcstrings (pre-existing/generated extraction metadata; translated values not edited)"
+  ]
+}

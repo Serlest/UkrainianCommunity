@@ -289,22 +289,25 @@
     {
       "number": 15,
       "name": "Аналитика",
-      "status": "initial_audit_findings_ready_for_implementation_validation_not_closed",
+      "status": "implemented_locally_verified_pending_device_acceptance_and_hosted_ci",
       "openChecks": [
-        "A15-F01",
-        "A15-F02",
-        "A15-F03",
-        "A15-F04",
-        "A15-F05",
-        "A15-F06",
-        "A15-F07",
-        "A15-ORG-CHILDREN",
-        "A15-PHYSICAL-MATRIX"
+        "Physical signed iPhone with real protected owner reads, both languages/themes and large text.",
+        "Narrow/landscape/reduced-transparency device matrix; long ranking expansion with real20item data. The shared disclosure controls and both region lists are tested locally.",
+        "Hosted quality result for this implementation; no new TestFlight upload was requested."
       ],
       "inventory": "Docs/Verification/AnalyticsInventory20261026.json",
       "report": "Docs/Verification/AnalyticsAudit20261026.json",
       "testFlightChanged": false,
-      "serverFunctionsChanged": false
+      "serverFunctionsChanged": false,
+      "resolutionReport": "Docs/Verification/AnalyticsFixes20261027.json",
+      "localValidation": {
+        "unitPassed": 917,
+        "uiScenarioFamiliesPassed": 11,
+        "rulesRolesPassed": 12,
+        "sdkOptInSkipped": 40,
+        "releaseBuild": "passed",
+        "scope": "Local simulator fixtures, isolated Rules emulator and unsigned generic iOS build; not physical-device proof."
+      }
     },
     {
       "number": 16,
