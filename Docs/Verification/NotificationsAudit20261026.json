@@ -4,7 +4,7 @@
   "totalBlocks": 19,
   "date": "2026-10-26",
   "name": "Уведомления и оповещения",
-  "status": "verified_in_available_environment_pending_final_ci_and_user_signed_build_acceptance",
+  "status": "verified_in_available_environment_pending_user_testflight_acceptance",
   "inventory": "Docs/Verification/NotificationsInventory20261026.json",
   "sourceBaseline": "c44f357d",
   "serverSourceCommit": "ace22c40",
@@ -265,10 +265,14 @@
     "eventarc": "The four changed endpoints are callables, not Eventarc triggers."
   },
   "delivery": {
-    "currentTestFlight": "1.2.1 (124)",
-    "containsBlock13ClientChanges": false,
-    "newTestFlightUploadedThisTurn": false,
-    "publicReleaseChanged": false
+    "currentTestFlight": "1.2.1 (125)",
+    "containsBlock13ClientChanges": true,
+    "newTestFlightUploadedThisTurn": true,
+    "publicReleaseChanged": false,
+    "report": "Docs/Verification/TestFlight12520261026.json",
+    "processingState": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
+    "testFlightAvailable": true
   },
   "userAcceptance": {
     "status": "deferred_by_user",
@@ -297,7 +301,9 @@
     "finalClientCommit": "a9e6c17a",
     "finalClientRun": 40336217745,
     "finalFollowupSourceCommit": "fae67146",
-    "finalFollowupStatus": "pending after final source/test/report push; earlier client and server runs are confirmed successful"
+    "finalFollowupStatus": "success",
+    "finalFollowupRun": 40344320964,
+    "finalFollowupVerificationCommit": "9720d228"
   },
   "nextBlock": 14,
   "nextBlockName": "Баннеры",

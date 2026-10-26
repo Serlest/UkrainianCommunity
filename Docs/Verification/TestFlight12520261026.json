@@ -1,0 +1,74 @@
+{
+  "version": "1.2.1",
+  "build": "125",
+  "sourceCommit": "84498e1e7737fb6de0182e01998c730733a68180",
+  "productSourceCommit": "fae67146",
+  "verificationSourceCommit": "9720d228",
+  "requestedByUser": "Делай билд",
+  "audience": "internal TestFlight",
+  "publicRelease": false,
+  "archive": "build/UAC-125.xcarchive",
+  "archiveResult": "ARCHIVE SUCCEEDED",
+  "exportResult": "EXPORT SUCCEEDED; Upload succeeded; Uploaded package is processing",
+  "uploadMethod": "signed-in Xcode account fallback after API cloud-signing denial",
+  "exportOptions": "build/ExportOptions-TestFlight-Internal.plist",
+  "serverCompatibility": "validate_release_configuration.py --verify-deployed-analytics passed for125",
+  "productSourceCI": {
+    "runId": 40344320964,
+    "conclusion": "success"
+  },
+  "buildNumberCI": {
+    "runId": 40349830794,
+    "conclusion": "in_progress"
+  },
+  "testNotes": {
+    "source": "build/testflight-125/notes.json",
+    "published": true,
+    "locales": [
+      "uk",
+      "de-DE",
+      "en-US"
+    ]
+  },
+  "implementedBlocksIncluded": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13
+  ],
+  "processingState": "VALID",
+  "testFlightAvailable": true,
+  "readback": "build/testflight-125/asc-final.json",
+  "physicalVerification": "User acceptance pending; actual APNs on physical iPhone not claimed. Use two controlled accounts/devices.",
+  "boundaries": [
+    "No public App Store release.",
+    "No production campaigns or messages sent for testing.",
+    "Existing package ordering and localization extraction metadata preserved and excluded from commits.",
+    "Block13 includes56 reviewed scenario groups and1 deferred user-device acceptance group."
+  ],
+  "internalBuildState": "IN_BETA_TESTING",
+  "assignedGroups": [
+    {
+      "name": "Beta Tester",
+      "internal": true,
+      "containsBuild": true
+    }
+  ],
+  "appleUploadState": [
+    {
+      "errors": [],
+      "warnings": [],
+      "infos": [],
+      "state": "COMPLETE"
+    }
+  ]
+}
