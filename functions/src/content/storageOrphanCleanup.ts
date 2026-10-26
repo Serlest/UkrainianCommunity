@@ -1,3 +1,4 @@
+import {referencedFeaturedBannerAssets} from "../featured/featuredBannerAssets";
 import {onDocumentDeleted} from "firebase-functions/v2/firestore";
 import {onSchedule} from "firebase-functions/v2/scheduler";
 
@@ -45,6 +46,7 @@ export const cleanupStaleFeaturedBannerOrphans = onSchedule(
   },
   async () => {
     const bucket = adminStorage.bucket();
+    const referenced = await referencedFeaturedBannerAssets();
     let pageToken: string | undefined;
     let scanned = 0;
     let deleted = 0;
@@ -76,7 +78,7 @@ export const cleanupStaleFeaturedBannerOrphans = onSchedule(
       for (const file of files) {
         const bannerId = featuredBannerIdFromObjectName(file.name);
         const createdAt = Date.parse(file.metadata.timeCreated ?? "");
-        if (!bannerId || existingIds.has(bannerId) || !isStaleOrphan(createdAt, now)) {
+        if (!bannerId || existingIds.has(bannerId) || referenced.has(file.name) || !isStaleOrphan(createdAt, now)) {
           continue;
         }
         await file.delete({ignoreNotFound: true});

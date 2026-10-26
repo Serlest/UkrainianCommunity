@@ -1,3 +1,4 @@
+import {createHash} from "node:crypto";
 import {archiveBannerMeasurementConfiguration} from "./bannerMeasurementHistory";
 import { Timestamp, type DocumentData, type Transaction } from "firebase-admin/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
@@ -35,11 +36,25 @@ interface FeaturedBannerDraft {
   isActive: boolean;
   startsAt?: Timestamp;
   endsAt?: Timestamp;
+  configuredEndsAt?: Timestamp;
+  presentationVersion?: 1;
+  countdown?: BannerCountdown;
 }
+
+interface BannerCountdown {
+  targetDate: Timestamp;
+  label: string;
+  germanLabel: string;
+  completion: "hideCountdown" | "showStarted" | "hideBanner";
+}
+export const bannerPresentationCollection = "featuredBannerPresentations";
 
 interface FeaturedBannerSaveRequest {
   mode: FeaturedBannerSaveMode;
   banner: FeaturedBannerDraft;
+  operationID?: string;
+  expectedUpdatedAt?: Timestamp;
+  principalID?: string;
 }
 
 interface FeaturedBannerIDRequest {
@@ -245,6 +260,20 @@ function storedLocalizations(
   }
 }
 
+export function parseBannerCountdown(value: unknown): BannerCountdown | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!isRecord(value) || Object.keys(value).some(k => !["targetDate", "label", "germanLabel", "completion"].includes(k))) {
+    throw new HttpsError("invalid-argument", "Invalid countdown settings.");
+  }
+  const targetDate = optionalTimestamp(value.targetDate, "countdown.targetDate");
+  if (!targetDate || targetDate.toDate().getUTCFullYear() < 2000 || targetDate.toDate().getUTCFullYear() > 2200) {
+    throw new HttpsError("invalid-argument", "Invalid countdown date.");
+  }
+  return {targetDate, label: optionalString(value.label, "countdown.label", 40) ?? "",
+    germanLabel: optionalString(value.germanLabel, "countdown.germanLabel", 40) ?? "",
+    completion: enumValue(value.completion, "countdown.completion", new Set(["hideCountdown", "showStarted", "hideBanner"] as const))};
+}
+
 export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
   if (!isRecord(value)) {
     throw new HttpsError("invalid-argument", "banner must be an object.");
@@ -258,7 +287,14 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
     : webURL(value.externalURL, "externalURL");
   const federalState = optionalString(value.federalState, "federalState", 64);
   const startsAt = optionalTimestamp(value.startsAt, "startsAt");
-  const endsAt = optionalTimestamp(value.endsAt, "endsAt");
+  let endsAt = optionalTimestamp(value.endsAt, "endsAt");
+  const configuredEndsAt = endsAt;
+  if (value.presentationVersion !== undefined && value.presentationVersion !== 1) throw new HttpsError("invalid-argument", "Unsupported presentation version.");
+  const countdown = value.presentationVersion === 1 ? parseBannerCountdown(value.countdown) : undefined;
+  if (countdown && startsAt && countdown.targetDate.toMillis() <= startsAt.toMillis()) throw new HttpsError("invalid-argument", "Countdown must follow display start.");
+  if (countdown?.completion === "hideBanner") {
+    endsAt = Timestamp.fromMillis(Math.min(endsAt?.toMillis() ?? Infinity, countdown.targetDate.toMillis()));
+  }
 
   if (targetActionTypes.has(actionType) && !actionTargetID) {
     throw new HttpsError("invalid-argument", "actionTargetID is required for this actionType.");
@@ -297,6 +333,7 @@ export function parseFeaturedBannerDraft(value: unknown): FeaturedBannerDraft {
     isActive: value.isActive,
     startsAt,
     endsAt,
+    ...(value.presentationVersion === 1 ? {presentationVersion: 1 as const, countdown, configuredEndsAt} : {}),
   };
 }
 
@@ -310,6 +347,9 @@ export function parseFeaturedBannerSaveRequest(value: unknown): FeaturedBannerSa
   return {
     mode: value.mode,
     banner: parseFeaturedBannerDraft(value.banner),
+    operationID: value.operationID === undefined ? undefined : safeDocumentID(value.operationID),
+    expectedUpdatedAt: optionalTimestamp(value.expectedUpdatedAt, "expectedUpdatedAt"),
+    principalID: optionalString(value.principalID, "principalID", 128),
   };
 }
 
@@ -428,11 +468,24 @@ export const saveFeaturedBanner = onCall(
   async (request): Promise<FeaturedBannerMutationResponse> => {
     const actorID = await requireVerifiedOwner(request);
     const input = parseFeaturedBannerSaveRequest(request.data);
+    if (input.principalID && input.principalID !== actorID) throw new HttpsError("permission-denied", "Session changed.");
     const reference = db.collection("featuredBanners").doc(input.banner.id);
+    const presentationRef = db.collection(bannerPresentationCollection).doc(input.banner.id);
+    const fingerprint = createHash("sha256").update(JSON.stringify(input.banner)).digest("hex");
     const committedAt = Timestamp.now();
 
     await db.runTransaction(async (transaction) => {
       const snapshot = await transaction.get(reference);
+      const presentation = await transaction.get(presentationRef);
+      if (input.operationID && presentation.get("operationID") === input.operationID && presentation.get("actorID") === actorID) {
+        if (presentation.get("fingerprint") !== fingerprint) throw new HttpsError("aborted", "Reviewed command changed.");
+        if (!snapshot.exists) throw new HttpsError("not-found", "Featured banner no longer exists.");
+        return;
+      }
+      if (input.expectedUpdatedAt && snapshot.exists && snapshot.get("updatedAt") instanceof Timestamp
+          && Math.abs(snapshot.get("updatedAt").toMillis() - input.expectedUpdatedAt.toMillis()) > 1) {
+        throw new HttpsError("aborted", "Featured banner has changed. Reload before editing.");
+      }
       if (input.mode === "create" && snapshot.exists) {
         throw new HttpsError("already-exists", "Featured banner already exists.");
       }
@@ -443,10 +496,25 @@ export const saveFeaturedBanner = onCall(
       await assertPublishableActionTarget(transaction, input.banner);
 
       await archiveBannerMeasurementConfiguration(transaction, snapshot, committedAt);
-      transaction.set(
-        reference,
-        canonicalFeaturedBannerData(input.banner, actorID, committedAt, snapshot.data())
-      );
+      const canonical = canonicalFeaturedBannerData(input.banner, actorID, committedAt, snapshot.data());
+      // Old binaries enforce an exact set of banner keys. New presentation data stays private and separate.
+      const countdown = input.banner.presentationVersion === 1 ? input.banner.countdown : presentation.get("countdown");
+      if (countdown?.completion === "hideBanner" && countdown.targetDate instanceof Timestamp) {
+        canonical.endsAt = Timestamp.fromMillis(Math.min(canonical.endsAt?.toMillis() ?? Infinity, countdown.targetDate.toMillis()));
+      }
+      if (canonical.startsAt instanceof Timestamp && canonical.endsAt instanceof Timestamp && canonical.startsAt.toMillis() >= canonical.endsAt.toMillis()) {
+        throw new HttpsError("failed-precondition", "The existing countdown ends before this display window. Review countdown settings.");
+      }
+      transaction.set(reference, canonical);
+      const legacyEndUnchanged = (input.banner.endsAt?.toMillis() ?? null) === (snapshot.get("endsAt")?.toMillis() ?? null);
+      const configuredEndsAt = input.banner.presentationVersion === 1 ? input.banner.configuredEndsAt
+        : legacyEndUnchanged && presentation.exists && "configuredEndsAt" in (presentation.data() ?? {})
+          ? presentation.get("configuredEndsAt") : input.banner.endsAt;
+      transaction.set(presentationRef, {
+        configuredEndsAt: configuredEndsAt ?? null,
+        ...(countdown ? {countdown} : {}),
+        ...(input.operationID ? {operationID: input.operationID, fingerprint} : {}), actorID, updatedAt: committedAt,
+      });
     });
 
     return {
@@ -514,8 +582,34 @@ export const deleteFeaturedBanner = onCall(
       }
       await archiveBannerMeasurementConfiguration(transaction, snapshot, committedAt);
       transaction.delete(reference);
+      transaction.delete(db.collection(bannerPresentationCollection).doc(input.id));
     });
 
     return { id: input.id, updatedAt: committedAt.toDate().toISOString() };
   }
 );
+
+
+/** Bounded additive endpoint. Public callers only see countdowns of currently public banner IDs.
+ * No owner identity, operation markers, drafts or statistics leave this endpoint. */
+export const getFeaturedBannerPresentations = onCall(callableOptions, async request => {
+  const input = request.data;
+  if (!isRecord(input) || !Array.isArray(input.ids) || input.ids.length > 100) throw new HttpsError("invalid-argument", "Expected up to 100 banner IDs.");
+  const ids = [...new Set(input.ids.map(safeDocumentID))];
+  const owner = input.includeInactive === true;
+  if (owner) await requireVerifiedOwner(request);
+  if (!ids.length) return {presentations: []};
+  const snapshots = await db.getAll(...ids.map(id => db.collection("featuredBanners").doc(id)));
+  const allowed = snapshots.filter(doc => doc.exists && (owner || (doc.get("isActive") === true && actionTypes.has(doc.get("actionType"))
+    && Array.isArray(doc.get("visibleSections")) && doc.get("visibleSections").some((x: unknown) => visibleSections.has(x as FeaturedBannerVisibleSection)))));
+  if (!allowed.length) return {presentations: []};
+  const presentations = await db.getAll(...allowed.map(doc => db.collection(bannerPresentationCollection).doc(doc.id)));
+  return {presentations: presentations.flatMap(doc => {
+    const value = doc.get("countdown");
+    if (!doc.exists) return [];
+    return [{id: doc.id,
+      ...(value?.targetDate instanceof Timestamp ? {countdown: {...value, targetDate: value.targetDate.toDate().toISOString()}} : {}),
+      ...( "configuredEndsAt" in (doc.data() ?? {}) ? {configuredEndsAt: doc.get("configuredEndsAt") instanceof Timestamp ? doc.get("configuredEndsAt").toDate().toISOString() : null} : {}),
+    }];
+  })};
+});
