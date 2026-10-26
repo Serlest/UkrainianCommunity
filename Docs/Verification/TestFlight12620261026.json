@@ -24,10 +24,10 @@
   },
   "buildNumberCI": {
     "runId": 40379810314,
-    "status": "in_progress",
-    "conclusion": "pending",
+    "status": "completed",
+    "conclusion": "success",
     "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40379810314",
-    "boundary": "Separate full validation for version-number-only change; source implementation run already passed. Main workflow preserves active validation when this delivery report is pushed."
+    "boundary": "Completed successfully; source implementation and build-number validation are independently green."
   },
   "archiveInfo": {
     "CFBundleIdentifier": "at.serlest.UkrainianCommunity",

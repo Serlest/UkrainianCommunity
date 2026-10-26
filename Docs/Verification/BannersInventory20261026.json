@@ -511,13 +511,11 @@
       "id": "B14-39",
       "family": "Carousel",
       "scenario": "next-edge hint",
-      "status": "reviewed_source_and_targeted_evidence",
+      "status": "intentionally_removed_to_preserve_artwork_dimensions",
       "evidence": [
-        "UkrainianCommunity/Views/Featured/FeaturedBannerCarouselView.swift",
-        "FinalAccessibleEditorAndTargets.xcresult",
-        "NativePickersAndRotation.xcresult"
+        "Docs/Verification/BannerArtworkCorrection20261026.json"
       ],
-      "coverageBoundary": "Evidence is family-level source/contract and targeted runtime coverage, not a claim of every combination on a physical device. Exact passing methods and earlier failed runs are recorded in the report."
+      "coverageBoundary": "Permanent next-card peek reduced fitted artwork width24points. Removed; full card width, inter-card gap and page indicators retained."
     },
     {
       "id": "B14-40",

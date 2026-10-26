@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-26",
+  "block": 14,
+  "sourceCommit": "26332afb",
+  "request": [
+    "Check why banner artwork is shorter, especially with countdown",
+    "Make countdown numbers without background"
+  ],
+  "status": "verified_local_pending_hosted_CI_and_signed_delivery",
+  "artifactBase": "build/audit-banners-20261026",
+  "cause": [
+    "A24point width deduction for the next-card peek shrank fitted16:9 artwork by13.5points vertically.",
+    "A240point outer minimum height for any countdown introduced letterboxing while artwork continued to fit its narrower width.",
+    "At accessibility sizes, image canvas was explicitly capped at120points.",
+    "Earlier carousel UI tests used a gradient fallback rather than a real aspect-ratio image; that evidence did not cover artwork scale."
+  ],
+  "fixes": [
+    "Restore full available slide width; keep12point spacing while scrolling and page indicators.",
+    "Remove countdown-dependent240point minimum in carousel, management and preview.",
+    "Use shared intrinsic16:9 artwork sizing in every context; preserve existing explicit/landscape height policy.",
+    "Keep image size for large text and narrow layouts; place countdown and text separately when they would collide with artwork.",
+    "Remove countdown panel, stroke and clock icon; retain optional label and monospaced time text. Over artwork, white text has glyph shadows; outside artwork it uses the theme primary text color."
+  ],
+  "geometryExample": {
+    "screenWidth": 390,
+    "horizontalFixturePadding": 16,
+    "oldSlideWidth": 334,
+    "newSlideWidth": 358,
+    "oldNormalSharpImageHeight": 187.875,
+    "newSharpImageHeight": 201.375,
+    "oldAccessibilityImageHeight": 120,
+    "newAccessibilityImageHeight": 201.375,
+    "boundary": "Measured/tested simulator fixture geometry, not a universal physical device pixel count."
+  },
+  "tests": {
+    "fullUnits": {
+      "artifact": "FullUnitAfterArtworkCorrection.xcresult",
+      "passed": 901,
+      "failed": 0,
+      "skipped": 40,
+      "skipBoundary": "Opt-in SDK tests skipped; no backend or mutation changes in this follow-up."
+    },
+    "finalGeometryAndPanelRemoval": {
+      "artifact": "FinalArtworkGeometryAndClearCounter.xcresult",
+      "passed": 6,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": [
+        "Actual pixel-rendered16:9 card with/without countdown and uncropped red/blue edges",
+        "Largest text retains full image height",
+        "Pixel inside former panel is original light artwork",
+        "Existing portrait-image crop regression",
+        "Real carousel geometry uk/light and de/dark/maxtext",
+        "Text-only counter on white/black artwork"
+      ]
+    },
+    "additionalPassingUI": [
+      "FullArtworkAndTextOnlyCountdown.xcresult: separated carousel/settled-only measurements",
+      "FullArtworkAndTextOnlyCountdown.xcresult: autoplay pause/manual swipe reset",
+      "FullArtworkAndTextOnlyCountdown.xcresult: editor/discard uk/de"
+    ],
+    "earlierFailedChecks": [
+      "RestoredArtworkSize.xcresult: UI AX button frame included8percent blurred-image overscan; replaced measurement with actual SwiftUI geometry plus independent rendered pixel dimensions.",
+      "FullArtworkAndTextOnlyCountdown.xcresult: German localization used comma decimal formatting in debug geometry; Text(verbatim:) now keeps the measurement locale-neutral. Final run retains numerical assertions and passes."
+    ],
+    "release": {
+      "status": "BUILD SUCCEEDED",
+      "artifact": "artwork-correction-release.log",
+      "signing": "disabled; compilation only",
+      "warnings": [
+        "/Users/serlest/Developer/UkrainianCommunity/UkrainianCommunity/Features/SystemLogs/Services/SystemLogDeliveryQueue.swift:52:38: warning: reference to captured var 'self' in concurrently-executing code; this is an error in the Swift 6 language mode [#SendableClosureCaptures]",
+        "|                                      `- warning: reference to captured var 'self' in concurrently-executing code; this is an error in the Swift 6 language mode [#SendableClosureCaptures]",
+        "/Users/serlest/Developer/UkrainianCommunity/UkrainianCommunity/Views/Profile/DirectoryEditorAccessStore.swift:50:35: warning: conformance of 'T' to protocol 'Decodable' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]",
+        "|                                   `- warning: conformance of 'T' to protocol 'Decodable' may be isolated and cannot be passed to @concurrent context [#IsolatedConformances]"
+      ]
+    },
+    "validators": [
+      "repository structure",
+      "uk/de localization3397entries",
+      "git diff --check"
+    ],
+    "hostedCI": "pending push/readback; source success is not implied by local tests"
+  },
+  "visualReview": {
+    "viewedBaseline": [
+      "artwork-size-baseline/06EBA434-7F0B-4049-BE7A-4FD21BC0262F.png",
+      "artwork-size-baseline/B92C01AC-B70C-4410-8EFF-2E0AA807AF93.png"
+    ],
+    "viewedFinal": [
+      "text-only-countdown-captures/5DDC8A09-2BA3-4A06-A23C-DD98CB4D8F02.png",
+      "final-clear-counter-captures/94BA0573-10BC-4BD1-88EC-F5D08EFDF60B.png",
+      "final-clear-counter-captures/40076BF1-4A4D-4C69-91C1-BAFCE126A4F1.png",
+      "final-clear-counter-captures/B1F9F2FF-4190-4055-9738-CF1127CE34E2.png"
+    ],
+    "boundary": "Simulator iPhone17e iOS26.5. Physical iPhone and exhaustive device/orientation matrix not claimed."
+  },
+  "delivery": {
+    "currentTestFlight": "1.2.1(126)",
+    "thisCorrectionIncluded": false,
+    "newBuildUploaded": false,
+    "serverChanged": false,
+    "seasonalThemeChanged": false,
+    "publicRelease": false
+  }
+}

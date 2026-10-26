@@ -22,7 +22,7 @@
   "fixes": [
     "Optional countdown with bilingual40UTF16 label, Vienna timezone date/time, days/hours/minutes, preview, validated target, three completion actions.",
     "Private presentation sidecar keeps strict legacy public banner schema unchanged. hideBanner writes compatible effective endsAt while retaining original explicit schedule privately.",
-    "Separated scroll-snapping cards with12pointgap and next-card peek; no full-carousel fade. Manual interaction/background/VoiceOver/ReduceMotion pause automatic rotation. Only settled visible loaded artwork qualifies for impression.",
+    "Separated full-width scroll-snapping cards with12pointgap (permanent next-card peek removed in follow-up to preserve artwork size); no full-carousel fade. Manual interaction/background/VoiceOver/ReduceMotion pause automatic rotation. Only settled visible loaded artwork qualifies for impression.",
     "Largest text uses natural vertical countdown/image/text layout and measured carousel height. Scaled editor decorative icon, separate native date labels, shared search, short screen titles, scrollable confirmations.",
     "Management incorrectly filtered global all-banner metric rows by individual ID, producing false zero values. Removed invalid per-row totals and direct route opens exact-ID report. Role/account changes clear report state.",
     "Target picker pages50 records and can load beyond former250 cap. Selected older target recovered by exactID; loaded-search scope visible.",
@@ -476,8 +476,8 @@
     "deliveryReport": "Docs/Verification/TestFlight12620261026.json",
     "buildNumberCI": {
       "runId": 40379810314,
-      "status": "in_progress",
-      "conclusion": "pending",
+      "status": "completed",
+      "conclusion": "success",
       "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40379810314",
       "boundary": "Separate full validation for version-number-only change; source implementation run already passed. Main workflow preserves active validation when this delivery report is pushed."
     }
@@ -491,5 +491,10 @@
     "Check target search/loadmore, destination/back, fourplacements and region targeting.",
     "Check uk/de, light/dark, large text and actual iPhone widths/orientations."
   ],
-  "clientCompatibilityFixCommit": "ff4e0a4f"
+  "clientCompatibilityFixCommit": "ff4e0a4f",
+  "followUp": {
+    "report": "Docs/Verification/BannerArtworkCorrection20261026.json",
+    "sourceCommit": "26332afb",
+    "delivery": "Not included in TestFlight126; source-only follow-up."
+  }
 }

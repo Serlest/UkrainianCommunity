@@ -268,7 +268,10 @@
       "compatibilityFixCommit": "ff4e0a4f",
       "sourceCI": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40375126735",
       "testFlightBuild": "1.2.1 (126)",
-      "deliveryReport": "Docs/Verification/TestFlight12620261026.json"
+      "deliveryReport": "Docs/Verification/TestFlight12620261026.json",
+      "followUpSourceCommit": "26332afb",
+      "followUpReport": "Docs/Verification/BannerArtworkCorrection20261026.json",
+      "followUpDelivery": "not included in126; new build not uploaded in this follow-up"
     },
     {
       "number": 15,
@@ -404,7 +407,7 @@
   "nextNewBlock": 15,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "TestFlight126 available internally with blocks1–14. User physical acceptance remains open; version-number CI40379810314 running. Block15 requires user instruction.",
+  "nextAction": "TestFlight126 available internally with blocks1–14; build-number CI passed. Subsequent banner artwork-size/text-only-counter correction is source-only pending new signed build. User physical acceptance remains open.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -440,7 +443,7 @@
     "block12PhysicalReadback": "pending user acceptance",
     "block13PhysicalReadback": "pending user acceptance and actual APNs delivery",
     "block14PhysicalReadback": "pending user acceptance and physical width/orientation matrix",
-    "buildNumberCI": "40379810314 in progress; product source CI40375126735 passed"
+    "buildNumberCI": "40379810314 completed successfully"
   },
   "currentBlock": 14
 }
