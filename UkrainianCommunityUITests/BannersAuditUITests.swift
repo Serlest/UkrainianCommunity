@@ -2,13 +2,51 @@ import XCTest
 
 @MainActor
 final class BannersAuditUITests: XCTestCase {
-    private func launch(_ scope:String, language:String="uk", maximum:Bool=false, owner:Bool=true)->XCUIApplication {
+    private func launch(_ scope:String, language:String="uk", maximum:Bool=false, owner:Bool=true, artwork:Bool=false, palette:String?=nil)->XCUIApplication {
         let app=XCUIApplication();app.launchArguments=["-ui-testing","-UIPreferredContentSizeCategoryName",maximum ? "UICTContentSizeCategoryAccessibilityXXXL":"UICTContentSizeCategoryL"]
         app.launchEnvironment=["UITestBanner14":"1","UITestBanner14Scope":scope,"UITestAppLanguage":language,"UITestAppAppearance":language=="de" ? "dark":"light",owner ? "UITestForceOwnerSession":"UITestForceAuthenticatedSession":"1"]
+        if artwork { app.launchEnvironment["UITestBanner14Artwork"] = "1" }
+        if let palette { app.launchEnvironment["UITestBanner14ArtworkPalette"] = palette }
         app.launch();return app
     }
     private func capture(_ app:XCUIApplication,_ name:String){let a=XCTAttachment(screenshot:app.screenshot());a.name=name;a.lifetime = .keepAlways;add(a)}
     private func reveal(_ element:XCUIElement,in app:XCUIApplication){for _ in 0..<25 {if element.exists && element.isHittable{return};app.swipeUp()};XCTAssertTrue(element.isHittable,app.debugDescription)}
+    func testActualArtworkWithAndWithoutCountdownAtNormalAndLargestType() {
+        for language in ["uk", "de"] {
+            let app = launch("carousel", language: language, maximum: language == "de", artwork: true)
+            let first = app.buttons["featuredBanner.card.banner14-1"].firstMatch
+            XCTAssertTrue(first.waitForExistence(timeout: 15))
+            let viewport = app.descendants(matching: .any)["featuredBanner.carousel"].firstMatch
+            let probe = app.descendants(matching: .any)["featuredBanner.artworkGeometry"].firstMatch
+            let ready = NSPredicate(format: "value CONTAINS %@ AND NOT value CONTAINS %@", "id=banner14-1", "width=0.0")
+            XCTAssertTrue(XCTNSPredicateExpectation(predicate: ready, object: probe).evaluate(timeout: 5))
+            let values = (probe.value as? String ?? "").split(separator: ";").reduce(into: [String: String]()) { result, field in
+                let pair = field.split(separator: "=", maxSplits: 1)
+                if pair.count == 2 { result[String(pair[0])] = String(pair[1]) }
+            }
+            XCTAssertEqual(Double(values["width"] ?? "") ?? 0, Double(viewport.frame.width), accuracy: 1, "The selected banner must retain full width: \(String(describing: probe.value))")
+            XCTAssertEqual(Double(values["artwork"] ?? "") ?? 0, Double(viewport.frame.width) / (16.0 / 9.0), accuracy: 1, "Large text and countdown must retain the full picture height")
+            let countdownHeight = first.frame.height
+            capture(app, "B14-real-artwork-countdown-" + language)
+            first.swipeLeft()
+            let second = app.buttons["featuredBanner.card.banner14-2"].firstMatch
+            XCTAssertTrue(second.waitForExistence(timeout: 5))
+            if language == "uk" {
+                XCTAssertEqual(second.frame.height, countdownHeight, accuracy: 1, "Countdown must not resize the normal-size picture")
+            }
+            capture(app, "B14-real-artwork-plain-" + language)
+            app.terminate()
+        }
+    }
+    func testTextOnlyCountdownOnLightAndDarkArtwork() {
+        for palette in ["light", "dark"] {
+            let app = launch("carousel", artwork: true, palette: palette)
+            XCTAssertTrue(app.buttons["featuredBanner.card.banner14-1"].firstMatch.waitForExistence(timeout: 15))
+            XCTAssertTrue(app.descendants(matching: .any)["featuredBanner.countdown"].firstMatch.exists)
+            capture(app, "B14-text-only-counter-" + palette)
+            app.terminate()
+        }
+    }
     func testSeparatedCarouselCountdownAndOnlySettledCardMeasurements(){
         for language in ["uk","de"] {
             let app=launch("carousel",language:language,maximum:language=="de")

@@ -1,7 +1,22 @@
 #if DEBUG && targetEnvironment(simulator)
 import SwiftUI
+import UIKit
 
 struct BannerAuditHarness14: View {
+    static let artwork: UIImage = UIGraphicsImageRenderer(size: CGSize(width: 1600, height: 900)).image { context in
+        let palette = ProcessInfo.processInfo.environment["UITestBanner14ArtworkPalette"] ?? "orange"
+        let background: UIColor = palette == "light" ? .white : (palette == "dark" ? .black : .systemOrange)
+        background.setFill()
+        context.fill(CGRect(x: 0, y: 0, width: 1600, height: 900))
+        if palette == "orange" {
+            UIColor.systemRed.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 1600, height: 90))
+            UIColor.systemBlue.setFill()
+            context.fill(CGRect(x: 0, y: 810, width: 1600, height: 90))
+        }
+        let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.boldSystemFont(ofSize: 100), .foregroundColor: UIColor.black]
+        ("1600 × 900" as NSString).draw(at: CGPoint(x: 360, y: 350), withAttributes: attributes)
+    }
     @State private var banners = Self.fixtures()
     @State private var repository = MockFeaturedBannerRepository(banners: fixtures())
     @State private var viewport = CGRect.zero

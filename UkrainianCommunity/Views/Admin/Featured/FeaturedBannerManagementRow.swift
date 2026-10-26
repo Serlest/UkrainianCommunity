@@ -32,12 +32,7 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                if dynamicTypeSize.isAccessibilitySize {
-                    FeaturedBannerCardView(banner: banner).fixedSize(horizontal: false, vertical: true)
-                } else {
-                    FeaturedBannerCardView(banner: banner).frame(minHeight: banner.countdown != nil ? 240 : nil)
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                }
+                FeaturedBannerCardView(banner: banner).fixedSize(horizontal: false, vertical: true)
 
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {

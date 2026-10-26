@@ -10,13 +10,8 @@ struct FeaturedBannerEditorPreviewSection: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 AppEditorSectionTitle(title: AppStrings.FeaturedEditor.previewSection)
-                if dynamicTypeSize.isAccessibilitySize {
-                    FeaturedBannerCardView(banner: viewModel.previewBanner, previewImage: previewImage).fixedSize(horizontal: false, vertical: true)
-                } else {
-                    FeaturedBannerCardView(banner: viewModel.previewBanner, previewImage: previewImage)
-                        .frame(minHeight: viewModel.hasCountdown ? 240 : nil)
-                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
-                }
+                FeaturedBannerCardView(banner: viewModel.previewBanner, previewImage: previewImage)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(AppStrings.FeaturedEditor.previewHelper)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)

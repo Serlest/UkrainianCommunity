@@ -15,6 +15,7 @@ struct FeaturedBannerCountdownSchedule: TimelineSchedule {
 
 struct FeaturedBannerCountdownView: View {
     let countdown: FeaturedBannerCountdown
+    var overArtwork: Bool = true
     @Environment(\.locale) private var locale
     var body: some View {
         TimelineView(FeaturedBannerCountdownSchedule(target: countdown.targetDate)) { context in
@@ -28,14 +29,14 @@ struct FeaturedBannerCountdownView: View {
     private func badge(value: String) -> some View {
         VStack(alignment: .trailing, spacing: 3) {
             let label = countdown.label(for: AppLanguage.resolved(from: locale))
-            if !label.isEmpty { Text(label).font(.caption2.weight(.medium)) }
-            Label(value, systemImage: "timer").font(.caption.weight(.semibold)).monospacedDigit()
+            if !label.isEmpty { Text(label).font(.caption2.weight(.medium)).lineLimit(overArtwork ? 2 : nil) }
+            Text(value).font(.caption.weight(.semibold)).monospacedDigit()
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(overArtwork ? Color.white : AppTheme.textPrimary)
         .fixedSize(horizontal: false, vertical: true)
-        .padding(.horizontal, 12).padding(.vertical, 9)
-        .background(.black.opacity(0.78), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.white.opacity(0.3)) }
+        .padding(2)
+        .shadow(color: overArtwork ? .black.opacity(0.9) : .clear, radius: 1, y: 1)
+        .shadow(color: overArtwork ? .black.opacity(0.6) : .clear, radius: 2)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("featuredBanner.countdown")
     }

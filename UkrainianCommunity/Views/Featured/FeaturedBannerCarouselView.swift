@@ -12,7 +12,7 @@ enum FeaturedBannerCarouselSizing {
     )
 }
 
-private struct FeaturedBannerAspectLayout: Layout {
+struct FeaturedBannerAspectLayout: Layout {
     let aspectRatio: CGFloat
     let minimumHeight: CGFloat?
     let maximumHeight: CGFloat?
@@ -113,6 +113,19 @@ struct FeaturedBannerCarouselView: View {
                     onDecrement: { moveSelection(by: -1) }
                 )
             }
+            .overlay(alignment: .topLeading) {
+#if DEBUG && targetEnvironment(simulator)
+                if ProcessInfo.processInfo.environment["UITestBanner14Artwork"] == "1" {
+                    let frame = cardFrames[selectedBannerID ?? ""] ?? .zero
+                    Text(" ").font(.system(size: 1)).foregroundStyle(.clear)
+                        .frame(width: 1, height: 1).accessibilityElement()
+                        .accessibilityLabel("Artwork geometry observation")
+                        .accessibilityIdentifier("featuredBanner.artworkGeometry")
+                        .accessibilityValue(Text(verbatim: "id=\(selectedBannerID ?? "");width=\(frame.width);artwork=\(artworkHeight(for: frame.width))"))
+                        .allowsHitTesting(false)
+                }
+#endif
+            }
             .onAppear(perform: normalizeSelection)
             .onChange(of: banners.map(\.id)) { _, _ in
                 normalizeSelection()
@@ -151,7 +164,7 @@ struct FeaturedBannerCarouselView: View {
 
     private var carouselFrame: some View {
         Group {
-            if dynamicTypeSize.isAccessibilitySize {
+            if usesStackedContent {
                 carouselContent.frame(height: max(280, cardHeights.values.max() ?? 280))
             } else { switch sizing {
             case let .fixedHeight(height):
@@ -160,7 +173,7 @@ struct FeaturedBannerCarouselView: View {
             case let .aspectRatio(aspectRatio, maxHeight):
                 FeaturedBannerAspectLayout(
                     aspectRatio: aspectRatio,
-                    minimumHeight: banners.contains(where: { $0.countdown != nil }) ? 240 : nil,
+                    minimumHeight: nil,
                     maximumHeight: resolvedMaximumHeight(maxHeight)
                 ) {
                     carouselContent
@@ -170,6 +183,19 @@ struct FeaturedBannerCarouselView: View {
         .onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .global)
         } action: { bannerFrame = $0 }
+    }
+
+    private var usesStackedContent: Bool {
+        FeaturedBannerLayoutPolicy.needsStackedContent(typeSize: dynamicTypeSize, width: bannerFrame.width)
+            || verticalSizeClass == .compact
+    }
+
+    private func artworkHeight(for width: CGFloat) -> CGFloat {
+        switch sizing {
+        case let .fixedHeight(height): return height
+        case let .aspectRatio(ratio, maximum):
+            return min(width / max(ratio, 0.01), resolvedMaximumHeight(maximum) ?? .greatestFiniteMagnitude)
+        }
     }
 
     private func resolvedMaximumHeight(_ configuredMaximum: CGFloat?) -> CGFloat? {
@@ -187,7 +213,7 @@ struct FeaturedBannerCarouselView: View {
             ScrollView(.horizontal) {
                 LazyHStack(spacing: 12) {
                     ForEach(banners) { banner in
-                        bannerSlide(for: banner, size: CGSize(width: max(1, proxy.size.width - (banners.count > 1 ? 24 : 0)), height: proxy.size.height))
+                        bannerSlide(for: banner, size: CGSize(width: max(1, proxy.size.width), height: artworkHeight(for: proxy.size.width)))
                             .id(banner.id)
                             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
                                 cardFrames[banner.id] = frame
@@ -238,7 +264,7 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func bannerContent(for banner: FeaturedBanner, size: CGSize) -> some View {
-        FeaturedBannerCardView(banner: banner) { isReady in
+        FeaturedBannerCardView(banner: banner, artworkHeight: size.height, forceStackedContent: usesStackedContent) { isReady in
             if isReady {
                 readyArtworkIDs.insert(banner.id)
             } else {
@@ -246,11 +272,11 @@ struct FeaturedBannerCarouselView: View {
             }
         }
             .frame(width: size.width)
-            .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
+            .fixedSize(horizontal: false, vertical: usesStackedContent)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                if dynamicTypeSize.isAccessibilitySize, abs((cardHeights[banner.id] ?? 0) - height) > 0.5 { cardHeights[banner.id] = height }
+                if usesStackedContent, abs((cardHeights[banner.id] ?? 0) - height) > 0.5 { cardHeights[banner.id] = height }
             }
-            .frame(width: size.width, height: size.height, alignment: .top)
+            .frame(width: size.width, alignment: .top)
     }
 
     private var visibleFraction: Double {

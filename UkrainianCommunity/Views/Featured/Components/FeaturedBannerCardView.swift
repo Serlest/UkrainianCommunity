@@ -1,34 +1,60 @@
 import SwiftUI
 import UIKit
 
+enum FeaturedBannerLayoutPolicy {
+    static let artworkAspectRatio: CGFloat = 16.0 / 9.0
+    static func needsStackedContent(typeSize: DynamicTypeSize, width: CGFloat) -> Bool {
+        typeSize >= .xLarge || (width > 0 && width < 340)
+    }
+}
+
 struct FeaturedBannerCardView: View {
     let banner: FeaturedBanner
     let previewImage: UIImage?
+    let artworkHeight: CGFloat?
+    let forceStackedContent: Bool
     let onArtworkLoadStateChanged: ((Bool) -> Void)?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.locale) private var locale
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @State private var renderedWidth: CGFloat = 0
 
-    init(banner: FeaturedBanner, previewImage: UIImage? = nil,
+    init(banner: FeaturedBanner, previewImage: UIImage? = nil, artworkHeight: CGFloat? = nil,
+         forceStackedContent: Bool = false,
          onArtworkLoadStateChanged: ((Bool) -> Void)? = nil) {
         self.banner = banner
         self.previewImage = previewImage
+        self.artworkHeight = artworkHeight
+        self.forceStackedContent = forceStackedContent
         self.onArtworkLoadStateChanged = onArtworkLoadStateChanged
     }
 
     var body: some View {
         Group {
-            if dynamicTypeSize.isAccessibilitySize {
+            if usesStackedContent {
                 VStack(alignment: .trailing, spacing: 12) {
-                    if let countdown = banner.countdown { FeaturedBannerCountdownView(countdown: countdown) }
-                    background.frame(height: 120).clipShape(cardShape).accessibilityHidden(true)
+                    if let countdown = banner.countdown { FeaturedBannerCountdownView(countdown: countdown, overArtwork: false) }
+                    imageLayout { background }.clipShape(cardShape).accessibilityHidden(true)
                     if hasTextContent { textContent }
                 }
-            } else { card }
+            } else { imageLayout { card } }
         }
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { renderedWidth = $0 }
         .modifier(BannerAccessibilityFallback(needsFallback: !hasTextContent && banner.countdown == nil))
         .accessibilityElement(children: .combine)
         .accessibilityHint(isActionable ? AppStrings.Action.open : "")
+    }
+
+    private var usesStackedContent: Bool {
+        forceStackedContent || verticalSizeClass == .compact
+            || FeaturedBannerLayoutPolicy.needsStackedContent(typeSize: dynamicTypeSize, width: renderedWidth)
+    }
+
+    private var imageLayout: FeaturedBannerAspectLayout {
+        FeaturedBannerAspectLayout(aspectRatio: FeaturedBannerLayoutPolicy.artworkAspectRatio,
+                                   minimumHeight: artworkHeight,
+                                   maximumHeight: artworkHeight ?? AppTheme.featuredBannerMaximumHeight)
     }
 
     private var card: some View {
@@ -40,9 +66,9 @@ struct FeaturedBannerCardView: View {
             }
         }
         .overlay(alignment: .topTrailing) {
-            if !dynamicTypeSize.isAccessibilitySize, let countdown = banner.countdown {
+            if !usesStackedContent, let countdown = banner.countdown {
                 FeaturedBannerCountdownView(countdown: countdown)
-                    .frame(maxWidth: 230, alignment: .trailing).padding(12)
+                    .frame(maxWidth: 230, alignment: .trailing).padding(8)
             }
         }
         .clipShape(cardShape)
@@ -60,8 +86,14 @@ struct FeaturedBannerCardView: View {
         GeometryReader { proxy in
 #if DEBUG && targetEnvironment(simulator)
             if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestBanner14"] == "1", previewImage == nil {
-                fallbackBackground.frame(width: proxy.size.width, height: proxy.size.height)
-                    .onAppear { onArtworkLoadStateChanged?(true) }
+                if ProcessInfo.processInfo.environment["UITestBanner14Artwork"] == "1" {
+                    AdaptiveBannerImage(image: BannerAuditHarness14.artwork)
+                        .frame(width: proxy.size.width, height: proxy.size.height)
+                        .onAppear { onArtworkLoadStateChanged?(true) }
+                } else {
+                    fallbackBackground.frame(width: proxy.size.width, height: proxy.size.height)
+                        .onAppear { onArtworkLoadStateChanged?(true) }
+                }
             } else {
                 artwork(size: proxy.size)
             }
