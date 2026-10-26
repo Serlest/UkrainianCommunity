@@ -2331,6 +2331,12 @@ final class UkrainianCommunityUITests: XCTestCase {
         XCTAssertFalse(element("ownerAnalytics.search.empty", in: app).exists)
 
         searchField.tap()
+        searchField.typeText("Aktuelle Konten\n")
+        XCTAssertTrue(element("ownerAnalytics.metric.person.3", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(element("ownerAnalytics.search.empty", in: app).exists)
+        clearSearchButton.tap()
+
+        searchField.tap()
         searchField.typeText("Banner\n")
         XCTAssertFalse(element("ownerAnalytics.search.empty", in: app).exists)
         XCTAssertTrue(element("ownerAnalytics.bannerOverview", in: app).exists)

@@ -271,7 +271,7 @@ final class OwnerAnalyticsViewModel: ObservableObject {
     }
 
     var showsCurrentAccounts: Bool {
-        matchesSupplemental([AppStrings.BannerReport.currentAccounts, AppStrings.OwnerAnalytics.totalUsers])
+        matchesSupplemental([AnalyticsPresentationText.currentTitle, AppStrings.BannerReport.currentAccounts, AppStrings.OwnerAnalytics.totalUsers])
     }
     var showsBannerAnalytics: Bool {
         matchesSupplemental([AppStrings.BannerReport.title, AppStrings.BannerReport.impressions, AppStrings.BannerReport.clicks])

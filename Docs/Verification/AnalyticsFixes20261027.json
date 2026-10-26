@@ -15,7 +15,7 @@
     "A15-F04": "Separate current account vs period semantics; actual cache data time preserved; explicit incomplete-Today versus complete-yesterday comparison, Vienna and UTC boundaries and correct hourly/five-minute cadence.",
     "A15-F05": "Bounded 48-entry, 60-second memory cache shared across destinations; identical reads coalesce; manual refresh invalidates; midnight invalidates correct clock; principal/role/session generation fences and direct current-access readback; no private disk cache. Removed duplicate initial .task plus lifecycle load from root/details.",
     "A15-F06": "Checked counter decoder rejects booleans, fractions, NaN/infinity, negatives, unrepresentable JS integers and aggregate overflow. Invalid present data fails its source instead of authoritative zero; absent legacy optional counters remain zero.",
-    "A15-F07": "Explains loaded-report search and top20 per type for 7/30 days; no claim that ranking sums equal all activity.",
+    "A15-F07": "Explains loaded-report search and top20 per type for 7/30 days; no claim that ranking sums equal all activity. The new localized current-account heading is included in section search terms; both languages and the full linked journey are tested.",
     "A15-F08": "Persistent tap-to-select chart day, metric selection and fewer x-axis labels to avoid collisions."
   },
   "checks": [
@@ -40,7 +40,7 @@
     {
       "name": "Release iPhone architecture build",
       "result": "passed",
-      "evidence": "FinalScopedRelease.log",
+      "evidence": "DisplayedHeadingRelease.log",
       "scope": "Unsigned generic iOS compile, not installed device or TestFlight"
     },
     {
@@ -86,6 +86,16 @@
       "failed": 0,
       "evidence": "FinalControlsAndRecovery2.xcresult",
       "note": "Includes a loaded news child metric, retained30day period, both collapsed/expanded region rows and native banner day-row show/hide assertions."
+    },
+    {
+      "name": "Final full unit suite and extended search/period/detail/return journey including new account heading",
+      "result": "passed",
+      "passed": 919,
+      "unitPassed": 918,
+      "uiPassed": 1,
+      "skipped": 40,
+      "evidence": "DisplayedHeadingFinal2.xcresult",
+      "scope": "Latest source; replaces earlier full-unit count and extends the same existing UI journey."
     }
   ],
   "boundaries": [
@@ -114,10 +124,20 @@
     "baselineRun": 40414735877,
     "baselineHead": "bae2f018",
     "baselineConclusion": "success",
-    "note": "Baseline CI does not certify the new implementation. Read back the run for the new pushed commit."
+    "note": "Baseline CI does not certify the new implementation. Read back the run for the new pushed commit.",
+    "intermediateRun": {
+      "runId": 40421674713,
+      "head": "35069f2992c8c1f951f91002f6d935af3a80bd11",
+      "status": "in_progress_at_readback",
+      "completedChecks": [
+        "Change classification and static checks",
+        "Firebase and rules"
+      ],
+      "note": "Follow-up only adds displayed-title search coverage; its own containing-commit run must also be inspected."
+    }
   },
   "localSummary": {
-    "unitPassed": 917,
+    "unitPassed": 918,
     "uiScenarioFamiliesPassed": 11,
     "rulesRolesPassed": 12,
     "sdkOptInSkipped": 40,

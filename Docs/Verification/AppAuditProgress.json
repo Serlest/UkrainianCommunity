@@ -301,7 +301,7 @@
       "serverFunctionsChanged": false,
       "resolutionReport": "Docs/Verification/AnalyticsFixes20261027.json",
       "localValidation": {
-        "unitPassed": 917,
+        "unitPassed": 918,
         "uiScenarioFamiliesPassed": 11,
         "rulesRolesPassed": 12,
         "sdkOptInSkipped": 40,

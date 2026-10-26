@@ -102,6 +102,18 @@ struct AnalyticsSessionCacheTests {
         _ = try await cache.fetchSnapshot(period: .today)
         #expect(source.reads == 2)
     }
+    @Test func displayedCurrentAccountHeadingIsSearchableInBothLanguages() {
+        let previous = LocalizationStore.language
+        defer { LocalizationStore.language = previous }
+        for language in AppLanguage.allCases {
+            LocalizationStore.language = language
+            let model = OwnerAnalyticsViewModel(repository: MockOwnerAnalyticsRepository())
+            model.searchText = AnalyticsPresentationText.currentTitle
+            #expect(model.showsCurrentAccounts)
+            #expect(model.hasSupplementalSearchResults)
+            #expect(model.hasSearchResults)
+        }
+    }
     @Test func strictCountersRejectMalformedAndOverflowingDocuments() {
         for bad: Any in [true, NSNumber(value: false), -1, 1.5, Double.nan, Double.infinity, -Double.infinity, Double(Int.max), Int.max, "12"] {
             #expect(AnalyticsCountDecoder.decode(bad) == nil)
