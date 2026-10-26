@@ -267,8 +267,8 @@
       ],
       "compatibilityFixCommit": "ff4e0a4f",
       "sourceCI": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40375126735",
-      "testFlightBuild": "1.2.1 (127)",
-      "deliveryReport": "Docs/Verification/TestFlight12720261026.json",
+      "testFlightBuild": "1.2.1 (128)",
+      "deliveryReport": "Docs/Verification/TestFlight12820261026.json",
       "followUpSourceCommit": "26332afb",
       "followUpReport": "Docs/Verification/BannerArtworkCorrection20261026.json",
       "followUpDelivery": "included in TestFlight127; pending user acceptance",
@@ -276,8 +276,9 @@
         "report": "Docs/Verification/BannerSecondsTextAppearance20261026.json",
         "serverCommit": "4ca1a19d",
         "includedInTestFlight127": false,
-        "status": "verified_source_and_server_pending_new_binary_and_user_acceptance",
-        "sourceCommit": "2bec120f"
+        "status": "delivered_TestFlight128_pending_user_acceptance_and_hosted_CI",
+        "sourceCommit": "2bec120f",
+        "includedInTestFlight128": true
       }
     },
     {
@@ -427,8 +428,8 @@
     "block11VerifiedScenarios": 44
   },
   "latestTestFlightDelivery": {
-    "build": "1.2.1 (127)",
-    "report": "Docs/Verification/TestFlight12720261026.json",
+    "build": "1.2.1 (128)",
+    "report": "Docs/Verification/TestFlight12820261026.json",
     "includedImplementedBlocks": [
       1,
       2,
@@ -449,8 +450,36 @@
     "block11PhysicalReadback": "pending user acceptance",
     "block12PhysicalReadback": "pending user acceptance",
     "block13PhysicalReadback": "pending user acceptance and actual APNs delivery",
-    "block14PhysicalReadback": "pending user acceptance of127 including restored artwork sizing and text-only countdown",
-    "buildNumberCI": "Full validation40391494023 running; queued push40389652270 superseded before execution, not failed"
+    "block14PhysicalReadback": "pending user acceptance of128 including seconds, separate text colors and no title/subtitle panel",
+    "sourceCI": {
+      "runId": 40402079132,
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40402079132",
+      "conclusion": "",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Change classification and static checks",
+          "status": "completed"
+        },
+        {
+          "conclusion": "",
+          "name": "iOS build and unit checks",
+          "status": "in_progress"
+        },
+        {
+          "conclusion": "success",
+          "name": "Firebase affected checks",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Firebase and rules",
+          "status": "completed"
+        }
+      ],
+      "status": "in_progress",
+      "boundary": "Hosted validation of exact product source, build127 settings. Build128 changes only build number. Running is not passed."
+    }
   },
   "currentBlock": 14
 }

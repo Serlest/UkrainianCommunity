@@ -1,7 +1,7 @@
 {
   "date": "2026-10-26",
   "block": 14,
-  "status": "verified_source_and_compatible_server_update_pending_new_binary_and_user_acceptance",
+  "status": "delivered_TestFlight128_pending_user_acceptance_and_hosted_CI",
   "request": [
     "Show days, hours, minutes and seconds, including lower zero units",
     "Remove title and description backgrounds; add glyph shadows",
@@ -184,11 +184,12 @@
     "boundary": "Actual active catalog and callable read succeed; owner-only unauthenticated requests rejected401. No production banner mutations or analytics test clicks. Rules/indexes unchanged."
   },
   "delivery": {
-    "currentTestFlight": "1.2.1 (127)",
-    "includesThisFollowUp": false,
-    "newUploadPerformed": false,
+    "currentTestFlight": "1.2.1 (128)",
+    "includesThisFollowUp": true,
+    "newUploadPerformed": true,
     "publicReleaseChanged": false,
-    "boundary": "Source and compatible server update only. New binary needed to test seconds and text colors on user iPhone."
+    "report": "Docs/Verification/TestFlight12820261026.json",
+    "boundary": "Apple VALID and IN_BETA_TESTING; internal Beta Tester group and exact notes read back; user device acceptance pending."
   },
   "previousBuildCI": {
     "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40391494023",

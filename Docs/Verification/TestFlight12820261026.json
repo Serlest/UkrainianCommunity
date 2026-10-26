@@ -1,0 +1,144 @@
+{
+  "version": "1.2.1",
+  "build": "128",
+  "requestedByUser": "Сделай билд",
+  "sourceCommit": "5b4a97c47edbaad2c70db9d3837217ccd94f25c3",
+  "productSourceCommit": "2bec120f",
+  "verificationSourceCommit": "aa66f1b4",
+  "audience": "internal TestFlight",
+  "publicRelease": false,
+  "archive": "build/UAC-128.xcarchive",
+  "archiveResult": "ARCHIVE SUCCEEDED",
+  "exportResult": "EXPORT SUCCEEDED; Upload succeeded",
+  "uploadMethod": "existing signed-in Xcode account",
+  "exportOptions": "build/ExportOptions-TestFlight-Internal.plist",
+  "serverCompatibility": "validate_release_configuration.py --verify-deployed-analytics passed for128 before archive",
+  "archiveInfo": {
+    "CFBundleIdentifier": "at.serlest.UkrainianCommunity",
+    "CFBundleShortVersionString": "1.2.1",
+    "CFBundleVersion": "128",
+    "ITSAppUsesNonExemptEncryption": false
+  },
+  "archiveSignature": "codesign --verify --deep --strict passed",
+  "archiveLocalization": "Seconds and appearance strings present uk/de/en",
+  "testFlightAvailable": true,
+  "processingState": "VALID",
+  "internalBuildState": "IN_BETA_TESTING",
+  "assignedGroups": [
+    {
+      "name": "Beta Tester",
+      "internal": true,
+      "containsBuild": true
+    }
+  ],
+  "appleUploadState": [
+    {
+      "errors": [],
+      "warnings": [],
+      "infos": [],
+      "state": "COMPLETE"
+    }
+  ],
+  "testNotes": {
+    "published": true,
+    "readBackExactly": true,
+    "locales": [
+      "uk",
+      "de-DE",
+      "en-US"
+    ],
+    "source": "build/testflight-128/notes.json"
+  },
+  "readback": "build/testflight-128/asc-final.json",
+  "implementedBlocksIncluded": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "additionalFixes": [
+    "Countdown includes seconds and all lower zero units.",
+    "Title and subtitle have no background panel, with independent colors and glyph shadows.",
+    "Native picker/presets, independent resets, save/reopen/copy preserve style.",
+    "Normal preview width matches feed; accessible layout retained."
+  ],
+  "localVerificationReport": "Docs/Verification/BannerSecondsTextAppearance20261026.json",
+  "localVerification": {
+    "fullUnits": {
+      "passed": 906,
+      "failed": 0,
+      "skipped": 40,
+      "boundary": "Relevant opt-in banner SDK chain separately passed1. Final preview-width adjustment separately passed2UI scenarios."
+    },
+    "server": {
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0
+    },
+    "finalUI": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "releaseBuild": "succeeded"
+  },
+  "sourceCI": {
+    "runId": 40402079132,
+    "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40402079132",
+    "conclusion": "",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "Change classification and static checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "",
+        "name": "iOS build and unit checks",
+        "status": "in_progress"
+      },
+      {
+        "conclusion": "success",
+        "name": "Firebase affected checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Firebase and rules",
+        "status": "completed"
+      }
+    ],
+    "status": "in_progress",
+    "boundary": "Hosted validation of exact product source, build127 settings. Build128 changes only build number. Running is not passed."
+  },
+  "symbols": {
+    "appSymbolsMatch": true,
+    "uuid": [
+      "5CD130CC-702F-316A-9941-29DCC95E9699"
+    ],
+    "externalSDKMissingSymbols": [
+      "FirebaseFirestoreInternal.framework",
+      "absl.framework",
+      "grpc.framework",
+      "grpcpp.framework",
+      "openssl_grpc.framework"
+    ]
+  },
+  "warningBoundary": "Same5existing vendor framework dSYM warnings as127. App dSYM matches. Apple upload COMPLETE with no package errors/warnings. Existing unrelated source concurrency warnings remain recorded.",
+  "physicalVerification": "Pending user acceptance of128 on actual iPhone. Simulator proof is not physical-device acceptance.",
+  "boundaries": [
+    "Internal TestFlight only; no public App Store submission/release.",
+    "No seasonal theme or production test campaigns.",
+    "Pre-existing project ordering and localization metadata preserved, excluded from commits; actual project settings and translated values match committed source."
+  ]
+}

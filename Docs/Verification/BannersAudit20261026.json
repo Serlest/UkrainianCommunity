@@ -467,27 +467,41 @@
   },
   "delivery": {
     "testFlightChanged": true,
-    "currentTestFlight": "1.2.1(127)",
+    "currentTestFlight": "1.2.1 (128)",
     "includedBlocks": "1–14",
     "publicRelease": false,
-    "physicalAcceptance": "TestFlight127 available; user physical acceptance pending",
+    "physicalAcceptance": "TestFlight128 available; user physical acceptance pending",
     "nextBlock": 15,
     "nextBlockStarted": false,
-    "deliveryReport": "Docs/Verification/TestFlight12720261026.json",
-    "buildNumberCI": {
-      "runId": 40389652270,
-      "status": "completed",
-      "conclusion": "cancelled",
-      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40389652270",
-      "boundary": "Queued push run was superseded before execution by release-evidence push because GitHub allows one pending run per concurrency group; not a test failure. Separate workflow_dispatch now validates the full source including127 without sharing the push queue."
-    },
-    "fullSignedBuildValidation": {
-      "runId": 40391494023,
+    "deliveryReport": "Docs/Verification/TestFlight12820261026.json",
+    "sourceCI": {
+      "runId": 40402079132,
+      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40402079132",
+      "conclusion": "",
+      "jobs": [
+        {
+          "conclusion": "success",
+          "name": "Change classification and static checks",
+          "status": "completed"
+        },
+        {
+          "conclusion": "",
+          "name": "iOS build and unit checks",
+          "status": "in_progress"
+        },
+        {
+          "conclusion": "success",
+          "name": "Firebase affected checks",
+          "status": "completed"
+        },
+        {
+          "conclusion": "success",
+          "name": "Firebase and rules",
+          "status": "completed"
+        }
+      ],
       "status": "in_progress",
-      "conclusion": "pending",
-      "headSha": "d3fff27cf9a6abc81acc18030f1b3add62ee7ec0",
-      "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40391494023",
-      "boundary": "Full hosted validation includes the exact product code and127 settings; report-only changes after this SHA do not alter the binary. Still pending at delivery."
+      "boundary": "Hosted validation of exact product source, build127 settings. Build128 changes only build number. Running is not passed."
     }
   },
   "acceptanceChecklist": [
@@ -507,8 +521,9 @@
   },
   "textAppearanceAndSecondsFollowUp": {
     "report": "Docs/Verification/BannerSecondsTextAppearance20261026.json",
-    "status": "verified_source_and_server_pending_new_binary_and_user_acceptance",
-    "testFlightIncluded": false,
-    "sourceCommit": "2bec120f"
+    "status": "delivered_TestFlight128_pending_user_acceptance_and_hosted_CI",
+    "testFlightIncluded": true,
+    "sourceCommit": "2bec120f",
+    "deliveryReport": "Docs/Verification/TestFlight12820261026.json"
   }
 }
