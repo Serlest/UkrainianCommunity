@@ -443,7 +443,7 @@
     "block12PhysicalReadback": "pending user acceptance",
     "block13PhysicalReadback": "pending user acceptance and actual APNs delivery",
     "block14PhysicalReadback": "pending user acceptance of127 including restored artwork sizing and text-only countdown",
-    "buildNumberCI": "40389652270 pending; product source40387983027 in progress"
+    "buildNumberCI": "Full validation40391494023 running; queued push40389652270 superseded before execution, not failed"
   },
   "currentBlock": 14
 }
