@@ -1,0 +1,120 @@
+{
+  "date": "2026-10-26",
+  "block": 14,
+  "request": "Persist banner data and artwork so a full relaunch does not wait for network.",
+  "status": "verified_source_pending_hosted_CI_and_new_binary",
+  "artifactBase": "build/banner-startup-20261026",
+  "causes": [
+    "Public banner list was cached only in process memory.",
+    "Public catalog query was followed by a blocking presentation callable, then image downloads.",
+    "One live artwork response required HTTP revalidation (private,max-age=0)."
+  ],
+  "liveReadOnlyBaseline": {
+    "context": "Read-only Mac network probe; not physical iPhone startup trace",
+    "activeCount": 5,
+    "catalogSeconds": 0.231,
+    "minimumWarmInstances": 0,
+    "presentations": [
+      {
+        "request": 1,
+        "seconds": 0.351,
+        "status": 200
+      },
+      {
+        "request": 2,
+        "seconds": 0.258,
+        "status": 200
+      }
+    ],
+    "images": [
+      {
+        "bytes": 249965,
+        "seconds": 0.586,
+        "status": 200,
+        "cacheControl": "private, max-age=0",
+        "contentType": "image/jpeg"
+      },
+      {
+        "bytes": 387162,
+        "seconds": 0.358,
+        "status": 200,
+        "cacheControl": "public,max-age=3600",
+        "contentType": "image/jpeg"
+      },
+      {
+        "bytes": 535366,
+        "seconds": 0.41,
+        "status": 200,
+        "cacheControl": "public,max-age=3600",
+        "contentType": "image/jpeg"
+      }
+    ]
+  },
+  "fixes": [
+    "Live AppContainer uses an on-disk public catalog cache. Mock graphs remain memory-only.",
+    "Restoration publishes usable cached content before awaiting network; restored catalogs always revalidate. Authoritative empty response replaces cached content and persists the removal.",
+    "Cache lifetime capped at24hours; begin/end/countdown-hide deadlines and region/placement filters apply before display. Corrupt, oversized, future-dated and unsupported-version cache data is ignored.",
+    "Owner edits invalidate the persisted catalog as well as memory. Queued atomic disk writes run off main, with restoration generation protection.",
+    "Banner artwork has a revision-keyed disk cache:20MiB/32file budget,8MiB maximum object,24hour age cap. New banner revision cannot reuse old artwork even at the same URL. A disk miss fetches fresh bytes; successfully decoded images only are persisted.",
+    "Common remote-image HTTP policy is retained for non-banner images; banner cache is opt-in. Image decoding remains off main.",
+    "Cold first-ever launch still needs network. Warmed data/artwork survive process termination; no extra server charges for keeping warm function instances and no server/rules/schema changes."
+  ],
+  "tests": {
+    "focused": {
+      "artifact": "StartupCacheInitial.xcresult",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    },
+    "fullUnits": {
+      "artifact": "FullUnitRegression.xcresult",
+      "passed": 911,
+      "failed": 0,
+      "skipped": 40,
+      "boundary": "Opt-in SDK tests skipped, not counted as passed. This change has no server mutations."
+    },
+    "coldProcessRelaunch": {
+      "artifact": "ColdRelaunchArtwork.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": "Seed catalog and real JPEG into isolated disk caches, terminate app, relaunch fresh process. Actual RemoteImageView displays artwork before a deliberately suspended repository replies, with image URL pointing at unreachable127.0.0.1:1. Then empty server result removes banner."
+    },
+    "static": [
+      "repository structure passed",
+      "release configuration128 passed",
+      "localization validation passed",
+      "git diff --check passed"
+    ],
+    "release": {
+      "artifact": "release.log",
+      "status": "BUILD SUCCEEDED",
+      "configuration": "Release generic iOS device, signing disabled",
+      "warnings": "Existing unrelated SystemLogDeliveryQueue and DirectoryEditorAccessStore concurrency warnings; no new banner warnings."
+    }
+  },
+  "visualReview": {
+    "viewed": "captures/9449E4AA-F2DC-427B-B968-ECC87E48FE1B.png",
+    "result": "Actual decoded cached orange artwork visible with title and four countdown units while Network pending. Screenshot is an isolated DEBUG simulator harness, not a production homepage or physical-device trace."
+  },
+  "freshnessBoundary": "Offline cached banners can reflect their last verified remote active state until the24hour cap; unknown remote deletions/deactivations cannot be detected without connectivity. Known schedule deadlines are enforced locally. Successful empty remote result removes cached items immediately.",
+  "delivery": {
+    "currentTestFlight": "1.2.1 (128)",
+    "includesThisFix": false,
+    "newUploadPerformed": false,
+    "publicReleaseChanged": false,
+    "physicalIPhoneAcceptance": "pending after a new build; simulator result is separate"
+  },
+  "previousSourceCI": {
+    "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40402079132",
+    "conclusion": "success",
+    "boundary": "Text colors and seconds delivered in128; does not cover this new startup-cache change."
+  },
+  "excluded": [
+    "Seasonal theme",
+    "Block15",
+    "Public release",
+    "Server deployment",
+    "New TestFlight upload"
+  ]
+}

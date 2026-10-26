@@ -95,7 +95,7 @@
   "sourceCI": {
     "runId": 40402079132,
     "url": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40402079132",
-    "conclusion": "",
+    "conclusion": "success",
     "jobs": [
       {
         "conclusion": "success",
@@ -118,8 +118,8 @@
         "status": "completed"
       }
     ],
-    "status": "in_progress",
-    "boundary": "Hosted validation of exact product source, build127 settings. Build128 changes only build number. Running is not passed."
+    "status": "completed",
+    "boundary": "Hosted validation of exact text/color/countdown product source completed successfully; build128 changes only build number. Does not cover later startup-cache fix."
   },
   "symbols": {
     "appSymbolsMatch": true,

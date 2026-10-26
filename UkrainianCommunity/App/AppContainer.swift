@@ -46,7 +46,7 @@ struct AppContainer {
             eventRepository: FirestoreEventRepository(),
             organizationRepository: FirestoreOrganizationRepository(),
             featuredBannerRepository: FirestoreFeaturedBannerRepository(),
-            featuredBannerCache: FeaturedBannerCache(),
+            featuredBannerCache: FeaturedBannerCache.persistent(),
             legalDocumentRepository: FirestoreLegalDocumentRepository(),
             ownerAnalyticsRepository: FirestoreOwnerAnalyticsRepository(),
             analyticsService: FirstPartyAnalyticsService(),

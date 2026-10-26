@@ -1,6 +1,6 @@
 import Foundation
 
-struct FeaturedBannerCountdown: Equatable {
+struct FeaturedBannerCountdown: Equatable, Codable {
     enum Completion: String, CaseIterable, Codable, Identifiable {
         case hideCountdown, showStarted, hideBanner
         var id: String { rawValue }

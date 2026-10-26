@@ -65,7 +65,9 @@ struct BannerAuditHarness14: View {
     }
     var body: some View {
         NavigationStack {
-            if ProcessInfo.processInfo.environment["UITestBanner14Scope"] == "management" {
+            if ProcessInfo.processInfo.environment["UITestBanner14Scope"] == "startupCache" {
+                BannerStartupAuditHarness()
+            } else if ProcessInfo.processInfo.environment["UITestBanner14Scope"] == "management" {
                 FeaturedBannerManagementView(repository:repository,newsRepository:MockNewsRepository(),eventRepository:MockEventRepository(),organizationRepository:MockOrganizationRepository(),measurementRepository:BannerReportAuditRepository())
             } else if ProcessInfo.processInfo.environment["UITestBanner14Scope"] == "editor" {
                 FeaturedBannerEditorView(repository:repository,mode:.edit(Self.fixtures()[0]),newsRepository:MockNewsRepository(),eventRepository:MockEventRepository(),organizationRepository:MockOrganizationRepository()) {}

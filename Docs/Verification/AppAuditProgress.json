@@ -279,6 +279,11 @@
         "status": "delivered_TestFlight128_pending_user_acceptance_and_hosted_CI",
         "sourceCommit": "2bec120f",
         "includedInTestFlight128": true
+      },
+      "startupCacheFollowUp": {
+        "report": "Docs/Verification/BannerStartupCache20261026.json",
+        "status": "verified_source_pending_hosted_CI_and_new_binary",
+        "includedInTestFlight128": false
       }
     },
     {

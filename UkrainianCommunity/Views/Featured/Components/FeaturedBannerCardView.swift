@@ -87,7 +87,7 @@ struct FeaturedBannerCardView: View {
     private var background: some View {
         GeometryReader { proxy in
 #if DEBUG && targetEnvironment(simulator)
-            if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestBanner14"] == "1", previewImage == nil {
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestBanner14"] == "1", ProcessInfo.processInfo.environment["UITestBanner14Scope"] != "startupCache", previewImage == nil {
                 if ProcessInfo.processInfo.environment["UITestBanner14Artwork"] == "1" {
                     AdaptiveBannerImage(image: BannerAuditHarness14.artwork)
                         .frame(width: proxy.size.width, height: proxy.size.height)
@@ -119,7 +119,8 @@ struct FeaturedBannerCardView: View {
                     source: "FeaturedBannerCardView",
                     placeholderStyle: .glassSkeleton,
                     presentationStyle: .adaptiveBanner,
-                    onImageLoadStateChanged: onArtworkLoadStateChanged
+                    onImageLoadStateChanged: onArtworkLoadStateChanged,
+                    persistentCacheKey: "\(banner.id)|\(imageURL)|\(banner.updatedAt.timeIntervalSince1970)"
                 )
                 .frame(width: size.width, height: size.height)
                 .clipped()

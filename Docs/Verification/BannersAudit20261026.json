@@ -525,5 +525,10 @@
     "testFlightIncluded": true,
     "sourceCommit": "2bec120f",
     "deliveryReport": "Docs/Verification/TestFlight12820261026.json"
+  },
+  "startupCacheFollowUp": {
+    "report": "Docs/Verification/BannerStartupCache20261026.json",
+    "status": "verified_source_pending_hosted_CI_and_new_binary",
+    "includedInTestFlight128": false
   }
 }

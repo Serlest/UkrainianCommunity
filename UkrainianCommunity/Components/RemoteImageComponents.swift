@@ -34,6 +34,7 @@ enum RemoteImageDecodePolicy {
 private struct RemoteImageLoadKey: Hashable {
     let imageURL: String?
     let maximumPixelSize: Int
+    let persistentCacheKey: String?
 }
 
 private struct RemoteImageRequestKey: Hashable {
@@ -45,7 +46,7 @@ private actor RemoteImageDataLoader {
     static let shared = RemoteImageDataLoader()
 
     private let session: URLSession
-    private var inFlight: [URL: Task<Data, Error>] = [:]
+    private var inFlight: [URLRequest: Task<Data, Error>] = [:]
 
     init() {
         let configuration = URLSessionConfiguration.default
@@ -59,8 +60,9 @@ private actor RemoteImageDataLoader {
         session = URLSession(configuration: configuration)
     }
 
-    func data(from url: URL) async throws -> Data {
-        if let task = inFlight[url] { return try await task.value }
+    func data(from url: URL, bypassHTTPCache: Bool = false) async throws -> Data {
+        let key = URLRequest(url: url, cachePolicy: bypassHTTPCache ? .reloadIgnoringLocalCacheData : .useProtocolCachePolicy)
+        if let task = inFlight[key] { return try await task.value }
 
         let session = session
         #if DEBUG && targetEnvironment(simulator)
@@ -69,15 +71,16 @@ private actor RemoteImageDataLoader {
         let requestURL = url
         #endif
         let task = Task<Data, Error> {
-            let (data, response) = try await session.data(from: requestURL)
+            let request = URLRequest(url: requestURL, cachePolicy: bypassHTTPCache ? .reloadIgnoringLocalCacheData : .useProtocolCachePolicy)
+            let (data, response) = try await session.data(for: request)
             if let response = response as? HTTPURLResponse,
                !(200...299).contains(response.statusCode) {
                 throw URLError(.badServerResponse)
             }
             return data
         }
-        inFlight[url] = task
-        defer { inFlight[url] = nil }
+        inFlight[key] = task
+        defer { inFlight[key] = nil }
         return try await task.value
     }
 }
@@ -160,6 +163,7 @@ struct RemoteImageView: View {
     let presentationStyle: RemoteImagePresentationStyle
     let onImageLoadStateChanged: ((Bool) -> Void)?
     let showsRetryOnFailure: Bool
+    let persistentCacheKey: String?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.displayScale) private var displayScale
@@ -175,7 +179,8 @@ struct RemoteImageView: View {
         placeholderStyle: RemoteImagePlaceholderStyle = .icon,
         presentationStyle: RemoteImagePresentationStyle = .fill,
         onImageLoadStateChanged: ((Bool) -> Void)? = nil,
-        showsRetryOnFailure: Bool = false
+        showsRetryOnFailure: Bool = false,
+        persistentCacheKey: String? = nil
     ) {
         self.imageURL = imageURL
         self.height = height
@@ -185,6 +190,7 @@ struct RemoteImageView: View {
         self.presentationStyle = presentationStyle
         self.onImageLoadStateChanged = onImageLoadStateChanged
         self.showsRetryOnFailure = showsRetryOnFailure
+        self.persistentCacheKey = persistentCacheKey
     }
 
     var body: some View {
@@ -227,7 +233,8 @@ struct RemoteImageView: View {
         )
         return RemoteImageLoadKey(
             imageURL: imageURL,
-            maximumPixelSize: Int(maximumPixelSize.rounded(.up))
+            maximumPixelSize: Int(maximumPixelSize.rounded(.up)),
+            persistentCacheKey: persistentCacheKey
         )
     }
 
@@ -325,15 +332,24 @@ struct RemoteImageView: View {
             return
         }
 
-        let cacheKey = "\(imageURL)#content-\(Int(maximumPixelSize))" as NSString
+        let cacheKey = "\(imageURL)#\(persistentCacheKey ?? "http")#content-\(Int(maximumPixelSize))" as NSString
         if let cachedImage = RemoteImageCache.shared.object(forKey: cacheKey) {
             loadedImage = cachedImage
             onImageLoadStateChanged?(true)
             return
         }
 
+        if retryCount == 0, let persistentCacheKey,
+           let data = await FeaturedBannerImageCache.shared.data(for: persistentCacheKey),
+           let image = await RemoteImageDecoder.decode(data, maximumPixelSize: maximumPixelSize) {
+            guard !Task.isCancelled else { return }
+            RemoteImageCache.shared.setObject(image, forKey: cacheKey, cost: RemoteImageDecoder.memoryCost(of: image))
+            loadedImage = image
+            onImageLoadStateChanged?(true)
+            return
+        }
         do {
-            let data = try await RemoteImageDataLoader.shared.data(from: url)
+            let data = try await RemoteImageDataLoader.shared.data(from: url, bypassHTTPCache: persistentCacheKey != nil)
             guard !Task.isCancelled else { return }
             guard let image = await RemoteImageDecoder.decode(
                 data,
@@ -351,6 +367,7 @@ struct RemoteImageView: View {
             )
             loadedImage = image
             onImageLoadStateChanged?(true)
+            if let persistentCacheKey { await FeaturedBannerImageCache.shared.store(data, for: persistentCacheKey) }
         } catch {
             guard !Task.isCancelled else { return }
             let nsError = error as NSError

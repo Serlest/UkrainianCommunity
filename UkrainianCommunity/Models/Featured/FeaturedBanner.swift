@@ -78,7 +78,7 @@ struct FeaturedBannerLocalizedContent: Codable, Equatable {
     let subtitle: String
 }
 
-struct FeaturedBanner: Identifiable, Equatable {
+struct FeaturedBanner: Identifiable, Equatable, Codable {
     static let collectionPath = "featuredBanners"
 
     let id: String

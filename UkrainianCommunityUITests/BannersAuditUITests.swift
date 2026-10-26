@@ -11,6 +11,28 @@ final class BannersAuditUITests: XCTestCase {
     }
     private func capture(_ app:XCUIApplication,_ name:String){let a=XCTAttachment(screenshot:app.screenshot());a.name=name;a.lifetime = .keepAlways;add(a)}
     private func reveal(_ element:XCUIElement,in app:XCUIApplication){for _ in 0..<25 {if element.exists && element.isHittable{return};app.swipeUp()};XCTAssertTrue(element.isHittable,app.debugDescription)}
+    func testColdRelaunchShowsPersistedArtworkWhileServerIsStillPending() {
+        let id = UUID().uuidString
+        let seed = XCUIApplication()
+        seed.launchArguments = ["-ui-testing"]
+        seed.launchEnvironment = ["UITestBanner14":"1", "UITestBanner14Scope":"startupCache", "UITestBannerStartupID":id, "UITestBannerStartupSeed":"1", "UITestForceOwnerSession":"1", "UITestAppLanguage":"uk", "UITestAppAppearance":"light"]
+        seed.launch()
+        XCTAssertTrue(seed.staticTexts["Seed ready"].waitForExistence(timeout: 10))
+        seed.terminate()
+        let restarted = XCUIApplication()
+        restarted.launchArguments = ["-ui-testing"]
+        restarted.launchEnvironment = ["UITestBanner14":"1", "UITestBanner14Scope":"startupCache", "UITestBannerStartupID":id, "UITestForceOwnerSession":"1", "UITestAppLanguage":"uk", "UITestAppAppearance":"light"]
+        restarted.launch()
+        XCTAssertTrue(restarted.staticTexts["Instant cached banner"].waitForExistence(timeout: 3))
+        XCTAssertTrue(restarted.staticTexts["Artwork ready"].waitForExistence(timeout: 3), "Real RemoteImageView must decode persisted artwork without reaching the unreachable URL")
+        XCTAssertTrue(restarted.staticTexts["Network pending"].exists)
+        capture(restarted, "B14-cold-relaunch-cached-artwork-network-pending")
+        restarted.buttons["bannerStartup.finish"].tap()
+        XCTAssertTrue(restarted.staticTexts["Network complete"].waitForExistence(timeout: 3))
+        XCTAssertFalse(restarted.staticTexts["Instant cached banner"].exists)
+        capture(restarted, "B14-authoritative-empty-response-removes-cached-banner")
+        restarted.terminate()
+    }
     func testCountdownSecondsAdvanceWithoutChangingBannerSize() {
         let app = launch("carousel", artwork: true)
         let card = app.buttons["featuredBanner.card.banner14-1"].firstMatch

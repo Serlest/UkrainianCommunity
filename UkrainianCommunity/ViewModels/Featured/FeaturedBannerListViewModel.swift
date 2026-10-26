@@ -53,11 +53,14 @@ final class FeaturedBannerListViewModel: ObservableObject {
         let query = FeaturedBannerCache.Key(section: section, federalState: federalState)
         selectQuery(query)
 
-        if let cached = cache.entry(for: query, maxAge: featuredBannerRefreshStaleInterval) {
+        await cache.restore()
+        if let cached = cache.entry(for: query, maxAge: FeaturedBannerCache.maximumStaleAge) {
             applyCachedBanners(cached, for: query)
+            if cache.requiresRevalidation(for: query) || cache.entry(for: query, maxAge: featuredBannerRefreshStaleInterval) == nil {
+                await startLoad(for: query, force: false, bypassFreshCache: true)
+            }
             return
         }
-
         await startLoad(for: query, force: false)
     }
 
@@ -79,6 +82,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         selectQuery(query)
 
         guard let cached = cache.entry(for: query, maxAge: maxAge) else {
+            if let fallback = cache.entry(for: query, maxAge: FeaturedBannerCache.maximumStaleAge) { applyCachedBanners(fallback, for: query) }
             await startLoad(for: query, force: false, maxAge: maxAge)
             return
         }
@@ -94,9 +98,10 @@ final class FeaturedBannerListViewModel: ObservableObject {
     private func startLoad(
         for query: FeaturedBannerCache.Key,
         force: Bool,
-        maxAge: TimeInterval = featuredBannerRefreshStaleInterval
+        maxAge: TimeInterval = featuredBannerRefreshStaleInterval,
+        bypassFreshCache: Bool = false
     ) async {
-        if !force, let cached = cache.entry(for: query, maxAge: maxAge) {
+        if !force, !bypassFreshCache, let cached = cache.entry(for: query, maxAge: maxAge) {
             applyCachedBanners(cached, for: query)
             return
         }
@@ -212,6 +217,9 @@ final class FeaturedBannerListViewModel: ObservableObject {
             if let current = self.cache.entry(for: query, maxAge: featuredBannerRefreshStaleInterval) {
                 self.applyCachedBanners(current, for: query)
             } else {
+                if let fallback = self.cache.entry(for: query, maxAge: FeaturedBannerCache.maximumStaleAge) {
+                    self.applyCachedBanners(fallback, for: query)
+                }
                 await self.startLoad(for: query, force: false)
             }
         }
