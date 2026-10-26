@@ -62,8 +62,10 @@ import XCTest
         app.launch()
         if app.tabBars.firstMatch.waitForExistence(timeout: 8) {
             app.tabBars.buttons.element(boundBy: 4).tap()
-            let logout = app.buttons["profile.logout.button"]
-            if !app.buttons["auth.landing.signIn"].waitForExistence(timeout: 2) {
+            // Guests also have tabs. Use a positive authenticated-profile control
+            // before trying to sign out, instead of treating a tab bar as login proof.
+            if app.buttons["profile.edit.open"].waitForExistence(timeout: 5) {
+                let logout = app.buttons["profile.logout.button"]
                 reveal(logout, app); logout.tap()
                 let confirm = app.alerts.buttons["profile.logout.confirm"].firstMatch
                 XCTAssertTrue(confirm.waitForExistence(timeout: 5)); confirm.tap()
@@ -120,7 +122,7 @@ import XCTest
             if element.exists && element.isHittable { return }
             app.coordinate(withNormalizedOffset: .init(dx: 0.95, dy: 0.78)).press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: .init(dx: 0.95, dy: 0.3)))
         }
-        XCTAssertTrue(element.exists)
+        XCTAssertTrue(element.exists, "Missing control: " + element.identifier + "\n" + app.debugDescription)
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
         let shot = XCTAttachment(screenshot: app.screenshot()); shot.name = name; shot.lifetime = .keepAlways; add(shot)

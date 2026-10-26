@@ -37,6 +37,16 @@ import XCTest
         let submit = app.buttons["feedback.dsa.decision.submit"]
         XCTAssertTrue(submit.waitForExistence(timeout: 6)); XCTAssertFalse(submit.isEnabled)
         capture(app, "feedback-dsa-decision-de-dark-maximum")
+        let facts = app.textFields["feedback.dsa.field.facts"]
+        reveal(facts, app); facts.tap(); facts.typeText("Verified facts from the disposable audit fixture")
+        dismissKeyboard(app)
+        let legal = app.textFields["feedback.dsa.field.legal"]
+        reveal(legal, app); legal.tap(); legal.typeText("Fixture terms basis")
+        dismissKeyboard(app)
+        let review = app.buttons["feedback.dsa.decision.humanReview"]
+        reveal(review, app); review.tap()
+        XCTAssertTrue(submit.isEnabled)
+        capture(app, "feedback-dsa-valid-de-dark-maximum")
         let cancel = app.buttons["Abbrechen"].firstMatch
         XCTAssertTrue(cancel.exists); cancel.tap()
         XCTAssertTrue(decision.waitForExistence(timeout: 5))
@@ -54,6 +64,13 @@ import XCTest
         let appeal = app.buttons["feedback.dsa.appeal.submit"]
         XCTAssertTrue(appeal.waitForExistence(timeout: 6)); XCTAssertFalse(appeal.isEnabled)
         capture(app, "feedback-appeal-review-de-dark-maximum")
+        let reason = app.descendants(matching: .any)["feedback.dsa.appeal.reason"].firstMatch
+        reveal(reason, app); reason.tap(); reason.typeText("The original decision was reviewed against the fixture")
+        dismissKeyboard(app)
+        let reviewed = app.buttons["feedback.dsa.appeal.humanReview"]
+        reveal(reviewed, app); reviewed.tap()
+        XCTAssertTrue(appeal.isEnabled)
+        capture(app, "feedback-appeal-valid-de-dark-maximum")
         app.buttons["Abbrechen"].firstMatch.tap()
     }
 
@@ -72,6 +89,57 @@ import XCTest
         XCTAssertTrue(app.textViews["feedback.reply.text"].waitForExistence(timeout: 5))
         app.buttons["Готово"].firstMatch.tap()
         XCTAssertTrue(row.waitForExistence(timeout: 5))
+    }
+
+    func testMissingAndFailedDetailNeverOfferActionsBeforeVerification() {
+        for mode in ["deleted", "detail-error"] {
+            let app = launch(language: "uk", mode: mode)
+            openInbox(app); openCase("feedback-audit-ordinary", app)
+            XCTAssertFalse(app.textViews["feedback.reply.text"].exists)
+            XCTAssertFalse(app.buttons["feedback.conversation.close"].exists)
+            if mode == "deleted" {
+                XCTAssertTrue(app.otherElements["feedback.detail.unavailable"].firstMatch.waitForExistence(timeout: 8)
+                    || app.staticTexts.matching(NSPredicate(format: "identifier == %@", "feedback.detail.unavailable")).firstMatch.exists)
+                capture(app, "feedback-deleted-no-actions")
+            } else {
+                let retry = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Спробувати")).firstMatch
+                XCTAssertTrue(retry.waitForExistence(timeout: 8)); capture(app, "feedback-detail-failed-no-actions"); retry.tap()
+                XCTAssertTrue(app.textViews["feedback.reply.text"].waitForExistence(timeout: 8))
+                capture(app, "feedback-detail-retry-confirmed")
+            }
+            app.terminate()
+        }
+    }
+
+    func testOrdinaryStatusAndDeletionRequireSeparateConfirmation() {
+        let app = launch(language: "uk")
+        openInbox(app)
+        let search = app.textFields["feedbackInbox.search"]
+        search.tap(); search.typeText("feedback-audit-ordinary"); dismissKeyboard(app)
+        let status = app.buttons["feedbackInbox.status.feedback-audit-ordinary"]
+        XCTAssertTrue(status.waitForExistence(timeout: 8)); reveal(status, app); status.tap()
+        capture(app, "feedback-status-menu")
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "переглянут")).firstMatch.tap()
+        let trash = app.buttons["feedbackInbox.delete.feedback-audit-ordinary"]
+        reveal(trash, app); trash.tap()
+        let cancel = app.buttons["Скасувати"].firstMatch
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        capture(app, "feedback-delete-confirmation")
+        cancel.tap()
+        XCTAssertTrue(app.buttons["feedbackInbox.open.feedback-audit-ordinary"].exists)
+    }
+
+    func testAppAdministratorCanChangeStatusButCannotDeleteInbox() {
+        let app = launch(language: "uk", role: "admin")
+        openInbox(app)
+        let search = app.textFields["feedbackInbox.search"]
+        search.tap(); search.typeText("feedback-audit-ordinary"); dismissKeyboard(app)
+        let status = app.buttons["feedbackInbox.status.feedback-audit-ordinary"]
+        XCTAssertTrue(status.waitForExistence(timeout: 8))
+        XCTAssertFalse(app.buttons["feedbackInbox.delete.feedback-audit-ordinary"].exists)
+        capture(app, "feedback-admin-status-no-delete")
+        reveal(status, app); status.tap()
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "переглянут")).firstMatch.waitForExistence(timeout: 5))
     }
 
     func testInboxFailureAndFailedNextPageRetry() {
@@ -120,12 +188,13 @@ import XCTest
         }
     }
 
-    private func launch(language: String, owner: Bool = true, maximum: Bool = false, mode: String = "") -> XCUIApplication {
+    private func launch(language: String, owner: Bool = true, maximum: Bool = false, mode: String = "", role: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-ui-testing", "-UIPreferredContentSizeCategoryName", maximum ? "UICTContentSizeCategoryAccessibilityXXXL" : "UICTContentSizeCategoryL"]
         app.launchEnvironment = ["UITestResetUserSettings": "1", "UITestResetAppLock": "1", "UITestAppLanguage": language,
             "UITestAppAppearance": language == "de" ? "dark" : "light", "UITestFeedbackInbox": "1", "UITestFeedbackAudit": "1", "UITestFeedbackMode": mode,
             owner ? "UITestForceOwnerSession" : "UITestForceAuthenticatedSession": "1", "UITestLegalReverification": "success"]
+        if let role { app.launchEnvironment["UITestProfileRole"] = role }
         app.launch(); return app
     }
     private func openInbox(_ app: XCUIApplication) {

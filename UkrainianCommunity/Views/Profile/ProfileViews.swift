@@ -1002,6 +1002,7 @@ struct ProfileView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("profile.feedback.history")
 
                 NavigationLink(value: ProfileNavigationRoute.feedbackComposer) {
                     ProfileModuleRow(
@@ -1025,7 +1026,6 @@ struct ProfileView: View {
                 }
             }
         }
-        .accessibilityIdentifier("profile.supportSection")
     }
 
     private var preferencesNavigationSection: some View {

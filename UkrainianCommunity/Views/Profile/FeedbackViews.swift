@@ -650,6 +650,7 @@ struct FeedbackInboxView: View {
                         isShowingClearConfirmation = true
                     }
                     .accessibilityIdentifier("feedbackInbox.clearAll")
+                .disabled(!viewModel.updatingFeedbackIDs.isEmpty || !viewModel.deletingFeedbackIDs.isEmpty)
                 }
             }
         } content: {
@@ -712,7 +713,8 @@ struct FeedbackInboxView: View {
             }
             Button(AppStrings.Common.cancel, role: .cancel) { feedbackPendingDeletion = nil }
         } message: {
-            Text(AppStrings.Feedback.deleteOneConfirmationMessage)
+            Text([feedbackPendingDeletion?.userDisplayName, feedbackPendingDeletion?.subject,
+                  AppStrings.Feedback.deleteOneConfirmationMessage].compactMap { $0 }.joined(separator: "\n\n"))
         }
         .navigationDestination(isPresented: Binding(
             get: { selectedFeedback != nil },
@@ -851,7 +853,7 @@ struct FeedbackInboxView: View {
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("feedbackInbox.open.\(item.id)")
 
-                        if PermissionService.isAppOwner(user: authState.user) {
+                        if PermissionService.canManageFeedback(user: authState.user) {
                             Menu {
                                 Button(AppStrings.Feedback.markReviewed, systemImage: "eye") {
                                     Task { await viewModel.setStatus(.reviewed, for: item) }
@@ -863,12 +865,16 @@ struct FeedbackInboxView: View {
                                     Task { await viewModel.setStatus(.done, for: item) }
                                 }
                             } label: {
-                                Image(systemName: "ellipsis.circle")
+                                Image(systemName: "ellipsis")
+                                    .font(.system(size: 17, weight: .semibold))
                                     .frame(width: AppTheme.minimumInteractiveTarget, height: AppTheme.minimumInteractiveTarget)
                             }
+                            .appGlassIconControl()
                             .accessibilityLabel(AppStrings.Common.status)
-                            .disabled(viewModel.updatingFeedbackIDs.contains(item.id) || item.dsaCase != nil)
+                            .accessibilityIdentifier("feedbackInbox.status.\(item.id)")
+                            .disabled(viewModel.isClearingInbox || viewModel.updatingFeedbackIDs.contains(item.id) || item.dsaCase != nil)
 
+                            if PermissionService.isAppOwner(user: authState.user) {
                             if viewModel.deletingFeedbackIDs.contains(item.id) {
                                 ProgressView()
                                     .controlSize(.small)
@@ -885,6 +891,8 @@ struct FeedbackInboxView: View {
                                     feedbackPendingDeletion = item
                                 }
                                 .accessibilityIdentifier("feedbackInbox.delete.\(item.id)")
+                                .disabled(viewModel.isClearingInbox || viewModel.updatingFeedbackIDs.contains(item.id))
+                            }
                             }
                         }
                     }
@@ -1548,6 +1556,39 @@ private struct DsaCaseContextCard: View {
     }
 }
 
+private struct FeedbackOutcomeMenu: View {
+    let title: String
+    @Binding var selection: String
+    let options: [(String, String)]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
+            Menu {
+                ForEach(options, id: \.0) { option in
+                    Button { selection = option.0 } label: {
+                        if selection == option.0 { Label(option.1, systemImage: "checkmark") }
+                        else { Text(option.1) }
+                    }
+                }
+            } label: {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(options.first(where: { $0.0 == selection })?.1 ?? selection)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.down").font(.system(size: 17, weight: .semibold))
+                        .accessibilityHidden(true)
+                }
+                .font(.body).foregroundStyle(AppTheme.textPrimary)
+                .padding(12).frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11))
+            }
+            .accessibilityLabel(title)
+            .accessibilityValue(options.first(where: { $0.0 == selection })?.1 ?? selection)
+        }
+    }
+}
+
 private struct DsaAppealDecisionSheet: View {
     let item: FeedbackItem
     let onSubmit: (DsaAppealDecisionFunctionRequest) async -> Bool
@@ -1575,11 +1616,8 @@ private struct DsaAppealDecisionSheet: View {
                     }
                     AppEditorSectionCard {
                         VStack(alignment: .leading, spacing: 16) {
-                            Picker(AppStrings.Safety.dsaAppealOutcomeTitle, selection: $outcome) {
-                                Text(AppStrings.Safety.dsaAppealUpheld).tag("upheld")
-                                Text(AppStrings.Safety.dsaAppealChanged).tag("changed")
-                            }
-                            .pickerStyle(.menu)
+                            FeedbackOutcomeMenu(title: AppStrings.Safety.dsaAppealOutcomeTitle, selection: $outcome,
+                                options: [("upheld", AppStrings.Safety.dsaAppealUpheld), ("changed", AppStrings.Safety.dsaAppealChanged)])
                             .accessibilityIdentifier("feedback.dsa.appeal.outcome")
                             .disabled(isSubmitting)
                             TextField(AppStrings.Safety.dsaAppealReasonTitle, text: $reason, axis: .vertical)
@@ -1715,17 +1753,14 @@ private struct DsaDecisionSheet: View {
     private var fieldCard: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: 16) {
-                Picker(AppStrings.Safety.dsaOutcomeTitle, selection: $outcome) {
-                    Text(AppStrings.Safety.dsaOutcomeNoAction).tag("noAction")
-                    Text(AppStrings.Safety.dsaOutcomeRemoved).tag("removed")
-                }
-                .pickerStyle(.menu)
-                dsaTextField(AppStrings.Safety.dsaFactsTitle, text: $facts, maximum: 5_000, axis: .vertical)
-                dsaTextField(AppStrings.Safety.legalBasisTitle, text: $legalBasis, maximum: 2000, axis: .vertical)
-                dsaTextField(AppStrings.Safety.dsaTermsBasisTitle, text: $termsBasis, maximum: 2000, axis: .vertical)
-                dsaTextField(AppStrings.Safety.dsaTerritoryTitle, text: $territorialScope, maximum: 500)
-                dsaTextField(AppStrings.Safety.dsaDurationTitle, text: $duration, maximum: 500)
-                dsaTextField(AppStrings.Safety.dsaRedressTitle, text: $redress, maximum: 2000, axis: .vertical)
+                FeedbackOutcomeMenu(title: AppStrings.Safety.dsaOutcomeTitle, selection: $outcome,
+                    options: [("noAction", AppStrings.Safety.dsaOutcomeNoAction), ("removed", AppStrings.Safety.dsaOutcomeRemoved)])
+                dsaTextField(AppStrings.Safety.dsaFactsTitle, id: "facts", text: $facts, maximum: 5_000, axis: .vertical)
+                dsaTextField(AppStrings.Safety.legalBasisTitle, id: "legal", text: $legalBasis, maximum: 2000, axis: .vertical)
+                dsaTextField(AppStrings.Safety.dsaTermsBasisTitle, id: "terms", text: $termsBasis, maximum: 2000, axis: .vertical)
+                dsaTextField(AppStrings.Safety.dsaTerritoryTitle, id: "territory", text: $territorialScope, maximum: 500)
+                dsaTextField(AppStrings.Safety.dsaDurationTitle, id: "duration", text: $duration, maximum: 500)
+                dsaTextField(AppStrings.Safety.dsaRedressTitle, id: "redress", text: $redress, maximum: 2000, axis: .vertical)
                 Button { humanReviewConfirmed.toggle() } label: {
                     Label(
                         AppStrings.Safety.dsaHumanReview,
@@ -1742,7 +1777,7 @@ private struct DsaDecisionSheet: View {
         }
     }
 
-    private func dsaTextField(_ title: String, text: Binding<String>, maximum: Int, axis: Axis = .horizontal) -> some View {
+    private func dsaTextField(_ title: String, id: String, text: Binding<String>, maximum: Int, axis: Axis = .horizontal) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(AppTheme.textPrimary)
             Text("\(text.wrappedValue.utf16.count)/\(maximum)")
@@ -1750,7 +1785,7 @@ private struct DsaDecisionSheet: View {
                 .foregroundStyle(text.wrappedValue.utf16.count > maximum ? AppTheme.accentDestructiveForeground : AppTheme.textSecondary)
             TextField(title, text: text, axis: axis)
                 .lineLimit(axis == .vertical ? 3...8 : 1...1)
-                .accessibilityIdentifier("feedback.dsa.field." + String(maximum) + "." + title)
+                .accessibilityIdentifier("feedback.dsa.field." + id)
                 .padding(12)
                 .background(AppTheme.surfaceSecondary, in: RoundedRectangle(cornerRadius: 11, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 11, style: .continuous).stroke(AppTheme.borderSubtle))
@@ -1975,11 +2010,6 @@ struct FeedbackComposerCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(AppStrings.Feedback.subtitle)
-                .font(.footnote)
-                .foregroundStyle(AppTheme.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
             Group {
                 if dynamicTypeSize.isAccessibilitySize {
                     VStack(alignment: .leading, spacing: 8) {
