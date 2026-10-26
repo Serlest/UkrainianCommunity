@@ -198,21 +198,24 @@
     {
       "number": 12,
       "name": "Отзывы, жалобы и поддержка",
-      "status": "implemented_local_review_complete_pending_CI_and_device",
+      "status": "verified_pending_user_testflight_acceptance",
       "openChecks": [
-        "F12-FINAL-SOURCE-CI",
         "F12-45"
       ],
       "inventory": "Docs/Verification/FeedbackSupportInventory20261026.json",
       "authorizedByUser": "2026-10-26: Ок, тогде переходи к следующему пункту",
-      "physicalAcceptance": "deferred by user until return home",
+      "physicalAcceptance": "User explicitly chose to verify the TestFlight build himself",
       "report": "Docs/Verification/FeedbackSupportAudit20261026.json",
       "sourceCommit": "c8b6cc1c",
       "reviewedScenarioGroups": 44,
       "deferredScenarioGroups": 1,
-      "testFlightChanged": false,
+      "testFlightChanged": true,
       "serverRulesChanged": true,
-      "serverFunctionsChanged": false
+      "serverFunctionsChanged": false,
+      "closedChecks": [
+        "F12-FINAL-SOURCE-CI"
+      ],
+      "testFlightBuild": "1.2.1 (124)"
     },
     {
       "number": 13,
@@ -359,7 +362,7 @@
   "nextNewBlock": 12,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "Finish block 12 final source CI and physical iPhone/APNs readback when user returns. Do not start block 13 without acceptance; preserve block 11 final exact-copy physical readback.",
+  "nextAction": "Await user physical TestFlight 124 acceptance for block12; preserve block11 final exact-copy device gate. Do not start block13 without acceptance.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -372,8 +375,8 @@
     "block11VerifiedScenarios": 44
   },
   "latestTestFlightDelivery": {
-    "build": "1.2.1 (123)",
-    "report": "Docs/Verification/TestFlight12320261026.json",
+    "build": "1.2.1 (124)",
+    "report": "Docs/Verification/TestFlight12420261026.json",
     "includedImplementedBlocks": [
       1,
       2,
@@ -385,10 +388,12 @@
       8,
       9,
       10,
-      11
+      11,
+      12
     ],
     "userAcceptance": "pending",
-    "block11PhysicalReadback": "pending; delivery is not acceptance"
+    "block11PhysicalReadback": "pending; delivery is not acceptance",
+    "block12PhysicalReadback": "pending user acceptance; actual push receipt not yet verified"
   },
   "currentBlock": 12
 }

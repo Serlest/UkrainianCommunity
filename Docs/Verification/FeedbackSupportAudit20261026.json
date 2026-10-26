@@ -4,7 +4,7 @@
   "name": "Відгуки, скарги та підтримка",
   "date": "2026-10-26",
   "inventory": "Docs/Verification/FeedbackSupportInventory20261026.json",
-  "status": "implemented_locally_verified_pending_final_CI_and_physical_acceptance",
+  "status": "implemented_verified_pending_user_testflight_acceptance",
   "baselineCommit": "86c55af4",
   "productSourceCommit": "c8b6cc1cedcd7dd4c3380ac2de90c003ced99b6b",
   "scope": {
@@ -156,13 +156,17 @@
     "billingChanges": "None"
   },
   "delivery": {
-    "testFlight123": "Already available; includes blocks 1-11, not block12",
-    "newUpload": false,
-    "publicRelease": false
+    "testFlightBuild": "1.2.1 (124)",
+    "available": true,
+    "internalOnly": true,
+    "report": "Docs/Verification/TestFlight12420261026.json",
+    "newUpload": true,
+    "publicRelease": false,
+    "acceptance": "User chose to test this build himself"
   },
   "openGates": [
-    "Final required source CI terminal result",
-    "Signed final iPhone readback and actual push receipt when user returns",
+    "Required verification-test/build-number CI tracked separately",
+    "User physical TestFlight acceptance and actual push receipt",
     "User acceptance before block13"
   ],
   "recommendations": [
@@ -195,7 +199,7 @@
   "sourceCI": {
     "productRunId": 40312356414,
     "productCommit": "c8b6cc1cedcd7dd4c3380ac2de90c003ced99b6b",
-    "status": "in_progress",
+    "status": "completed",
     "previousSourceRun": {
       "id": 40310076184,
       "conclusion": "success"
@@ -203,7 +207,8 @@
     "failedLocalizationRun": {
       "id": 40306407974,
       "cause": "New table sourceLanguage en instead of repository de; corrected, validator and subsequent hosted source run passed."
-    }
+    },
+    "conclusion": "success"
   },
   "releaseSimulatorBuild": {
     "status": "SUCCEEDED",
@@ -218,5 +223,6 @@
     "stopped": true,
     "exportComplete": true,
     "export": "build/audit-feedback-20261026/emulator-export/firebase-export-metadata.json"
-  }
+  },
+  "deviceAcceptance": "User explicitly chose to verify TestFlight build himself; physical checks remain pending user feedback."
 }

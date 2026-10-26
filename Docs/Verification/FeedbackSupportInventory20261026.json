@@ -957,7 +957,7 @@
         "guest"
       ],
       "dataPath": "Test artifacts / deployed readback / physical iPhone",
-      "status": "deferred_user_device_unavailable",
+      "status": "pending_user_testflight_acceptance",
       "evidence": [],
       "remaining": [
         "Signed final Release readback on physical iPhone",
@@ -966,8 +966,8 @@
     }
   ],
   "evidenceRegistry": {},
-  "physicalDeviceStatus": "Deferred by user while away",
-  "testFlightStatus": "Not delivered; available build 123 contains blocks 1-11 only",
+  "physicalDeviceStatus": "User explicitly chose self-verification in TestFlight 124",
+  "testFlightStatus": "Delivered: 1.2.1 (124), VALID, IN_BETA_TESTING, internal Beta Tester group",
   "reviewedScenarioGroups": 44,
   "deferredScenarioGroups": 1
 }

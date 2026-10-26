@@ -1,0 +1,77 @@
+{
+  "version": "1.2.1",
+  "build": "124",
+  "sourceCommit": "ce4a65c39e4f42c48e13431cccf08c42f8180dec",
+  "productSourceCommit": "c8b6cc1cedcd7dd4c3380ac2de90c003ced99b6b",
+  "verificationSourceCommit": "bd22f853279e585288c9d001eca94120e7d988e1",
+  "requestedByUser": "Загружай билд, я сам проверю, только скажи что именно проверить.",
+  "audience": "internal TestFlight",
+  "publicRelease": false,
+  "archive": "build/UAC-124.xcarchive",
+  "archiveResult": "ARCHIVE SUCCEEDED",
+  "exportResult": "EXPORT SUCCEEDED; Upload succeeded; Uploaded package is processing",
+  "uploadMethod": "signed-in Xcode account fallback after API cloud-signing denial",
+  "exportOptions": "build/ExportOptions-TestFlight-Internal.plist",
+  "serverCompatibility": "scripts/validate_release_configuration.py --verify-deployed-analytics passed; updated Rules independently read back in block12 report",
+  "productSourceCI": {
+    "runId": 40312356414,
+    "conclusion": "success"
+  },
+  "verificationSourceCI": {
+    "runId": 40313599141,
+    "conclusion": "in_progress"
+  },
+  "buildNumberCI": {
+    "runId": 40315219168,
+    "conclusion": "pending"
+  },
+  "testNotes": {
+    "source": "build/testflight-124/notes.json",
+    "published": true,
+    "locales": [
+      "uk",
+      "de-DE",
+      "en-US"
+    ]
+  },
+  "physicalVerification": "User explicitly chose to test the TestFlight build himself; no final iPhone or actual APNs receipt claimed. Two devices needed for a live owner-to-user push test.",
+  "implementedBlocksIncluded": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+  ],
+  "boundaries": [
+    "No public App Store release.",
+    "No live complaint decisions, sanctions or production test messages by the agent.",
+    "Existing project package ordering and catalog extraction metadata retained; effective catalog translation values equal committed source.",
+    "Block12 reviewed 44 groups with source and representative runtime evidence; physical group45 pending user acceptance."
+  ],
+  "processingState": "VALID",
+  "testFlightAvailable": true,
+  "internalBuildState": "IN_BETA_TESTING",
+  "assignedGroups": [
+    {
+      "name": "Beta Tester",
+      "internal": true,
+      "containsBuild": true
+    }
+  ],
+  "readback": "build/testflight-124/asc-final.json",
+  "appleUploadState": [
+    {
+      "errors": [],
+      "warnings": [],
+      "infos": [],
+      "state": "COMPLETE"
+    }
+  ]
+}
