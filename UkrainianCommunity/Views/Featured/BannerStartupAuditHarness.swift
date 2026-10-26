@@ -27,7 +27,7 @@ struct BannerStartupAuditHarness: View {
                 }
                 Text(artworkReady ? "Artwork ready" : "Artwork pending").accessibilityIdentifier("bannerStartup.artwork")
                 Text(model.isLoading ? "Network pending" : "Network complete").accessibilityIdentifier("bannerStartup.network")
-                Button("Return empty server response") { repository.finish() }.accessibilityIdentifier("bannerStartup.finish")
+                Button { repository.finish() } label: { Text(verbatim: "Return empty server response") }.accessibilityIdentifier("bannerStartup.finish")
             }
         }
         .padding().background(AppBackgroundView())
