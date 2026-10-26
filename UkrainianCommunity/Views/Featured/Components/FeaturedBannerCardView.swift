@@ -17,11 +17,32 @@ struct FeaturedBannerCardView: View {
     }
 
     var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .trailing, spacing: 12) {
+                    if let countdown = banner.countdown { FeaturedBannerCountdownView(countdown: countdown) }
+                    background.frame(height: 120).clipShape(cardShape).accessibilityHidden(true)
+                    if hasTextContent { textContent }
+                }
+            } else { card }
+        }
+        .modifier(BannerAccessibilityFallback(needsFallback: !hasTextContent && banner.countdown == nil))
+        .accessibilityElement(children: .combine)
+        .accessibilityHint(isActionable ? AppStrings.Action.open : "")
+    }
+
+    private var card: some View {
         ZStack(alignment: .bottomLeading) {
-            background
-            visualTreatment
+            background.accessibilityHidden(true)
+            visualTreatment.accessibilityHidden(true)
             if hasTextContent {
                 textContent
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if !dynamicTypeSize.isAccessibilitySize, let countdown = banner.countdown {
+                FeaturedBannerCountdownView(countdown: countdown)
+                    .frame(maxWidth: 230, alignment: .trailing).padding(12)
             }
         }
         .clipShape(cardShape)
@@ -31,37 +52,48 @@ struct FeaturedBannerCardView: View {
         .shadow(color: AppTheme.glassShadow(for: colorScheme), radius: AppTheme.glassCardShadowRadius, y: AppTheme.glassCardShadowY)
         .contentShape(cardShape)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(isActionable ? AppStrings.Action.open : "")
-        .accessibilityIdentifier("featuredBanner.card.\(banner.id)")
     }
 
     @ViewBuilder
     private var background: some View {
         GeometryReader { proxy in
+#if DEBUG && targetEnvironment(simulator)
+            if ProcessInfo.processInfo.arguments.contains("-ui-testing"), ProcessInfo.processInfo.environment["UITestBanner14"] == "1", previewImage == nil {
+                fallbackBackground.frame(width: proxy.size.width, height: proxy.size.height)
+                    .onAppear { onArtworkLoadStateChanged?(true) }
+            } else {
+                artwork(size: proxy.size)
+            }
+#else
+            artwork(size: proxy.size)
+#endif
+        }
+    }
+
+    @ViewBuilder private func artwork(size: CGSize) -> some View {
             if let previewImage {
                 AdaptiveBannerImage(image: previewImage)
-                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .frame(width: size.width, height: size.height)
                     .clipped()
                     .onAppear { onArtworkLoadStateChanged?(true) }
             } else if let imageURL = banner.imageURL?.trimmingCharacters(in: .whitespacesAndNewlines), !imageURL.isEmpty {
                 RemoteImageView(
                     imageURL: imageURL,
-                    height: proxy.size.height,
+                    height: size.height,
                     cornerRadius: AppTheme.heroRadius,
                     source: "FeaturedBannerCardView",
                     placeholderStyle: .glassSkeleton,
                     presentationStyle: .adaptiveBanner,
                     onImageLoadStateChanged: onArtworkLoadStateChanged
                 )
-                .frame(width: proxy.size.width, height: proxy.size.height)
+                .frame(width: size.width, height: size.height)
                 .clipped()
             } else {
                 fallbackBackground
-                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .frame(width: size.width, height: size.height)
                     .onAppear { onArtworkLoadStateChanged?(true) }
             }
-        }
     }
 
     private var fallbackBackground: some View {
@@ -175,13 +207,16 @@ struct FeaturedBannerCardView: View {
         }
     }
 
-    private var accessibilityLabel: String {
-        let text = [titleText, subtitleText].compactMap(\.self).joined(separator: ", ")
-        return text.isEmpty ? AppStrings.FeaturedManagement.title : text
-    }
-
     private func nonEmpty(_ value: String?) -> String? {
         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private struct BannerAccessibilityFallback: ViewModifier {
+    let needsFallback: Bool
+    @ViewBuilder func body(content: Content) -> some View {
+        if needsFallback { content.accessibilityLabel(AppStrings.FeaturedManagement.title) }
+        else { content }
     }
 }

@@ -23,6 +23,8 @@ struct FeaturedEditorValueRow: View {
     }
 }
 struct FeaturedBannerActionTargetSelectionField: View {
+    @ScaledMetric(relativeTo: .subheadline) private var iconWidth = AppTheme.metadataIconSize
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let kind: FeaturedBannerActionTargetKind?
     let selectedItem: FeaturedBannerActionTargetItem?
     let targetID: String
@@ -37,7 +39,7 @@ struct FeaturedBannerActionTargetSelectionField: View {
                     Image(systemName: kind?.systemImage ?? "arrow.up.forward.app")
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.accentPrimaryForeground)
-                        .frame(width: AppTheme.metadataIconSize)
+                        .frame(width: iconWidth)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(selectedItem?.title ?? AppStrings.FeaturedEditor.selectTarget)
@@ -51,8 +53,8 @@ struct FeaturedBannerActionTargetSelectionField: View {
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
                                 .lineLimit(1)
-                        } else if let rawID = nonEmpty(targetID) {
-                            Text(AppStrings.FeaturedEditor.selectedTargetID(rawID))
+                        } else if nonEmpty(targetID) != nil {
+                            Text(BannerCountdownStrings.text("targetUnavailable"))
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.textSecondary)
                                 .lineLimit(1)
@@ -79,7 +81,7 @@ struct FeaturedBannerActionTargetSelectionField: View {
                         .strokeBorder(AppTheme.borderSubtle)
                 )
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.plain).accessibilityIdentifier("bannerEditor.chooseTarget")
 
             if selectedItem != nil || !targetID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button(role: .destructive, action: onClear) {
@@ -109,7 +111,9 @@ struct FeaturedBannerActionTargetPickerSheet: View {
 
     var body: some View {
         NavigationStack {
-            Group {
+            VStack(spacing: 12) {
+                AppSearchField(placeholder: AppStrings.FeaturedEditor.targetPickerSearch, text: $searchText, fieldID: "bannerEditor.targetSearch").padding(.horizontal)
+                Group {
                 if viewModel.isLoadingCurrentActionTargets && items.isEmpty {
                     LoadingStateCard(title: AppStrings.FeaturedEditor.loadingTargets)
                         .padding(AppTheme.pageHorizontal)
@@ -140,20 +144,27 @@ struct FeaturedBannerActionTargetPickerSheet: View {
                                 isSelected: viewModel.actionTargetID == item.id
                             )
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.plain).accessibilityIdentifier("bannerEditor.target." + item.id)
                         .accessibilityAddTraits(
                             viewModel.actionTargetID == item.id ? .isSelected : []
                         )
                     }
                     .listStyle(.plain)
                 }
+                }
+                if viewModel.hasMoreActionTargets {
+                    Button(BannerCountdownStrings.text("moreTargets")) { Task { await viewModel.loadMoreActionTargets() } }
+                        .disabled(viewModel.isLoadingCurrentActionTargets).accessibilityIdentifier("bannerEditor.moreTargets")
+                    Text(BannerCountdownStrings.text("targetScope")).font(.footnote).foregroundStyle(AppTheme.textSecondary).padding(.horizontal)
+                }
+                if let error = viewModel.actionTargetLoadError, !items.isEmpty { InlineMessageCard(style: .error, message: error) }
             }
             .navigationTitle(AppStrings.FeaturedEditor.targetPickerTitle(viewModel.actionTargetPickerKind?.title ?? ""))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(AppStrings.Action.cancel) {
                         dismiss()
-                    }
+                    }.accessibilityIdentifier("bannerEditor.targetCancel")
                 }
 
                 ToolbarItem(placement: .primaryAction) {
@@ -163,7 +174,6 @@ struct FeaturedBannerActionTargetPickerSheet: View {
                     .disabled(viewModel.isLoadingCurrentActionTargets)
                 }
             }
-            .searchable(text: $searchText, prompt: AppStrings.FeaturedEditor.targetPickerSearch)
             .task {
                 await viewModel.loadActionTargetsIfNeeded()
             }

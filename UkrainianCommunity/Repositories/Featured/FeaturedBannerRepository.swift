@@ -1,5 +1,7 @@
 import Foundation
 
+struct FeaturedBannerSaveConflict: Error {}
+
 protocol FeaturedBannerRepository {
     func fetchActiveBanners(
         for section: FeaturedBannerVisibleSection,
@@ -7,10 +9,17 @@ protocol FeaturedBannerRepository {
     ) async throws -> [FeaturedBanner]
 
     func fetchAllBannersForOwner() async throws -> [FeaturedBanner]
+    func saveBanner(_ banner: FeaturedBanner, isNew: Bool, expectedUpdatedAt: Date?, operationID: String) async throws
     func createBanner(_ banner: FeaturedBanner) async throws
     func updateBanner(_ banner: FeaturedBanner) async throws
     func setBannerActive(id: String, isActive: Bool, updatedBy userID: String) async throws
     func deleteBanner(id: String) async throws
+}
+
+extension FeaturedBannerRepository {
+    func saveBanner(_ banner: FeaturedBanner, isNew: Bool, expectedUpdatedAt: Date?, operationID: String) async throws {
+        if isNew { try await createBanner(banner) } else { try await updateBanner(banner) }
+    }
 }
 
 extension Array where Element == FeaturedBanner {

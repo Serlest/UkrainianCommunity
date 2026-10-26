@@ -1,8 +1,17 @@
 import Foundation
+import FirebaseAuth
+import FirebaseFunctions
 
 enum FeaturedBannerSaveFunctionMode: String, Codable, Equatable {
     case create
     case update
+}
+
+struct FeaturedBannerCountdownPayload: Codable, Equatable {
+    let targetDate: String
+    let label: String
+    let germanLabel: String
+    let completion: String
 }
 
 struct FeaturedBannerMutationPayload: Codable, Equatable {
@@ -23,6 +32,8 @@ struct FeaturedBannerMutationPayload: Codable, Equatable {
     let isActive: Bool
     let startsAt: String?
     let endsAt: String?
+    var presentationVersion = 1
+    let countdown: FeaturedBannerCountdownPayload?
 
     init(banner: FeaturedBanner) throws {
         guard let imageURL = Self.nonEmpty(banner.imageURL) else {
@@ -46,6 +57,7 @@ struct FeaturedBannerMutationPayload: Codable, Equatable {
         isActive = banner.isActive
         startsAt = banner.startsAt.map(Self.dateFormatter.string(from:))
         endsAt = banner.endsAt.map(Self.dateFormatter.string(from:))
+        countdown = banner.countdown.map { FeaturedBannerCountdownPayload(targetDate: Self.dateFormatter.string(from: $0.targetDate), label: $0.label, germanLabel: $0.germanLabel, completion: $0.completion.rawValue) }
     }
 
     private static func nonEmpty(_ value: String?) -> String? {
@@ -63,6 +75,9 @@ struct FeaturedBannerMutationPayload: Codable, Equatable {
 struct FeaturedBannerSaveFunctionRequest: Codable, Equatable {
     let mode: FeaturedBannerSaveFunctionMode
     let banner: FeaturedBannerMutationPayload
+    var operationID: String? = nil
+    var expectedUpdatedAt: String? = nil
+    var principalID: String? = nil
 }
 
 struct FeaturedBannerIDFunctionRequest: Codable, Equatable {
@@ -82,7 +97,8 @@ struct FeaturedBannerMutationFunctionResponse: Codable, Equatable {
 protocol FeaturedBannerMutationClient {
     func saveFeaturedBanner(
         _ banner: FeaturedBanner,
-        mode: FeaturedBannerSaveFunctionMode
+        mode: FeaturedBannerSaveFunctionMode,
+        expectedUpdatedAt: Date?, operationID: String
     ) async throws
     func setFeaturedBannerActive(id: String, isActive: Bool) async throws
     func deleteFeaturedBanner(id: String) async throws
@@ -91,15 +107,15 @@ protocol FeaturedBannerMutationClient {
 extension CloudFunctionsClient: FeaturedBannerMutationClient {
     func saveFeaturedBanner(
         _ banner: FeaturedBanner,
-        mode: FeaturedBannerSaveFunctionMode
+        mode: FeaturedBannerSaveFunctionMode,
+        expectedUpdatedAt: Date?, operationID: String
     ) async throws {
-        let _: FeaturedBannerMutationFunctionResponse = try await call(
-            .saveFeaturedBanner,
-            request: FeaturedBannerSaveFunctionRequest(
-                mode: mode,
-                banner: try FeaturedBannerMutationPayload(banner: banner)
-            )
-        )
+        guard let principal = Auth.auth().currentUser?.uid, principal == (banner.updatedBy ?? banner.createdBy) else { throw AppError.permissionDenied }
+        let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let _: FeaturedBannerMutationFunctionResponse = try await call(.saveFeaturedBanner,
+            request: FeaturedBannerSaveFunctionRequest(mode: mode, banner: try FeaturedBannerMutationPayload(banner: banner),
+                operationID: operationID, expectedUpdatedAt: expectedUpdatedAt.map(formatter.string(from:)), principalID: principal))
+        guard Auth.auth().currentUser?.uid == principal else { throw CancellationError() }
     }
 
     func setFeaturedBannerActive(id: String, isActive: Bool) async throws {

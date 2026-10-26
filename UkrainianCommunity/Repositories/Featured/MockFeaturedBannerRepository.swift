@@ -20,7 +20,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             if lhs.priority != rhs.priority {
                 return lhs.priority > rhs.priority
             }
-            return lhs.updatedAt > rhs.updatedAt
+            return lhs.updatedAt == rhs.updatedAt ? lhs.id < rhs.id : lhs.updatedAt > rhs.updatedAt
         }
     }
 
@@ -73,6 +73,7 @@ final class MockFeaturedBannerRepository: FeaturedBannerRepository {
             updatedAt: Date(),
             createdBy: existingBanner.createdBy,
             updatedBy: userID,
+            countdown: existingBanner.countdown,
             requiresDataRepair: existingBanner.requiresDataRepair
         )
     }

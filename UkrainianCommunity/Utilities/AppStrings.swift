@@ -312,10 +312,10 @@ enum AppStrings {
     }
 
     enum FeaturedManagement {
-        static var title: String { text("featured.management.title", "Featured Content") }
-        static var profileEntryTitle: String { text("featured.management.profile_entry.title", "Featured Content") }
+        static var title: String { BannerCountdownStrings.text("managementTitle") }
+        static var profileEntryTitle: String { BannerCountdownStrings.text("managementTitle") }
         static var profileEntrySubtitle: String { text("featured.management.profile_entry.subtitle", "Керуйте банерами новин, подій, організацій та довідника.") }
-        static var subtitle: String { text("featured.management.subtitle", "Create, preview, schedule, edit, migrate, and remove highlights across the public app.") }
+        static var subtitle: String { BannerCountdownStrings.text("managementSubtitle") }
         static var emptyTitle: String { text("featured.management.empty.title", "No featured banners yet") }
         static var emptyMessage: String { text("featured.management.empty.message", "Create the first highlight and choose exactly where and when it should appear.") }
         static var inactive: String { text("featured.management.inactive", "Inactive") }
@@ -323,13 +323,9 @@ enum AppStrings {
         static var updating: String { text("featured.management.updating", "Updating") }
         static var deleteBanner: String { text("featured.management.delete", "Delete banner") }
         static var duplicateBanner: String { text("featured.management.duplicate", "Duplicate banner") }
-        static var deleteConfirmationTitle: String { text("featured.management.delete.confirm.title", "Delete featured banner?") }
+        static var deleteConfirmationTitle: String { BannerCountdownStrings.text("deleteTitle") }
         static func deleteConfirmationMessage(_ title: String) -> String {
-            LocalizationStore.localizedFormat(
-                "featured.management.delete.confirm.message",
-                defaultValue: "This permanently deletes “%@” and its uploaded banner images.",
-                arguments: [title]
-            )
+            String(format: BannerCountdownStrings.text("deleteMessage"), locale: LocalizationStore.locale, title)
         }
         static var sectionsLabel: String { text("featured.management.sections", "Sections") }
         static var regionLabel: String { text("featured.management.region", "Region") }
@@ -394,9 +390,9 @@ enum AppStrings {
     }
 
     enum FeaturedEditor {
-        static var createTitle: String { text("featured.editor.create.title", "Create Featured Banner") }
-        static var editTitle: String { text("featured.editor.edit.title", "Edit Featured Banner") }
-        static var subtitle: String { text("featured.editor.subtitle", "Configure the highlight shown in public banner carousels.") }
+        static var createTitle: String { BannerCountdownStrings.text("createTitle") }
+        static var editTitle: String { BannerCountdownStrings.text("editTitle") }
+        static var subtitle: String { BannerCountdownStrings.text("editorSubtitle") }
         static var createBanner: String { text("featured.editor.create_banner", "Create banner") }
         static var editBanner: String { text("featured.editor.edit_banner", "Edit banner") }
         static var migrateBanner: String { text("featured.editor.migrate_banner", "Migrate and edit banner") }
@@ -409,8 +405,8 @@ enum AppStrings {
         static var discardConfirmationMessage: String { text("featured.editor.discard.message", "Your unsaved banner changes will be lost.") }
         static var discardChanges: String { text("featured.editor.discard.action", "Discard changes") }
         static var basicsSection: String { text("featured.editor.section.basics", "Basics") }
-        static var previewSection: String { text("featured.editor.section.preview", "Live preview") }
-        static var previewHelper: String { text("featured.editor.preview.helper", "This preview uses the same card as Home, Events, and Organizations.") }
+        static var previewSection: String { BannerCountdownStrings.text("previewTitle") }
+        static var previewHelper: String { BannerCountdownStrings.text("previewHelp") }
         static var legacyMigrationMessage: String { text("featured.editor.migration.message", "Retired Guide values were removed from this draft. Review the replacement sections and action, then save to complete migration.") }
         static var dataRepairMessage: String { text("featured.editor.repair.message", "Unsupported or incomplete values were normalized in this draft. Review every section before saving the repaired document.") }
         static var imageSection: String { text("featured.editor.section.image", "Image") }

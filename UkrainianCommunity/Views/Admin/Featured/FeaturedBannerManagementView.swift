@@ -4,9 +4,6 @@ struct FeaturedBannerManagementView: View {
     @EnvironmentObject private var authState: AuthState
     @Environment(\.locale) private var locale
     @StateObject private var viewModel: FeaturedBannerManagementViewModel
-    @State private var measurementReport: BannerMeasurementReport?
-    @State private var measurementsFailed = false
-    @State private var measurementLoadID: UUID?
     @State private var deleteCandidate: FeaturedBanner?
     @State private var searchText = ""
     @State private var filter: FeaturedBannerManagementFilter = .all
@@ -43,34 +40,23 @@ struct FeaturedBannerManagementView: View {
             managementContent
         }
         .task(id: "\(authState.user?.id ?? "")|\(PermissionService.isAppOwner(user: authState.user))") {
+            viewModel.resetSession()
+            guard PermissionService.canManageFeaturedBanners(user: authState.user) else { return }
             await viewModel.loadIfNeeded()
-            await loadMeasurements()
         }
         .appRefreshable {
+            guard PermissionService.canManageFeaturedBanners(user: authState.user) else { return }
             await viewModel.refresh()
-            await loadMeasurements()
         }
-        .confirmationDialog(
-            AppStrings.FeaturedManagement.deleteConfirmationTitle,
-            isPresented: Binding(
-                get: { deleteCandidate != nil },
-                set: { if !$0 { deleteCandidate = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.FeaturedManagement.deleteBanner, role: .destructive) {
-                guard let banner = deleteCandidate else { return }
-                deleteCandidate = nil
-                Task {
-                    await viewModel.delete(banner, requestedBy: authState.user?.id)
+        .sheet(item: $deleteCandidate) { banner in
+            NotificationConfirmationSheet(title: AppStrings.FeaturedManagement.deleteConfirmationTitle,
+                message: AppStrings.FeaturedManagement.deleteConfirmationMessage(managementTitle(for: banner)), cancel: { deleteCandidate = nil }) {
+                NotificationConfirmationAction(title: AppStrings.FeaturedManagement.deleteBanner, id: "bannerManagement.confirmDelete", role: .destructive) {
+                    deleteCandidate = nil
+                    guard canDeleteBanners else { return }
+                    Task { await viewModel.delete(banner, requestedBy: authState.user?.id) }
                 }
-            }
-            Button(AppStrings.Action.cancel, role: .cancel) {
-                deleteCandidate = nil
-            }
-        } message: {
-            if let banner = deleteCandidate {
-                Text(AppStrings.FeaturedManagement.deleteConfirmationMessage(managementTitle(for: banner)))
+                NotificationConfirmationAction(title: AppStrings.Action.cancel, id: "bannerManagement.cancelDelete", role: .cancel) { deleteCandidate = nil }
             }
         }
     }
@@ -81,7 +67,9 @@ struct FeaturedBannerManagementView: View {
 
     @ViewBuilder
     private var managementContent: some View {
-        if viewModel.isLoading && viewModel.banners.isEmpty {
+        if !PermissionService.canManageFeaturedBanners(user: authState.user) {
+            InlineMessageCard(style: .info, message: AppStrings.FeaturedManagement.permissionError)
+        } else if viewModel.isLoading && viewModel.banners.isEmpty {
             LoadingStateCard(title: nil)
                 .frame(maxWidth: .infinity, minHeight: 120)
         } else if viewModel.banners.isEmpty, let error = viewModel.error {
@@ -173,15 +161,7 @@ struct FeaturedBannerManagementView: View {
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
                                 Label(AppStrings.BannerReport.statisticsThirtyDays, systemImage: "chart.bar.xaxis")
-                                if let report = measurementReport {
-                                    BannerAnalyticsValueRow(title: managementTitle(for: banner),
-                                        totals: report.filtered(bannerID: banner.id, region: nil, section: nil).totals)
-                                    OwnerAnalyticsFreshnessLabel(updatedAt: report.generatedAt)
-                                    if measurementsFailed {
-                                        Text(AppStrings.OwnerAnalytics.staleData(AppStrings.OwnerAnalytics.loadFailedTitle))
-                                            .font(.footnote).foregroundStyle(AppTheme.textSecondary)
-                                    }
-                                } else { Text(measurementsFailed ? AppStrings.OwnerAnalytics.loadFailedTitle : AppStrings.OwnerAnalytics.loading).font(.footnote) }
+
                             }.frame(maxWidth: .infinity, alignment: .leading).padding(12)
                         }.buttonStyle(.plain).foregroundStyle(AppTheme.accentPrimaryForeground)
                         .accessibilityIdentifier("bannerManagement.statistics." + banner.id)
@@ -189,22 +169,6 @@ struct FeaturedBannerManagementView: View {
                     }
                 }
             }
-        }
-    }
-
-    private func loadMeasurements() async {
-        let id = UUID()
-        measurementLoadID = id
-        let principalID = authState.user?.id
-        guard PermissionService.isAppOwner(user: authState.user) else { measurementReport = nil; return }
-        do {
-            let report = try await RefreshRequest.run { try await measurementRepository.fetch(period: .thirtyDays) }
-            guard PermissionService.isAppOwner(user: authState.user), authState.user?.id == principalID,
-                  measurementLoadID == id, !Task.isCancelled else { return }
-            measurementReport = report; measurementsFailed = false
-        } catch {
-            guard !Task.isCancelled, measurementLoadID == id, authState.user?.id == principalID else { return }
-            measurementsFailed = true
         }
     }
 

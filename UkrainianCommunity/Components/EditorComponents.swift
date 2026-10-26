@@ -79,6 +79,7 @@ struct AppEditorField<Content: View>: View {
 }
 
 struct EditorTextField: View {
+    @ScaledMetric(relativeTo: .subheadline) private var iconWidth = AppTheme.metadataIconSize
     let title: String
     @Binding var text: String
     let systemImage: String
@@ -126,7 +127,7 @@ struct EditorTextField: View {
             Image(systemName: systemImage)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(AppTheme.accentPrimaryForeground)
-                .frame(width: AppTheme.metadataIconSize)
+                .frame(width: iconWidth)
 
             inputField
         }

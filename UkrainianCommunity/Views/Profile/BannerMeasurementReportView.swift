@@ -3,6 +3,7 @@ import Charts
 import UniformTypeIdentifiers
 
 struct BannerMeasurementReportView: View {
+    @EnvironmentObject private var authState: AuthState
     @State private var isExporting = false
     @State private var exportDocument = BannerMeasurementCSVDocument(text: "")
     @State private var exportError: String?
@@ -22,20 +23,29 @@ struct BannerMeasurementReportView: View {
         ProfileDestinationLayout(title: bannerTitle ?? AppStrings.BannerReport.title,
             introSubtitle: AppStrings.BannerReport.subtitle,
             scrollsIntroSubtitle: dynamicTypeSize.isAccessibilitySize) {
+            if PermissionService.isAppOwner(user: authState.user) {
             Picker(AppStrings.OwnerAnalytics.periodPicker, selection: $viewModel.selectedPeriod) {
                 ForEach(AnalyticsPeriod.allCases) { Text(AnalyticsPresentationText.bannerPeriod($0)).tag($0) }
             }.pickerStyle(.menu).accessibilityIdentifier("bannerReport.period")
             Text(AnalyticsPresentationText.utcExplanation).font(.footnote).foregroundStyle(AppTheme.textSecondary).lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
             content
+            } else { InlineMessageCard(style: .info, message: AppStrings.FeaturedManagement.permissionError).accessibilityIdentifier("bannerReport.denied") }
         }
         .fileExporter(isPresented: $isExporting, document: exportDocument,
             contentType: .commaSeparatedText, defaultFilename: "UAC-banners-UTC") { result in
             if case .failure(let error) = result { exportError = error.localizedDescription }
         }
-        .task(id: viewModel.queryKey) { await viewModel.loadIfNeeded() }
-        .analyticsRefreshLifecycle { await viewModel.loadIfNeeded() }
-        .appRefreshable { await viewModel.load() }
+        .task(id: "\(authState.user?.id ?? "none")|\(PermissionService.isAppOwner(user: authState.user))|\(viewModel.queryKey)") {
+            guard PermissionService.isAppOwner(user: authState.user) else { viewModel.resetSession(); return }
+            await viewModel.loadIfNeeded()
+        }
+        .analyticsRefreshLifecycle {
+            guard PermissionService.isAppOwner(user: authState.user) else { return }; await viewModel.loadIfNeeded()
+        }
+        .appRefreshable {
+            guard PermissionService.isAppOwner(user: authState.user) else { return }; await viewModel.load()
+        }
         .accessibilityIdentifier("screen.bannerReport")
     }
 

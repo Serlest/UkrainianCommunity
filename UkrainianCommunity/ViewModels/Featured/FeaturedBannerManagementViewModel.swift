@@ -10,18 +10,23 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
 
     private let repository: FeaturedBannerRepository
     private let publicCache: FeaturedBannerCache?
-    private let imageUploadService: any FeaturedBannerImageService
     private var loadTask: Task<Void, Never>?
+    private var loadID: UUID?
     private var hasLoaded = false
+    private var session = UUID()
+    private var mutationRevision = 0
 
     init(
         repository: FeaturedBannerRepository,
-        publicCache: FeaturedBannerCache? = nil,
-        imageUploadService: (any FeaturedBannerImageService)? = nil
+        publicCache: FeaturedBannerCache? = nil
     ) {
         self.repository = repository
         self.publicCache = publicCache
-        self.imageUploadService = imageUploadService ?? ImageUploadService.shared
+    }
+
+    func resetSession() {
+        session = UUID(); loadID = nil; loadTask?.cancel(); loadTask = nil; hasLoaded = false
+        banners = []; error = nil; updatingBannerIDs = []; isLoading = false
     }
 
     func loadIfNeeded() async {
@@ -47,18 +52,24 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             return
         }
 
+        guard !updatingBannerIDs.contains(banner.id) else { return }
+        let generation = session
+        mutationRevision += 1
         updatingBannerIDs.insert(banner.id)
-        defer { updatingBannerIDs.remove(banner.id) }
+        defer { if generation == session { updatingBannerIDs.remove(banner.id); mutationRevision += 1 } }
 
         do {
             try await repository.setBannerActive(id: banner.id, isActive: isActive, updatedBy: trimmedUserID)
+            guard generation == session else { return }
             replaceBanner(banner.settingActive(isActive, updatedBy: trimmedUserID))
             invalidatePublicCache()
             AppContentChangeBus.postFeaturedBannersChanged()
             error = nil
         } catch let appError as AppError {
+            guard generation == session else { return }
             error = appError
         } catch {
+            guard generation == session else { return }
             self.error = .unknown
         }
     }
@@ -70,28 +81,25 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             return
         }
 
+        guard !updatingBannerIDs.contains(banner.id) else { return }
+        let generation = session
+        mutationRevision += 1
         updatingBannerIDs.insert(banner.id)
-        defer { updatingBannerIDs.remove(banner.id) }
+        defer { if generation == session { updatingBannerIDs.remove(banner.id); mutationRevision += 1 } }
 
         do {
             try await repository.deleteBanner(id: banner.id)
+            guard generation == session else { return }
             banners.removeAll { $0.id == banner.id }
             invalidatePublicCache()
             AppContentChangeBus.postFeaturedBannersChanged()
             error = nil
-            // Firestore is the publishing source of truth. Remove the current
-            // image immediately when possible; the backend deletion trigger
-            // sweeps the full banner folder, including interrupted uploads.
-            if let imageURLString = banner.imageURL,
-               let imageURL = URL(string: imageURLString) {
-                try? await imageUploadService.deleteFeaturedBannerImage(
-                    at: imageURL,
-                    bannerId: banner.id
-                )
-            }
+            // Storage cleanup is server-owned; another banner may still share this asset.
         } catch let appError as AppError {
+            guard generation == session else { return }
             error = appError
         } catch {
+            guard generation == session else { return }
             self.error = .unknown
         }
     }
@@ -112,25 +120,30 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             guard let self else { return }
             await self.performLoad()
         }
+        let id = UUID(); loadID = id
         loadTask = task
         await task.value
-        loadTask = nil
+        if loadID == id { loadTask = nil; loadID = nil }
     }
 
     private func performLoad() async {
+        let generation = session
+        let revision = mutationRevision
         isLoading = true
-        defer { isLoading = false }
+        defer { if generation == session { isLoading = false } }
 
         do {
-            banners = try await RefreshRequest.run { [self] in try await repository.fetchAllBannersForOwner() }
+            let loaded = try await RefreshRequest.run { [self] in try await repository.fetchAllBannersForOwner() }
+            guard generation == session, revision == mutationRevision, !Task.isCancelled else { return }
+            banners = loaded
             error = nil
             hasLoaded = true
         } catch is CancellationError {
         } catch let appError as AppError {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, generation == session else { return }
             error = appError
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, generation == session else { return }
             self.error = .unknown
         }
     }
@@ -146,7 +159,7 @@ final class FeaturedBannerManagementViewModel: ObservableObject {
             if lhs.priority != rhs.priority {
                 return lhs.priority > rhs.priority
             }
-            return lhs.updatedAt > rhs.updatedAt
+            return lhs.updatedAt == rhs.updatedAt ? lhs.id < rhs.id : lhs.updatedAt > rhs.updatedAt
         }
     }
 }
@@ -175,6 +188,7 @@ private extension FeaturedBanner {
             updatedAt: Date(),
             createdBy: createdBy,
             updatedBy: userID,
+            countdown: countdown,
             requiresDataRepair: requiresDataRepair
         )
     }

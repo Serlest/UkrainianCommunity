@@ -97,11 +97,12 @@ struct FeaturedBanner: Identifiable, Equatable {
     let priority: Int
     let isActive: Bool
     let startsAt: Date?
-    let endsAt: Date?
+    var endsAt: Date?
     let createdAt: Date
     let updatedAt: Date
     let createdBy: String
     let updatedBy: String?
+    var countdown: FeaturedBannerCountdown?
     let requiresDataRepair: Bool
 
     var hasUnsupportedLegacyConfiguration: Bool {
@@ -142,15 +143,20 @@ struct FeaturedBanner: Identifiable, Equatable {
         if let startsAt, startsAt > date {
             return .scheduled
         }
-        if let endsAt, endsAt < date {
+        if let endsAt = effectiveEndsAt, endsAt <= date {
             return .expired
         }
         return .live
     }
 
+    var effectiveEndsAt: Date? {
+        guard let countdown, countdown.completion == .hideBanner else { return endsAt }
+        return min(endsAt ?? countdown.targetDate, countdown.targetDate)
+    }
+
     func isVisible(on date: Date) -> Bool {
         let startsBeforeNow = startsAt.map { $0 <= date } ?? true
-        let endsAfterNow = endsAt.map { $0 >= date } ?? true
+        let endsAfterNow = effectiveEndsAt.map { $0 > date } ?? true
         return startsBeforeNow && endsAfterNow
     }
 
@@ -191,6 +197,7 @@ struct FeaturedBanner: Identifiable, Equatable {
         updatedAt: Date,
         createdBy: String,
         updatedBy: String? = nil,
+        countdown: FeaturedBannerCountdown? = nil,
         requiresDataRepair: Bool = false
     ) {
         self.id = id
@@ -214,6 +221,7 @@ struct FeaturedBanner: Identifiable, Equatable {
         self.updatedAt = updatedAt
         self.createdBy = createdBy
         self.updatedBy = updatedBy
+        self.countdown = countdown
         self.requiresDataRepair = requiresDataRepair
     }
 }

@@ -253,6 +253,9 @@ struct UkrainianCommunityApp: App {
     @ViewBuilder private var rootContent: some View {
 #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
+           ProcessInfo.processInfo.environment["UITestBanner14"] == "1" {
+            BannerAuditHarness14()
+        } else if ProcessInfo.processInfo.arguments.contains("-ui-testing"),
            ProcessInfo.processInfo.environment["UITestBannerAudit"] == "1" {
             BannerMeasurementAuditHarness()
         } else if ProcessInfo.processInfo.arguments.contains("-ui-testing"),

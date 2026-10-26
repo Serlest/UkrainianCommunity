@@ -16,7 +16,7 @@ struct FeaturedBannerEditorImageSection: View {
                 PhotosPicker(selection: $selectedPhoto, matching: .images, photoLibrary: .shared()) {
                     imageContent
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.plain).accessibilityIdentifier("bannerEditor.chooseImage")
                 .disabled(viewModel.isProcessingImage || viewModel.isSaving)
                 .overlay {
                     if viewModel.isProcessingImage {

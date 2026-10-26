@@ -53,11 +53,7 @@ private struct FeaturedBannerAspectLayout: Layout {
 }
 
 struct FeaturedBannerCarouselView: View {
-    private static let autoAdvanceAnimation = Animation.easeInOut(duration: 0.88)
-    private static let restartFadeAnimation = Animation.easeInOut(duration: 0.22)
-    private static let restartFadeNanoseconds: UInt64 = 220_000_000
-    private static let restartSettleNanoseconds: UInt64 = 120_000_000
-    private static let interactionRetryNanoseconds: UInt64 = 250_000_000
+    private static let autoAdvanceAnimation = Animation.easeInOut(duration: 0.42)
 
     let banners: [FeaturedBanner]
     let sizing: FeaturedBannerCarouselSizing
@@ -75,7 +71,9 @@ struct FeaturedBannerCarouselView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selectedBannerID: FeaturedBanner.ID?
     @State private var isUserInteracting = false
-    @State private var isRestartingCarousel = false
+    @State private var cardHeights: [String: CGFloat] = [:]
+    @State private var cardFrames: [String: CGRect] = [:]
+    @State private var settleTask: Task<Void, Never>?
     @State private var bannerFrame: CGRect = .zero
     @State private var readyArtworkIDs: Set<String> = []
     @State private var exposureTracker = FeaturedBannerExposureTracker()
@@ -115,7 +113,6 @@ struct FeaturedBannerCarouselView: View {
                     onDecrement: { moveSelection(by: -1) }
                 )
             }
-            .opacity(isRestartingCarousel ? 0 : 1)
             .onAppear(perform: normalizeSelection)
             .onChange(of: banners.map(\.id)) { _, _ in
                 normalizeSelection()
@@ -126,7 +123,7 @@ struct FeaturedBannerCarouselView: View {
             .task(id: rotationTaskID) {
                 await runRotationLoop()
             }
-            .onDisappear { exposureTracker.endExposure() }
+            .onDisappear { exposureTracker.endExposure(); settleTask?.cancel() }
             .task(id: exposureTaskID) {
                 // A new region/visibility context must satisfy its own continuous dwell.
                 exposureTracker.endExposure()
@@ -154,19 +151,21 @@ struct FeaturedBannerCarouselView: View {
 
     private var carouselFrame: some View {
         Group {
-            switch sizing {
+            if dynamicTypeSize.isAccessibilitySize {
+                carouselContent.frame(height: max(280, cardHeights.values.max() ?? 280))
+            } else { switch sizing {
             case let .fixedHeight(height):
                 carouselContent
                     .frame(height: resolvedMinimumHeight(for: height))
             case let .aspectRatio(aspectRatio, maxHeight):
                 FeaturedBannerAspectLayout(
                     aspectRatio: aspectRatio,
-                    minimumHeight: dynamicTypeSize.isAccessibilitySize ? AppTheme.accessibilityHeroMinHeight : nil,
+                    minimumHeight: banners.contains(where: { $0.countdown != nil }) ? 240 : nil,
                     maximumHeight: resolvedMaximumHeight(maxHeight)
                 ) {
                     carouselContent
                 }
-            }
+            } }
         }
         .onGeometryChange(for: CGRect.self) { proxy in
             proxy.frame(in: .global)
@@ -185,14 +184,24 @@ struct FeaturedBannerCarouselView: View {
 
     private var carouselContent: some View {
         GeometryReader { proxy in
-            TabView(selection: $selectedBannerID) {
-                ForEach(banners) { banner in
-                    bannerSlide(for: banner, size: proxy.size)
-                    .tag(Optional(banner.id))
-                }
+            ScrollView(.horizontal) {
+                LazyHStack(spacing: 12) {
+                    ForEach(banners) { banner in
+                        bannerSlide(for: banner, size: CGSize(width: max(1, proxy.size.width - (banners.count > 1 ? 24 : 0)), height: proxy.size.height))
+                            .id(banner.id)
+                            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+                                cardFrames[banner.id] = frame
+                            }
+                    }
+                }.scrollTargetLayout()
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            .scrollIndicators(.hidden)
+            .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+            .scrollPosition(id: $selectedBannerID, anchor: .leading)
+            .scrollClipDisabled(false)
+            .bannerScrollActivity($isUserInteracting)
             .simultaneousGesture(interactionGesture)
+            .accessibilityIdentifier("featuredBanner.carousel")
         }
     }
 
@@ -200,6 +209,7 @@ struct FeaturedBannerCarouselView: View {
     private func bannerSlide(for banner: FeaturedBanner, size: CGSize) -> some View {
         if isActionable(banner) {
             Button {
+                guard selectedBannerID == banner.id, !isUserInteracting else { return }
                 if let measurement = exposureTracker.observe(
                     bannerID: banner.id,
                     section: section,
@@ -221,8 +231,9 @@ struct FeaturedBannerCarouselView: View {
                 bannerContent(for: banner, size: size)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("featuredBanner.card." + banner.id)
         } else {
-            bannerContent(for: banner, size: size)
+            bannerContent(for: banner, size: size).accessibilityIdentifier("featuredBanner.card." + banner.id)
         }
     }
 
@@ -234,15 +245,21 @@ struct FeaturedBannerCarouselView: View {
                 readyArtworkIDs.remove(banner.id)
             }
         }
-            .frame(width: size.width, height: size.height)
+            .frame(width: size.width)
+            .fixedSize(horizontal: false, vertical: dynamicTypeSize.isAccessibilitySize)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                if dynamicTypeSize.isAccessibilitySize, abs((cardHeights[banner.id] ?? 0) - height) > 0.5 { cardHeights[banner.id] = height }
+            }
+            .frame(width: size.width, height: size.height, alignment: .top)
     }
 
     private var visibleFraction: Double {
-        FeaturedBannerExposureTracker.visibleFraction(of: bannerFrame, within: viewportFrame)
+        guard let id = selectedBannerID, let frame = cardFrames[id] else { return 0 }
+        return FeaturedBannerExposureTracker.visibleFraction(of: frame, within: viewportFrame.intersection(bannerFrame))
     }
 
     private var canMeasureExposure: Bool {
-        isActive && scenePhase == .active && !isRestartingCarousel && !hasCoveringModal
+        isActive && scenePhase == .active && !isUserInteracting && !hasCoveringModal
             && selectedBannerID.map(readyArtworkIDs.contains) == true
             && visibleFraction >= FeaturedBannerExposureTracker.minimumVisibleFraction
     }
@@ -287,18 +304,26 @@ struct FeaturedBannerCarouselView: View {
         let bannerConfiguration = banners
             .map { "\($0.id)-\($0.displayDurationSeconds)" }
             .joined(separator: "|")
-        return "\(bannerConfiguration)-reduceMotion:\(reduceMotion)-voiceOver:\(voiceOverEnabled)"
+        return "\(bannerConfiguration)-selected:\(selectedBannerID ?? "none")-interaction:\(isUserInteracting)-active:\(isActive)-scene:\(scenePhase)-ready:\(selectedBannerID.map(readyArtworkIDs.contains) ?? false)-reduceMotion:\(reduceMotion)-voiceOver:\(voiceOverEnabled)"
     }
 
     private var interactionGesture: some Gesture {
-        DragGesture(minimumDistance: 0)
+        DragGesture(minimumDistance: 12)
             .onChanged { _ in
-                if !isUserInteracting {
+                if #unavailable(iOS 18.0) {
+                    settleTask?.cancel()
                     isUserInteracting = true
                 }
             }
             .onEnded { _ in
-                isUserInteracting = false
+                if #unavailable(iOS 18.0) {
+                    settleTask?.cancel()
+                    settleTask = Task {
+                        try? await Task.sleep(for: .milliseconds(450))
+                        guard !Task.isCancelled else { return }
+                        isUserInteracting = false
+                    }
+                }
             }
     }
 
@@ -314,72 +339,14 @@ struct FeaturedBannerCarouselView: View {
     }
 
     private func runRotationLoop() async {
-        guard !reduceMotion, !voiceOverEnabled else { return }
-
-        while !Task.isCancelled {
-            guard banners.count > 1 else { return }
-
-            guard !isUserInteracting, !isRestartingCarousel, let initialBanner = selectedBanner else {
-                try? await Task.sleep(nanoseconds: Self.interactionRetryNanoseconds)
-                continue
-            }
-
-            let seconds = min(max(initialBanner.displayDurationSeconds, 3), 12)
-            try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
-            guard !Task.isCancelled else { return }
-            guard !isUserInteracting, !isRestartingCarousel, let currentBanner = selectedBanner else { continue }
-
-            if isLastBanner(currentBanner.id) {
-                await restartAtFirstBanner()
-            } else {
-                withAnimation(Self.autoAdvanceAnimation) {
-                    selectedBannerID = nextBannerID(after: currentBanner.id)
-                }
-            }
-        }
-    }
-
-    private func restartAtFirstBanner() async {
-        await MainActor.run {
-            guard !isUserInteracting, !isRestartingCarousel else { return }
-            withAnimation(Self.restartFadeAnimation) {
-                isRestartingCarousel = true
-            }
-        }
-        try? await Task.sleep(nanoseconds: Self.restartFadeNanoseconds)
-        guard !Task.isCancelled else {
-            await clearRestartState()
-            return
-        }
-
-        await MainActor.run {
-            guard !isUserInteracting else {
-                isRestartingCarousel = false
-                return
-            }
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                selectedBannerID = banners.first?.id
-            }
-        }
-        try? await Task.sleep(nanoseconds: Self.restartSettleNanoseconds)
-        guard !Task.isCancelled else {
-            await clearRestartState()
-            return
-        }
-
-        await MainActor.run {
-            withAnimation(Self.restartFadeAnimation) {
-                isRestartingCarousel = false
-            }
-        }
-    }
-
-    private func clearRestartState() async {
-        await MainActor.run {
-            isRestartingCarousel = false
-        }
+        guard !reduceMotion, !voiceOverEnabled, isActive, scenePhase == .active,
+              !isUserInteracting, banners.count > 1, let initialBanner = selectedBanner,
+              readyArtworkIDs.contains(initialBanner.id) else { return }
+        let seconds = min(max(initialBanner.displayDurationSeconds, 3), 12)
+        do { try await Task.sleep(for: .seconds(seconds)) } catch { return }
+        guard !Task.isCancelled, isActive, scenePhase == .active, !isUserInteracting,
+              selectedBannerID == initialBanner.id else { return }
+        withAnimation(Self.autoAdvanceAnimation) { selectedBannerID = nextBannerID(after: initialBanner.id) }
     }
 
     private func nextBannerID(after bannerID: FeaturedBanner.ID) -> FeaturedBanner.ID? {
@@ -400,7 +367,18 @@ struct FeaturedBannerCarouselView: View {
         }
     }
 
-    private func isLastBanner(_ bannerID: FeaturedBanner.ID) -> Bool {
-        banners.last?.id == bannerID
+
+}
+
+
+private struct BannerScrollActivity: ViewModifier {
+    @Binding var moving: Bool
+    @ViewBuilder func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.onScrollPhaseChange { _, phase in moving = phase != .idle }
+        } else { content }
     }
+}
+private extension View {
+    func bannerScrollActivity(_ moving: Binding<Bool>) -> some View { modifier(BannerScrollActivity(moving: moving)) }
 }

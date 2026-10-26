@@ -2,6 +2,7 @@ import SwiftUI
 import UIKit
 
 struct FeaturedBannerEditorPreviewSection: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @ObservedObject var viewModel: FeaturedBannerEditorViewModel
     let previewImage: UIImage?
 
@@ -9,8 +10,13 @@ struct FeaturedBannerEditorPreviewSection: View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
                 AppEditorSectionTitle(title: AppStrings.FeaturedEditor.previewSection)
-                FeaturedBannerCardView(banner: viewModel.previewBanner, previewImage: previewImage)
-                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                if dynamicTypeSize.isAccessibilitySize {
+                    FeaturedBannerCardView(banner: viewModel.previewBanner, previewImage: previewImage).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    FeaturedBannerCardView(banner: viewModel.previewBanner, previewImage: previewImage)
+                        .frame(minHeight: viewModel.hasCountdown ? 240 : nil)
+                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                }
                 Text(AppStrings.FeaturedEditor.previewHelper)
                     .font(.caption)
                     .foregroundStyle(AppTheme.textSecondary)
@@ -82,7 +88,7 @@ struct FeaturedBannerEditorBasicsSection: View {
                     Text(AppStrings.FeaturedManagement.activeToggle)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(AppTheme.textPrimary)
-                }
+                }.accessibilityIdentifier("bannerEditor.active")
             }
         }
     }
@@ -147,7 +153,7 @@ struct FeaturedBannerEditorActionSection: View {
                         Text(actionType.editorTitle).tag(actionType)
                     }
                 }
-                .pickerStyle(.menu)
+                .pickerStyle(.menu).accessibilityIdentifier("bannerEditor.actionType")
 
                 Text(viewModel.actionType.editorHelperText)
                     .font(.caption)

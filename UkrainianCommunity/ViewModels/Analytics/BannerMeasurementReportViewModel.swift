@@ -46,6 +46,13 @@ final class BannerMeasurementReportViewModel: ObservableObject {
         selectedPeriod = initialPeriod
     }
 
+    func resetSession() {
+        loadID = nil; loadingQueryKey = nil; loadedAt = nil; loadedBannerID = nil
+        report = nil; bannerTitles = [:]; availableBanners = []; bannerUnavailable = false
+        namesUnavailable = false; errorMessage = nil; isLoading = false
+        selectedBannerID = nil; selectedRegion = nil; selectedSection = nil
+    }
+
     func loadIfNeeded() async {
         guard !isLoading || loadingQueryKey != queryKey else { return }
         if report?.period == selectedPeriod, loadedBannerID == effectiveBannerID,

@@ -23,6 +23,7 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         let startsAt: Date
         let hasEndDate: Bool
         let endsAt: Date
+        let countdown: FeaturedBannerCountdown?
     }
 
     enum Mode {
@@ -60,6 +61,11 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     @Published var startsAt: Date
     @Published var hasEndDate: Bool
     @Published var endsAt: Date
+    @Published var hasCountdown = false
+    @Published var countdownDate = Date().addingTimeInterval(7 * 86400)
+    @Published var countdownLabel = ""
+    @Published var countdownGermanLabel = ""
+    @Published var countdownCompletion: FeaturedBannerCountdown.Completion = .hideCountdown
     @Published var selectedImageData: Data?
     @Published var isProcessingImage = false
     @Published var isSaving = false
@@ -78,11 +84,13 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     private let bannerID: String
     private let createdAt: Date
     private let createdBy: String
-    private let originalImageURL: URL?
     let isMigratingLegacyBanner: Bool
     let isRepairingMalformedBanner: Bool
     private var selectedProcessedImage: ProcessedImageSelection?
-    private var actionTargetLoadTasks: [FeaturedBannerActionTargetKind: Task<[FeaturedBannerActionTargetItem], Error>] = [:]
+    private var actionTargetLoadTasks: [FeaturedBannerActionTargetKind: Task<FeaturedBannerActionTargetLoader.Page, Error>] = [:]
+    private var saveAttempt: (signature: DraftSignature, id: String)?
+    private var uploadedDraftImageURL: URL?
+    @Published private var nextActionTargetCursors: [FeaturedBannerActionTargetKind: FeaturedBannerActionTargetLoader.Cursor] = [:]
     private var initialDraftSignature: DraftSignature?
 
     init(
@@ -127,7 +135,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             endsAt = Calendar.current.date(byAdding: .day, value: 7, to: now) ?? now
             createdAt = now
             createdBy = ""
-            originalImageURL = nil
             isMigratingLegacyBanner = false
             isRepairingMalformedBanner = false
         case let .duplicate(existing):
@@ -160,7 +167,6 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             createdBy = ""
             // The copy reuses the published asset. It must not own or delete
             // the source banner's image when another image is selected.
-            originalImageURL = nil
             isMigratingLegacyBanner = false
             isRepairingMalformedBanner = false
         case let .edit(existing):
@@ -189,13 +195,17 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             endsAt = existing.endsAt ?? Calendar.current.date(byAdding: .day, value: 7, to: Date()) ?? Date()
             createdAt = existing.createdAt == .distantPast ? Date() : existing.createdAt
             createdBy = existing.createdBy
-            if let existingImageURL = existing.imageURL {
-                originalImageURL = URL(string: existingImageURL)
-            } else {
-                originalImageURL = nil
-            }
             isMigratingLegacyBanner = existing.hasUnsupportedLegacyConfiguration
             isRepairingMalformedBanner = existing.requiresDataRepair
+        }
+        switch mode {
+        case .create: break
+        case .edit(let existing), .duplicate(let existing):
+            hasCountdown = existing.countdown != nil
+            countdownDate = existing.countdown?.targetDate ?? Date().addingTimeInterval(7 * 86400)
+            countdownLabel = existing.countdown?.label ?? ""
+            countdownGermanLabel = existing.countdown?.germanLabel ?? ""
+            countdownCompletion = existing.countdown?.completion ?? .hideCountdown
         }
         initialDraftSignature = draftSignature
     }
@@ -244,7 +254,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             endsAt: hasEndDate ? endsAt : nil,
             createdAt: createdAt,
             updatedAt: Date(),
-            createdBy: nonEmpty(createdBy) ?? "preview"
+            createdBy: nonEmpty(createdBy) ?? "preview",
+            countdown: resolvedCountdown
         )
     }
 
@@ -302,6 +313,11 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             return AppStrings.FeaturedEditor.validationTargetID
         }
 
+        if let countdown = resolvedCountdown {
+            if !countdown.isValid || (hasStartDate && countdown.targetDate <= startsAt) {
+                return BannerCountdownStrings.text("invalid")
+            }
+        }
         if hasStartDate && hasEndDate && startsAt >= endsAt {
             return AppStrings.FeaturedEditor.validationDateWindow
         }
@@ -371,6 +387,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     func setSelectedImageData(_ data: Data?) {
+        uploadedDraftImageURL = nil
+        saveAttempt = nil
         selectedImageData = data
         selectedProcessedImage = nil
         errorMessage = nil
@@ -378,6 +396,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
     }
 
     func setSelectedImageSelection(_ selection: ProcessedImageSelection?) {
+        uploadedDraftImageURL = nil
+        saveAttempt = nil
         selectedProcessedImage = selection
         selectedImageData = selection?.data
         errorMessage = nil
@@ -408,6 +428,16 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         guard let kind = actionTargetPickerKind else { return }
         guard actionTargetItemsByKind[kind] == nil else { return }
         await loadActionTargets(kind: kind)
+        let id = actionTargetID
+        if selectedActionTargetItem == nil, !id.isEmpty,
+           let item = try? await actionTargetLoader.selected(kind: kind, id: id),
+           actionTargetID == id, actionTargetPickerKind == kind { selectedActionTargetSnapshot = item }
+    }
+
+    var hasMoreActionTargets: Bool { actionTargetPickerKind.map { nextActionTargetCursors[$0] != nil } ?? false }
+    func loadMoreActionTargets() async {
+        guard let kind = actionTargetPickerKind, hasMoreActionTargets, !loadingActionTargetKinds.contains(kind) else { return }
+        await loadActionTargets(kind: kind, append: true)
     }
 
     func refreshActionTargets() async {
@@ -422,8 +452,8 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         actionTargetLoadError = nil
     }
 
-    func save(updatedBy userID: String?) async -> Bool {
-        guard !isSaving else { return false }
+    func save(updatedBy userID: String?, isAuthorized: () -> Bool = { true }) async -> Bool {
+        guard !isSaving, isAuthorized() else { return false }
         errorMessage = nil
         successMessage = nil
 
@@ -437,15 +467,22 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             return false
         }
 
+        let signature = draftSignature
+        if saveAttempt?.signature != signature { saveAttempt = (signature, UUID().uuidString) }
+        let operationID = saveAttempt!.id
+        let expectedUpdatedAt: Date? = { if case .edit(let original) = mode { return original.updatedAt }; return nil }()
         isSaving = true
         defer { isSaving = false }
 
+        var didCommit = false
         var newlyUploadedImageURL: URL?
         do {
             let resolvedImageURL = try await resolvedImageURL()
             if selectedProcessedImage != nil || selectedImageData != nil {
                 newlyUploadedImageURL = resolvedImageURL
             }
+            guard isAuthorized(), !Task.isCancelled else { throw AppError.permissionDenied }
+            guard draftSignature == signature else { throw AppError.validationFailed }
             let resolvedImageURLString = resolvedImageURL.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !resolvedImageURLString.isEmpty else {
                 errorMessage = AppStrings.FeaturedEditor.validationImageRequired
@@ -482,26 +519,20 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
                 createdAt: createdAt,
                 updatedAt: now,
                 createdBy: mode.isEditing ? (nonEmpty(createdBy) ?? userID) : userID,
-                updatedBy: userID
+                updatedBy: userID,
+                countdown: resolvedCountdown
             )
             try validationService.validate(banner)
 
-            switch mode {
-            case .create, .duplicate:
-                try await repository.createBanner(banner)
-            case .edit:
-                try await repository.updateBanner(banner)
+            try await repository.saveBanner(banner, isNew: !mode.isEditing, expectedUpdatedAt: expectedUpdatedAt, operationID: operationID)
+            didCommit = true
+            guard isAuthorized(), !Task.isCancelled else { throw AppError.permissionDenied }
+            guard draftSignature == signature else {
+                errorMessage = BannerCountdownStrings.text("conflict")
+                return false
             }
 
-            if let newlyUploadedImageURL,
-               let originalImageURL,
-               originalImageURL != newlyUploadedImageURL {
-                try? await imageUploadService.deleteFeaturedBannerImage(
-                    at: originalImageURL,
-                    bannerId: bannerID
-                )
-            }
-
+            // The backend releases the previous asset only after checking every banner reference.
             imageURL = resolvedImageURLString
             selectedImageData = nil
             selectedProcessedImage = nil
@@ -509,21 +540,15 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             successMessage = AppStrings.FeaturedEditor.saveSuccess
             AppContentChangeBus.postFeaturedBannersChanged()
             return true
+        } catch is FeaturedBannerSaveConflict {
+            errorMessage = BannerCountdownStrings.text("conflict")
         } catch let appError as AppError {
-            if let newlyUploadedImageURL {
-                try? await imageUploadService.deleteFeaturedBannerImage(
-                    at: newlyUploadedImageURL,
-                    bannerId: bannerID
-                )
+            if !didCommit, appError != .network, appError != .unknown, let newlyUploadedImageURL {
+                try? await imageUploadService.deleteFeaturedBannerImage(at: newlyUploadedImageURL, bannerId: bannerID)
+                uploadedDraftImageURL = nil
             }
             errorMessage = errorText(appError)
         } catch {
-            if let newlyUploadedImageURL {
-                try? await imageUploadService.deleteFeaturedBannerImage(
-                    at: newlyUploadedImageURL,
-                    bannerId: bannerID
-                )
-            }
             errorMessage = AppStrings.FeaturedEditor.saveUnknownError
         }
         return false
@@ -553,31 +578,35 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
             hasStartDate: hasStartDate,
             startsAt: startsAt,
             hasEndDate: hasEndDate,
-            endsAt: endsAt
+            endsAt: endsAt,
+            countdown: resolvedCountdown
         )
     }
 
-    private func loadActionTargets(kind: FeaturedBannerActionTargetKind) async {
+    private func loadActionTargets(kind: FeaturedBannerActionTargetKind, append: Bool = false) async {
         if let task = actionTargetLoadTasks[kind] {
-            await applyActionTargetResult(from: task, kind: kind)
+            await applyActionTargetResult(from: task, kind: kind, append: append)
             return
         }
 
         actionTargetLoadError = nil
         loadingActionTargetKinds.insert(kind)
 
-        let task = Task<[FeaturedBannerActionTargetItem], Error> {
-            try await actionTargetLoader.load(kind: kind)
+        let task = Task<FeaturedBannerActionTargetLoader.Page, Error> {
+            try await actionTargetLoader.page(kind: kind, after: append ? nextActionTargetCursors[kind] : nil)
         }
 
         actionTargetLoadTasks[kind] = task
-        await applyActionTargetResult(from: task, kind: kind)
+        await applyActionTargetResult(from: task, kind: kind, append: append)
     }
 
-    private func applyActionTargetResult(from task: Task<[FeaturedBannerActionTargetItem], Error>, kind: FeaturedBannerActionTargetKind) async {
+    private func applyActionTargetResult(from task: Task<FeaturedBannerActionTargetLoader.Page, Error>, kind: FeaturedBannerActionTargetKind, append: Bool) async {
         do {
-            let items = try await task.value
-            actionTargetItemsByKind[kind] = items
+            let page = try await task.value
+            guard !Task.isCancelled else { return }
+            var seen = Set<String>()
+            actionTargetItemsByKind[kind] = ((append ? actionTargetItemsByKind[kind] ?? [] : []) + page.items).filter { seen.insert($0.id).inserted }
+            nextActionTargetCursors[kind] = page.next
         } catch {
             actionTargetLoadError = AppStrings.FeaturedEditor.targetPickerLoadFailed
         }
@@ -586,13 +615,24 @@ final class FeaturedBannerEditorViewModel: ObservableObject {
         actionTargetLoadTasks[kind] = nil
     }
 
+    var resolvedCountdown: FeaturedBannerCountdown? {
+        guard hasCountdown else { return nil }
+        return FeaturedBannerCountdown(targetDate: countdownDate, label: countdownLabel.trimmingCharacters(in: .whitespacesAndNewlines),
+            germanLabel: countdownGermanLabel.trimmingCharacters(in: .whitespacesAndNewlines), completion: countdownCompletion)
+    }
+
     private func resolvedImageURL() async throws -> URL {
+        if let uploadedDraftImageURL { return uploadedDraftImageURL }
         if let selectedProcessedImage {
-            return try await imageUploadService.uploadFeaturedBannerImage(bannerId: bannerID, processedImage: selectedProcessedImage)
+            let url = try await imageUploadService.uploadFeaturedBannerImage(bannerId: bannerID, processedImage: selectedProcessedImage)
+            uploadedDraftImageURL = url
+            return url
         }
 
         if let selectedImageData {
-            return try await imageUploadService.uploadFeaturedBannerImage(bannerId: bannerID, imageData: selectedImageData)
+            let url = try await imageUploadService.uploadFeaturedBannerImage(bannerId: bannerID, imageData: selectedImageData)
+            uploadedDraftImageURL = url
+            return url
         }
 
         guard let url = FeaturedBannerURLNormalizer.normalizedExternalURL(from: imageURL) else {

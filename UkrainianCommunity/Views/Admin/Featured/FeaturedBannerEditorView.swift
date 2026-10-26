@@ -68,10 +68,13 @@ struct FeaturedBannerEditorView: View {
                 actionTargetSearchText = ""
                 isShowingActionTargetPicker = true
             }
+            FeaturedBannerEditorCountdownSection(viewModel: viewModel)
             FeaturedBannerEditorSchedulingSection(viewModel: viewModel)
             saveButton
         }
-        .tint(AppTheme.accentPrimary)
+        .scrollDismissesKeyboard(.interactively)
+        .disabled(viewModel.isSaving || !PermissionService.canManageFeaturedBanners(user: authState.user))
+        .tint(AppTheme.accentPrimaryForeground)
         .onChange(of: selectedPhoto) { _, newItem in
             imageProcessingTask?.cancel()
             let token = UUID()
@@ -100,17 +103,12 @@ struct FeaturedBannerEditorView: View {
                 }
             )
         }
-        .confirmationDialog(
-            AppStrings.FeaturedEditor.discardConfirmationTitle,
-            isPresented: $isShowingDiscardConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button(AppStrings.FeaturedEditor.discardChanges, role: .destructive) {
-                dismiss()
+        .sheet(isPresented: $isShowingDiscardConfirmation) {
+            NotificationConfirmationSheet(title: AppStrings.FeaturedEditor.discardConfirmationTitle,
+                message: AppStrings.FeaturedEditor.discardConfirmationMessage, cancel: { isShowingDiscardConfirmation = false }) {
+                NotificationConfirmationAction(title: AppStrings.FeaturedEditor.discardChanges, id: "bannerEditor.discard", role: .destructive) { dismiss() }
+                NotificationConfirmationAction(title: AppStrings.Action.cancel, id: "bannerEditor.keepEditing", role: .cancel) { isShowingDiscardConfirmation = false }
             }
-            Button(AppStrings.Action.cancel, role: .cancel) {}
-        } message: {
-            Text(AppStrings.FeaturedEditor.discardConfirmationMessage)
         }
     }
 
@@ -141,13 +139,16 @@ struct FeaturedBannerEditorView: View {
             systemImage: "checkmark"
         ) {
             save()
-        }
+        }.accessibilityIdentifier("bannerEditor.save")
     }
 
     private func save() {
         Task {
-            let didSave = await viewModel.save(updatedBy: authState.user?.id)
-            guard didSave else { return }
+            let principal = authState.user?.id
+            let didSave = await viewModel.save(updatedBy: principal) {
+                authState.user?.id == principal && PermissionService.canManageFeaturedBanners(user: authState.user)
+            }
+            guard didSave, authState.user?.id == principal else { return }
             await onSave()
             dismiss()
         }
@@ -217,6 +218,7 @@ struct FeaturedBannerEditorView: View {
     }
 
     private func requestDismiss() {
+        guard !viewModel.isSaving else { return }
         if viewModel.hasUnsavedChanges {
             isShowingDiscardConfirmation = true
         } else {

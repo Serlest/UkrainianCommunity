@@ -17,15 +17,21 @@ final class FeaturedBannerListViewModel: ObservableObject {
 
     private let repository: FeaturedBannerRepository
     private let cache: FeaturedBannerCache
+    private let now: () -> Date
+    private let boundarySleep: (TimeInterval) async throws -> Void
     private var loadOperations: [FeaturedBannerCache.Key: LoadOperation] = [:]
     private var loadingQueries = Set<FeaturedBannerCache.Key>()
     private var currentQuery: FeaturedBannerCache.Key?
     private var contentChangeCancellable: AnyCancellable?
     private var boundaryRefreshTask: Task<Void, Never>?
 
-    init(repository: FeaturedBannerRepository, cache: FeaturedBannerCache) {
+    init(repository: FeaturedBannerRepository, cache: FeaturedBannerCache,
+         now: @escaping () -> Date = Date.init,
+         boundarySleep: @escaping (TimeInterval) async throws -> Void = { try await Task.sleep(for: .seconds($0)) }) {
         self.repository = repository
         self.cache = cache
+        self.now = now
+        self.boundarySleep = boundarySleep
         contentChangeCancellable = NotificationCenter.default
             .publisher(for: .featuredBannersChanged)
             .receive(on: RunLoop.main)
@@ -165,7 +171,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
 
     private func applyCachedBanners(_ cached: FeaturedBannerCache.Entry, for query: FeaturedBannerCache.Key) {
         guard currentQuery == query else { return }
-        let now = Date()
+        let now = now()
         banners = cached.banners.activeFeaturedBanners(
             for: query.section,
             federalState: query.federalState,
@@ -183,7 +189,7 @@ final class FeaturedBannerListViewModel: ObservableObject {
         boundaryRefreshTask?.cancel()
 
         let nextBoundary = cached.banners.flatMap { banner in
-            [banner.startsAt, banner.endsAt].compactMap { $0 }
+            [banner.startsAt, banner.effectiveEndsAt].compactMap { $0 }
         }
         .filter { $0 > now }
         .min()
@@ -193,10 +199,11 @@ final class FeaturedBannerListViewModel: ObservableObject {
             return
         }
 
-        let nanoseconds = UInt64(max(0, nextBoundary.timeIntervalSince(now) + 0.05) * 1_000_000_000)
+        let interval = min(86_400, max(0, nextBoundary.timeIntervalSince(now) + 0.05))
+        let sleep = boundarySleep
         boundaryRefreshTask = Task { [weak self] in
             do {
-                try await Task.sleep(nanoseconds: nanoseconds)
+                try await sleep(interval)
             } catch {
                 return
             }

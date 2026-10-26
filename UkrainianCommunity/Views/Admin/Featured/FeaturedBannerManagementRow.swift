@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: View>: View {
     @Environment(\.locale) private var locale
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let banner: FeaturedBanner
     let isUpdating: Bool
     let canDelete: Bool
@@ -31,8 +32,12 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
     var body: some View {
         AppEditorSectionCard {
             VStack(alignment: .leading, spacing: AppTheme.dashboardSpacing) {
-                FeaturedBannerCardView(banner: banner)
-                    .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                if dynamicTypeSize.isAccessibilitySize {
+                    FeaturedBannerCardView(banner: banner).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    FeaturedBannerCardView(banner: banner).frame(minHeight: banner.countdown != nil ? 240 : nil)
+                        .aspectRatio(16.0 / 9.0, contentMode: .fit)
+                }
 
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: AppTheme.eventsMetadataSpacing) {
@@ -68,19 +73,20 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
                 }
                 .disabled(isUpdating || (banner.hasUnsupportedLegacyConfiguration && !banner.isActive))
 
-                HStack(spacing: AppTheme.eventsControlGroupSpacing) {
+                let actionLayout = dynamicTypeSize.isAccessibilitySize ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12)) : AnyLayout(HStackLayout(spacing: AppTheme.eventsControlGroupSpacing))
+                actionLayout {
                     NavigationLink {
                         editDestination()
                     } label: {
                         Label(editButtonTitle, systemImage: editButtonSystemImage)
                             .frame(maxWidth: .infinity)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.80)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(AppTheme.accentPrimary)
                     .controlSize(.large)
                     .disabled(isUpdating)
+                    .accessibilityIdentifier("bannerManagement.edit." + banner.id)
 
                     if !banner.hasUnsupportedLegacyConfiguration {
                         NavigationLink {
@@ -94,6 +100,7 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
                         .controlSize(.large)
                         .disabled(isUpdating)
                         .accessibilityLabel(AppStrings.FeaturedManagement.duplicateBanner)
+                        .accessibilityIdentifier("bannerManagement.duplicate." + banner.id)
                     }
 
                     if canDelete {
@@ -107,6 +114,7 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
                         .tint(AppTheme.accentDestructive)
                         .disabled(isUpdating)
                         .accessibilityLabel(AppStrings.FeaturedManagement.deleteBanner)
+                        .accessibilityIdentifier("bannerManagement.delete." + banner.id)
                     }
                 }
 
@@ -129,14 +137,14 @@ struct FeaturedBannerManagementRow<EditDestination: View, DuplicateDestination: 
             Text(managementTitle)
                 .font(.headline.weight(.semibold))
                 .foregroundStyle(AppTheme.textPrimary)
-                .lineLimit(2)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                 .fixedSize(horizontal: false, vertical: true)
 
             if let publicHeadline = publicHeadlineText {
                 Text(publicHeadline)
                     .font(.subheadline)
                     .foregroundStyle(AppTheme.textSecondary)
-                    .lineLimit(2)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -285,7 +293,7 @@ struct FeaturedBannerMetadataLine: View {
             Text("\(title): \(value)")
                 .font(.caption)
                 .foregroundStyle(AppTheme.textSecondary)
-                .lineLimit(2)
+                .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
         } icon: {
             Image(systemName: systemImage)

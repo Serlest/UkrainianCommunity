@@ -35,6 +35,7 @@ struct FeaturedBannerPageIndicator: View {
             }
             .frame(maxWidth: .infinity)
             .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("featuredBanner.pageIndicator")
             .accessibilityLabel(AppStrings.Featured.bannerPageIndicator(current: selectedIndex + 1, total: count))
             .accessibilityAdjustableAction { direction in
                 switch direction {

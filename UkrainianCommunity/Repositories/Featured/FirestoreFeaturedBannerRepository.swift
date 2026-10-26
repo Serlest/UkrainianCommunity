@@ -69,7 +69,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             // Keep scheduled and recently expired active documents in memory so
             // the presentation layer can re-evaluate time boundaries without a
             // network request.
-            return banners.eligibleFeaturedBanners(for: section, federalState: federalState)
+            return try await withPresentations(banners.eligibleFeaturedBanners(for: section, federalState: federalState), includeInactive: false)
         } catch {
             throw appError(from: error)
         }
@@ -98,21 +98,43 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                 }
             }
 
-            return banners.sorted { lhs, rhs in
+            return try await withPresentations(banners, includeInactive: true).sorted { lhs, rhs in
                     if lhs.priority != rhs.priority {
                         return lhs.priority > rhs.priority
                     }
-                    return lhs.updatedAt > rhs.updatedAt
+                    return lhs.updatedAt == rhs.updatedAt ? lhs.id < rhs.id : lhs.updatedAt > rhs.updatedAt
                 }
         } catch {
             throw appError(from: error)
         }
     }
 
+    func saveBanner(_ banner: FeaturedBanner, isNew: Bool, expectedUpdatedAt: Date?, operationID: String) async throws {
+        try validationService.validate(banner)
+        do {
+            try await mutationClient.saveFeaturedBanner(banner, mode: isNew ? .create : .update, expectedUpdatedAt: expectedUpdatedAt, operationID: operationID)
+        } catch {
+            if error is CancellationError { throw error }
+            let failure = error as NSError
+            let code = failure.domain == FunctionsErrorDomain ? FunctionsErrorCode(rawValue: failure.code) : nil
+            let mapped = appError(from: error)
+            if mapped == .network || mapped == .unknown || code == .alreadyExists || code == .aborted {
+                // A lost reply does not prove failure. Accept only an exact authoritative content match.
+                if let raw = try? await collection.document(banner.id).getDocument(source: .server), let data = raw.data(),
+                   let stored = try? makeBanner(id: raw.documentID, data: data),
+                   let resolved = try? await withPresentations([stored], includeInactive: true).first,
+                   let actual = try? FeaturedBannerMutationPayload(banner: resolved),
+                   let expected = try? FeaturedBannerMutationPayload(banner: banner), actual == expected { return }
+            }
+            if code == .aborted || code == .alreadyExists { throw FeaturedBannerSaveConflict() }
+            throw mapped
+        }
+    }
+
     func createBanner(_ banner: FeaturedBanner) async throws {
         try validationService.validate(banner)
         do {
-            try await mutationClient.saveFeaturedBanner(banner, mode: .create)
+            try await mutationClient.saveFeaturedBanner(banner, mode: .create, expectedUpdatedAt: nil, operationID: UUID().uuidString)
         } catch {
             throw appError(from: error)
         }
@@ -133,7 +155,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
     func updateBanner(_ banner: FeaturedBanner) async throws {
         try validationService.validate(banner)
         do {
-            try await mutationClient.saveFeaturedBanner(banner, mode: .update)
+            try await mutationClient.saveFeaturedBanner(banner, mode: .update, expectedUpdatedAt: nil, operationID: UUID().uuidString)
         } catch {
             throw appError(from: error)
         }
@@ -187,6 +209,51 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
                 summary: "Featured banner deleted"
             )
         )
+    }
+
+    private func withPresentations(_ banners: [FeaturedBanner], includeInactive: Bool) async throws -> [FeaturedBanner] {
+        guard !banners.isEmpty else { return [] }
+        var configurations: [String: FeaturedBannerCountdown] = [:]
+        var configuredEnds: [String: Date] = [:]
+        var restoredEndIDs = Set<String>()
+        for start in stride(from: 0, to: banners.count, by: 100) {
+            let ids = Array(banners[start..<min(start + 100, banners.count)].map(\.id))
+            let callable = Functions.functions(region: "europe-west3").httpsCallable("getFeaturedBannerPresentations")
+            callable.timeoutInterval = 15
+            let result = try await callable.call(["ids": ids, "includeInactive": includeInactive])
+            try Task.checkCancellation()
+            guard let response = result.data as? [String: Any], let rows = response["presentations"] as? [[String: Any]] else { throw AppError.validationFailed }
+            for row in rows {
+                guard let id = row["id"] as? String, ids.contains(id) else { throw AppError.validationFailed }
+                if let raw = row["countdown"] as? [String: Any] {
+                    guard let countdown = Self.decodeCountdown(raw) else { throw AppError.validationFailed }
+                    configurations[id] = countdown
+                }
+                if let value = row["configuredEndsAt"] {
+                    restoredEndIDs.insert(id)
+                    if let text = value as? String {
+                        let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                        guard let date = formatter.date(from: text) else { throw AppError.validationFailed }
+                        configuredEnds[id] = date
+                    } else if !(value is NSNull) { throw AppError.validationFailed }
+                }
+            }
+        }
+        return banners.map { banner in
+            var copy = banner; copy.countdown = configurations[banner.id]
+            if restoredEndIDs.contains(banner.id) { copy.endsAt = configuredEnds[banner.id] }
+            return copy
+        }
+    }
+
+    static func decodeCountdown(_ value: [String: Any]) -> FeaturedBannerCountdown? {
+        guard let target = value["targetDate"] as? String,
+              let label = value["label"] as? String, let german = value["germanLabel"] as? String,
+              let completion = (value["completion"] as? String).flatMap(FeaturedBannerCountdown.Completion.init(rawValue:)) else { return nil }
+        let formatter = ISO8601DateFormatter(); formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let date = formatter.date(from: target) else { return nil }
+        let countdown = FeaturedBannerCountdown(targetDate: date, label: label, germanLabel: german, completion: completion)
+        return countdown.isValid ? countdown : nil
     }
 
     private func makeBanner(
@@ -355,7 +422,7 @@ struct FirestoreFeaturedBannerRepository: FeaturedBannerRepository {
             return .permissionDenied
         case .notFound:
             return .notFound
-        case .invalidArgument, .alreadyExists, .failedPrecondition:
+        case .invalidArgument, .alreadyExists, .failedPrecondition, .aborted:
             return .validationFailed
         case .unavailable, .deadlineExceeded:
             return .network

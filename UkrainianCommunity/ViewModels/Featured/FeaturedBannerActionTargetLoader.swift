@@ -5,8 +5,6 @@ struct FeaturedBannerActionTargetLoader {
     private let newsRepository: NewsRepository?
     private let eventRepository: EventRepository?
     private let organizationRepository: OrganizationRepository?
-    private let pageSize = 50
-    private let resultLimit = 250
 
     init(
         newsRepository: NewsRepository?,
@@ -18,75 +16,50 @@ struct FeaturedBannerActionTargetLoader {
         self.organizationRepository = organizationRepository
     }
 
-    func load(kind: FeaturedBannerActionTargetKind) async throws -> [FeaturedBannerActionTargetItem] {
+}
+
+extension FeaturedBannerActionTargetLoader {
+    enum Cursor: Equatable {
+        case news(NewsPageCursor), event(EventPageCursor), organization(OrganizationPageCursor)
+    }
+    struct Page { let items:[FeaturedBannerActionTargetItem];let next:Cursor? }
+    func page(kind:FeaturedBannerActionTargetKind,after:Cursor?) async throws->Page {
+        try Task.checkCancellation()
         switch kind {
         case .news:
-            guard let newsRepository else { throw AppError.validationFailed }
-            return try await fetchAllNews(from: newsRepository)
-                .filter { $0.moderationStatus == .approved }
-                .sorted {
-                    $0.publishedAt == $1.publishedAt ? $0.id < $1.id : $0.publishedAt > $1.publishedAt
-                }
-                .map(FeaturedBannerActionTargetItem.init(news:))
+            guard let newsRepository else {throw AppError.validationFailed}
+            let cursor:NewsPageCursor?;if case .news(let value)=after {cursor=value}else{cursor=nil}
+            let page=try await newsRepository.fetchNewsPage(limit:50,after:cursor)
+            let next=page.hasMore ? page.nextCursor.map(Cursor.news):nil
+            guard next != after || next == nil else {throw AppError.validationFailed}
+            return Page(items:page.items.filter{$0.moderationStatus == .approved}.map(FeaturedBannerActionTargetItem.init(news:)),next:next)
         case .event:
-            guard let eventRepository else { throw AppError.validationFailed }
-            return try await fetchAllEvents(from: eventRepository)
-                .filter { $0.moderationStatus == .approved }
-                .sorted {
-                    $0.startDate == $1.startDate ? $0.id < $1.id : $0.startDate > $1.startDate
-                }
-                .map(FeaturedBannerActionTargetItem.init(event:))
+            guard let eventRepository else {throw AppError.validationFailed}
+            let cursor:EventPageCursor?;if case .event(let value)=after {cursor=value}else{cursor=nil}
+            let page=try await eventRepository.fetchEventsPage(limit:50,after:cursor)
+            let next=page.hasMore ? page.nextCursor.map(Cursor.event):nil
+            guard next != after || next == nil else {throw AppError.validationFailed}
+            return Page(items:page.items.filter{$0.moderationStatus == .approved}.map(FeaturedBannerActionTargetItem.init(event:)),next:next)
         case .organization:
-            guard let organizationRepository else { throw AppError.validationFailed }
-            return try await fetchAllOrganizations(from: organizationRepository)
-                .filter { $0.moderationStatus == .approved }
-                .sorted {
-                    let result = LocalizationStore.compareForSorting($0.name, $1.name)
-                    return result == .orderedSame ? $0.id < $1.id : result == .orderedAscending
-                }
-                .map(FeaturedBannerActionTargetItem.init(organization:))
+            guard let organizationRepository else {throw AppError.validationFailed}
+            let cursor:OrganizationPageCursor?;if case .organization(let value)=after {cursor=value}else{cursor=nil}
+            let page=try await organizationRepository.fetchOrganizationsPage(limit:50,after:cursor)
+            let next=page.hasMore ? page.nextCursor.map(Cursor.organization):nil
+            guard next != after || next == nil else {throw AppError.validationFailed}
+            return Page(items:page.items.filter{$0.moderationStatus == .approved}.map(FeaturedBannerActionTargetItem.init(organization:)),next:next)
         }
     }
-
-    private func fetchAllNews(from repository: NewsRepository) async throws -> [NewsPost] {
-        var items: [NewsPost] = []
-        var cursor: NewsPageCursor?
-
-        repeat {
-            let page = try await repository.fetchNewsPage(limit: pageSize, after: cursor)
-            items.append(contentsOf: page.items)
-            cursor = page.nextCursor
-            if !page.hasMore || cursor == nil || items.count >= resultLimit { break }
-        } while !Task.isCancelled
-
-        return Array(items.prefix(resultLimit))
-    }
-
-    private func fetchAllEvents(from repository: EventRepository) async throws -> [Event] {
-        var items: [Event] = []
-        var cursor: EventPageCursor?
-
-        repeat {
-            let page = try await repository.fetchEventsPage(limit: pageSize, after: cursor)
-            items.append(contentsOf: page.items)
-            cursor = page.nextCursor
-            if !page.hasMore || cursor == nil || items.count >= resultLimit { break }
-        } while !Task.isCancelled
-
-        return Array(items.prefix(resultLimit))
-    }
-
-    private func fetchAllOrganizations(from repository: OrganizationRepository) async throws -> [Organization] {
-        var items: [Organization] = []
-        var cursor: OrganizationPageCursor?
-
-        repeat {
-            let page = try await repository.fetchOrganizationsPage(limit: pageSize, after: cursor)
-            items.append(contentsOf: page.items)
-            cursor = page.nextCursor
-            if !page.hasMore || cursor == nil || items.count >= resultLimit { break }
-        } while !Task.isCancelled
-
-        return Array(items.prefix(resultLimit))
+    func selected(kind:FeaturedBannerActionTargetKind,id:String) async throws->FeaturedBannerActionTargetItem? {
+        switch kind {
+        case .news:
+            guard let newsRepository else {return nil};let value=try await newsRepository.fetchNews(id:id)
+            return value.moderationStatus == .approved ? FeaturedBannerActionTargetItem(news:value):nil
+        case .event:
+            guard let eventRepository else {return nil};let value=try await eventRepository.fetchEvent(id:id)
+            return value.moderationStatus == .approved ? FeaturedBannerActionTargetItem(event:value):nil
+        case .organization:
+            guard let organizationRepository else {return nil};let value=try await organizationRepository.fetchOrganization(id:id)
+            return value.moderationStatus == .approved ? FeaturedBannerActionTargetItem(organization:value):nil
+        }
     }
 }
