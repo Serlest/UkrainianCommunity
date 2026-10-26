@@ -39,7 +39,9 @@ function receiptRef(uid: string, id: string) { return db.collection("users").doc
 export async function manage(request: CallableRequest) {
   const auth = await requireVerifiedActiveUser(request); assertOwner(auth.permissions);
   const data = record(request.data); const now = Date.now();
+  if (data.principalId !== undefined && data.principalId !== auth.uid) throw new HttpsError("permission-denied", "Account changed.");
   switch (data.operation) {
+    case "get": return {item: await readCampaign(identifier(data.id))};
     case "list": {
       const phase = data.phase;
       if (phase != null && !["draft", "scheduled", "active", "completed", "cancelled"].includes(String(phase))) return fail("Invalid announcement phase.");
@@ -59,14 +61,23 @@ export async function manage(request: CallableRequest) {
     }
     case "save": {
       const draft = parseDraft(data.draft, auth.uid, now), ref = campaigns.doc(draft.id);
-      await db.runTransaction(async (tx) => {
+      const operationId = data.operationId == null ? undefined : identifier(data.operationId);
+      // A retry identifies the reviewed payload, not volatile server timestamps.
+      const {createdAt: _createdAt, updatedAt: _updatedAt, revision: _revision, ...payload} = draft;
+      const fingerprint = createHash("sha256").update(JSON.stringify({payload, revision: data.revision ?? null})).digest("hex");
+      const item = await db.runTransaction(async (tx) => {
         const previous = (await tx.get(ref)).data();
+        if (operationId && previous?.saveOperationId === operationId) {
+          if (previous.saveFingerprint !== fingerprint) throw new HttpsError("aborted", "The reviewed save changed. Reload before saving.");
+          return previous as Announcement;
+        }
         if (previous && previous.status !== "draft") throw new HttpsError("failed-precondition", "Published announcements are immutable.");
         if (previous && data.revision !== previous.revision) throw new HttpsError("aborted", "Draft changed. Reload before saving.");
         draft.createdAt = previous?.createdAt ?? now; draft.revision = (previous?.revision ?? 0) + 1;
-        tx.set(ref, draft);
+        tx.set(ref, {...draft, ...(operationId ? {saveOperationId: operationId, saveFingerprint: fingerprint} : {})});
+        return draft;
       });
-      return {item: draft};
+      return {item};
     }
     case "publish": {
       if (!await rolloutEnabled()) throw new HttpsError("failed-precondition", "Announcements are not enabled.");
@@ -85,7 +96,15 @@ export async function manage(request: CallableRequest) {
       return {ok: true};
     }
     case "cancel": {
-      await campaigns.doc(identifier(data.id)).update({status: "cancelled", updatedAt: now}); return {ok: true};
+      const ref = campaigns.doc(identifier(data.id));
+      await db.runTransaction(async tx => {
+        const previous = (await tx.get(ref)).data();
+        if (!previous) throw new HttpsError("not-found", "Announcement unavailable.");
+        if (previous.status === "cancelled") return;
+        if (data.revision !== undefined && data.revision !== previous.revision) throw new HttpsError("aborted", "The reviewed announcement changed. Reload before cancelling.");
+        tx.update(ref, {status: "cancelled", updatedAt: now});
+      });
+      return {ok: true};
     }
     case "preview": {
       const a = parseDraft(data.draft, auth.uid, now);
@@ -137,8 +156,13 @@ export async function manage(request: CallableRequest) {
 }
 export const manageAnnouncements = onCall(options, manage);
 
+function assertPrincipal(data: Record<string, unknown>, uid: string | undefined): void {
+  if (data.principalId !== undefined && data.principalId !== uid) throw new HttpsError("permission-denied", "Account changed.");
+}
+
 export async function feed(request: CallableRequest) {
   const data = record(request.data); client(data);
+  assertPrincipal(data, request.auth?.uid);
   if (!await rolloutEnabled()) return {items: [], serverNow: Date.now(), cursor: null};
   const uid = request.auth?.uid;
   const now = Date.now();
@@ -174,6 +198,7 @@ export const getAnnouncements = onCall(options, feed);
 export async function acknowledge(request: CallableRequest) {
   const data = record(request.data); client(data);
   const auth = request.auth ? requireAuth(request) : undefined, id = identifier(data.id);
+  assertPrincipal(data, auth?.uid);
   if (!["presented", "acknowledged", "action"].includes(String(data.event))) return fail("Invalid event.");
   const a = await readCampaign(id), user = auth ? await audienceUser(auth.uid, a.groups) : undefined;
   if ((auth && !user) || !matchesAudience(a, user) || !supports(a, data.platform, data.capability) || a.status !== "published") return denied();
@@ -199,6 +224,7 @@ export const acknowledgeAnnouncement = onCall(options, acknowledge);
 // before it may receive announcements. Merely knowing another installation's FID is insufficient.
 export async function register(request: CallableRequest, send: typeof sendPushToRegistrationDocuments = sendPushToRegistrationDocuments) {
   const data = record(request.data); client(data);
+  assertPrincipal(data, request.auth?.uid);
   const secret = text(data.secret, 128); if (secret.length < 32) return fail("Invalid installation credential.");
   const ref = devices.doc(digest(secret));
   if (data.operation === "disable") {await ref.delete(); return {ok: true};}
