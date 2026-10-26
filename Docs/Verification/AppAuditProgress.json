@@ -271,7 +271,14 @@
       "deliveryReport": "Docs/Verification/TestFlight12720261026.json",
       "followUpSourceCommit": "26332afb",
       "followUpReport": "Docs/Verification/BannerArtworkCorrection20261026.json",
-      "followUpDelivery": "included in TestFlight127; pending user acceptance"
+      "followUpDelivery": "included in TestFlight127; pending user acceptance",
+      "textAppearanceAndSecondsFollowUp": {
+        "report": "Docs/Verification/BannerSecondsTextAppearance20261026.json",
+        "serverCommit": "4ca1a19d",
+        "includedInTestFlight127": false,
+        "status": "verified_source_and_server_pending_new_binary_and_user_acceptance",
+        "sourceCommit": "2bec120f"
+      }
     },
     {
       "number": 15,

@@ -504,5 +504,11 @@
     "report": "Docs/Verification/BannerArtworkCorrection20261026.json",
     "sourceCommit": "26332afb",
     "delivery": "Included in TestFlight127; hosted validation and physical user acceptance remain separate."
+  },
+  "textAppearanceAndSecondsFollowUp": {
+    "report": "Docs/Verification/BannerSecondsTextAppearance20261026.json",
+    "status": "verified_source_and_server_pending_new_binary_and_user_acceptance",
+    "testFlightIncluded": false,
+    "sourceCommit": "2bec120f"
   }
 }

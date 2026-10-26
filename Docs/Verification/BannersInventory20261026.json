@@ -1026,5 +1026,8 @@
     }
   ],
   "evidenceBase": "build/audit-banners-20261026; repository paths are relative to Git root",
-  "report": "Docs/Verification/BannersAudit20261026.json"
+  "report": "Docs/Verification/BannersAudit20261026.json",
+  "followUpReports": [
+    "Docs/Verification/BannerSecondsTextAppearance20261026.json"
+  ]
 }

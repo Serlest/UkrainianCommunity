@@ -1,0 +1,212 @@
+{
+  "date": "2026-10-26",
+  "block": 14,
+  "status": "verified_source_and_compatible_server_update_pending_new_binary_and_user_acceptance",
+  "request": [
+    "Show days, hours, minutes and seconds, including lower zero units",
+    "Remove title and description backgrounds; add glyph shadows",
+    "Independent title/subtitle colors in create and edit"
+  ],
+  "artifactBase": "build/audit-banners-20261026",
+  "serverSourceCommit": "4ca1a19d",
+  "fixes": [
+    "Countdown uses ceiling whole seconds, exact deadline and full lower-unit chain; timer updates only the visible selected active banner while app is active. No network or database requests per tick.",
+    "Title and subtitle scrim and global artwork tint removed; independent glyph shadows use a dark shadow for light text and a light halo for dark custom text.",
+    "Native opaque color picker, five accessible presets, independent field resets and reset-all. Preview, draft signature, save, reopen, duplicate and active-toggle preserve styles.",
+    "Normal-size editor preview uses full card width so section padding does not incorrectly select the narrow stacked layout. Large text and genuine narrow layouts retain collision-safe separate text.",
+    "Presentation version2 stores colors in private presentation documents. Public Firestore banner schema unchanged. Older version1 and legacy saves preserve existing new color settings; version2 empty object explicitly resets them.",
+    "Public presentation lookup sanitizes colors. Invalid stored colors fall back without suppressing the catalog; invalid new input is rejected. Owner checks, legal/MFA gates, CAS and idempotency remain enforced."
+  ],
+  "localTests": {
+    "initial": {
+      "artifact": "SecondsAndTextColorsInitial.xcresult",
+      "passed": 21,
+      "failed": 0,
+      "skipped": 0
+    },
+    "fullUnits": {
+      "artifact": "SecondsColorsFullUnitRegression.xcresult",
+      "passed": 906,
+      "failed": 0,
+      "skipped": 40,
+      "boundary": "Opt-in SDK scenarios are not counted as passed; the relevant banner SDK chain ran separately. Full906-test regression preceded final two-line preview-width adjustment; final UI verifies the adjustment separately."
+    },
+    "actualSDK": {
+      "artifact": "SecondsTextStylesActualSDK.xcresult",
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": [
+        "real Firebase Auth/Firestore/Functions/Storage SDKs on fixed demo emulators",
+        "v2 save and lost-response readback with colors and image",
+        "independent reset, countdown removal preserving colors, public lookup and member denial",
+        "reset all, reopen, image download/decode and delete cleanup"
+      ]
+    },
+    "nativePickerAndGeometry": {
+      "artifact": "NativePickerSecondsAndClearLabels.xcresult",
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0
+    },
+    "colorControlsAfterGlyphFix": {
+      "artifact": "FinalSecondsColorsUI.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0
+    },
+    "server": {
+      "artifact": "style-server-regression-fixed-env.log",
+      "passed": 24,
+      "failed": 0,
+      "skipped": 0,
+      "initialFailure": "Earlier run had23 passed and1 storage-orphan fixture failure because FIREBASE_CONFIG.storageBucket was omitted. Correct fixed demo configuration passed24; assertions unchanged."
+    },
+    "finalPreviewWidthAndLiveSeconds": {
+      "artifact": "FinalPreviewWidthAndSeconds.xcresult",
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "coverage": [
+        "uk/light/normal: colored preview matches actual16:9 feed width and overlay geometry",
+        "de/dark/largest: color controls, save/reopen and independent resets",
+        "live countdown visibly advances without changing image size"
+      ]
+    },
+    "release": {
+      "artifact": "seconds-colors-release-final.log",
+      "status": "BUILD SUCCEEDED",
+      "configuration": "Release generic iOS device, signing disabled",
+      "warnings": "Two existing unrelated warnings: SystemLogDeliveryQueue captured self concurrency and DirectoryEditorAccessStore generic Decodable isolation. No new banner warnings."
+    },
+    "static": [
+      "localizations3410 existing entries and references passed; all13 new banner strings separately verified translated uk/de/en",
+      "property lists passed3files",
+      "repository structure passed",
+      "release configuration passed127",
+      "git diff --check passed"
+    ]
+  },
+  "visualReview": {
+    "initialFinding": "Largest-text preset checkmarks and reset glyphs grew outside their controls; fixed decorative glyph sizes while preserving44pt targets.",
+    "previewFinding": "Nested section insets made normal editor preview narrower than feed and selected stacked layout; corrected full-width preview and added geometry assertion.",
+    "viewed": [
+      {
+        "directory": "native-seconds-captures",
+        "files": [
+          "45ACED4B-37FB-4025-93E9-F8BC0D531EE2.png",
+          "7EE6570C-B493-4E8A-9977-392A2DEB5DCA.png",
+          "3CFBBC82-B836-4382-92C0-B04A31D63E9C.png"
+        ],
+        "scope": "Real test artwork, white and black artwork; all four timer units, no countdown/title panel."
+      },
+      {
+        "directory": "final-seconds-colors-captures",
+        "files": [
+          "AEACD1AC-6B32-4552-B4DF-50C0370001E8.png"
+        ],
+        "scope": "de/dark/largest text: fixed checkmarks/reset glyphs inside controls."
+      },
+      {
+        "directory": "final-preview-width-captures",
+        "files": [
+          "06573BA7-1788-420D-B7D3-C7E23FAB2876.png"
+        ],
+        "scope": "Final normal-size uk preview after width correction: blue title/yellow subtitle directly over full16:9 artwork, all four countdown units, no text scrim."
+      }
+    ],
+    "boundary": "Simulator fixture and pixel rendering, not new physical-iPhone acceptance. Native picker opening/closing is interaction-tested; initial captured picker attachment is the editor transition, not evidence of its open content."
+  },
+  "production": {
+    "deploymentProof": [
+      {
+        "name": "saveFeaturedBanner",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "savefeaturedbanner-00012-zed",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/featured/featuredBannerMutations.ts",
+            "matches": true,
+            "sha256": "fff6a7297ae0787a42053b0a9f56e6bfe72a7c1641de62e5d5687d9d8610b298"
+          },
+          {
+            "file": "lib/featured/featuredBannerMutations.js",
+            "matches": true,
+            "sha256": "53426cb0f8202ec436bf6d00055efac25d74611cd6cc9af9339159840f06d4ed"
+          },
+          {
+            "file": "src/index.ts",
+            "matches": true,
+            "sha256": "1a483002bede1c910663a43a054e473bb078973004b9097a0ba6d68a45d4ee15"
+          },
+          {
+            "file": "lib/index.js",
+            "matches": true,
+            "sha256": "7058523eec13553c087586639bccbad7695ce2a545e3fbce9a459072328ba193"
+          }
+        ]
+      },
+      {
+        "name": "getFeaturedBannerPresentations",
+        "state": "ACTIVE",
+        "policyOnDeploy": true,
+        "revision": "getfeaturedbannerpresentations-00003-jod",
+        "ready": true,
+        "traffic100": true,
+        "files": [
+          {
+            "file": "src/featured/featuredBannerMutations.ts",
+            "matches": true,
+            "sha256": "fff6a7297ae0787a42053b0a9f56e6bfe72a7c1641de62e5d5687d9d8610b298"
+          },
+          {
+            "file": "lib/featured/featuredBannerMutations.js",
+            "matches": true,
+            "sha256": "53426cb0f8202ec436bf6d00055efac25d74611cd6cc9af9339159840f06d4ed"
+          },
+          {
+            "file": "src/index.ts",
+            "matches": true,
+            "sha256": "1a483002bede1c910663a43a054e473bb078973004b9097a0ba6d68a45d4ee15"
+          },
+          {
+            "file": "lib/index.js",
+            "matches": true,
+            "sha256": "7058523eec13553c087586639bccbad7695ce2a545e3fbce9a459072328ba193"
+          }
+        ]
+      }
+    ],
+    "readOnlyProbes": "text-style-deployment/production-callable-probes.json",
+    "boundary": "Actual active catalog and callable read succeed; owner-only unauthenticated requests rejected401. No production banner mutations or analytics test clicks. Rules/indexes unchanged."
+  },
+  "delivery": {
+    "currentTestFlight": "1.2.1 (127)",
+    "includesThisFollowUp": false,
+    "newUploadPerformed": false,
+    "publicReleaseChanged": false,
+    "boundary": "Source and compatible server update only. New binary needed to test seconds and text colors on user iPhone."
+  },
+  "previousBuildCI": {
+    "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40391494023",
+    "conclusion": "success",
+    "boundary": "Independent full validation of delivered127 source, not this new follow-up."
+  },
+  "acceptanceChecklist": [
+    "Create inactive banner, set different title/subtitle colors and check real image preview; save and reopen.",
+    "Change only title then reset it; subtitle must retain its chosen color. Check reset-all, duplicate and cancel.",
+    "Check day/hour/minute/second countdown, zero lower units and exact completion; switch cards and background/foreground app.",
+    "Inspect real artwork in both themes and large text; choose suitable colors for artwork."
+  ],
+  "excluded": [
+    "Seasonal theme",
+    "Block15 general analytics",
+    "TestFlight upload",
+    "Public App Store release"
+  ],
+  "clientSourceCommit": "2bec120f",
+  "emulators": "Owned fixed demo emulator stack exported and stopped cleanly after SDK and server tests."
+}
