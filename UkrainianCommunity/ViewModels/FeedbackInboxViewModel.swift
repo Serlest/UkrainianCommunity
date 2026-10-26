@@ -36,6 +36,7 @@ final class FeedbackInboxViewModel: ObservableObject {
     private var pendingOperations = PendingFeedbackOperationBuffer()
     private var pendingDsaDecisionAttempts: [String: (operationID: String, expectedRevision: String)] = [:]
     private var activeActorID: String?
+    private var inboxLoad: (id: UUID, session: UUID, query: FeedbackInboxQuery, task: Task<FeedbackInboxPage, Error>)?
 
     init(
         repository: FeedbackRepository,
@@ -49,7 +50,7 @@ final class FeedbackInboxViewModel: ObservableObject {
         if activeActorID != actorID { reset(for: actorID) }
         let next = FeedbackInboxQuery(filter: filter, search: search, oldest: oldest, principalID: actorID)
         guard next != query || items.isEmpty else { return }
-        if next != query { items = []; nextCursor = nil; hasMore = false }
+        if next != query { items = []; nextCursor = nil; hasMore = false; counts = [:] }
         query = next
         await refresh(actorID: actorID)
     }
@@ -62,11 +63,20 @@ final class FeedbackInboxViewModel: ObservableObject {
     func refresh(actorID: String) async {
         if activeActorID != actorID { reset(for: actorID) }
         query.principalID = actorID
+        if let load = inboxLoad, load.session == session, load.query == query {
+            _ = await load.task.result
+            return
+        }
+        inboxLoad?.task.cancel()
         generation = UUID(); let expected = generation
         isLoading = true; isLoadingMore = false; error = nil
         let request = query
+        let loadID = UUID()
+        let task = Task { [repository] in try await repository.fetchOwnerInbox(query: request, after: nil) }
+        inboxLoad = (loadID, session, request, task)
+        defer { if inboxLoad?.id == loadID { inboxLoad = nil } }
         do {
-            let page = try await repository.fetchOwnerInbox(query: request, after: nil)
+            let page = try await task.value
             guard generation == expected, activeActorID == actorID else { return }
             items = page.items; page.items.forEach { detailItems[$0.id] = $0 }
             nextCursor = page.cursor; hasMore = page.cursor != nil; counts = page.counts
@@ -127,6 +137,7 @@ final class FeedbackInboxViewModel: ObservableObject {
 
     private func reset(for actorID: String) {
         session = UUID(); generation = UUID(); inboxRefreshTask?.cancel(); inboxRefreshTask = nil
+        inboxLoad?.task.cancel(); inboxLoad = nil
         listenerBag.removeAll()
         watchedIDs = []; recordListenerKeys = []
         counts = [:]; detailItems = [:]; query = FeedbackInboxQuery(principalID: actorID)
@@ -236,10 +247,10 @@ final class FeedbackInboxViewModel: ObservableObject {
 
         do {
             try await repository.performFeedbackOperation(operation)
-            pendingOperations.complete(operation)
             guard activeActorID == owner.id, session == expectedSession else { return false }
             let updated = try await repository.fetchFeedback(id: item.id)
             guard activeActorID == owner.id, session == expectedSession else { return false }
+            pendingOperations.complete(operation)
             detailItems[item.id] = updated
             await refresh(actorID: owner.id)
             let itemForMessages = updated
