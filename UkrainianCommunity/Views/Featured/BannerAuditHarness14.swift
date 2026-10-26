@@ -8,12 +8,43 @@ struct BannerAuditHarness14: View {
     @State private var events: [FeaturedBannerMeasurement] = []
     @State private var active = true
     static func fixtures() -> [FeaturedBanner] {
-        (1...3).map { n in
-            FeaturedBanner(id:"banner14-\(n)",internalName:"Campaign \(n)",
-                localizations:["uk":.init(title:"Зустріч нашої громади \(n)",subtitle:"Важливі події поруч із вами"),"de":.init(title:"Ein Treffen unserer Gemeinschaft \(n)",subtitle:"Wichtige Veranstaltungen in Ihrer Nähe")],
-                title:"Зустріч нашої громади \(n)",imageURL:"https://example.com/banner.jpg",actionType:.externalURL,externalURL:"https://example.com/event",visibleSections:[.home,.events,.organizations,.directory],displayDurationSeconds:ProcessInfo.processInfo.environment["UITestBanner14Autoplay"] == "1" ? 3 : 12,
-                createdAt:.now,updatedAt:.now,createdBy:"fixture",countdown:n == 1 ? .init(targetDate:Date().addingTimeInterval(2*86400+8*3600+32*60),label:"До зустрічі громади",germanLabel:"Bis zum Gemeinschaftstreffen",completion:.showStarted):nil)
+        let duration: Int = ProcessInfo.processInfo.environment["UITestBanner14Autoplay"] == "1" ? 3 : 12
+        let now = Date()
+        return (1...3).map { number in
+            fixture(number: number, now: now, duration: duration)
         }
+    }
+
+    private static func fixture(number: Int, now: Date, duration: Int) -> FeaturedBanner {
+        let title = "Зустріч нашої громади \(number)"
+        let localizations: [String: FeaturedBannerLocalizedContent] = [
+            "uk": FeaturedBannerLocalizedContent(title: title, subtitle: "Важливі події поруч із вами"),
+            "de": FeaturedBannerLocalizedContent(
+                title: "Ein Treffen unserer Gemeinschaft \(number)",
+                subtitle: "Wichtige Veranstaltungen in Ihrer Nähe"
+            )
+        ]
+        let countdown: FeaturedBannerCountdown?
+        if number == 1 {
+            let remainingSeconds: TimeInterval = 2 * 86_400 + 8 * 3_600 + 32 * 60
+            countdown = FeaturedBannerCountdown(
+                targetDate: now.addingTimeInterval(remainingSeconds),
+                label: "До зустрічі громади",
+                germanLabel: "Bis zum Gemeinschaftstreffen",
+                completion: .showStarted
+            )
+        } else {
+            countdown = nil
+        }
+        let sections: Set<FeaturedBannerVisibleSection> = [.home, .events, .organizations, .directory]
+        return FeaturedBanner(
+            id: "banner14-\(number)", internalName: "Campaign \(number)",
+            localizations: localizations, title: title,
+            imageURL: "https://example.com/banner.jpg", actionType: .externalURL,
+            externalURL: "https://example.com/event", visibleSections: sections,
+            displayDurationSeconds: duration, createdAt: now, updatedAt: now,
+            createdBy: "fixture", countdown: countdown
+        )
     }
     var body: some View {
         NavigationStack {
