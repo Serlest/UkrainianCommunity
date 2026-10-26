@@ -1,0 +1,650 @@
+{
+  "block": 15,
+  "totalBlocks": 19,
+  "date": "2026-10-26",
+  "name": "Аналітика",
+  "status": "initial_audit_findings_ready_for_implementation_validation_not_closed",
+  "baselineCommit": "27d2a9e9",
+  "inventory": "Docs/Verification/AnalyticsInventory20261026.json",
+  "artifactBase": "build/audit-analytics15-20261026",
+  "authorization": "User requested moving to next audit block, detailed review of nested sections, roles, visuals, functionality and optimization. Product redesign proposals await the established improve/implement step.",
+  "scope": [
+    "Global owner analytics overview and all metric groups",
+    "News/event/organization analytics detail views and child-link wiring",
+    "Current account count and historical/consented activity semantics",
+    "Inline banner overview; reuse exact shared component contracts from14",
+    "Search, periods, chart/menu/disclosures, empty/error/partial/stale logic, cancellation and read boundaries",
+    "Full relevant role/access matrix; cold/reopen/request lifetime source review"
+  ],
+  "productionChanges": false,
+  "testFlightChanged": false,
+  "verifiedFindings": [
+    {
+      "id": "A15-F01",
+      "priority": "P1",
+      "kind": "reproducible_UI_journey_defect",
+      "finding": "Full profile analytics search->clear->visible7day selection remainsToday. Fresh isolated overview selects7/30 successfully. The full journey is not fixed.",
+      "evidence": [
+        "BaselineCodeAndMainUI.xcresult failed chart expectation",
+        "SearchPeriodReproduction.xcresult and screenshot AD3EE191-CC8A-43F8-8C17-BA0AFC61C8B8.png: chart absent becauseToday still selected",
+        "SearchPeriodSelectionWait.xcresult: no selection even after settling/readback",
+        "SearchActualVisibleFrame.xcresult: visibility/viewport geometry asserted; selected-period readback still fails",
+        "FullUnitsFreshPeriodAndStartup.xcresult: fresh7/30 control selection passes"
+      ],
+      "boundary": "Exact interaction root cause still requires focus/keyboard/scroll investigation; this is not a calculation failure and the initial offscreen-driver explanation was insufficient. Do not weaken selection assertions or mark this verified by the fresh-control test."
+    },
+    {
+      "id": "A15-F02",
+      "priority": "P2",
+      "kind": "observed_visual_copy_defect",
+      "finding": "Normal-size empty-state explanation is truncated with an ellipsis. Empty7/30 copy includes technical rollup wording.",
+      "evidence": [
+        "expanded-captures/F65A2ABB-8B8E-4B3F-B115-A280E2A755CB.png",
+        "owner_analytics.empty.rollup_message localization",
+        "EmptyStateCard message line limit"
+      ],
+      "proposal": "Shorten user-facing explanations and allow required status text to wrap completely; remove rollup jargon."
+    },
+    {
+      "id": "A15-F03",
+      "priority": "P2",
+      "kind": "information_architecture_improvement",
+      "finding": "The current-account count occupies a nested full-width metric card with repeated headings and explanation, pushing overview and charts far down the page. Both normal themes and large text were inspected.",
+      "evidence": [
+        "baseline-captures/7D536C8B-3439-4A71-AA03-50BC0D6819E3.png",
+        "baseline-captures/D7866FB2-0860-4CFB-AFA0-EA0D401372D5.png"
+      ],
+      "proposal": "Compact summary with clearly separate current-account vs selected-period metrics; retain shared visual style and inline banner totals."
+    },
+    {
+      "id": "A15-F04",
+      "priority": "P2",
+      "kind": "freshness_period_semantics",
+      "finding": "Live account count, live daily counters, hourly7/30/user rollups and5minute UTC banner rollups share one screen. The copy mentions5minute refresh without sufficiently separating sources. General periods useVienna, bannersUTC; Today comparison uses a whole previous day.",
+      "evidence": [
+        "analytics-schedules.json: actual enabled jobs, status0",
+        "AnalyticsPresentationText.swift",
+        "fetchSnapshot reads daily/rollups independently",
+        "previousDates(for:anchoredAt:)"
+      ],
+      "proposal": "Make each source cutoff/freshness explicit, clarify incompleteToday comparison, and keep selected-period reporting coherent. Do not simply increase expensive full-user scan frequency."
+    },
+    {
+      "id": "A15-F05",
+      "priority": "P2",
+      "kind": "performance_improvement",
+      "finding": "Overview reads daily range plus3 rollups in parallel, account count and banner overview separately. View-local60second caches disappear when a destination is recreated; manual load methods can issue overlapping same-period reads.",
+      "evidence": [
+        "FirestoreOwnerAnalyticsRepository.fetchSnapshot",
+        "OwnerAnalyticsViewModel.load/loadIfNeeded",
+        "BannerAnalyticsOverviewSection and RegisteredUserCountCard"
+      ],
+      "proposal": "Share bounded owner/session-specific snapshots and in-flight reads, preserving refresh and role/session invalidation; avoid persisting private analytics by default.",
+      "boundary": "Read counts and cache lifetime are code-backed; no physical iPhone load-time improvement has been measured or claimed."
+    },
+    {
+      "id": "A15-F06",
+      "priority": "P2",
+      "kind": "defensive_decoding_gap_not_observed_corrupt_production_data",
+      "finding": "Repository intValue converts arbitrary Double directly toInt and acceptsNSNumber without consistently excluding booleans/fractions. Nonfinite or out-of-rangeDouble can trap instead of presenting a data-format error.",
+      "evidence": [
+        "FirestoreOwnerAnalyticsRepository.swift:1356 intValue",
+        "Daily and detail metric decoding call that helper; user/top validators are stricter"
+      ],
+      "proposal": "Use checked finite integral nonnegative conversion and safe sum handling; malformed sources must be reported rather than silently shown as authoritative zeros.",
+      "boundary": "No malformed present numeric metric values found in the production aggregate sample."
+    },
+    {
+      "id": "A15-F07",
+      "priority": "P3",
+      "kind": "search_scope_clarity",
+      "finding": "Popular rankings are capped at20items per content type in7/30rollups. Search filters loaded report content; it is not a global search of all historical posts. Top sums need not equal all view totals.",
+      "evidence": [
+        "mergeTopContentSources .slice(0,20)",
+        "production top20 sums differ from full daily counts by design"
+      ],
+      "proposal": "Clearly label ranking/search scope and show the loaded-item limit; preserve genuine totals."
+    }
+  ],
+  "checks": {
+    "baseline": {
+      "artifact": "BaselineCodeAndMainUI.xcresult",
+      "passed": 65,
+      "failed": 1,
+      "skipped": 0,
+      "breakdown": "62 unit/contract/delivery checks and3 existing UI scenarios passed; full search/period/detail journey failed."
+    },
+    "expandedUI": {
+      "artifact": "ExpandedWindowsAndRoles.xcresult",
+      "passed": 4,
+      "failed": 1,
+      "skipped": 0,
+      "coverage": [
+        "all3 detail screens with lower-page captures and event empty/error",
+        "root loading/empty/error/partial",
+        "six non-owner profile role variants with positive usable-profile checks",
+        "existing guest/blocked-account profile journey"
+      ],
+      "toolBoundary": "MCP call timed out at300s. Underlying xcodebuild completed after255.579s; xcresulttool terminal summary independently read back. Timeout was not counted as success."
+    },
+    "freshControlsAndRegression": {
+      "artifact": "FullUnitsFreshPeriodAndStartup.xcresult",
+      "passed": 913,
+      "failed": 0,
+      "skipped": 40,
+      "breakdown": "911 units plus fresh7/30 overview selection and cold-start cache UI regression. Does not close failing full search journey."
+    },
+    "analyticsServer": {
+      "artifact": "server-tests.log",
+      "passed": 75,
+      "failed": 0,
+      "skipped": 0,
+      "boundary": "Actual callable handlers/Firestore transactions in isolated demo emulators; no production events generated."
+    },
+    "roleRules": {
+      "artifact": "role-rules-tests.log",
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "roles": [
+        "owner",
+        "app admin",
+        "organization owner/admin/editor",
+        "regular/warned/blocked member",
+        "deactivated owner",
+        "owner withoutMFA",
+        "owner with outdated legal acceptance",
+        "guest"
+      ],
+      "boundary": "Current repository Rules in fixed localhost demo project; all aggregate roots/nested reports tested read access and client writes denied. Active production Rules API returned403, so deployed-rule equality is not established."
+    },
+    "initialDiagnosticCompilationFailure": {
+      "artifact": "SearchPeriodSelectionReadback.xcresult",
+      "cause": "Diagnostic code attempted a fileprivate test helper evaluate from another file; replaced with public XCTWaiter. Subsequent builds passed; no product code involved."
+    }
+  },
+  "liveReadback": {
+    "capturedAt": "2026-10-26T22:50:01.592424+01:00",
+    "currentAccounts": 67,
+    "userRollupTotalUsers": 67,
+    "dailyViewTotals": {
+      "2026-10-26": {
+        "newsViews": 4,
+        "totalViews": 4
+      },
+      "seven_days": {
+        "newsViews": 43,
+        "totalViews": 62,
+        "organizationViews": 5,
+        "eventViews": 14
+      },
+      "thirty_days": {
+        "newsViews": 87,
+        "totalViews": 130,
+        "organizationViews": 11,
+        "eventViews": 32
+      }
+    },
+    "regionSumsMatchDailyViews": true,
+    "periodSourceDaysMatch": true,
+    "representativeDetailReads": [
+      {
+        "period": "2026-10-26",
+        "type": "news",
+        "detailExists": true,
+        "identityMatches": true,
+        "rankedViews": 1,
+        "detailViews": 1,
+        "viewsMatch": true,
+        "generationMatches": null
+      },
+      {
+        "period": "2026-10-26",
+        "type": "event",
+        "status": "no ranked item in period"
+      },
+      {
+        "period": "2026-10-26",
+        "type": "organization",
+        "status": "no ranked item in period"
+      },
+      {
+        "period": "seven_days",
+        "type": "news",
+        "detailExists": true,
+        "identityMatches": true,
+        "rankedViews": 1,
+        "detailViews": 1,
+        "viewsMatch": true,
+        "generationMatches": true
+      },
+      {
+        "period": "seven_days",
+        "type": "event",
+        "detailExists": true,
+        "identityMatches": true,
+        "rankedViews": 2,
+        "detailViews": 2,
+        "viewsMatch": true,
+        "generationMatches": true
+      },
+      {
+        "period": "seven_days",
+        "type": "organization",
+        "detailExists": true,
+        "identityMatches": true,
+        "rankedViews": 1,
+        "detailViews": 1,
+        "viewsMatch": true,
+        "generationMatches": true
+      },
+      {
+        "period": "thirty_days",
+        "type": "news",
+        "detailExists": true,
+        "identityMatches": true,
+        "rankedViews": 4,
+        "detailViews": 4,
+        "viewsMatch": true,
+        "generationMatches": true
+      },
+      {
+        "period": "thirty_days",
+        "type": "event",
+        "detailExists": true,
+        "identityMatches": true,
+        "rankedViews": 1,
+        "detailViews": 1,
+        "viewsMatch": true,
+        "generationMatches": true
+      },
+      {
+        "period": "thirty_days",
+        "type": "organization",
+        "detailExists": true,
+        "identityMatches": true,
+        "rankedViews": 3,
+        "detailViews": 3,
+        "viewsMatch": true,
+        "generationMatches": true
+      }
+    ],
+    "note": "Top20 rankings are intentionally bounded; their sum is not all views. CurrentToday has no ranked event/organization item, so those live samples are absent rather than invented."
+  },
+  "deployed": {
+    "functions": [
+      {
+        "name": "trackAnalyticsEvent",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "trackanalyticsevent-00024-maw",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/analytics/trackAnalyticsEvent.ts",
+            "matches": true,
+            "sha256": "8289bb8e3e265f95268f4596cfb5d26e067ff4764348d9d959d2aa8f243ab89e"
+          },
+          {
+            "file": "lib/analytics/trackAnalyticsEvent.js",
+            "matches": true,
+            "sha256": "6120ab8a83471981dfc177bdcbc7f9d38bf7fc97bd8d7f536e499bd7a890e943"
+          },
+          {
+            "file": "src/analytics/analyticsDate.ts",
+            "matches": true,
+            "sha256": "e1a3d35382262e76668ba0531a2291e8091edbd406c6b199bb3609b2a0153d79"
+          },
+          {
+            "file": "lib/analytics/analyticsDate.js",
+            "matches": true,
+            "sha256": "afe88c2ba9f81fb6d53f37593469e03a8008a383c7b139171be8e596143f6b32"
+          },
+          {
+            "file": "src/analytics/analyticsDetailRollup.ts",
+            "matches": true,
+            "sha256": "ca8f4270b0e1871930127d22ba7ec221bf93c918eda6547973d1a6639072ff7d"
+          },
+          {
+            "file": "lib/analytics/analyticsDetailRollup.js",
+            "matches": true,
+            "sha256": "dfa50fc694dcc7f857c706d9de438595fba4cb3d7647593ecfa6947f5a0f9b9e"
+          },
+          {
+            "file": "src/analytics/analyticsConsent.ts",
+            "matches": true,
+            "sha256": "81d1f571b28ff606b8b92a2bb451fe01f7c8a4ba9a458162a34c62a0434d63a4"
+          },
+          {
+            "file": "lib/analytics/analyticsConsent.js",
+            "matches": true,
+            "sha256": "eee87d64a8e3701f75448b13e85453cefc2f156f737aff32eaa0e5198fbe24dd"
+          },
+          {
+            "file": "src/analytics/analyticsSchemaGate.ts",
+            "matches": true,
+            "sha256": "8d2d0e7bca7ce88087e39484cc01de3fe6d311d0b3c0644b0752b253eb7b4e56"
+          },
+          {
+            "file": "lib/analytics/analyticsSchemaGate.js",
+            "matches": true,
+            "sha256": "7ef0e7cdd4c2ba4845277c5de86c6291f0bf9ed493e414351b3843ca519b11ac"
+          }
+        ]
+      },
+      {
+        "name": "rollupAnalyticsPeriods",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "rollupanalyticsperiods-00013-kon",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/analytics/trackAnalyticsEvent.ts",
+            "matches": true,
+            "sha256": "8289bb8e3e265f95268f4596cfb5d26e067ff4764348d9d959d2aa8f243ab89e"
+          },
+          {
+            "file": "lib/analytics/trackAnalyticsEvent.js",
+            "matches": true,
+            "sha256": "6120ab8a83471981dfc177bdcbc7f9d38bf7fc97bd8d7f536e499bd7a890e943"
+          },
+          {
+            "file": "src/analytics/analyticsDate.ts",
+            "matches": true,
+            "sha256": "e1a3d35382262e76668ba0531a2291e8091edbd406c6b199bb3609b2a0153d79"
+          },
+          {
+            "file": "lib/analytics/analyticsDate.js",
+            "matches": true,
+            "sha256": "afe88c2ba9f81fb6d53f37593469e03a8008a383c7b139171be8e596143f6b32"
+          },
+          {
+            "file": "src/analytics/analyticsDetailRollup.ts",
+            "matches": true,
+            "sha256": "ca8f4270b0e1871930127d22ba7ec221bf93c918eda6547973d1a6639072ff7d"
+          },
+          {
+            "file": "lib/analytics/analyticsDetailRollup.js",
+            "matches": true,
+            "sha256": "dfa50fc694dcc7f857c706d9de438595fba4cb3d7647593ecfa6947f5a0f9b9e"
+          },
+          {
+            "file": "src/analytics/analyticsConsent.ts",
+            "matches": true,
+            "sha256": "81d1f571b28ff606b8b92a2bb451fe01f7c8a4ba9a458162a34c62a0434d63a4"
+          },
+          {
+            "file": "lib/analytics/analyticsConsent.js",
+            "matches": true,
+            "sha256": "eee87d64a8e3701f75448b13e85453cefc2f156f737aff32eaa0e5198fbe24dd"
+          },
+          {
+            "file": "src/analytics/analyticsSchemaGate.ts",
+            "matches": true,
+            "sha256": "8d2d0e7bca7ce88087e39484cc01de3fe6d311d0b3c0644b0752b253eb7b4e56"
+          },
+          {
+            "file": "lib/analytics/analyticsSchemaGate.js",
+            "matches": true,
+            "sha256": "7ef0e7cdd4c2ba4845277c5de86c6291f0bf9ed493e414351b3843ca519b11ac"
+          }
+        ]
+      },
+      {
+        "name": "rollupUserAnalyticsStats",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "rollupuseranalyticsstats-00012-kon",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/analytics/trackAnalyticsEvent.ts",
+            "matches": true,
+            "sha256": "8289bb8e3e265f95268f4596cfb5d26e067ff4764348d9d959d2aa8f243ab89e"
+          },
+          {
+            "file": "lib/analytics/trackAnalyticsEvent.js",
+            "matches": true,
+            "sha256": "6120ab8a83471981dfc177bdcbc7f9d38bf7fc97bd8d7f536e499bd7a890e943"
+          },
+          {
+            "file": "src/analytics/analyticsDate.ts",
+            "matches": true,
+            "sha256": "e1a3d35382262e76668ba0531a2291e8091edbd406c6b199bb3609b2a0153d79"
+          },
+          {
+            "file": "lib/analytics/analyticsDate.js",
+            "matches": true,
+            "sha256": "afe88c2ba9f81fb6d53f37593469e03a8008a383c7b139171be8e596143f6b32"
+          },
+          {
+            "file": "src/analytics/analyticsDetailRollup.ts",
+            "matches": true,
+            "sha256": "ca8f4270b0e1871930127d22ba7ec221bf93c918eda6547973d1a6639072ff7d"
+          },
+          {
+            "file": "lib/analytics/analyticsDetailRollup.js",
+            "matches": true,
+            "sha256": "dfa50fc694dcc7f857c706d9de438595fba4cb3d7647593ecfa6947f5a0f9b9e"
+          },
+          {
+            "file": "src/analytics/analyticsConsent.ts",
+            "matches": true,
+            "sha256": "81d1f571b28ff606b8b92a2bb451fe01f7c8a4ba9a458162a34c62a0434d63a4"
+          },
+          {
+            "file": "lib/analytics/analyticsConsent.js",
+            "matches": true,
+            "sha256": "eee87d64a8e3701f75448b13e85453cefc2f156f737aff32eaa0e5198fbe24dd"
+          },
+          {
+            "file": "src/analytics/analyticsSchemaGate.ts",
+            "matches": true,
+            "sha256": "8d2d0e7bca7ce88087e39484cc01de3fe6d311d0b3c0644b0752b253eb7b4e56"
+          },
+          {
+            "file": "lib/analytics/analyticsSchemaGate.js",
+            "matches": true,
+            "sha256": "7ef0e7cdd4c2ba4845277c5de86c6291f0bf9ed493e414351b3843ca519b11ac"
+          }
+        ]
+      },
+      {
+        "name": "trackDeletedUserAnalyticsAggregate",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "trackdeleteduseranalyticsaggregate-00008-puj",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/analytics/trackAnalyticsEvent.ts",
+            "matches": true,
+            "sha256": "8289bb8e3e265f95268f4596cfb5d26e067ff4764348d9d959d2aa8f243ab89e"
+          },
+          {
+            "file": "lib/analytics/trackAnalyticsEvent.js",
+            "matches": true,
+            "sha256": "6120ab8a83471981dfc177bdcbc7f9d38bf7fc97bd8d7f536e499bd7a890e943"
+          },
+          {
+            "file": "src/analytics/analyticsDate.ts",
+            "matches": true,
+            "sha256": "e1a3d35382262e76668ba0531a2291e8091edbd406c6b199bb3609b2a0153d79"
+          },
+          {
+            "file": "lib/analytics/analyticsDate.js",
+            "matches": true,
+            "sha256": "afe88c2ba9f81fb6d53f37593469e03a8008a383c7b139171be8e596143f6b32"
+          },
+          {
+            "file": "src/analytics/analyticsDetailRollup.ts",
+            "matches": true,
+            "sha256": "ca8f4270b0e1871930127d22ba7ec221bf93c918eda6547973d1a6639072ff7d"
+          },
+          {
+            "file": "lib/analytics/analyticsDetailRollup.js",
+            "matches": true,
+            "sha256": "dfa50fc694dcc7f857c706d9de438595fba4cb3d7647593ecfa6947f5a0f9b9e"
+          },
+          {
+            "file": "src/analytics/analyticsConsent.ts",
+            "matches": true,
+            "sha256": "81d1f571b28ff606b8b92a2bb451fe01f7c8a4ba9a458162a34c62a0434d63a4"
+          },
+          {
+            "file": "lib/analytics/analyticsConsent.js",
+            "matches": true,
+            "sha256": "eee87d64a8e3701f75448b13e85453cefc2f156f737aff32eaa0e5198fbe24dd"
+          },
+          {
+            "file": "src/analytics/analyticsSchemaGate.ts",
+            "matches": true,
+            "sha256": "8d2d0e7bca7ce88087e39484cc01de3fe6d311d0b3c0644b0752b253eb7b4e56"
+          },
+          {
+            "file": "lib/analytics/analyticsSchemaGate.js",
+            "matches": true,
+            "sha256": "7ef0e7cdd4c2ba4845277c5de86c6291f0bf9ed493e414351b3843ca519b11ac"
+          }
+        ]
+      },
+      {
+        "name": "trackRegisteredUserAnalyticsAggregate",
+        "state": "ACTIVE",
+        "onDeployUpdatePolicy": true,
+        "ready": true,
+        "traffic100": true,
+        "revision": "trackregistereduseranalyticsaggregate-00003-kuw",
+        "sourceMatches": true,
+        "files": [
+          {
+            "file": "src/analytics/trackAnalyticsEvent.ts",
+            "matches": true,
+            "sha256": "8289bb8e3e265f95268f4596cfb5d26e067ff4764348d9d959d2aa8f243ab89e"
+          },
+          {
+            "file": "lib/analytics/trackAnalyticsEvent.js",
+            "matches": true,
+            "sha256": "6120ab8a83471981dfc177bdcbc7f9d38bf7fc97bd8d7f536e499bd7a890e943"
+          },
+          {
+            "file": "src/analytics/analyticsDate.ts",
+            "matches": true,
+            "sha256": "e1a3d35382262e76668ba0531a2291e8091edbd406c6b199bb3609b2a0153d79"
+          },
+          {
+            "file": "lib/analytics/analyticsDate.js",
+            "matches": true,
+            "sha256": "afe88c2ba9f81fb6d53f37593469e03a8008a383c7b139171be8e596143f6b32"
+          },
+          {
+            "file": "src/analytics/analyticsDetailRollup.ts",
+            "matches": true,
+            "sha256": "ca8f4270b0e1871930127d22ba7ec221bf93c918eda6547973d1a6639072ff7d"
+          },
+          {
+            "file": "lib/analytics/analyticsDetailRollup.js",
+            "matches": true,
+            "sha256": "dfa50fc694dcc7f857c706d9de438595fba4cb3d7647593ecfa6947f5a0f9b9e"
+          },
+          {
+            "file": "src/analytics/analyticsConsent.ts",
+            "matches": true,
+            "sha256": "81d1f571b28ff606b8b92a2bb451fe01f7c8a4ba9a458162a34c62a0434d63a4"
+          },
+          {
+            "file": "lib/analytics/analyticsConsent.js",
+            "matches": true,
+            "sha256": "eee87d64a8e3701f75448b13e85453cefc2f156f737aff32eaa0e5198fbe24dd"
+          },
+          {
+            "file": "src/analytics/analyticsSchemaGate.ts",
+            "matches": true,
+            "sha256": "8d2d0e7bca7ce88087e39484cc01de3fe6d311d0b3c0644b0752b253eb7b4e56"
+          },
+          {
+            "file": "lib/analytics/analyticsSchemaGate.js",
+            "matches": true,
+            "sha256": "7ef0e7cdd4c2ba4845277c5de86c6291f0bf9ed493e414351b3843ca519b11ac"
+          }
+        ]
+      }
+    ],
+    "activeRules": {
+      "status": 403,
+      "boundary": "Active Rules API read unavailable; source and local emulator role checks do not establish deployed Rules equality."
+    },
+    "schedules": [
+      {
+        "lastAttemptTime": "2026-10-26T22:35:00.841313Z",
+        "name": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/jobs/firebase-schedule-rollupBannerMeasurementReports-europe-west3",
+        "schedule": "*/5 * * * *",
+        "state": "ENABLED",
+        "status": {},
+        "timeZone": "UTC"
+      },
+      {
+        "lastAttemptTime": "2026-10-26T22:01:02.418332Z",
+        "name": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/jobs/firebase-schedule-rollupAnalyticsPeriods-europe-west3",
+        "schedule": "1 * * * *",
+        "state": "ENABLED",
+        "status": {},
+        "timeZone": "Europe/Vienna"
+      },
+      {
+        "lastAttemptTime": "2026-10-26T22:01:03.110032Z",
+        "name": "projects/ukrainiancommunity-dbd5f/locations/europe-west3/jobs/firebase-schedule-rollupUserAnalyticsStats-europe-west3",
+        "schedule": "1 * * * *",
+        "state": "ENABLED",
+        "status": {},
+        "timeZone": "Europe/Vienna"
+      }
+    ],
+    "mutationsPerformed": false
+  },
+  "visualEvidenceViewed": [
+    "baseline-captures/7D536C8B-3439-4A71-AA03-50BC0D6819E3.png",
+    "baseline-captures/E2599E8F-021A-4C0D-AD39-3CD8E12B8B26.png",
+    "baseline-captures/D7866FB2-0860-4CFB-AFA0-EA0D401372D5.png",
+    "search-reproduction-captures/AD3EE191-CC8A-43F8-8C17-BA0AFC61C8B8.png",
+    "selection-captures/2F04D4A1-EA5B-43F8-AFA9-CA5F79ED9DBD.png",
+    "expanded-captures/0F086B6C-5B46-47CD-80A8-AF45D2767AC4.png",
+    "expanded-captures/F65A2ABB-8B8E-4B3F-B115-A280E2A755CB.png",
+    "expanded-captures/B487CF45-F228-40D4-BD6B-1C590CC9D127.png",
+    "expanded-captures/6A9E47B7-64F2-4D6C-9EB0-880F27371347.png",
+    "expanded-captures/E6187F30-2CFA-4808-8F96-57E63DCE402B.png",
+    "expanded-captures/E025A65F-23EE-4BC1-9817-CD97C9A6E59E.png",
+    "expanded-captures/97010736-FFED-4066-9D61-51A3B25713C9.png",
+    "final-controls-captures/3C0AC1B3-567A-4A97-9AFE-6F9E30D9A2EC.png"
+  ],
+  "implementationPlan": [
+    "Repair the complete search/clear/period interaction and preserve keyboard/scroll correctness; same full UI journey must pass.",
+    "Harden numeric decoding and snapshot semantics; test corrupt/nonfinite/out-of-range/boolean values without weakening existing assertions.",
+    "Compact overview and organize current vs period metrics; preserve inline banner summary and specific-object routes.",
+    "Clarify time zones/freshness,Today comparison and top20/search scope; remove clipped or technical messages.",
+    "Share bounded per-owner/session reads, cancel/coalesce superseded requests, verify late-response/identity boundaries.",
+    "Repeat all nested paths/controls, slow/error/partial/stale/retry and role matrices on final source; then signed physical acceptance and a user-requested TestFlight build."
+  ],
+  "closureBoundary": "This is an initial audit with verified findings and proposals, not a declaration that block15 is fixed or accepted. Physical signed-iPhone checking, several linked runtime interactions, full visual/device matrix and all finding fixes remain open. Four subsequent blocks remain after15.",
+  "previousBlockCorrection": {
+    "commit": "cefbf219",
+    "run": "https://github.com/Serlest/UkrainianCommunity/actions/runs/40406507593",
+    "cause": "Static validation failed on a raw English control label in the DEBUG startup-cache harness. Earlier report incorrectly said localization validation passed because a later shell command masked the exit code.",
+    "fix": "Declare fixture text with Text(verbatim:) inside the existing button label. Production behavior unchanged.",
+    "verified": [
+      "validate_localizations passed3410entries",
+      "release configuration128 and3property lists passed",
+      "same cold process-relaunch artwork test passed again"
+    ],
+    "hostedRecheck": "pending after push"
+  }
+}

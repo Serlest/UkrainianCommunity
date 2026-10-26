@@ -61,7 +61,9 @@ struct BannerReportAuditHarness: View {
     }
     var body: some View {
         NavigationStack {
-            if ProcessInfo.processInfo.environment["UITestBannerReportScope"] == "editor" {
+            if ProcessInfo.processInfo.environment["UITestAnalytics15State"] != nil {
+                OwnerAnalyticsAudit15Harness()
+            } else if ProcessInfo.processInfo.environment["UITestBannerReportScope"] == "editor" {
                 FeaturedBannerEditorView(repository: MockFeaturedBannerRepository(banners: Self.banners()),
                     mode: .edit(Self.banners()[0]), measurementRepository: BannerReportAuditRepository()) {}
             } else if ProcessInfo.processInfo.environment["UITestBannerReportScope"] == "management" {

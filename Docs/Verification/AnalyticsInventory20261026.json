@@ -1,0 +1,532 @@
+{
+  "block": 15,
+  "totalBlocks": 19,
+  "name": "Аналітика",
+  "status": "initial_audit_findings_ready_for_implementation_validation_not_closed",
+  "baselineCommit": "27d2a9e9",
+  "roles": {
+    "owner": "visible; direct route allowed with active verified account, current legal acceptance and required MFA",
+    "appAdmin": "hidden; direct route denied",
+    "organizationOwner": "hidden; organization membership does not grant platform analytics",
+    "organizationAdmin": "hidden; organization membership does not grant platform analytics",
+    "organizationEditor": "hidden; organization membership does not grant platform analytics",
+    "member": "hidden; direct route denied",
+    "warnedMember": "hidden; direct route denied",
+    "blockedMember": "hidden; platform/account gate and server deny",
+    "guest": "hidden; guest profile remains usable",
+    "ownerWithoutMFA": "privileged login gate; server deny",
+    "deactivatedOwner": "account gate; server deny"
+  },
+  "inventoryMethod": "Routes and call sites, not file-name matching. Each group expands into applicable states and paths. No fixes authorized by this audit artifact.",
+  "groups": [
+    {
+      "id": "A15-ENTRY",
+      "scenario": "Profile entry, owner role and direct route policy",
+      "path": "ProfileViews.swift; ProfileAccessPolicy.swift; Firestore Rules",
+      "status": "verified",
+      "evidence": [
+        "Code review and baseline62unit checks",
+        "server-tests.log:75 passed",
+        "role-rules-tests.log:12 passed",
+        "production-summary.json; production-details.json; deployed-analytics-proof.json"
+      ],
+      "applicableRoles": [
+        "owner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "warnedMember",
+        "blockedMember",
+        "guest",
+        "ownerWithoutMFA",
+        "deactivatedOwner"
+      ],
+      "states": [
+        "owner route opens",
+        "non-owner usable profile and hidden entry",
+        "route policy and local Rules read/write matrix"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-ROOT-LOAD",
+      "scenario": "Initial loading, all six independent public/private reads, empty and error states",
+      "path": "OwnerAnalyticsView -> ViewModel -> fetchSnapshot + account count + banner overview",
+      "status": "verified",
+      "evidence": [
+        "ExpandedWindowsAndRoles.xcresult: corresponding isolated UI state families passed",
+        "BaselineCodeAndMainUI.xcresult: matching existing route/appearance scenarios",
+        "Code/repository path reviewed; runtime screenshots examined"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "loading",
+        "empty",
+        "network error",
+        "partial source availability"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-PERIOD",
+      "scenario": "Today/7/30, cache boundaries, midnight, foreground and selected-period race",
+      "path": "OwnerAnalyticsViewModel + AnalyticsRefreshLifecycle",
+      "status": "open",
+      "evidence": [
+        "Fresh overview seven/thirty selection passed",
+        "SearchActualVisibleFrame.xcresult: search/clear/visible7day activation fails; actual UI remainsToday; precise touch/keyboard root cause not yet fixed"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-ACCOUNTS",
+      "scenario": "Current accounts, registrations/deletions, blocked/deactivated users and per-state distribution",
+      "path": "users.count + analyticsUserStats roots",
+      "status": "open",
+      "evidence": [
+        "Source/runtime reviewed; concrete improvement/hardening findings in AnalyticsAudit20261026.json; no product fixes approved yet"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-ACTIVITY",
+      "scenario": "Tracked active windows, consent and account-count distinction",
+      "path": "analyticsUserActivity -> hourly user rollup",
+      "status": "verified",
+      "evidence": [
+        "Code review and baseline62unit checks",
+        "server-tests.log:75 passed",
+        "role-rules-tests.log:12 passed",
+        "production-summary.json; production-details.json; deployed-analytics-proof.json"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "opt-in/out contract",
+        "deduplicated activity",
+        "tracked versus operational user semantics"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-SUMMARY",
+      "scenario": "View subtotals, unique content regions, prior-period comparisons and zero baseline",
+      "path": "analyticsDailyStats -> makeSummaryStats",
+      "status": "verified",
+      "evidence": [
+        "Code review and baseline62unit checks",
+        "server-tests.log:75 passed",
+        "role-rules-tests.log:12 passed",
+        "production-summary.json; production-details.json; deployed-analytics-proof.json"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "current/previous arithmetic",
+        "zero periods",
+        "daily/region sum reconciliation"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-CHART",
+      "scenario": "Metric picker, day selection, accessibility selection and date/time zone",
+      "path": "OwnerAnalyticsTrendChart",
+      "status": "open",
+      "evidence": [
+        "Fresh overview seven/thirty selection passed",
+        "SearchActualVisibleFrame.xcresult: search/clear/visible7day activation fails; actual UI remainsToday; precise touch/keyboard root cause not yet fixed"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-SEARCH",
+      "scenario": "Query/clear/no match, supplemental results, filtered sections and scroll-to-picker",
+      "path": "OwnerAnalyticsViewModel.LocalSearchMatcher",
+      "status": "open",
+      "evidence": [
+        "Fresh overview seven/thirty selection passed",
+        "SearchActualVisibleFrame.xcresult: search/clear/visible7day activation fails; actual UI remainsToday; precise touch/keyboard root cause not yet fixed"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-ACTIONS",
+      "scenario": "Likes/bookmarks/registrations/cancellations/follows/unfollows and dedup proofs",
+      "path": "FirstPartyAnalyticsService -> outbox -> trackAnalyticsEvent",
+      "status": "verified",
+      "evidence": [
+        "Code review and baseline62unit checks",
+        "server-tests.log:75 passed",
+        "role-rules-tests.log:12 passed",
+        "production-summary.json; production-details.json; deployed-analytics-proof.json"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "canonical metadata",
+        "idempotent delivery",
+        "action proof and consent fences"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-POPULAR",
+      "scenario": "Per-type ranking, top20 scope, show more/less and exact ID detail links",
+      "path": "analyticsTopContent roots; rollup20pertype",
+      "status": "open",
+      "evidence": [
+        "Source/runtime reviewed; concrete improvement/hardening findings in AnalyticsAudit20261026.json; no product fixes approved yet"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-REGIONS",
+      "scenario": "Content-assigned regions, allAustria vs federalState, source identity and local sorting",
+      "path": "analyticsRegionStats -> mergedRegionStats",
+      "status": "verified",
+      "evidence": [
+        "Code review and baseline62unit checks",
+        "server-tests.log:75 passed",
+        "role-rules-tests.log:12 passed",
+        "production-summary.json; production-details.json; deployed-analytics-proof.json"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "content-assigned region",
+        "canonical merge",
+        "sum reconciliation"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-NEWS-DETAIL",
+      "scenario": "News details: header, metrics, freshness, region rows, periods, retry and empty",
+      "path": "analyticsContentStats/{period}/items/news_ID",
+      "status": "verified",
+      "evidence": [
+        "ExpandedWindowsAndRoles.xcresult: corresponding isolated UI state families passed",
+        "BaselineCodeAndMainUI.xcresult: matching existing route/appearance scenarios",
+        "Code/repository path reviewed; runtime screenshots examined"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal header/metrics/lower regional rows"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-EVENT-DETAIL",
+      "scenario": "Event details: registrations/cancellations, ratio semantics, regions, periods and empty/error",
+      "path": "analyticsContentStats/{period}/items/event_ID",
+      "status": "verified",
+      "evidence": [
+        "ExpandedWindowsAndRoles.xcresult: corresponding isolated UI state families passed",
+        "BaselineCodeAndMainUI.xcresult: matching existing route/appearance scenarios",
+        "Code/repository path reviewed; runtime screenshots examined"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal header/metrics/regions",
+        "empty",
+        "network error"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-ORG-DETAIL",
+      "scenario": "Organization details: profile views/follows/bookmarks/content totals, search, regions and child links",
+      "path": "analyticsOrganizationStats/{period}/organizations/ID",
+      "status": "verified",
+      "evidence": [
+        "ExpandedWindowsAndRoles.xcresult: corresponding isolated UI state families passed",
+        "BaselineCodeAndMainUI.xcresult: matching existing route/appearance scenarios",
+        "Code/repository path reviewed; runtime screenshots examined"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal header/metrics/lower lists/regions",
+        "search no-match and clear"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-ORG-CHILDREN",
+      "scenario": "Organization -> news/event analytics; preserve selected period and back stack",
+      "path": "AnalyticsOrganizationTopContentSection -> AnalyticsContentDetailView",
+      "status": "open",
+      "evidence": [
+        "Exact IDs and period propagation source reviewed; linked child-navigation UI after implementation remains to be closed"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-BANNER-SUMMARY",
+      "scenario": "Inline total impressions/clicks/CTR, UTC, day chart/disclosure and errors",
+      "path": "BannerAnalyticsOverviewSection; per-banner editor reports remain block14",
+      "status": "verified",
+      "evidence": [
+        "ExpandedWindowsAndRoles.xcresult: corresponding isolated UI state families passed",
+        "BaselineCodeAndMainUI.xcresult: matching existing route/appearance scenarios",
+        "Code/repository path reviewed; runtime screenshots examined"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "inline overview wiring",
+        "period/UTC label",
+        "daily chart/disclosure source reviewed"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-FRESHNESS",
+      "scenario": "Partial/stale/empty distinction, source timestamps and actual update frequency",
+      "path": "snapshot.unavailableSources + root generatedAt + hourly/5min schedules",
+      "status": "open",
+      "evidence": [
+        "Source/runtime reviewed; concrete improvement/hardening findings in AnalyticsAudit20261026.json; no product fixes approved yet"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-FAILURE",
+      "scenario": "Cancellation, duplicate refresh, late response, session/account/role boundary and schema validation",
+      "path": "ViewModels + profile access identity + repository payload resolver",
+      "status": "open",
+      "evidence": [
+        "Source/runtime reviewed; concrete improvement/hardening findings in AnalyticsAudit20261026.json; no product fixes approved yet"
+      ],
+      "applicableRoles": [
+        "owner",
+        "appAdmin",
+        "organizationOwner",
+        "organizationAdmin",
+        "organizationEditor",
+        "member",
+        "warnedMember",
+        "blockedMember",
+        "guest",
+        "ownerWithoutMFA",
+        "deactivatedOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-VISUAL",
+      "scenario": "All unique screens, uk/de, light/dark, normal/max text, lower controls, keyboard and common glass components",
+      "path": "runtime snapshots; no fixture counted as physical device",
+      "status": "open",
+      "evidence": [
+        "Source/runtime reviewed; concrete improvement/hardening findings in AnalyticsAudit20261026.json; no product fixes approved yet"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-SCALE",
+      "scenario": "Bounded read counts/ranges, top limits, shared/session cache lifetime, no owner-screen listeners",
+      "path": "repository query inventory and read-only Mac timings",
+      "status": "open",
+      "evidence": [
+        "Source/runtime reviewed; concrete improvement/hardening findings in AnalyticsAudit20261026.json; no product fixes approved yet"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-LIVE",
+      "scenario": "Actual daily sums/current users/region sums/rollup days, deployed source/runtime and active rules read boundary",
+      "path": "production readbacks; no production analytics events or account mutations",
+      "status": "verified",
+      "evidence": [
+        "Code review and baseline62unit checks",
+        "server-tests.log:75 passed",
+        "role-rules-tests.log:12 passed",
+        "production-summary.json; production-details.json; deployed-analytics-proof.json"
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "actual aggregate readback",
+        "sampled detail identity/generation",
+        "deployed code and runtime readiness"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    },
+    {
+      "id": "A15-DELIVERY",
+      "scenario": "Source, local tests, production readback, physical acceptance, CI and TestFlight separately",
+      "path": "No new binary requested for initial audit",
+      "status": "not_applicable_with_reason",
+      "evidence": [
+        "Initial read-only audit; no new TestFlight/public release requested. Device acceptance is a separate required implementation gate."
+      ],
+      "applicableRoles": [
+        "appOwner"
+      ],
+      "states": [
+        "normal",
+        "loading",
+        "empty",
+        "error/retry",
+        "period change",
+        "return/reopen"
+      ],
+      "verificationBoundary": "Source/contract and the explicitly listed local simulator/emulator/readback states; physical signed-build acceptance remains separate. A group is not all-role/device/interaction completion."
+    }
+  ],
+  "nestedPresentations": [
+    "root overview",
+    "news detail",
+    "event detail",
+    "organization detail",
+    "organization-to-news/event detail",
+    "trend metric menu",
+    "trend day selection",
+    "period segmented control or accessibility menu",
+    "show more/less groups",
+    "banner daily disclosure",
+    "native search keyboard/clear/submit",
+    "pull-to-refresh"
+  ],
+  "excluded": [
+    "Per-banner editor/counter/individual export audited in14; shared overview remains included",
+    "Publication automation control: block16",
+    "System logs and legal-document administration",
+    "Changing analytics consent requirements",
+    "Seasonal theme",
+    "Public release",
+    "New TestFlight build"
+  ],
+  "remainingValidation": [
+    "Reproduce and fix search->period interaction, then pass the same full journey",
+    "Organization->news/event child navigation and return with preserved period",
+    "Actual main graph metric menu/day selection, expanded ranking/user-region lists, refresh/retry and session-switch visual paths after changes",
+    "Physical signed build including both languages/themes, large text and real protected Firestore reads",
+    "Narrow/landscape/reduced transparency device matrix",
+    "Active deployed Rules digest could not be read (403); emulator Rules policy is verified separately"
+  ]
+}

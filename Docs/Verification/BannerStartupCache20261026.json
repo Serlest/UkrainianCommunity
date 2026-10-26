@@ -116,5 +116,13 @@
     "Public release",
     "Server deployment",
     "New TestFlight upload"
-  ]
+  ],
+  "ciFollowUp": {
+    "failedRun": 40406507593,
+    "cause": "Raw English DEBUG fixture label rejected by localization validator; previous static-pass statement corrected.",
+    "fixCommit": "cefbf219",
+    "localizationRecheck": "3410entries passed",
+    "sameColdStartupUIRecheck": "FullUnitsFreshPeriodAndStartup.xcresult passed",
+    "hostedStatus": "pending after audit/fix push"
+  }
 }

@@ -2340,10 +2340,48 @@ final class UkrainianCommunityUITests: XCTestCase {
 
         let sevenDayButton = app.buttons["7 Tage"].firstMatch
         XCTAssertTrue(sevenDayButton.waitForExistence(timeout: 5))
+        // Clearing a filtered result can leave the scroll position near the
+        // bottom. Bring the picker into view and verify the actual selection.
+        let window = app.frame
+        let headerBottom = app.staticTexts["Analytik"].firstMatch.frame.maxY
+        for _ in 0..<14 {
+            let frame = sevenDayButton.frame
+            if sevenDayButton.isHittable && window.contains(frame) && frame.minY > headerBottom { break }
+            app.swipeDown()
+        }
+        XCTAssertTrue(sevenDayButton.isHittable)
+        XCTAssertTrue(window.contains(sevenDayButton.frame))
+        XCTAssertGreaterThan(sevenDayButton.frame.minY, headerBottom)
+        var lastPickerFrame = sevenDayButton.frame
+        var stableSamples = 0
+        for _ in 0..<15 {
+            Thread.sleep(forTimeInterval: 0.2)
+            let currentFrame = sevenDayButton.frame
+            stableSamples = currentFrame == lastPickerFrame ? stableSamples + 1 : 0
+            lastPickerFrame = currentFrame
+            if stableSamples >= 3 { break }
+        }
         sevenDayButton.tap()
+        let selectionExpectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: sevenDayButton)
+        let didSelectPeriod = XCTWaiter.wait(for: [selectionExpectation], timeout: 3) == .completed
+        if !didSelectPeriod {
+            attachScreenshot(named: "Analytics period selection did not complete", from: app)
+            let diagnostic = XCTAttachment(string: app.debugDescription)
+            diagnostic.name = "Analytics period selection UI state"
+            diagnostic.lifetime = .keepAlways
+            add(diagnostic)
+        }
+        XCTAssertTrue(didSelectPeriod)
 
         let trendChart = element("ownerAnalytics.trendChart", in: app)
         scrollToElement(trendChart, in: app, maxSwipes: 10)
+        if !trendChart.exists {
+            attachScreenshot(named: "Analytics missing chart after search and period change", from: app)
+            let diagnostic = XCTAttachment(string: app.debugDescription)
+            diagnostic.name = "Analytics missing chart UI state"
+            diagnostic.lifetime = .keepAlways
+            add(diagnostic)
+        }
         XCTAssertTrue(trendChart.exists)
 
         let contentLink = element("ownerAnalytics.content.news.news-language-courses-update", in: app)

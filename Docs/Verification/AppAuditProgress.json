@@ -289,8 +289,22 @@
     {
       "number": 15,
       "name": "Аналитика",
-      "status": "pending",
-      "openChecks": []
+      "status": "initial_audit_findings_ready_for_implementation_validation_not_closed",
+      "openChecks": [
+        "A15-F01",
+        "A15-F02",
+        "A15-F03",
+        "A15-F04",
+        "A15-F05",
+        "A15-F06",
+        "A15-F07",
+        "A15-ORG-CHILDREN",
+        "A15-PHYSICAL-MATRIX"
+      ],
+      "inventory": "Docs/Verification/AnalyticsInventory20261026.json",
+      "report": "Docs/Verification/AnalyticsAudit20261026.json",
+      "testFlightChanged": false,
+      "serverFunctionsChanged": false
     },
     {
       "number": 16,
@@ -420,7 +434,7 @@
   "nextNewBlock": 15,
   "completionCounterDefinition": "Blocks closed against the full agreed method; implemented fixes and separate acceptance/delivery gates are counted independently.",
   "reconciliationReport": "Docs/Verification/AuditCompletenessReconciliation20261025.json",
-  "nextAction": "TestFlight127 available internally with blocks1–14 and subsequent artwork-size/text-only-countdown corrections. User acceptance and physical matrix pending; hosted source/build-number CI still running. Block15 requires user instruction.",
+  "nextAction": "Review block15 findings and implement the approved improvements; do not start16 until15 is verified/accepted.",
   "closureProgress": {
     "report": "Docs/Verification/AuditClosure20261025.json",
     "closedScenarioGroups": 27,
@@ -486,5 +500,5 @@
       "boundary": "Hosted validation of exact product source, build127 settings. Build128 changes only build number. Running is not passed."
     }
   },
-  "currentBlock": 14
+  "currentBlock": 15
 }
